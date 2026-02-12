@@ -1,0 +1,8 @@
+{
+  "workflows": [
+    "sales_process",
+    "project_gate_review",
+    "expense_approval",
+    "deadlock_detection"
+  ]
+}

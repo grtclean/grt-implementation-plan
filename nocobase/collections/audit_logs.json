@@ -1,0 +1,81 @@
+{
+  "name": "audit_logs",
+  "title": "审计日志",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "user",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "用户",
+        "x-component": "RecordPicker"
+      },
+      "target": "employees"
+    },
+    {
+      "name": "action",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "操作",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "resource",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "资源",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "resourceId",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "资源ID",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "oldValue",
+      "type": "json",
+      "interface": "json",
+      "uiSchema": {
+        "title": "原值",
+        "x-component": "Input.TextArea"
+      }
+    },
+    {
+      "name": "newValue",
+      "type": "json",
+      "interface": "json",
+      "uiSchema": {
+        "title": "新值",
+        "x-component": "Input.TextArea"
+      }
+    },
+    {
+      "name": "ip",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "IP地址",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "timestamp",
+      "type": "datetime",
+      "interface": "datetime",
+      "uiSchema": {
+        "title": "时间戳",
+        "x-component": "DatePicker"
+      }
+    }
+  ]
+}

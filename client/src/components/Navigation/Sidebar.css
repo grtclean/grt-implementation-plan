@@ -1,0 +1,97 @@
+/**
+ * 侧边栏样式
+ */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background);
+  border-right: 1px solid var(--border);
+  width: 250px;
+  max-width: 100%;
+}
+
+.sidebar nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar nav li {
+  margin: 0;
+}
+
+.sidebar nav button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+  color: var(--foreground);
+}
+
+.sidebar nav button:hover {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.sidebar nav button:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.sidebar nav button:active {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* 滚动条样式 */
+.sidebar nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar nav::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.sidebar nav::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 200px;
+  }
+}
+
+@media (max-width: 640px) {
+  .sidebar {
+    position: fixed;
+    left: -250px;
+    top: 0;
+    height: 100vh;
+    z-index: 40;
+    transition: left 0.3s ease-in-out;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+}

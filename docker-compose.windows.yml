@@ -1,0 +1,166 @@
+# GRT智能系统 - Windows Docker Compose配置
+# 版本: v3.1.9
+# 适用于: Windows 10/11 + Docker Desktop
+
+version: '3.8'
+
+services:
+  # ==========================================
+  # MySQL数据库服务
+  # ==========================================
+  mysql:
+    image: mysql:8.0
+    container_name: grt-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-grt_db}
+      MYSQL_USER: ${MYSQL_USER:-grt}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-grt_password}
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      # Windows路径格式
+      - grt-mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+      - ./docker/mysql/conf:/etc/mysql/conf.d:ro
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --max_connections=500
+      --innodb_buffer_pool_size=256M
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - grt-network
+
+  # ==========================================
+  # Redis缓存服务
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: grt-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - grt-redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - grt-network
+
+  # ==========================================
+  # GRT应用服务
+  # ==========================================
+  grt-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NODE_ENV=production
+    container_name: grt-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: mysql://${MYSQL_USER:-grt}:${MYSQL_PASSWORD:-grt_password}@mysql:3306/${MYSQL_DATABASE:-grt_db}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
+      VITE_APP_ID: ${VITE_APP_ID:-grt-system}
+      VITE_APP_TITLE: ${VITE_APP_TITLE:-GRT智能系统}
+      TZ: Asia/Shanghai
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      # 上传文件持久化
+      - grt-uploads:/app/uploads
+      # 日志持久化
+      - grt-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - grt-network
+
+  # ==========================================
+  # Adminer数据库管理工具（开发环境）
+  # ==========================================
+  adminer:
+    image: adminer:latest
+    container_name: grt-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+      ADMINER_DESIGN: nette
+    depends_on:
+      - mysql
+    profiles:
+      - dev
+    networks:
+      - grt-network
+
+  # ==========================================
+  # Nginx反向代理（生产环境）
+  # ==========================================
+  nginx:
+    image: nginx:alpine
+    container_name: grt-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - grt-nginx-logs:/var/log/nginx
+    depends_on:
+      - grt-app
+    profiles:
+      - prod
+    networks:
+      - grt-network
+
+# ==========================================
+# 数据卷定义
+# ==========================================
+volumes:
+  grt-mysql-data:
+    driver: local
+  grt-redis-data:
+    driver: local
+  grt-uploads:
+    driver: local
+  grt-logs:
+    driver: local
+  grt-nginx-logs:
+    driver: local
+
+# ==========================================
+# 网络定义
+# ==========================================
+networks:
+  grt-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

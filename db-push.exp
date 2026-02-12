@@ -1,0 +1,25 @@
+#!/usr/bin/expect -f
+set timeout 300
+spawn pnpm db:push
+while {1} {
+    expect {
+        "create table" {
+            send "\r"
+        }
+        "rename" {
+            send "\r"
+        }
+        "alter" {
+            send "\r"
+        }
+        "drop" {
+            send "\r"
+        }
+        eof {
+            break
+        }
+        timeout {
+            break
+        }
+    }
+}

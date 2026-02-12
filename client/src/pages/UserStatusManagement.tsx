@@ -1,0 +1,576 @@
+/**
+ * 用户状态管理页面
+ * v1.3.94 - 管理员查看所有用户的Profile设置状态
+ */
+
+import { useState } from "react";
+import Layout from "@/components/Layout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { trpc } from "@/lib/trpc";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Users,
+  Search,
+  RefreshCw,
+  Settings,
+  Bell,
+  Calendar,
+  BookOpen,
+  Target,
+  FileText,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Mail,
+  Eye,
+  Filter,
+  Download,
+  UserCheck,
+  AlertTriangle,
+} from "lucide-react";
+
+// BU定义
+const BU_OPTIONS = [
+  { code: "BU1", name: "海外事业部" },
+  { code: "BU2", name: "商用车事业部" },
+  { code: "BU3", name: "乘用车事业部" },
+  { code: "BU4", name: "半导体事业部" },
+  { code: "BU5", name: "工业通用事业部" },
+  { code: "FUNC", name: "职能部门" },
+];
+
+// 模拟用户状态数据（实际应从API获取）
+const MOCK_USER_STATUS = [
+  {
+    id: "1",
+    employeeId: "GRT001",
+    name: "侯亚东",
+    department: "总裁办",
+    buCode: "FUNC",
+    email: "hou.yadong@grt.com",
+    hasProfile: true,
+    settings: {
+      workPlanEnabled: true,
+      workPlanFrequency: "daily",
+      trainingEnabled: true,
+      projectEnabled: true,
+      performanceEnabled: true,
+      reportEnabled: true,
+      taskReminderEnabled: true,
+      taskReminderTime: "15:00",
+      emailEnabled: true,
+    },
+    lastActive: "2025-02-04T10:30:00Z",
+    pendingTasks: 3,
+    overdueTasks: 0,
+  },
+  {
+    id: "2",
+    employeeId: "GRT003",
+    name: "侯亚琴",
+    department: "事业三部",
+    buCode: "BU3",
+    email: "hou.yaqin@grt.com",
+    hasProfile: true,
+    settings: {
+      workPlanEnabled: true,
+      workPlanFrequency: "weekly",
+      trainingEnabled: true,
+      projectEnabled: true,
+      performanceEnabled: false,
+      reportEnabled: true,
+      taskReminderEnabled: true,
+      taskReminderTime: "14:00",
+      emailEnabled: true,
+    },
+    lastActive: "2025-02-04T09:15:00Z",
+    pendingTasks: 5,
+    overdueTasks: 1,
+  },
+  {
+    id: "3",
+    employeeId: "GRT004",
+    name: "戴晓燕",
+    department: "事业一部",
+    buCode: "BU1",
+    email: "dai.xiaoyan@grt.com",
+    hasProfile: false,
+    settings: null,
+    lastActive: null,
+    pendingTasks: 0,
+    overdueTasks: 0,
+  },
+  {
+    id: "4",
+    employeeId: "GRT006",
+    name: "洪希龙",
+    department: "事业二部",
+    buCode: "BU2",
+    email: "hong.xilong@grt.com",
+    hasProfile: true,
+    settings: {
+      workPlanEnabled: true,
+      workPlanFrequency: "daily",
+      trainingEnabled: false,
+      projectEnabled: true,
+      performanceEnabled: true,
+      reportEnabled: false,
+      taskReminderEnabled: false,
+      taskReminderTime: "15:00",
+      emailEnabled: false,
+    },
+    lastActive: "2025-02-03T16:45:00Z",
+    pendingTasks: 2,
+    overdueTasks: 0,
+  },
+  {
+    id: "5",
+    employeeId: "GRT007",
+    name: "孙坚",
+    department: "事业三部",
+    buCode: "BU3",
+    email: "sun.jian@grt.com",
+    hasProfile: true,
+    settings: {
+      workPlanEnabled: true,
+      workPlanFrequency: "daily",
+      trainingEnabled: true,
+      projectEnabled: true,
+      performanceEnabled: true,
+      reportEnabled: true,
+      taskReminderEnabled: true,
+      taskReminderTime: "15:00",
+      emailEnabled: true,
+    },
+    lastActive: "2025-02-04T11:00:00Z",
+    pendingTasks: 4,
+    overdueTasks: 2,
+  },
+];
+
+export default function UserStatusManagement() {
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedBU, setSelectedBU] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedUser, setSelectedUser] = useState<typeof MOCK_USER_STATUS[0] | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // 过滤用户
+  const filteredUsers = MOCK_USER_STATUS.filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.department.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesBU = selectedBU === "all" || user.buCode === selectedBU;
+    
+    const matchesStatus =
+      selectedStatus === "all" ||
+      (selectedStatus === "configured" && user.hasProfile) ||
+      (selectedStatus === "unconfigured" && !user.hasProfile) ||
+      (selectedStatus === "overdue" && user.overdueTasks > 0);
+    
+    return matchesSearch && matchesBU && matchesStatus;
+  });
+
+  // 统计数据
+  const stats = {
+    total: MOCK_USER_STATUS.length,
+    configured: MOCK_USER_STATUS.filter((u) => u.hasProfile).length,
+    unconfigured: MOCK_USER_STATUS.filter((u) => !u.hasProfile).length,
+    withOverdue: MOCK_USER_STATUS.filter((u) => u.overdueTasks > 0).length,
+    reminderEnabled: MOCK_USER_STATUS.filter((u) => u.settings?.taskReminderEnabled).length,
+  };
+
+  // 刷新数据
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    // 模拟刷新
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setIsRefreshing(false);
+    toast({
+      title: "数据已刷新",
+      description: "用户状态数据已更新",
+    });
+  };
+
+  // 导出数据
+  const handleExport = () => {
+    toast({
+      title: "导出成功",
+      description: "用户状态数据已导出为Excel文件",
+    });
+  };
+
+  // 发送配置提醒
+  const handleSendReminder = (user: typeof MOCK_USER_STATUS[0]) => {
+    toast({
+      title: "提醒已发送",
+      description: `已向 ${user.name} 发送Profile配置提醒`,
+    });
+  };
+
+  return (
+    <Layout>
+      <div className="space-y-6">
+        {/* 页面标题 */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+              <Users className="h-8 w-8 text-primary" />
+              用户状态管理
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              查看和管理所有用户的Profile设置状态
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+              刷新
+            </Button>
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              导出
+            </Button>
+          </div>
+        </div>
+
+        {/* 统计卡片 */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">总用户数</p>
+                  <p className="text-2xl font-bold">{stats.total}</p>
+                </div>
+                <Users className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">已配置</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.configured}</p>
+                </div>
+                <UserCheck className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">未配置</p>
+                  <p className="text-2xl font-bold text-yellow-600">{stats.unconfigured}</p>
+                </div>
+                <Settings className="h-8 w-8 text-yellow-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">有逾期任务</p>
+                  <p className="text-2xl font-bold text-red-600">{stats.withOverdue}</p>
+                </div>
+                <AlertTriangle className="h-8 w-8 text-red-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">已启用提醒</p>
+                  <p className="text-2xl font-bold text-blue-600">{stats.reminderEnabled}</p>
+                </div>
+                <Bell className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 筛选和搜索 */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="搜索姓名、工号或部门..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <Select value={selectedBU} onValueChange={setSelectedBU}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="选择事业部" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部事业部</SelectItem>
+                  {BU_OPTIONS.map((bu) => (
+                    <SelectItem key={bu.code} value={bu.code}>
+                      {bu.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="选择状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部状态</SelectItem>
+                  <SelectItem value="configured">已配置</SelectItem>
+                  <SelectItem value="unconfigured">未配置</SelectItem>
+                  <SelectItem value="overdue">有逾期任务</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 用户列表 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>用户列表</CardTitle>
+            <CardDescription>
+              共 {filteredUsers.length} 个用户
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>工号</TableHead>
+                  <TableHead>姓名</TableHead>
+                  <TableHead>部门</TableHead>
+                  <TableHead>事业部</TableHead>
+                  <TableHead>Profile状态</TableHead>
+                  <TableHead>任务提醒</TableHead>
+                  <TableHead>待办/逾期</TableHead>
+                  <TableHead>最后活跃</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-mono">{user.employeeId}</TableCell>
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell>{user.department}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {BU_OPTIONS.find((b) => b.code === user.buCode)?.name || user.buCode}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {user.hasProfile ? (
+                        <Badge className="bg-green-100 text-green-800">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          已配置
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          未配置
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {user.settings?.taskReminderEnabled ? (
+                        <div className="flex items-center gap-1 text-sm">
+                          <Bell className="h-3 w-3 text-green-600" />
+                          <span>{user.settings.taskReminderTime}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">未启用</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{user.pendingTasks}</Badge>
+                        {user.overdueTasks > 0 && (
+                          <Badge variant="destructive">{user.overdueTasks}</Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {user.lastActive ? (
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(user.lastActive).toLocaleString("zh-CN", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">从未登录</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedUser(user)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle>用户详情 - {user.name}</DialogTitle>
+                              <DialogDescription>
+                                工号: {user.employeeId} | 部门: {user.department}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 mt-4">
+                              {user.settings ? (
+                                <>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                      <h4 className="font-medium flex items-center gap-2">
+                                        <Calendar className="h-4 w-4" />
+                                        计划设置
+                                      </h4>
+                                      <div className="text-sm space-y-1">
+                                        <div className="flex justify-between">
+                                          <span>工作计划</span>
+                                          <Badge variant={user.settings.workPlanEnabled ? "default" : "secondary"}>
+                                            {user.settings.workPlanEnabled ? `已启用 (${user.settings.workPlanFrequency === 'daily' ? '日' : '周'})` : "未启用"}
+                                          </Badge>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>培训计划</span>
+                                          <Badge variant={user.settings.trainingEnabled ? "default" : "secondary"}>
+                                            {user.settings.trainingEnabled ? "已启用" : "未启用"}
+                                          </Badge>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>项目计划</span>
+                                          <Badge variant={user.settings.projectEnabled ? "default" : "secondary"}>
+                                            {user.settings.projectEnabled ? "已启用" : "未启用"}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <h4 className="font-medium flex items-center gap-2">
+                                        <Target className="h-4 w-4" />
+                                        绩效与报告
+                                      </h4>
+                                      <div className="text-sm space-y-1">
+                                        <div className="flex justify-between">
+                                          <span>绩效追踪</span>
+                                          <Badge variant={user.settings.performanceEnabled ? "default" : "secondary"}>
+                                            {user.settings.performanceEnabled ? "已启用" : "未启用"}
+                                          </Badge>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>报告提醒</span>
+                                          <Badge variant={user.settings.reportEnabled ? "default" : "secondary"}>
+                                            {user.settings.reportEnabled ? "已启用" : "未启用"}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium flex items-center gap-2">
+                                      <Bell className="h-4 w-4" />
+                                      提醒设置
+                                    </h4>
+                                    <div className="text-sm space-y-1">
+                                      <div className="flex justify-between">
+                                        <span>任务提醒</span>
+                                        <Badge variant={user.settings.taskReminderEnabled ? "default" : "secondary"}>
+                                          {user.settings.taskReminderEnabled ? `已启用 (${user.settings.taskReminderTime})` : "未启用"}
+                                        </Badge>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>邮件通知</span>
+                                        <Badge variant={user.settings.emailEnabled ? "default" : "secondary"}>
+                                          {user.settings.emailEnabled ? "已启用" : "未启用"}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="text-center py-8 text-muted-foreground">
+                                  <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                  <p>该用户尚未配置Profile</p>
+                                  <Button
+                                    variant="outline"
+                                    className="mt-4"
+                                    onClick={() => handleSendReminder(user)}
+                                  >
+                                    <Mail className="h-4 w-4 mr-2" />
+                                    发送配置提醒
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        {!user.hasProfile && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSendReminder(user)}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
+  );
+}

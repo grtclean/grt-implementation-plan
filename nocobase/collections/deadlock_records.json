@@ -1,0 +1,76 @@
+{
+  "name": "deadlock_records",
+  "title": "死锁记录",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "detectedAt",
+      "type": "datetime",
+      "interface": "datetime",
+      "uiSchema": {
+        "title": "检测时间",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "resources",
+      "type": "json",
+      "interface": "json",
+      "uiSchema": {
+        "title": "涉及资源",
+        "x-component": "Input.TextArea"
+      }
+    },
+    {
+      "name": "cycle",
+      "type": "json",
+      "interface": "json",
+      "uiSchema": {
+        "title": "死锁环",
+        "x-component": "Input.TextArea"
+      }
+    },
+    {
+      "name": "resolvedAt",
+      "type": "datetime",
+      "interface": "datetime",
+      "uiSchema": {
+        "title": "解决时间",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "resolution",
+      "type": "text",
+      "interface": "textarea",
+      "uiSchema": {
+        "title": "解决方案",
+        "x-component": "Input.TextArea"
+      }
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "状态",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "检测中",
+            "label": "检测中"
+          },
+          {
+            "value": "已解决",
+            "label": "已解决"
+          },
+          {
+            "value": "需人工处理",
+            "label": "需人工处理"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,347 @@
+{
+  "collection": "ai_assistant_tasks",
+  "description": "GRT智能系统AI助手开发任务 - 17个核心任务",
+  "version": "1.0.0",
+  "createdAt": "2026-01-17",
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "AI助手基础框架搭建",
+      "phase": "Phase 1: 基础架构",
+      "priority": "P0",
+      "status": "completed",
+      "estimatedHours": 8,
+      "description": "搭建AI助手的基础技术框架，包括tRPC路由、LLM集成、消息处理管道",
+      "acceptanceCriteria": [
+        "tRPC路由正常工作",
+        "LLM API调用成功",
+        "消息历史管理功能完成"
+      ],
+      "dependencies": [],
+      "assignee": "后端开发",
+      "tags": ["infrastructure", "backend"]
+    },
+    {
+      "id": "TASK-002",
+      "title": "Solution Assistant核心功能",
+      "phase": "Phase 1: 基础架构",
+      "priority": "P0",
+      "status": "completed",
+      "estimatedHours": 12,
+      "description": "实现方案助手的核心功能：工艺参数解析、方案推荐、技术选型建议",
+      "acceptanceCriteria": [
+        "自然语言解析工艺参数",
+        "基于历史案例推荐方案",
+        "生成技术可行性报告"
+      ],
+      "dependencies": ["TASK-001"],
+      "assignee": "AI工程师",
+      "tags": ["ai", "solution"]
+    },
+    {
+      "id": "TASK-003",
+      "title": "Quotation Assistant核心功能",
+      "phase": "Phase 1: 基础架构",
+      "priority": "P0",
+      "status": "completed",
+      "estimatedHours": 12,
+      "description": "实现报价助手的核心功能：成本估算、利润分析、竞品对比",
+      "acceptanceCriteria": [
+        "自动计算成本构成",
+        "生成报价建议区间",
+        "支持竞品价格对比"
+      ],
+      "dependencies": ["TASK-001"],
+      "assignee": "AI工程师",
+      "tags": ["ai", "quotation"]
+    },
+    {
+      "id": "TASK-004",
+      "title": "Planning Assistant核心功能",
+      "phase": "Phase 1: 基础架构",
+      "priority": "P0",
+      "status": "completed",
+      "estimatedHours": 12,
+      "description": "实现规划助手的核心功能：项目计划生成、资源分配、里程碑管理",
+      "acceptanceCriteria": [
+        "生成M0-M12阶段计划",
+        "资源分配优化建议",
+        "关键路径识别"
+      ],
+      "dependencies": ["TASK-001"],
+      "assignee": "AI工程师",
+      "tags": ["ai", "planning"]
+    },
+    {
+      "id": "TASK-005",
+      "title": "KPI Assistant核心功能",
+      "phase": "Phase 1: 基础架构",
+      "priority": "P0",
+      "status": "completed",
+      "estimatedHours": 12,
+      "description": "实现KPI助手的核心功能：指标分析、趋势预测、改进建议",
+      "acceptanceCriteria": [
+        "KPI数据分析和可视化",
+        "同比环比趋势分析",
+        "生成改进行动计划"
+      ],
+      "dependencies": ["TASK-001"],
+      "assignee": "AI工程师",
+      "tags": ["ai", "kpi"]
+    },
+    {
+      "id": "TASK-006",
+      "title": "AI助手前端界面开发",
+      "phase": "Phase 2: 前端开发",
+      "priority": "P0",
+      "status": "completed",
+      "estimatedHours": 16,
+      "description": "开发AI助手中心页面，包含四种助手的交互界面",
+      "acceptanceCriteria": [
+        "助手选择卡片展示",
+        "聊天对话界面",
+        "消息历史显示",
+        "快捷提问模板"
+      ],
+      "dependencies": ["TASK-002", "TASK-003", "TASK-004", "TASK-005"],
+      "assignee": "前端开发",
+      "tags": ["frontend", "ui"]
+    },
+    {
+      "id": "TASK-007",
+      "title": "员工AI助手数据库设计",
+      "phase": "Phase 2: 前端开发",
+      "priority": "P1",
+      "status": "completed",
+      "estimatedHours": 8,
+      "description": "设计员工AI助手相关的数据库表结构",
+      "acceptanceCriteria": [
+        "employee_ai_assistants表",
+        "ai_assistant_interactions表",
+        "employee_skill_maps表",
+        "career_development_paths表"
+      ],
+      "dependencies": ["TASK-001"],
+      "assignee": "后端开发",
+      "tags": ["database", "schema"]
+    },
+    {
+      "id": "TASK-008",
+      "title": "员工AI助手API实现",
+      "phase": "Phase 2: 前端开发",
+      "priority": "P1",
+      "status": "completed",
+      "estimatedHours": 12,
+      "description": "实现员工AI助手的后端API",
+      "acceptanceCriteria": [
+        "助手初始化API",
+        "会话管理API",
+        "消息发送API",
+        "技能图谱API"
+      ],
+      "dependencies": ["TASK-007"],
+      "assignee": "后端开发",
+      "tags": ["api", "backend"]
+    },
+    {
+      "id": "TASK-009",
+      "title": "员工AI助手前端界面",
+      "phase": "Phase 2: 前端开发",
+      "priority": "P1",
+      "status": "completed",
+      "estimatedHours": 12,
+      "description": "开发员工个人AI助手的前端界面",
+      "acceptanceCriteria": [
+        "个人助手设置界面",
+        "技能图谱可视化",
+        "职业发展路径展示",
+        "学习记录查看"
+      ],
+      "dependencies": ["TASK-006", "TASK-008"],
+      "assignee": "前端开发",
+      "tags": ["frontend", "ui"]
+    },
+    {
+      "id": "TASK-010",
+      "title": "项目数字孪生数据模型",
+      "phase": "Phase 3: 高级功能",
+      "priority": "P1",
+      "status": "completed",
+      "estimatedHours": 8,
+      "description": "设计项目数字孪生的数据模型",
+      "acceptanceCriteria": [
+        "project_digital_twins表",
+        "project_risk_alerts表",
+        "project_optimization_suggestions表",
+        "project_knowledge_base表"
+      ],
+      "dependencies": ["TASK-007"],
+      "assignee": "架构师",
+      "tags": ["database", "digital-twin"]
+    },
+    {
+      "id": "TASK-011",
+      "title": "AI助手模板系统",
+      "phase": "Phase 3: 高级功能",
+      "priority": "P2",
+      "status": "completed",
+      "estimatedHours": 8,
+      "description": "实现AI助手模板的创建和复制功能",
+      "acceptanceCriteria": [
+        "模板创建功能",
+        "模板复制功能",
+        "模板个性化配置"
+      ],
+      "dependencies": ["TASK-008"],
+      "assignee": "后端开发",
+      "tags": ["template", "backend"]
+    },
+    {
+      "id": "TASK-012",
+      "title": "AI学习记录系统",
+      "phase": "Phase 3: 高级功能",
+      "priority": "P2",
+      "status": "completed",
+      "estimatedHours": 8,
+      "description": "实现AI助手的学习记录和知识积累功能",
+      "acceptanceCriteria": [
+        "交互记录存储",
+        "学习内容提取",
+        "知识库更新"
+      ],
+      "dependencies": ["TASK-008"],
+      "assignee": "AI工程师",
+      "tags": ["ai", "learning"]
+    },
+    {
+      "id": "TASK-013",
+      "title": "单元测试编写",
+      "phase": "Phase 4: 测试与优化",
+      "priority": "P1",
+      "status": "completed",
+      "estimatedHours": 12,
+      "description": "为AI助手模块编写完整的单元测试",
+      "acceptanceCriteria": [
+        "后端API测试覆盖率>80%",
+        "核心功能测试通过",
+        "边界条件测试"
+      ],
+      "dependencies": ["TASK-008", "TASK-011", "TASK-012"],
+      "assignee": "QA工程师",
+      "tags": ["testing", "quality"]
+    },
+    {
+      "id": "TASK-014",
+      "title": "性能优化",
+      "phase": "Phase 4: 测试与优化",
+      "priority": "P2",
+      "status": "in_progress",
+      "estimatedHours": 8,
+      "description": "优化AI助手的响应速度和资源使用",
+      "acceptanceCriteria": [
+        "LLM响应时间<5秒",
+        "数据库查询优化",
+        "前端渲染优化"
+      ],
+      "dependencies": ["TASK-013"],
+      "assignee": "性能工程师",
+      "tags": ["performance", "optimization"]
+    },
+    {
+      "id": "TASK-015",
+      "title": "NocoBase集成",
+      "phase": "Phase 5: 集成与部署",
+      "priority": "P1",
+      "status": "in_progress",
+      "estimatedHours": 8,
+      "description": "将AI助手任务管理集成到NocoBase平台",
+      "acceptanceCriteria": [
+        "任务数据同步",
+        "看板视图配置",
+        "Webhook集成"
+      ],
+      "dependencies": ["TASK-013"],
+      "assignee": "集成工程师",
+      "tags": ["integration", "nocobase"]
+    },
+    {
+      "id": "TASK-016",
+      "title": "部署文档编写",
+      "phase": "Phase 5: 集成与部署",
+      "priority": "P1",
+      "status": "completed",
+      "estimatedHours": 4,
+      "description": "编写NocoBase部署和任务导入的完整文档",
+      "acceptanceCriteria": [
+        "Docker部署指南",
+        "任务导入说明",
+        "配置参考文档"
+      ],
+      "dependencies": ["TASK-015"],
+      "assignee": "技术文档",
+      "tags": ["documentation"]
+    },
+    {
+      "id": "TASK-017",
+      "title": "GRT系统API集成",
+      "phase": "Phase 5: 集成与部署",
+      "priority": "P1",
+      "status": "todo",
+      "estimatedHours": 12,
+      "description": "实现NocoBase与GRT系统的双向数据同步",
+      "acceptanceCriteria": [
+        "任务状态同步",
+        "进度数据同步",
+        "通知集成"
+      ],
+      "dependencies": ["TASK-015", "TASK-016"],
+      "assignee": "集成工程师",
+      "tags": ["integration", "api"]
+    }
+  ],
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "Phase 1: 基础架构",
+      "description": "搭建AI助手的基础技术框架和核心功能",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005"],
+      "status": "completed"
+    },
+    {
+      "id": "phase-2",
+      "name": "Phase 2: 前端开发",
+      "description": "开发AI助手的前端界面和用户交互",
+      "tasks": ["TASK-006", "TASK-007", "TASK-008", "TASK-009"],
+      "status": "completed"
+    },
+    {
+      "id": "phase-3",
+      "name": "Phase 3: 高级功能",
+      "description": "实现高级功能如数字孪生、模板系统、学习记录",
+      "tasks": ["TASK-010", "TASK-011", "TASK-012"],
+      "status": "completed"
+    },
+    {
+      "id": "phase-4",
+      "name": "Phase 4: 测试与优化",
+      "description": "完成测试覆盖和性能优化",
+      "tasks": ["TASK-013", "TASK-014"],
+      "status": "in_progress"
+    },
+    {
+      "id": "phase-5",
+      "name": "Phase 5: 集成与部署",
+      "description": "NocoBase集成和系统部署",
+      "tasks": ["TASK-015", "TASK-016", "TASK-017"],
+      "status": "in_progress"
+    }
+  ],
+  "statistics": {
+    "totalTasks": 17,
+    "completedTasks": 13,
+    "inProgressTasks": 3,
+    "todoTasks": 1,
+    "totalEstimatedHours": 160,
+    "completionRate": "76.5%"
+  }
+}

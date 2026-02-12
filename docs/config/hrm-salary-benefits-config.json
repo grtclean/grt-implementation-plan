@@ -1,0 +1,122 @@
+{
+  "region": "无锡",
+  "effectiveDate": "2026-01-01",
+  "benefits": [
+    {
+      "name": "餐补",
+      "standard": "20元/天",
+      "scope": "全员",
+      "type": "daily"
+    },
+    {
+      "name": "交通补贴",
+      "standard": "300-500元/月",
+      "scope": "无班车员工",
+      "type": "monthly"
+    },
+    {
+      "name": "通讯补贴",
+      "standard": "100-500元/月",
+      "scope": "销售技术管理",
+      "type": "monthly"
+    },
+    {
+      "name": "住房补贴",
+      "standard": "500-1500元/月",
+      "scope": "外地员工",
+      "type": "monthly"
+    },
+    {
+      "name": "高温补贴",
+      "standard": "300元/月",
+      "scope": "生产一线(6-9月)",
+      "type": "seasonal"
+    },
+    {
+      "name": "工龄补贴",
+      "standard": "50元/年",
+      "scope": "全员",
+      "type": "yearly"
+    },
+    {
+      "name": "学历补贴",
+      "standard": "200-1000元/月",
+      "scope": "本科及以上",
+      "type": "monthly"
+    },
+    {
+      "name": "证书补贴",
+      "standard": "200-800元/月",
+      "scope": "持证人员",
+      "type": "monthly"
+    }
+  ],
+  "salesCommission": {
+    "tiers": [
+      {
+        "minAmount": 0,
+        "maxAmount": 500,
+        "rate": 1.5
+      },
+      {
+        "minAmount": 500,
+        "maxAmount": 1000,
+        "rate": 2
+      },
+      {
+        "minAmount": 1000,
+        "maxAmount": 2000,
+        "rate": 2.5
+      },
+      {
+        "minAmount": 2000,
+        "maxAmount": null,
+        "rate": 3
+      }
+    ],
+    "customerCoefficients": [
+      {
+        "type": "新开发客户",
+        "coefficient": 1.2
+      },
+      {
+        "type": "老客户复购",
+        "coefficient": 1
+      },
+      {
+        "type": "公司资源客户",
+        "coefficient": 0.8
+      }
+    ],
+    "formula": "实际提成 = 回款额 × 阶梯提成比例 × 客户类型系数 × 项目完成度系数"
+  },
+  "projectBonus": {
+    "description": "项目协作利益绑定（80-800万大项目）",
+    "distribution": [
+      {
+        "department": "销售部",
+        "ratio": 40,
+        "metrics": "签约额、回款"
+      },
+      {
+        "department": "技术服务部",
+        "ratio": 30,
+        "metrics": "技术方案、验收"
+      },
+      {
+        "department": "生产部",
+        "ratio": 25,
+        "metrics": "交期、质量"
+      },
+      {
+        "department": "其他部门",
+        "ratio": 5,
+        "metrics": "配合度"
+      }
+    ]
+  },
+  "crossDepartmentCollaboration": {
+    "evaluationRatio": 15,
+    "description": "协作评分纳入考核比例15%"
+  }
+}

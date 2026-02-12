@@ -1,0 +1,149 @@
+{
+  "name": "leads",
+  "title": "线索",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "name",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "线索名称",
+        "x-component": "Input"
+      },
+      "required": true
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "来源",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "官网",
+            "label": "官网"
+          },
+          {
+            "value": "展会",
+            "label": "展会"
+          },
+          {
+            "value": "转介绍",
+            "label": "转介绍"
+          },
+          {
+            "value": "电话",
+            "label": "电话"
+          },
+          {
+            "value": "其他",
+            "label": "其他"
+          }
+        ]
+      }
+    },
+    {
+      "name": "contact",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "联系人",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "phone",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "联系电话",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "interface": "email",
+      "uiSchema": {
+        "title": "邮箱",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "company",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "公司名称",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "requirement",
+      "type": "text",
+      "interface": "textarea",
+      "uiSchema": {
+        "title": "需求描述",
+        "x-component": "Input.TextArea"
+      }
+    },
+    {
+      "name": "budget",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "预算",
+        "x-component": "InputNumber"
+      }
+    },
+    {
+      "name": "bantScore",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "BANT评分",
+        "x-component": "InputNumber"
+      }
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "状态",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "新建",
+            "label": "新建"
+          },
+          {
+            "value": "跟进中",
+            "label": "跟进中"
+          },
+          {
+            "value": "已转化",
+            "label": "已转化"
+          },
+          {
+            "value": "已关闭",
+            "label": "已关闭"
+          }
+        ]
+      }
+    },
+    {
+      "name": "assignee",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "负责人",
+        "x-component": "RecordPicker"
+      },
+      "target": "employees"
+    }
+  ]
+}

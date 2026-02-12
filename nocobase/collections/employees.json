@@ -1,0 +1,106 @@
+{
+  "name": "employees",
+  "title": "员工",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "name",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "姓名",
+        "x-component": "Input"
+      },
+      "required": true
+    },
+    {
+      "name": "code",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "工号",
+        "x-component": "Input"
+      },
+      "unique": true
+    },
+    {
+      "name": "department",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "部门",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "position",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "职位",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "interface": "email",
+      "uiSchema": {
+        "title": "邮箱",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "phone",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "电话",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "hireDate",
+      "type": "date",
+      "interface": "datePicker",
+      "uiSchema": {
+        "title": "入职日期",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "状态",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "在职",
+            "label": "在职"
+          },
+          {
+            "value": "离职",
+            "label": "离职"
+          },
+          {
+            "value": "休假",
+            "label": "休假"
+          }
+        ]
+      }
+    },
+    {
+      "name": "manager",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "直属上级",
+        "x-component": "RecordPicker"
+      },
+      "target": "employees"
+    }
+  ]
+}

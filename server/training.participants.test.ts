@@ -1,0 +1,140 @@
+import { describe, expect, it } from "vitest";
+import { appRouter } from "./routers";
+import type { TrpcContext } from "./_core/context";
+
+type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
+
+function createAuthContext(role: "user" | "admin" = "user"): { ctx: TrpcContext } {
+  const user: AuthenticatedUser = {
+    id: 1,
+    openId: "test-user",
+    email: "test@example.com",
+    name: "Test User",
+    loginMethod: "manus",
+    role,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastSignedIn: new Date(),
+  };
+
+  const ctx: TrpcContext = {
+    user,
+    req: {
+      protocol: "https",
+      headers: {},
+    } as TrpcContext["req"],
+    res: {
+      clearCookie: () => {},
+    } as TrpcContext["res"],
+  };
+
+  return { ctx };
+}
+
+describe("training.participants", () => {
+  describe("getParticipants", () => {
+    it("should return empty array for non-existent training", async () => {
+      const { ctx } = createAuthContext();
+      const caller = appRouter.createCaller(ctx);
+
+      // Use correct API path: agenda.getParticipants
+      const result = await caller.agenda.getParticipants({ trainingId: 99999 });
+
+      expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
+  describe("addParticipant", () => {
+    it("should accept valid input for adding participant", async () => {
+      const { ctx } = createAuthContext();
+      const caller = appRouter.createCaller(ctx);
+
+      // This test verifies the endpoint accepts valid input
+      // May fail due to foreign key constraints, but schema validation should pass
+      try {
+        await caller.agenda.addParticipant({
+          trainingId: 1,
+          userId: 2,
+        });
+      } catch (error: any) {
+        // Expected to fail due to non-existent training/user, but schema should be valid
+        expect(error.message).not.toContain("validation");
+      }
+    });
+  });
+
+  describe("updateParticipant", () => {
+    it("should accept valid status update input", async () => {
+      const { ctx } = createAuthContext();
+      const caller = appRouter.createCaller(ctx);
+
+      // This test verifies the update endpoint exists and accepts valid input
+      try {
+        await caller.agenda.updateParticipant({
+          id: 99999,
+          registrationStatus: "confirmed",
+          attendanceStatus: "attended",
+        });
+      } catch (error: any) {
+        // Expected to fail due to non-existent participant, but schema should be valid
+        expect(error.message).not.toContain("validation");
+      }
+    });
+  });
+});
+
+describe("costAlert.getProjectLogs", () => {
+  it("should return alert logs for a project", async () => {
+    const { ctx } = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.costAlert.getProjectLogs({ projectId: 1 });
+
+    expect(Array.isArray(result)).toBe(true);
+  });
+});
+
+describe("meetingReminder", () => {
+  describe("getByMeeting", () => {
+    it("should return reminders for a meeting", async () => {
+      const { ctx } = createAuthContext();
+      const caller = appRouter.createCaller(ctx);
+
+      // Use correct API path: meetingReminder.getByMeeting
+      const result = await caller.meetingReminder.getByMeeting({ meetingId: 1 });
+
+      expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
+  describe("create", () => {
+    it("should accept valid input for creating reminder", async () => {
+      const { ctx } = createAuthContext();
+      const caller = appRouter.createCaller(ctx);
+
+      // This test verifies the endpoint accepts valid input
+      try {
+        await caller.meetingReminder.create({
+          meetingId: 1,
+          reminderMinutes: 30,
+          reminderType: "email",
+        });
+      } catch (error: any) {
+        // Expected to fail due to non-existent meeting, but schema should be valid
+        expect(error.message).not.toContain("validation");
+      }
+    });
+  });
+
+  describe("processReminders", () => {
+    it("should require admin role to process reminders", async () => {
+      const { ctx } = createAuthContext("user");
+      const caller = appRouter.createCaller(ctx);
+
+      // Regular users should not be able to process reminders
+      await expect(
+        caller.meetingReminder.processReminders()
+      ).rejects.toThrow();
+    });
+  });
+});

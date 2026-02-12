@@ -1,0 +1,121 @@
+{
+  "name": "ai_assistants",
+  "title": "AI助手配置",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "name",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "助手名称",
+        "x-component": "Input"
+      },
+      "required": true
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "类型",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "方案助手",
+            "label": "方案助手"
+          },
+          {
+            "value": "报价助手",
+            "label": "报价助手"
+          },
+          {
+            "value": "KPI助手",
+            "label": "KPI助手"
+          },
+          {
+            "value": "采购助手",
+            "label": "采购助手"
+          },
+          {
+            "value": "规划助手",
+            "label": "规划助手"
+          },
+          {
+            "value": "工程助手",
+            "label": "工程助手"
+          }
+        ]
+      }
+    },
+    {
+      "name": "model",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "模型",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "internal",
+            "label": "internal"
+          },
+          {
+            "value": "gemini-flash",
+            "label": "gemini-flash"
+          },
+          {
+            "value": "gemini-pro",
+            "label": "gemini-pro"
+          },
+          {
+            "value": "claude",
+            "label": "claude"
+          }
+        ]
+      }
+    },
+    {
+      "name": "systemPrompt",
+      "type": "text",
+      "interface": "textarea",
+      "uiSchema": {
+        "title": "系统提示词",
+        "x-component": "Input.TextArea"
+      }
+    },
+    {
+      "name": "enabled",
+      "type": "boolean",
+      "interface": "checkbox",
+      "uiSchema": {
+        "title": "启用",
+        "x-component": "Checkbox"
+      }
+    },
+    {
+      "name": "accessLevel",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "访问级别",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "公开",
+            "label": "公开"
+          },
+          {
+            "value": "认证",
+            "label": "认证"
+          },
+          {
+            "value": "机密",
+            "label": "机密"
+          }
+        ]
+      }
+    }
+  ]
+}

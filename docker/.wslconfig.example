@@ -1,0 +1,53 @@
+# =============================================================================
+# WSL2 Configuration for Windows 11
+# GRT Intelligent System - Local Deployment
+# =============================================================================
+# 
+# 安装说明:
+# 1. 将此文件复制到 C:\Users\<YourUsername>\.wslconfig
+# 2. 重启WSL: wsl --shutdown && wsl
+#
+# =============================================================================
+
+[wsl2]
+# 限制WSL2内存使用，防止占用宿主机所有内存
+# 建议: 系统总内存的50-60%
+memory=8GB
+
+# 限制CPU核心数
+# 建议: 物理核心数的50-75%
+processors=4
+
+# 交换空间大小
+swap=4GB
+
+# 本地主机转发 (允许Docker容器访问host.docker.internal)
+localhostForwarding=true
+
+# 嵌套虚拟化 (如需要运行虚拟机)
+nestedVirtualization=false
+
+# 调试控制台
+debugConsole=false
+
+# GUI应用支持
+guiApplications=true
+
+[experimental]
+# 自动内存回收
+autoMemoryReclaim=gradual
+
+# 稀疏VHD (减少磁盘占用)
+sparseVhd=true
+
+# 网络镜像模式 (改善网络性能)
+networkingMode=mirrored
+
+# DNS隧道
+dnsTunneling=true
+
+# 防火墙
+firewall=true
+
+# 自动代理
+autoProxy=true

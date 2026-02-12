@@ -1,0 +1,62 @@
+{
+  "key": "expense_approval",
+  "title": "费用审批",
+  "enabled": true,
+  "type": "collection",
+  "config": {
+    "type": "collection",
+    "collection": "cost_entries",
+    "event": "create"
+  },
+  "nodes": [
+    {
+      "id": "node_1",
+      "type": "condition",
+      "title": "金额检查",
+      "config": {
+        "field": "amount",
+        "operator": ">",
+        "value": 5000
+      }
+    },
+    {
+      "id": "node_2",
+      "type": "approval",
+      "title": "主管审批",
+      "config": {
+        "approvers": [
+          "manager"
+        ]
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "condition",
+      "title": "大额检查",
+      "config": {
+        "field": "amount",
+        "operator": ">",
+        "value": 50000
+      }
+    },
+    {
+      "id": "node_4",
+      "type": "approval",
+      "title": "财务总监审批",
+      "config": {
+        "approvers": [
+          "cfo"
+        ]
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "update",
+      "title": "更新状态",
+      "config": {
+        "collection": "cost_entries",
+        "field": "status"
+      }
+    }
+  ]
+}

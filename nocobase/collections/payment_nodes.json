@@ -1,0 +1,95 @@
+{
+  "name": "payment_nodes",
+  "title": "付款节点",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "project",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "项目",
+        "x-component": "RecordPicker"
+      },
+      "target": "projects"
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "节点名称",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "percentage",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "比例(%)",
+        "x-component": "InputNumber"
+      }
+    },
+    {
+      "name": "amount",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "金额",
+        "x-component": "InputNumber"
+      }
+    },
+    {
+      "name": "condition",
+      "type": "text",
+      "interface": "textarea",
+      "uiSchema": {
+        "title": "触发条件",
+        "x-component": "Input.TextArea"
+      }
+    },
+    {
+      "name": "dueDate",
+      "type": "date",
+      "interface": "datePicker",
+      "uiSchema": {
+        "title": "计划日期",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "actualDate",
+      "type": "date",
+      "interface": "datePicker",
+      "uiSchema": {
+        "title": "实际日期",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "状态",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "待触发",
+            "label": "待触发"
+          },
+          {
+            "value": "待付款",
+            "label": "待付款"
+          },
+          {
+            "value": "已付款",
+            "label": "已付款"
+          }
+        ]
+      }
+    }
+  ]
+}

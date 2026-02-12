@@ -1,0 +1,16 @@
+{
+  "fixedRecipients": [
+    "camillia@gerrytech.com",
+    "gerry@grtclean.ai"
+  ],
+  "templates": {
+    "3M": {
+      "subject": "[述职提醒] {employeeName} 3个月试用期述职报告 - {reviewDate}",
+      "body": "尊敬的各位领导：\n\n{employeeName} 将于 {reviewDate} 完成3个月试用期，请安排述职报告会议。\n\n【员工信息】\n- 姓名：{employeeName}\n- 部门：{department}\n- 岗位：{position}\n- 入职日期：{hireDate}\n\n【述职要求】\n1. 请员工提前准备述职报告PPT\n2. 述职内容应包含：工作总结、学习收获、问题与挑战、下阶段计划\n3. 请参考《2025年度述职报告模版》准备材料\n\n【会议安排】\n- 建议时间：{reviewDate} 下午2:00-3:00\n- 参会人员：员工本人、直属主管、主管的主管、HRBP\n\n请各位领导提前安排时间参加述职会议。\n\n此邮件由系统自动发送，如有疑问请联系人力资源部。\n\nGRT人力资源管理系统"
+    },
+    "6M": {
+      "subject": "[述职提醒] {employeeName} 6个月转正述职报告 - {reviewDate}",
+      "body": "尊敬的各位领导：\n\n{employeeName} 将于 {reviewDate} 完成6个月试用期，需要进行转正述职评审。\n\n【员工信息】\n- 姓名：{employeeName}\n- 部门：{department}\n- 岗位：{position}\n- 入职日期：{hireDate}\n\n【述职要求】\n1. 请员工提前准备转正述职报告PPT\n2. 述职内容应包含：\n   - 试用期工作总结\n   - 主要业绩和贡献\n   - 技能提升和学习成果\n   - 遇到的问题和解决方案\n   - 转正后工作计划\n3. 请参考《2025年度述职报告模版》准备材料\n\n【评审要点】\n- 工作态度和职业素养\n- 专业技能和学习能力\n- 团队协作和沟通能力\n- 工作成果和绩效表现\n\n【会议安排】\n- 建议时间：{reviewDate} 下午2:00-4:00\n- 参会人员：员工本人、直属主管、主管的主管、HRBP、HR总监\n\n请各位领导提前安排时间参加转正评审会议。\n\n此邮件由系统自动发送，如有疑问请联系人力资源部。\n\nGRT人力资源管理系统"
+    }
+  }
+}

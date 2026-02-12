@@ -1,0 +1,89 @@
+{
+  "name": "attendance",
+  "title": "考勤",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "employee",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "员工",
+        "x-component": "RecordPicker"
+      },
+      "target": "employees"
+    },
+    {
+      "name": "date",
+      "type": "date",
+      "interface": "datePicker",
+      "uiSchema": {
+        "title": "日期",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "checkIn",
+      "type": "datetime",
+      "interface": "datetime",
+      "uiSchema": {
+        "title": "签到时间",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "checkOut",
+      "type": "datetime",
+      "interface": "datetime",
+      "uiSchema": {
+        "title": "签退时间",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "状态",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "正常",
+            "label": "正常"
+          },
+          {
+            "value": "迟到",
+            "label": "迟到"
+          },
+          {
+            "value": "早退",
+            "label": "早退"
+          },
+          {
+            "value": "缺勤",
+            "label": "缺勤"
+          },
+          {
+            "value": "请假",
+            "label": "请假"
+          },
+          {
+            "value": "出差",
+            "label": "出差"
+          }
+        ]
+      }
+    },
+    {
+      "name": "location",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "打卡位置",
+        "x-component": "Input"
+      }
+    }
+  ]
+}

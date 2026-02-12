@@ -1,0 +1,64 @@
+{
+  "name": "employee_skills",
+  "title": "员工技能",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "employee",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "员工",
+        "x-component": "RecordPicker"
+      },
+      "target": "employees"
+    },
+    {
+      "name": "skill",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "技能",
+        "x-component": "RecordPicker"
+      },
+      "target": "skills"
+    },
+    {
+      "name": "level",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "等级",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "初级",
+            "label": "初级"
+          },
+          {
+            "value": "中级",
+            "label": "中级"
+          },
+          {
+            "value": "高级",
+            "label": "高级"
+          },
+          {
+            "value": "专家",
+            "label": "专家"
+          }
+        ]
+      }
+    },
+    {
+      "name": "certifiedDate",
+      "type": "date",
+      "interface": "datePicker",
+      "uiSchema": {
+        "title": "认证日期",
+        "x-component": "DatePicker"
+      }
+    }
+  ]
+}

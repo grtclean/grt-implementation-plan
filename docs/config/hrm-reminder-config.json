@@ -1,0 +1,52 @@
+{
+  "reminderTiming": {
+    "advanceDays": 7,
+    "dayOfWeek": 2,
+    "hour": 14,
+    "minute": 0
+  },
+  "repeatReminder": {
+    "enabled": true,
+    "secondReminderDays": 3,
+    "finalReminderHours": 4
+  },
+  "notificationMethods": [
+    "email",
+    "system",
+    "webhook"
+  ],
+  "defaultRecipients": {
+    "fixedRecipients": [
+      "camillia@gerrytech.com",
+      "gerry@grtclean.ai"
+    ],
+    "dynamicRecipients": [
+      "direct_manager",
+      "manager_of_manager",
+      "hrbp"
+    ],
+    "ccRecipients": [
+      "hr@gerrytech.com"
+    ]
+  },
+  "emailTemplates": [
+    {
+      "name": "试用期3个月述职提醒",
+      "subject": "【述职提醒】{{employee_name}} 试用期3个月述职报告 - {{review_date}}",
+      "body": "尊敬的领导：\n\n{{employee_name}} 将于 {{review_date}} 下午2:00 进行试用期3个月述职报告。\n\n【员工信息】\n- 姓名：{{employee_name}}\n- 部门：{{department}}\n- 岗位：{{position}}\n- 入职日期：{{hire_date}}\n- 直属主管：{{manager_name}}\n\n【述职安排】\n- 述职时间：{{review_date}} 14:00\n- 述职地点：会议室（待定）\n- 述职类型：试用期3个月述职\n\n【需要准备】\n1. 试用期工作总结\n2. 岗位职责完成情况\n3. KPI指标达成情况\n4. 培训学习成果\n5. 下阶段工作计划\n\n请相关人员安排时间参加述职评审。\n\n此邮件由GRT智能系统自动发送，如有疑问请联系HR部门。\n\nGRT智能系统\n{{send_date}}",
+      "type": "review_3m"
+    },
+    {
+      "name": "试用期6个月述职提醒",
+      "subject": "【述职提醒】{{employee_name}} 试用期6个月述职报告（转正评审）- {{review_date}}",
+      "body": "尊敬的领导：\n\n{{employee_name}} 将于 {{review_date}} 下午2:00 进行试用期6个月述职报告（转正评审）。\n\n【员工信息】\n- 姓名：{{employee_name}}\n- 部门：{{department}}\n- 岗位：{{position}}\n- 入职日期：{{hire_date}}\n- 直属主管：{{manager_name}}\n- 试用期：6个月\n\n【述职安排】\n- 述职时间：{{review_date}} 14:00\n- 述职地点：会议室（待定）\n- 述职类型：试用期6个月述职（转正评审）\n\n【需要准备】\n1. 试用期完整工作总结\n2. 岗位职责完成情况汇报\n3. KPI指标达成情况分析\n4. 培训学习成果展示\n5. 转正后工作计划\n6. 个人发展规划\n\n【评审内容】\n- 工作能力评估\n- 团队协作评估\n- 文化价值观评估\n- 转正建议\n\n请相关人员安排时间参加转正评审会议。\n\n此邮件由GRT智能系统自动发送，如有疑问请联系HR部门。\n\nGRT智能系统\n{{send_date}}",
+      "type": "review_6m"
+    },
+    {
+      "name": "年度述职提醒",
+      "subject": "【述职提醒】{{employee_name}} {{year}}年度述职报告 - {{review_date}}",
+      "body": "尊敬的领导：\n\n{{employee_name}} 将于 {{review_date}} 进行{{year}}年度述职报告。\n\n【员工信息】\n- 姓名：{{employee_name}}\n- 部门：{{department}}\n- 岗位：{{position}}\n- 入职日期：{{hire_date}}\n- 直属主管：{{manager_name}}\n\n【述职安排】\n- 述职时间：{{review_date}}\n- 述职地点：会议室（待定）\n- 述职类型：年度述职\n\n【需要准备】\n1. 年度工作总结\n2. KPI指标完成情况\n3. 重点项目成果\n4. 个人成长与提升\n5. 下年度工作计划\n6. 培训与发展需求\n\n请相关人员安排时间参加年度述职评审。\n\n此邮件由GRT智能系统自动发送，如有疑问请联系HR部门。\n\nGRT智能系统\n{{send_date}}",
+      "type": "review_annual"
+    }
+  ]
+}

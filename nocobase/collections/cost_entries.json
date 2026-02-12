@@ -1,0 +1,119 @@
+{
+  "name": "cost_entries",
+  "title": "成本条目",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "project",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "项目",
+        "x-component": "RecordPicker"
+      },
+      "target": "projects"
+    },
+    {
+      "name": "budget",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "预算",
+        "x-component": "RecordPicker"
+      },
+      "target": "budgets"
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "类别",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "人工",
+            "label": "人工"
+          },
+          {
+            "value": "材料",
+            "label": "材料"
+          },
+          {
+            "value": "设备",
+            "label": "设备"
+          },
+          {
+            "value": "外协",
+            "label": "外协"
+          },
+          {
+            "value": "其他",
+            "label": "其他"
+          }
+        ]
+      }
+    },
+    {
+      "name": "description",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "描述",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "amount",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "金额",
+        "x-component": "InputNumber"
+      }
+    },
+    {
+      "name": "date",
+      "type": "date",
+      "interface": "datePicker",
+      "uiSchema": {
+        "title": "日期",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "submitter",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "提交人",
+        "x-component": "RecordPicker"
+      },
+      "target": "employees"
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "状态",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "待审批",
+            "label": "待审批"
+          },
+          {
+            "value": "已批准",
+            "label": "已批准"
+          },
+          {
+            "value": "已拒绝",
+            "label": "已拒绝"
+          }
+        ]
+      }
+    }
+  ]
+}

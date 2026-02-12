@@ -1,0 +1,49 @@
+{
+  "key": "sales_process",
+  "title": "销售流程",
+  "enabled": true,
+  "type": "collection",
+  "config": {
+    "type": "collection",
+    "collection": "leads",
+    "event": "create"
+  },
+  "nodes": [
+    {
+      "id": "node_1",
+      "type": "condition",
+      "title": "BANT评分检查",
+      "config": {
+        "field": "bantScore",
+        "operator": ">=",
+        "value": 70
+      }
+    },
+    {
+      "id": "node_2",
+      "type": "create",
+      "title": "创建商机",
+      "config": {
+        "collection": "opportunities"
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "update",
+      "title": "更新线索状态",
+      "config": {
+        "collection": "leads",
+        "field": "status",
+        "value": "已转化"
+      }
+    },
+    {
+      "id": "node_4",
+      "type": "notification",
+      "title": "通知销售",
+      "config": {
+        "type": "email"
+      }
+    }
+  ]
+}

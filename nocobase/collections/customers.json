@@ -1,0 +1,164 @@
+{
+  "name": "customers",
+  "title": "客户",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "name",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "客户名称",
+        "x-component": "Input"
+      },
+      "required": true
+    },
+    {
+      "name": "code",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "客户编码",
+        "x-component": "Input"
+      },
+      "unique": true
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "客户类型",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "潜在客户",
+            "label": "潜在客户"
+          },
+          {
+            "value": "正式客户",
+            "label": "正式客户"
+          },
+          {
+            "value": "VIP客户",
+            "label": "VIP客户"
+          }
+        ]
+      }
+    },
+    {
+      "name": "industry",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "所属行业",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "region",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "所在区域",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "tier",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "客户等级",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "A",
+            "label": "A"
+          },
+          {
+            "value": "B",
+            "label": "B"
+          },
+          {
+            "value": "C",
+            "label": "C"
+          },
+          {
+            "value": "D",
+            "label": "D"
+          }
+        ]
+      }
+    },
+    {
+      "name": "contact",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "联系人",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "phone",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "联系电话",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "interface": "email",
+      "uiSchema": {
+        "title": "邮箱",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "address",
+      "type": "text",
+      "interface": "textarea",
+      "uiSchema": {
+        "title": "地址",
+        "x-component": "Input.TextArea"
+      }
+    },
+    {
+      "name": "creditLimit",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "信用额度",
+        "x-component": "InputNumber"
+      }
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "状态",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "活跃",
+            "label": "活跃"
+          },
+          {
+            "value": "休眠",
+            "label": "休眠"
+          },
+          {
+            "value": "流失",
+            "label": "流失"
+          }
+        ]
+      }
+    }
+  ]
+}

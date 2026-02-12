@@ -1,0 +1,54 @@
+{
+  "name": "skills",
+  "title": "技能",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "name",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "技能名称",
+        "x-component": "Input"
+      },
+      "required": true
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "类别",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "技术",
+            "label": "技术"
+          },
+          {
+            "value": "管理",
+            "label": "管理"
+          },
+          {
+            "value": "语言",
+            "label": "语言"
+          },
+          {
+            "value": "其他",
+            "label": "其他"
+          }
+        ]
+      }
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "interface": "textarea",
+      "uiSchema": {
+        "title": "描述",
+        "x-component": "Input.TextArea"
+      }
+    }
+  ]
+}

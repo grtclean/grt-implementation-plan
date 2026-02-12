@@ -1,0 +1,180 @@
+{
+  "name": "project_phases",
+  "title": "项目阶段",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "project",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "项目",
+        "x-component": "RecordPicker"
+      },
+      "target": "projects"
+    },
+    {
+      "name": "phase",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "阶段",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "M0",
+            "label": "M0"
+          },
+          {
+            "value": "M1",
+            "label": "M1"
+          },
+          {
+            "value": "M2",
+            "label": "M2"
+          },
+          {
+            "value": "M3",
+            "label": "M3"
+          },
+          {
+            "value": "M4",
+            "label": "M4"
+          },
+          {
+            "value": "M5",
+            "label": "M5"
+          },
+          {
+            "value": "M6",
+            "label": "M6"
+          },
+          {
+            "value": "M7",
+            "label": "M7"
+          },
+          {
+            "value": "M8",
+            "label": "M8"
+          },
+          {
+            "value": "M9",
+            "label": "M9"
+          },
+          {
+            "value": "M10",
+            "label": "M10"
+          },
+          {
+            "value": "M11",
+            "label": "M11"
+          },
+          {
+            "value": "M12",
+            "label": "M12"
+          }
+        ]
+      }
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "阶段名称",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "状态",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "未开始",
+            "label": "未开始"
+          },
+          {
+            "value": "进行中",
+            "label": "进行中"
+          },
+          {
+            "value": "已完成",
+            "label": "已完成"
+          },
+          {
+            "value": "已跳过",
+            "label": "已跳过"
+          }
+        ]
+      }
+    },
+    {
+      "name": "plannedStart",
+      "type": "date",
+      "interface": "datePicker",
+      "uiSchema": {
+        "title": "计划开始",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "plannedEnd",
+      "type": "date",
+      "interface": "datePicker",
+      "uiSchema": {
+        "title": "计划结束",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "actualStart",
+      "type": "date",
+      "interface": "datePicker",
+      "uiSchema": {
+        "title": "实际开始",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "actualEnd",
+      "type": "date",
+      "interface": "datePicker",
+      "uiSchema": {
+        "title": "实际结束",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "gateReviewStatus",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "门径评审状态",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "待评审",
+            "label": "待评审"
+          },
+          {
+            "value": "通过",
+            "label": "通过"
+          },
+          {
+            "value": "有条件通过",
+            "label": "有条件通过"
+          },
+          {
+            "value": "未通过",
+            "label": "未通过"
+          }
+        ]
+      }
+    }
+  ]
+}

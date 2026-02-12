@@ -1,0 +1,287 @@
+/* 移动端响应式适配样式 */
+
+/* 平板设备 (768px - 1024px) */
+@media (max-width: 1024px) {
+  .hub-container {
+    padding: 1rem;
+  }
+
+  .hub-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .hub-card {
+    padding: 1rem;
+  }
+
+  .hub-chart {
+    height: 300px;
+  }
+
+  .hub-sidebar {
+    display: none;
+  }
+
+  .hub-content {
+    width: 100%;
+  }
+}
+
+/* 手机设备 (480px - 768px) */
+@media (max-width: 768px) {
+  .hub-container {
+    padding: 0.75rem;
+  }
+
+  .hub-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .hub-title {
+    font-size: 1.5rem;
+  }
+
+  .hub-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .hub-card {
+    padding: 0.75rem;
+  }
+
+  .hub-chart {
+    height: 250px;
+  }
+
+  .hub-table {
+    font-size: 0.875rem;
+  }
+
+  .hub-button {
+    width: 100%;
+  }
+
+  .hub-tabs {
+    flex-wrap: wrap;
+  }
+
+  .hub-modal {
+    width: 90vw;
+    max-height: 80vh;
+  }
+}
+
+/* 小手机设备 (< 480px) */
+@media (max-width: 480px) {
+  .hub-container {
+    padding: 0.5rem;
+  }
+
+  .hub-header {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .hub-title {
+    font-size: 1.25rem;
+  }
+
+  .hub-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .hub-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .hub-card {
+    padding: 0.5rem;
+  }
+
+  .hub-card-title {
+    font-size: 1rem;
+  }
+
+  .hub-card-content {
+    font-size: 0.875rem;
+  }
+
+  .hub-chart {
+    height: 200px;
+  }
+
+  .hub-table {
+    font-size: 0.75rem;
+    overflow-x: auto;
+  }
+
+  .hub-button {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .hub-button-group {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .hub-tabs {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .hub-tab-trigger {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .hub-modal {
+    width: 95vw;
+    max-height: 90vh;
+  }
+
+  .hub-input {
+    font-size: 16px; /* 防止iOS自动放大 */
+  }
+
+  .hub-form-group {
+    margin-bottom: 0.75rem;
+  }
+
+  .hub-label {
+    font-size: 0.875rem;
+  }
+
+  /* 触摸友好的按钮大小 */
+  .hub-button,
+  .hub-tab-trigger,
+  .hub-card-action {
+    min-height: 44px; /* iOS推荐 */
+    min-width: 44px;
+  }
+
+  /* 隐藏不必要的元素 */
+  .hub-sidebar {
+    display: none;
+  }
+
+  .hub-advanced-filters {
+    display: none;
+  }
+
+  .hub-export-button {
+    display: none;
+  }
+}
+
+/* 横屏模式 (Landscape) */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hub-container {
+    padding: 0.5rem;
+  }
+
+  .hub-header {
+    margin-bottom: 0.5rem;
+  }
+
+  .hub-chart {
+    height: 200px;
+  }
+
+  .hub-modal {
+    max-height: 90vh;
+  }
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .hub-container {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+  }
+
+  .hub-card {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .hub-input,
+  .hub-select {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #404040;
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: more) {
+  .hub-card {
+    border-width: 2px;
+  }
+
+  .hub-button {
+    font-weight: bold;
+  }
+
+  .hub-text {
+    font-weight: 500;
+  }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  .hub-card,
+  .hub-button,
+  .hub-transition {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  .hub-button:hover {
+    background-color: inherit;
+  }
+
+  .hub-button:active {
+    opacity: 0.8;
+  }
+
+  .hub-card:hover {
+    box-shadow: none;
+  }
+
+  .hub-card:active {
+    opacity: 0.95;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .hub-sidebar,
+  .hub-navigation,
+  .hub-button-group,
+  .hub-modal {
+    display: none;
+  }
+
+  .hub-container {
+    padding: 0;
+    background-color: white;
+  }
+
+  .hub-card {
+    page-break-inside: avoid;
+    border: 1px solid #000;
+  }
+
+  .hub-chart {
+    page-break-inside: avoid;
+  }
+}

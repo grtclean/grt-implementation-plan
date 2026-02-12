@@ -1,0 +1,109 @@
+{
+  "name": "opportunities",
+  "title": "商机",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "name",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "商机名称",
+        "x-component": "Input"
+      },
+      "required": true
+    },
+    {
+      "name": "customer",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "客户",
+        "x-component": "RecordPicker"
+      },
+      "target": "customers"
+    },
+    {
+      "name": "amount",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "金额",
+        "x-component": "InputNumber"
+      }
+    },
+    {
+      "name": "probability",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "成功概率",
+        "x-component": "InputNumber"
+      }
+    },
+    {
+      "name": "stage",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "阶段",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "初步接触",
+            "label": "初步接触"
+          },
+          {
+            "value": "需求确认",
+            "label": "需求确认"
+          },
+          {
+            "value": "方案报价",
+            "label": "方案报价"
+          },
+          {
+            "value": "商务谈判",
+            "label": "商务谈判"
+          },
+          {
+            "value": "赢单",
+            "label": "赢单"
+          },
+          {
+            "value": "输单",
+            "label": "输单"
+          }
+        ]
+      }
+    },
+    {
+      "name": "expectedCloseDate",
+      "type": "date",
+      "interface": "datePicker",
+      "uiSchema": {
+        "title": "预计成交日期",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "competitor",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "竞争对手",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "assignee",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "负责人",
+        "x-component": "RecordPicker"
+      },
+      "target": "employees"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "collections": [
+    "customers",
+    "leads",
+    "opportunities",
+    "projects",
+    "project_phases",
+    "tasks",
+    "employees",
+    "skills",
+    "employee_skills",
+    "attendance",
+    "budgets",
+    "cost_entries",
+    "payment_nodes",
+    "ai_assistants",
+    "ai_conversations",
+    "deadlock_records",
+    "audit_logs"
+  ]
+}

@@ -1,0 +1,182 @@
+/**
+ * AI销售中心 - 谈判可视化、ZOPA图表、情绪分析、ZKP验证
+ */
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { MessageSquare, Target, Brain, Shield, TrendingUp, Play, Pause, RotateCcw } from "lucide-react";
+
+const mockNegotiations = [
+  { id: "neg_001", clientAgent: "上汽采购AI", round: 5, ourOffer: 125000, clientOffer: 98000, zopaMin: 105000, zopaMax: 130000, sentiment: "positive", status: "negotiating" },
+  { id: "neg_002", clientAgent: "一汽采购AI", round: 8, ourOffer: 88000, clientOffer: 85000, zopaMin: 80000, zopaMax: 95000, sentiment: "neutral", status: "deal_reached" },
+];
+
+const mockZkpProofs = [
+  { id: "zkp_001", type: "capacity", publicInputs: "年产能 > 10000套", proofHash: "0xabc...123", verified: true },
+  { id: "zkp_002", type: "compliance", publicInputs: "VDA 6.3 认证", proofHash: "0xdef...456", verified: true },
+  { id: "zkp_003", type: "green_energy", publicInputs: "绿电占比 > 60%", proofHash: "0xghi...789", verified: false },
+];
+
+export default function AiSalesHub() {
+  const [activeTab, setActiveTab] = useState("negotiations");
+
+  const getSentimentColor = (sentiment: string) => {
+    switch (sentiment) {
+      case "positive": return "text-green-400";
+      case "negative": return "text-red-400";
+      default: return "text-yellow-400";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <MessageSquare className="w-6 h-6 text-primary" />
+            AI销售中心
+          </h1>
+          <p className="text-muted-foreground mt-1">AI-to-AI谈判、ZOPA分析、情绪洞察</p>
+        </div>
+        <Button size="sm"><Play className="w-4 h-4 mr-2" />启动新谈判</Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div><p className="text-sm text-muted-foreground">进行中谈判</p><p className="text-2xl font-bold text-primary">12</p></div>
+              <MessageSquare className="w-8 h-8 text-primary/50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div><p className="text-sm text-muted-foreground">成交率</p><p className="text-2xl font-bold text-green-400">78%</p></div>
+              <Target className="w-8 h-8 text-green-500/50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div><p className="text-sm text-muted-foreground">ZKP验证</p><p className="text-2xl font-bold text-blue-400">45</p></div>
+              <Shield className="w-8 h-8 text-blue-500/50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div><p className="text-sm text-muted-foreground">本月成交额</p><p className="text-2xl font-bold text-purple-400">¥2.8M</p></div>
+              <TrendingUp className="w-8 h-8 text-purple-500/50" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
+          <TabsTrigger value="negotiations"><MessageSquare className="w-4 h-4 mr-2" />谈判会话</TabsTrigger>
+          <TabsTrigger value="zopa"><Target className="w-4 h-4 mr-2" />ZOPA分析</TabsTrigger>
+          <TabsTrigger value="sentiment"><Brain className="w-4 h-4 mr-2" />情绪洞察</TabsTrigger>
+          <TabsTrigger value="zkp"><Shield className="w-4 h-4 mr-2" />ZKP验证</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="negotiations" className="space-y-4">
+          {mockNegotiations.map((neg) => (
+            <Card key={neg.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">{neg.clientAgent}</CardTitle>
+                  <Badge variant={neg.status === "deal_reached" ? "default" : "secondary"}>
+                    {neg.status === "deal_reached" ? "已成交" : `第${neg.round}轮`}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">我方报价</p>
+                    <p className="text-xl font-bold text-primary">¥{neg.ourOffer.toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">客户还价</p>
+                    <p className="text-xl font-bold">¥{neg.clientOffer.toLocaleString()}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">客户情绪:</span>
+                  <span className={`font-medium ${getSentimentColor(neg.sentiment)}`}>
+                    {neg.sentiment === "positive" ? "积极" : neg.sentiment === "negative" ? "消极" : "中性"}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+
+        <TabsContent value="zopa" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle>ZOPA区间分析</CardTitle><CardDescription>协议达成可能区间可视化</CardDescription></CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {mockNegotiations.map((neg) => (
+                  <div key={neg.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{neg.clientAgent}</span>
+                      <span className="text-sm text-muted-foreground">ZOPA: ¥{neg.zopaMin.toLocaleString()} - ¥{neg.zopaMax.toLocaleString()}</span>
+                    </div>
+                    <div className="relative h-8 bg-muted rounded-full overflow-hidden">
+                      <div className="absolute inset-y-0 bg-green-500/30" style={{ left: "30%", right: "20%" }} />
+                      <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full" style={{ left: "45%" }} />
+                      <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-blue-400 rounded-full" style={{ left: "35%" }} />
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>¥80K</span><span>¥100K</span><span>¥120K</span><span>¥140K</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sentiment" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle>情绪分析仪表盘</CardTitle><CardDescription>The Listener Agent实时情绪洞察</CardDescription></CardHeader>
+            <CardContent>
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">[情绪趋势图 - 按谈判轮次展示情绪变化]</div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="zkp" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle>零知识证明注册表</CardTitle><CardDescription>产能/合规/绿色能源证明验证</CardDescription></CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {mockZkpProofs.map((proof) => (
+                  <div key={proof.id} className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <Shield className={`w-8 h-8 ${proof.verified ? "text-green-400" : "text-yellow-400"}`} />
+                      <div>
+                        <p className="font-medium">{proof.type === "capacity" ? "产能证明" : proof.type === "compliance" ? "合规证明" : "绿色能源"}</p>
+                        <p className="text-sm text-muted-foreground">{proof.publicInputs}</p>
+                      </div>
+                    </div>
+                    <Badge variant={proof.verified ? "default" : "secondary"}>{proof.verified ? "已验证" : "待验证"}</Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

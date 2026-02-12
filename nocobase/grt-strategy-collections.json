@@ -1,0 +1,793 @@
+{
+  "collections": [
+    {
+      "name": "Strategy_Master_Plan",
+      "title": "战略总体规划",
+      "description": "GRT 2028/2030全球战略规划指标库",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "primaryKey": true,
+          "autoIncrement": false,
+          "title": "记录ID"
+        },
+        {
+          "name": "year",
+          "type": "integer",
+          "title": "规划年份",
+          "description": "2026, 2028, 2030",
+          "required": true,
+          "uiSchema": {
+            "type": "number",
+            "enum": [2026, 2028, 2030]
+          }
+        },
+        {
+          "name": "region",
+          "type": "string",
+          "title": "地区",
+          "description": "Global, Asia, Europe, US",
+          "required": true,
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Global", "Asia", "Europe", "US"]
+          }
+        },
+        {
+          "name": "metric",
+          "type": "string",
+          "title": "指标类型",
+          "description": "Revenue(销售额) / Headcount(人数)",
+          "required": true,
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Revenue", "Headcount", "Market_Share", "Customer_Satisfaction"]
+          }
+        },
+        {
+          "name": "target_value",
+          "type": "number",
+          "title": "目标值",
+          "description": "例如: 300000000 (3亿RMB)",
+          "required": true
+        },
+        {
+          "name": "actual_value",
+          "type": "number",
+          "title": "实际值",
+          "description": "当前实现的数值"
+        },
+        {
+          "name": "unit",
+          "type": "string",
+          "title": "单位",
+          "description": "CNY, EUR, USD, Person",
+          "required": true,
+          "uiSchema": {
+            "type": "select",
+            "enum": ["CNY", "EUR", "USD", "Person"]
+          }
+        },
+        {
+          "name": "achievement_rate",
+          "type": "number",
+          "title": "达成率(%)",
+          "description": "自动计算: actual_value / target_value * 100",
+          "formula": "actual_value / target_value * 100"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "title": "状态",
+          "description": "On_Track / At_Risk / Off_Track",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["On_Track", "At_Risk", "Off_Track"]
+          }
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "title": "备注"
+        },
+        {
+          "name": "created_at",
+          "type": "date",
+          "title": "创建时间",
+          "defaultValue": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "date",
+          "title": "更新时间",
+          "defaultValue": "now()"
+        }
+      ]
+    },
+    {
+      "name": "Resource_Allocation",
+      "title": "资源编制表",
+      "description": "动态的部门和角色编制，基于战略目标自动触发",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "primaryKey": true,
+          "title": "编制ID"
+        },
+        {
+          "name": "department",
+          "type": "string",
+          "title": "部门",
+          "description": "Sales / Service / ISC / PMO / HRM / Finance",
+          "required": true,
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Sales", "Service", "ISC", "PMO", "HRM", "Finance"]
+          }
+        },
+        {
+          "name": "region",
+          "type": "string",
+          "title": "地区",
+          "required": true,
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Asia", "Europe", "US", "Global"]
+          }
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "title": "职位",
+          "description": "例如: Europe Tech Sales, Asia Remote Support",
+          "required": true
+        },
+        {
+          "name": "planned_headcount",
+          "type": "integer",
+          "title": "计划人数",
+          "required": true
+        },
+        {
+          "name": "current_headcount",
+          "type": "integer",
+          "title": "当前人数"
+        },
+        {
+          "name": "gap",
+          "type": "integer",
+          "title": "缺口",
+          "formula": "planned_headcount - current_headcount"
+        },
+        {
+          "name": "trigger_condition",
+          "type": "text",
+          "title": "触发条件",
+          "description": "例如: Europe Revenue > 6M EUR",
+          "required": true
+        },
+        {
+          "name": "trigger_status",
+          "type": "string",
+          "title": "触发状态",
+          "description": "Pending / Triggered / Completed",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Pending", "Triggered", "Completed"]
+          }
+        },
+        {
+          "name": "recruitment_request_id",
+          "type": "string",
+          "title": "关联招聘需求ID",
+          "description": "自动关联到HRM_Recruitment表"
+        },
+        {
+          "name": "priority",
+          "type": "string",
+          "title": "优先级",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Critical", "High", "Medium", "Low"]
+          }
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "title": "备注"
+        }
+      ]
+    },
+    {
+      "name": "Global_Sales_Opportunities",
+      "title": "全球销售机会",
+      "description": "针对欧美少人多产模式的特化CRM",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "primaryKey": true,
+          "title": "商机ID"
+        },
+        {
+          "name": "customer_name",
+          "type": "string",
+          "title": "客户名称",
+          "required": true
+        },
+        {
+          "name": "region",
+          "type": "string",
+          "title": "地区",
+          "required": true,
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Europe", "US", "Asia", "Other"]
+          }
+        },
+        {
+          "name": "potential_value",
+          "type": "number",
+          "title": "潜在价值(USD)",
+          "required": true
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "title": "货币",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["USD", "EUR", "CNY"]
+          }
+        },
+        {
+          "name": "stage",
+          "type": "string",
+          "title": "阶段",
+          "description": "Prospect / Qualified / Proposal / Negotiation / Won / Lost",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Prospect", "Qualified", "Proposal", "Negotiation", "Won", "Lost"]
+          }
+        },
+        {
+          "name": "sales_rep",
+          "type": "string",
+          "title": "销售代表",
+          "required": true
+        },
+        {
+          "name": "isc_support_required",
+          "type": "boolean",
+          "title": "是否需要ISC支持",
+          "description": ">$1M的商机必须关联ISC技术支持"
+        },
+        {
+          "name": "isc_ticket_id",
+          "type": "string",
+          "title": "ISC工单ID",
+          "description": "当potential_value > 1000000时为必填"
+        },
+        {
+          "name": "expected_close_date",
+          "type": "date",
+          "title": "预期成交日期"
+        },
+        {
+          "name": "probability",
+          "type": "number",
+          "title": "成功概率(%)",
+          "uiSchema": {
+            "type": "number",
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "name": "weighted_value",
+          "type": "number",
+          "title": "加权价值",
+          "formula": "potential_value * probability / 100"
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "title": "备注"
+        },
+        {
+          "name": "created_at",
+          "type": "date",
+          "title": "创建时间",
+          "defaultValue": "now()"
+        }
+      ]
+    },
+    {
+      "name": "ISC_Task_Board",
+      "title": "亚洲ISC任务看板",
+      "description": "亚洲国际支持中心的任务管理看板，支持时差提醒",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "primaryKey": true,
+          "title": "任务ID"
+        },
+        {
+          "name": "ticket_id",
+          "type": "string",
+          "title": "工单号",
+          "required": true
+        },
+        {
+          "name": "customer_name",
+          "type": "string",
+          "title": "客户名称",
+          "required": true
+        },
+        {
+          "name": "region",
+          "type": "string",
+          "title": "客户地区",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Europe", "US", "Asia"]
+          }
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "title": "状态",
+          "description": "To_Do / Drafting / Reviewed / Submitted",
+          "required": true,
+          "uiSchema": {
+            "type": "select",
+            "enum": ["To_Do", "Drafting", "Reviewed", "Submitted"]
+          }
+        },
+        {
+          "name": "assigned_to",
+          "type": "string",
+          "title": "分配给",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "type": "string",
+          "title": "优先级",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Critical", "High", "Medium", "Low"]
+          }
+        },
+        {
+          "name": "created_at",
+          "type": "date",
+          "title": "创建时间",
+          "defaultValue": "now()"
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "title": "截止日期"
+        },
+        {
+          "name": "customer_timezone",
+          "type": "string",
+          "title": "客户时区",
+          "description": "用于时差提醒"
+        },
+        {
+          "name": "is_working_hours",
+          "type": "boolean",
+          "title": "当前是否为客户工作时间",
+          "description": "自动计算，用于高亮显示"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "title": "任务描述"
+        },
+        {
+          "name": "solution_draft",
+          "type": "text",
+          "title": "方案草稿"
+        },
+        {
+          "name": "customer_feedback",
+          "type": "text",
+          "title": "客户反馈"
+        }
+      ]
+    },
+    {
+      "name": "Staff_KPI_Scorecard",
+      "title": "员工KPI计分卡",
+      "description": "将业务结果直接映射到个人绩效",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "primaryKey": true,
+          "title": "计分卡ID"
+        },
+        {
+          "name": "staff_id",
+          "type": "string",
+          "title": "员工ID",
+          "required": true
+        },
+        {
+          "name": "staff_name",
+          "type": "string",
+          "title": "员工名称",
+          "required": true
+        },
+        {
+          "name": "department",
+          "type": "string",
+          "title": "部门",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Sales", "Service", "ISC", "PMO", "HRM", "Finance"]
+          }
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "title": "职位",
+          "required": true
+        },
+        {
+          "name": "year",
+          "type": "integer",
+          "title": "年份",
+          "required": true
+        },
+        {
+          "name": "quarter",
+          "type": "string",
+          "title": "季度",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Q1", "Q2", "Q3", "Q4"]
+          }
+        },
+        {
+          "name": "kpi_type",
+          "type": "string",
+          "title": "KPI类型",
+          "description": "Sales / ISC_Support / Management",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Sales", "ISC_Support", "Management"]
+          }
+        },
+        {
+          "name": "sales_achievement_rate",
+          "type": "number",
+          "title": "销售额达成率(%)",
+          "description": "权重: 70%"
+        },
+        {
+          "name": "forecast_accuracy",
+          "type": "number",
+          "title": "预测准确率(%)",
+          "description": "权重: 10%"
+        },
+        {
+          "name": "crm_data_completeness",
+          "type": "number",
+          "title": "CRM数据完整度(%)",
+          "description": "权重: 20%"
+        },
+        {
+          "name": "customer_satisfaction",
+          "type": "number",
+          "title": "欧美满意度评分(0-100)",
+          "description": "ISC Support权重: 40%"
+        },
+        {
+          "name": "response_speed",
+          "type": "number",
+          "title": "响应速度评分(0-100)",
+          "description": "ISC Support权重: 30%"
+        },
+        {
+          "name": "solution_hit_rate",
+          "type": "number",
+          "title": "方案中标率(%)",
+          "description": "ISC Support权重: 30%"
+        },
+        {
+          "name": "ytd_achievement",
+          "type": "number",
+          "title": "年度累计达成率(%)"
+        },
+        {
+          "name": "trend",
+          "type": "string",
+          "title": "趋势",
+          "description": "Up / Stable / Down",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Up", "Stable", "Down"]
+          }
+        },
+        {
+          "name": "overall_score",
+          "type": "number",
+          "title": "综合评分(0-100)",
+          "description": "根据KPI类型自动计算"
+        },
+        {
+          "name": "rating",
+          "type": "string",
+          "title": "评级",
+          "description": "Excellent / Good / Fair / Poor",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Excellent", "Good", "Fair", "Poor"]
+          }
+        },
+        {
+          "name": "improvement_needed",
+          "type": "boolean",
+          "title": "需要改进",
+          "description": "ytd_achievement < 80% && trend = Down时自动标记"
+        },
+        {
+          "name": "coaching_email_sent",
+          "type": "boolean",
+          "title": "已发送辅导邮件"
+        },
+        {
+          "name": "coaching_suggestions",
+          "type": "text",
+          "title": "辅导建议",
+          "description": "由Gemini AI Coach自动生成"
+        },
+        {
+          "name": "manager_id",
+          "type": "string",
+          "title": "直属经理ID"
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "title": "备注"
+        }
+      ]
+    },
+    {
+      "name": "HRM_Recruitment",
+      "title": "人力资源招聘需求",
+      "description": "由Resource_Allocation自动触发的招聘需求",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "primaryKey": true,
+          "title": "招聘需求ID"
+        },
+        {
+          "name": "allocation_id",
+          "type": "string",
+          "title": "关联编制ID",
+          "required": true
+        },
+        {
+          "name": "department",
+          "type": "string",
+          "title": "招聘部门",
+          "required": true
+        },
+        {
+          "name": "region",
+          "type": "string",
+          "title": "招聘地区",
+          "required": true
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "title": "职位",
+          "required": true
+        },
+        {
+          "name": "headcount",
+          "type": "integer",
+          "title": "招聘人数",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "title": "状态",
+          "description": "Open / In_Progress / Closed / On_Hold",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Open", "In_Progress", "Closed", "On_Hold"]
+          }
+        },
+        {
+          "name": "trigger_reason",
+          "type": "text",
+          "title": "触发原因",
+          "description": "例如: Europe Revenue > 6M EUR"
+        },
+        {
+          "name": "created_at",
+          "type": "date",
+          "title": "创建时间",
+          "defaultValue": "now()"
+        },
+        {
+          "name": "target_start_date",
+          "type": "date",
+          "title": "目标入职日期"
+        }
+      ]
+    },
+    {
+      "name": "BI_Dashboard_Config",
+      "title": "BI仪表板配置",
+      "description": "管理层驾驶舱配置",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "primaryKey": true,
+          "title": "配置ID"
+        },
+        {
+          "name": "dashboard_name",
+          "type": "string",
+          "title": "仪表板名称",
+          "required": true
+        },
+        {
+          "name": "chart_type",
+          "type": "string",
+          "title": "图表类型",
+          "description": "Line / Heatmap / Bar / Gauge / KPI",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Line", "Heatmap", "Bar", "Gauge", "KPI"]
+          }
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "title": "图表标题",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "title": "图表描述"
+        },
+        {
+          "name": "data_source",
+          "type": "string",
+          "title": "数据源",
+          "description": "关联的Collection名称"
+        },
+        {
+          "name": "x_axis",
+          "type": "string",
+          "title": "X轴字段"
+        },
+        {
+          "name": "y_axis",
+          "type": "string",
+          "title": "Y轴字段"
+        },
+        {
+          "name": "filter_conditions",
+          "type": "text",
+          "title": "过滤条件",
+          "description": "JSON格式"
+        },
+        {
+          "name": "refresh_interval",
+          "type": "integer",
+          "title": "刷新间隔(秒)",
+          "defaultValue": 300
+        },
+        {
+          "name": "alert_threshold",
+          "type": "number",
+          "title": "预警阈值"
+        },
+        {
+          "name": "alert_color",
+          "type": "string",
+          "title": "预警颜色",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Red", "Yellow", "Green"]
+          }
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "title": "是否启用",
+          "defaultValue": true
+        }
+      ]
+    },
+    {
+      "name": "Gemini_Automation_Rules",
+      "title": "Gemini自动化规则",
+      "description": "定义系统中的自动化触发规则",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "primaryKey": true,
+          "title": "规则ID"
+        },
+        {
+          "name": "rule_name",
+          "type": "string",
+          "title": "规则名称",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "title": "规则描述"
+        },
+        {
+          "name": "trigger_condition",
+          "type": "text",
+          "title": "触发条件",
+          "description": "例如: region='Europe' AND revenue_actual >= target_value * 0.5",
+          "required": true
+        },
+        {
+          "name": "action_type",
+          "type": "string",
+          "title": "动作类型",
+          "description": "Create_Record / Send_Email / Update_Field / Trigger_Workflow",
+          "uiSchema": {
+            "type": "select",
+            "enum": ["Create_Record", "Send_Email", "Update_Field", "Trigger_Workflow"]
+          }
+        },
+        {
+          "name": "action_details",
+          "type": "text",
+          "title": "动作详情",
+          "description": "JSON格式的动作配置"
+        },
+        {
+          "name": "target_collection",
+          "type": "string",
+          "title": "目标Collection",
+          "description": "例如: HRM_Recruitment"
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "title": "是否启用",
+          "defaultValue": true
+        },
+        {
+          "name": "created_at",
+          "type": "date",
+          "title": "创建时间",
+          "defaultValue": "now()"
+        },
+        {
+          "name": "last_triggered",
+          "type": "date",
+          "title": "最后触发时间"
+        }
+      ]
+    }
+  ]
+}

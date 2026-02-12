@@ -1,0 +1,128 @@
+/**
+ * 顶部导航栏样式
+ */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 4rem;
+  background-color: var(--background);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.topbar > div {
+  display: flex;
+  align-items: center;
+}
+
+.topbar > div:first-child {
+  flex: 1;
+  gap: 1rem;
+}
+
+.topbar > div:last-child {
+  gap: 0.5rem;
+}
+
+/* 搜索框容器 */
+.topbar .relative {
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+}
+
+/* 搜索结果下拉 */
+.topbar .absolute {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.5rem;
+  background-color: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+.topbar .absolute button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease-in-out;
+  color: var(--foreground);
+}
+
+.topbar .absolute button:hover {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/* 面包屑导航 */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--muted);
+  opacity: 0.5;
+  font-size: 0.875rem;
+}
+
+.breadcrumb a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb span {
+  color: var(--foreground);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .topbar {
+    padding: 0 0.5rem;
+  }
+
+  .topbar > div:first-child {
+    gap: 0.5rem;
+  }
+
+  .topbar > div:last-child {
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 0.5rem;
+  }
+
+  .topbar > div:first-child {
+    width: 100%;
+    order: 2;
+    margin-top: 0.5rem;
+  }
+
+  .topbar > div:last-child {
+    order: 1;
+  }
+}

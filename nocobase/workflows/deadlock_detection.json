@@ -1,0 +1,47 @@
+{
+  "key": "deadlock_detection",
+  "title": "死锁检测",
+  "enabled": true,
+  "type": "schedule",
+  "config": {
+    "type": "schedule",
+    "cron": "*/5 * * * *"
+  },
+  "nodes": [
+    {
+      "id": "node_1",
+      "type": "script",
+      "title": "执行检测",
+      "config": {
+        "script": "detectDeadlocks()"
+      }
+    },
+    {
+      "id": "node_2",
+      "type": "condition",
+      "title": "检查结果",
+      "config": {
+        "field": "hasDeadlock",
+        "operator": "==",
+        "value": true
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "create",
+      "title": "记录死锁",
+      "config": {
+        "collection": "deadlock_records"
+      }
+    },
+    {
+      "id": "node_4",
+      "type": "notification",
+      "title": "告警通知",
+      "config": {
+        "type": "webhook",
+        "level": "critical"
+      }
+    }
+  ]
+}

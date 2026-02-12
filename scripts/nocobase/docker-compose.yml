@@ -1,0 +1,71 @@
+# NocoBase Docker Compose Configuration
+# GRT智能系统 - AI助手任务管理平台
+# 
+# 使用方法:
+# 1. 确保已安装 Docker 和 Docker Compose
+# 2. 在此目录下运行: docker-compose up -d
+# 3. 访问 http://localhost:13000 进入NocoBase
+# 4. 默认管理员账号: admin@nocobase.com / admin123
+
+version: '3.8'
+
+services:
+  nocobase:
+    image: nocobase/nocobase:latest
+    container_name: grt-nocobase
+    restart: unless-stopped
+    ports:
+      - "13000:80"
+    environment:
+      # 数据库配置
+      - DB_DIALECT=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=nocobase
+      - DB_USER=nocobase
+      - DB_PASSWORD=nocobase_password_2024
+      # 应用配置
+      - APP_KEY=grt-nocobase-secret-key-2024
+      - APP_ENV=production
+      - TZ=Asia/Shanghai
+      # 初始管理员
+      - INIT_ROOT_EMAIL=admin@nocobase.com
+      - INIT_ROOT_PASSWORD=admin123
+      - INIT_ROOT_NICKNAME=GRT管理员
+    volumes:
+      - nocobase_storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - grt-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: grt-nocobase-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=nocobase
+      - POSTGRES_USER=nocobase
+      - POSTGRES_PASSWORD=nocobase_password_2024
+      - TZ=Asia/Shanghai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nocobase -d nocobase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - grt-network
+
+volumes:
+  nocobase_storage:
+    name: grt-nocobase-storage
+  postgres_data:
+    name: grt-nocobase-postgres
+
+networks:
+  grt-network:
+    name: grt-network
+    driver: bridge

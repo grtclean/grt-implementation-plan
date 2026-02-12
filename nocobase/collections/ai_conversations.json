@@ -1,0 +1,78 @@
+{
+  "name": "ai_conversations",
+  "title": "AI对话记录",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "assistant",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "助手",
+        "x-component": "RecordPicker"
+      },
+      "target": "ai_assistants"
+    },
+    {
+      "name": "user",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "用户",
+        "x-component": "RecordPicker"
+      },
+      "target": "employees"
+    },
+    {
+      "name": "sessionId",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "会话ID",
+        "x-component": "Input"
+      }
+    },
+    {
+      "name": "message",
+      "type": "text",
+      "interface": "textarea",
+      "uiSchema": {
+        "title": "消息内容",
+        "x-component": "Input.TextArea"
+      }
+    },
+    {
+      "name": "role",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "角色",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "user",
+            "label": "user"
+          },
+          {
+            "value": "assistant",
+            "label": "assistant"
+          },
+          {
+            "value": "system",
+            "label": "system"
+          }
+        ]
+      }
+    },
+    {
+      "name": "timestamp",
+      "type": "datetime",
+      "interface": "datetime",
+      "uiSchema": {
+        "title": "时间戳",
+        "x-component": "DatePicker"
+      }
+    }
+  ]
+}

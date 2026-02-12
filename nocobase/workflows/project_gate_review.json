@@ -1,0 +1,51 @@
+{
+  "key": "project_gate_review",
+  "title": "项目门径评审",
+  "enabled": true,
+  "type": "collection",
+  "config": {
+    "type": "collection",
+    "collection": "project_phases",
+    "event": "update"
+  },
+  "nodes": [
+    {
+      "id": "node_1",
+      "type": "condition",
+      "title": "检查阶段完成",
+      "config": {
+        "field": "status",
+        "operator": "==",
+        "value": "已完成"
+      }
+    },
+    {
+      "id": "node_2",
+      "type": "approval",
+      "title": "门径评审",
+      "config": {
+        "approvers": [
+          "project_manager",
+          "quality_manager"
+        ]
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "update",
+      "title": "更新评审状态",
+      "config": {
+        "collection": "project_phases",
+        "field": "gateReviewStatus"
+      }
+    },
+    {
+      "id": "node_4",
+      "type": "notification",
+      "title": "通知相关人员",
+      "config": {
+        "type": "email"
+      }
+    }
+  ]
+}

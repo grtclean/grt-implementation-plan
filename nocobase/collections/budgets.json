@@ -1,0 +1,85 @@
+{
+  "name": "budgets",
+  "title": "预算",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "project",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "项目",
+        "x-component": "RecordPicker"
+      },
+      "target": "projects"
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "类别",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "人工",
+            "label": "人工"
+          },
+          {
+            "value": "材料",
+            "label": "材料"
+          },
+          {
+            "value": "设备",
+            "label": "设备"
+          },
+          {
+            "value": "外协",
+            "label": "外协"
+          },
+          {
+            "value": "其他",
+            "label": "其他"
+          }
+        ]
+      }
+    },
+    {
+      "name": "amount",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "预算金额",
+        "x-component": "InputNumber"
+      }
+    },
+    {
+      "name": "usedAmount",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "已用金额",
+        "x-component": "InputNumber"
+      }
+    },
+    {
+      "name": "year",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "年度",
+        "x-component": "InputNumber"
+      }
+    },
+    {
+      "name": "month",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "月份",
+        "x-component": "InputNumber"
+      }
+    }
+  ]
+}

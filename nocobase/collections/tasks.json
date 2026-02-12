@@ -1,0 +1,160 @@
+{
+  "name": "tasks",
+  "title": "任务",
+  "inherit": false,
+  "hidden": false,
+  "fields": [
+    {
+      "name": "name",
+      "type": "string",
+      "interface": "input",
+      "uiSchema": {
+        "title": "任务名称",
+        "x-component": "Input"
+      },
+      "required": true
+    },
+    {
+      "name": "project",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "项目",
+        "x-component": "RecordPicker"
+      },
+      "target": "projects"
+    },
+    {
+      "name": "phase",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "阶段",
+        "x-component": "RecordPicker"
+      },
+      "target": "project_phases"
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "任务类型",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "设计",
+            "label": "设计"
+          },
+          {
+            "value": "制造",
+            "label": "制造"
+          },
+          {
+            "value": "测试",
+            "label": "测试"
+          },
+          {
+            "value": "文档",
+            "label": "文档"
+          },
+          {
+            "value": "其他",
+            "label": "其他"
+          }
+        ]
+      }
+    },
+    {
+      "name": "priority",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "优先级",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "低",
+            "label": "低"
+          },
+          {
+            "value": "中",
+            "label": "中"
+          },
+          {
+            "value": "高",
+            "label": "高"
+          },
+          {
+            "value": "紧急",
+            "label": "紧急"
+          }
+        ]
+      }
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "interface": "select",
+      "uiSchema": {
+        "title": "状态",
+        "x-component": "Select",
+        "enum": [
+          {
+            "value": "待处理",
+            "label": "待处理"
+          },
+          {
+            "value": "进行中",
+            "label": "进行中"
+          },
+          {
+            "value": "已完成",
+            "label": "已完成"
+          },
+          {
+            "value": "已取消",
+            "label": "已取消"
+          }
+        ]
+      }
+    },
+    {
+      "name": "assignee",
+      "type": "belongsTo",
+      "interface": "linkTo",
+      "uiSchema": {
+        "title": "负责人",
+        "x-component": "RecordPicker"
+      },
+      "target": "employees"
+    },
+    {
+      "name": "dueDate",
+      "type": "date",
+      "interface": "datePicker",
+      "uiSchema": {
+        "title": "截止日期",
+        "x-component": "DatePicker"
+      }
+    },
+    {
+      "name": "estimatedHours",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "预估工时",
+        "x-component": "InputNumber"
+      }
+    },
+    {
+      "name": "actualHours",
+      "type": "float",
+      "interface": "number",
+      "uiSchema": {
+        "title": "实际工时",
+        "x-component": "InputNumber"
+      }
+    }
+  ]
+}
