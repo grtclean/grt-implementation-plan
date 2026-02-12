@@ -18,6 +18,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { STAGES as SHARED_STAGES } from "../../../../shared/stage-definitions";
+import DocumentRecommendationPanel from "@/components/doc-intelligence/DocumentRecommendationPanel";
+import StageDocumentChecklist from "@/components/doc-intelligence/StageDocumentChecklist";
+import ProjectDocumentOverview from "@/components/doc-intelligence/ProjectDocumentOverview";
+import DocumentSearchDialog from "@/components/doc-intelligence/DocumentSearchDialog";
 
 const STAGES = SHARED_STAGES.map(s => ({ code: s.code, name: s.name, desc: s.description }));
 
@@ -365,6 +369,10 @@ export default function POSProjectDetail() {
               <TabsTrigger value="inputs">输入物</TabsTrigger>
               <TabsTrigger value="outputs">输出物</TabsTrigger>
               <TabsTrigger value="tasks">任务</TabsTrigger>
+              <TabsTrigger value="documents" className="flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5" />
+                文档智能
+              </TabsTrigger>
             </TabsList>
             
             {/* 概览 */}
@@ -605,6 +613,38 @@ export default function POSProjectDetail() {
                   ))}
                 </TableBody>
               </Table>
+            </TabsContent>
+
+            {/* 文档智能 Tab */}
+            <TabsContent value="documents" className="mt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  {activeStage} 阶段文档管理
+                </h3>
+                <DocumentSearchDialog
+                  projectId={projectId}
+                  stageCode={activeStage}
+                />
+              </div>
+
+              {/* 文档完备性全览 */}
+              <ProjectDocumentOverview
+                projectId={projectId}
+                currentStage={activeStage}
+                onStageClick={(code) => setActiveStage(code)}
+              />
+
+              {/* AI推荐面板 */}
+              <DocumentRecommendationPanel
+                projectId={projectId}
+                stageCode={activeStage}
+              />
+
+              {/* 文档检查清单 */}
+              <StageDocumentChecklist
+                projectId={projectId}
+                stageCode={activeStage}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>

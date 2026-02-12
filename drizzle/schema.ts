@@ -9258,3 +9258,95 @@ export const buEmployees = pgTable("bu_employees", {
   index("bu_emp_employee_idx").on(table.employeeId),
   index("bu_emp_status_idx").on(table.status),
 ]);
+
+// =============================================================================
+// Phase A: 工程文档AI推荐系统 (Document Intelligence)
+// =============================================================================
+
+/**
+ * 文档向量嵌入表 (document_embeddings)
+ * 存储文档的语义向量，用于相似度搜索和AI推荐
+ * 嵌入向量以JSON文本存储，兼容所有PostgreSQL部署（无需pgvector扩展）
+ */
+export const documentEmbeddings = pgTable("document_embeddings", {
+  id: serial("id").primaryKey(),
+
+  // 文档来源 - 支持多个文档表
+  sourceTable: varchar("source_table", { length: 50 }).notNull(), // 'project_documents' | 'technical_documents'
+  sourceId: integer("source_id").notNull(),
+
+  // 项目和阶段上下文
+  projectId: integer("project_id"),
+  stageCode: varchar("stage_code", { length: 10 }), // M0-M12
+
+  // 文档元数据（冗余存储，避免频繁JOIN）
+  documentTitle: varchar("document_title", { length: 300 }).notNull(),
+  documentType: varchar("document_type", { length: 50 }),
+
+  // 用于生成嵌入的文本摘要
+  contentDigest: text("content_digest").notNull(),
+
+  // 向量嵌入 (JSON数组 float[])
+  embedding: text("embedding").notNull(), // JSON: number[] (1536 dims for OpenAI)
+  embeddingModel: varchar("embedding_model", { length: 50 }).notNull(), // 'text-embedding-3-small'
+  embeddingDim: integer("embedding_dim").notNull(), // 1536
+
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("doc_emb_source_idx").on(table.sourceTable, table.sourceId),
+  index("doc_emb_project_idx").on(table.projectId),
+  index("doc_emb_stage_idx").on(table.stageCode),
+]);
+
+/**
+ * 阶段文档需求定义表 (stage_document_requirements)
+ * 定义每个M阶段需要的文档类型和要求
+ */
+export const stageDocumentRequirements = pgTable("stage_document_requirements", {
+  id: serial("id").primaryKey(),
+  stageCode: varchar("stage_code", { length: 10 }).notNull(), // M0-M12
+
+  documentName: varchar("document_name", { length: 200 }).notNull(),
+  documentNameEn: varchar("document_name_en", { length: 200 }),
+  documentType: varchar("document_type", { length: 50 }).notNull(),
+  description: text("description"),
+  descriptionEn: text("description_en"),
+
+  isMandatory: smallint("is_mandatory").default(1).notNull(), // 1=必须, 0=可选
+  templateUrl: text("template_url"), // 文档模板链接
+
+  sortOrder: integer("sort_order").default(0).notNull(),
+
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("stage_doc_req_stage_idx").on(table.stageCode),
+]);
+
+/**
+ * 文档推荐日志表 (document_recommendation_logs)
+ * 记录AI文档推荐的历史和用户反馈
+ */
+export const documentRecommendationLogs = pgTable("document_recommendation_logs", {
+  id: serial("id").primaryKey(),
+
+  // 推荐上下文
+  projectId: integer("project_id").notNull(),
+  stageCode: varchar("stage_code", { length: 10 }).notNull(),
+  userId: integer("user_id").notNull(),
+
+  // 推荐结果
+  recommendedDocIds: text("recommended_doc_ids").notNull(), // JSON: number[]
+  similarityScores: text("similarity_scores").notNull(), // JSON: number[]
+  aiReasoning: text("ai_reasoning"), // AI生成的推荐理由
+
+  // 用户反馈
+  feedback: varchar("feedback", { length: 20 }), // 'helpful' | 'not_helpful' | null
+  feedbackComment: text("feedback_comment"),
+
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("doc_rec_log_project_idx").on(table.projectId),
+  index("doc_rec_log_stage_idx").on(table.stageCode),
+]);

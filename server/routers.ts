@@ -90,6 +90,7 @@ import { salaryApprovalRouter } from "./production-steps/salaryApproval.router";
 import { buRouter } from "./routers/bu.router";
 import { bomRouter } from "./routers/bom.router";
 import { warehouseRouter } from "./routers/warehouse.router";
+import { docIntelligenceRouter } from "./doc-intelligence/doc-intelligence.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -282,6 +283,9 @@ export const appRouter = router({
 
   // 仓库管理 (仓库、库位、入库、出库、盘点、批次、序列号)
   warehouse: warehouseRouter,
+
+  // Phase A: 工程文档AI推荐系统 (语义搜索、阶段文档推荐、完备性检查)
+  docIntelligence: docIntelligenceRouter,
 
   // Additional placeholder routers
   travelDashboard: placeholderRouters.travelDashboard,
