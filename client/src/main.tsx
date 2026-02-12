@@ -54,16 +54,27 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
-    redirectToLoginIfUnauthorized(error);
-    console.error("[API Query Error]", error);
+    // Only redirect on explicit auth errors, and add a delay to prevent rapid redirects
+    if (!isRedirecting && error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG) {
+      // Check if we're on a public page - don't redirect from login
+      const currentPath = window.location.pathname;
+      if (currentPath !== "/login" && currentPath !== "/login-success" && currentPath !== "/auto-login.html") {
+        console.warn("[Auth] Unauthorized query detected, redirecting to login");
+        redirectToLoginIfUnauthorized(error);
+      }
+    }
   }
 });
 
 queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
-    redirectToLoginIfUnauthorized(error);
-    console.error("[API Mutation Error]", error);
+    if (!isRedirecting && error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG) {
+      const currentPath = window.location.pathname;
+      if (currentPath !== "/login" && currentPath !== "/login-success") {
+        redirectToLoginIfUnauthorized(error);
+      }
+    }
   }
 });
 
@@ -102,12 +113,18 @@ const trpcClient = trpc.createClient({
   ],
 });
 
-createRoot(document.getElementById("root")!).render(
-  <trpc.Provider client={trpcClient} queryClient={queryClient}>
-    <QueryClientProvider client={queryClient}>
-      <BehaviorProbeProvider enabled={true}>
-        <App />
-      </BehaviorProbeProvider>
-    </QueryClientProvider>
-  </trpc.Provider>
-);
+// Wait for auth to resolve BEFORE rendering React.
+// This eliminates all loading→content transitions and page jumping.
+import { authReady } from "@/_core/hooks/useAuth";
+
+authReady.then(() => {
+  createRoot(document.getElementById("root")!).render(
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <BehaviorProbeProvider enabled={true}>
+          <App />
+        </BehaviorProbeProvider>
+      </QueryClientProvider>
+    </trpc.Provider>
+  );
+});

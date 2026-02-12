@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head><title>Auto Login</title>
+<style>body{font-family:monospace;padding:20px;background:#111;color:#0f0}#log{white-space:pre-wrap}</style>
+</head>
+<body>
+<div id="log"></div>
+<script>
+var log = document.getElementById('log');
+function addLog(msg) { log.textContent += new Date().toISOString().substr(11,12) + ' ' + msg + '\n'; }
+
+addLog('Starting auto-login...');
+
+(async function() {
+  try {
+    addLog('Calling /api/auth/login...');
+    var res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        username: '18961785921@163.com',
+        password: 'Gerry123'
+      })
+    });
+    addLog('Login response: ' + res.status);
+
+    if (res.ok) {
+      addLog('Verifying auth with /api/auth/me...');
+      var meRes = await fetch('/api/auth/me', { credentials: 'include' });
+      var meData = await meRes.json();
+      addLog('Auth verify: ' + meRes.status + ' user=' + (meData.name || meData.openId || 'none'));
+
+      addLog('Redirecting to /rd-verification in 1s...');
+      setTimeout(function() {
+        window.location.href = '/rd-verification';
+      }, 1000);
+    } else {
+      addLog('Login FAILED: ' + res.status);
+    }
+  } catch(e) {
+    addLog('ERROR: ' + e.message);
+  }
+})();
+</script>
+</body>
+</html>

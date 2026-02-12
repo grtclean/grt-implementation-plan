@@ -47,8 +47,13 @@ export function ThemeProvider({
   const isPublicPage = typeof window !== 'undefined' &&
     (window.location.pathname === '/login' || window.location.pathname === '/login-success');
 
-  // On public pages, start already initialized to avoid extra state transitions
-  const [isInitialized, setIsInitialized] = useState(isPublicPage);
+  // Start initialized if: public page OR localStorage already has a cached theme.
+  // This prevents the tRPC query from firing on initial load (avoids state transitions / flickering).
+  const [isInitialized, setIsInitialized] = useState(() => {
+    if (isPublicPage) return true;
+    if (switchable && typeof window !== 'undefined' && localStorage.getItem('grt-theme')) return true;
+    return false;
+  });
   const [isSynced, setIsSynced] = useState(false);
 
   // Calculate resolved theme
@@ -114,13 +119,12 @@ export function ThemeProvider({
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [theme]);
 
-  // Fallback initialization
+  // Fallback initialization (short timeout - only needed for first-ever login with no localStorage)
   useEffect(() => {
+    if (isInitialized) return;
     const timer = setTimeout(() => {
-      if (!isInitialized) {
-        setIsInitialized(true);
-      }
-    }, 1500);
+      setIsInitialized(true);
+    }, 300);
     return () => clearTimeout(timer);
   }, [isInitialized]);
 

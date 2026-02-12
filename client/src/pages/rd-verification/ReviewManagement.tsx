@@ -23,11 +23,15 @@ const statusIcons: Record<string, any> = {
 
 export default function ReviewManagement() {
   // 获取评审数据
-  const { data: gateReviewsData, isLoading: reviewsLoading } = (trpc.projectGate as any).getGateReviews.useQuery({});
+  const { data: gateReviewsData, isLoading: reviewsLoading } = (trpc.projectGate as any).getGateReviews.useQuery({}, {
+    retry: false, refetchOnWindowFocus: false,
+  });
   const gateReviews = Array.isArray(gateReviewsData) ? gateReviewsData : (gateReviewsData?.reviews || []);
 
   // 获取阶段门定义 (用于AI推荐)
-  const { data: gateDefinitionsData, isLoading: defsLoading } = (trpc.projectGate as any).getGateDefinitions.useQuery();
+  const { data: gateDefinitionsData, isLoading: defsLoading } = (trpc.projectGate as any).getGateDefinitions.useQuery(undefined, {
+    retry: false, refetchOnWindowFocus: false,
+  });
   const gateDefinitions = Array.isArray(gateDefinitionsData) ? gateDefinitionsData : (gateDefinitionsData?.definitions || []);
 
   return (

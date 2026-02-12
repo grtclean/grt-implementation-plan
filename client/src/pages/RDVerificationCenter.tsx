@@ -24,9 +24,15 @@ import PullSignals from "./rd-verification/PullSignals";
 export default function RDVerificationCenter() {
   const [activeTab, setActiveTab] = useState("overview");
 
-  // 统计数据
-  const { data: stats, isLoading: statsLoading } = trpc.stageGate.getStats.useQuery();
-  const { data: statisticsData, isLoading: gateStatsLoading } = (trpc.projectGate as any).getGateStatistics.useQuery();
+  // 统计数据 - retry: false 防止查询失败时反复重试导致页面跳动
+  const { data: stats, isLoading: statsLoading } = trpc.stageGate.getStats.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const { data: statisticsData, isLoading: gateStatsLoading } = (trpc.projectGate as any).getGateStatistics.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
   const statistics = statisticsData?.statistics || statisticsData || {};
 
   const totalProjects = statistics?.totalProjects || 0;
@@ -61,107 +67,40 @@ export default function RDVerificationCenter() {
           </p>
         </div>
 
-        {/* 统计卡片区 */}
+        {/* 统计卡片区 - 固定高度防止布局跳动 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* 总项目数 */}
-          <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
-            <CardContent className="p-5">
-              {gateStatsLoading ? (
-                <div className="flex items-center gap-4">
-                  <Skeleton className="w-12 h-12 rounded-lg" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-3 w-16" />
-                    <Skeleton className="h-7 w-12" />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-blue-500/10 text-blue-400">
-                    <FolderKanban className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">总项目数</p>
-                    <p className="text-2xl font-bold">{totalProjects}</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* 总检查项 */}
-          <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
-            <CardContent className="p-5">
-              {statsLoading ? (
-                <div className="flex items-center gap-4">
-                  <Skeleton className="w-12 h-12 rounded-lg" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-3 w-16" />
-                    <Skeleton className="h-7 w-12" />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-green-500/10 text-green-400">
-                    <CheckCircle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">门禁通过率</p>
-                    <p className="text-2xl font-bold">{passRate}%</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* 拉动信号 */}
-          <Card className="border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
-            <CardContent className="p-5">
-              {statsLoading ? (
-                <div className="flex items-center gap-4">
-                  <Skeleton className="w-12 h-12 rounded-lg" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-3 w-16" />
-                    <Skeleton className="h-7 w-12" />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-purple-500/10 text-purple-400">
-                    <Zap className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">拉动信号</p>
-                    <p className="text-2xl font-bold">{(stats as any)?.totalSignals || 0}</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* 风险项目 */}
-          <Card className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow">
-            <CardContent className="p-5">
-              {statsLoading ? (
-                <div className="flex items-center gap-4">
-                  <Skeleton className="w-12 h-12 rounded-lg" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-3 w-16" />
-                    <Skeleton className="h-7 w-12" />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-orange-500/10 text-orange-400">
-                    <AlertTriangle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">一票否决项</p>
-                    <p className="text-2xl font-bold">{(stats as any)?.mandatoryItems || 0}</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <StatCard
+            borderColor="border-l-blue-500"
+            iconBg="bg-blue-500/10 text-blue-400"
+            icon={<FolderKanban className="w-6 h-6" />}
+            label="总项目数"
+            value={totalProjects}
+            loading={gateStatsLoading}
+          />
+          <StatCard
+            borderColor="border-l-green-500"
+            iconBg="bg-green-500/10 text-green-400"
+            icon={<CheckCircle className="w-6 h-6" />}
+            label="门禁通过率"
+            value={`${passRate}%`}
+            loading={statsLoading}
+          />
+          <StatCard
+            borderColor="border-l-purple-500"
+            iconBg="bg-purple-500/10 text-purple-400"
+            icon={<Zap className="w-6 h-6" />}
+            label="拉动信号"
+            value={(stats as any)?.totalSignals || 0}
+            loading={statsLoading}
+          />
+          <StatCard
+            borderColor="border-l-orange-500"
+            iconBg="bg-orange-500/10 text-orange-400"
+            icon={<AlertTriangle className="w-6 h-6" />}
+            label="一票否决项"
+            value={(stats as any)?.mandatoryItems || 0}
+            loading={statsLoading}
+          />
         </div>
 
         {/* 主Tab区域 */}
@@ -225,5 +164,40 @@ export default function RDVerificationCenter() {
         </Tabs>
       </div>
     </Layout>
+  );
+}
+
+/** 统计卡片 - 固定高度，skeleton和内容共用同一布局防止跳动 */
+function StatCard({
+  borderColor, iconBg, icon, label, value, loading,
+}: {
+  borderColor: string; iconBg: string; icon: React.ReactNode;
+  label: string; value: React.ReactNode; loading: boolean;
+}) {
+  return (
+    <Card className={`border-l-4 ${borderColor} hover:shadow-md transition-shadow`}>
+      <CardContent className="p-5">
+        <div className="flex items-center gap-4 h-12">
+          {loading ? (
+            <Skeleton className="w-12 h-12 rounded-lg shrink-0" />
+          ) : (
+            <div className={`p-3 rounded-lg shrink-0 ${iconBg}`}>{icon}</div>
+          )}
+          <div className="min-w-0">
+            {loading ? (
+              <>
+                <Skeleton className="h-3 w-16 mb-2" />
+                <Skeleton className="h-7 w-12" />
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="text-2xl font-bold">{value}</p>
+              </>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

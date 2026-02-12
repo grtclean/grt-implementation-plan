@@ -15,10 +15,14 @@ import {
 } from "lucide-react";
 
 export default function StageOverview() {
-  const { data: gateDefinitionsData, isLoading: defsLoading } = (trpc.projectGate as any).getGateDefinitions.useQuery();
+  const { data: gateDefinitionsData, isLoading: defsLoading } = (trpc.projectGate as any).getGateDefinitions.useQuery(undefined, {
+    retry: false, refetchOnWindowFocus: false,
+  });
   const gateDefinitions = Array.isArray(gateDefinitionsData) ? gateDefinitionsData : (gateDefinitionsData?.definitions || []);
 
-  const { data: statisticsData, isLoading: statsLoading } = (trpc.projectGate as any).getGateStatistics.useQuery();
+  const { data: statisticsData, isLoading: statsLoading } = (trpc.projectGate as any).getGateStatistics.useQuery(undefined, {
+    retry: false, refetchOnWindowFocus: false,
+  });
   const statistics = statisticsData?.statistics || statisticsData || {};
 
   // Mock project data for pipeline visualization

@@ -1,5 +1,5 @@
 import { getLoginUrl } from "@/const";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 type UseAuthReturn = {
   user: any;
@@ -12,91 +12,131 @@ type UseAuthReturn = {
 
 const isLocalAuth = import.meta.env.VITE_LOCAL_AUTH === "true";
 
-export function useAuth(): UseAuthReturn {
-  // Skip auth fetch on public pages (login, login-success) to avoid unnecessary requests
-  const isPublicPage = typeof window !== 'undefined' &&
-    (window.location.pathname === '/login' || window.location.pathname === '/login-success');
+// ========== Module-level singleton auth store ==========
+// Shared across ALL useAuth() instances to avoid duplicate fetches and
+// independent loading states that cause flickering.
+type AuthState = { user: any; loading: boolean; error: Error | null };
+let authState: AuthState = { user: null, loading: true, error: null };
+let listeners: Set<() => void> = new Set();
+let fetchStarted = false;
 
-  // On public pages, start with loading=false to avoid any state transition
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(!isPublicPage);
-  const [error, setError] = useState<Error | null>(null);
-  const hasFetched = useRef(false);
+const isPublicPageGlobal = typeof window !== 'undefined' &&
+  (window.location.pathname === '/login' || window.location.pathname === '/login-success');
 
-  // Fetch user info - only runs ONCE on mount via useRef guard
-  useEffect(() => {
-    // Public pages: no fetch needed, loading already false
-    if (isPublicPage) return;
+// On public pages, start with loading=false
+if (isPublicPageGlobal) {
+  authState = { user: null, loading: false, error: null };
+}
 
-    if (!isLocalAuth) {
-      // Non-local auth: check localStorage cache
-      try {
-        const cached = localStorage.getItem("manus-runtime-user-info");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed) setUser(parsed);
+function notifyListeners() {
+  listeners.forEach((l) => l());
+}
+
+function setAuthState(partial: Partial<AuthState>) {
+  authState = { ...authState, ...partial };
+  notifyListeners();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
+function getSnapshot(): AuthState {
+  return authState;
+}
+
+// Clean up ?login=success URL parameter immediately (before any React render)
+if (isLocalAuth && typeof window !== 'undefined' && !isPublicPageGlobal) {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('login') === 'success') {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('login');
+    window.history.replaceState({}, '', url.toString());
+  }
+}
+
+// Start the singleton auth fetch immediately (module load time)
+function startAuthFetch() {
+  if (fetchStarted || isPublicPageGlobal) return;
+  fetchStarted = true;
+
+  if (!isLocalAuth) {
+    // Non-local auth: check localStorage cache synchronously
+    try {
+      const cached = localStorage.getItem("manus-runtime-user-info");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed) {
+          setAuthState({ user: parsed, loading: false });
+          return;
         }
-      } catch {
-        // ignore
       }
-      setLoading(false);
-      return;
+    } catch {
+      // ignore
     }
+    setAuthState({ loading: false });
+    return;
+  }
 
-    // Local auth: fetch /api/auth/me exactly once
-    if (hasFetched.current) return;
-    hasFetched.current = true;
+  // Local auth: single fetch
+  fetch("/api/auth/me", { credentials: "include" })
+    .then((res) => {
+      if (!res.ok) throw new Error(`Auth failed: ${res.status}`);
+      return res.json();
+    })
+    .then((data) => {
+      if (data && (data.openId || data.name || data.email)) {
+        setAuthState({ user: data, error: null, loading: false });
+      } else {
+        setAuthState({ user: null, error: null, loading: false });
+      }
+    })
+    .catch((err) => {
+      setAuthState({ user: null, error: err as Error, loading: false });
+    });
+}
 
-    fetch("/api/auth/me", { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => {
-        setUser(data);
-        setError(null);
-      })
-      .catch((err) => {
-        setUser(null);
-        setError(err as Error);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+// Start fetch at module load
+startAuthFetch();
 
-  // Refresh auth status when returning from login page
-  useEffect(() => {
-    if (!isLocalAuth) return;
-    
-    // Check if we're returning from login page
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('login') === 'success') {
-      // Clear the search parameter
-      const url = new URL(window.location.href);
-      url.searchParams.delete('login');
-      window.history.replaceState({}, '', url.toString());
-      
-      // Refresh auth status
-      refresh();
+// Promise that resolves when auth state is determined (loading=false).
+// Used by main.tsx to delay React render until auth is ready.
+export const authReady: Promise<void> = new Promise((resolve) => {
+  if (!authState.loading) {
+    resolve();
+    return;
+  }
+  const unsub = subscribe(() => {
+    if (!authState.loading) {
+      unsub();
+      resolve();
     }
-  }, []);
+  });
+});
+
+export function useAuth(): UseAuthReturn {
+  const state = useSyncExternalStore(subscribe, getSnapshot);
 
   const refresh = useCallback(() => {
     if (!isLocalAuth) return;
-    
-    // Set loading to true before fetching
-    setLoading(true);
-    
+
+    // Don't set loading=true during refresh to avoid flickering.
+    // The UI stays showing current content while we re-validate.
     fetch("/api/auth/me", { credentials: "include" })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`Auth failed: ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
-        setUser(data);
-        setError(null);
+        if (data && (data.openId || data.name || data.email)) {
+          setAuthState({ user: data, error: null, loading: false });
+        } else {
+          setAuthState({ user: null, error: null, loading: false });
+        }
       })
       .catch((err) => {
-        setUser(null);
-        setError(err as Error);
-      })
-      .finally(() => {
-        setLoading(false);
+        setAuthState({ user: null, error: err as Error, loading: false });
       });
   }, []);
 
@@ -113,15 +153,15 @@ export function useAuth(): UseAuthReturn {
     }
     localStorage.removeItem("app_session_token");
     localStorage.removeItem("manus-runtime-user-info");
-    setUser(null);
+    setAuthState({ user: null, loading: false, error: null });
     window.location.href = isLocalAuth ? "/login" : getLoginUrl();
   }, []);
 
   return {
-    user,
-    loading,
-    error,
-    isAuthenticated: Boolean(user),
+    user: state.user,
+    loading: state.loading,
+    error: state.error,
+    isAuthenticated: Boolean(state.user),
     refresh,
     logout,
   };

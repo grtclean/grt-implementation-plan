@@ -40,8 +40,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const isPublicPage = typeof window !== 'undefined' &&
     (window.location.pathname === '/login' || window.location.pathname === '/login-success');
 
-  // On public pages, start already initialized to avoid extra state transitions
-  const [isInitialized, setIsInitialized] = useState(isPublicPage);
+  // Start initialized if: public page OR localStorage already has a cached language.
+  // This prevents the tRPC query from firing on initial load (avoids state transitions / flickering).
+  const [isInitialized, setIsInitialized] = useState(() => {
+    if (isPublicPage) return true;
+    if (typeof window !== 'undefined' && localStorage.getItem('grt-language')) return true;
+    return false;
+  });
 
   // tRPC mutations and queries for user preferences
   const updatePreferencesMutation = trpc.auth.updatePreferences.useMutation();
@@ -75,18 +80,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isError, isPublicPage, isInitialized]);
 
-  // Fallback: sync with localStorage on mount if user is not logged in
+  // Fallback initialization (short timeout - only needed for first-ever login with no localStorage)
   useEffect(() => {
-    const saved = localStorage.getItem('grt-language');
-    if (saved && ['zh', 'en', 'de', 'fr'].includes(saved)) {
-      setLanguageState(saved as Language);
-    }
-    // Mark as initialized after a short delay if no user data
+    if (isInitialized) return;
     const timer = setTimeout(() => {
-      if (!isInitialized) {
-        setIsInitialized(true);
-      }
-    }, 1500);
+      setIsInitialized(true);
+    }, 300);
     return () => clearTimeout(timer);
   }, [isInitialized]);
 

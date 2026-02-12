@@ -18,13 +18,12 @@
         if (theme === 'dark') {
           document.documentElement.classList.add('dark');
         }
-        // 2. Disable all CSS transitions until first paint is complete
+        // 2. Disable all CSS transitions until app is fully loaded
         document.documentElement.classList.add('no-transitions');
-        requestAnimationFrame(function() {
-          requestAnimationFrame(function() {
-            document.documentElement.classList.remove('no-transitions');
-          });
-        });
+        // Remove after 800ms - enough for auth + initial queries to resolve
+        setTimeout(function() {
+          document.documentElement.classList.remove('no-transitions');
+        }, 800);
       })();
     </script>
     <style>
