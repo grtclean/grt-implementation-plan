@@ -33,18 +33,24 @@ const getInitialLanguage = (): Language => {
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>(getInitialLanguage);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [isChanging, setIsChanging] = useState(false);
   const [isSynced, setIsSynced] = useState(false);
+
+  // Skip server sync on public pages where user is not authenticated
+  const isPublicPage = typeof window !== 'undefined' &&
+    (window.location.pathname === '/login' || window.location.pathname === '/login-success');
+
+  // On public pages, start already initialized to avoid extra state transitions
+  const [isInitialized, setIsInitialized] = useState(isPublicPage);
 
   // tRPC mutations and queries for user preferences
   const updatePreferencesMutation = trpc.auth.updatePreferences.useMutation();
   const { data: userPreferences, isSuccess: isPreferencesLoaded, isError } = trpc.auth.getPreferences.useQuery(
     undefined,
-    { 
+    {
       retry: false,
       refetchOnWindowFocus: false,
-      enabled: !isInitialized // Only fetch once on mount
+      enabled: !isInitialized && !isPublicPage
     }
   );
 
@@ -63,11 +69,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   // Handle error case - user not logged in
   useEffect(() => {
-    if (isError && !isInitialized) {
+    if ((isError || isPublicPage) && !isInitialized) {
       setIsInitialized(true);
       setIsSynced(false);
     }
-  }, [isError, isInitialized]);
+  }, [isError, isPublicPage, isInitialized]);
 
   // Fallback: sync with localStorage on mount if user is not logged in
   useEffect(() => {

@@ -15,22 +15,38 @@ const SESSION_STORAGE_KEY = "app_session_token";
 // ========== LOCAL AUTH MODE ==========
 const isLocalAuth = import.meta.env.VITE_LOCAL_AUTH === "true";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+});
+
+// Track if redirect is already in progress to prevent redirect loop / flickering
+let isRedirecting = false;
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
+  if (isRedirecting) return;
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
 
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
   if (!isUnauthorized) return;
 
+  // Don't redirect if already on login page
+  const currentPath = window.location.pathname;
+  if (currentPath === "/login" || currentPath === "/login-success") return;
+
+  isRedirecting = true;
+
   if (isLocalAuth) {
-    // Local auth: redirect to local login page
-    if (window.location.pathname !== "/login") {
-      window.location.href = "/login";
-    }
+    window.location.href = "/login";
   } else {
-    // Manus OAuth: redirect to OAuth login URL
     window.location.href = getLoginUrl();
   }
 };

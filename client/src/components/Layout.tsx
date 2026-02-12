@@ -203,20 +203,29 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   // 侧边栏导航区域引用和滚动状态
   const navRef = useRef<HTMLElement>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const showScrollTopRef = useRef(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  
+
   // 监听侧边栏滚动，显示/隐藏返回顶部按钮和进度条，并保存滚动位置
+  // 使用 ref + rAF 防止频繁 setState 导致重渲染/闪烁
+  const scrollRafRef = useRef<number | null>(null);
   const handleNavScroll = useCallback(() => {
-    if (navRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = navRef.current;
-      setShowScrollTop(scrollTop > 200);
-      // 计算滚动进度百分比
-      const maxScroll = scrollHeight - clientHeight;
-      const progress = maxScroll > 0 ? (scrollTop / maxScroll) * 100 : 0;
-      setScrollProgress(Math.min(100, Math.max(0, progress)));
-      // 保存滚动位置到sessionStorage
-      sessionStorage.setItem('sidebarScrollPosition', String(scrollTop));
-    }
+    if (scrollRafRef.current) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      if (navRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = navRef.current;
+        const shouldShow = scrollTop > 200;
+        if (shouldShow !== showScrollTopRef.current) {
+          showScrollTopRef.current = shouldShow;
+          setShowScrollTop(shouldShow);
+        }
+        const maxScroll = scrollHeight - clientHeight;
+        const progress = maxScroll > 0 ? (scrollTop / maxScroll) * 100 : 0;
+        setScrollProgress(Math.min(100, Math.max(0, progress)));
+        sessionStorage.setItem('sidebarScrollPosition', String(scrollTop));
+      }
+    });
   }, []);
   
   // 恢复侧边栏滚动位置
@@ -361,7 +370,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <>
       <div className="p-3 border-b border-sidebar-border flex items-center justify-center">
         <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.5)]">
-          <Settings className="w-5 h-5 text-primary-foreground animate-spin-slow" />
+          <Settings className="w-5 h-5 text-primary-foreground" />
         </div>
       </div>
 
@@ -424,7 +433,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* 1. 固定顶部区域 - Logo (h-16 flex items-center px-4 shrink-0) */}
       <div className="h-16 flex items-center px-4 shrink-0 border-b border-sidebar-border gap-3">
         <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.5)]">
-          <Settings className="w-5 h-5 text-primary-foreground animate-spin-slow" />
+          <Settings className="w-5 h-5 text-primary-foreground" />
         </div>
         <div>
           <h1 className="font-heading text-xl font-bold tracking-wider text-sidebar-foreground">GRT SYSTEM</h1>
@@ -532,33 +541,35 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* 2. 可滚动菜单区域 - flex-1 overflow-y-auto custom-scrollbar py-4 */}
-      <nav 
-        ref={navRef}
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-1 overscroll-contain touch-pan-y scroll-smooth sidebar-scroll custom-scrollbar"
-        style={{ WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}
-        onScroll={handleNavScroll}
-      >
-        {filteredMenuConfig.map((group) => (
-          <MenuGroupComponent key={group.name} group={group} />
-        ))}
-        
-        <div className="pt-4 mt-4 border-t border-sidebar-border/50">
-          <FeedbackDialog />
-        </div>
-        
-        {/* 返回顶部按钮 - 滚动超过200px时显示 */}
+      {/* 2. 可滚动菜单区域 - flex-1 overflow-y-auto */}
+      <div className="flex-1 min-h-0 relative">
+        <nav
+          ref={navRef}
+          className="h-full overflow-y-auto overflow-x-hidden py-4 px-3 space-y-1 overscroll-contain touch-pan-y sidebar-scroll custom-scrollbar"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+          onScroll={handleNavScroll}
+        >
+          {filteredMenuConfig.map((group) => (
+            <MenuGroupComponent key={group.name} group={group} />
+          ))}
+
+          <div className="pt-4 mt-4 border-t border-sidebar-border/50">
+            <FeedbackDialog />
+          </div>
+        </nav>
+
+        {/* 返回顶部按钮 - 绝对定位在滚动区域外，避免改变滚动高度导致闪烁 */}
         {showScrollTop && (
           <button
             onClick={scrollToTop}
-            className="sticky bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 bg-primary/90 hover:bg-primary text-primary-foreground text-xs font-medium rounded-full shadow-lg transition-all duration-200 hover:scale-105"
+            className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 bg-primary/90 hover:bg-primary text-primary-foreground text-xs font-medium rounded-full shadow-lg transition-all duration-200 hover:scale-105 z-10"
             title={language === 'zh' ? '返回顶部' : 'Back to top'}
           >
             <ArrowUp className="w-3.5 h-3.5" />
             {language === 'zh' ? '返回顶部' : 'Top'}
           </button>
         )}
-      </nav>
+      </div>
 
       {/* 3. 固定底部区域 - p-4 border-t border-slate-700 shrink-0 bg-sidebar */}
       <div className="shrink-0 border-t border-sidebar-border p-4 bg-sidebar space-y-3 z-10">
@@ -607,7 +618,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar - Sprint 1 三段式布局 */}
       <aside className={cn(
-        "hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border h-screen sticky top-0 shrink-0 transition-all duration-300 z-50",
+        "hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border h-screen sticky top-0 shrink-0 transition-[width] duration-300 z-50",
         sidebarCollapsed ? "w-16" : "w-72"
       )}>
         {/* 侧边栏折叠切换按钮 */}

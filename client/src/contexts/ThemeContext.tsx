@@ -43,20 +43,25 @@ export function ThemeProvider({
     return defaultTheme;
   });
   
-  const [isInitialized, setIsInitialized] = useState(false);
+  // Skip server sync on public pages where user is not authenticated
+  const isPublicPage = typeof window !== 'undefined' &&
+    (window.location.pathname === '/login' || window.location.pathname === '/login-success');
+
+  // On public pages, start already initialized to avoid extra state transitions
+  const [isInitialized, setIsInitialized] = useState(isPublicPage);
   const [isSynced, setIsSynced] = useState(false);
-  
+
   // Calculate resolved theme
   const resolvedTheme: "light" | "dark" = theme === 'system' ? getSystemTheme() : theme;
-  
+
   // tRPC mutations and queries for user preferences
   const updatePreferencesMutation = trpc.auth.updatePreferences.useMutation();
   const { data: userPreferences, isSuccess: isPreferencesLoaded, isError } = trpc.auth.getPreferences.useQuery(
     undefined,
-    { 
+    {
       retry: false,
       refetchOnWindowFocus: false,
-      enabled: switchable && !isInitialized
+      enabled: switchable && !isInitialized && !isPublicPage
     }
   );
 
@@ -75,11 +80,11 @@ export function ThemeProvider({
 
   // Handle error case - user not logged in
   useEffect(() => {
-    if (isError && !isInitialized) {
+    if ((isError || isPublicPage) && !isInitialized) {
       setIsInitialized(true);
       setIsSynced(false);
     }
-  }, [isError, isInitialized]);
+  }, [isError, isPublicPage, isInitialized]);
 
   // Apply theme to document
   useEffect(() => {

@@ -13,13 +13,21 @@ type UseAuthReturn = {
 const isLocalAuth = import.meta.env.VITE_LOCAL_AUTH === "true";
 
 export function useAuth(): UseAuthReturn {
+  // Skip auth fetch on public pages (login, login-success) to avoid unnecessary requests
+  const isPublicPage = typeof window !== 'undefined' &&
+    (window.location.pathname === '/login' || window.location.pathname === '/login-success');
+
+  // On public pages, start with loading=false to avoid any state transition
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isPublicPage);
   const [error, setError] = useState<Error | null>(null);
   const hasFetched = useRef(false);
 
   // Fetch user info - only runs ONCE on mount via useRef guard
   useEffect(() => {
+    // Public pages: no fetch needed, loading already false
+    if (isPublicPage) return;
+
     if (!isLocalAuth) {
       // Non-local auth: check localStorage cache
       try {

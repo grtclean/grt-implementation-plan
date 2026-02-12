@@ -199,25 +199,19 @@ export default function RequireAuth({ children }: RequireAuthProps) {
     }
   }, [loading, isAuthenticated, inIframe, isPublicPage]);
 
-  // Refresh auth status when returning from login page
+  // Refresh auth status when returning from login page via back/forward navigation
   useEffect(() => {
     if (isPublicPage) return;
-    
-    // Check if we're returning from login page
-    const handleLocationChange = () => {
+
+    const handlePopstate = () => {
       if (!loading && !isAuthenticated) {
         handleRefresh();
       }
     };
 
-    // Listen for popstate changes (back/forward navigation)
-    window.addEventListener('popstate', handleLocationChange);
-    
-    // Also check immediately when component mounts or location changes
-    handleLocationChange();
-    
+    window.addEventListener('popstate', handlePopstate);
     return () => {
-      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('popstate', handlePopstate);
     };
   }, [loading, isAuthenticated, handleRefresh, isPublicPage]);
 
@@ -241,10 +235,7 @@ export default function RequireAuth({ children }: RequireAuthProps) {
     if (!isLocalAuth && inIframe) {
       return <IframeLoginPrompt onRefresh={handleRefresh} loginSuccessReceived={loginSuccessReceived} />;
     }
-    // For local auth mode, redirect to login page if not authenticated
-    if (isLocalAuth) {
-      window.location.href = "/login";
-    }
+    // Redirect is handled by the useEffect above; render nothing while waiting
     return null;
   }
 

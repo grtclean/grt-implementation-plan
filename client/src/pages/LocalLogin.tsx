@@ -1,21 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, LogIn, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 type Mode = "login" | "register";
 
 export default function LocalLogin() {
   const [mode, setMode] = useState<Mode>("login");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,12 +19,19 @@ export default function LocalLogin() {
     setSuccessMsg("");
     setLoading(true);
 
+    const form = formRef.current;
+    if (!form) return;
+
+    const formData = new FormData(form);
+    const username = (formData.get("username") as string) || "";
+    const password = (formData.get("password") as string) || "";
+
     try {
       const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const body: Record<string, string> = { username, password };
       if (mode === "register") {
-        body.name = name || username;
-        body.email = email;
+        body.name = (formData.get("name") as string) || username;
+        body.email = (formData.get("email") as string) || "";
       }
 
       const res = await fetch(endpoint, {
@@ -61,10 +64,10 @@ export default function LocalLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/30 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+          <div className="mx-auto w-14 h-14 bg-muted rounded-full flex items-center justify-center mb-3">
             {mode === "login" ? (
               <LogIn className="w-7 h-7 text-primary" />
             ) : (
@@ -80,19 +83,19 @@ export default function LocalLogin() {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">用户名</Label>
-              <Input
+              <input
                 id="username"
+                name="username"
                 type="text"
                 placeholder="请输入用户名"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
                 required
                 minLength={3}
                 autoComplete="username"
                 autoFocus
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30"
               />
             </div>
 
@@ -100,24 +103,24 @@ export default function LocalLogin() {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="name">显示名称</Label>
-                  <Input
+                  <input
                     id="name"
+                    name="name"
                     type="text"
                     placeholder="您的姓名（选填）"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
                     autoComplete="name"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">邮箱</Label>
-                  <Input
+                  <input
                     id="email"
+                    name="email"
                     type="email"
                     placeholder="your@email.com（选填）"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
                     autoComplete="email"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30"
                   />
                 </div>
               </>
@@ -125,15 +128,15 @@ export default function LocalLogin() {
 
             <div className="space-y-2">
               <Label htmlFor="password">密码</Label>
-              <Input
+              <input
                 id="password"
+                name="password"
                 type="password"
                 placeholder={mode === "register" ? "至少6个字符" : "请输入密码"}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
                 required
                 minLength={6}
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30"
               />
             </div>
 
