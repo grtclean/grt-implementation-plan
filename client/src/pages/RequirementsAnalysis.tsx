@@ -3,30 +3,42 @@
  * 客户需求录入、技术可行性评估、需求分解与追踪
  */
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
+import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import {
-  ClipboardCheck, Plus, Search, Filter, FileText, Users,
-  CheckCircle2, Clock, AlertTriangle, ArrowRight, Building2
+  ClipboardCheck, Plus, Search, Filter, FileText,
+  CheckCircle2, Clock, ArrowRight, Building2
 } from "lucide-react";
 
-// 需求状态
 type RequirementStatus = "draft" | "reviewing" | "approved" | "in_progress" | "completed" | "rejected";
 
-const STATUS_MAP: Record<RequirementStatus, { label: string; color: string }> = {
-  draft: { label: "草稿", color: "bg-gray-100 text-gray-700" },
-  reviewing: { label: "评审中", color: "bg-blue-100 text-blue-700" },
-  approved: { label: "已批准", color: "bg-green-100 text-green-700" },
-  in_progress: { label: "进行中", color: "bg-amber-100 text-amber-700" },
-  completed: { label: "已完成", color: "bg-emerald-100 text-emerald-700" },
-  rejected: { label: "已驳回", color: "bg-red-100 text-red-700" },
+const statusColorMap = createStatusColorMap({
+  draft: "gray",
+  reviewing: "blue",
+  approved: "green",
+  in_progress: "orange",
+  completed: "emerald",
+  rejected: "red",
+});
+
+const STATUS_LABELS: Record<RequirementStatus, string> = {
+  draft: "草稿",
+  reviewing: "评审中",
+  approved: "已批准",
+  in_progress: "进行中",
+  completed: "已完成",
+  rejected: "已驳回",
 };
 
-// 模拟数据
+// TODO: 接入 tRPC 后端接口替换
 const MOCK_REQUIREMENTS = [
   { id: "REQ-2026-001", customer: "上海大众", title: "缸体清洗线需求", status: "approved" as RequirementStatus, priority: "high", bu: "BU3", assignee: "王工", date: "2026-02-05" },
   { id: "REQ-2026-002", customer: "宝马慕尼黑", title: "变速箱壳体清洗方案", status: "reviewing" as RequirementStatus, priority: "urgent", bu: "BU1", assignee: "李工", date: "2026-02-08" },
@@ -35,7 +47,7 @@ const MOCK_REQUIREMENTS = [
 ];
 
 export default function RequirementsAnalysis() {
-  const { currentBU, dataScope } = useUserProfile();
+  const { currentBU } = useUserProfile();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
@@ -47,50 +59,27 @@ export default function RequirementsAnalysis() {
   });
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ClipboardCheck className="h-6 w-6 text-primary" />
-            需求分析
-          </h1>
-          <p className="text-muted-foreground mt-1">TX-001 · 客户需求录入与技术可行性评估</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-          <Button><Plus className="h-4 w-4 mr-2" />新建需求</Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={ClipboardCheck}
+        title="需求分析"
+        description="TX-001 · 客户需求录入与技术可行性评估"
+        actions={
+          <>
+            {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
+            <Button><Plus className="h-4 w-4 mr-2" />新建需求</Button>
+          </>
+        }
+      />
 
-      {/* 统计卡片 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center justify-between">
-            <div><p className="text-sm text-muted-foreground">总需求</p><p className="text-2xl font-bold">24</p></div>
-            <FileText className="h-8 w-8 text-muted-foreground/30" />
-          </div>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center justify-between">
-            <div><p className="text-sm text-muted-foreground">评审中</p><p className="text-2xl font-bold text-blue-600">6</p></div>
-            <Clock className="h-8 w-8 text-blue-200" />
-          </div>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center justify-between">
-            <div><p className="text-sm text-muted-foreground">进行中</p><p className="text-2xl font-bold text-amber-600">8</p></div>
-            <ArrowRight className="h-8 w-8 text-amber-200" />
-          </div>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center justify-between">
-            <div><p className="text-sm text-muted-foreground">已完成</p><p className="text-2xl font-bold text-green-600">10</p></div>
-            <CheckCircle2 className="h-8 w-8 text-green-200" />
-          </div>
-        </CardContent></Card>
+        <StatCard icon={FileText} label="总需求" value={24} />
+        <StatCard icon={Clock} label="评审中" value={6} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={ArrowRight} label="进行中" value={8} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={CheckCircle2} label="已完成" value={10} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
-      {/* 筛选和列表 */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -129,13 +118,17 @@ export default function RequirementsAnalysis() {
                       <p className="text-sm text-muted-foreground">客户: {req.customer} · 负责人: {req.assignee}</p>
                     </div>
                     <div className="text-right">
-                      <Badge className={STATUS_MAP[req.status].color}>{STATUS_MAP[req.status].label}</Badge>
+                      <StatusBadge color={statusColorMap[req.status]}>{STATUS_LABELS[req.status]}</StatusBadge>
                       <p className="text-xs text-muted-foreground mt-1">{req.date}</p>
                     </div>
                   </div>
                 ))}
                 {filteredReqs.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">暂无需求数据</div>
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                    <ClipboardCheck className="w-12 h-12 mb-3 opacity-50" />
+                    <p className="font-medium">暂无需求数据</p>
+                    <p className="text-sm">点击"新建需求"创建第一条需求</p>
+                  </div>
                 )}
               </div>
             </TabsContent>
@@ -143,5 +136,6 @@ export default function RequirementsAnalysis() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }
