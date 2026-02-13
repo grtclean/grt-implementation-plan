@@ -57,9 +57,9 @@ export const suppliers = pgTable('suppliers', {
   updatedBy: integer(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_supplier_code').on(table.supplierCode),
-  index('idx_supplier_category').on(table.supplierCategory),
-  index('idx_status').on(table.status),
+  unique('suppliers_uk_supplier_code').on(table.supplierCode),
+  index('suppliers_idx_supplier_category').on(table.supplierCategory),
+  index('suppliers_idx_status').on(table.status),
 ]);
 
 /**
@@ -96,10 +96,10 @@ export const purchaseRequests = pgTable('purchase_requests', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_request_code').on(table.requestCode),
-  index('idx_status').on(table.status),
-  index('idx_requested_by').on(table.requestedBy),
-  index('idx_material_id').on(table.materialId),
+  unique('purchase_requests_uk_request_code').on(table.requestCode),
+  index('purchase_requests_idx_status').on(table.status),
+  index('purchase_requests_idx_requested_by').on(table.requestedBy),
+  index('purchase_requests_idx_material_id').on(table.materialId),
 ]);
 
 /**
@@ -147,11 +147,11 @@ export const purchaseOrders = pgTable('purchase_orders', {
   updatedBy: integer(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_po_number').on(table.poNumber),
-  index('idx_supplier_id').on(table.supplierId),
-  index('idx_material_id').on(table.materialId),
-  index('idx_status').on(table.status),
-  index('idx_po_date').on(table.poDate),
+  unique('purchase_orders_uk_po_number').on(table.poNumber),
+  index('purchase_orders_idx_supplier_id').on(table.supplierId),
+  index('purchase_orders_idx_material_id').on(table.materialId),
+  index('purchase_orders_idx_status').on(table.status),
+  index('purchase_orders_idx_po_date').on(table.poDate),
 ]);
 
 /**
@@ -187,9 +187,9 @@ export const purchaseReceipts = pgTable('purchase_receipts', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_receipt_number').on(table.receiptNumber),
-  index('idx_purchase_order_id').on(table.purchaseOrderId),
-  index('idx_received_by').on(table.receivedBy),
+  unique('purchase_receipts_uk_receipt_number').on(table.receiptNumber),
+  index('purchase_receipts_idx_purchase_order_id').on(table.purchaseOrderId),
+  index('purchase_receipts_idx_received_by').on(table.receivedBy),
 ]);
 
 /**
@@ -228,10 +228,10 @@ export const purchaseInvoices = pgTable('purchase_invoices', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_invoice_number').on(table.invoiceNumber),
-  index('idx_purchase_order_id').on(table.purchaseOrderId),
-  index('idx_supplier_id').on(table.supplierId),
-  index('idx_payment_status').on(table.paymentStatus),
+  unique('purchase_invoices_uk_invoice_number').on(table.invoiceNumber),
+  index('purchase_invoices_idx_purchase_order_id').on(table.purchaseOrderId),
+  index('purchase_invoices_idx_supplier_id').on(table.supplierId),
+  index('purchase_invoices_idx_payment_status').on(table.paymentStatus),
 ]);
 
 /**
@@ -261,5 +261,5 @@ export const purchaseStatistics = pgTable('purchase_statistics', {
 
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  index('idx_statistic_date').on(table.statisticDate),
+  index('purchase_statistics_idx_statistic_date').on(table.statisticDate),
 ]);

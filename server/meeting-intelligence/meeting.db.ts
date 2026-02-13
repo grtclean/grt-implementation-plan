@@ -12,11 +12,14 @@ import { sql } from "drizzle-orm";
 
 export async function getChannelsByUser(userId: string) {
   const db = await requireDb();
+  // userId from auth is openId (string like "admin"), resolve numeric id from users table
+  const userRow = await db.execute(sql`SELECT id FROM users WHERE "openId" = ${userId} LIMIT 1`);
+  const numericId = userRow.rows[0]?.id ?? -1;
   const result = await db.execute(sql`
     SELECT mc.*, cm.role as user_role
-    FROM meeting_channels mc
-    LEFT JOIN channel_members cm ON mc.id = cm.channel_id AND cm.user_id = ${userId}
-    WHERE mc.is_confidential = FALSE OR cm.user_id IS NOT NULL
+    FROM channels mc
+    LEFT JOIN channel_members cm ON mc.id = cm."channelId" AND cm."userId" = ${numericId}
+    WHERE mc.visibility != 'private' OR cm."userId" IS NOT NULL
     ORDER BY mc.name ASC
   `);
   return result.rows as any[];
@@ -24,23 +27,14 @@ export async function getChannelsByUser(userId: string) {
 
 export async function getChannelTree(userId: string) {
   const db = await requireDb();
+  const userRow = await db.execute(sql`SELECT id FROM users WHERE "openId" = ${userId} LIMIT 1`);
+  const numericId = userRow.rows[0]?.id ?? -1;
   const result = await db.execute(sql`
-    WITH RECURSIVE channel_tree AS (
-      SELECT mc.*, cm.role as user_role, 0 as level
-      FROM meeting_channels mc
-      LEFT JOIN channel_members cm ON mc.id = cm.channel_id AND cm.user_id = ${userId}
-      WHERE mc.parent_id IS NULL
-        AND (mc.is_confidential = FALSE OR cm.user_id IS NOT NULL)
-
-      UNION ALL
-
-      SELECT mc.*, cm.role as user_role, ct.level + 1
-      FROM meeting_channels mc
-      INNER JOIN channel_tree ct ON mc.parent_id = ct.id
-      LEFT JOIN channel_members cm ON mc.id = cm.channel_id AND cm.user_id = ${userId}
-      WHERE mc.is_confidential = FALSE OR cm.user_id IS NOT NULL
-    )
-    SELECT * FROM channel_tree ORDER BY level, name
+    SELECT mc.*, cm.role as user_role, 0 as level
+    FROM channels mc
+    LEFT JOIN channel_members cm ON mc.id = cm."channelId" AND cm."userId" = ${numericId}
+    WHERE mc.visibility != 'private' OR cm."userId" IS NOT NULL
+    ORDER BY mc.name ASC
   `);
   return result.rows as any[];
 }
@@ -55,8 +49,8 @@ export async function createChannel(data: {
 }) {
   const db = await requireDb();
   await db.execute(sql`
-    INSERT INTO meeting_channels (id, name, description, parent_id, is_confidential, created_by)
-    VALUES (${data.id}, ${data.name}, ${data.description || null}, ${data.parentId || null}, ${data.isConfidential || false}, ${data.createdBy})
+    INSERT INTO channels (id, name, description, "organizationId", visibility, "createdBy")
+    VALUES (${data.id}, ${data.name}, ${data.description || null}, 1, ${data.isConfidential ? 'private' : 'public'}, CAST(${data.createdBy} AS integer))
   `);
   return data.id;
 }
@@ -65,9 +59,9 @@ export async function addChannelMember(channelId: string, userId: string, role: 
   const db = await requireDb();
   const id = crypto.randomUUID();
   await db.execute(sql`
-    INSERT INTO channel_members (id, channel_id, user_id, role)
+    INSERT INTO channel_members (id, "channelId", "userId", role)
     VALUES (${id}, ${channelId}, ${userId}, ${role})
-    ON CONFLICT (channel_id, user_id) DO UPDATE SET role = ${role}
+    ON CONFLICT ("channelId", "userId") DO UPDATE SET role = ${role}
   `);
   return id;
 }
@@ -95,7 +89,7 @@ export async function getMeetingById(meetingId: string) {
   const result = await db.execute(sql`
     SELECT mr.*, mc.name as channel_name, mc.is_confidential
     FROM meeting_records mr
-    LEFT JOIN meeting_channels mc ON mr.channel_id = mc.id
+    LEFT JOIN channels mc ON mr.channel_id = mc.id
     WHERE mr.id = ${meetingId}
   `);
   return (result.rows as any[])[0] || null;

@@ -27,9 +27,9 @@ export const materialCategories = pgTable('material_categories', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_category_code').on(table.categoryCode),
-  index('idx_parent_code').on(table.parentCategoryCode),
-  index('idx_level').on(table.level),
+  unique('material_categories_uk_category_code').on(table.categoryCode),
+  index('material_categories_idx_parent_code').on(table.parentCategoryCode),
+  index('material_categories_idx_level').on(table.level),
 ]);
 
 /**
@@ -48,8 +48,8 @@ export const materialSpecifications = pgTable('material_specifications', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_spec_code').on(table.specCode),
-  index('idx_spec_type').on(table.specType),
+  unique('material_specifications_uk_spec_code').on(table.specCode),
+  index('material_specifications_idx_spec_type').on(table.specType),
 ]);
 
 /**
@@ -96,10 +96,10 @@ export const materials = pgTable('materials', {
   updatedBy: integer(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_material_code').on(table.materialCode),
-  index('idx_category_code').on(table.categoryCode),
-  index('idx_material_type').on(table.materialType),
-  index('idx_status').on(table.status),
+  unique('materials_uk_material_code').on(table.materialCode),
+  index('materials_idx_category_code').on(table.categoryCode),
+  index('materials_idx_material_type').on(table.materialType),
+  index('materials_idx_status').on(table.status),
 ]);
 
 /**
@@ -130,9 +130,9 @@ export const supplierMaterials = pgTable('supplier_materials', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_supplier_material').on(table.supplierId, table.materialId),
-  index('idx_supplier_id').on(table.supplierId),
-  index('idx_material_id').on(table.materialId),
+  unique('supplier_materials_uk_supplier_material').on(table.supplierId, table.materialId),
+  index('supplier_materials_idx_supplier_id').on(table.supplierId),
+  index('supplier_materials_idx_material_id').on(table.materialId),
 ]);
 
 /**
@@ -157,9 +157,9 @@ export const inventory = pgTable('inventory', {
 
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_material_warehouse').on(table.materialId, table.warehouseId),
-  index('idx_material_id').on(table.materialId),
-  index('idx_warehouse_id').on(table.warehouseId),
+  unique('inventory_uk_material_warehouse').on(table.materialId, table.warehouseId),
+  index('inventory_idx_material_id').on(table.materialId),
+  index('inventory_idx_warehouse_id').on(table.warehouseId),
 ]);
 
 /**
@@ -180,9 +180,9 @@ export const inventoryTransactions = pgTable('inventory_transactions', {
   createdBy: integer().notNull(),
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  index('idx_material_id').on(table.materialId),
-  index('idx_transaction_type').on(table.transactionType),
-  index('idx_created_at').on(table.createdAt),
+  index('inventory_transactions_idx_material_id').on(table.materialId),
+  index('inventory_transactions_idx_transaction_type').on(table.transactionType),
+  index('inventory_transactions_idx_created_at').on(table.createdAt),
 ]);
 
 /**
@@ -206,8 +206,8 @@ export const materialCodingRules = pgTable('material_coding_rules', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_version').on(table.version),
-  index('idx_effective_date').on(table.effectiveDate),
+  unique('material_coding_rules_uk_version').on(table.version),
+  index('material_coding_rules_idx_effective_date').on(table.effectiveDate),
 ]);
 
 /**
@@ -226,9 +226,9 @@ export const materialChangeHistory = pgTable('material_change_history', {
   changedBy: integer().notNull(),
   changedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  index('idx_material_id').on(table.materialId),
-  index('idx_change_type').on(table.changeType),
-  index('idx_changed_at').on(table.changedAt),
+  index('material_change_history_idx_material_id').on(table.materialId),
+  index('material_change_history_idx_change_type').on(table.changeType),
+  index('material_change_history_idx_changed_at').on(table.changedAt),
 ]);
 
 /**
@@ -256,7 +256,7 @@ export const materialImportRecords = pgTable('material_import_records', {
   importedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   completedAt: timestamp({ mode: 'string' }),
 }, (table) => [
-  index('idx_import_batch_id').on(table.importBatchId),
-  index('idx_source_system').on(table.sourceSystem),
-  index('idx_status').on(table.status),
+  index('material_import_records_idx_import_batch_id').on(table.importBatchId),
+  index('material_import_records_idx_source_system').on(table.sourceSystem),
+  index('material_import_records_idx_status').on(table.status),
 ]);

@@ -58,11 +58,11 @@ export const bomMasters = pgTable('bom_masters', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_product_version').on(table.productCode, table.currentVersion),
-  index('idx_bom_status').on(table.status),
-  index('idx_bom_type').on(table.bomType),
-  index('idx_bom_bu').on(table.buCode),
-  index('idx_bom_erp').on(table.erpBomId),
+  unique('bom_masters_uk_product_version').on(table.productCode, table.currentVersion),
+  index('bom_masters_idx_status').on(table.status),
+  index('bom_masters_idx_type').on(table.bomType),
+  index('bom_masters_idx_bu').on(table.buCode),
+  index('bom_masters_idx_erp').on(table.erpBomId),
 ]);
 
 // ============================================
@@ -115,12 +115,12 @@ export const bomItems = pgTable('bom_items', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  index('idx_item_bom').on(table.bomMasterId),
-  index('idx_item_parent').on(table.parentItemId),
-  index('idx_item_material').on(table.materialCode),
-  index('idx_item_level').on(table.level),
-  index('idx_item_process').on(table.processCode),
-  index('idx_item_source').on(table.sourceType),
+  index('bom_items_idx_bom').on(table.bomMasterId),
+  index('bom_items_idx_parent').on(table.parentItemId),
+  index('bom_items_idx_material').on(table.materialCode),
+  index('bom_items_idx_level').on(table.level),
+  index('bom_items_idx_process').on(table.processCode),
+  index('bom_items_idx_source').on(table.sourceType),
 ]);
 
 // ============================================
@@ -158,10 +158,10 @@ export const bomVersions = pgTable('bom_versions', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_bom_version').on(table.bomMasterId, table.version),
-  index('idx_version_status').on(table.status),
-  index('idx_version_ecn').on(table.ecnNumber),
-  index('idx_version_effective').on(table.effectiveDate),
+  unique('bom_versions_uk_bom_version').on(table.bomMasterId, table.version),
+  index('bom_versions_idx_status').on(table.status),
+  index('bom_versions_idx_ecn').on(table.ecnNumber),
+  index('bom_versions_idx_effective').on(table.effectiveDate),
 ]);
 
 // ============================================
@@ -189,6 +189,6 @@ export const bomCostRollups = pgTable('bom_cost_rollups', {
   // 时间戳
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  index('idx_rollup_bom').on(table.bomMasterId),
-  index('idx_rollup_type').on(table.costType),
+  index('bom_cost_rollups_idx_bom').on(table.bomMasterId),
+  index('bom_cost_rollups_idx_type').on(table.costType),
 ]);

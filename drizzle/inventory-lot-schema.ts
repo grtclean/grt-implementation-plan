@@ -67,15 +67,15 @@ export const inventoryLots = pgTable('inventory_lots', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_lot_number').on(table.lotNumber),
-  index('idx_lot_material').on(table.materialCode),
-  index('idx_lot_warehouse').on(table.warehouseId),
-  index('idx_lot_status').on(table.status),
-  index('idx_lot_qc').on(table.qcStatus),
-  index('idx_lot_expiry').on(table.expiryDate),
-  index('idx_lot_supplier').on(table.supplierId),
-  index('idx_lot_source').on(table.sourceType, table.sourcePOCode),
-  index('idx_lot_erp').on(table.erpLotId),
+  unique('inventory_lots_uk_lot_number').on(table.lotNumber),
+  index('inventory_lots_idx_material').on(table.materialCode),
+  index('inventory_lots_idx_warehouse').on(table.warehouseId),
+  index('inventory_lots_idx_status').on(table.status),
+  index('inventory_lots_idx_qc').on(table.qcStatus),
+  index('inventory_lots_idx_expiry').on(table.expiryDate),
+  index('inventory_lots_idx_supplier').on(table.supplierId),
+  index('inventory_lots_idx_source').on(table.sourceType, table.sourcePOCode),
+  index('inventory_lots_idx_erp').on(table.erpLotId),
 ]);
 
 // ============================================
@@ -112,11 +112,11 @@ export const lotAllocations = pgTable('lot_allocations', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  index('idx_alloc_lot').on(table.lotId),
-  index('idx_alloc_type').on(table.allocationType),
-  index('idx_alloc_target').on(table.targetDocType, table.targetDocId),
-  index('idx_alloc_process').on(table.processInstanceId),
-  index('idx_alloc_status').on(table.status),
+  index('lot_allocations_idx_lot').on(table.lotId),
+  index('lot_allocations_idx_type').on(table.allocationType),
+  index('lot_allocations_idx_target').on(table.targetDocType, table.targetDocId),
+  index('lot_allocations_idx_process').on(table.processInstanceId),
+  index('lot_allocations_idx_status').on(table.status),
 ]);
 
 // ============================================
@@ -153,12 +153,12 @@ export const serialNumbers = pgTable('serial_numbers', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_serial_number').on(table.serialNumber),
-  index('idx_sn_material').on(table.materialCode),
-  index('idx_sn_lot').on(table.lotId),
-  index('idx_sn_status').on(table.status),
-  index('idx_sn_project').on(table.currentProjectCode),
-  index('idx_sn_warehouse').on(table.warehouseId),
+  unique('serial_numbers_uk_serial_number').on(table.serialNumber),
+  index('serial_numbers_idx_material').on(table.materialCode),
+  index('serial_numbers_idx_lot').on(table.lotId),
+  index('serial_numbers_idx_status').on(table.status),
+  index('serial_numbers_idx_project').on(table.currentProjectCode),
+  index('serial_numbers_idx_warehouse').on(table.warehouseId),
 ]);
 
 // ============================================
@@ -186,6 +186,6 @@ export const expiryAlertRules = pgTable('expiry_alert_rules', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  index('idx_expiry_material').on(table.materialCode),
-  index('idx_expiry_category').on(table.materialCategory),
+  index('expiry_alert_rules_idx_material').on(table.materialCode),
+  index('expiry_alert_rules_idx_category').on(table.materialCategory),
 ]);

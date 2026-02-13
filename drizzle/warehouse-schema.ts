@@ -48,10 +48,10 @@ export const warehouses = pgTable('warehouses', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_warehouse_code').on(table.warehouseCode),
-  index('idx_wh_type').on(table.warehouseType),
-  index('idx_wh_bu').on(table.buCode),
-  index('idx_wh_erp').on(table.erpWarehouseCode),
+  unique('warehouses_uk_warehouse_code').on(table.warehouseCode),
+  index('warehouses_idx_wh_type').on(table.warehouseType),
+  index('warehouses_idx_wh_bu').on(table.buCode),
+  index('warehouses_idx_wh_erp').on(table.erpWarehouseCode),
 ]);
 
 // ============================================
@@ -87,11 +87,11 @@ export const warehouseLocations = pgTable('warehouse_locations', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_location_code').on(table.locationCode),
-  index('idx_loc_warehouse').on(table.warehouseId),
-  index('idx_loc_zone').on(table.zone),
-  index('idx_loc_type').on(table.locationType),
-  index('idx_loc_material').on(table.currentMaterialCode),
+  unique('warehouse_locations_uk_location_code').on(table.locationCode),
+  index('warehouse_locations_idx_warehouse').on(table.warehouseId),
+  index('warehouse_locations_idx_zone').on(table.zone),
+  index('warehouse_locations_idx_type').on(table.locationType),
+  index('warehouse_locations_idx_material').on(table.currentMaterialCode),
 ]);
 
 // ============================================
@@ -127,11 +127,11 @@ export const warehouseReceipts = pgTable('warehouse_receipts', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_receipt_code').on(table.receiptCode),
-  index('idx_receipt_type').on(table.receiptType),
-  index('idx_receipt_status').on(table.status),
-  index('idx_receipt_source').on(table.sourceDocType, table.sourceDocId),
-  index('idx_receipt_warehouse').on(table.warehouseId),
+  unique('warehouse_receipts_uk_receipt_code').on(table.receiptCode),
+  index('warehouse_receipts_idx_type').on(table.receiptType),
+  index('warehouse_receipts_idx_status').on(table.status),
+  index('warehouse_receipts_idx_source').on(table.sourceDocType, table.sourceDocId),
+  index('warehouse_receipts_idx_warehouse').on(table.warehouseId),
 ]);
 
 // ============================================
@@ -157,9 +157,9 @@ export const warehouseReceiptItems = pgTable('warehouse_receipt_items', {
   // 时间戳
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  index('idx_ri_receipt').on(table.receiptId),
-  index('idx_ri_material').on(table.materialCode),
-  index('idx_ri_lot').on(table.lotNumber),
+  index('warehouse_receipt_items_idx_receipt').on(table.receiptId),
+  index('warehouse_receipt_items_idx_material').on(table.materialCode),
+  index('warehouse_receipt_items_idx_lot').on(table.lotNumber),
 ]);
 
 // ============================================
@@ -196,11 +196,11 @@ export const warehouseIssues = pgTable('warehouse_issues', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_issue_code').on(table.issueCode),
-  index('idx_issue_type').on(table.issueType),
-  index('idx_issue_status').on(table.status),
-  index('idx_issue_warehouse').on(table.warehouseId),
-  index('idx_issue_project').on(table.projectCode),
+  unique('warehouse_issues_uk_issue_code').on(table.issueCode),
+  index('warehouse_issues_idx_type').on(table.issueType),
+  index('warehouse_issues_idx_status').on(table.status),
+  index('warehouse_issues_idx_warehouse').on(table.warehouseId),
+  index('warehouse_issues_idx_project').on(table.projectCode),
 ]);
 
 // ============================================
@@ -225,8 +225,8 @@ export const warehouseIssueItems = pgTable('warehouse_issue_items', {
   // 时间戳
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  index('idx_ii_issue').on(table.issueId),
-  index('idx_ii_material').on(table.materialCode),
+  index('warehouse_issue_items_idx_issue').on(table.issueId),
+  index('warehouse_issue_items_idx_material').on(table.materialCode),
 ]);
 
 // ============================================
@@ -263,8 +263,8 @@ export const stockCounts = pgTable('stock_counts', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_count_code').on(table.countCode),
-  index('idx_count_warehouse').on(table.warehouseId),
-  index('idx_count_status').on(table.status),
-  index('idx_count_type').on(table.countType),
+  unique('stock_counts_uk_count_code').on(table.countCode),
+  index('stock_counts_idx_warehouse').on(table.warehouseId),
+  index('stock_counts_idx_status').on(table.status),
+  index('stock_counts_idx_type').on(table.countType),
 ]);

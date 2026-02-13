@@ -56,9 +56,9 @@ export const userPermissions = pgTable(
     lockedAt: timestamp('locked_at'),
   },
   (table) => ({
-    userIdIdx: index('user_id_idx').on(table.userId),
-    roleIdx: index('role_idx').on(table.role),
-    departmentIdx: index('department_idx').on(table.department),
+    userIdIdx: index('user_permissions_user_id_idx').on(table.userId),
+    roleIdx: index('user_permissions_role_idx').on(table.role),
+    departmentIdx: index('user_permissions_department_idx').on(table.department),
   })
 );
 
@@ -138,8 +138,6 @@ export const permissions = pgTable(
 export const rolePermissions = pgTable(
   'grt_role_permissions',
   {
-    id: serial().primaryKey(),
-
     // 关联信息
     roleId: integer('role_id').notNull(),
     permissionId: integer('permission_id').notNull(),
@@ -152,8 +150,8 @@ export const rolePermissions = pgTable(
       name: 'role_permission_pk',
       columns: [table.roleId, table.permissionId],
     }),
-    roleIdIdx: index('role_id_idx').on(table.roleId),
-    permissionIdIdx: index('permission_id_idx').on(table.permissionId),
+    roleIdIdx: index('role_permissions_role_id_idx').on(table.roleId),
+    permissionIdIdx: index('role_permissions_permission_id_idx').on(table.permissionId),
   })
 );
 
@@ -182,8 +180,8 @@ export const userRoles = pgTable(
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => ({
-    userIdIdx: index('user_id_idx').on(table.userId),
-    roleIdIdx: index('role_id_idx').on(table.roleId),
+    userIdIdx: index('user_roles_user_id_idx').on(table.userId),
+    roleIdIdx: index('user_roles_role_id_idx').on(table.roleId),
   })
 );
 

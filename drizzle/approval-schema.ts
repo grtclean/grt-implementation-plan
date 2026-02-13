@@ -37,8 +37,8 @@ export const approvalProcesses = pgTable('approval_processes', {
   updatedBy: integer(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_process_code').on(table.processCode),
-  index('idx_document_type').on(table.documentType),
+  unique('approval_processes_uk_process_code').on(table.processCode),
+  index('approval_processes_idx_document_type').on(table.documentType),
 ]);
 
 /**
@@ -65,9 +65,9 @@ export const approvalPermissions = pgTable('approval_permissions', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_role_document').on(table.roleId, table.documentType),
-  index('idx_role_id').on(table.roleId),
-  index('idx_document_type').on(table.documentType),
+  unique('approval_permissions_uk_role_document').on(table.roleId, table.documentType),
+  index('approval_permissions_idx_role_id').on(table.roleId),
+  index('approval_permissions_idx_document_type').on(table.documentType),
 ]);
 
 /**
@@ -114,11 +114,11 @@ export const approvalTasks = pgTable('approval_tasks', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_task_code').on(table.taskCode),
-  index('idx_document_id').on(table.documentId),
-  index('idx_assigned_to').on(table.assignedTo),
-  index('idx_status').on(table.status),
-  index('idx_current_level').on(table.currentLevel),
+  unique('approval_tasks_uk_task_code').on(table.taskCode),
+  index('approval_tasks_idx_document_id').on(table.documentId),
+  index('approval_tasks_idx_assigned_to').on(table.assignedTo),
+  index('approval_tasks_idx_status').on(table.status),
+  index('approval_tasks_idx_current_level').on(table.currentLevel),
 ]);
 
 /**
@@ -156,9 +156,9 @@ export const approvalHistory = pgTable('approval_history', {
 
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  index('idx_document_id').on(table.documentId),
-  index('idx_approved_by').on(table.approvedBy),
-  index('idx_action_time').on(table.actionTime),
+  index('approval_history_idx_document_id').on(table.documentId),
+  index('approval_history_idx_approved_by').on(table.approvedBy),
+  index('approval_history_idx_action_time').on(table.actionTime),
 ]);
 
 /**
@@ -188,9 +188,9 @@ export const approvalRules = pgTable('approval_rules', {
   updatedBy: integer(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_rule_code').on(table.ruleCode),
-  index('idx_document_type').on(table.documentType),
-  index('idx_priority').on(table.priority),
+  unique('approval_rules_uk_rule_code').on(table.ruleCode),
+  index('approval_rules_idx_document_type').on(table.documentType),
+  index('approval_rules_idx_priority').on(table.priority),
 ]);
 
 /**
@@ -218,7 +218,7 @@ export const approvalStatistics = pgTable('approval_statistics', {
 
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  index('idx_statistic_date').on(table.statisticDate),
+  index('approval_statistics_idx_statistic_date').on(table.statisticDate),
 ]);
 
 /**
@@ -251,7 +251,7 @@ export const approvalDelegations = pgTable('approval_delegations', {
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
-  unique('uk_delegation_code').on(table.delegationCode),
-  index('idx_delegated_from').on(table.delegatedFrom),
-  index('idx_delegated_to').on(table.delegatedTo),
+  unique('approval_delegations_uk_delegation_code').on(table.delegationCode),
+  index('approval_delegations_idx_delegated_from').on(table.delegatedFrom),
+  index('approval_delegations_idx_delegated_to').on(table.delegatedTo),
 ]);
