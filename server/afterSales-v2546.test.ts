@@ -314,13 +314,15 @@ describe('ExecutionLog', () => {
 describe('FrontendComponentData', () => {
   describe('SchedulerTab数据', () => {
     it('应正确显示任务状态', () => {
+      // Use a future date relative to now so the assertion is time-independent
+      const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       const status = {
         config: { enabled: true, checkTime: '09:00' },
         isRunning: false,
         lastRunTime: '2026/1/29 09:00:00',
-        nextRunTime: '2026-01-30T01:00:00.000Z'
+        nextRunTime: futureDate
       };
-      
+
       expect(status.config.enabled).toBe(true);
       expect(status.lastRunTime).toBeTruthy();
       expect(new Date(status.nextRunTime!).getTime()).toBeGreaterThan(Date.now());

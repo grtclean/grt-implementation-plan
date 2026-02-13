@@ -79,9 +79,9 @@ describe("Placeholder Routers", () => {
       }
     });
 
-    it("should have 66 routers in total", () => {
+    it("should have 69 routers in total", () => {
       const routerCount = Object.keys(placeholderRouters).length;
-      expect(routerCount).toBe(66);
+      expect(routerCount).toBe(69);
     });
   });
 

@@ -1,4 +1,146 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+// Mock ai.service to avoid LLM API calls
+vi.mock("./ai.service", () => ({
+  generateM2Summary: vi.fn(async () => ({ summary: "test summary" })),
+  findSimilarProjects: vi.fn(async () => []),
+  generateAIV0: vi.fn(async () => ({
+    versionCode: "AIV0",
+    stage_baseline: { M3: { milestone: "立项评审", tasks: [] } },
+    changes_summary: "AI generated baseline",
+  })),
+  generateV1: vi.fn(async () => ({
+    new_version: "V1",
+    stage_baseline: {
+      M3: { milestone: "立项评审", tasks: [] },
+      M4: { milestone: "方案冻结", tasks: [] },
+      M5: { milestone: "详细设计", tasks: [] },
+    },
+    changes_summary: "Test V1 changes",
+  })),
+  generateProcurementSuggestions: vi.fn(async () => [
+    { itemCode: "ITEM-001", itemName: "清洗槽", quantity: 2, estimatedCost: 50000 },
+  ]),
+  compareVersions: vi.fn(() => ({ added: [], modified: [], removed: [] })),
+  getHistoricalProjectsIndexString: vi.fn(() => "GRT-347: 清洗机项目"),
+  searchSimilarProjectsLocal: vi.fn(() => []),
+}));
+
+// Mock db-init to avoid DB initialization
+vi.mock("./db-init", () => ({
+  HISTORICAL_PROJECTS_INDEX: [
+    { code: "GRT-347", name: "苏州明志清洗机", scene: "automotive_powertrain", customerType: "tier1_strategic" },
+  ],
+  PROJECT_STAGES: [
+    { code: "M0", name: "立项启动" }, { code: "M1", name: "需求分析" },
+    { code: "M2", name: "概念设计" }, { code: "M3", name: "立项评审" },
+    { code: "M4", name: "方案冻结" }, { code: "M5", name: "详细设计" },
+    { code: "M6", name: "采购" }, { code: "M7", name: "生产" },
+    { code: "M8", name: "装配" }, { code: "M9", name: "调试" },
+    { code: "M10", name: "发货" }, { code: "M11", name: "安装" },
+    { code: "M12", name: "验收" },
+  ],
+  initPOSDatabase: vi.fn(async () => {}),
+}));
+
+// Mock pos.db to avoid real DB connections
+vi.mock("./pos.db", () => ({
+  createProject: vi.fn(async (data: any) => ({
+    id: 1,
+    ...data,
+  })),
+  listProjects: vi.fn(async () => ({
+    items: [],
+    total: 0,
+    page: 1,
+    pageSize: 20,
+  })),
+  getProjectById: vi.fn(async (id: number) => null),
+  updateProject: vi.fn(async (id: number, data: any) => ({ success: true, ...data })),
+  deleteProject: vi.fn(async (id: number) => ({ success: true })),
+  getProjectStages: vi.fn(async (projectId: number) => {
+    const stages = ['M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12'];
+    return stages.map((code, index) => ({
+      id: index + 1,
+      projectId,
+      stageCode: code,
+      stageName: code,
+      status: 'NotStarted',
+      completionPercent: 0,
+      tasksJson: '[]',
+      auditLogJson: '[]',
+    }));
+  }),
+  getStageById: vi.fn(async (id: number) => ({
+    id,
+    stageCode: "M0",
+    stageName: "立项启动",
+    status: "NotStarted",
+    completionPercent: 0,
+    tasksJson: "[]",
+    auditLogJson: "[]",
+  })),
+  updateStageStatus: vi.fn(async (id: number, status: string) => ({ success: true })),
+  updateStageInputOutput: vi.fn(async (id: number, data: any) => ({ success: true })),
+  updateStageTasks: vi.fn(async (id: number, tasksJson: string) => ({ success: true })),
+  addStageAuditLog: vi.fn(async (stageId: number, action: string, userId: number, details?: string) => ({
+    id: Date.now(),
+    stageId,
+    action,
+    userId,
+    details,
+    timestamp: new Date().toISOString(),
+  })),
+  updateStageOwner: vi.fn(async (id: number, owner: number) => ({ success: true })),
+  updateStageDates: vi.fn(async (id: number, data: any) => ({ success: true })),
+  completeStage: vi.fn(async (input: any) => ({ success: true })),
+  createProjectVersion: vi.fn(async (data: any) => ({ id: 1, ...data })),
+  getProjectVersions: vi.fn(async (projectId: number) => []),
+  activateProjectVersion: vi.fn(async (id: number, userId: number) => ({ success: true })),
+  createStageReview: vi.fn(async (data: any) => ({ id: 1, ...data })),
+  updateReviewConclusion: vi.fn(async () => ({ success: true })),
+  getStageReviews: vi.fn(async (stageId: number) => []),
+  getProjectStatistics: vi.fn(async () => ({
+    total: 3,
+    active: 2,
+    completed: 1,
+    onHold: 0,
+    cancelled: 0,
+    draft: 0,
+    atRisk: 0,
+  })),
+  uploadAttachment: vi.fn(async (stageId: number, data: any) => ({
+    id: Date.now(),
+    stageId,
+    ...data,
+  })),
+}));
+
+// Mock ../db to prevent DB connection errors in other imported routers
+vi.mock("../db", () => ({
+  getDb: vi.fn(async () => null),
+  requireDb: vi.fn(async () => { throw new Error("DB unavailable in test"); }),
+  getAllMigrationTasks: vi.fn(async () => []),
+  getMigrationTaskById: vi.fn(async () => null),
+  createMigrationTask: vi.fn(async () => ({ id: 1 })),
+  updateMigrationTask: vi.fn(async () => ({ id: 1 })),
+  deleteMigrationTask: vi.fn(async () => true),
+  initDefaultMigrationTasks: vi.fn(async () => {}),
+  createFeedback: vi.fn(async () => ({ id: 1 })),
+  getAllFeedback: vi.fn(async () => []),
+  updateFeedbackStatus: vi.fn(async () => ({ success: true })),
+  trackEvent: vi.fn(async () => ({ success: true })),
+  getAnalyticsEvents: vi.fn(async () => []),
+  getAllDevTasks: vi.fn(async () => []),
+  createDevTask: vi.fn(async () => ({ id: 1 })),
+  updateDevTask: vi.fn(async () => ({ success: true })),
+}));
+
+// Mock ../utils/db-helpers to prevent DB issues
+vi.mock("../utils/db-helpers", () => ({
+  requireDb: vi.fn(async () => { throw new Error("DB unavailable in test"); }),
+}));
+
 import { appRouter } from "../routers";
 
 describe("POS Router", () => {

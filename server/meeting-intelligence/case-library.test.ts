@@ -21,18 +21,37 @@ import {
   DEFAULT_MO_CONFIGS
 } from './meeting-owner-init.service';
 
+// Helper to extract SQL string from drizzle SQL template object
+function extractSqlString(sqlObj: any): string {
+  // drizzle-orm SQL objects have queryChunks array containing StringChunk and Param objects
+  if (!sqlObj || !sqlObj.queryChunks) return '';
+  try {
+    return sqlObj.queryChunks
+      .map((chunk: any) => {
+        if (chunk && chunk.value && Array.isArray(chunk.value)) {
+          return chunk.value.join('');
+        }
+        return '';
+      })
+      .join(' ');
+  } catch {
+    return String(sqlObj);
+  }
+}
+
 // Mock database
 vi.mock('../db', () => ({
   requireDb: vi.fn().mockResolvedValue({
-    execute: vi.fn().mockImplementation(({ sql, args }) => {
+    execute: vi.fn().mockImplementation((sqlObj: any) => {
+      const sqlStr = extractSqlString(sqlObj);
       // Mock different queries based on SQL content
-      if (sql.includes('INSERT INTO customer_solution_case_library')) {
+      if (sqlStr.includes('INSERT INTO customer_solution_case_library')) {
         return Promise.resolve({ rows: [], rowsAffected: 1 });
       }
-      if (sql.includes('SELECT COUNT(*) as total FROM customer_solution_case_library')) {
+      if (sqlStr.includes('SELECT COUNT(*) as total FROM customer_solution_case_library')) {
         return Promise.resolve({ rows: [{ total: 8 }] });
       }
-      if (sql.includes('SELECT * FROM customer_solution_case_library')) {
+      if (sqlStr.includes('SELECT * FROM customer_solution_case_library')) {
         return Promise.resolve({
           rows: SAMPLE_CASES.slice(0, 3).map((c, i) => ({
             id: `case_${i}`,
@@ -61,13 +80,13 @@ vi.mock('../db', () => ({
           }))
         });
       }
-      if (sql.includes('DELETE FROM customer_solution_case_library')) {
+      if (sqlStr.includes('DELETE FROM customer_solution_case_library')) {
         return Promise.resolve({ rows: [], rowsAffected: 1 });
       }
-      if (sql.includes('UPDATE customer_solution_case_library')) {
+      if (sqlStr.includes('UPDATE customer_solution_case_library')) {
         return Promise.resolve({ rows: [], rowsAffected: 1 });
       }
-      if (sql.includes('GROUP BY industry')) {
+      if (sqlStr.includes('GROUP BY industry')) {
         return Promise.resolve({
           rows: [
             { industry: '汽车制造', count: 2 },
@@ -76,7 +95,7 @@ vi.mock('../db', () => ({
           ]
         });
       }
-      if (sql.includes('GROUP BY product_type')) {
+      if (sqlStr.includes('GROUP BY product_type')) {
         return Promise.resolve({
           rows: [
             { product_type: '变速箱壳体', count: 1 },
@@ -84,7 +103,7 @@ vi.mock('../db', () => ({
           ]
         });
       }
-      if (sql.includes('GROUP BY cleanliness_standard')) {
+      if (sqlStr.includes('GROUP BY cleanliness_standard')) {
         return Promise.resolve({
           rows: [
             { cleanliness_standard: 'VDA 19.1', count: 2 },
@@ -92,7 +111,7 @@ vi.mock('../db', () => ({
           ]
         });
       }
-      if (sql.includes('GROUP BY project_phase')) {
+      if (sqlStr.includes('GROUP BY project_phase')) {
         return Promise.resolve({
           rows: [
             { project_phase: 'M8', count: 2 },
@@ -100,13 +119,13 @@ vi.mock('../db', () => ({
           ]
         });
       }
-      if (sql.includes('SELECT id FROM meeting_owners')) {
+      if (sqlStr.includes('SELECT id FROM meeting_owners')) {
         return Promise.resolve({ rows: [] });
       }
-      if (sql.includes('INSERT INTO meeting_owners')) {
+      if (sqlStr.includes('INSERT INTO meeting_owners')) {
         return Promise.resolve({ rows: [], rowsAffected: 1 });
       }
-      if (sql.includes('SELECT * FROM meeting_owners')) {
+      if (sqlStr.includes('SELECT * FROM meeting_owners')) {
         return Promise.resolve({
           rows: DEFAULT_MO_CONFIGS.slice(0, 3).map((c, i) => ({
             id: `mo_${i}`,
@@ -123,7 +142,7 @@ vi.mock('../db', () => ({
           }))
         });
       }
-      if (sql.includes('UPDATE meeting_owners')) {
+      if (sqlStr.includes('UPDATE meeting_owners')) {
         return Promise.resolve({ rows: [], rowsAffected: 1 });
       }
       return Promise.resolve({ rows: [] });

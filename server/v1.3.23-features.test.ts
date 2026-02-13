@@ -73,14 +73,14 @@ describe("v1.3.23 前端集成与数据库迁移", () => {
       expect(module.customerQuestionnaires).toBeDefined();
     });
 
-    it("should export process step enum", async () => {
+    it("should export process step values", async () => {
       const module = await import("../drizzle/production-process-schema");
-      expect(module.processStepEnum).toBeDefined();
+      expect(module.processStepValues).toBeDefined();
     });
 
-    it("should export process status enum", async () => {
+    it("should export process status values", async () => {
       const module = await import("../drizzle/production-process-schema");
-      expect(module.processStatusEnum).toBeDefined();
+      expect(module.processStatusValues).toBeDefined();
     });
   });
 });

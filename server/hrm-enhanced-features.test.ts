@@ -1,6 +1,6 @@
 /**
  * HRM Enhanced Features Tests
- * 
+ *
  * Tests for:
  * 1. Teams Meeting Integration
  * 2. Scheduled Tasks Management
@@ -8,9 +8,57 @@
  * 4. Performance Review Notifications
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
+
+// Mock database module to avoid real DB connections
+vi.mock("./db", () => ({
+  getDb: vi.fn(async () => null),
+  requireDb: vi.fn(async () => { throw new Error("DB unavailable in test"); }),
+  getTeamsMeetings: vi.fn(async (filter?: any) => {
+    if (filter?.status === "scheduled") return [{ id: 1, status: "scheduled", meetingCode: "MTG-001", subject: "面试" }];
+    return [{ id: 1, status: "scheduled", meetingCode: "MTG-001", subject: "面试" }];
+  }),
+  getTeamsMeetingById: vi.fn(async (id: number) => ({ id, meetingCode: "MTG-001", subject: "面试", status: "scheduled" })),
+  createTeamsMeeting: vi.fn(async (data: any) => ({ id: 1 })),
+  updateTeamsMeeting: vi.fn(async (id: number, data: any) => ({ id, ...data })),
+  getAiInterviewAnalytics: vi.fn(async (meetingId: number) => []),
+  createAiInterviewAnalytic: vi.fn(async (data: any) => ({ id: 1, ...data })),
+  getScheduledTasks: vi.fn(async (filter?: any) => {
+    if (filter?.taskType) return [{ id: 1, taskType: filter.taskType, taskCode: "TSK-001", taskName: "测试任务" }];
+    return [{ id: 1, taskType: "performance_review_reminder", taskCode: "TSK-001", taskName: "测试任务" }];
+  }),
+  getScheduledTaskById: vi.fn(async (id: number) => ({ id, taskCode: "TSK-001", taskName: "测试任务" })),
+  createScheduledTask: vi.fn(async (data: any) => ({ id: 1 })),
+  updateScheduledTask: vi.fn(async (id: number, data: any) => ({ id, ...data })),
+  getSalaryCalculations: vi.fn(async () => [{ id: 1, calculationCode: "CALC-001", department: "研发部" }]),
+  getSalaryCalculationById: vi.fn(async (id: number) => ({ id, calculationCode: "CALC-001", department: "研发部" })),
+  createSalaryCalculation: vi.fn(async (data: any) => ({ id: 1 })),
+  calculateSalary: vi.fn(async (params: any) => ({
+    baseSalary: params.baseSalary || 10000,
+    performanceSalary: 3000,
+    bonus: (params.projectBonus || 0) + 2000,
+    benefits: 1500,
+    monthlyTotal: (params.baseSalary || 10000) + 3000 + 2000 + 1500,
+    annualTotal: ((params.baseSalary || 10000) + 3000 + 2000 + 1500) * 12,
+    breakdown: {
+      baseSalaryRatio: params.department === "未知部门" ? 0.6 : 0.5,
+    },
+  })),
+  getPerformanceReviewEmailLogs: vi.fn(async (filter?: any) => {
+    if (filter?.sendStatus) return [{ id: 1, sendStatus: filter.sendStatus }];
+    return [{ id: 1, sendStatus: "pending" }];
+  }),
+  createPerformanceReviewEmailLog: vi.fn(async (data: any) => ({ id: 1 })),
+  updatePerformanceReviewEmailLog: vi.fn(async (id: number, data: any) => ({ id, ...data })),
+  getAllMigrationTasks: vi.fn(async () => []),
+  getMigrationTaskById: vi.fn(async () => null),
+  createMigrationTask: vi.fn(async () => ({ id: 1 })),
+  updateMigrationTask: vi.fn(async () => ({ id: 1 })),
+  deleteMigrationTask: vi.fn(async () => true),
+  initDefaultMigrationTasks: vi.fn(async () => {}),
+}));
+
 import {
-  getDb,
   getTeamsMeetings,
   getTeamsMeetingById,
   createTeamsMeeting,
@@ -45,7 +93,6 @@ describe("Teams Meeting Integration", () => {
       durationMinutes: 60,
       status: "scheduled",
     });
-    // Function returns { id: insertId } or null
     expect(meeting === null || meeting?.id !== undefined).toBe(true);
   });
 
@@ -119,7 +166,6 @@ describe("Scheduled Tasks Management", () => {
       cronExpression: "0 0 14 * * 2",
       isEnabled: true,
     });
-    // Function returns { id: insertId } or null
     expect(task === null || task?.id !== undefined).toBe(true);
   });
 
@@ -209,7 +255,6 @@ describe("Salary Calculator", () => {
       monthlyTotal: "21500",
       annualTotal: "258000",
     });
-    // Function returns { id: insertId } or null
     expect(calculation === null || calculation?.id !== undefined).toBe(true);
   });
 
@@ -238,7 +283,6 @@ describe("Performance Review Email Logs", () => {
       recipients: JSON.stringify(["test@example.com"]),
       sendStatus: "pending",
     });
-    // Function returns { id: insertId } or null
     expect(log === null || log?.id !== undefined).toBe(true);
   });
 

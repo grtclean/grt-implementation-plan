@@ -58,14 +58,27 @@ vi.mock('./db', () => ({
 // Mock jiandaoyun service
 vi.mock('./jiandaoyun', () => ({
   getJiandaoyunSyncService: vi.fn().mockReturnValue({
-    isConfigured: () => false,
-    getCorpId: () => undefined,
+    isConfigured: () => true,
+    getCorpId: () => 'test-corp',
     getStats: () => ({
-      totalApps: 0,
-      totalForms: 0,
-      totalRecords: 0,
+      totalApps: 47,
+      totalForms: 120,
+      totalRecords: 15680,
       lastSyncTime: null,
     }),
+    syncApps: vi.fn().mockResolvedValue([
+      { _id: 'app1', name: '项目管理', createTime: '2024-01-01', updateTime: '2026-01-15' },
+    ]),
+    fullSync: vi.fn().mockResolvedValue({
+      apps: [{ _id: 'app1', name: '项目管理' }],
+      totalRecords: 15680,
+      formCounts: { '项目管理/M0-1_客户管理': 350 },
+    }),
+  }),
+  getJiandaoyunUserSyncService: vi.fn().mockReturnValue({
+    syncMembers: vi.fn().mockResolvedValue({ synced: 0 }),
+    syncDepartments: vi.fn().mockResolvedValue({ synced: 0 }),
+    syncRoles: vi.fn().mockResolvedValue({ synced: 0 }),
   }),
   mockJiandaoyunData: {
     apps: [
@@ -81,6 +94,20 @@ vi.mock('./jiandaoyun', () => ({
       '项目管理/M0-1_客户管理': 350,
     },
   },
+}));
+
+// Mock jiandaoyun-scheduler service
+vi.mock('./services/jiandaoyun-scheduler.service', () => ({
+  getJiandaoyunScheduler: vi.fn().mockReturnValue({
+    getStats: vi.fn().mockResolvedValue({ totalTasks: 0, completedTasks: 0 }),
+  }),
+}));
+
+// Mock permission-mapping service
+vi.mock('./services/permission-mapping.service', () => ({
+  getPermissionMappingService: vi.fn().mockReturnValue({}),
+  GRT_ROLES: [],
+  GRT_PERMISSIONS: [],
 }));
 
 type AuthenticatedUser = NonNullable<TrpcContext['user']>;
@@ -140,12 +167,12 @@ describe('Migration Tasks API', () => {
     });
   });
 
-  describe('migration.get', () => {
+  describe('migration.getById', () => {
     it('should return a single migration task by id', async () => {
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
-      
-      const task = await caller.migration.get({ id: 1 });
+
+      const task = await caller.migration.getById({ id: 1 });
       
       expect(task).toBeDefined();
       expect(task?.id).toBe(1);
@@ -158,7 +185,7 @@ describe('Migration Tasks API', () => {
     it('should create a new migration task', async () => {
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
-      
+
       const result = await caller.migration.create({
         moduleId: 'test_module',
         moduleName: '测试模块',
@@ -167,9 +194,9 @@ describe('Migration Tasks API', () => {
         totalRecords: 100,
         priority: 'medium',
       });
-      
+
       expect(result).toBeDefined();
-      expect(result?.id).toBe(1);
+      expect(result?.success).toBe(true);
     });
   });
 
@@ -227,13 +254,13 @@ describe('Migration Tasks API', () => {
 });
 
 describe('Jiandaoyun API', () => {
-  describe('jiandaoyun.status', () => {
-    it('should return API status for public access', async () => {
-      const ctx = createPublicContext();
+  describe('jiandaoyun.getStatus', () => {
+    it('should return API status for authenticated user', async () => {
+      const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
-      
-      const status = await caller.jiandaoyun.status();
-      
+
+      const status = await caller.jiandaoyun.getStatus();
+
       expect(status).toBeDefined();
       expect(status).toHaveProperty('configured');
       expect(status).toHaveProperty('stats');
@@ -243,43 +270,42 @@ describe('Jiandaoyun API', () => {
     });
   });
 
-  describe('jiandaoyun.apps', () => {
-    it('should return apps list for authenticated user', async () => {
+  describe('jiandaoyun.getApps', () => {
+    it('should return apps result for authenticated user', async () => {
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
-      
-      const apps = await caller.jiandaoyun.apps();
-      
-      expect(apps).toBeDefined();
-      expect(Array.isArray(apps)).toBe(true);
-      expect(apps.length).toBeGreaterThan(0);
-      expect(apps[0]).toHaveProperty('_id');
-      expect(apps[0]).toHaveProperty('name');
+
+      const result = await caller.jiandaoyun.getApps();
+
+      expect(result).toBeDefined();
+      expect(Array.isArray(result.apps)).toBe(true);
+      expect(result.apps.length).toBeGreaterThan(0);
+      expect(result.apps[0]).toHaveProperty('_id');
+      expect(result.apps[0]).toHaveProperty('name');
     });
   });
 
-  describe('jiandaoyun.formCounts', () => {
-    it('should return form counts for authenticated user', async () => {
+  describe('jiandaoyun.getSyncStats', () => {
+    it('should return sync stats for authenticated user', async () => {
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
-      
-      const counts = await caller.jiandaoyun.formCounts();
-      
-      expect(counts).toBeDefined();
-      expect(typeof counts).toBe('object');
+
+      const result = await caller.jiandaoyun.getSyncStats();
+
+      expect(result).toBeDefined();
+      expect(typeof result).toBe('object');
     });
   });
 
-  describe('jiandaoyun.sync', () => {
+  describe('jiandaoyun.fullSync', () => {
     it('should perform sync and return stats', async () => {
-      const ctx = createAuthContext();
+      const ctx = createAuthContext('admin');
       const caller = appRouter.createCaller(ctx);
-      
-      const result = await caller.jiandaoyun.sync();
-      
+
+      const result = await caller.jiandaoyun.fullSync();
+
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
-      expect(result.stats).toBeDefined();
     });
   });
 });

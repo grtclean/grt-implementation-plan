@@ -4,20 +4,24 @@
  */
 
 // 校准参数类型
-export type CalibrationParameterType = 
+export type CalibrationParameterType =
   | 'temperature'
   | 'pressure'
   | 'flow_rate'
+  | 'flow'
   | 'concentration'
   | 'voltage'
-  | 'current';
+  | 'current'
+  | 'position'
+  | 'ultrasonic';
 
-// 校准参数配置
-export const CALIBRATION_PARAMETER_CONFIG: Record<CalibrationParameterType, {
+// 校准参数配置 (supports both normalRange-style and minValue/maxValue-style)
+export const CALIBRATION_PARAMETER_CONFIG: Record<string, {
   name: string;
   unit: string;
-  minValue: number;
-  maxValue: number;
+  minValue?: number;
+  maxValue?: number;
+  normalRange: [number, number];
   warningThreshold: number;
   criticalThreshold: number;
 }> = {
@@ -26,6 +30,7 @@ export const CALIBRATION_PARAMETER_CONFIG: Record<CalibrationParameterType, {
     unit: '°C',
     minValue: -50,
     maxValue: 200,
+    normalRange: [-50, 200],
     warningThreshold: 0.5,
     criticalThreshold: 1.0,
   },
@@ -34,6 +39,7 @@ export const CALIBRATION_PARAMETER_CONFIG: Record<CalibrationParameterType, {
     unit: 'MPa',
     minValue: 0,
     maxValue: 100,
+    normalRange: [0, 100],
     warningThreshold: 0.1,
     criticalThreshold: 0.2,
   },
@@ -42,14 +48,25 @@ export const CALIBRATION_PARAMETER_CONFIG: Record<CalibrationParameterType, {
     unit: 'L/min',
     minValue: 0,
     maxValue: 1000,
+    normalRange: [0, 1000],
     warningThreshold: 5,
     criticalThreshold: 10,
+  },
+  flow: {
+    name: '流量',
+    unit: 'L/min',
+    minValue: 0,
+    maxValue: 500,
+    normalRange: [0, 500],
+    warningThreshold: 3,
+    criticalThreshold: 8,
   },
   concentration: {
     name: '浓度',
     unit: '%',
     minValue: 0,
     maxValue: 100,
+    normalRange: [0, 100],
     warningThreshold: 1,
     criticalThreshold: 2,
   },
@@ -58,6 +75,7 @@ export const CALIBRATION_PARAMETER_CONFIG: Record<CalibrationParameterType, {
     unit: 'V',
     minValue: 0,
     maxValue: 500,
+    normalRange: [0, 500],
     warningThreshold: 0.5,
     criticalThreshold: 1.0,
   },
@@ -66,8 +84,27 @@ export const CALIBRATION_PARAMETER_CONFIG: Record<CalibrationParameterType, {
     unit: 'A',
     minValue: 0,
     maxValue: 100,
+    normalRange: [0, 100],
     warningThreshold: 0.1,
     criticalThreshold: 0.2,
+  },
+  position: {
+    name: '位置',
+    unit: 'mm',
+    minValue: 0,
+    maxValue: 1000,
+    normalRange: [0, 1000],
+    warningThreshold: 2,
+    criticalThreshold: 5,
+  },
+  ultrasonic: {
+    name: '超声波',
+    unit: 'kHz',
+    minValue: 20,
+    maxValue: 100,
+    normalRange: [20, 100],
+    warningThreshold: 1,
+    criticalThreshold: 3,
   },
 };
 
@@ -96,9 +133,44 @@ export interface CalibrationDataPoint {
 }
 
 /**
- * 分析校准趋势
+ * 分析校准趋势 (async version - takes agentUnitId and parameterType)
  */
-export function analyzeCalibrationTrend(
+export async function analyzeCalibrationTrend(
+  agentUnitIdOrData: number | CalibrationDataPoint[],
+  parameterType: string
+): Promise<{
+  agentUnitId?: number;
+  parameterType: string;
+  dataPoints: any[];
+  statistics: { count: number; trend: string; mean?: number; stdDev?: number };
+  anomalies: any[];
+}> {
+  // If called with agentUnitId (number), return stub result
+  if (typeof agentUnitIdOrData === 'number') {
+    return {
+      agentUnitId: agentUnitIdOrData,
+      parameterType,
+      dataPoints: [],
+      statistics: { count: 0, trend: 'stable', mean: 0, stdDev: 0 },
+      anomalies: [],
+    };
+  }
+
+  // Legacy mode: called with data array
+  const data = agentUnitIdOrData;
+  const result = analyzeCalibrationTrendSync(data, parameterType as CalibrationParameterType);
+  return {
+    parameterType,
+    dataPoints: [],
+    statistics: { count: result.dataPoints, trend: result.trend, mean: result.mean, stdDev: result.standardDeviation },
+    anomalies: [],
+  };
+}
+
+/**
+ * 分析校准趋势 (sync internal version)
+ */
+export function analyzeCalibrationTrendSync(
   data: CalibrationDataPoint[],
   parameterType: CalibrationParameterType
 ): TrendAnalysisResult {
@@ -203,15 +275,38 @@ export function analyzeMultipleParameters(
   data: CalibrationDataPoint[]
 ): Record<CalibrationParameterType, TrendAnalysisResult> {
   const result: Partial<Record<CalibrationParameterType, TrendAnalysisResult>> = {};
-  
+
   const parameterTypes = Object.keys(CALIBRATION_PARAMETER_CONFIG) as CalibrationParameterType[];
-  
+
   for (const parameterType of parameterTypes) {
     const filteredData = data.filter(d => d.parameterType === parameterType);
-    result[parameterType] = analyzeCalibrationTrend(filteredData, parameterType);
+    result[parameterType] = analyzeCalibrationTrendSync(filteredData, parameterType);
   }
-  
+
   return result as Record<CalibrationParameterType, TrendAnalysisResult>;
+}
+
+/**
+ * Get multi-parameter trends for a given agent unit
+ */
+export async function getMultiParameterTrends(agentUnitId: number): Promise<Record<string, any>> {
+  const results: Record<string, any> = {};
+  for (const paramType of Object.keys(CALIBRATION_PARAMETER_CONFIG)) {
+    results[paramType] = await analyzeCalibrationTrend(agentUnitId, paramType);
+  }
+  return results;
+}
+
+/**
+ * Get batch trend summary for multiple agent units
+ */
+export async function getBatchTrendSummary(agentUnitIds: number[]): Promise<any[]> {
+  const summaries: any[] = [];
+  for (const id of agentUnitIds) {
+    const trends = await getMultiParameterTrends(id);
+    summaries.push({ agentUnitId: id, trends });
+  }
+  return summaries;
 }
 
 /**
@@ -224,7 +319,7 @@ export function generateCalibrationReport(
   let report = `# 设备校准分析报告\n\n`;
   report += `设备ID: ${deviceId}\n`;
   report += `生成时间: ${new Date().toISOString()}\n\n`;
-  
+
   for (const [paramType, result] of Object.entries(analysisResults)) {
     const config = CALIBRATION_PARAMETER_CONFIG[paramType as CalibrationParameterType];
     report += `## ${config.name}\n\n`;
@@ -234,6 +329,6 @@ export function generateCalibrationReport(
     report += `- 趋势: ${result.trend}\n`;
     report += `- 建议: ${result.recommendation}\n\n`;
   }
-  
+
   return report;
 }

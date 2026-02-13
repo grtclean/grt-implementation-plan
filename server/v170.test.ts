@@ -35,19 +35,19 @@ import type { TrpcContext } from "./_core/context";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
-// Helper: mysql2 SELECT result
+// Helper: Drizzle/pg execute result — the service accesses .rows
 function selectResult(rows: any[]) {
-  return [rows, undefined]; // [rows, fields]
+  return { rows };
 }
 
-// Helper: mysql2 INSERT result
+// Helper: Drizzle INSERT result
 function insertResult(insertId: number) {
-  return [{ insertId, affectedRows: 1 }, undefined];
+  return { rows: [{ id: insertId }], rowCount: 1 };
 }
 
-// Helper: mysql2 UPDATE/DELETE result
+// Helper: Drizzle UPDATE/DELETE result
 function updateResult(affectedRows: number = 1) {
-  return [{ affectedRows, insertId: 0 }, undefined];
+  return { rows: [], rowCount: affectedRows };
 }
 
 function createAuthContext(overrides?: Partial<AuthenticatedUser>): { ctx: TrpcContext } {
@@ -87,10 +87,13 @@ describe("qualityInterlock", () => {
   describe("triggerLock", () => {
     it("should trigger a process lock successfully for major severity", async () => {
       // major: only lock next downstream (1 process)
-      // For each process: check existing (SELECT), insert lock (INSERT), insert alert (INSERT)
+      // For each process: check existing (SELECT), insert lock (INSERT)
+      // Then: insert alert (INSERT), UPDATE scheduling_tasks, SELECT COUNT scheduling_tasks
       mockExecute.mockResolvedValueOnce(selectResult([])); // no existing lock
       mockExecute.mockResolvedValueOnce(insertResult(1));   // insert lock
       mockExecute.mockResolvedValueOnce(insertResult(10));  // insert alert
+      mockExecute.mockResolvedValueOnce(updateResult(0));   // UPDATE scheduling_tasks
+      mockExecute.mockResolvedValueOnce(selectResult([{ cnt: 0 }])); // SELECT COUNT scheduling_tasks
 
       const result = await caller.qualityInterlock.triggerLock({
         projectId: "PRJ-001",
@@ -105,10 +108,17 @@ describe("qualityInterlock", () => {
 
     it("should trigger lock with critical severity locking all downstream", async () => {
       // T3 downstream: T4..T15 = 12 processes
+      // For each process: SELECT existing lock + INSERT lock
       for (let i = 0; i < 12; i++) {
         mockExecute.mockResolvedValueOnce(selectResult([]));  // no existing lock
         mockExecute.mockResolvedValueOnce(insertResult(i + 1)); // insert lock
-        mockExecute.mockResolvedValueOnce(insertResult(100 + i)); // insert alert
+      }
+      // Then: INSERT alert
+      mockExecute.mockResolvedValueOnce(insertResult(100));
+      // Then for each of 12 locked processes: UPDATE scheduling_tasks + SELECT COUNT
+      for (let i = 0; i < 12; i++) {
+        mockExecute.mockResolvedValueOnce(updateResult(0));   // UPDATE scheduling_tasks
+        mockExecute.mockResolvedValueOnce(selectResult([{ cnt: 0 }])); // SELECT COUNT
       }
 
       const result = await caller.qualityInterlock.triggerLock({
@@ -218,6 +228,10 @@ describe("qualityInterlock", () => {
       ]));
       // Third: INSERT alert notification
       mockExecute.mockResolvedValueOnce(insertResult(30));
+      // Fourth: SELECT other locks on same process (for scheduling unblock)
+      mockExecute.mockResolvedValueOnce(selectResult([]));
+      // Fifth: UPDATE scheduling_tasks to unblock
+      mockExecute.mockResolvedValueOnce(updateResult(0));
 
       const result = await caller.qualityInterlock.approveUnlock({
         lockId: 1,
@@ -316,6 +330,11 @@ describe("qualityInterlock", () => {
       }
       // Then 1 INSERT for the alert notification
       mockExecute.mockResolvedValueOnce(insertResult(100));
+      // Then for each of 11 locked processes: UPDATE scheduling_tasks + SELECT COUNT
+      for (let i = 0; i < 11; i++) {
+        mockExecute.mockResolvedValueOnce(updateResult(0));       // UPDATE scheduling_tasks
+        mockExecute.mockResolvedValueOnce(selectResult([{ cnt: 0 }])); // SELECT COUNT
+      }
 
       const result = await caller.qualityInterlock.onCheckCompleted({
         projectId: "PRJ-001",

@@ -37,19 +37,19 @@ import { parseBomCsv, detectDuplicates, generateBomTemplate } from "./production
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
-// Helper: mysql2 SELECT result
+// Helper: Drizzle/pg execute result — the service accesses .rows
 function selectResult(rows: any[]) {
-  return [rows, undefined];
+  return { rows };
 }
 
-// Helper: mysql2 INSERT result
+// Helper: Drizzle INSERT result
 function insertResult(insertId: number) {
-  return [{ insertId, affectedRows: 1 }, undefined];
+  return { rows: [{ id: insertId }], rowCount: 1 };
 }
 
-// Helper: mysql2 UPDATE/DELETE result
+// Helper: Drizzle UPDATE/DELETE result
 function updateResult(affectedRows: number = 1) {
-  return [{ affectedRows, insertId: 0 }, undefined];
+  return { rows: [], rowCount: affectedRows };
 }
 
 function createAuthContext(overrides?: Partial<AuthenticatedUser>): { ctx: TrpcContext } {

@@ -160,14 +160,13 @@ describe("AI执行模式服务", () => {
     it("应该返回统计数据", () => {
       const stats = getEffectivenessStats();
 
+      // getEffectivenessStats returns an array of stat objects
       expect(stats).toBeDefined();
-      expect(stats.totalSessions).toBeGreaterThanOrEqual(0);
-      expect(stats.adoptedCount).toBeGreaterThanOrEqual(0);
-      expect(stats.adoptionRate).toBeDefined();
-      expect(stats.byMode).toBeDefined();
-      expect(stats.byMode.internal).toBeGreaterThanOrEqual(0);
-      expect(stats.byMode.generative).toBeGreaterThanOrEqual(0);
-      expect(stats.byMode.shadow).toBeGreaterThanOrEqual(0);
+      expect(Array.isArray(stats)).toBe(true);
+      expect(stats.length).toBeGreaterThan(0);
+      expect(stats[0].totalCount).toBeGreaterThanOrEqual(0);
+      expect(stats[0].adoptedCount).toBeGreaterThanOrEqual(0);
+      expect(stats[0].adoptionRate).toBeDefined();
     });
   });
 

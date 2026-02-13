@@ -66,7 +66,7 @@ describe('Sprint 3: 多用户Profile与RBAC架构', () => {
       const content = fs.readFileSync(menuConfigPath, 'utf-8');
       
       // 检查权限字段定义
-      expect(content).toContain('requiredRole');
+      expect(content).toContain('allowedRoles');
     });
 
     it('Layout应该实现RBAC过滤逻辑', async () => {

@@ -346,7 +346,7 @@ describe("LifecycleSecurityGates", () => {
     it("应该通过有效的M0检查", () => {
       const result = gates.checkM0Gate({
         salesPersonEmail: "john.doe@company.com",
-        proposalContent: "This is a detailed proposal with more than 100 characters...",
+        proposalContent: "This is a detailed proposal with more than 100 characters. It includes comprehensive requirements, project scope definition, timeline estimates, resource allocation plans, and risk assessments.",
         hasPDFWatermark: true,
       });
 
@@ -357,7 +357,7 @@ describe("LifecycleSecurityGates", () => {
     it("应该拒绝无效的销售人员邮箱", () => {
       const result = gates.checkM0Gate({
         salesPersonEmail: "john@external.com",
-        proposalContent: "This is a detailed proposal with more than 100 characters...",
+        proposalContent: "This is a detailed proposal with more than 100 characters. It includes comprehensive requirements, project scope definition, timeline estimates, resource allocation plans, and risk assessments.",
         hasPDFWatermark: true,
       });
 
@@ -368,7 +368,7 @@ describe("LifecycleSecurityGates", () => {
     it("应该拒绝缺少PDF水印的提案", () => {
       const result = gates.checkM0Gate({
         salesPersonEmail: "john.doe@company.com",
-        proposalContent: "This is a detailed proposal with more than 100 characters...",
+        proposalContent: "This is a detailed proposal with more than 100 characters. It includes comprehensive requirements, project scope definition, timeline estimates, resource allocation plans, and risk assessments.",
         hasPDFWatermark: false,
       });
 
@@ -611,7 +611,7 @@ describe("LifecycleSecurityGates", () => {
     it("应该正确执行M0检查", () => {
       const result = gates.executeLifecycleSecurityGate("M0", {
         salesPersonEmail: "john.doe@company.com",
-        proposalContent: "This is a detailed proposal with more than 100 characters...",
+        proposalContent: "This is a detailed proposal with more than 100 characters. It includes comprehensive requirements, project scope definition, timeline estimates, resource allocation plans, and risk assessments.",
         hasPDFWatermark: true,
       });
 
