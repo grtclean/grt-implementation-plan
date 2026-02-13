@@ -31,7 +31,7 @@ export default function POSProjects() {
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
 
-  // 使用project.list API（来自placeholder-routers，已验证可用）
+  // TODO: 迁移至 trpc.pos.project.list —— 当前临时复用 placeholder 路由数据
   const { data, isLoading, error } = trpc.project.list.useQuery();
   
   // 调试日志

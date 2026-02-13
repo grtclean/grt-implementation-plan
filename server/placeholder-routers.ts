@@ -1453,124 +1453,158 @@ export const ruleVersionRouter = router({
 
 // ==================== 项目路由 ====================
 // 项目模拟数据
+// Mock data aligned with DB schema (projects table: serial id, varchar fields, integer budget, etc.)
 const mockProjectList = [
   {
-    id: "proj-001",
+    id: 1,
+    projectCode: "PRJ-2024-001",
     name: "GRT智能清洗系统升级项目",
     shortName: "GRT-2024",
-    type: "strategic",
-    status: "active",
-    priority: "critical",
+    customerId: null,
+    opportunityId: null,
+    type: "strategic" as const,
+    status: "active" as const,
+    currentPhase: "M6",
+    priority: "critical" as const,
+    plannedStartDate: "2024-01-15",
+    plannedEndDate: "2024-12-31",
+    actualStartDate: "2024-01-15",
+    actualEndDate: null,
     budget: 580,
-    spent: 320,
-    progress: 65,
-    manager: "张工程师",
-    startDate: "2024-01-15",
-    endDate: "2024-12-31",
+    actualCost: 320,
+    contractAmount: 600,
+    managerId: 1,
     description: "全面升级GRT智能清洗系统，包括IoT集成、AI质检和自动化控制",
-    currentPhase: "M6-设计评审",
-    team: ["张工程师", "李技术员", "王设计师"],
-    milestones: [
-      { name: "M0-立项", status: "completed", date: "2024-01-15" },
-      { name: "M3-需求确认", status: "completed", date: "2024-03-20" },
-      { name: "M6-设计评审", status: "active", date: "2024-06-15" },
-      { name: "M9-生产准备", status: "pending", date: "2024-09-01" },
-      { name: "M12-交付验收", status: "pending", date: "2024-12-31" },
-    ]
+    objectives: null,
+    scope: null,
+    riskLevel: "medium" as const,
+    healthStatus: "green" as const,
+    completionPercent: 65,
+    remark: null,
+    jiandaoyunId: null,
+    createdAt: "2024-01-10T00:00:00.000Z",
+    updatedAt: "2024-06-15T00:00:00.000Z",
   },
   {
-    id: "proj-002",
+    id: 2,
+    projectCode: "PRJ-2024-002",
     name: "客户关系管理系统实施",
     shortName: "CRM-IMPL",
-    type: "key",
-    status: "active",
-    priority: "high",
+    customerId: null,
+    opportunityId: null,
+    type: "key" as const,
+    status: "active" as const,
+    currentPhase: "M3",
+    priority: "high" as const,
+    plannedStartDate: "2024-02-01",
+    plannedEndDate: "2024-08-31",
+    actualStartDate: "2024-02-01",
+    actualEndDate: null,
     budget: 280,
-    spent: 150,
-    progress: 45,
-    manager: "李经理",
-    startDate: "2024-02-01",
-    endDate: "2024-08-31",
+    actualCost: 150,
+    contractAmount: 300,
+    managerId: 2,
     description: "实施简道云CRM系统，整合销售、客户服务和市场营销流程",
-    currentPhase: "M3-需求确认",
-    team: ["李经理", "赵顾问"],
-    milestones: [
-      { name: "M0-立项", status: "completed", date: "2024-02-01" },
-      { name: "M3-需求确认", status: "active", date: "2024-04-15" },
-      { name: "M6-系统配置", status: "pending", date: "2024-06-30" },
-      { name: "M9-上线培训", status: "pending", date: "2024-08-31" },
-    ]
+    objectives: null,
+    scope: null,
+    riskLevel: "low" as const,
+    healthStatus: "green" as const,
+    completionPercent: 45,
+    remark: null,
+    jiandaoyunId: null,
+    createdAt: "2024-01-20T00:00:00.000Z",
+    updatedAt: "2024-04-15T00:00:00.000Z",
   },
   {
-    id: "proj-003",
+    id: 3,
+    projectCode: "PRJ-2024-003",
     name: "生产线自动化改造",
     shortName: "AUTO-LINE",
-    type: "strategic",
-    status: "planning",
-    priority: "high",
+    customerId: null,
+    opportunityId: null,
+    type: "strategic" as const,
+    status: "draft" as const,
+    currentPhase: "M0",
+    priority: "high" as const,
+    plannedStartDate: "2024-04-01",
+    plannedEndDate: "2025-06-30",
+    actualStartDate: null,
+    actualEndDate: null,
     budget: 1200,
-    spent: 50,
-    progress: 10,
-    manager: "王总监",
-    startDate: "2024-04-01",
-    endDate: "2025-06-30",
+    actualCost: 50,
+    contractAmount: null,
+    managerId: 3,
     description: "对3条生产线进行自动化改造，引入机器人和智能传感器",
-    currentPhase: "M0-立项",
-    team: ["王总监", "刘工程师", "陈技术员"],
-    milestones: [
-      { name: "M0-立项", status: "active", date: "2024-04-01" },
-      { name: "M3-方案设计", status: "pending", date: "2024-07-01" },
-      { name: "M6-设备采购", status: "pending", date: "2024-10-01" },
-      { name: "M9-安装调试", status: "pending", date: "2025-01-01" },
-      { name: "M12-验收投产", status: "pending", date: "2025-06-30" },
-    ]
+    objectives: null,
+    scope: null,
+    riskLevel: "high" as const,
+    healthStatus: "yellow" as const,
+    completionPercent: 10,
+    remark: null,
+    jiandaoyunId: null,
+    createdAt: "2024-03-01T00:00:00.000Z",
+    updatedAt: "2024-04-01T00:00:00.000Z",
   },
   {
-    id: "proj-004",
+    id: 4,
+    projectCode: "PRJ-2023-004",
     name: "质量管理体系认证",
     shortName: "ISO-CERT",
-    type: "standard",
-    status: "completed",
-    priority: "medium",
+    customerId: null,
+    opportunityId: null,
+    type: "standard" as const,
+    status: "completed" as const,
+    currentPhase: "M12",
+    priority: "medium" as const,
+    plannedStartDate: "2023-06-01",
+    plannedEndDate: "2024-01-31",
+    actualStartDate: "2023-06-01",
+    actualEndDate: "2024-01-31",
     budget: 80,
-    spent: 75,
-    progress: 100,
-    manager: "孙主管",
-    startDate: "2023-06-01",
-    endDate: "2024-01-31",
+    actualCost: 75,
+    contractAmount: 80,
+    managerId: 4,
     description: "完成ISO9001质量管理体系认证",
-    currentPhase: "已完成",
-    team: ["孙主管", "周专员"],
-    milestones: [
-      { name: "体系建立", status: "completed", date: "2023-08-01" },
-      { name: "内部审核", status: "completed", date: "2023-10-15" },
-      { name: "外部审核", status: "completed", date: "2023-12-20" },
-      { name: "证书获取", status: "completed", date: "2024-01-31" },
-    ]
+    objectives: null,
+    scope: null,
+    riskLevel: "low" as const,
+    healthStatus: "green" as const,
+    completionPercent: 100,
+    remark: null,
+    jiandaoyunId: null,
+    createdAt: "2023-05-01T00:00:00.000Z",
+    updatedAt: "2024-01-31T00:00:00.000Z",
   },
   {
-    id: "proj-005",
+    id: 5,
+    projectCode: "PRJ-2024-005",
     name: "员工培训平台建设",
     shortName: "TRAIN-SYS",
-    type: "standard",
-    status: "on_hold",
-    priority: "low",
+    customerId: null,
+    opportunityId: null,
+    type: "standard" as const,
+    status: "on_hold" as const,
+    currentPhase: "M3",
+    priority: "low" as const,
+    plannedStartDate: "2024-01-01",
+    plannedEndDate: "2024-09-30",
+    actualStartDate: "2024-01-01",
+    actualEndDate: null,
     budget: 120,
-    spent: 30,
-    progress: 25,
-    manager: "郑HR",
-    startDate: "2024-01-01",
-    endDate: "2024-09-30",
+    actualCost: 30,
+    contractAmount: 130,
+    managerId: 5,
     description: "建设在线员工培训平台，支持课程管理和学习追踪",
-    currentPhase: "暂停中",
-    team: ["郑HR", "吴培训师"],
-    milestones: [
-      { name: "需求调研", status: "completed", date: "2024-02-01" },
-      { name: "平台选型", status: "completed", date: "2024-03-15" },
-      { name: "内容开发", status: "on_hold", date: "2024-06-30" },
-      { name: "上线推广", status: "pending", date: "2024-09-30" },
-    ]
-  }
+    objectives: null,
+    scope: null,
+    riskLevel: "low" as const,
+    healthStatus: "yellow" as const,
+    completionPercent: 25,
+    remark: null,
+    jiandaoyunId: null,
+    createdAt: "2023-12-01T00:00:00.000Z",
+    updatedAt: "2024-03-15T00:00:00.000Z",
+  },
 ];
 
 export const projectRouter = router({
@@ -1586,45 +1620,81 @@ export const projectRouter = router({
       return mockProjectList;
     }
   }),
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: publicProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input }) => {
+    const numId = typeof input.id === 'number' ? input.id : parseInt(input.id);
     try {
       const db = await requireDb();
-      const result = await db.select().from(projects).where(eq(projects.id, parseInt(input.id)));
+      const result = await db.select().from(projects).where(eq(projects.id, numId));
       if (result.length > 0) return result[0];
-      return mockProjectList.find(p => p.id === input.id) || null;
+      return mockProjectList.find(p => p.id === numId) || null;
     } catch (error) {
-      return mockProjectList.find(p => p.id === input.id) || null;
+      return mockProjectList.find(p => p.id === numId) || null;
     }
   }),
-  create: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  create: protectedProcedure.input(z.object({
+    name: z.string().min(1),
+    shortName: z.string().optional(),
+    type: z.enum(["standard", "key", "strategic"]).default("standard"),
+    priority: z.enum(["critical", "high", "medium", "low"]).default("medium"),
+    budget: z.number().optional(),
+    description: z.string().optional(),
+  })).mutation(async ({ input }) => {
+    const db = await requireDb();
+    const projectCode = `PRJ-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+    const result = await db.insert(projects).values({
+      projectCode,
+      name: input.name,
+      shortName: input.shortName ?? null,
+      type: input.type,
+      priority: input.priority,
+      budget: input.budget ?? null,
+      description: input.description ?? null,
+      status: "draft",
+      currentPhase: "M0",
+    }).returning({ id: projects.id });
+    if (!result.length) {
+      throw new Error("项目创建失败：数据库未返回记录");
+    }
+    return { success: true, message: "项目创建成功", id: result[0].id, projectCode };
+  }),
   update: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(() => successResponse),
-  
+  delete: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(() => successResponse),
+
   // 统计
-  statistics: publicProcedure.query(() => ({
-    total: mockProjectList.length,
-    byStatus: {
-      planning: mockProjectList.filter(p => p.status === "planning").length,
-      active: mockProjectList.filter(p => p.status === "active").length,
-      on_hold: mockProjectList.filter(p => p.status === "on_hold").length,
-      completed: mockProjectList.filter(p => p.status === "completed").length,
-      cancelled: mockProjectList.filter(p => p.status === "cancelled").length,
-    },
-    byType: {
-      standard: mockProjectList.filter(p => p.type === "standard").length,
-      key: mockProjectList.filter(p => p.type === "key").length,
-      strategic: mockProjectList.filter(p => p.type === "strategic").length,
-    },
-    byPriority: {
-      critical: mockProjectList.filter(p => p.priority === "critical").length,
-      high: mockProjectList.filter(p => p.priority === "high").length,
-      medium: mockProjectList.filter(p => p.priority === "medium").length,
-      low: mockProjectList.filter(p => p.priority === "low").length,
-    },
-    totalBudget: mockProjectList.reduce((sum, p) => sum + p.budget, 0),
-    totalSpent: mockProjectList.reduce((sum, p) => sum + p.spent, 0),
-    averageProgress: Math.round(mockProjectList.reduce((sum, p) => sum + p.progress, 0) / mockProjectList.length),
-  })),
+  statistics: publicProcedure.query(async () => {
+    const computeStats = (list: { status: string; type: string; priority: string; budget: number | null; actualCost: number | null; completionPercent: number | null }[]) => ({
+      total: list.length,
+      byStatus: {
+        draft: list.filter(p => p.status === "draft").length,
+        active: list.filter(p => p.status === "active").length,
+        on_hold: list.filter(p => p.status === "on_hold").length,
+        completed: list.filter(p => p.status === "completed").length,
+        cancelled: list.filter(p => p.status === "cancelled").length,
+      },
+      byType: {
+        standard: list.filter(p => p.type === "standard").length,
+        key: list.filter(p => p.type === "key").length,
+        strategic: list.filter(p => p.type === "strategic").length,
+      },
+      byPriority: {
+        critical: list.filter(p => p.priority === "critical").length,
+        high: list.filter(p => p.priority === "high").length,
+        medium: list.filter(p => p.priority === "medium").length,
+        low: list.filter(p => p.priority === "low").length,
+      },
+      totalBudget: list.reduce((sum, p) => sum + (p.budget ?? 0), 0),
+      totalSpent: list.reduce((sum, p) => sum + (p.actualCost ?? 0), 0),
+      averageProgress: list.length ? Math.round(list.reduce((sum, p) => sum + (p.completionPercent ?? 0), 0) / list.length) : 0,
+    });
+    try {
+      const db = await requireDb();
+      const result = await db.select().from(projects);
+      if (result.length > 0) return computeStats(result);
+      return computeStats(mockProjectList);
+    } catch {
+      return computeStats(mockProjectList);
+    }
+  }),
 });
 
 // ==================== 流程笔记本路由 ====================

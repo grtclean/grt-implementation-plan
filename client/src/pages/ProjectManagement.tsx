@@ -23,6 +23,7 @@ import { toast } from "sonner";
 
 // Status badge colors
 const statusColors: Record<string, string> = {
+  draft: "bg-slate-500/20 text-slate-400 border-slate-500/30",
   planning: "bg-blue-500/20 text-blue-400 border-blue-500/30",
   active: "bg-green-500/20 text-green-400 border-green-500/30",
   on_hold: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
@@ -31,6 +32,7 @@ const statusColors: Record<string, string> = {
 };
 
 const statusIcons: Record<string, React.ReactNode> = {
+  draft: <FileText className="w-3 h-3" />,
   planning: <Clock className="w-3 h-3" />,
   active: <TrendingUp className="w-3 h-3" />,
   on_hold: <Pause className="w-3 h-3" />,
@@ -69,7 +71,7 @@ export default function ProjectManagement() {
   // Queries
   const { data: projects, isLoading: projectsLoading, refetch: refetchProjects } = trpc.project.list.useQuery();
   const { data: statistics } = trpc.project.statistics.useQuery();
-  const { data: projectDetail } = (trpc.project.getById as any).useQuery(
+  const { data: projectDetail } = trpc.project.getById.useQuery(
     { id: selectedProject! },
     { enabled: !!selectedProject }
   );
@@ -83,7 +85,10 @@ export default function ProjectManagement() {
       refetchProjects();
     },
     onError: (error) => {
-      toast.error(`${t("projects.createFailed")}: ${error.message}`);
+      const msg = error.data?.code === "UNAUTHORIZED"
+        ? t("common.pleaseLogin")
+        : error.message;
+      toast.error(`${t("projects.createFailed")}: ${msg}`);
     },
   });
 
@@ -315,7 +320,7 @@ export default function ProjectManagement() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs font-mono text-muted-foreground">{(project as any).projectCode}</span>
+                            <span className="text-xs font-mono text-muted-foreground">{project.projectCode}</span>
                             <Badge variant="outline" className={typeColors[project.type]}>
                               {t(`projects.type.${project.type}`)}
                             </Badge>
@@ -377,7 +382,7 @@ export default function ProjectManagement() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <span className="text-xs font-mono text-muted-foreground">{(project as any).projectCode}</span>
+                          <span className="text-xs font-mono text-muted-foreground">{project.projectCode}</span>
                           <h3 className="font-semibold">{project.name}</h3>
                         </div>
                         <Badge variant="outline" className={statusColors.active}>
@@ -393,21 +398,21 @@ export default function ProjectManagement() {
           </TabsContent>
 
           <TabsContent value="planning">
-            {projects?.filter(p => p.status === "planning").length === 0 ? (
+            {projects?.filter(p => p.status === "draft").length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">{t("projects.noPlanningProjects")}</div>
             ) : (
               <div className="grid gap-4">
-                {projects?.filter(p => p.status === "planning").map((project) => (
+                {projects?.filter(p => p.status === "draft").map((project) => (
                   <Card key={project.id} className="bg-card/50 border-border">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <span className="text-xs font-mono text-muted-foreground">{(project as any).projectCode}</span>
+                          <span className="text-xs font-mono text-muted-foreground">{project.projectCode}</span>
                           <h3 className="font-semibold">{project.name}</h3>
                         </div>
-                        <Badge variant="outline" className={statusColors.planning}>
-                          <Clock className="w-3 h-3 mr-1" />
-                          {t("projects.status.planning")}
+                        <Badge variant="outline" className={statusColors.draft}>
+                          <FileText className="w-3 h-3 mr-1" />
+                          {t("projects.status.draft")}
                         </Badge>
                       </div>
                     </CardContent>
@@ -427,7 +432,7 @@ export default function ProjectManagement() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <span className="text-xs font-mono text-muted-foreground">{(project as any).projectCode}</span>
+                          <span className="text-xs font-mono text-muted-foreground">{project.projectCode}</span>
                           <h3 className="font-semibold">{project.name}</h3>
                         </div>
                         <Badge variant="outline" className={statusColors.completed}>
