@@ -2,11 +2,15 @@
  * 销售分析页面
  * 销售漏斗、业绩趋势、BU对比、预测
  */
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/contexts/UserProfileContext";
-import { BarChart3, TrendingUp, DollarSign, Users, Target, Building2 } from "lucide-react";
+import { BarChart3, TrendingUp, DollarSign, Target, Building2 } from "lucide-react";
 
+// TODO: 接入 tRPC 后端接口替换
 const BU_SALES = [
   { bu: "BU1 海外", revenue: "€5.2M", target: "€6M", rate: 87, deals: 12, pipeline: "€8.5M" },
   { bu: "BU2 商用车", revenue: "¥18M", target: "¥20M", rate: 90, deals: 18, pipeline: "¥25M" },
@@ -20,20 +24,20 @@ export default function SalesAnalytics() {
   const filtered = BU_SALES.filter(s => !currentBU || s.bu.includes(currentBU));
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><BarChart3 className="h-6 w-6 text-primary" />销售分析</h1>
-          <p className="text-muted-foreground mt-1">销售业绩分析与预测 · 数据范围: {dataScope}</p>
-        </div>
-        {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title="销售分析"
+        description={`销售业绩分析与预测 · 数据范围: ${dataScope}`}
+        actions={currentBU ? <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge> : undefined}
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-primary">¥65.2M</p><p className="text-sm text-muted-foreground">总营收</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-green-600">86%</p><p className="text-sm text-muted-foreground">目标达成</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold">63</p><p className="text-sm text-muted-foreground">成交订单</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-blue-600">¥99.5M</p><p className="text-sm text-muted-foreground">销售管线</p></CardContent></Card>
+        <StatCard icon={DollarSign} label="总营收" value="¥65.2M" iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Target} label="目标达成" value="86%" iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={TrendingUp} label="成交订单" value={63} />
+        <StatCard icon={BarChart3} label="销售管线" value="¥99.5M" iconColor="text-blue-500" iconBg="bg-blue-500/10" />
       </div>
 
       <Card>
@@ -54,9 +58,16 @@ export default function SalesAnalytics() {
                 </div>
               </div>
             ))}
+            {filtered.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <BarChart3 className="w-12 h-12 mb-3 opacity-50" />
+                <p className="font-medium">暂无销售数据</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }
