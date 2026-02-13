@@ -811,9 +811,8 @@ function ServiceLogsTab() {
                         size="sm"
                         onClick={() => {
                           if (confirm("确定要完成此工单吗？这将自动更新设备的维护记录。")) {
-                            completeMutation.mutate({ 
+                            completeMutation.mutate({
                               id: log.id,
-                              completionDate: new Date().toISOString().split('T')[0],
                             });
                           }
                         }}

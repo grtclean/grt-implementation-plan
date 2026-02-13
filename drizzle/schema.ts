@@ -6318,6 +6318,27 @@ export type InsertAfterSalesEquipment = InferInsertModel<typeof afterSalesEquipm
 export type AfterSalesServiceLog = InferSelectModel<typeof afterSalesServiceLogs>;
 export type InsertAfterSalesServiceLog = InferInsertModel<typeof afterSalesServiceLogs>;
 
+// ============ v2.5.55 售后服务工单附件/证据表 (Task #58) ============
+
+export const serviceLogAttachments = pgTable("service_log_attachments", {
+  id: serial("id").primaryKey(),
+  serviceLogId: integer("service_log_id").notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileType: varchar("file_type", { length: 50 }),
+  fileSize: integer("file_size"),
+  description: text("description"),
+  capturedAt: timestamp("captured_at"),
+  gpsLatitude: varchar("gps_latitude", { length: 20 }),
+  gpsLongitude: varchar("gps_longitude", { length: 20 }),
+  uploadedBy: integer("uploaded_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type ServiceLogAttachment = InferSelectModel<typeof serviceLogAttachments>;
+export type InsertServiceLogAttachment = InferInsertModel<typeof serviceLogAttachments>;
+
+
 
 // ===== 重新导出权限系统表 =====
 // 注意：userRoles 和 qualificationCertificates 已在 schema.ts 中定义，不需要重新导出
@@ -9595,4 +9616,134 @@ export const qualityDefectAttachments = pgTable("quality_defect_attachments", {
   description: text("description"),
   uploadedBy: integer("uploaded_by").notNull(),
   uploadedAt: timestamp("uploaded_at", { mode: "string" }).defaultNow().notNull(),
+});
+
+
+// ==================== Spare Part Requests ====================
+
+/**
+ * spare_part_requests - 备件请求表
+ * 现场服务工程师发起的备件申请工作流
+ */
+export const sparePartRequests = pgTable("spare_part_requests", {
+  id: serial("id").primaryKey(),
+  serviceLogId: integer("service_log_id"),
+  projectId: integer("project_id"),
+  partName: varchar("part_name", { length: 255 }).notNull(),
+  partCode: varchar("part_code", { length: 50 }),
+  quantity: integer("quantity").notNull().default(1),
+  urgency: varchar("urgency", { length: 20 }).default("normal"),
+  status: varchar("status", { length: 20 }).default("requested"),
+  requestedBy: integer("requested_by"),
+  requestedByName: varchar("requested_by_name", { length: 100 }),
+  approvedBy: integer("approved_by"),
+  approvedAt: timestamp("approved_at", { mode: "string" }),
+  shipmentTracking: varchar("shipment_tracking", { length: 100 }),
+  estimatedArrival: timestamp("estimated_arrival", { mode: "string" }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
+});
+
+// ==================== Field Quality Escalations ====================
+
+/**
+ * field_quality_escalations - 现场质量上报表
+ * 现场发现的质量问题上报到工厂的工作流
+ */
+export const fieldQualityEscalations = pgTable("field_quality_escalations", {
+  id: serial("id").primaryKey(),
+  serviceLogId: integer("service_log_id"),
+  projectId: integer("project_id"),
+  equipmentSerial: varchar("equipment_serial", { length: 100 }),
+  severity: varchar("severity", { length: 20 }).notNull(),
+  issueCategory: varchar("issue_category", { length: 50 }),
+  description: text("description").notNull(),
+  affectedProcess: varchar("affected_process", { length: 20 }),
+  factoryLockId: integer("factory_lock_id"),
+  status: varchar("status", { length: 20 }).default("reported"),
+  reportedBy: integer("reported_by"),
+  reportedByName: varchar("reported_by_name", { length: 100 }),
+  resolvedBy: integer("resolved_by"),
+  resolvedAt: timestamp("resolved_at", { mode: "string" }),
+  resolution: text("resolution"),
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
+});
+
+
+// ========== FAT/SAT Tables ==========
+
+export const fatTestPlans = pgTable("fat_test_plans", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  planType: varchar("plan_type", { length: 10 }).notNull(), // 'FAT' or 'SAT'
+  planName: varchar("plan_name", { length: 255 }).notNull(),
+  equipmentModel: varchar("equipment_model", { length: 100 }),
+  customerName: varchar("customer_name", { length: 255 }),
+  testLocation: text("test_location"),
+  plannedDate: timestamp("planned_date"),
+  status: varchar("status", { length: 20 }).default("draft"), // draft, in_progress, completed, cancelled
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const fatTestItems = pgTable("fat_test_items", {
+  id: serial("id").primaryKey(),
+  planId: integer("plan_id").notNull(),
+  category: varchar("category", { length: 50 }).notNull(), // mechanical, electrical, safety, performance, environmental
+  itemName: varchar("item_name", { length: 255 }).notNull(),
+  specification: text("specification"), // e.g. "12 ± 1 MPa"
+  passCriteria: text("pass_criteria"),
+  actualValue: varchar("actual_value", { length: 100 }), // measured value
+  unit: varchar("unit", { length: 20 }), // MPa, °C, mm, etc
+  result: varchar("result", { length: 20 }).default("pending"), // pending, passed, failed, conditional
+  testerId: integer("tester_id"),
+  testerName: varchar("tester_name", { length: 100 }),
+  testedAt: timestamp("tested_at"),
+  notes: text("notes"),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const fatChecklists = pgTable("fat_checklists", {
+  id: serial("id").primaryKey(),
+  planId: integer("plan_id").notNull(),
+  category: varchar("category", { length: 50 }).notNull(), // mechanical, electrical, safety, documentation
+  itemName: varchar("item_name", { length: 255 }).notNull(),
+  isCompleted: boolean("is_completed").default(false),
+  responsiblePerson: varchar("responsible_person", { length: 100 }),
+  notes: text("notes"),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const fatSignoffs = pgTable("fat_signoffs", {
+  id: serial("id").primaryKey(),
+  planId: integer("plan_id").notNull(),
+  stepOrder: integer("step_order").notNull(), // 1=Internal QA, 2=Engineering, 3=Customer Rep, 4=Final
+  stepName: varchar("step_name", { length: 100 }).notNull(),
+  signerRole: varchar("signer_role", { length: 50 }).notNull(),
+  signerName: varchar("signer_name", { length: 100 }),
+  status: varchar("status", { length: 20 }).default("pending"), // pending, approved, rejected
+  comment: text("comment"),
+  signatureUrl: text("signature_url"),
+  signedAt: timestamp("signed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// SAT-specific: extra test items for site conditions
+export const satSiteConditions = pgTable("sat_site_conditions", {
+  id: serial("id").primaryKey(),
+  planId: integer("plan_id").notNull(),
+  conditionType: varchar("condition_type", { length: 50 }).notNull(), // ambient_temp, water_quality, power_supply, humidity, vibration
+  conditionName: varchar("condition_name", { length: 255 }).notNull(),
+  expectedValue: varchar("expected_value", { length: 100 }),
+  actualValue: varchar("actual_value", { length: 100 }),
+  unit: varchar("unit", { length: 20 }),
+  isWithinSpec: boolean("is_within_spec"),
+  notes: text("notes"),
+  measuredBy: varchar("measured_by", { length: 100 }),
+  measuredAt: timestamp("measured_at"),
+  createdAt: timestamp("created_at").defaultNow(),
 });

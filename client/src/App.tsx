@@ -63,6 +63,7 @@ import BudgetManagement from "./pages/BudgetManagement";
 import ExpenseReport from "./pages/ExpenseReport";
 import MobileLocationReport from "./pages/mobile/MobileLocationReport";
 import MobileApproval from "./pages/mobile/MobileApproval";
+import FieldEngineerDashboard from "./pages/mobile/FieldEngineerDashboard";
 import TravelDashboard from "./pages/TravelDashboard";
 import ExpenseComparison from "./pages/ExpenseComparison";
 import BudgetOverrunApproval from "./pages/BudgetOverrunApproval";
@@ -1009,6 +1010,9 @@ function Router() {
       </Route>
       <Route path={"/m/approval"}>
         <ProtectedRoute component={MobileApproval} />
+      </Route>
+      <Route path={"/m/field-dashboard"}>
+        <ProtectedRoute component={FieldEngineerDashboard} />
       </Route>
             {/* Error Log Viewer */}
       <Route path={"/error-logs"}>

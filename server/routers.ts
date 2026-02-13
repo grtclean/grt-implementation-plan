@@ -95,6 +95,9 @@ import { crmRouter } from "./crm/crm.router";
 import { changeEventRouter } from "./modules/changeEvent.router";
 import { knowledgeBaseRouter as realKnowledgeBaseRouter } from "./modules/knowledge-base.router";
 import { timeReconciliationRouter } from "./services/time-reconciliation.router";
+import { fatSatRouter } from "./services/fat-sat.router";
+import { fieldServiceRouter } from "./services/field-service.router";
+import { afterSalesRouter as realAfterSalesRouter } from "./services/after-sales.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -141,7 +144,7 @@ export const appRouter = router({
   // Placeholder routers for TypeScript compatibility
   // These return empty/mock data and can be replaced with real implementations
   capabilityOs: placeholderRouters.capabilityOs,
-  afterSales: placeholderRouters.afterSales,
+  afterSales: realAfterSalesRouter,
   compliance: placeholderRouters.compliance,
   webhook: placeholderRouters.webhook,
   agenda: placeholderRouters.agenda,
@@ -296,6 +299,12 @@ export const appRouter = router({
 
   // 三套工时对账 (UWB / BOM步骤 / 生产执行 工时对比)
   timeReconciliation: timeReconciliationRouter,
+
+  // FAT/SAT (Factory/Site Acceptance Test) persistence
+  fatSat: fatSatRouter,
+
+  // Field Service (Tasks #60, #61, #62: KB recommend, quality escalation, spare parts)
+  fieldService: fieldServiceRouter,
 
   // Additional placeholder routers
   travelDashboard: placeholderRouters.travelDashboard,

@@ -263,6 +263,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "售后工单", nameEn: "Service Tickets", path: "/service-tickets", icon: Ticket, isNew: true },
       { name: "客户反馈", nameEn: "Customer Feedback", path: "/customer-feedback", icon: MessageCircle, isNew: true },
       { name: "备件管理", nameEn: "Spare Parts", path: "/spare-parts", icon: Package, isNew: true },
+      { name: "现场工程师", nameEn: "Field Engineer", path: "/m/field-dashboard", icon: Wrench, isNew: true },
     ],
   },
 
