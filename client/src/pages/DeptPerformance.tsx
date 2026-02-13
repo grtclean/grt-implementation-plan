@@ -2,11 +2,22 @@
  * 部门绩效页面
  * 部门KPI追踪、跨团队对比、预算执行
  */
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
+import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/contexts/UserProfileContext";
-import { BarChart3, Users, Target, TrendingUp, DollarSign, Award } from "lucide-react";
+import { BarChart3, Users, Target, DollarSign } from "lucide-react";
 
+const gradeColorMap = createStatusColorMap({
+  "A": "green",
+  "A-": "green",
+  "B+": "blue",
+  "B": "orange",
+});
+
+// TODO: 接入 tRPC 后端接口替换
 const DEPT_KPI = [
   { dept: "技术服务部", headcount: 28, avgScore: 88, budgetUsed: 72, targetRate: 85, grade: "A-" },
   { dept: "研发设计部", headcount: 35, avgScore: 85, budgetUsed: 68, targetRate: 82, grade: "B+" },
@@ -19,17 +30,19 @@ export default function DeptPerformance() {
   const { dataScope } = useUserProfile();
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2"><BarChart3 className="h-6 w-6 text-primary" />部门绩效</h1>
-        <p className="text-muted-foreground mt-1">部门级KPI追踪与预算执行 · 数据范围: {dataScope}</p>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title="部门绩效"
+        description={`部门级KPI追踪与预算执行 · 数据范围: ${dataScope}`}
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold">84.2</p><p className="text-sm text-muted-foreground">公司平均绩效</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-green-600">140</p><p className="text-sm text-muted-foreground">总人数</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-primary">84%</p><p className="text-sm text-muted-foreground">目标达成率</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-amber-600">70%</p><p className="text-sm text-muted-foreground">预算执行率</p></CardContent></Card>
+        <StatCard icon={BarChart3} label="公司平均绩效" value="84.2" />
+        <StatCard icon={Users} label="总人数" value={140} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Target} label="目标达成率" value="84%" iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={DollarSign} label="预算执行率" value="70%" iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       <Card>
@@ -37,7 +50,7 @@ export default function DeptPerformance() {
         <CardContent>
           <div className="space-y-3">
             {DEPT_KPI.map((d, i) => (
-              <div key={i} className="flex items-center gap-4 p-4 rounded-lg border">
+              <div key={i} className="flex items-center gap-4 p-4 rounded-lg border transition-colors">
                 <div className="flex-1">
                   <p className="font-medium">{d.dept}</p>
                   <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
@@ -46,7 +59,7 @@ export default function DeptPerformance() {
                     <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" />预算{d.budgetUsed}%</span>
                   </div>
                 </div>
-                <Badge className={d.grade.startsWith("A") ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}>{d.grade}</Badge>
+                <StatusBadge color={gradeColorMap[d.grade as keyof typeof gradeColorMap] ?? "gray"}>{d.grade}</StatusBadge>
                 <span className="text-xl font-bold">{d.avgScore}</span>
               </div>
             ))}
@@ -54,5 +67,6 @@ export default function DeptPerformance() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

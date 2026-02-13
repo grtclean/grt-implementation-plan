@@ -2,14 +2,24 @@
  * 考勤管理页面
  * 打卡记录、考勤统计、异常处理、请假管理
  */
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
+import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, Users, CheckCircle2, AlertTriangle, Calendar, UserX } from "lucide-react";
+
+const attendanceStatusColorMap = createStatusColorMap({
+  "正常": "green",
+  "迟到": "orange",
+  "请假": "blue",
+  "缺勤": "red",
+});
 
 const TODAY_STATS = { total: 140, present: 128, late: 5, absent: 3, leave: 4 };
 
+// TODO: 接入 tRPC 后端接口替换
 const MOCK_RECORDS = [
   { name: "王工", dept: "研发设计部", clockIn: "08:28", clockOut: "17:35", status: "正常", hours: "9.1h" },
   { name: "李工", dept: "销售部", clockIn: "09:15", clockOut: "-", status: "迟到", hours: "-" },
@@ -20,23 +30,21 @@ const MOCK_RECORDS = [
 
 export default function Attendance() {
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Clock className="h-6 w-6 text-primary" />考勤管理</h1>
-          <p className="text-muted-foreground mt-1">考勤统计 · 异常处理 · 请假审批</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline"><Calendar className="h-4 w-4 mr-2" />月度报表</Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Clock}
+        title="考勤管理"
+        description="考勤统计 · 异常处理 · 请假审批"
+        actions={<Button variant="outline"><Calendar className="h-4 w-4 mr-2" />月度报表</Button>}
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card><CardContent className="pt-4 text-center"><p className="text-2xl font-bold">{TODAY_STATS.total}</p><p className="text-xs text-muted-foreground">总人数</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-2xl font-bold text-green-600">{TODAY_STATS.present}</p><p className="text-xs text-muted-foreground">已到岗</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-2xl font-bold text-amber-600">{TODAY_STATS.late}</p><p className="text-xs text-muted-foreground">迟到</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-2xl font-bold text-red-600">{TODAY_STATS.absent}</p><p className="text-xs text-muted-foreground">缺勤</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-2xl font-bold text-blue-600">{TODAY_STATS.leave}</p><p className="text-xs text-muted-foreground">请假</p></CardContent></Card>
+        <StatCard icon={Users} label="总人数" value={TODAY_STATS.total} />
+        <StatCard icon={CheckCircle2} label="已到岗" value={TODAY_STATS.present} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label="迟到" value={TODAY_STATS.late} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={UserX} label="缺勤" value={TODAY_STATS.absent} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Calendar} label="请假" value={TODAY_STATS.leave} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
       </div>
 
       <Card>
@@ -44,7 +52,7 @@ export default function Attendance() {
         <CardContent>
           <div className="space-y-2">
             {MOCK_RECORDS.map((r, i) => (
-              <div key={i} className="flex items-center gap-4 p-3 rounded-lg border">
+              <div key={i} className="flex items-center gap-4 p-3 rounded-lg border transition-colors">
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{r.name.charAt(0)}</div>
                 <div className="flex-1">
                   <span className="font-medium">{r.name}</span>
@@ -53,12 +61,19 @@ export default function Attendance() {
                 <span className="text-sm text-muted-foreground">签到: {r.clockIn}</span>
                 <span className="text-sm text-muted-foreground">签退: {r.clockOut}</span>
                 <span className="text-sm">{r.hours}</span>
-                <Badge className={r.status === "正常" ? "bg-green-100 text-green-700" : r.status === "迟到" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}>{r.status}</Badge>
+                <StatusBadge color={attendanceStatusColorMap[r.status as keyof typeof attendanceStatusColorMap] ?? "gray"}>{r.status}</StatusBadge>
               </div>
             ))}
+            {MOCK_RECORDS.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Clock className="w-12 h-12 mb-3 opacity-50" />
+                <p className="font-medium">暂无考勤记录</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

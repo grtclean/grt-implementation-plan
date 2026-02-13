@@ -2,13 +2,24 @@
  * SAT测试页面 (TX-014)
  * 现场验收测试、测试报告、缺陷跟踪
  */
-import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
+import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/contexts/UserProfileContext";
-import { TestTube, Plus, Building2, CheckCircle2, XCircle, Clock, FileText, AlertTriangle } from "lucide-react";
+import { TestTube, Plus, Building2, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
 
+const statusColorMap = createStatusColorMap({
+  "测试中": "blue",
+  "已通过": "green",
+  "待测试": "slate",
+  "有缺陷": "red",
+});
+
+// TODO: 接入 tRPC 后端接口替换
 const MOCK_TESTS = [
   { id: "SAT-001", project: "缸体清洗线", customer: "上海大众", bu: "BU3", status: "测试中", passRate: 85, totalItems: 48, passed: 41, failed: 3, pending: 4 },
   { id: "SAT-002", project: "半导体清洗", customer: "英飞凌", bu: "BU4", status: "已通过", passRate: 100, totalItems: 32, passed: 32, failed: 0, pending: 0 },
@@ -20,23 +31,25 @@ export default function SatTesting() {
   const filtered = MOCK_TESTS.filter(t => !currentBU || t.bu === currentBU);
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><TestTube className="h-6 w-6 text-primary" />SAT测试</h1>
-          <p className="text-muted-foreground mt-1">TX-014 · 现场验收测试管理</p>
-        </div>
-        <div className="flex gap-2">
-          {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-          <Button><Plus className="h-4 w-4 mr-2" />新建测试计划</Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={TestTube}
+        title="SAT测试"
+        description="TX-014 · 现场验收测试管理"
+        actions={
+          <>
+            {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
+            <Button><Plus className="h-4 w-4 mr-2" />新建测试计划</Button>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4"><p className="text-2xl font-bold">8</p><p className="text-sm text-muted-foreground">测试计划总数</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-2xl font-bold text-blue-600">3</p><p className="text-sm text-muted-foreground">测试中</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-2xl font-bold text-green-600">4</p><p className="text-sm text-muted-foreground">已通过</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-2xl font-bold text-red-600">1</p><p className="text-sm text-muted-foreground">有缺陷</p></CardContent></Card>
+        <StatCard icon={TestTube} label="测试计划总数" value={8} />
+        <StatCard icon={Clock} label="测试中" value={3} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label="已通过" value={4} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label="有缺陷" value={1} iconColor="text-red-500" iconBg="bg-red-500/10" />
       </div>
 
       <Card>
@@ -44,7 +57,7 @@ export default function SatTesting() {
         <CardContent>
           <div className="space-y-3">
             {filtered.map(t => (
-              <div key={t.id} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 cursor-pointer">
+              <div key={t.id} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm text-muted-foreground">{t.id}</span>
@@ -58,14 +71,21 @@ export default function SatTesting() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <Badge className={t.status === "已通过" ? "bg-green-100 text-green-700" : t.status === "测试中" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}>{t.status}</Badge>
+                  <StatusBadge color={statusColorMap[t.status as keyof typeof statusColorMap] ?? "gray"}>{t.status}</StatusBadge>
                   <p className="text-lg font-bold mt-1">{t.passRate}%</p>
                 </div>
               </div>
             ))}
+            {filtered.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <TestTube className="w-12 h-12 mb-3 opacity-50" />
+                <p className="font-medium">暂无测试计划</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

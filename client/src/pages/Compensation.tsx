@@ -2,11 +2,15 @@
  * 薪酬管理页面
  * 薪资结构、薪酬核算、社保公积金
  */
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Users, BarChart3, Calculator, Lock, FileText } from "lucide-react";
+import { DollarSign, Users, Calculator, Lock, FileText, TrendingUp } from "lucide-react";
 
+// TODO: 接入 tRPC 后端接口替换
 const SALARY_OVERVIEW = [
   { dept: "研发设计部", headcount: 35, avgSalary: "¥22,500", totalCost: "¥787,500", change: "+3.2%" },
   { dept: "销售部", headcount: 20, avgSalary: "¥18,000", totalCost: "¥360,000", change: "+5.1%" },
@@ -16,23 +20,25 @@ const SALARY_OVERVIEW = [
 
 export default function Compensation() {
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><DollarSign className="h-6 w-6 text-primary" />薪酬管理</h1>
-          <p className="text-muted-foreground mt-1">薪资核算 · 社保公积金 · 薪酬分析</p>
-        </div>
-        <div className="flex gap-2">
-          <Button><Calculator className="h-4 w-4 mr-2" />生成薪资单</Button>
-          <Button variant="outline"><FileText className="h-4 w-4 mr-2" />导出报表</Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={DollarSign}
+        title="薪酬管理"
+        description="薪资核算 · 社保公积金 · 薪酬分析"
+        actions={
+          <>
+            <Button><Calculator className="h-4 w-4 mr-2" />生成薪资单</Button>
+            <Button variant="outline"><FileText className="h-4 w-4 mr-2" />导出报表</Button>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-primary">¥2.15M</p><p className="text-sm text-muted-foreground">月薪资总额</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold">140</p><p className="text-sm text-muted-foreground">在职人数</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-green-600">¥15,360</p><p className="text-sm text-muted-foreground">人均薪资</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-amber-600">+3.1%</p><p className="text-sm text-muted-foreground">同比增长</p></CardContent></Card>
+        <StatCard icon={DollarSign} label="月薪资总额" value="¥2.15M" iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Users} label="在职人数" value={140} />
+        <StatCard icon={TrendingUp} label="人均薪资" value="¥15,360" iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={TrendingUp} label="同比增长" value="+3.1%" iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       <Card>
@@ -40,14 +46,14 @@ export default function Compensation() {
         <CardContent>
           <div className="space-y-3">
             {SALARY_OVERVIEW.map((d, i) => (
-              <div key={i} className="flex items-center gap-4 p-4 rounded-lg border">
+              <div key={i} className="flex items-center gap-4 p-4 rounded-lg border transition-colors">
                 <div className="flex-1">
                   <p className="font-medium">{d.dept}</p>
                   <p className="text-sm text-muted-foreground"><Users className="inline h-3 w-3 mr-1" />{d.headcount}人 · 人均: {d.avgSalary}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold">{d.totalCost}</p>
-                  <Badge className={d.change.startsWith("+") ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}>{d.change}</Badge>
+                  <Badge variant="secondary">{d.change}</Badge>
                 </div>
               </div>
             ))}
@@ -59,5 +65,6 @@ export default function Compensation() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

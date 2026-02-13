@@ -1,26 +1,25 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
 import { MapView } from "@/components/Map";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
-import { 
-  AlertTriangle, 
-  Calendar, 
-  CheckCircle2, 
-  Clock, 
-  Filter, 
-  MapPin, 
-  Phone, 
-  Plane, 
-  RefreshCw, 
-  Search, 
-  User, 
-  Users 
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Phone,
+  Plane,
+  RefreshCw,
+  Search,
+  User,
+  Users
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -268,85 +267,30 @@ export default function SupervisorWorkbench() {
   };
 
   return (
-    <div className="container py-6 space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="w-6 h-6 text-primary" />
-            主管工作台
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            实时监控出差员工位置和任务状态
-          </p>
-        </div>
-        <Button 
-          variant="outline" 
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          刷新位置
-        </Button>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Users}
+        title="主管工作台"
+        description="实时监控出差员工位置和任务状态"
+        actions={
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            刷新位置
+          </Button>
+        }
+      />
 
-      {/* 统计卡片 */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Users className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">出差总人数</p>
-              <p className="text-2xl font-bold">{stats.total}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/10">
-              <Plane className="w-5 h-5 text-blue-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">前往途中</p>
-              <p className="text-2xl font-bold">{stats.traveling}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-green-500/10">
-              <MapPin className="w-5 h-5 text-green-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">现场作业</p>
-              <p className="text-2xl font-bold">{stats.onSite}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orange-500/10">
-              <Clock className="w-5 h-5 text-orange-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">返程中</p>
-              <p className="text-2xl font-bold">{stats.returning}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gray-500/10">
-              <User className="w-5 h-5 text-gray-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">空闲</p>
-              <p className="text-2xl font-bold">{stats.idle}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Users} label="出差总人数" value={stats.total} />
+        <StatCard icon={Plane} label="前往途中" value={stats.traveling} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={MapPin} label="现场作业" value={stats.onSite} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Clock} label="返程中" value={stats.returning} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={User} label="空闲" value={stats.idle} iconColor="text-gray-500" iconBg="bg-gray-500/10" />
       </div>
 
       {/* 主内容区 */}
@@ -546,5 +490,6 @@ export default function SupervisorWorkbench() {
         </Card>
       )}
     </div>
+    </Layout>
   );
 }

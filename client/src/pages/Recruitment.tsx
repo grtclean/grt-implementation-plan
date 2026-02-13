@@ -3,12 +3,22 @@
  * 职位发布、候选人管理、面试安排、Offer管理
  */
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
+import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserCheck, Plus, Search, Users, Clock, CheckCircle2, XCircle, Briefcase } from "lucide-react";
+import { UserCheck, Plus, Users, Clock, CheckCircle2, Briefcase } from "lucide-react";
 
+const positionStatusColorMap = createStatusColorMap({
+  "招聘中": "blue",
+  "面试中": "orange",
+  "已关闭": "gray",
+});
+
+// TODO: 接入 tRPC 后端接口替换
 const MOCK_POSITIONS = [
   { id: 1, title: "高级机械工程师", dept: "研发设计部", bu: "BU3", applicants: 12, status: "招聘中", urgency: "紧急", salary: "20-35K" },
   { id: 2, title: "PLC程序员", dept: "研发设计部", bu: "BU1", applicants: 8, status: "招聘中", urgency: "高", salary: "18-28K" },
@@ -20,20 +30,20 @@ export default function Recruitment() {
   const [tab, setTab] = useState("open");
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><UserCheck className="h-6 w-6 text-primary" />招聘管理</h1>
-          <p className="text-muted-foreground mt-1">职位管理 · 候选人追踪 · 面试安排</p>
-        </div>
-        <Button><Plus className="h-4 w-4 mr-2" />发布职位</Button>
-      </div>
+      <PageHeader
+        icon={UserCheck}
+        title="招聘管理"
+        description="职位管理 · 候选人追踪 · 面试安排"
+        actions={<Button><Plus className="h-4 w-4 mr-2" />发布职位</Button>}
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold">8</p><p className="text-sm text-muted-foreground">开放职位</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-primary">56</p><p className="text-sm text-muted-foreground">候选人</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-blue-600">12</p><p className="text-sm text-muted-foreground">本周面试</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-green-600">3</p><p className="text-sm text-muted-foreground">待发Offer</p></CardContent></Card>
+        <StatCard icon={Briefcase} label="开放职位" value={8} />
+        <StatCard icon={Users} label="候选人" value={56} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Clock} label="本周面试" value={12} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label="待发Offer" value={3} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
@@ -41,7 +51,7 @@ export default function Recruitment() {
         <CardContent>
           <div className="space-y-3">
             {MOCK_POSITIONS.map(p => (
-              <div key={p.id} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 cursor-pointer">
+              <div key={p.id} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors">
                 <Briefcase className="h-10 w-10 text-primary/20" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -52,14 +62,21 @@ export default function Recruitment() {
                   <p className="text-sm text-muted-foreground">{p.dept} · {p.bu} · {p.salary}</p>
                 </div>
                 <div className="text-right">
-                  <Badge className={p.status === "招聘中" ? "bg-blue-100 text-blue-700" : p.status === "面试中" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-700"}>{p.status}</Badge>
+                  <StatusBadge color={positionStatusColorMap[p.status as keyof typeof positionStatusColorMap] ?? "gray"}>{p.status}</StatusBadge>
                   <p className="text-sm text-muted-foreground mt-1"><Users className="inline h-3 w-3 mr-1" />{p.applicants}位候选人</p>
                 </div>
               </div>
             ))}
+            {MOCK_POSITIONS.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <UserCheck className="w-12 h-12 mb-3 opacity-50" />
+                <p className="font-medium">暂无招聘职位</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

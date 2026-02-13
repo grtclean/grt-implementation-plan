@@ -4,15 +4,17 @@
  */
 
 import { useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Users, UserPlus, ClipboardCheck, Award, 
-  Calendar, CheckCircle2, Clock, AlertCircle,
+import {
+  Users, UserPlus, ClipboardCheck, Award,
+  CheckCircle2, Clock,
   ChevronRight, Briefcase, GraduationCap, Target
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -69,70 +71,28 @@ export default function HRLifecycle() {
   });
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">HR链路管理</h1>
-            <p className="text-muted-foreground">
-              试点B：招聘入职→30/60/90考核→转正评估全流程管理
-            </p>
-          </div>
-          <Button 
-            onClick={() => initProfileMutation.mutate()}
-            disabled={initProfileMutation.isPending}
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            初始化岗位画像
-          </Button>
-        </div>
+        <PageHeader
+          icon={Users}
+          title="HR链路管理"
+          description="试点B：招聘入职→30/60/90考核→转正评估全流程管理"
+          actions={
+            <Button
+              onClick={() => initProfileMutation.mutate()}
+              disabled={initProfileMutation.isPending}
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              初始化岗位画像
+            </Button>
+          }
+        />
 
-        {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">候选人总数</CardTitle>
-              <Users className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalCandidates || 0}</div>
-              <p className="text-xs text-muted-foreground">招聘漏斗中的候选人</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">活跃入职计划</CardTitle>
-              <ClipboardCheck className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.activeOnboardingPlans || 0}</div>
-              <p className="text-xs text-muted-foreground">正在进行的入职培训</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">待审批转正</CardTitle>
-              <Award className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.pendingProbationReviews || 0}</div>
-              <p className="text-xs text-muted-foreground">等待HR审批</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">平均转正评分</CardTitle>
-              <Target className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.avgProbationScore || 0}分</div>
-              <p className="text-xs text-muted-foreground">综合能力评估</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard icon={Users} label="候选人总数" value={stats?.totalCandidates || 0} subtitle="招聘漏斗中的候选人" />
+          <StatCard icon={ClipboardCheck} label="活跃入职计划" value={stats?.activeOnboardingPlans || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" subtitle="正在进行的入职培训" />
+          <StatCard icon={Award} label="待审批转正" value={stats?.pendingProbationReviews || 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" subtitle="等待HR审批" />
+          <StatCard icon={Target} label="平均转正评分" value={`${stats?.avgProbationScore || 0}分`} iconColor="text-green-500" iconBg="bg-green-500/10" subtitle="综合能力评估" />
         </div>
 
         {/* 主要内容区域 */}
@@ -462,6 +422,6 @@ export default function HRLifecycle() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }

@@ -2,12 +2,22 @@
  * 我的绩效页面
  * 个人绩效仪表盘、目标追踪、自评
  */
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
+import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/contexts/UserProfileContext";
-import { Star, Target, TrendingUp, Award, Clock, CheckCircle2, BarChart3 } from "lucide-react";
+import { Star, Target, TrendingUp, Award, CheckCircle2, Calendar } from "lucide-react";
 
+const goalStatusColorMap = createStatusColorMap({
+  "超额完成": "green",
+  "进行中": "blue",
+  "未达标": "red",
+});
+
+// TODO: 接入 tRPC 后端接口替换
 const MY_GOALS = [
   { id: 1, name: "Q1项目交付率", target: "90%", actual: "85%", progress: 94, status: "进行中" },
   { id: 2, name: "客户满意度评分", target: "4.5", actual: "4.7", progress: 104, status: "超额完成" },
@@ -19,28 +29,20 @@ export default function MyPerformance() {
   const { roleConfig } = useUserProfile();
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Star className="h-6 w-6 text-primary" />我的绩效</h1>
-          <p className="text-muted-foreground mt-1">个人绩效追踪 · {roleConfig.label}</p>
-        </div>
-        <Button>提交自评</Button>
-      </div>
+      <PageHeader
+        icon={Star}
+        title="我的绩效"
+        description={`个人绩效追踪 · ${roleConfig.label}`}
+        actions={<Button>提交自评</Button>}
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4 text-center">
-          <p className="text-3xl font-bold text-primary">B+</p><p className="text-sm text-muted-foreground">当前评级</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4 text-center">
-          <p className="text-3xl font-bold">87</p><p className="text-sm text-muted-foreground">综合得分</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4 text-center">
-          <p className="text-3xl font-bold text-green-600">3/4</p><p className="text-sm text-muted-foreground">目标达成</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4 text-center">
-          <p className="text-3xl font-bold text-amber-600">Q1</p><p className="text-sm text-muted-foreground">当前周期</p>
-        </CardContent></Card>
+        <StatCard icon={Award} label="当前评级" value="B+" iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Target} label="综合得分" value={87} />
+        <StatCard icon={CheckCircle2} label="目标达成" value="3/4" iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Calendar} label="当前周期" value="Q1" iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       <Card>
@@ -52,7 +54,7 @@ export default function MyPerformance() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{g.name}</span>
-                    <Badge className={g.status === "超额完成" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}>{g.status}</Badge>
+                    <StatusBadge color={goalStatusColorMap[g.status as keyof typeof goalStatusColorMap] ?? "gray"}>{g.status}</StatusBadge>
                   </div>
                   <span className="text-sm text-muted-foreground">目标: {g.target} · 实际: {g.actual}</span>
                 </div>
@@ -68,5 +70,6 @@ export default function MyPerformance() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }
