@@ -115,7 +115,6 @@ async function startServer() {
   }
 
   const wss = initWebSocketServer(server);
-  console.log('[WebSocket] Collaboration server initialized');
 
   app.get('/api/ws/stats', (req, res) => {
     res.json(getWebSocketStats());

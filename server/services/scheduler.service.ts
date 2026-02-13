@@ -588,5 +588,5 @@ export function initScheduler(): void {
     }
   }, 60 * 1000); // 每分钟检查一次
   
-  console.log("[Scheduler] 定时任务调度器已启动，共 ${scheduledTasks.length} 个任务");
+  console.log(`[Scheduler] 定时任务调度器已启动，共 ${scheduledTasks.length} 个任务`);
 }

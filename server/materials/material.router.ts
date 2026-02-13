@@ -5,6 +5,15 @@
 import { z } from "zod";
 import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
 import { generateMaterialCode, parseMaterialCode, validateMaterialCode } from "./material-coding.config";
+import { requireDb } from "../db";
+import { eq, desc, and, like, count, sql } from "drizzle-orm";
+import {
+  materials,
+  materialCategories,
+  inventory,
+  materialChangeHistory,
+  materialImportRecords,
+} from "../../drizzle/material-schema";
 
 // 验证Schema
 const MaterialCreateSchema = z.object({
@@ -43,7 +52,7 @@ export const materialRouter = router({
     }))
     .query(({ input }) => {
       const code = generateMaterialCode(
-        input.categoryCode as any,
+        input.categoryCode as Parameters<typeof generateMaterialCode>[0],
         input.subcategoryCode,
         input.specificationCode
       );
@@ -74,22 +83,34 @@ export const materialRouter = router({
   createMaterial: adminProcedure
     .input(MaterialCreateSchema)
     .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
+
       // 生成物料编码
       const materialCode = generateMaterialCode(
-        input.categoryCode as any,
+        input.categoryCode as Parameters<typeof generateMaterialCode>[0],
         input.subcategoryCode,
         input.specificationCode
       );
 
-      // 这里应该调用数据库创建物料
-      // 返回创建的物料信息
-      return {
-        id: Math.floor(Math.random() * 10000),
+      const result = await db.insert(materials).values({
         materialCode: materialCode.fullCode,
-        ...input,
-        createdBy: ctx.user?.id,
-        createdAt: new Date(),
-      };
+        materialName: input.materialName,
+        categoryCode: input.categoryCode,
+        subcategoryCode: input.subcategoryCode ?? null,
+        specificationCode: input.specificationCode ?? null,
+        materialType: input.materialType,
+        manufacturer: input.manufacturer ?? null,
+        description: input.description ?? null,
+        minStockLevel: input.minStockLevel ?? 0,
+        maxStockLevel: input.maxStockLevel ?? 0,
+        status: 'active',
+        isApproved: 'no',
+        createdBy: ctx.user?.id ?? 0,
+      });
+
+      const insertId = result[0].insertId;
+      const rows = await db.select().from(materials).where(eq(materials.id, insertId));
+      return rows[0];
     }),
 
   /**
@@ -104,10 +125,39 @@ export const materialRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ input }) => {
-      // 这里应该调用数据库查询物料
+      const db = await requireDb();
+
+      const conditions = [];
+      if (input.categoryCode) {
+        conditions.push(eq(materials.categoryCode, input.categoryCode));
+      }
+      if (input.materialType) {
+        conditions.push(eq(materials.materialType, input.materialType as "equipment" | "component" | "part" | "consumable" | "chemical" | "other"));
+      }
+      if (input.status) {
+        conditions.push(eq(materials.status, input.status as "active" | "inactive" | "obsolete" | "discontinued"));
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const totalResult = await db
+        .select({ value: count() })
+        .from(materials)
+        .where(whereClause);
+      const total = totalResult[0].value;
+
+      const offset = (input.page - 1) * input.pageSize;
+      const items = await db
+        .select()
+        .from(materials)
+        .where(whereClause)
+        .orderBy(desc(materials.id))
+        .limit(input.pageSize)
+        .offset(offset);
+
       return {
-        items: [],
-        total: 0,
+        items,
+        total,
         page: input.page,
         pageSize: input.pageSize,
       };
@@ -119,8 +169,9 @@ export const materialRouter = router({
   getMaterial: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
-      // 这里应该调用数据库查询物料
-      return null;
+      const db = await requireDb();
+      const rows = await db.select().from(materials).where(eq(materials.id, input.id));
+      return rows[0] ?? null;
     }),
 
   /**
@@ -129,12 +180,26 @@ export const materialRouter = router({
   updateMaterial: adminProcedure
     .input(MaterialUpdateSchema)
     .mutation(async ({ input, ctx }) => {
-      // 这里应该调用数据库更新物料
-      return {
-        ...input,
+      const db = await requireDb();
+      const { id, ...updates } = input;
+
+      const updateValues: Record<string, unknown> = {
         updatedBy: ctx.user?.id,
-        updatedAt: new Date(),
       };
+      if (updates.materialName !== undefined) updateValues.materialName = updates.materialName;
+      if (updates.categoryCode !== undefined) updateValues.categoryCode = updates.categoryCode;
+      if (updates.subcategoryCode !== undefined) updateValues.subcategoryCode = updates.subcategoryCode;
+      if (updates.specificationCode !== undefined) updateValues.specificationCode = updates.specificationCode;
+      if (updates.materialType !== undefined) updateValues.materialType = updates.materialType;
+      if (updates.manufacturer !== undefined) updateValues.manufacturer = updates.manufacturer;
+      if (updates.description !== undefined) updateValues.description = updates.description;
+      if (updates.minStockLevel !== undefined) updateValues.minStockLevel = updates.minStockLevel;
+      if (updates.maxStockLevel !== undefined) updateValues.maxStockLevel = updates.maxStockLevel;
+
+      await db.update(materials).set(updateValues).where(eq(materials.id, id));
+
+      const rows = await db.select().from(materials).where(eq(materials.id, id));
+      return rows[0];
     }),
 
   /**
@@ -143,11 +208,32 @@ export const materialRouter = router({
   approveMaterial: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      return {
-        id: input.id,
-        isApproved: true,
+      const db = await requireDb();
+
+      await db.update(materials).set({
+        isApproved: 'yes',
         approvedBy: ctx.user?.id,
-        approvedAt: new Date(),
+        approvedAt: new Date().toISOString(),
+      }).where(eq(materials.id, input.id));
+
+      // Record change history
+      await db.insert(materialChangeHistory).values({
+        materialId: input.id,
+        changeType: 'approve',
+        fieldName: 'isApproved',
+        oldValue: 'no',
+        newValue: 'yes',
+        reason: 'Admin approval',
+        changedBy: ctx.user?.id ?? 0,
+      });
+
+      const rows = await db.select().from(materials).where(eq(materials.id, input.id));
+      const row = rows[0];
+      return {
+        id: row.id,
+        isApproved: row.isApproved === 'yes',
+        approvedBy: row.approvedBy,
+        approvedAt: row.approvedAt,
       };
     }),
 
@@ -155,9 +241,13 @@ export const materialRouter = router({
    * 获取物料分类
    */
   getCategories: protectedProcedure.query(async () => {
-    return {
-      categories: [],
-    };
+    const db = await requireDb();
+    const categories = await db
+      .select()
+      .from(materialCategories)
+      .orderBy(materialCategories.level, materialCategories.sortOrder);
+
+    return { categories };
   }),
 
   /**
@@ -166,23 +256,67 @@ export const materialRouter = router({
   createCategory: adminProcedure
     .input(MaterialCategorySchema)
     .mutation(async ({ input }) => {
-      return {
-        id: Math.floor(Math.random() * 10000),
-        ...input,
-        createdAt: new Date(),
-      };
+      const db = await requireDb();
+
+      const result = await db.insert(materialCategories).values({
+        categoryCode: input.categoryCode,
+        categoryName: input.categoryName,
+        parentCategoryCode: input.parentCategoryCode ?? null,
+        level: input.level,
+        description: input.description ?? null,
+      });
+
+      const insertId = result[0].insertId;
+      const rows = await db.select().from(materialCategories).where(eq(materialCategories.id, insertId));
+      return rows[0];
     }),
 
   /**
    * 获取库存统计
    */
   getInventoryStats: protectedProcedure.query(async () => {
+    const db = await requireDb();
+
+    const totalResult = await db.select({ value: count() }).from(materials);
+    const totalMaterials = totalResult[0].value;
+
+    const activeResult = await db.select({ value: count() }).from(materials).where(eq(materials.status, 'active'));
+    const activeMaterials = activeResult[0].value;
+
+    // Low stock: materials where quantityOnHand is below the material's minStockLevel
+    // We join inventory with materials to check
+    const lowStockResult = await db.execute(
+      sql`SELECT COUNT(DISTINCT m.id) as cnt FROM materials m
+          INNER JOIN inventory i ON i.material_id = m.id
+          WHERE i.quantity_on_hand < m.min_stock_level AND m.min_stock_level > 0`
+    );
+    const lowStockRows = lowStockResult[0] as Array<{ cnt: number }>;
+    const lowStockMaterials = lowStockRows[0]?.cnt ?? 0;
+
+    // Out of stock: materials with no inventory or quantity = 0
+    const outOfStockResult = await db.execute(
+      sql`SELECT COUNT(DISTINCT m.id) as cnt FROM materials m
+          LEFT JOIN inventory i ON i.material_id = m.id
+          WHERE i.id IS NULL OR i.quantity_on_hand = 0`
+    );
+    const outOfStockRows = outOfStockResult[0] as Array<{ cnt: number }>;
+    const outOfStockMaterials = outOfStockRows[0]?.cnt ?? 0;
+
+    // Total inventory value
+    const valueResult = await db.execute(
+      sql`SELECT COALESCE(SUM(i.quantity_on_hand * COALESCE(m.standard_cost, 0)), 0) as total_value
+          FROM inventory i
+          INNER JOIN materials m ON m.id = i.material_id`
+    );
+    const valueRows = valueResult[0] as Array<{ total_value: number }>;
+    const totalInventoryValue = valueRows[0]?.total_value ?? 0;
+
     return {
-      totalMaterials: 0,
-      activeMaterials: 0,
-      lowStockMaterials: 0,
-      outOfStockMaterials: 0,
-      totalInventoryValue: 0,
+      totalMaterials,
+      activeMaterials,
+      lowStockMaterials,
+      outOfStockMaterials,
+      totalInventoryValue: Number(totalInventoryValue),
     };
   }),
 
@@ -196,9 +330,29 @@ export const materialRouter = router({
       status: z.string().optional(),
     }))
     .query(async ({ input }) => {
+      const db = await requireDb();
+
+      const conditions = [];
+      if (input.materialId) {
+        conditions.push(eq(inventory.materialId, input.materialId));
+      }
+      if (input.warehouseId) {
+        conditions.push(eq(inventory.warehouseId, input.warehouseId));
+      }
+      if (input.status) {
+        conditions.push(eq(inventory.status, input.status as "good" | "damaged" | "expired" | "quarantine"));
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const items = await db
+        .select()
+        .from(inventory)
+        .where(whereClause);
+
       return {
-        items: [],
-        total: 0,
+        items,
+        total: items.length,
       };
     }),
 
@@ -216,15 +370,56 @@ export const materialRouter = router({
       })),
     }))
     .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
       const batchId = `import-${Date.now()}`;
-      
+      let successCount = 0;
+      let failedCount = 0;
+
+      for (const item of input.importData) {
+        try {
+          // Check if material already exists
+          const existing = await db
+            .select()
+            .from(materials)
+            .where(eq(materials.materialCode, item.materialCode));
+
+          if (existing.length === 0) {
+            await db.insert(materials).values({
+              materialCode: item.materialCode,
+              materialName: item.materialName,
+              categoryCode: item.categoryCode,
+              materialType: 'other',
+              status: 'active',
+              isApproved: 'no',
+              createdBy: ctx.user?.id ?? 0,
+            });
+          }
+          successCount++;
+        } catch {
+          failedCount++;
+        }
+      }
+
+      // Record the import
+      const importStatus = failedCount === 0 ? 'success' : (successCount > 0 ? 'partial_success' : 'failed');
+      await db.insert(materialImportRecords).values({
+        importBatchId: batchId,
+        sourceSystem: input.sourceSystem,
+        totalRecords: input.importData.length,
+        successRecords: successCount,
+        failedRecords: failedCount,
+        importData: JSON.stringify(input.importData),
+        status: importStatus as "success" | "partial_success" | "failed" | "pending" | "processing",
+        importedBy: ctx.user?.id ?? 0,
+      });
+
       return {
         batchId,
         totalRecords: input.importData.length,
-        successRecords: input.importData.length,
-        failedRecords: 0,
-        status: 'success',
-        message: `成功导入 ${input.importData.length} 条物料记录`,
+        successRecords: successCount,
+        failedRecords: failedCount,
+        status: importStatus,
+        message: `成功导入 ${successCount} 条物料记录`,
         importedAt: new Date(),
       };
     }),
@@ -239,9 +434,33 @@ export const materialRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ input }) => {
+      const db = await requireDb();
+
+      const conditions = [];
+      if (input.sourceSystem) {
+        conditions.push(eq(materialImportRecords.sourceSystem, input.sourceSystem));
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const totalResult = await db
+        .select({ value: count() })
+        .from(materialImportRecords)
+        .where(whereClause);
+      const total = totalResult[0].value;
+
+      const offset = (input.page - 1) * input.pageSize;
+      const items = await db
+        .select()
+        .from(materialImportRecords)
+        .where(whereClause)
+        .orderBy(desc(materialImportRecords.id))
+        .limit(input.pageSize)
+        .offset(offset);
+
       return {
-        items: [],
-        total: 0,
+        items,
+        total,
         page: input.page,
         pageSize: input.pageSize,
       };
@@ -253,9 +472,16 @@ export const materialRouter = router({
   getMaterialChangeHistory: protectedProcedure
     .input(z.object({ materialId: z.number() }))
     .query(async ({ input }) => {
+      const db = await requireDb();
+      const items = await db
+        .select()
+        .from(materialChangeHistory)
+        .where(eq(materialChangeHistory.materialId, input.materialId))
+        .orderBy(desc(materialChangeHistory.id));
+
       return {
-        items: [],
-        total: 0,
+        items,
+        total: items.length,
       };
     }),
 

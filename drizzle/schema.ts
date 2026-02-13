@@ -9977,3 +9977,71 @@ export const gateChecklistItemsExtended = pgTable("gate_checklist_items_extended
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ============================================
+// Cost Standards - 成本标准管理
+// ============================================
+
+export const costStandardCategoryEnum = pgEnum('cost_standard_category', [
+  'labor', 'overhead', 'material_markup',
+]);
+
+export const costStandardAllocationBaseEnum = pgEnum('cost_standard_allocation_base', [
+  'direct_labor_hours', 'machine_hours', 'production_units', 'project_count', 'floor_area', 'revenue',
+]);
+
+export const costStandards = pgTable("cost_standards", {
+  id: serial("id").primaryKey(),
+  category: varchar("category", { length: 50 }).notNull(), // labor | overhead | material_markup
+  code: varchar("code", { length: 50 }).notNull(),
+  name: varchar("name", { length: 200 }).notNull(),
+  nameEn: varchar("name_en", { length: 200 }),
+  // Labor-specific
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
+  dailyRate: decimal("daily_rate", { precision: 10, scale: 2 }),
+  overtimeMultiplier: decimal("overtime_multiplier", { precision: 4, scale: 2 }).default("1.50"),
+  // Overhead-specific
+  monthlyAmount: decimal("monthly_amount", { precision: 14, scale: 2 }),
+  allocationBase: varchar("allocation_base", { length: 50 }),
+  allocationRate: decimal("allocation_rate", { precision: 10, scale: 2 }),
+  allocationUnit: varchar("allocation_unit", { length: 50 }),
+  // Material markup-specific
+  markupPercent: decimal("markup_percent", { precision: 6, scale: 2 }),
+  minMarkup: decimal("min_markup", { precision: 10, scale: 2 }),
+  applyTo: varchar("apply_to", { length: 50 }), // all | imported | domestic
+  // Common
+  description: text("description"),
+  effectiveFrom: date("effective_from"),
+  effectiveTo: date("effective_to"),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ============================================
+// Product Configurations - 产品配置(设备型号->BOM->基准价)
+// ============================================
+
+export const productConfigurations = pgTable("product_configurations", {
+  id: serial("id").primaryKey(),
+  modelCode: varchar("model_code", { length: 50 }).notNull(),
+  productName: varchar("product_name", { length: 300 }).notNull(),
+  productNameEn: varchar("product_name_en", { length: 300 }),
+  bomCode: varchar("bom_code", { length: 50 }),
+  bomId: integer("bom_id"),
+  // Cost breakdown
+  materialCost: decimal("material_cost", { precision: 14, scale: 2 }).default("0"),
+  laborCost: decimal("labor_cost", { precision: 14, scale: 2 }).default("0"),
+  overheadCost: decimal("overhead_cost", { precision: 14, scale: 2 }).default("0"),
+  otherCost: decimal("other_cost", { precision: 14, scale: 2 }).default("0"),
+  basePrice: decimal("base_price", { precision: 14, scale: 2 }).default("0"),
+  marginPercent: decimal("margin_percent", { precision: 6, scale: 2 }),
+  // Metadata
+  equipmentType: varchar("equipment_type", { length: 100 }),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  version: integer("version").default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});

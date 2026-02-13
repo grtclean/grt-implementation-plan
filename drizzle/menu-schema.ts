@@ -4,8 +4,9 @@
  */
 
 import {
-  mysqlTable,
-  int,
+  pgTable,
+  serial,
+  integer,
   varchar,
   text,
   timestamp,
@@ -13,16 +14,16 @@ import {
   json,
   primaryKey,
   index,
-} from 'drizzle-orm/mysql-core';
+} from 'drizzle-orm/pg-core';
 
 /**
  * 菜单项表
  * 定义系统中的所有菜单项
  */
-export const menuItems = mysqlTable(
+export const menuItems = pgTable(
   'grt_menu_items',
   {
-    id: int().autoincrement().primaryKey(),
+    id: serial().primaryKey(),
 
     // 菜单基本信息
     code: varchar('code', { length: 128 }).notNull().unique(), // 菜单编码
@@ -31,9 +32,9 @@ export const menuItems = mysqlTable(
     path: varchar('path', { length: 256 }),                    // 路由路径
 
     // 菜单层级
-    parentId: int('parent_id'),                                 // 父菜单ID
-    level: int('level').default(1),                            // 菜单层级（1=一级，2=二级等）
-    order: int('order').default(0),                            // 排序顺序
+    parentId: integer('parent_id'),                                 // 父菜单ID
+    level: integer('level').default(1),                            // 菜单层级（1=一级，2=二级等）
+    order: integer('order').default(0),                            // 排序顺序
 
     // 菜单类型
     menuType: varchar('menu_type', { length: 32 }).default('link'), // link, divider, group等
@@ -66,7 +67,7 @@ export const menuItems = mysqlTable(
 
     // 时间戳
     createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => ({
     codeIdx: index('menu_code_idx').on(table.code),
@@ -79,14 +80,14 @@ export const menuItems = mysqlTable(
  * 菜单权限关联表
  * 定义菜单项的权限要求
  */
-export const menuPermissions = mysqlTable(
+export const menuPermissions = pgTable(
   'grt_menu_permissions',
   {
-    id: int().autoincrement().primaryKey(),
+    id: serial().primaryKey(),
 
     // 关联信息
-    menuItemId: int('menu_item_id').notNull(),
-    permissionId: int('permission_id').notNull(),
+    menuItemId: integer('menu_item_id').notNull(),
+    permissionId: integer('permission_id').notNull(),
 
     // 权限类型
     permissionType: varchar('permission_type', { length: 32 }).default('required'), // required, optional
@@ -104,14 +105,14 @@ export const menuPermissions = mysqlTable(
  * 菜单角色关联表
  * 定义菜单项对不同角色的可见性
  */
-export const menuRoles = mysqlTable(
+export const menuRoles = pgTable(
   'grt_menu_roles',
   {
-    id: int().autoincrement().primaryKey(),
+    id: serial().primaryKey(),
 
     // 关联信息
-    menuItemId: int('menu_item_id').notNull(),
-    roleId: int('role_id').notNull(),
+    menuItemId: integer('menu_item_id').notNull(),
+    roleId: integer('role_id').notNull(),
 
     // 可见性
     isVisible: boolean('is_visible').default(true),
@@ -130,26 +131,26 @@ export const menuRoles = mysqlTable(
  * 用户菜单自定义表
  * 允许用户自定义菜单显示
  */
-export const userMenuCustomization = mysqlTable(
+export const userMenuCustomization = pgTable(
   'grt_user_menu_customization',
   {
-    id: int().autoincrement().primaryKey(),
+    id: serial().primaryKey(),
 
     // 用户信息
     userId: varchar('user_id', { length: 64 }).notNull(),
 
     // 菜单项信息
-    menuItemId: int('menu_item_id').notNull(),
+    menuItemId: integer('menu_item_id').notNull(),
 
     // 自定义设置
     isHidden: boolean('is_hidden').default(false),
-    order: int('order').default(0),
+    order: integer('order').default(0),
     customName: varchar('custom_name', { length: 128 }),
     customIcon: varchar('custom_icon', { length: 64 }),
 
     // 时间戳
     createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => ({
     userIdIdx: index('user_menu_user_id_idx').on(table.userId),
@@ -161,10 +162,10 @@ export const userMenuCustomization = mysqlTable(
  * 菜单配置表
  * 存储菜单系统的全局配置
  */
-export const menuConfigs = mysqlTable(
+export const menuConfigs = pgTable(
   'grt_menu_configs',
   {
-    id: int().autoincrement().primaryKey(),
+    id: serial().primaryKey(),
 
     // 配置键
     configKey: varchar('config_key', { length: 128 }).notNull().unique(),
@@ -181,7 +182,7 @@ export const menuConfigs = mysqlTable(
 
     // 时间戳
     createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => ({
     configKeyIdx: index('menu_config_key_idx').on(table.configKey),
@@ -192,21 +193,21 @@ export const menuConfigs = mysqlTable(
  * 菜单访问日志表
  * 记录用户对菜单项的访问
  */
-export const menuAccessLogs = mysqlTable(
+export const menuAccessLogs = pgTable(
   'grt_menu_access_logs',
   {
-    id: int().autoincrement().primaryKey(),
+    id: serial().primaryKey(),
 
     // 用户信息
     userId: varchar('user_id', { length: 64 }).notNull(),
 
     // 菜单项信息
-    menuItemId: int('menu_item_id').notNull(),
+    menuItemId: integer('menu_item_id').notNull(),
     menuCode: varchar('menu_code', { length: 128 }),
     menuPath: varchar('menu_path', { length: 256 }),
 
     // 访问信息
-    accessCount: int('access_count').default(1),
+    accessCount: integer('access_count').default(1),
     lastAccessAt: timestamp('last_access_at').defaultNow(),
 
     // 时间戳
@@ -222,13 +223,13 @@ export const menuAccessLogs = mysqlTable(
  * 菜单搜索索引表
  * 用于菜单搜索功能
  */
-export const menuSearchIndex = mysqlTable(
+export const menuSearchIndex = pgTable(
   'grt_menu_search_index',
   {
-    id: int().autoincrement().primaryKey(),
+    id: serial().primaryKey(),
 
     // 菜单项信息
-    menuItemId: int('menu_item_id').notNull(),
+    menuItemId: integer('menu_item_id').notNull(),
     menuCode: varchar('menu_code', { length: 128 }).notNull(),
 
     // 搜索内容
@@ -236,11 +237,11 @@ export const menuSearchIndex = mysqlTable(
     keywords: json('keywords'),
 
     // 搜索权重
-    weight: int('weight').default(1),
+    weight: integer('weight').default(1),
 
     // 时间戳
     createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => ({
     menuItemIdIdx: index('menu_search_menu_id_idx').on(table.menuItemId),

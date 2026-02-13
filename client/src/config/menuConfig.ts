@@ -83,6 +83,8 @@ import {
   Trophy,
   Cable,
   RefreshCw,
+  Warehouse,
+  Boxes,
   type LucideIcon,
 } from "lucide-react";
 import type { UserRole } from "@/contexts/UserProfileContext";
@@ -167,6 +169,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "客户门户", nameEn: "Customer Portal", path: "/customer-portal", icon: UserCheck },
       { name: "销售分析", nameEn: "Sales Analytics", path: "/sales-analytics", icon: BarChart3, isNew: true, requiresBU: true },
       { name: "客户价值视图", nameEn: "Customer Value", path: "/customer-value-view", icon: Crown },
+      { name: "报价生成", nameEn: "Quotation Create", path: "/quotation-create", icon: Calculator, isNew: true, requiresBU: true },
     ],
   },
 
@@ -208,6 +211,9 @@ export const menuConfig: MenuGroup[] = [
       { name: "交付管理", nameEn: "Delivery Mgmt", path: "/delivery-management", icon: Truck },
       { name: "AI计划助手", nameEn: "AI Planning", path: "/ai/planning-assistant", icon: Bot },
       { name: "风险管理", nameEn: "Risk Mgmt", path: "/risks", icon: AlertTriangle },
+      { name: "SOP模板库", nameEn: "SOP Library", path: "/sop-library", icon: BookOpen, isNew: true },
+      { name: "阶段文档管理", nameEn: "Phase Documents", path: "/project-phase-documents", icon: FileText, isNew: true },
+      { name: "项目数字孪生", nameEn: "Project Digital Twin", path: "/project-digital-twin", icon: Cpu, isNew: true },
       // ── POS (Project Organization System) ──
       { name: "POS总览", nameEn: "POS Dashboard", path: "/pos/dashboard", icon: LayoutDashboard, isNew: true,
         allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "bu_sales"] },
@@ -243,6 +249,8 @@ export const menuConfig: MenuGroup[] = [
       { name: "质检管理", nameEn: "QC Management", path: "/qc-management", icon: ClipboardCheck },
       { name: "UWB定位", nameEn: "UWB Tracking", path: "/uwb-management", icon: MapPin },
       { name: "物料追踪", nameEn: "Material Tracking", path: "/material-tracking", icon: Package, isNew: true },
+      { name: "仓库管理", nameEn: "Warehouse Mgmt", path: "/warehouse-management", icon: Warehouse, isNew: true },
+      { name: "库存看板", nameEn: "Inventory Dashboard", path: "/inventory-dashboard", icon: Boxes, isNew: true },
       { name: "M8 FAT协调", nameEn: "M8 FAT Coordination", path: "/fat-coordination", icon: ClipboardCheck, isNew: true,
         allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "cs_engineer"] },
     ],
@@ -349,6 +357,8 @@ export const menuConfig: MenuGroup[] = [
       { name: "费用预测", nameEn: "Expense Forecast", path: "/expense-forecast", icon: LineChart, minLevel: 3 },
       { name: "报表定时发送", nameEn: "Report Scheduler", path: "/expense-report-scheduler", icon: Send,
         allowedRoles: ["admin", "finance_manager"] },
+      { name: "成本标准配置", nameEn: "Cost Standards", path: "/cost-standards", icon: Calculator, isNew: true,
+        allowedRoles: ["admin", "director", "bu_gm", "finance_manager"] },
     ],
   },
 
@@ -375,6 +385,10 @@ export const menuConfig: MenuGroup[] = [
         allowedRoles: ["admin"] },
       { name: "知识库训练", nameEn: "KB Training", path: "/rag-training", icon: BookOpen, isNew: true },
       { name: "AI预警中心", nameEn: "AI Early Warning", path: "/ai-early-warning", icon: AlertTriangle, isNew: true },
+      { name: "历史案例库", nameEn: "Historical Cases", path: "/historical-cases", icon: BookOpen, isNew: true },
+      { name: "AI采购助手", nameEn: "AI Purchase", path: "/ai-purchase", icon: ShoppingCart, isNew: true },
+      { name: "AI质量助手", nameEn: "AI Quality", path: "/ai-quality", icon: Shield, isNew: true },
+      { name: "AI服务助手", nameEn: "AI Service", path: "/ai-service", icon: Headphones, isNew: true },
     ],
   },
 
@@ -427,6 +441,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "临时权限", nameEn: "Temp Permissions", path: "/temporary-permissions", icon: Shield, isNew: true },
       { name: "权限黑名单", nameEn: "Perm Blacklist", path: "/permission-blacklist", icon: ShieldAlert, isNew: true },
       { name: "菜单分析", nameEn: "Menu Analytics", path: "/menu-analytics", icon: BarChart3, isNew: true },
+      { name: "运营分析", nameEn: "Operations Analytics", path: "/operations-analytics", icon: Activity, isNew: true },
     ],
   },
 

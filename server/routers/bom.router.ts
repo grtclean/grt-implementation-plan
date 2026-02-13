@@ -12,6 +12,9 @@
 
 import { z } from "zod";
 import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
+import { requireDb } from "../db";
+import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
+import { bomMasters, bomItems, bomVersions, bomCostRollups } from "../../drizzle/bom-schema";
 
 // ============================================
 // Zod验证Schema
@@ -73,19 +76,6 @@ const BomVersionCreateSchema = z.object({
 });
 
 // ============================================
-// 模拟数据存储 (替代DB层)
-// ============================================
-
-let bomMasterIdSeq = 1;
-const bomMasters: any[] = [];
-let bomItemIdSeq = 1;
-const bomItemsStore: any[] = [];
-let bomVersionIdSeq = 1;
-const bomVersionsStore: any[] = [];
-let bomCostIdSeq = 1;
-const bomCostRollupsStore: any[] = [];
-
-// ============================================
 // Router
 // ============================================
 
@@ -98,24 +88,36 @@ export const bomRouter = router({
   createBomMaster: adminProcedure
     .input(BomMasterCreateSchema)
     .mutation(async ({ input, ctx }) => {
-      const bom = {
-        id: bomMasterIdSeq++,
-        ...input,
-        status: 'draft' as const,
+      const db = await requireDb();
+      const now = new Date().toISOString();
+      const result = await db.insert(bomMasters).values({
+        productCode: input.productCode,
+        productName: input.productName,
+        bomType: input.bomType,
+        currentVersion: input.currentVersion,
+        status: 'draft',
+        buCode: input.buCode,
+        productCategory: input.productCategory,
         maxLevel: 1,
-        totalMaterialCost: 0,
-        totalLaborCost: 0,
-        totalOverheadCost: 0,
+        standardQty: String(input.standardQty),
+        standardUnit: input.standardUnit,
+        totalMaterialCost: '0.00',
+        totalLaborCost: '0.00',
+        totalOverheadCost: '0.00',
         erpBomId: null,
-        erpSyncStatus: 'not_synced' as const,
+        erpSyncStatus: 'not_synced',
         createdBy: ctx.user?.id,
         approvedBy: null,
         approvedAt: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      bomMasters.push(bom);
-      return bom;
+        description: input.description ?? null,
+        notes: input.notes ?? null,
+        createdAt: now,
+      });
+
+      // Retrieve the inserted record
+      const insertId = result[0].insertId;
+      const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, insertId));
+      return rows[0];
     }),
 
   /**
@@ -132,21 +134,48 @@ export const bomRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ input }) => {
-      let filtered = [...bomMasters];
-      if (input.bomType) filtered = filtered.filter(b => b.bomType === input.bomType);
-      if (input.status) filtered = filtered.filter(b => b.status === input.status);
-      if (input.buCode) filtered = filtered.filter(b => b.buCode === input.buCode);
-      if (input.productCategory) filtered = filtered.filter(b => b.productCategory === input.productCategory);
+      const db = await requireDb();
+
+      const conditions = [];
+      if (input.bomType) {
+        conditions.push(eq(bomMasters.bomType, input.bomType as "manufacturing" | "engineering" | "sales" | "template"));
+      }
+      if (input.status) {
+        conditions.push(eq(bomMasters.status, input.status as "draft" | "pending_review" | "approved" | "active" | "superseded" | "obsolete"));
+      }
+      if (input.buCode) {
+        conditions.push(eq(bomMasters.buCode, input.buCode as "BU1" | "BU2" | "BU3" | "BU4" | "BU5"));
+      }
+      if (input.productCategory) {
+        conditions.push(eq(bomMasters.productCategory, input.productCategory));
+      }
       if (input.search) {
-        const s = input.search.toLowerCase();
-        filtered = filtered.filter(b =>
-          b.productCode.toLowerCase().includes(s) ||
-          b.productName.toLowerCase().includes(s)
+        const pattern = `%${input.search}%`;
+        conditions.push(
+          or(
+            like(bomMasters.productCode, pattern),
+            like(bomMasters.productName, pattern)
+          )!
         );
       }
-      const total = filtered.length;
-      const start = (input.page - 1) * input.pageSize;
-      const items = filtered.slice(start, start + input.pageSize);
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const totalResult = await db
+        .select({ value: count() })
+        .from(bomMasters)
+        .where(whereClause);
+      const total = totalResult[0].value;
+
+      const offset = (input.page - 1) * input.pageSize;
+      const items = await db
+        .select()
+        .from(bomMasters)
+        .where(whereClause)
+        .orderBy(desc(bomMasters.id))
+        .limit(input.pageSize)
+        .offset(offset);
+
       return { items, total, page: input.page, pageSize: input.pageSize };
     }),
 
@@ -156,11 +185,15 @@ export const bomRouter = router({
   getBomMaster: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
-      const master = bomMasters.find(b => b.id === input.id) || null;
+      const db = await requireDb();
+      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id));
+      const master = masterRows[0] ?? null;
       if (!master) return null;
-      const items = bomItemsStore.filter(i => i.bomMasterId === input.id);
-      const versions = bomVersionsStore.filter(v => v.bomMasterId === input.id);
-      const costRollups = bomCostRollupsStore.filter(c => c.bomMasterId === input.id);
+
+      const items = await db.select().from(bomItems).where(eq(bomItems.bomMasterId, input.id));
+      const versions = await db.select().from(bomVersions).where(eq(bomVersions.bomMasterId, input.id));
+      const costRollups = await db.select().from(bomCostRollups).where(eq(bomCostRollups.bomMasterId, input.id));
+
       return { ...master, items, versions, costRollups };
     }),
 
@@ -170,11 +203,27 @@ export const bomRouter = router({
   updateBomMaster: adminProcedure
     .input(BomMasterUpdateSchema)
     .mutation(async ({ input }) => {
-      const idx = bomMasters.findIndex(b => b.id === input.id);
-      if (idx === -1) throw new Error('BOM not found');
+      const db = await requireDb();
       const { id, ...updates } = input;
-      bomMasters[idx] = { ...bomMasters[idx], ...updates, updatedAt: new Date().toISOString() };
-      return bomMasters[idx];
+
+      // Build the update values, converting numbers to strings for decimal fields
+      const updateValues: Record<string, unknown> = {};
+      if (updates.productCode !== undefined) updateValues.productCode = updates.productCode;
+      if (updates.productName !== undefined) updateValues.productName = updates.productName;
+      if (updates.bomType !== undefined) updateValues.bomType = updates.bomType;
+      if (updates.currentVersion !== undefined) updateValues.currentVersion = updates.currentVersion;
+      if (updates.buCode !== undefined) updateValues.buCode = updates.buCode;
+      if (updates.productCategory !== undefined) updateValues.productCategory = updates.productCategory;
+      if (updates.standardQty !== undefined) updateValues.standardQty = String(updates.standardQty);
+      if (updates.standardUnit !== undefined) updateValues.standardUnit = updates.standardUnit;
+      if (updates.description !== undefined) updateValues.description = updates.description;
+      if (updates.notes !== undefined) updateValues.notes = updates.notes;
+
+      await db.update(bomMasters).set(updateValues).where(eq(bomMasters.id, id));
+
+      const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, id));
+      if (!rows[0]) throw new Error('BOM not found');
+      return rows[0];
     }),
 
   /**
@@ -186,15 +235,23 @@ export const bomRouter = router({
       status: z.enum(['draft', 'pending_review', 'approved', 'active', 'superseded', 'obsolete']),
     }))
     .mutation(async ({ input, ctx }) => {
-      const idx = bomMasters.findIndex(b => b.id === input.id);
-      if (idx === -1) throw new Error('BOM not found');
-      bomMasters[idx].status = input.status;
+      const db = await requireDb();
+
+      const existingRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id));
+      if (!existingRows[0]) throw new Error('BOM not found');
+
+      const updateValues: Record<string, unknown> = {
+        status: input.status,
+      };
       if (input.status === 'approved') {
-        bomMasters[idx].approvedBy = ctx.user?.id;
-        bomMasters[idx].approvedAt = new Date().toISOString();
+        updateValues.approvedBy = ctx.user?.id;
+        updateValues.approvedAt = new Date().toISOString();
       }
-      bomMasters[idx].updatedAt = new Date().toISOString();
-      return bomMasters[idx];
+
+      await db.update(bomMasters).set(updateValues).where(eq(bomMasters.id, input.id));
+
+      const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id));
+      return rows[0];
     }),
 
   /**
@@ -203,16 +260,17 @@ export const bomRouter = router({
   deleteBomMaster: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      const idx = bomMasters.findIndex(b => b.id === input.id);
-      if (idx === -1) throw new Error('BOM not found');
-      if (bomMasters[idx].status !== 'draft') throw new Error('只能删除草稿状态的BOM');
-      bomMasters.splice(idx, 1);
+      const db = await requireDb();
+      const existingRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id));
+      if (!existingRows[0]) throw new Error('BOM not found');
+      if (existingRows[0].status !== 'draft') throw new Error('只能删除草稿状态的BOM');
+
       // 同时删除子记录
-      const removeItems = bomItemsStore.filter(i => i.bomMasterId === input.id).map(i => i.id);
-      removeItems.forEach(itemId => {
-        const iIdx = bomItemsStore.findIndex(i => i.id === itemId);
-        if (iIdx !== -1) bomItemsStore.splice(iIdx, 1);
-      });
+      await db.delete(bomItems).where(eq(bomItems.bomMasterId, input.id));
+      await db.delete(bomVersions).where(eq(bomVersions.bomMasterId, input.id));
+      await db.delete(bomCostRollups).where(eq(bomCostRollups.bomMasterId, input.id));
+      await db.delete(bomMasters).where(eq(bomMasters.id, input.id));
+
       return { success: true, message: 'BOM已删除' };
     }),
 
@@ -224,24 +282,46 @@ export const bomRouter = router({
   addBomItem: adminProcedure
     .input(BomItemCreateSchema)
     .mutation(async ({ input }) => {
+      const db = await requireDb();
       const extendedCost = input.quantity * input.unitCost * (1 + (input.scrapRate || 0) / 100);
-      const item = {
-        id: bomItemIdSeq++,
-        ...input,
-        extendedCost: Math.round(extendedCost * 100) / 100,
+      const roundedExtendedCost = Math.round(extendedCost * 100) / 100;
+
+      const result = await db.insert(bomItems).values({
+        bomMasterId: input.bomMasterId,
+        parentItemId: input.parentItemId ?? null,
+        level: input.level,
+        sequence: input.sequence,
+        materialCode: input.materialCode,
+        materialName: input.materialName,
+        materialSpec: input.materialSpec ?? null,
+        quantity: String(input.quantity),
+        unit: input.unit,
+        scrapRate: String(input.scrapRate),
+        isCritical: input.isCritical,
+        sourceType: input.sourceType,
+        processCode: input.processCode ?? null,
+        leadTimeDays: input.leadTimeDays,
+        substituteCode: input.substituteCode ?? null,
+        substituteRatio: input.substituteRatio != null ? String(input.substituteRatio) : null,
+        unitCost: String(input.unitCost),
+        extendedCost: String(roundedExtendedCost),
+        preferredSupplierId: input.preferredSupplierId ?? null,
         erpItemId: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      bomItemsStore.push(item);
+        remarks: input.remarks ?? null,
+        effectiveFrom: input.effectiveFrom ?? null,
+        effectiveTo: input.effectiveTo ?? null,
+      });
+
+      const insertId = result[0].insertId;
 
       // 更新BOM主表的maxLevel
-      const masterIdx = bomMasters.findIndex(b => b.id === input.bomMasterId);
-      if (masterIdx !== -1 && input.level > (bomMasters[masterIdx].maxLevel || 0)) {
-        bomMasters[masterIdx].maxLevel = input.level;
+      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId));
+      if (masterRows[0] && input.level > (masterRows[0].maxLevel || 0)) {
+        await db.update(bomMasters).set({ maxLevel: input.level }).where(eq(bomMasters.id, input.bomMasterId));
       }
 
-      return item;
+      const rows = await db.select().from(bomItems).where(eq(bomItems.id, insertId));
+      return rows[0];
     }),
 
   /**
@@ -250,18 +330,49 @@ export const bomRouter = router({
   updateBomItem: adminProcedure
     .input(BomItemUpdateSchema)
     .mutation(async ({ input }) => {
-      const idx = bomItemsStore.findIndex(i => i.id === input.id);
-      if (idx === -1) throw new Error('BOM Item not found');
+      const db = await requireDb();
       const { id, ...updates } = input;
-      bomItemsStore[idx] = { ...bomItemsStore[idx], ...updates, updatedAt: new Date().toISOString() };
+
+      const existingRows = await db.select().from(bomItems).where(eq(bomItems.id, id));
+      if (!existingRows[0]) throw new Error('BOM Item not found');
+
+      const updateValues: Record<string, unknown> = {};
+      if (updates.bomMasterId !== undefined) updateValues.bomMasterId = updates.bomMasterId;
+      if (updates.parentItemId !== undefined) updateValues.parentItemId = updates.parentItemId;
+      if (updates.level !== undefined) updateValues.level = updates.level;
+      if (updates.sequence !== undefined) updateValues.sequence = updates.sequence;
+      if (updates.materialCode !== undefined) updateValues.materialCode = updates.materialCode;
+      if (updates.materialName !== undefined) updateValues.materialName = updates.materialName;
+      if (updates.materialSpec !== undefined) updateValues.materialSpec = updates.materialSpec;
+      if (updates.quantity !== undefined) updateValues.quantity = String(updates.quantity);
+      if (updates.unit !== undefined) updateValues.unit = updates.unit;
+      if (updates.scrapRate !== undefined) updateValues.scrapRate = String(updates.scrapRate);
+      if (updates.isCritical !== undefined) updateValues.isCritical = updates.isCritical;
+      if (updates.sourceType !== undefined) updateValues.sourceType = updates.sourceType;
+      if (updates.processCode !== undefined) updateValues.processCode = updates.processCode;
+      if (updates.leadTimeDays !== undefined) updateValues.leadTimeDays = updates.leadTimeDays;
+      if (updates.substituteCode !== undefined) updateValues.substituteCode = updates.substituteCode;
+      if (updates.substituteRatio !== undefined) updateValues.substituteRatio = String(updates.substituteRatio);
+      if (updates.unitCost !== undefined) updateValues.unitCost = String(updates.unitCost);
+      if (updates.preferredSupplierId !== undefined) updateValues.preferredSupplierId = updates.preferredSupplierId;
+      if (updates.remarks !== undefined) updateValues.remarks = updates.remarks;
+      if (updates.effectiveFrom !== undefined) updateValues.effectiveFrom = updates.effectiveFrom;
+      if (updates.effectiveTo !== undefined) updateValues.effectiveTo = updates.effectiveTo;
+
+      await db.update(bomItems).set(updateValues).where(eq(bomItems.id, id));
 
       // 重算extendedCost
-      const item = bomItemsStore[idx];
-      item.extendedCost = Math.round(
-        (item.quantity || 0) * (item.unitCost || 0) * (1 + (item.scrapRate || 0) / 100) * 100
-      ) / 100;
+      const updatedRows = await db.select().from(bomItems).where(eq(bomItems.id, id));
+      const item = updatedRows[0];
+      const qty = parseFloat(String(item.quantity)) || 0;
+      const cost = parseFloat(String(item.unitCost)) || 0;
+      const scrap = parseFloat(String(item.scrapRate)) || 0;
+      const extendedCost = Math.round(qty * cost * (1 + scrap / 100) * 100) / 100;
 
-      return bomItemsStore[idx];
+      await db.update(bomItems).set({ extendedCost: String(extendedCost) }).where(eq(bomItems.id, id));
+
+      const finalRows = await db.select().from(bomItems).where(eq(bomItems.id, id));
+      return finalRows[0];
     }),
 
   /**
@@ -270,9 +381,11 @@ export const bomRouter = router({
   deleteBomItem: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      const idx = bomItemsStore.findIndex(i => i.id === input.id);
-      if (idx === -1) throw new Error('BOM Item not found');
-      bomItemsStore.splice(idx, 1);
+      const db = await requireDb();
+      const existingRows = await db.select().from(bomItems).where(eq(bomItems.id, input.id));
+      if (!existingRows[0]) throw new Error('BOM Item not found');
+
+      await db.delete(bomItems).where(eq(bomItems.id, input.id));
       return { success: true };
     }),
 
@@ -282,10 +395,19 @@ export const bomRouter = router({
   getBomTree: protectedProcedure
     .input(z.object({ bomMasterId: z.number() }))
     .query(async ({ input }) => {
-      const allItems = bomItemsStore.filter(i => i.bomMasterId === input.bomMasterId);
+      const db = await requireDb();
+      const allItems = await db
+        .select()
+        .from(bomItems)
+        .where(eq(bomItems.bomMasterId, input.bomMasterId));
 
       // 构建树结构
-      function buildTree(parentId: number | null): any[] {
+      type BomItemRow = typeof allItems[number];
+      interface BomTreeNode extends BomItemRow {
+        children: BomTreeNode[];
+      }
+
+      function buildTree(parentId: number | null): BomTreeNode[] {
         return allItems
           .filter(i => (i.parentItemId || null) === parentId)
           .sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
@@ -307,32 +429,54 @@ export const bomRouter = router({
       items: z.array(BomItemCreateSchema.omit({ bomMasterId: true })),
     }))
     .mutation(async ({ input }) => {
-      const created: any[] = [];
+      const db = await requireDb();
+      const createdItems: Array<typeof bomItems.$inferSelect> = [];
       let maxLevel = 0;
 
       for (const itemInput of input.items) {
         const extendedCost = itemInput.quantity * (itemInput.unitCost || 0) * (1 + (itemInput.scrapRate || 0) / 100);
-        const item = {
-          id: bomItemIdSeq++,
+        const roundedExtendedCost = Math.round(extendedCost * 100) / 100;
+
+        const result = await db.insert(bomItems).values({
           bomMasterId: input.bomMasterId,
-          ...itemInput,
-          extendedCost: Math.round(extendedCost * 100) / 100,
+          parentItemId: itemInput.parentItemId ?? null,
+          level: itemInput.level,
+          sequence: itemInput.sequence,
+          materialCode: itemInput.materialCode,
+          materialName: itemInput.materialName,
+          materialSpec: itemInput.materialSpec ?? null,
+          quantity: String(itemInput.quantity),
+          unit: itemInput.unit,
+          scrapRate: String(itemInput.scrapRate),
+          isCritical: itemInput.isCritical,
+          sourceType: itemInput.sourceType,
+          processCode: itemInput.processCode ?? null,
+          leadTimeDays: itemInput.leadTimeDays,
+          substituteCode: itemInput.substituteCode ?? null,
+          substituteRatio: itemInput.substituteRatio != null ? String(itemInput.substituteRatio) : null,
+          unitCost: String(itemInput.unitCost),
+          extendedCost: String(roundedExtendedCost),
+          preferredSupplierId: itemInput.preferredSupplierId ?? null,
           erpItemId: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        bomItemsStore.push(item);
-        created.push(item);
+          remarks: itemInput.remarks ?? null,
+          effectiveFrom: itemInput.effectiveFrom ?? null,
+          effectiveTo: itemInput.effectiveTo ?? null,
+        });
+
+        const insertId = result[0].insertId;
+        const rows = await db.select().from(bomItems).where(eq(bomItems.id, insertId));
+        if (rows[0]) createdItems.push(rows[0]);
+
         if ((itemInput.level || 1) > maxLevel) maxLevel = itemInput.level || 1;
       }
 
       // 更新maxLevel
-      const masterIdx = bomMasters.findIndex(b => b.id === input.bomMasterId);
-      if (masterIdx !== -1 && maxLevel > (bomMasters[masterIdx].maxLevel || 0)) {
-        bomMasters[masterIdx].maxLevel = maxLevel;
+      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId));
+      if (masterRows[0] && maxLevel > (masterRows[0].maxLevel || 0)) {
+        await db.update(bomMasters).set({ maxLevel }).where(eq(bomMasters.id, input.bomMasterId));
       }
 
-      return { created: created.length, items: created };
+      return { created: createdItems.length, items: createdItems };
     }),
 
   // ---- BOM版本管理 ----
@@ -343,14 +487,23 @@ export const bomRouter = router({
   createVersion: adminProcedure
     .input(BomVersionCreateSchema)
     .mutation(async ({ input, ctx }) => {
-      // 对当前BOM做快照
-      const currentItems = bomItemsStore.filter(i => i.bomMasterId === input.bomMasterId);
-      const master = bomMasters.find(b => b.id === input.bomMasterId);
+      const db = await requireDb();
 
-      const version = {
-        id: bomVersionIdSeq++,
-        ...input,
-        status: 'draft' as const,
+      // 对当前BOM做快照
+      const currentItems = await db.select().from(bomItems).where(eq(bomItems.bomMasterId, input.bomMasterId));
+      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId));
+      const master = masterRows[0] ?? null;
+
+      const result = await db.insert(bomVersions).values({
+        bomMasterId: input.bomMasterId,
+        version: input.version,
+        changeType: input.changeType,
+        ecnNumber: input.ecnNumber ?? null,
+        changeReason: input.changeReason ?? null,
+        changeDescription: input.changeDescription ?? null,
+        changeDetails: null,
+        status: 'draft',
+        effectiveDate: input.effectiveDate ?? null,
         expiryDate: null,
         requestedBy: ctx.user?.id,
         reviewedBy: null,
@@ -358,11 +511,11 @@ export const bomRouter = router({
         approvedAt: null,
         rejectionReason: null,
         bomSnapshot: { master, items: currentItems },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      bomVersionsStore.push(version);
-      return version;
+      });
+
+      const insertId = result[0].insertId;
+      const rows = await db.select().from(bomVersions).where(eq(bomVersions.id, insertId));
+      return rows[0];
     }),
 
   /**
@@ -371,9 +524,12 @@ export const bomRouter = router({
   getVersions: protectedProcedure
     .input(z.object({ bomMasterId: z.number() }))
     .query(async ({ input }) => {
-      return bomVersionsStore
-        .filter(v => v.bomMasterId === input.bomMasterId)
-        .sort((a, b) => b.id - a.id);
+      const db = await requireDb();
+      return db
+        .select()
+        .from(bomVersions)
+        .where(eq(bomVersions.bomMasterId, input.bomMasterId))
+        .orderBy(desc(bomVersions.id));
     }),
 
   /**
@@ -386,27 +542,32 @@ export const bomRouter = router({
       reason: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const idx = bomVersionsStore.findIndex(v => v.id === input.id);
-      if (idx === -1) throw new Error('Version not found');
+      const db = await requireDb();
+      const versionRows = await db.select().from(bomVersions).where(eq(bomVersions.id, input.id));
+      if (!versionRows[0]) throw new Error('Version not found');
+
+      const version = versionRows[0];
 
       if (input.action === 'approve') {
-        bomVersionsStore[idx].status = 'approved';
-        bomVersionsStore[idx].approvedBy = ctx.user?.id;
-        bomVersionsStore[idx].approvedAt = new Date().toISOString();
+        await db.update(bomVersions).set({
+          status: 'approved',
+          approvedBy: ctx.user?.id,
+          approvedAt: new Date().toISOString(),
+        }).where(eq(bomVersions.id, input.id));
 
         // 将BOM主表版本号更新为此版本
-        const masterIdx = bomMasters.findIndex(b => b.id === bomVersionsStore[idx].bomMasterId);
-        if (masterIdx !== -1) {
-          bomMasters[masterIdx].currentVersion = bomVersionsStore[idx].version;
-          bomMasters[masterIdx].updatedAt = new Date().toISOString();
-        }
+        await db.update(bomMasters).set({
+          currentVersion: version.version,
+        }).where(eq(bomMasters.id, version.bomMasterId));
       } else {
-        bomVersionsStore[idx].status = 'rejected';
-        bomVersionsStore[idx].rejectionReason = input.reason || '';
+        await db.update(bomVersions).set({
+          status: 'rejected',
+          rejectionReason: input.reason || '',
+        }).where(eq(bomVersions.id, input.id));
       }
 
-      bomVersionsStore[idx].updatedAt = new Date().toISOString();
-      return bomVersionsStore[idx];
+      const updatedRows = await db.select().from(bomVersions).where(eq(bomVersions.id, input.id));
+      return updatedRows[0];
     }),
 
   // ---- 成本卷积 ----
@@ -420,8 +581,10 @@ export const bomRouter = router({
       costType: z.enum(['standard', 'actual', 'estimated', 'budget']).default('standard'),
     }))
     .mutation(async ({ input }) => {
-      const items = bomItemsStore.filter(i => i.bomMasterId === input.bomMasterId);
-      const master = bomMasters.find(b => b.id === input.bomMasterId);
+      const db = await requireDb();
+      const items = await db.select().from(bomItems).where(eq(bomItems.bomMasterId, input.bomMasterId));
+      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId));
+      const master = masterRows[0];
       if (!master) throw new Error('BOM not found');
 
       // 分类汇总
@@ -431,7 +594,10 @@ export const bomRouter = router({
       let outsourceCost = 0;
 
       for (const item of items) {
-        const cost = (item.quantity || 0) * (item.unitCost || 0) * (1 + (item.scrapRate || 0) / 100);
+        const qty = parseFloat(String(item.quantity)) || 0;
+        const unitCostVal = parseFloat(String(item.unitCost)) || 0;
+        const scrapVal = parseFloat(String(item.scrapRate)) || 0;
+        const cost = qty * unitCostVal * (1 + scrapVal / 100);
         switch (item.sourceType) {
           case 'purchase': purchaseCost += cost; break;
           case 'manufacture': laborCost += cost; break;
@@ -443,43 +609,46 @@ export const bomRouter = router({
       const overheadCost = laborCost * 0.15; // 15%间接费用
       const totalCost = materialCost + purchaseCost + laborCost + outsourceCost + overheadCost;
 
-      const rollup = {
-        id: bomCostIdSeq++,
+      const costBreakdown = items.map(i => ({
+        materialCode: i.materialCode,
+        materialName: i.materialName,
+        qty: parseFloat(String(i.quantity)) || 0,
+        unitCost: parseFloat(String(i.unitCost)) || 0,
+        scrapRate: parseFloat(String(i.scrapRate)) || 0,
+        extendedCost: parseFloat(String(i.extendedCost)) || 0,
+        sourceType: i.sourceType,
+      }));
+
+      const now = new Date().toISOString();
+      const result = await db.insert(bomCostRollups).values({
         bomMasterId: input.bomMasterId,
         version: master.currentVersion,
         costType: input.costType,
-        calculatedAt: new Date().toISOString(),
-        materialCost: Math.round(materialCost * 100) / 100,
-        purchaseCost: Math.round(purchaseCost * 100) / 100,
-        laborCost: Math.round(laborCost * 100) / 100,
-        overheadCost: Math.round(overheadCost * 100) / 100,
-        outsourceCost: Math.round(outsourceCost * 100) / 100,
-        totalCost: Math.round(totalCost * 100) / 100,
-        costBreakdown: items.map(i => ({
-          materialCode: i.materialCode,
-          materialName: i.materialName,
-          qty: i.quantity,
-          unitCost: i.unitCost,
-          scrapRate: i.scrapRate,
-          extendedCost: i.extendedCost,
-          sourceType: i.sourceType,
-        })),
+        calculatedAt: now,
+        materialCost: String(Math.round(materialCost * 100) / 100),
+        purchaseCost: String(Math.round(purchaseCost * 100) / 100),
+        laborCost: String(Math.round(laborCost * 100) / 100),
+        overheadCost: String(Math.round(overheadCost * 100) / 100),
+        outsourceCost: String(Math.round(outsourceCost * 100) / 100),
+        totalCost: String(Math.round(totalCost * 100) / 100),
+        costBreakdown,
         currency: 'CNY',
-        createdAt: new Date().toISOString(),
-      };
-
-      bomCostRollupsStore.push(rollup);
+      });
 
       // 更新主表成本
-      const masterIdx = bomMasters.findIndex(b => b.id === input.bomMasterId);
-      if (masterIdx !== -1) {
-        bomMasters[masterIdx].totalMaterialCost = rollup.materialCost + rollup.purchaseCost;
-        bomMasters[masterIdx].totalLaborCost = rollup.laborCost;
-        bomMasters[masterIdx].totalOverheadCost = rollup.overheadCost + rollup.outsourceCost;
-        bomMasters[masterIdx].updatedAt = new Date().toISOString();
-      }
+      const roundedMaterialCost = Math.round((materialCost + purchaseCost) * 100) / 100;
+      const roundedLaborCost = Math.round(laborCost * 100) / 100;
+      const roundedOverheadTotal = Math.round((overheadCost + outsourceCost) * 100) / 100;
 
-      return rollup;
+      await db.update(bomMasters).set({
+        totalMaterialCost: String(roundedMaterialCost),
+        totalLaborCost: String(roundedLaborCost),
+        totalOverheadCost: String(roundedOverheadTotal),
+      }).where(eq(bomMasters.id, input.bomMasterId));
+
+      const insertId = result[0].insertId;
+      const rows = await db.select().from(bomCostRollups).where(eq(bomCostRollups.id, insertId));
+      return rows[0];
     }),
 
   /**
@@ -491,9 +660,18 @@ export const bomRouter = router({
       costType: z.string().optional(),
     }))
     .query(async ({ input }) => {
-      let results = bomCostRollupsStore.filter(c => c.bomMasterId === input.bomMasterId);
-      if (input.costType) results = results.filter(c => c.costType === input.costType);
-      return results.sort((a, b) => b.id - a.id);
+      const db = await requireDb();
+
+      const conditions = [eq(bomCostRollups.bomMasterId, input.bomMasterId)];
+      if (input.costType) {
+        conditions.push(eq(bomCostRollups.costType, input.costType as "standard" | "actual" | "estimated" | "budget"));
+      }
+
+      return db
+        .select()
+        .from(bomCostRollups)
+        .where(and(...conditions))
+        .orderBy(desc(bomCostRollups.id));
     }),
 
   // ---- 统计与搜索 ----
@@ -502,12 +680,26 @@ export const bomRouter = router({
    * BOM统计概览
    */
   getStats: protectedProcedure.query(async () => {
-    const total = bomMasters.length;
-    const active = bomMasters.filter(b => b.status === 'active').length;
-    const draft = bomMasters.filter(b => b.status === 'draft').length;
-    const pendingReview = bomMasters.filter(b => b.status === 'pending_review').length;
-    const totalItems = bomItemsStore.length;
-    const criticalItems = bomItemsStore.filter(i => i.isCritical).length;
+    const db = await requireDb();
+
+    const totalResult = await db.select({ value: count() }).from(bomMasters);
+    const total = totalResult[0].value;
+
+    const activeResult = await db.select({ value: count() }).from(bomMasters).where(eq(bomMasters.status, 'active'));
+    const active = activeResult[0].value;
+
+    const draftResult = await db.select({ value: count() }).from(bomMasters).where(eq(bomMasters.status, 'draft'));
+    const draft = draftResult[0].value;
+
+    const pendingResult = await db.select({ value: count() }).from(bomMasters).where(eq(bomMasters.status, 'pending_review'));
+    const pendingReview = pendingResult[0].value;
+
+    const totalItemsResult = await db.select({ value: count() }).from(bomItems);
+    const totalItems = totalItemsResult[0].value;
+
+    const criticalResult = await db.select({ value: count() }).from(bomItems).where(eq(bomItems.isCritical, true));
+    const criticalItems = criticalResult[0].value;
+
     return { total, active, draft, pendingReview, totalItems, criticalItems };
   }),
 
@@ -517,21 +709,39 @@ export const bomRouter = router({
   whereUsed: protectedProcedure
     .input(z.object({ materialCode: z.string() }))
     .query(async ({ input }) => {
-      const usages = bomItemsStore
-        .filter(i => i.materialCode === input.materialCode)
-        .map(i => {
-          const master = bomMasters.find(b => b.id === i.bomMasterId);
-          return {
-            bomMasterId: i.bomMasterId,
-            productCode: master?.productCode,
-            productName: master?.productName,
-            bomType: master?.bomType,
-            bomStatus: master?.status,
-            level: i.level,
-            quantity: i.quantity,
-            unit: i.unit,
-          };
-        });
+      const db = await requireDb();
+
+      const matchingItems = await db
+        .select()
+        .from(bomItems)
+        .where(eq(bomItems.materialCode, input.materialCode));
+
+      // Collect unique bomMasterIds
+      const bomMasterIds = Array.from(new Set(matchingItems.map(i => i.bomMasterId)));
+
+      // Fetch corresponding masters
+      const masters: Array<typeof bomMasters.$inferSelect> = [];
+      for (const masterId of bomMasterIds) {
+        const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, masterId));
+        if (rows[0]) masters.push(rows[0]);
+      }
+
+      const masterMap = new Map(masters.map(m => [m.id, m]));
+
+      const usages = matchingItems.map(i => {
+        const master = masterMap.get(i.bomMasterId);
+        return {
+          bomMasterId: i.bomMasterId,
+          productCode: master?.productCode,
+          productName: master?.productName,
+          bomType: master?.bomType,
+          bomStatus: master?.status,
+          level: i.level,
+          quantity: i.quantity,
+          unit: i.unit,
+        };
+      });
+
       return usages;
     }),
 
@@ -544,12 +754,18 @@ export const bomRouter = router({
       erpBomId: z.string(),
     }))
     .mutation(async ({ input }) => {
-      const idx = bomMasters.findIndex(b => b.id === input.id);
-      if (idx === -1) throw new Error('BOM not found');
-      bomMasters[idx].erpBomId = input.erpBomId;
-      bomMasters[idx].erpSyncStatus = 'synced';
-      bomMasters[idx].erpLastSyncAt = new Date().toISOString();
-      bomMasters[idx].updatedAt = new Date().toISOString();
-      return bomMasters[idx];
+      const db = await requireDb();
+
+      const existingRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id));
+      if (!existingRows[0]) throw new Error('BOM not found');
+
+      await db.update(bomMasters).set({
+        erpBomId: input.erpBomId,
+        erpSyncStatus: 'synced',
+        erpLastSyncAt: new Date().toISOString(),
+      }).where(eq(bomMasters.id, input.id));
+
+      const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id));
+      return rows[0];
     }),
 });

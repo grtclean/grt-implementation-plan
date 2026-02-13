@@ -106,6 +106,13 @@ import { iotDigitalTwinRouter } from "./services/iot-digital-twin.router";
 import { afterSalesRouter as realAfterSalesRouter } from "./services/after-sales.router";
 import { architectureRouter } from "./services/architecture.router";
 import { aiEarlyWarningRouter } from "./services/ai-early-warning.router";
+import { sopRouter } from "./services/sop.router";
+import { costStandardsRouter } from "./services/cost-standards.router";
+
+// AI Assistant modules (Purchase, Quality, Service)
+import { purchaseAssistantRouter } from "./ai-assistants/purchaseRoutes";
+import { qualityAssistantRouter } from "./ai-assistants/qualityRoutes";
+import { serviceAssistantRouter } from "./ai-assistants/serviceRoutes";
 
 /**
  * This is the primary router for the tRPC API.
@@ -333,6 +340,17 @@ export const appRouter = router({
   gamification: gamificationRouter,
   performanceTrace: performanceTraceRouter,
   iotDigitalTwin: iotDigitalTwinRouter,
+  // SOP Template Library
+  sop: sopRouter,
+
+  // 成本标准与产品配置
+  costStandards: costStandardsRouter,
+
+  // AI助手模块 (采购助手、质量助手、服务助手)
+  purchaseAssistant: purchaseAssistantRouter,
+  qualityAssistant: qualityAssistantRouter,
+  serviceAssistant: serviceAssistantRouter,
+
   // Health check endpoint
   health: publicProcedure.query(async () => {
     return {

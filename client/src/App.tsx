@@ -254,6 +254,24 @@ import Gamification from "./pages/Gamification";
 import IoTDashboard from "./pages/IoTDashboard";
 import RAGTrainingCenter from "./pages/RAGTrainingCenter";
 
+// v2.6.0 新增页面
+const QuotationCreate = React.lazy(() => import("./pages/QuotationCreate"));
+const ProjectDigitalTwin = React.lazy(() => import("./pages/ProjectDigitalTwin"));
+const OperationsAnalytics = React.lazy(() => import("./pages/OperationsAnalytics"));
+const HistoricalCases = React.lazy(() => import("./pages/HistoricalCases"));
+
+// 仓库管理 / 库存看板 / 成本标准
+const WarehouseManagement = React.lazy(() => import("./pages/WarehouseManagement"));
+const InventoryDashboard = React.lazy(() => import("./pages/InventoryDashboard"));
+const CostStandards = React.lazy(() => import("./pages/CostStandards"));
+
+// SOP模板库 / 阶段文档管理 / AI采购助手 / AI质量助手 / AI服务助手
+const SOPLibrary = React.lazy(() => import("./pages/SOPLibrary"));
+const ProjectPhaseDocuments = React.lazy(() => import("./pages/ProjectPhaseDocuments"));
+const AIPurchaseAssistant = React.lazy(() => import("./pages/ai/AIPurchaseAssistant"));
+const AIQualityAssistant = React.lazy(() => import("./pages/ai/AIQualityAssistant"));
+const AIServiceAssistant = React.lazy(() => import("./pages/ai/AIServiceAssistant"));
+
 // Protected route wrapper component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -1035,6 +1053,49 @@ function Router() {
         <ProtectedRoute component={ErrorLogViewer} />
       </Route>
       
+      {/* v2.6.0 报价生成 / 数字孪生 / 运营分析 / 历史案例 */}
+      <Route path="/quotation-create">
+        <ProtectedRoute component={QuotationCreate} />
+      </Route>
+      <Route path="/project-digital-twin">
+        <ProtectedRoute component={ProjectDigitalTwin} />
+      </Route>
+      <Route path="/operations-analytics">
+        <ProtectedRoute component={OperationsAnalytics} />
+      </Route>
+      <Route path="/historical-cases">
+        <ProtectedRoute component={HistoricalCases} />
+      </Route>
+
+      {/* 仓库管理 / 库存看板 / 成本标准 */}
+      <Route path="/warehouse-management">
+        <ProtectedRoute component={WarehouseManagement} />
+      </Route>
+      <Route path="/inventory-dashboard">
+        <ProtectedRoute component={InventoryDashboard} />
+      </Route>
+      <Route path="/cost-standards">
+        <ProtectedRoute component={CostStandards} />
+      </Route>
+
+      {/* SOP模板库 & 阶段文档管理 */}
+      <Route path="/sop-library">
+        <ProtectedRoute component={SOPLibrary} />
+      </Route>
+      <Route path="/project-phase-documents">
+        <ProtectedRoute component={ProjectPhaseDocuments} />
+      </Route>
+      {/* AI采购助手 / AI质量助手 / AI服务助手 */}
+      <Route path="/ai-purchase">
+        <ProtectedRoute component={AIPurchaseAssistant} />
+      </Route>
+      <Route path="/ai-quality">
+        <ProtectedRoute component={AIQualityAssistant} />
+      </Route>
+      <Route path="/ai-service">
+        <ProtectedRoute component={AIServiceAssistant} />
+      </Route>
+
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

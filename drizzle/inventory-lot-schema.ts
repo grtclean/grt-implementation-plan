@@ -11,15 +11,15 @@
  */
 
 import {
-  mysqlTable, int, varchar, text, timestamp, decimal,
-  mysqlEnum, index, unique, boolean, json,
-} from 'drizzle-orm/mysql-core';
+  pgTable, serial, integer, varchar, text, timestamp, decimal,
+  index, unique, boolean, json,
+} from 'drizzle-orm/pg-core';
 
 // ============================================
 // 批次主表 - 每批入库物料一条记录
 // ============================================
-export const inventoryLots = mysqlTable('inventory_lots', {
-  id: int().autoincrement().notNull(),
+export const inventoryLots = pgTable('inventory_lots', {
+  id: serial().primaryKey(),
   // 批次号（系统生成或手动输入）
   lotNumber: varchar({ length: 50 }).notNull(),
   // 物料信息
@@ -31,16 +31,16 @@ export const inventoryLots = mysqlTable('inventory_lots', {
   reservedQty: decimal({ precision: 10, scale: 2 }).default('0.00'),
   unit: varchar({ length: 20 }).notNull().default('个'),
   // 来源信息
-  sourceType: mysqlEnum(['purchase', 'production', 'transfer', 'return', 'initial']).notNull(),
+  sourceType: varchar({ length: 50 }).notNull(),
   sourcePOCode: varchar({ length: 30 }),     // 采购单号
   sourceWorkOrder: varchar({ length: 30 }),  // 生产工单号
   // 供应商批次
   supplierLotNumber: varchar({ length: 50 }),
-  supplierId: int(),
+  supplierId: integer(),
   supplierName: varchar({ length: 200 }),
   // 仓库/库位
-  warehouseId: int(),
-  locationId: int(),
+  warehouseId: integer(),
+  locationId: integer(),
   locationCode: varchar({ length: 30 }),
   // 日期管理
   productionDate: timestamp({ mode: 'string' }),   // 生产日期
@@ -48,24 +48,24 @@ export const inventoryLots = mysqlTable('inventory_lots', {
   expiryDate: timestamp({ mode: 'string' }),        // 过期日期
   warrantyDate: timestamp({ mode: 'string' }),      // 保修到期日
   // 质检信息
-  qcStatus: mysqlEnum(['pending', 'passed', 'failed', 'conditional']).default('pending'),
-  qcReportId: int(),
+  qcStatus: varchar({ length: 50 }).default('pending'),
+  qcReportId: integer(),
   qcCertificateNumber: varchar({ length: 50 }),
   // 批次状态
-  status: mysqlEnum(['available', 'reserved', 'quarantine', 'expired', 'consumed', 'scrapped']).notNull().default('available'),
+  status: varchar({ length: 50 }).notNull().default('available'),
   // 成本
   unitCost: decimal({ precision: 10, scale: 2 }),
   totalCost: decimal({ precision: 12, scale: 2 }),
   // 天思ERP关联
   erpLotId: varchar({ length: 50 }),
-  erpSyncStatus: mysqlEnum(['not_synced', 'synced', 'sync_error']).default('not_synced'),
+  erpSyncStatus: varchar({ length: 50 }).default('not_synced'),
   // 追溯属性 (JSON: 材质证明、检测报告等)
   traceAttributes: json(),
   // 备注
   notes: text(),
   // 时间戳
-  createdAt: timestamp({ mode: 'string' }).default('CURRENT_TIMESTAMP').notNull(),
-  updatedAt: timestamp({ mode: 'string' }).defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
   unique('uk_lot_number').on(table.lotNumber),
   index('idx_lot_material').on(table.materialCode),
@@ -81,18 +81,18 @@ export const inventoryLots = mysqlTable('inventory_lots', {
 // ============================================
 // 批次分配记录 - 追踪物料去向
 // ============================================
-export const lotAllocations = mysqlTable('lot_allocations', {
-  id: int().autoincrement().notNull(),
-  lotId: int().notNull(),
+export const lotAllocations = pgTable('lot_allocations', {
+  id: serial().primaryKey(),
+  lotId: integer().notNull(),
   lotNumber: varchar({ length: 50 }).notNull(),
   // 分配目的
-  allocationType: mysqlEnum(['production', 'project', 'sales_order', 'sample', 'rework', 'scrap']).notNull(),
+  allocationType: varchar({ length: 50 }).notNull(),
   // 关联单据
   targetDocType: varchar({ length: 20 }),        // WorkOrder, SalesOrder, Project
-  targetDocId: int(),
+  targetDocId: integer(),
   targetDocCode: varchar({ length: 30 }),
   // 关联工序
-  processInstanceId: int(),
+  processInstanceId: integer(),
   processCode: varchar({ length: 20 }),
   // 分配数量
   allocatedQty: decimal({ precision: 10, scale: 2 }).notNull(),
@@ -100,17 +100,17 @@ export const lotAllocations = mysqlTable('lot_allocations', {
   returnedQty: decimal({ precision: 10, scale: 2 }).default('0.00'),
   scrapQty: decimal({ precision: 10, scale: 2 }).default('0.00'),
   // 状态
-  status: mysqlEnum(['allocated', 'in_use', 'completed', 'returned', 'cancelled']).notNull().default('allocated'),
+  status: varchar({ length: 50 }).notNull().default('allocated'),
   // 操作人
-  allocatedBy: int(),
+  allocatedBy: integer(),
   allocatedByName: varchar({ length: 50 }),
   allocatedAt: timestamp({ mode: 'string' }),
   completedAt: timestamp({ mode: 'string' }),
   // 备注
   notes: text(),
   // 时间戳
-  createdAt: timestamp({ mode: 'string' }).default('CURRENT_TIMESTAMP').notNull(),
-  updatedAt: timestamp({ mode: 'string' }).defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
   index('idx_alloc_lot').on(table.lotId),
   index('idx_alloc_type').on(table.allocationType),
@@ -122,36 +122,36 @@ export const lotAllocations = mysqlTable('lot_allocations', {
 // ============================================
 // 序列号追踪表 - 逐个追踪高价值物料
 // ============================================
-export const serialNumbers = mysqlTable('serial_numbers', {
-  id: int().autoincrement().notNull(),
+export const serialNumbers = pgTable('serial_numbers', {
+  id: serial().primaryKey(),
   // 序列号
   serialNumber: varchar({ length: 100 }).notNull(),
   // 物料信息
   materialCode: varchar({ length: 50 }).notNull(),
   materialName: varchar({ length: 200 }),
   // 关联批次
-  lotId: int(),
+  lotId: integer(),
   lotNumber: varchar({ length: 50 }),
   // 当前位置
-  warehouseId: int(),
-  locationId: int(),
+  warehouseId: integer(),
+  locationId: integer(),
   // 当前状态
-  status: mysqlEnum(['in_stock', 'allocated', 'in_production', 'installed', 'shipped', 'returned', 'scrapped']).notNull().default('in_stock'),
+  status: varchar({ length: 50 }).notNull().default('in_stock'),
   // 当前持有者/项目
   currentProjectCode: varchar({ length: 50 }),
   currentProcessCode: varchar({ length: 20 }),
-  currentHolderId: int(),
+  currentHolderId: integer(),
   // 来源
   purchaseOrderCode: varchar({ length: 30 }),
-  supplierId: int(),
+  supplierId: integer(),
   // 日期
   receivedDate: timestamp({ mode: 'string' }),
   warrantyExpiry: timestamp({ mode: 'string' }),
   // 生命周期事件 (JSON: [{date, event, user, notes}])
   lifecycleEvents: json(),
   // 时间戳
-  createdAt: timestamp({ mode: 'string' }).default('CURRENT_TIMESTAMP').notNull(),
-  updatedAt: timestamp({ mode: 'string' }).defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
   unique('uk_serial_number').on(table.serialNumber),
   index('idx_sn_material').on(table.materialCode),
@@ -164,27 +164,27 @@ export const serialNumbers = mysqlTable('serial_numbers', {
 // ============================================
 // 保质期预警配置
 // ============================================
-export const expiryAlertRules = mysqlTable('expiry_alert_rules', {
-  id: int().autoincrement().notNull(),
+export const expiryAlertRules = pgTable('expiry_alert_rules', {
+  id: serial().primaryKey(),
   // 规则名称
   ruleName: varchar({ length: 100 }).notNull(),
   // 适用物料范围
   materialCode: varchar({ length: 50 }),          // null=所有物料
   materialCategory: varchar({ length: 50 }),      // null=所有分类
   // 预警天数
-  warningDays: int().notNull().default(30),       // 提前30天预警
-  criticalDays: int().notNull().default(7),       // 提前7天紧急预警
+  warningDays: integer().notNull().default(30),       // 提前30天预警
+  criticalDays: integer().notNull().default(7),       // 提前7天紧急预警
   // 通知方式
   notifyRoles: json(),     // 通知角色列表
   notifyUsers: json(),     // 通知用户列表
-  notifyChannel: mysqlEnum(['system', 'email', 'teams', 'dingtalk', 'all']).default('system'),
+  notifyChannel: varchar({ length: 50 }).default('system'),
   // 自动动作
   autoQuarantine: boolean().default(false),  // 过期自动隔离
   // 状态
   isActive: boolean().default(true),
   // 时间戳
-  createdAt: timestamp({ mode: 'string' }).default('CURRENT_TIMESTAMP').notNull(),
-  updatedAt: timestamp({ mode: 'string' }).defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
   index('idx_expiry_material').on(table.materialCode),
   index('idx_expiry_category').on(table.materialCategory),
