@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -53,7 +54,7 @@ import IntelligentScheduling from "./pages/IntelligentScheduling";
 import ComplianceRulesConfig from "./pages/ComplianceRulesConfig";
 import ChangeManagement from "./pages/ChangeManagement";
 import HRLifecycle from "./pages/HRLifecycle";
-import RDVerificationCenter from "./pages/RDVerificationCenter";
+const RDVerificationCenter = React.lazy(() => import("./pages/RDVerificationCenter"));
 import Community from "./pages/Community";
 import LeadManagement from "./pages/LeadManagement";
 import SchedulerManagement from "./pages/SchedulerManagement";
@@ -173,6 +174,7 @@ import SmartMeeting from "./pages/SmartMeeting";
 import AdminDashboard from "./pages/AdminDashboard";
 import MonitoringDashboard from "./pages/MonitoringDashboard";
 import ErrorLogViewer from "./pages/ErrorLogViewer";
+import AIEarlyWarning from "./pages/AIEarlyWarning";
 import { UserProfileProvider } from "./contexts/UserProfileContext";
 
 // v1.4.5 项目型组织操作系统 (POS) 页面
@@ -248,6 +250,8 @@ import TemporaryPermissions from "./pages/TemporaryPermissions";
 import PermissionBlacklist from "./pages/PermissionBlacklist";
 import MenuAnalytics from "./pages/MenuAnalytics";
 import RoleDashboard from "./pages/RoleDashboard";
+import Gamification from "./pages/Gamification";
+import IoTDashboard from "./pages/IoTDashboard";
 import RAGTrainingCenter from "./pages/RAGTrainingCenter";
 
 // Protected route wrapper component
@@ -999,6 +1003,14 @@ function Router() {
       </Route>
       {/* 新增模块路由结束 */}
 
+      {/* Platform Capability Enhancements */}
+      <Route path="/gamification">
+        <ProtectedRoute component={Gamification} />
+      </Route>
+      <Route path="/iot-dashboard">
+        <ProtectedRoute component={IoTDashboard} />
+      </Route>
+
       {/* RAG知识库训练中心 */}
       <Route path="/rag-training">
         <ProtectedRoute component={RAGTrainingCenter} />
@@ -1014,7 +1026,11 @@ function Router() {
       <Route path={"/m/field-dashboard"}>
         <ProtectedRoute component={FieldEngineerDashboard} />
       </Route>
-            {/* Error Log Viewer */}
+                  {/* AI Early Warning Center */}
+      <Route path="/ai-early-warning">
+        <ProtectedRoute component={AIEarlyWarning} />
+      </Route>
+      {/* Error Log Viewer */}
       <Route path={"/error-logs"}>
         <ProtectedRoute component={ErrorLogViewer} />
       </Route>

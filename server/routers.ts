@@ -97,7 +97,15 @@ import { knowledgeBaseRouter as realKnowledgeBaseRouter } from "./modules/knowle
 import { timeReconciliationRouter } from "./services/time-reconciliation.router";
 import { fatSatRouter } from "./services/fat-sat.router";
 import { fieldServiceRouter } from "./services/field-service.router";
+import { o365SyncRouter } from "./services/o365-sync.router";
+import { vectorSearchRouter } from "./services/vector-search.router";
+import { gamificationRouter } from "./services/gamification.router";
+import { performanceTraceRouter } from "./services/performance-trace.router";
+import { iotDigitalTwinRouter } from "./services/iot-digital-twin.router";
+
 import { afterSalesRouter as realAfterSalesRouter } from "./services/after-sales.router";
+import { architectureRouter } from "./services/architecture.router";
+import { aiEarlyWarningRouter } from "./services/ai-early-warning.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -312,6 +320,19 @@ export const appRouter = router({
   daIntegration: placeholderRouters.daIntegration,
   fieldMappingRecommend: placeholderRouters.fieldMappingRecommend,
 
+  // AI Early Warning System (3-layer: Health Scanner, Risk Scorer, LLM Narrative)
+  aiEarlyWarning: aiEarlyWarningRouter,
+
+  // Schema architecture improvements (Tasks #63, #64, #65, #67, #77)
+  architecture: architectureRouter,
+
+    
+  // Platform Capability Enhancements (Tasks #66, #74, #75, #76, #78)
+  o365Sync: o365SyncRouter,
+  vectorSearch: vectorSearchRouter,
+  gamification: gamificationRouter,
+  performanceTrace: performanceTraceRouter,
+  iotDigitalTwin: iotDigitalTwinRouter,
   // Health check endpoint
   health: publicProcedure.query(async () => {
     return {

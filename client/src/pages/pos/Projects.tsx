@@ -35,7 +35,6 @@ export default function POSProjects() {
   const { data, isLoading, error } = trpc.project.list.useQuery();
   
   // 调试日志
-  console.log('[POSProjects] data:', data, 'isLoading:', isLoading, 'error:', error);
 
   // 根据阶段筛选数据
   const filteredItems = data?.filter((project: any) => {

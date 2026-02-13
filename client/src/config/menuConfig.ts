@@ -80,6 +80,7 @@ import {
   LayoutDashboard,
   BellRing,
   Crown,
+  Trophy,
   Cable,
   RefreshCw,
   type LucideIcon,
@@ -199,7 +200,7 @@ export const menuConfig: MenuGroup[] = [
     icon: FolderKanban,
     items: [
       { name: "项目列表", nameEn: "Projects", path: "/projects", icon: FolderKanban, requiresBU: true },
-      { name: "研发验证中心", nameEn: "R&D Verification", path: "/rd-verification", icon: Shield },
+      { name: "研发验证中心", nameEn: "R&D Verification", path: "/rd-verification", icon: Shield, isNew: true },
       { name: "M1启动会", nameEn: "M1 Kickoff", path: "/m1-kickoff", icon: Sparkles },
       { name: "M7-M9交付", nameEn: "M7-M9 Delivery", path: "/m7-m9-delivery", icon: Clock },
       { name: "项目看板", nameEn: "Kanban Board", path: "/tasks", icon: Kanban },
@@ -373,6 +374,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "Agent管理", nameEn: "Agent Units", path: "/agent-unit-management", icon: Cpu,
         allowedRoles: ["admin"] },
       { name: "知识库训练", nameEn: "KB Training", path: "/rag-training", icon: BookOpen, isNew: true },
+      { name: "AI预警中心", nameEn: "AI Early Warning", path: "/ai-early-warning", icon: AlertTriangle, isNew: true },
     ],
   },
 
@@ -443,6 +445,19 @@ export const menuConfig: MenuGroup[] = [
       { name: "群通知", nameEn: "Group Alerts", path: "/group-notifications", icon: Send },
       { name: "文档管理", nameEn: "Documents", path: "/docs", icon: FileText },
       { name: "帮助中心", nameEn: "Help Center", path: "/help", icon: BookOpen },
+    ],
+  },
+
+  // ────────────────────────────────────
+  // 平台能力扩展
+  // ────────────────────────────────────
+  {
+    name: "平台能力",
+    nameEn: "Platform Capabilities",
+    icon: Cpu,
+    items: [
+      { name: "成就系统", nameEn: "Achievements", path: "/gamification", icon: Trophy, isNew: true },
+      { name: "IoT数字孪生", nameEn: "IoT Digital Twin", path: "/iot-dashboard", icon: Cpu, isNew: true },
     ],
   },
 ];

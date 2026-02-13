@@ -127,7 +127,7 @@ export default function POSMESSync() {
   const handleWriteBack = async (workOrder: WorkOrder) => {
     await writeBackMutation.mutateAsync({
       workOrderCode: workOrder.workOrderCode,
-      projectId: 1,
+      projectId: workOrder.id, // Use work order ID as project reference
       stageId: 'M7',
       progress: workOrder.progress,
       status: workOrder.status as any,

@@ -9747,3 +9747,233 @@ export const satSiteConditions = pgTable("sat_site_conditions", {
   measuredAt: timestamp("measured_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+
+// ========== Gamification System ==========
+
+export const employeeXP = pgTable("employee_xp", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  action: varchar("action", { length: 100 }).notNull(),
+  points: integer("points").notNull(),
+  sourceType: varchar("source_type", { length: 50 }),
+  sourceId: integer("source_id"),
+  awardedAt: timestamp("awarded_at").defaultNow(),
+});
+
+export const employeeAchievements = pgTable("employee_achievements", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  achievementCode: varchar("achievement_code", { length: 100 }).notNull(),
+  achievementName: varchar("achievement_name", { length: 200 }).notNull(),
+  description: text("description"),
+  iconUrl: varchar("icon_url", { length: 500 }),
+  tier: varchar("tier", { length: 20 }).default("bronze"), // bronze, silver, gold, platinum
+  unlockedAt: timestamp("unlocked_at").defaultNow(),
+});
+
+export const employeeLevels = pgTable("employee_levels", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  totalXP: integer("total_xp").default(0),
+  currentLevel: integer("current_level").default(1),
+  currentTitle: varchar("current_title", { length: 100 }),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ========== Performance Traceability ==========
+
+export const performanceTraces = pgTable("performance_traces", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  metricCode: varchar("metric_code", { length: 100 }).notNull(),
+  metricName: varchar("metric_name", { length: 200 }),
+  value: real("value").notNull(),
+  unit: varchar("unit", { length: 50 }),
+  sourceType: varchar("source_type", { length: 50 }),
+  sourceId: integer("source_id"),
+  sourceDescription: text("source_description"),
+  period: varchar("period", { length: 20 }),
+  recordedAt: timestamp("recorded_at").defaultNow(),
+});
+
+// ========== IoT Digital Twin ==========
+
+export const iotEquipmentTwins = pgTable("iot_equipment_twins", {
+  id: serial("id").primaryKey(),
+  equipmentId: integer("equipment_id").notNull(),
+  equipmentCode: varchar("equipment_code", { length: 100 }),
+  equipmentName: varchar("equipment_name", { length: 300 }),
+  location: varchar("location", { length: 200 }),
+  lastTelemetryAt: timestamp("last_telemetry_at"),
+  status: varchar("status", { length: 50 }).default("offline"),
+  metadata: text("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const iotTelemetryData = pgTable("iot_telemetry_data", {
+  id: serial("id").primaryKey(),
+  equipmentId: integer("equipment_id").notNull(),
+  metricType: varchar("metric_type", { length: 50 }).notNull(),
+  value: real("value").notNull(),
+  unit: varchar("unit", { length: 20 }),
+  isAlert: boolean("is_alert").default(false),
+  recordedAt: timestamp("recorded_at").defaultNow(),
+});
+
+export const iotMaintenancePredictions = pgTable("iot_maintenance_predictions", {
+  id: serial("id").primaryKey(),
+  equipmentId: integer("equipment_id").notNull(),
+  predictedIssue: varchar("predicted_issue", { length: 300 }),
+  confidence: real("confidence"),
+  recommendedAction: text("recommended_action"),
+  predictedDate: timestamp("predicted_date"),
+  isResolved: boolean("is_resolved").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+
+// ========================================
+// AI Early Warning System Tables (Tasks #71-73)
+// ========================================
+
+/** Project health scores - Layer 1: Health Scanner */
+export const projectHealthScores = pgTable("project_health_scores", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  healthScore: integer("health_score").notNull(),
+  issueCount: integer("issue_count").default(0),
+  criticalCount: integer("critical_count").default(0),
+  warningCount: integer("warning_count").default(0),
+  infoCount: integer("info_count").default(0),
+  issuesJson: text("issues_json"),
+  scannedAt: timestamp("scanned_at").defaultNow(),
+});
+
+/** Risk notifications - Layer 2: Risk Scorer */
+export const riskNotifications = pgTable("risk_notifications", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  recipientRole: varchar("recipient_role", { length: 50 }).notNull(),
+  recipientUserId: integer("recipient_user_id"),
+  riskLevel: varchar("risk_level", { length: 20 }).notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  readAt: timestamp("read_at"),
+});
+
+/** Historical case matches - Layer 3: LLM Narrative Engine */
+export const historicalCaseMatches = pgTable("historical_case_matches", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  matchedProjectId: integer("matched_project_id").notNull(),
+  similarityScore: real("similarity_score").notNull(),
+  matchFactors: text("match_factors"),
+  outcome: varchar("outcome", { length: 100 }),
+  lessonsLearned: text("lessons_learned"),
+  matchedAt: timestamp("matched_at").defaultNow(),
+});
+
+
+
+// ========== Architecture Improvement Tables (Tasks #63, #64, #65, #67, #77) ==========
+
+// Task #63 - V1/V2 Project Unification View
+export const unifiedProjects = pgTable("unified_projects", {
+  id: serial("id").primaryKey(),
+  sourceTable: varchar("source_table", { length: 20 }).notNull(), // 'v1' or 'v2'
+  sourceId: integer("source_id").notNull(),
+  projectCode: varchar("project_code", { length: 100 }),
+  name: varchar("name", { length: 500 }),
+  status: varchar("status", { length: 50 }),
+  currentStage: varchar("current_stage", { length: 20 }),
+  customerId: integer("customer_id"),
+  customerName: varchar("customer_name", { length: 200 }),
+  projectManager: varchar("project_manager", { length: 100 }),
+  startDate: timestamp("start_date"),
+  targetEndDate: timestamp("target_end_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  syncedAt: timestamp("synced_at").defaultNow(),
+});
+
+// Task #64 - FK Constraint Registry
+export const fkConstraintRegistry = pgTable("fk_constraint_registry", {
+  id: serial("id").primaryKey(),
+  sourceTable: varchar("source_table", { length: 100 }).notNull(),
+  sourceColumn: varchar("source_column", { length: 100 }).notNull(),
+  targetTable: varchar("target_table", { length: 100 }).notNull(),
+  targetColumn: varchar("target_column", { length: 100 }).notNull(),
+  constraintName: varchar("constraint_name", { length: 200 }),
+  isEnforced: boolean("is_enforced").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Task #65 - JSON Normalization: Project Stage Tasks
+export const projectStageTasks = pgTable("project_stage_tasks", {
+  id: serial("id").primaryKey(),
+  stageId: integer("stage_id").notNull(),
+  projectId: integer("project_id").notNull(),
+  taskName: varchar("task_name", { length: 500 }).notNull(),
+  assignee: varchar("assignee", { length: 100 }),
+  status: varchar("status", { length: 50 }).default("pending"),
+  dueDate: timestamp("due_date"),
+  completedAt: timestamp("completed_at"),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Task #65 - JSON Normalization: Project Stage Audit Logs
+export const projectStageAuditLogs = pgTable("project_stage_audit_logs", {
+  id: serial("id").primaryKey(),
+  stageId: integer("stage_id").notNull(),
+  projectId: integer("project_id").notNull(),
+  action: varchar("action", { length: 100 }).notNull(),
+  actor: varchar("actor", { length: 100 }),
+  details: text("details"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+// Task #67 - Unified Customer Master Table
+export const customerMaster = pgTable("customer_master", {
+  id: serial("id").primaryKey(),
+  externalCode: varchar("external_code", { length: 50 }),
+  name: varchar("name", { length: 300 }).notNull(),
+  nameEn: varchar("name_en", { length: 300 }),
+  tier: varchar("tier", { length: 50 }),
+  industry: varchar("industry", { length: 100 }),
+  region: varchar("region", { length: 100 }),
+  country: varchar("country", { length: 100 }),
+  address: text("address"),
+  primaryContact: varchar("primary_contact", { length: 200 }),
+  contactPhone: varchar("contact_phone", { length: 50 }),
+  contactEmail: varchar("contact_email", { length: 200 }),
+  // Source tracking for migration
+  sourceCrmV1Id: integer("source_crm_v1_id"),
+  sourceCrmV2Id: integer("source_crm_v2_id"),
+  sourceCustomersV2Id: integer("source_customers_v2_id"),
+  sourceAfterSalesId: integer("source_after_sales_id"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Task #77 - Gate Checklist Items Extended (M0-M12)
+export const gateChecklistItemsExtended = pgTable("gate_checklist_items_extended", {
+  id: serial("id").primaryKey(),
+  stageCode: varchar("stage_code", { length: 10 }).notNull(), // M0-M12
+  category: varchar("category", { length: 100 }).notNull(),
+  itemName: varchar("item_name", { length: 500 }).notNull(),
+  description: text("description"),
+  weight: integer("weight").default(5),
+  isRequired: boolean("is_required").default(false),
+  passCriteria: text("pass_criteria"),
+  applicableEquipmentTypes: text("applicable_equipment_types"), // comma-separated
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
