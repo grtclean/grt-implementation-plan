@@ -1,4 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
+import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,22 +14,22 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
-import { 
+import {
   Factory, RefreshCw, CheckCircle2, Clock, AlertTriangle,
-  ArrowRight, Loader2, Settings, Play, Pause, Eye, Plus,
-  ArrowLeftRight, Download, Upload, Activity, Wrench,
-  Package, Zap, Timer, TrendingUp, BarChart3
+  ArrowRight, Loader2, Settings, Play, Eye, Plus,
+  ArrowLeftRight, Download, Upload, Activity,
+  Package, Timer, TrendingUp, BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 
-const workOrderStatusColors: Record<string, string> = {
-  Created: 'bg-gray-400',
-  Pending: 'bg-gray-400',
-  InProgress: 'bg-blue-500',
-  Completed: 'bg-green-500',
-  OnHold: 'bg-yellow-500',
-  Cancelled: 'bg-red-500',
-};
+const workOrderStatusMap = createStatusColorMap({
+  Created: 'gray',
+  Pending: 'gray',
+  InProgress: 'blue',
+  Completed: 'green',
+  OnHold: 'yellow',
+  Cancelled: 'red',
+});
 
 const workOrderStatusLabels: Record<string, string> = {
   Created: '已创建',
@@ -96,13 +100,7 @@ export default function POSMESSync() {
     onError: () => toast.error('创建工单失败'),
   });
 
-  const pullProgressMutation = (trpc.pos.mes.pullProgressFromMES as any).useMutation({
-    onSuccess: (result) => {
-      toast.success(`进度已更新: ${Math.round(result.completionRate * 100)}%`);
-      refetch();
-    },
-    onError: () => toast.error('拉取进度失败'),
-  });
+  const trpcUtils = trpc.useUtils();
 
   const writeBackMutation = trpc.pos.mes.writeBackProgress.useMutation({
     onSuccess: () => {
@@ -114,14 +112,20 @@ export default function POSMESSync() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      await syncMutation.mutateAsync({ id: 1, direction: 'FromMES' as any });
+      await syncMutation.mutateAsync({ id: 1, direction: 'FromMES' });
     } finally {
       setSyncing(false);
     }
   };
 
   const handlePullProgress = async (workOrderCode: string) => {
-    await pullProgressMutation.mutateAsync({ workOrderCode });
+    try {
+      const result = await trpcUtils.pos.mes.pullProgressFromMES.fetch({ workOrderCode });
+      toast.success(`进度已更新: ${Math.round(result.completionRate * 100)}%`);
+      refetch();
+    } catch {
+      toast.error('拉取进度失败');
+    }
   };
 
   const handleWriteBack = async (workOrder: WorkOrder) => {
@@ -134,165 +138,105 @@ export default function POSMESSync() {
     });
   };
 
-  // 示例数据（带工序详情）
-  const sampleWorkOrders: WorkOrder[] = [
-    { 
-      id: 1, 
-      workOrderCode: 'WO-2024-001', 
-      projectCode: 'GRT-401', 
-      productName: '超声波清洗机', 
-      status: 'InProgress', 
-      progress: 65, 
-      lastSync: '2024-01-20 14:30',
-      operations: [
-        { id: 'op1', name: '下料', status: 'Completed', progress: 100, operator: '张三', startTime: '2024-01-15 08:00', endTime: '2024-01-15 12:00' },
-        { id: 'op2', name: '焊接', status: 'Completed', progress: 100, operator: '李四', startTime: '2024-01-15 14:00', endTime: '2024-01-16 16:00' },
-        { id: 'op3', name: '机加工', status: 'InProgress', progress: 80, operator: '王五', startTime: '2024-01-17 08:00' },
-        { id: 'op4', name: '装配', status: 'Pending', progress: 0 },
-        { id: 'op5', name: '调试', status: 'Pending', progress: 0 },
-        { id: 'op6', name: '检验', status: 'Pending', progress: 0 },
-      ]
-    },
-    { 
-      id: 2, 
-      workOrderCode: 'WO-2024-002', 
-      projectCode: 'GRT-401', 
-      productName: '干燥系统', 
-      status: 'Pending', 
-      progress: 0, 
-      lastSync: '2024-01-20 14:30',
-      operations: [
-        { id: 'op1', name: '下料', status: 'Pending', progress: 0 },
-        { id: 'op2', name: '焊接', status: 'Pending', progress: 0 },
-        { id: 'op3', name: '装配', status: 'Pending', progress: 0 },
-        { id: 'op4', name: '调试', status: 'Pending', progress: 0 },
-      ]
-    },
-    { 
-      id: 3, 
-      workOrderCode: 'WO-2024-003', 
-      projectCode: 'GRT-402', 
-      productName: '输送线体', 
-      status: 'Completed', 
-      progress: 100, 
-      lastSync: '2024-01-19 16:45',
-      operations: [
-        { id: 'op1', name: '下料', status: 'Completed', progress: 100 },
-        { id: 'op2', name: '焊接', status: 'Completed', progress: 100 },
-        { id: 'op3', name: '装配', status: 'Completed', progress: 100 },
-        { id: 'op4', name: '检验', status: 'Completed', progress: 100 },
-      ]
-    },
-    { 
-      id: 4, 
-      workOrderCode: 'WO-2024-004', 
-      projectCode: 'GRT-400', 
-      productName: '控制柜', 
-      status: 'OnHold', 
-      progress: 30, 
-      lastSync: '2024-01-18 10:20',
-      operations: [
-        { id: 'op1', name: '下料', status: 'Completed', progress: 100 },
-        { id: 'op2', name: '钣金', status: 'Failed', progress: 60 },
-        { id: 'op3', name: '喷涂', status: 'Pending', progress: 0 },
-        { id: 'op4', name: '装配', status: 'Pending', progress: 0 },
-      ]
-    },
-  ];
-
-  const displayWorkOrders = syncRecords?.items?.length ? syncRecords.items : sampleWorkOrders;
+  const displayWorkOrders: WorkOrder[] = (syncRecords?.items as WorkOrder[]) ?? [];
 
   // 计算统计数据
   const stats = {
     total: displayWorkOrders.length,
-    inProgress: displayWorkOrders.filter((w: any) => w.status === 'InProgress').length,
-    completed: displayWorkOrders.filter((w: any) => w.status === 'Completed').length,
-    onHold: displayWorkOrders.filter((w: any) => w.status === 'OnHold').length,
-    avgProgress: Math.round(displayWorkOrders.reduce((acc: number, w: any) => acc + w.progress, 0) / displayWorkOrders.length),
+    inProgress: displayWorkOrders.filter((w) => w.status === 'InProgress').length,
+    completed: displayWorkOrders.filter((w) => w.status === 'Completed').length,
+    onHold: displayWorkOrders.filter((w) => w.status === 'OnHold').length,
+    avgProgress: displayWorkOrders.length > 0
+      ? Math.round(displayWorkOrders.reduce((acc, w) => acc + w.progress, 0) / displayWorkOrders.length)
+      : 0,
   };
 
+  const mesConnected = connectionStatus?.mes?.connected ?? false;
+
   return (
+    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">MES同步</h1>
-          <p className="text-muted-foreground">工单与进度看板 - 双向数据同步</p>
-        </div>
-        <div className="flex gap-2">
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Plus className="w-4 h-4 mr-2" />
-                创建工单
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>从项目创建工单</DialogTitle>
-                <DialogDescription>选择项目并创建MES工单</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div>
-                  <Label>项目ID</Label>
-                  <Input 
-                    placeholder="输入项目ID"
-                    value={newWorkOrder.projectId}
-                    onChange={(e) => setNewWorkOrder({ ...newWorkOrder, projectId: e.target.value })}
-                  />
-                </div>
-                <Button 
-                  className="w-full"
-                  onClick={() => {
-                    createWorkOrderMutation.mutate({
-                      projectId: parseInt(newWorkOrder.projectId) || 1,
-                      workOrderType: 'Production',
-                      items: [
-                        { itemCode: 'ITEM-001', itemName: '清洗槽', quantity: 1, unit: '套', plannedStartDate: '2024-02-01', plannedEndDate: '2024-03-01' }
-                      ],
-                    });
-                  }}
-                  disabled={createWorkOrderMutation.isPending}
-                >
-                  {createWorkOrderMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Plus className="w-4 h-4 mr-2" />
-                  )}
+      <PageHeader
+        icon={Factory}
+        title="MES同步"
+        description="工单与进度看板 - 双向数据同步"
+        actions={
+          <div className="flex gap-2">
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Plus className="w-4 h-4 mr-2" />
                   创建工单
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-          <Button variant="outline" onClick={() => setLocation('/pos/connectors')}>
-            <Settings className="w-4 h-4 mr-2" />
-            配置连接
-          </Button>
-          <Button onClick={handleSync} disabled={syncing}>
-            {syncing ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
-            )}
-            同步MES
-          </Button>
-        </div>
-      </div>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>从项目创建工单</DialogTitle>
+                  <DialogDescription>选择项目并创建MES工单</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <Label>项目ID</Label>
+                    <Input
+                      placeholder="输入项目ID"
+                      value={newWorkOrder.projectId}
+                      onChange={(e) => setNewWorkOrder({ ...newWorkOrder, projectId: e.target.value })}
+                    />
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      createWorkOrderMutation.mutate({
+                        projectId: parseInt(newWorkOrder.projectId) || 1,
+                        workOrderType: 'Production',
+                        items: [
+                          { itemCode: 'ITEM-001', itemName: '清洗槽', quantity: 1, unit: '套', plannedStartDate: '2024-02-01', plannedEndDate: '2024-03-01' }
+                        ],
+                      });
+                    }}
+                    disabled={createWorkOrderMutation.isPending}
+                  >
+                    {createWorkOrderMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Plus className="w-4 h-4 mr-2" />
+                    )}
+                    创建工单
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button variant="outline" onClick={() => setLocation('/pos/connectors')}>
+              <Settings className="w-4 h-4 mr-2" />
+              配置连接
+            </Button>
+            <Button onClick={handleSync} disabled={syncing}>
+              {syncing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              同步MES
+            </Button>
+          </div>
+        }
+      />
 
       {/* 连接状态 */}
-      <Card className={`border-l-4 ${(connectionStatus as any)?.connected ? 'border-l-green-500' : 'border-l-yellow-500'}`}>
+      <Card className={`border-l-4 ${mesConnected ? 'border-l-green-500' : 'border-l-yellow-500'}`}>
         <CardContent className="py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${(connectionStatus as any)?.connected ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`} />
+              <div className={`w-3 h-3 rounded-full ${mesConnected ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`} />
               <span className="font-medium">MES连接状态</span>
-              <Badge variant={(connectionStatus as any)?.connected ? 'default' : 'secondary'}>
-                {(connectionStatus as any)?.connected ? '已连接' : '未连接'}
+              <Badge variant={mesConnected ? 'default' : 'secondary'}>
+                {mesConnected ? '已连接' : '未连接'}
               </Badge>
             </div>
-            {(connectionStatus as any)?.lastSync && (
+            {connectionStatus?.mes?.lastSync && (
               <span className="text-sm text-muted-foreground">
-                上次同步: {(connectionStatus as any).lastSync}
+                上次同步: {connectionStatus.mes.lastSync}
               </span>
             )}
           </div>
@@ -300,57 +244,12 @@ export default function POSMESSync() {
       </Card>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">工单总数</CardTitle>
-            <Factory className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">活跃工单</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">进行中</CardTitle>
-            <Activity className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.inProgress}</div>
-            <p className="text-xs text-muted-foreground">正在生产</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">已完成</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
-            <p className="text-xs text-muted-foreground">本月完成</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">异常暂停</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.onHold}</div>
-            <p className="text-xs text-muted-foreground">需要关注</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">平均进度</CardTitle>
-            <TrendingUp className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.avgProgress}%</div>
-            <Progress value={stats.avgProgress} className="mt-2" />
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <StatCard icon={Factory} label="工单总数" value={stats.total} subtitle="活跃工单" />
+        <StatCard icon={Activity} label="进行中" value={stats.inProgress} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label="已完成" value={stats.completed} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label="异常暂停" value={stats.onHold} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+        <StatCard icon={TrendingUp} label="平均进度" value={`${stats.avgProgress}%`} subtitle="整体完成度" />
       </div>
 
       {/* 工单看板 - 可视化视图 */}
@@ -379,11 +278,11 @@ export default function POSMESSync() {
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   待开始
-                  <Badge variant="secondary">{displayWorkOrders.filter((w: any) => w.status === 'Pending' || w.status === 'Created').length}</Badge>
+                  <Badge variant="secondary">{displayWorkOrders.filter((w: WorkOrder) => w.status === 'Pending' || w.status === 'Created').length}</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {displayWorkOrders.filter((w: any) => w.status === 'Pending' || w.status === 'Created').map((wo: any) => (
+                {displayWorkOrders.filter((w: WorkOrder) => w.status === 'Pending' || w.status === 'Created').map((wo) => (
                   <Card key={wo.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedWorkOrder(wo)}>
                     <CardContent className="p-3">
                       <p className="font-mono text-sm">{wo.workOrderCode}</p>
@@ -410,7 +309,7 @@ export default function POSMESSync() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {displayWorkOrders.filter((w: any) => w.status === 'InProgress').map((wo: any) => (
+                {displayWorkOrders.filter((w: WorkOrder) => w.status === 'InProgress').map((wo) => (
                   <Card key={wo.id} className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-blue-500" onClick={() => setSelectedWorkOrder(wo)}>
                     <CardContent className="p-3">
                       <p className="font-mono text-sm">{wo.workOrderCode}</p>
@@ -449,7 +348,7 @@ export default function POSMESSync() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {displayWorkOrders.filter((w: any) => w.status === 'OnHold').map((wo: any) => (
+                {displayWorkOrders.filter((w: WorkOrder) => w.status === 'OnHold').map((wo) => (
                   <Card key={wo.id} className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-yellow-500" onClick={() => setSelectedWorkOrder(wo)}>
                     <CardContent className="p-3">
                       <p className="font-mono text-sm">{wo.workOrderCode}</p>
@@ -479,7 +378,7 @@ export default function POSMESSync() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {displayWorkOrders.filter((w: any) => w.status === 'Completed').map((wo: any) => (
+                {displayWorkOrders.filter((w: WorkOrder) => w.status === 'Completed').map((wo) => (
                   <Card key={wo.id} className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-green-500" onClick={() => setSelectedWorkOrder(wo)}>
                     <CardContent className="p-3">
                       <p className="font-mono text-sm">{wo.workOrderCode}</p>
@@ -511,6 +410,12 @@ export default function POSMESSync() {
                 <div className="flex items-center justify-center h-32">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
+              ) : displayWorkOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Factory className="w-12 h-12 mb-3 opacity-50" />
+                  <p className="font-medium">暂无工单数据</p>
+                  <p className="text-sm">创建工单或同步MES系统获取数据</p>
+                </div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -525,15 +430,15 @@ export default function POSMESSync() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {displayWorkOrders.map((wo: any) => (
+                    {displayWorkOrders.map((wo) => (
                       <TableRow key={wo.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedWorkOrder(wo)}>
                         <TableCell className="font-mono">{wo.workOrderCode}</TableCell>
                         <TableCell className="font-mono">{wo.projectCode}</TableCell>
                         <TableCell>{wo.productName}</TableCell>
                         <TableCell>
-                          <Badge className={workOrderStatusColors[wo.status]}>
+                          <StatusBadge color={workOrderStatusMap[wo.status as keyof typeof workOrderStatusMap] ?? 'gray'}>
                             {workOrderStatusLabels[wo.status]}
-                          </Badge>
+                          </StatusBadge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2 w-32">
@@ -573,7 +478,7 @@ export default function POSMESSync() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {displayWorkOrders.filter((w: any) => w.operations).map((wo: any) => (
+                {displayWorkOrders.filter((w: WorkOrder) => w.operations).map((wo) => (
                   <div key={wo.id} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-4">
                       <div>
@@ -581,9 +486,9 @@ export default function POSMESSync() {
                         <p className="text-sm text-muted-foreground">{wo.projectCode}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge className={workOrderStatusColors[wo.status]}>
+                        <StatusBadge color={workOrderStatusMap[wo.status as keyof typeof workOrderStatusMap] ?? 'gray'}>
                           {workOrderStatusLabels[wo.status]}
-                        </Badge>
+                        </StatusBadge>
                         <span className="text-lg font-bold">{wo.progress}%</span>
                       </div>
                     </div>
@@ -686,5 +591,6 @@ export default function POSMESSync() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

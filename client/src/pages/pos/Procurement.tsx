@@ -89,7 +89,7 @@ export default function POSProcurement() {
       toast.error('请选择要确认的物料');
       return;
     }
-    engineerConfirmMutation.mutate({ id: 1, approved: true, modifiedItems: selectedItems as any });
+    engineerConfirmMutation.mutate({ id: 1, approved: true, modifiedItems: selectedItems.map(id => ({ itemCode: String(id) })) });
   };
 
   const handleProcurementConfirm = () => {
@@ -117,110 +117,16 @@ export default function POSProcurement() {
     setSelectedItems([]);
   };
 
-  // 示例数据（增强版）
-  const sampleItems: POItem[] = [
-    { 
-      id: 1, 
-      poCode: 'PO-2024-001', 
-      projectCode: 'GRT-401', 
-      itemCode: 'USG-001',
-      itemName: '超声波发生器', 
-      specification: '28kHz/2000W',
-      leadTime: 45, 
-      quantity: 2, 
-      unit: '台',
-      suggestedSupplier: '深圳超声科技',
-      priceRange: '¥15,000-18,000',
-      needDate: '2024-03-15',
-      riskFlags: ['长周期', '关键件'],
-      rationale: 'M4评审确定的核心部件，需提前采购',
-      status: 'pending_engineer' 
-    },
-    { 
-      id: 2, 
-      poCode: 'PO-2024-001', 
-      projectCode: 'GRT-401', 
-      itemCode: 'HPP-002',
-      itemName: '高压泵组', 
-      specification: '15L/min@150bar',
-      leadTime: 60, 
-      quantity: 1, 
-      unit: '套',
-      suggestedSupplier: 'Grundfos/格兰富',
-      priceRange: '¥25,000-30,000',
-      needDate: '2024-03-01',
-      riskFlags: ['长周期', '进口件', '关键件'],
-      rationale: '进口高压泵，交期长需优先采购',
-      status: 'pending_engineer' 
-    },
-    { 
-      id: 3, 
-      poCode: 'PO-2024-002', 
-      projectCode: 'GRT-402', 
-      itemCode: 'PLC-003',
-      itemName: 'PLC控制器', 
-      specification: 'Siemens S7-1500',
-      leadTime: 30, 
-      quantity: 3, 
-      unit: '台',
-      suggestedSupplier: '西门子授权代理',
-      priceRange: '¥8,000-10,000',
-      needDate: '2024-03-20',
-      riskFlags: [],
-      rationale: '标准件，多家供应商可选',
-      status: 'pending_procurement',
-      engineerComment: '已确认规格，建议选择西门子原装'
-    },
-    { 
-      id: 4, 
-      poCode: 'PO-2024-003', 
-      projectCode: 'GRT-400', 
-      itemCode: 'CBM-004',
-      itemName: '传送带模组', 
-      specification: '500mm宽×3000mm长',
-      leadTime: 25, 
-      quantity: 4, 
-      unit: '套',
-      suggestedSupplier: '东莞输送设备',
-      priceRange: '¥3,000-4,000',
-      needDate: '2024-04-01',
-      riskFlags: [],
-      rationale: '常规件，库存充足',
-      status: 'exported',
-      engineerComment: '规格确认',
-      procurementComment: '已下单至供应商',
-      finalPoRef: 'ERP-PO-2024-0156'
-    },
-    { 
-      id: 5, 
-      poCode: 'PO-2024-004', 
-      projectCode: 'GRT-403', 
-      itemCode: 'VFD-005',
-      itemName: '变频器', 
-      specification: 'ABB ACS580 22kW',
-      leadTime: 35, 
-      quantity: 2, 
-      unit: '台',
-      suggestedSupplier: 'ABB授权代理',
-      priceRange: '¥12,000-15,000',
-      needDate: '2024-03-25',
-      riskFlags: ['进口件'],
-      rationale: '客户指定品牌',
-      status: 'rejected',
-      engineerComment: '规格需要调整为30kW'
-    },
-  ];
-
-  const displayItems = data?.items?.length ? data.items : sampleItems;
-  const filteredItems = displayItems.filter((item: any) => item.status === activeTab);
+  const displayItems: POItem[] = (data?.items as POItem[]) ?? [];
+  const filteredItems = displayItems.filter((item) => item.status === activeTab);
 
   // 计算统计数据
   const stats = {
-    pendingEngineer: displayItems.filter((i: any) => i.status === 'pending_engineer').length,
-    pendingProcurement: displayItems.filter((i: any) => i.status === 'pending_procurement').length,
-    exported: displayItems.filter((i: any) => i.status === 'exported').length,
-    rejected: displayItems.filter((i: any) => i.status === 'rejected').length,
-    longLeadTime: displayItems.filter((i: any) => i.leadTime > 30).length,
+    pendingEngineer: displayItems.filter((i) => i.status === 'pending_engineer').length,
+    pendingProcurement: displayItems.filter((i) => i.status === 'pending_procurement').length,
+    exported: displayItems.filter((i) => i.status === 'exported').length,
+    rejected: displayItems.filter((i) => i.status === 'rejected').length,
+    longLeadTime: displayItems.filter((i) => i.leadTime > 30).length,
     totalValue: '¥156,000',
   };
 
@@ -280,7 +186,7 @@ export default function POSProcurement() {
       </Card>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard
           icon={User}
           label="待工程确认"
@@ -347,7 +253,7 @@ export default function POSProcurement() {
                     <tab.icon className={`w-4 h-4 ${tab.color}`} />
                     {tab.label}
                     <Badge variant="secondary" className="ml-1">
-                      {displayItems.filter((i: any) => i.status === tab.id).length}
+                      {displayItems.filter((i) => i.status === tab.id).length}
                     </Badge>
                   </TabsTrigger>
                 ))}
@@ -404,7 +310,7 @@ export default function POSProcurement() {
                               checked={filteredItems.length > 0 && selectedItems.length === filteredItems.length}
                               onCheckedChange={(checked) => {
                                 if (checked) {
-                                  setSelectedItems(filteredItems.map((i: any) => i.id));
+                                  setSelectedItems(filteredItems.map((i) => i.id));
                                 } else {
                                   setSelectedItems([]);
                                 }
@@ -427,7 +333,7 @@ export default function POSProcurement() {
                     </TableHeader>
                     <TableBody>
                       {filteredItems.length > 0 ? (
-                        filteredItems.map((item: any) => (
+                        filteredItems.map((item) => (
                           <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50">
                             {(tab.id === 'pending_engineer' || tab.id === 'pending_procurement') && (
                               <TableCell onClick={(e) => e.stopPropagation()}>

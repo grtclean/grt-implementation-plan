@@ -23,13 +23,14 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-// Stage colors
-const stageColors: Record<string, string> = {
-  M7_Pre_Acceptance: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  M8_Installation: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  M9_Final_Acceptance: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  Completed: "bg-green-500/20 text-green-400 border-green-500/30",
-};
+import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
+
+const stageColorMap = createStatusColorMap({
+  M7_Pre_Acceptance: "blue",
+  M8_Installation: "purple",
+  M9_Final_Acceptance: "orange",
+  Completed: "green",
+});
 
 const stageLabels: Record<string, string> = {
   M7_Pre_Acceptance: "M7 预验收",
@@ -38,14 +39,13 @@ const stageLabels: Record<string, string> = {
   Completed: "已完成",
 };
 
-// Status colors
-const statusColors: Record<string, string> = {
-  Pending: "bg-slate-500/20 text-slate-400 border-slate-500/30",
-  In_Progress: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  Blocked: "bg-red-500/20 text-red-400 border-red-500/30",
-  Completed: "bg-green-500/20 text-green-400 border-green-500/30",
-  Cancelled: "bg-gray-500/20 text-gray-400 border-gray-500/30",
-};
+const statusColorMap = createStatusColorMap({
+  Pending: "slate",
+  In_Progress: "blue",
+  Blocked: "red",
+  Completed: "green",
+  Cancelled: "gray",
+});
 
 const statusLabels: Record<string, string> = {
   Pending: "待处理",
@@ -55,12 +55,11 @@ const statusLabels: Record<string, string> = {
   Cancelled: "已取消",
 };
 
-// Gate result colors
-const gateResultColors: Record<string, string> = {
-  Pass: "bg-green-500/20 text-green-400",
-  Conditional_Pass: "bg-yellow-500/20 text-yellow-400",
-  Fail: "bg-red-500/20 text-red-400",
-};
+const gateResultColorMap = createStatusColorMap({
+  Pass: "green",
+  Conditional_Pass: "yellow",
+  Fail: "red",
+});
 
 const gateResultLabels: Record<string, string> = {
   Pass: "通过",
@@ -68,13 +67,12 @@ const gateResultLabels: Record<string, string> = {
   Fail: "不通过",
 };
 
-// Issue severity colors
-const severityColors: Record<string, string> = {
-  Low: "bg-green-500/20 text-green-400",
-  Medium: "bg-yellow-500/20 text-yellow-400",
-  High: "bg-orange-500/20 text-orange-400",
-  Critical: "bg-red-500/20 text-red-400",
-};
+const severityColorMap = createStatusColorMap({
+  Low: "green",
+  Medium: "yellow",
+  High: "orange",
+  Critical: "red",
+});
 
 export default function DeliveryManagement() {
   const { t } = useLanguage();
@@ -127,102 +125,21 @@ export default function DeliveryManagement() {
   const issuesQuery = trpc.m7m9.siteIssue.list.useQuery({ page: 1, pageSize: 20 });
   const issueStatsQuery = trpc.m7m9.siteIssue.getStats.useQuery({});
 
-  // 模拟数据
-  const mockDeliveries = [
-    {
-      id: 1,
-      deliveryCode: "DEL-2024-001",
-      projectNo: "PRJ-2024-001",
-      customerName: "大众汽车",
-      currentStage: "M7_Pre_Acceptance",
-      status: "In_Progress",
-      plannedM7Date: "2024-02-01",
-      siteAddress: "上海市嘉定区",
-      siteContactName: "张经理",
-      m7GateResult: null,
-    },
-    {
-      id: 2,
-      deliveryCode: "DEL-2024-002",
-      projectNo: "PRJ-2024-002",
-      customerName: "宝马中国",
-      currentStage: "M8_Installation",
-      status: "In_Progress",
-      plannedM8Date: "2024-02-15",
-      siteAddress: "沈阳市铁西区",
-      siteContactName: "李工程师",
-      m7GateResult: "Pass",
-    },
-    {
-      id: 3,
-      deliveryCode: "DEL-2024-003",
-      projectNo: "PRJ-2024-003",
-      customerName: "比亚迪",
-      currentStage: "M9_Final_Acceptance",
-      status: "In_Progress",
-      plannedM9Date: "2024-02-28",
-      siteAddress: "深圳市坪山区",
-      siteContactName: "王总监",
-      m7GateResult: "Conditional_Pass",
-    },
-  ];
-
-  const mockIssues = [
-    {
-      id: 1,
-      ticketCode: "SITE-2024-001",
-      deliveryId: 1,
-      title: "超声波换能器缺失",
-      issueCategory: "Missing_Part",
-      severity: "High",
-      status: "Open",
-      reportedByName: "现场工程师A",
-      createdAt: "2024-01-28",
-    },
-    {
-      id: 2,
-      ticketCode: "SITE-2024-002",
-      deliveryId: 2,
-      title: "管路接口尺寸不匹配",
-      issueCategory: "Dimension_Error",
-      severity: "Medium",
-      status: "Investigating",
-      reportedByName: "现场工程师B",
-      createdAt: "2024-01-27",
-    },
-  ];
-
-  const mockStats = {
-    byStage: {
-      M7_Pre_Acceptance: 5,
-      M8_Installation: 3,
-      M9_Final_Acceptance: 2,
-      Completed: 10,
-    },
-    total: 20,
-    blocked: 1,
+  const defaultStats = {
+    byStage: { M7_Pre_Acceptance: 0, M8_Installation: 0, M9_Final_Acceptance: 0, Completed: 0 },
+    total: 0,
+    blocked: 0,
+  };
+  const defaultIssueStats = {
+    byStatus: { Open: 0, Investigating: 0, Resolved: 0, Closed: 0, Escalated: 0 },
+    bySeverity: { Critical: 0, High: 0 },
+    total: 0,
   };
 
-  const mockIssueStats = {
-    byStatus: {
-      Open: 3,
-      Investigating: 2,
-      Resolved: 5,
-      Closed: 8,
-      Escalated: 1,
-    },
-    bySeverity: {
-      Critical: 1,
-      High: 3,
-    },
-    total: 19,
-  };
-
-  // Use mock data if API not available
-  const deliveries = deliveriesQuery.data?.items || mockDeliveries;
-  const stats = statsQuery.data || mockStats;
-  const issues = issuesQuery.data?.items || mockIssues;
-  const issueStats = issueStatsQuery.data || mockIssueStats;
+  const deliveries = deliveriesQuery.data?.items ?? [];
+  const stats = statsQuery.data ?? defaultStats;
+  const issues = issuesQuery.data?.items ?? [];
+  const issueStats = issueStatsQuery.data ?? defaultIssueStats;
 
   // Mutations — typed tRPC calls
   const createDeliveryMutation = trpc.m7m9.delivery.create.useMutation({
@@ -513,6 +430,25 @@ export default function DeliveryManagement() {
 
           {/* Deliveries Tab */}
           <TabsContent value="deliveries" className="space-y-4">
+            {deliveriesQuery.isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="bg-card/50 border-border animate-pulse">
+                    <CardContent className="p-4">
+                      <div className="h-6 bg-muted rounded w-1/3 mb-3" />
+                      <div className="h-4 bg-muted rounded w-2/3 mb-2" />
+                      <div className="h-4 bg-muted rounded w-1/2" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : deliveries.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                <Truck className="w-12 h-12 mb-3 opacity-50" />
+                <p className="font-medium">暂无交付任务</p>
+                <p className="text-sm">点击"新建交付"创建第一个交付任务</p>
+              </div>
+            ) : (
             <div className="grid gap-4">
               {deliveries.map((delivery: any) => (
                 <Card key={delivery.id} className="bg-card/50 border-border hover:border-primary/50 transition-colors">
@@ -521,16 +457,16 @@ export default function DeliveryManagement() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-lg">{delivery.deliveryCode}</h3>
-                          <Badge className={stageColors[delivery.currentStage]}>
+                          <StatusBadge color={stageColorMap[delivery.currentStage as keyof typeof stageColorMap] ?? 'gray'}>
                             {stageLabels[delivery.currentStage]}
-                          </Badge>
-                          <Badge className={statusColors[delivery.status]}>
+                          </StatusBadge>
+                          <StatusBadge color={statusColorMap[delivery.status as keyof typeof statusColorMap] ?? 'slate'}>
                             {statusLabels[delivery.status]}
-                          </Badge>
+                          </StatusBadge>
                           {delivery.m7GateResult && (
-                            <Badge className={gateResultColors[delivery.m7GateResult]}>
+                            <StatusBadge color={gateResultColorMap[delivery.m7GateResult as keyof typeof gateResultColorMap] ?? 'gray'}>
                               M7: {gateResultLabels[delivery.m7GateResult]}
-                            </Badge>
+                            </StatusBadge>
                           )}
                         </div>
                         
@@ -602,6 +538,7 @@ export default function DeliveryManagement() {
                 </Card>
               ))}
             </div>
+            )}
           </TabsContent>
 
           {/* Issues Tab */}
@@ -624,6 +561,24 @@ export default function DeliveryManagement() {
               </Button>
             </div>
             
+            {issuesQuery.isLoading ? (
+              <div className="space-y-4">
+                {[1, 2].map((i) => (
+                  <Card key={i} className="bg-card/50 border-border animate-pulse">
+                    <CardContent className="p-4">
+                      <div className="h-5 bg-muted rounded w-1/4 mb-3" />
+                      <div className="h-4 bg-muted rounded w-1/2" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : issues.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <CheckCircle2 className="w-12 h-12 mb-3 text-green-500 opacity-50" />
+                <p className="font-medium">暂无现场问题</p>
+                <p className="text-sm">当前没有待处理的现场问题</p>
+              </div>
+            ) : (
             <div className="grid gap-4">
               {issues.map((issue: any) => (
                 <Card key={issue.id} className="bg-card/50 border-border">
@@ -632,9 +587,9 @@ export default function DeliveryManagement() {
                       <div>
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold">{issue.ticketCode}</h3>
-                          <Badge className={severityColors[issue.severity]}>
+                          <StatusBadge color={severityColorMap[issue.severity as keyof typeof severityColorMap] ?? 'gray'}>
                             {issue.severity}
-                          </Badge>
+                          </StatusBadge>
                           <Badge variant="outline">
                             {issue.issueCategory.replace(/_/g, " ")}
                           </Badge>
@@ -659,6 +614,7 @@ export default function DeliveryManagement() {
                 </Card>
               ))}
             </div>
+            )}
           </TabsContent>
 
           {/* Gate Check Tab */}

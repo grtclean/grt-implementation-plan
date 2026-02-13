@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 export default function StageM2Detail() {
   const [, params] = useRoute('/pos/projects/:id/stage/m2');
-  const projectId = (params as any)?.id ? parseInt((params as any).id) : 0;
+  const projectId = (params as { id: string } | null)?.id ? parseInt((params as { id: string }).id) : 0;
   
   const [selectedBaseline, setSelectedBaseline] = useState<string | null>(null);
   const [differentialInputs, setDifferentialInputs] = useState({
@@ -25,24 +25,25 @@ export default function StageM2Detail() {
     environmental: '',
     acceptance: '',
   });
-  const [aiSummary, setAiSummary] = useState<any>(null);
-  const [similarProjects, setSimilarProjects] = useState<any[]>([]);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [similarProjects, setSimilarProjects] = useState<{ projectCode: string; projectName: string }[]>([]);
 
   const generateSummaryMutation = trpc.pos.ai.generateM2Summary.useMutation({
     onSuccess: (data) => {
       // AI返回的可能是对象或字符串，统一处理
-      if (typeof (data as any).summary === 'object') {
-        setAiSummary(JSON.stringify((data as any).summary, null, 2));
+      const summary = (data as { summary: string | object }).summary;
+      if (typeof summary === 'object') {
+        setAiSummary(JSON.stringify(summary, null, 2));
       } else {
-        setAiSummary((data as any).summary);
+        setAiSummary(summary);
       }
       toast.success('M2摘要生成成功');
     },
     onError: () => toast.error('生成失败，请重试'),
   });
 
-  const findSimilarMutation = (trpc.pos.ai.findSimilarProjects as any).useQuery(
-    { projectId, customerType: 'TIER1_OEM' },
+  const findSimilarMutation = trpc.pos.ai.findSimilarProjects.useQuery(
+    { projectId },
     { enabled: false }
   );
 

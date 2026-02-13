@@ -1,4 +1,7 @@
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -8,7 +11,6 @@ import { trpc } from "@/lib/trpc";
 import {
   BarChart3,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   CheckCircle2,
   Clock,
@@ -24,9 +26,6 @@ import {
   Zap,
   Calendar,
   DollarSign,
-  Percent,
-  Home,
-  ChevronRight
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -253,83 +252,32 @@ export default function POSDashboard() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      {/* 面包屑导航 */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/" className="flex items-center gap-1 hover:text-foreground transition-colors">
-          <Home className="w-4 h-4" />
-          首页
-        </Link>
-        <ChevronRight className="w-3 h-3" />
-        <Link href="/pos/dashboard" className="hover:text-foreground transition-colors">POS管理</Link>
-        <ChevronRight className="w-3 h-3" />
-        <span className="text-foreground font-medium">总览</span>
-      </nav>
-
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">经营概览</h1>
-          <p className="text-muted-foreground">项目型组织操作系统 - 实时监控与风险预警</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-sm">
-            <Activity className="w-3 h-3 mr-1" />
-            系统正常
-          </Badge>
-          <Badge variant="outline" className="text-sm">
-            <Clock className="w-3 h-3 mr-1" />
-            实时更新
-          </Badge>
-        </div>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title="经营概览"
+        description="项目型组织操作系统 - 实时监控与风险预警"
+        actions={
+          <>
+            <Badge variant="outline" className="text-sm">
+              <Activity className="w-3 h-3 mr-1" />
+              系统正常
+            </Badge>
+            <Badge variant="outline" className="text-sm">
+              <Clock className="w-3 h-3 mr-1" />
+              实时更新
+            </Badge>
+          </>
+        }
+      />
 
       {/* 快速统计 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">项目总数</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-              <Package className="w-8 h-8 text-blue-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">活跃项目</p>
-                <p className="text-2xl font-bold">{stats.active}</p>
-              </div>
-              <Zap className="w-8 h-8 text-green-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">已完成</p>
-                <p className="text-2xl font-bold">{stats.completed}</p>
-              </div>
-              <CheckCircle2 className="w-8 h-8 text-purple-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">风险项目</p>
-                <p className="text-2xl font-bold text-red-500">{stats.atRisk}</p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-red-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Package} label="项目总数" value={stats.total} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Zap} label="活跃项目" value={stats.active} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={CheckCircle2} label="已完成" value={stats.completed} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+        <StatCard icon={AlertTriangle} label="风险项目" value={stats.atRisk} iconColor="text-red-500" iconBg="bg-red-500/10" />
       </div>
 
       {/* KPI风险预警看板 */}
@@ -442,5 +390,6 @@ export default function POSDashboard() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }
