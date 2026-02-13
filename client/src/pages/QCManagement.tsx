@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -160,71 +161,24 @@ export default function QCManagement() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <ClipboardCheck className="w-7 h-7 text-primary" />
-              质检管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              M5生产阶段质检记录管理、质检审核与返工流程
-            </p>
-          </div>
-          <Button onClick={() => refetchRecords()} variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            刷新数据
-          </Button>
-        </div>
+        <PageHeader
+          icon={ClipboardCheck}
+          title="质检管理"
+          description="M5生产阶段质检记录管理、质检审核与返工流程"
+          actions={
+            <Button onClick={() => refetchRecords()} variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              刷新数据
+            </Button>
+          }
+        />
 
         {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500">
-                <ClipboardCheck className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">总检验次数</p>
-                <p className="text-2xl font-bold">{qcStats?.totalInspections || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-green-500/10 text-green-500">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">通过数量</p>
-                <p className="text-2xl font-bold text-green-500">{qcStats?.passCount || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-red-500/10 text-red-500">
-                <XCircle className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">不通过数量</p>
-                <p className="text-2xl font-bold text-red-500">{qcStats?.failCount || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-primary/10 text-primary">
-                <BarChart3 className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">通过率</p>
-                <p className="text-2xl font-bold">{qcStats?.passRate || 0}%</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard icon={ClipboardCheck} label="总检验次数" value={qcStats?.totalInspections || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={CheckCircle2} label="通过数量" value={qcStats?.passCount || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={XCircle} label="不通过数量" value={qcStats?.failCount || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
+          <StatCard icon={BarChart3} label="通过率" value={`${qcStats?.passRate || 0}%`} />
         </div>
 
         {/* 主内容区 */}

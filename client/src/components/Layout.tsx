@@ -21,6 +21,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import AIConversationPanel, { AIFloatingButton } from "@/components/AIConversationPanel";
+import HelpColumn from "@/components/HelpColumn";
 import LanguageSelector from "@/components/LanguageSelector";
 import { ProfileSwitcher } from "@/components/ProfileSwitcher";
 import { MenuCustomizationPanel } from "@/components/MenuCustomizationPanel";
@@ -31,6 +32,7 @@ import {
   ArrowUp,
   ChevronDown,
   ChevronRight,
+  HelpCircle,
   LogOut,
   Menu,
   Moon,
@@ -75,6 +77,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     touchStartY.current = null;
   }, []);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [helpPanelOpen, setHelpPanelOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved === 'true';
@@ -176,6 +179,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       setExpandedGroups(prev => [...prev, currentGroup.name]);
     }
   }, [location, expandedGroups]);
+
+  // F1快捷键打开帮助面板
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F1') {
+        e.preventDefault();
+        setHelpPanelOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // 当AI面板打开时自动关闭帮助面板
+  useEffect(() => {
+    if (aiPanelOpen) {
+      setHelpPanelOpen(false);
+    }
+  }, [aiPanelOpen]);
 
   // 最近访问功能已移除
 
@@ -670,9 +692,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="hidden lg:flex items-center justify-end px-8 py-3 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-40">
           <div className="flex items-center gap-3">
             <LanguageSelector variant="header" />
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => setHelpPanelOpen(prev => !prev)}
+              title={language === 'zh' ? '帮助 (F1)' : 'Help (F1)'}
+            >
+              <HelpCircle className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               className="h-8 px-2"
               onClick={toggleTheme}
             >
@@ -722,6 +753,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* 全局菜单搜索 (Ctrl+K) */}
       <GlobalMenuSearch />
+      {/* Help Column - 右侧帮助面板 (z-40, AI面板打开时自动隐藏) */}
+      <HelpColumn
+        isOpen={helpPanelOpen}
+        onClose={() => setHelpPanelOpen(false)}
+        onOpenAI={() => setAiPanelOpen(true)}
+      />
       {/* AI Floating Button and Panel */}
       <AIFloatingButton onClick={() => setAiPanelOpen(true)} isOpen={aiPanelOpen} />
       <AIConversationPanel isOpen={aiPanelOpen} onClose={() => setAiPanelOpen(false)} />

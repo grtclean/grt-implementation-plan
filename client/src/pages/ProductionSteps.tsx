@@ -10,6 +10,8 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +30,7 @@ import {
   Upload, Paperclip, Trash2, ArrowRight, Brain, History,
   ChevronRight, ChevronDown, GripVertical, Edit, Save,
   Copy, Check, AlertCircle, Loader2, FileText, Image,
-  Sparkles, RefreshCw, ArrowDown, ArrowUp, Zap
+  Sparkles, RefreshCw, ArrowDown, ArrowUp, Zap, ListChecks
 } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
 
@@ -305,20 +307,14 @@ export default function ProductionSteps() {
   const activeTimeLogs = (activeTimeLogsQuery.data as any[]) || [];
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Factory className="w-7 h-7 text-primary" />
-            生产工序步骤管理
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            T1-T15工序管理 · 双列编辑 · AI智慧预设 · 工时打卡
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* 项目选择 - 使用简单输入框模拟 */}
+      <PageHeader
+        icon={Factory}
+        title="生产工序步骤管理"
+        description="T1-T15工序管理 · 双列编辑 · AI智慧预设 · 工时打卡"
+        actions={
           <div className="flex items-center gap-2">
             <Label className="text-sm whitespace-nowrap">项目ID:</Label>
             <Input
@@ -329,8 +325,8 @@ export default function ProductionSteps() {
               onChange={(e) => setSelectedProjectId(e.target.value ? parseInt(e.target.value) : null)}
             />
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* 活跃工时提醒 */}
       {activeTimeLogs.length > 0 && (
@@ -369,38 +365,11 @@ export default function ProductionSteps() {
       {/* 统计概览 */}
       {selectedProjectId && statsQuery.data && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold">{(statsQuery.data as any).bomSteps.total}</div>
-              <div className="text-xs text-muted-foreground">BOM步骤总数</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{(statsQuery.data as any).bomSteps.completed}</div>
-              <div className="text-xs text-muted-foreground">已完成</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{(statsQuery.data as any).bomSteps.inProgress}</div>
-              <div className="text-xs text-muted-foreground">进行中</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">{(statsQuery.data as any).aiPresets.total}</div>
-              <div className="text-xs text-muted-foreground">AI预设步骤</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-amber-600">
-                {(statsQuery.data as any).timeLogs.totalActualHours.toFixed(1)}h
-              </div>
-              <div className="text-xs text-muted-foreground">累计工时</div>
-            </CardContent>
-          </Card>
+          <StatCard icon={ListChecks} label="BOM步骤总数" value={(statsQuery.data as any).bomSteps.total} />
+          <StatCard icon={CheckCircle2} label="已完成" value={(statsQuery.data as any).bomSteps.completed} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Play} label="进行中" value={(statsQuery.data as any).bomSteps.inProgress} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Sparkles} label="AI预设步骤" value={(statsQuery.data as any).aiPresets.total} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+          <StatCard icon={Clock} label="累计工时" value={`${(statsQuery.data as any).timeLogs.totalActualHours.toFixed(1)}h`} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
         </div>
       )}
 
@@ -872,6 +841,7 @@ export default function ProductionSteps() {
         </Dialog>
       )}
     </div>
+    </Layout>
   );
 }
 

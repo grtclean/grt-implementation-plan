@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -484,73 +485,68 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
       />
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold tracking-tight">
-              {t("cost.title") || "成本管理"}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {t("cost.desc") || "项目成本预算、实际成本追踪与分析"}
-            </p>
-          </div>
-          
-          {/* Project Selector and Actions */}
-          <div className="flex items-center gap-4">
-            {/* Initialize Categories Button - only show when no categories exist */}
-            {(!categories || categories.length === 0) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => initCategoriesMutation.mutate()}
-                disabled={initCategoriesMutation.isPending}
+        <PageHeader
+          icon={Calculator}
+          title={t("cost.title") || "成本管理"}
+          description={t("cost.desc") || "项目成本预算、实际成本追踪与分析"}
+          actions={
+            <>
+              {/* Initialize Categories Button - only show when no categories exist */}
+              {(!categories || categories.length === 0) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => initCategoriesMutation.mutate()}
+                  disabled={initCategoriesMutation.isPending}
+                >
+                  {initCategoriesMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Database className="w-4 h-4 mr-1" />
+                  )}
+                  初始化成本类别
+                </Button>
+              )}
+              <Select
+                value={selectedProjectId?.toString() || ""}
+                onValueChange={(value) => setSelectedProjectId(parseInt(value))}
               >
-                {initCategoriesMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                ) : (
-                  <Database className="w-4 h-4 mr-1" />
-                )}
-                初始化成本类别
-              </Button>
-            )}
-            <Select
-              value={selectedProjectId?.toString() || ""}
-              onValueChange={(value) => setSelectedProjectId(parseInt(value))}
-            >
-              <SelectTrigger className="w-[250px]">
-                <SelectValue placeholder="选择项目" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects?.map((project) => (
-                  <SelectItem key={project.id} value={project.id.toString()}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* Export Buttons */}
-            {selectedProjectId && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportPDF}
-                >
-                  <FileText className="w-4 h-4 mr-1" />
-                  导出报表
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportExcel}
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  导出Excel
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="选择项目" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects?.map((project) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Export Buttons */}
+              {selectedProjectId && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportPDF}
+                  >
+                    <FileText className="w-4 h-4 mr-1" />
+                    导出报表
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportExcel}
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    导出Excel
+                  </Button>
+                </>
+              )}
+            </>
+          }
+        />
 
         {!selectedProjectId ? (
           <Card className="border-dashed">
@@ -587,84 +583,16 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
               <TabsContent value="project-cost" className="space-y-4">
                 {/* Cost Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">总预算</p>
-                          <p className="text-2xl font-bold font-heading mt-1">
-                            {formatCurrency(costSummary?.summary.totalBudget || 0)}
-                          </p>
-                        </div>
-                        <div className="p-3 rounded-full bg-blue-500/20">
-                          <Calculator className="w-6 h-6 text-blue-500" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">实际成本</p>
-                          <p className="text-2xl font-bold font-heading mt-1">
-                            {formatCurrency(costSummary?.summary.totalSpent || 0)}
-                          </p>
-                        </div>
-                        <div className="p-3 rounded-full bg-green-500/20">
-                          <DollarSign className="w-6 h-6 text-green-500" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className={`bg-gradient-to-br ${
-                    ((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0
-                      ? "from-emerald-500/10 to-emerald-600/5 border-emerald-500/20"
-                      : "from-red-500/10 to-red-600/5 border-red-500/20"
-                  }`}>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">成本偏差</p>
-                          <p className="text-2xl font-bold font-heading mt-1 flex items-center gap-1">
-                            {((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? (
-                              <ArrowDownRight className="w-5 h-5 text-emerald-500" />
-                            ) : (
-                              <ArrowUpRight className="w-5 h-5 text-red-500" />
-                            )}
-                            {formatCurrency(Math.abs((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)))}
-                          </p>
-                        </div>
-                        <div className={`p-3 rounded-full ${
-                          ((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? "bg-emerald-500/20" : "bg-red-500/20"
-                        }`}>
-                          {((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? (
-                            <TrendingDown className="w-6 h-6 text-emerald-500" />
-                          ) : (
-                            <TrendingUp className="w-6 h-6 text-red-500" />
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">CPI 成本绩效指数</p>
-                          <p className="text-2xl font-bold font-heading mt-1">
-                            {costSummary?.summary.totalSpent ? (costSummary.summary.totalBudget / costSummary.summary.totalSpent).toFixed(2) : "1.00"}
-                          </p>
-                        </div>
-                        <div className="p-3 rounded-full bg-purple-500/20">
-                          <PieChart className="w-6 h-6 text-purple-500" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <StatCard icon={Calculator} label="总预算" value={formatCurrency(costSummary?.summary.totalBudget || 0)} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+                  <StatCard icon={DollarSign} label="实际成本" value={formatCurrency(costSummary?.summary.totalSpent || 0)} iconColor="text-green-500" iconBg="bg-green-500/10" />
+                  <StatCard
+                    icon={((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? TrendingDown : TrendingUp}
+                    label="成本偏差"
+                    value={formatCurrency(Math.abs((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)))}
+                    iconColor={((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? "text-emerald-500" : "text-red-500"}
+                    iconBg={((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? "bg-emerald-500/10" : "bg-red-500/10"}
+                  />
+                  <StatCard icon={PieChart} label="CPI 成本绩效指数" value={costSummary?.summary.totalSpent ? (costSummary.summary.totalBudget / costSummary.summary.totalSpent).toFixed(2) : "1.00"} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
                 </div>
 
                 {/* Cost Records */}

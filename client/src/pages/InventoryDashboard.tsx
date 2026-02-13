@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -182,23 +183,12 @@ export default function InventoryDashboard() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Package className="h-6 w-6 text-primary" />库存看板</h1>
-          <p className="text-muted-foreground mt-1">实时库存总览、出入库动态、批次追溯与预警</p>
-        </div>
+        <PageHeader icon={Package} title="库存看板" description="实时库存总览、出入库动态、批次追溯与预警" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
-            <CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-blue-500">{OVERVIEW.totalSKUs.toLocaleString()}</p><p className="text-sm text-muted-foreground">物料SKU总数</p></CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
-            <CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-emerald-500">{(OVERVIEW.totalValue / 10000).toFixed(0)}万</p><p className="text-sm text-muted-foreground">库存总价值</p></CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
-            <CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-red-500">{OVERVIEW.lowStockAlerts}</p><p className="text-sm text-muted-foreground">低库存预警</p></CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
-            <CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-amber-500">{OVERVIEW.pendingReceipts}</p><p className="text-sm text-muted-foreground">待入库单据</p></CardContent>
-          </Card>
+          <StatCard icon={Boxes} label="物料SKU总数" value={OVERVIEW.totalSKUs.toLocaleString()} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={TrendingUp} label="库存总价值" value={`${(OVERVIEW.totalValue / 10000).toFixed(0)}万`} iconColor="text-emerald-500" iconBg="bg-emerald-500/10" />
+          <StatCard icon={AlertTriangle} label="低库存预警" value={OVERVIEW.lowStockAlerts} iconColor="text-red-500" iconBg="bg-red-500/10" />
+          <StatCard icon={ArrowDownToLine} label="待入库单据" value={OVERVIEW.pendingReceipts} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
         </div>
         <StockLevelsSection />
         <div className="grid gap-6 lg:grid-cols-2">

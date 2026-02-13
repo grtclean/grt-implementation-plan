@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from "@/contexts/LanguageContext";
 import LayoutComponent from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -551,43 +552,29 @@ export default function ProductionExecutionView() {
       <div className="flex flex-col h-full bg-[#0B1120] text-slate-200 font-sans p-6 overflow-hidden min-h-screen">
         
         {/* HEADER */}
-        <header className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <Activity className="text-orange-500" /> 
-              {language === 'zh' ? '项目执行指挥舱' : 'Project Execution Command'}
-            </h1>
-            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-              <span className="bg-blue-900/30 text-blue-400 px-2 py-0.5 rounded">Project: GRT-2026-X1</span>
-              <span>•</span>
-              {integrationStatus.map((status: any, idx: number) => (
-                <span key={idx} className="flex items-center gap-1">
-                  <div className={`w-2 h-2 rounded-full ${status.isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                  <span className={status.isConnected ? 'text-emerald-400' : 'text-red-400'}>
-                    {status.serviceName}
-                  </span>
-                  {idx < integrationStatus.length - 1 && <span className="text-slate-600 ml-1">•</span>}
-                </span>
-              ))}
+        <PageHeader
+          icon={Activity}
+          title={language === 'zh' ? '项目执行指挥舱' : 'Project Execution Command'}
+          description={`Project: GRT-2026-X1 · ${integrationStatus.map((s: any) => `${s.serviceName}: ${s.isConnected ? '✓' : '✗'}`).join(' · ')}`}
+          actions={
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                className="border-slate-700 text-slate-400 hover:text-white"
+              >
+                <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+                <span className="ml-1">{language === 'zh' ? '刷新' : 'Refresh'}</span>
+              </Button>
+              <div className="text-right">
+                <div className="text-xs text-slate-400">{language === 'zh' ? '当前视角' : 'Current View'}</div>
+                <div className="text-sm font-bold text-orange-500">{getRoleLabel(CURRENT_USER_ROLE)}</div>
+              </div>
+              <UserCircle size={32} className="text-slate-600" />
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              className="border-slate-700 text-slate-400 hover:text-white"
-            >
-              <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-              <span className="ml-1">{language === 'zh' ? '刷新' : 'Refresh'}</span>
-            </Button>
-            <div className="text-right">
-              <div className="text-xs text-slate-400">{language === 'zh' ? '当前视角' : 'Current View'}</div>
-              <div className="text-sm font-bold text-orange-500">{getRoleLabel(CURRENT_USER_ROLE)}</div>
-            </div>
-            <UserCircle size={32} className="text-slate-600" />
-          </div>
-        </header>
+          }
+        />
 
         {/* ROLE-BASED STEP FILTER BAR */}
         <div className="flex items-center justify-between mb-4 px-2">

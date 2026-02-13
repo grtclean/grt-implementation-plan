@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard as GrtStatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -74,71 +75,19 @@ export default function ProductionCommandCenter() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/" className="flex items-center gap-1 hover:text-foreground transition-colors">
-            <Home className="w-4 h-4" />
-            首页
-          </Link>
-          <ChevronRight className="w-3 h-3" />
-          <span>生产制造</span>
-          <ChevronRight className="w-3 h-3" />
-          <span className="text-foreground font-medium">生产指挥中心</span>
-        </nav>
-
-        {/* Page title */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Monitor className="w-6 h-6 text-primary" />
-            生产指挥中心
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            统一查看工序进度、排程执行、质量监控和工人分布
-          </p>
-        </div>
+        <PageHeader
+          icon={Monitor}
+          title="生产指挥中心"
+          description="统一查看工序进度、排程执行、质量监控和工人分布"
+        />
 
         {/* ── Stat Cards (5 metrics) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <StatCard
-            borderColor="border-l-blue-500"
-            iconBg="bg-blue-500/10 text-blue-400"
-            icon={<Factory className="w-6 h-6" />}
-            label="进行中工单"
-            value={inProgressOrders}
-            loading={productionStatsLoading}
-          />
-          <StatCard
-            borderColor="border-l-green-500"
-            iconBg="bg-green-500/10 text-green-400"
-            icon={<Gauge className="w-6 h-6" />}
-            label="设备利用率"
-            value={equipUtilization}
-            loading={productionStatsLoading}
-          />
-          <StatCard
-            borderColor="border-l-purple-500"
-            iconBg="bg-purple-500/10 text-purple-400"
-            icon={<ShieldCheck className="w-6 h-6" />}
-            label="质量通过率"
-            value={qualityPassRate}
-            loading={qcStatsLoading}
-          />
-          <StatCard
-            borderColor="border-l-cyan-500"
-            iconBg="bg-cyan-500/10 text-cyan-400"
-            icon={<Package className="w-6 h-6" />}
-            label="今日产出"
-            value={todayOutput}
-            loading={productionStatsLoading}
-          />
-          <StatCard
-            borderColor="border-l-orange-500"
-            iconBg="bg-orange-500/10 text-orange-400"
-            icon={<Lock className="w-6 h-6" />}
-            label="质量锁定"
-            value={qualityLockCount}
-            loading={productionStatsLoading}
-          />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <GrtStatCard icon={Factory} label="进行中工单" value={productionStatsLoading ? "..." : inProgressOrders} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <GrtStatCard icon={Gauge} label="设备利用率" value={productionStatsLoading ? "..." : equipUtilization} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <GrtStatCard icon={ShieldCheck} label="质量通过率" value={qcStatsLoading ? "..." : qualityPassRate} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+          <GrtStatCard icon={Package} label="今日产出" value={productionStatsLoading ? "..." : todayOutput} iconColor="text-cyan-500" iconBg="bg-cyan-500/10" />
+          <GrtStatCard icon={Lock} label="质量锁定" value={productionStatsLoading ? "..." : qualityLockCount} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
         </div>
 
         {/* ── Tab area ── */}

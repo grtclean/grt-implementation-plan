@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
-import { 
+import {
   Activity,
   AlertTriangle,
   ArrowDown,
@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 
 import { toast } from "sonner";
 
@@ -247,112 +248,51 @@ export default function ProductionDashboard() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题和控制栏 */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Factory className="w-6 h-6 text-primary" />
-              M5 生产看板
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              车间实时生产状态监控 · 最后更新: {lastUpdated.toLocaleTimeString()}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Select value={selectedView} onValueChange={(v) => setSelectedView(v as "workshop" | "manager")}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="workshop">车间大屏</SelectItem>
-                <SelectItem value="manager">管理视图</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select value={refreshInterval.toString()} onValueChange={(v) => setRefreshInterval(parseInt(v))}>
-              <SelectTrigger className="w-[120px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10秒刷新</SelectItem>
-                <SelectItem value="30">30秒刷新</SelectItem>
-                <SelectItem value="60">1分钟刷新</SelectItem>
-                <SelectItem value="300">5分钟刷新</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Button variant="outline" size="icon" onClick={handleRefresh}>
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-            
-            <Button variant="outline" size="icon" onClick={toggleFullscreen}>
-              <Monitor className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Factory}
+          title="M5 生产看板"
+          description={`车间实时生产状态监控 · 最后更新: ${lastUpdated.toLocaleTimeString()}`}
+          actions={
+            <div className="flex items-center gap-3">
+              <Select value={selectedView} onValueChange={(v) => setSelectedView(v as "workshop" | "manager")}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="workshop">车间大屏</SelectItem>
+                  <SelectItem value="manager">管理视图</SelectItem>
+                </SelectContent>
+              </Select>
 
-        {/* 核心指标卡片 */}
+              <Select value={refreshInterval.toString()} onValueChange={(v) => setRefreshInterval(parseInt(v))}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10秒刷新</SelectItem>
+                  <SelectItem value="30">30秒刷新</SelectItem>
+                  <SelectItem value="60">1分钟刷新</SelectItem>
+                  <SelectItem value="300">5分钟刷新</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button variant="outline" size="icon" onClick={handleRefresh}>
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+
+              <Button variant="outline" size="icon" onClick={toggleFullscreen}>
+                <Monitor className="w-4 h-4" />
+              </Button>
+            </div>
+          }
+        />
+
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">总工单数</p>
-                  <p className="text-3xl font-bold text-blue-500">{mockMetrics.totalWorkOrders}</p>
-                </div>
-                <Package className="w-10 h-10 text-blue-500/50" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">进行中</p>
-                  <p className="text-3xl font-bold text-green-500">{mockMetrics.activeWorkOrders}</p>
-                </div>
-                <Play className="w-10 h-10 text-green-500/50" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">已完成</p>
-                  <p className="text-3xl font-bold text-purple-500">{mockMetrics.completedWorkOrders}</p>
-                </div>
-                <CheckCircle2 className="w-10 h-10 text-purple-500/50" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">平均效率</p>
-                  <p className="text-3xl font-bold text-orange-500">{mockMetrics.averageEfficiency}%</p>
-                </div>
-                <Gauge className="w-10 h-10 text-orange-500/50" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">准时交付率</p>
-                  <p className="text-3xl font-bold text-cyan-500">{mockMetrics.onTimeDeliveryRate}%</p>
-                </div>
-                <Target className="w-10 h-10 text-cyan-500/50" />
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Package} label="总工单数" value={mockMetrics.totalWorkOrders} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Play} label="进行中" value={mockMetrics.activeWorkOrders} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={CheckCircle2} label="已完成" value={mockMetrics.completedWorkOrders} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+          <StatCard icon={Gauge} label="平均效率" value={`${mockMetrics.averageEfficiency}%`} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+          <StatCard icon={Target} label="准时交付率" value={`${mockMetrics.onTimeDeliveryRate}%`} iconColor="text-cyan-500" iconBg="bg-cyan-500/10" />
         </div>
 
         {/* 主要内容区域 */}

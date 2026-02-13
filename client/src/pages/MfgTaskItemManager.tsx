@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 const showPlaceholder = (featureName: string) => {
   toast.info('功能完善中', { description: `${featureName}功能正在开发完善中，敬请期待` });
 };
+import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from '@/components/grt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -211,80 +213,37 @@ export default function MfgTaskItemManager() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <Layout>
+    <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Wrench className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">制造任务管理</h1>
-            <p className="text-sm text-muted-foreground">工序级原子任务追踪与管理</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            刷新
-          </Button>
-          <Button size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            新建任务
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Wrench}
+        title="制造任务管理"
+        description="工序级原子任务追踪与管理"
+        actions={
+          <>
+            <Button variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              刷新
+            </Button>
+            <Button size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              新建任务
+            </Button>
+          </>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">总任务</p>
-            <p className="text-xl font-bold">{stats.total}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">已完成</p>
-            <p className="text-xl font-bold text-emerald-500">{stats.finished}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">进行中</p>
-            <p className="text-xl font-bold text-green-500">{stats.inProgress}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">待开始</p>
-            <p className="text-xl font-bold text-gray-400">{stats.pending}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">质检中</p>
-            <p className="text-xl font-bold text-blue-500">{stats.qcReview}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">有异常</p>
-            <p className="text-xl font-bold text-red-500">{stats.withIssues}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">预估工时</p>
-            <p className="text-xl font-bold">{stats.totalEstimated}h</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">实际工时</p>
-            <p className="text-xl font-bold">{stats.totalActual}h</p>
-          </CardContent>
-        </Card>
+        <StatCard icon={ClipboardCheck} label="总任务" value={stats.total} />
+        <StatCard icon={CheckCircle2} label="已完成" value={stats.finished} iconColor="text-emerald-500" iconBg="bg-emerald-500/10" />
+        <StatCard icon={Play} label="进行中" value={stats.inProgress} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Clock} label="待开始" value={stats.pending} iconColor="text-gray-400" iconBg="bg-gray-500/10" />
+        <StatCard icon={Search} label="质检中" value={stats.qcReview} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={AlertTriangle} label="有异常" value={stats.withIssues} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Timer} label="预估工时" value={`${stats.totalEstimated}h`} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Timer} label="实际工时" value={`${stats.totalActual}h`} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       {/* 过滤器 */}
@@ -456,5 +415,6 @@ export default function MfgTaskItemManager() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

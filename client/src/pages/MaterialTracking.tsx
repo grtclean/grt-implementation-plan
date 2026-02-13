@@ -3,6 +3,8 @@
  * 物料入库、出库、追踪、库存预警
  */
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,23 +23,25 @@ export default function MaterialTracking() {
   const filtered = MOCK_MATERIALS.filter(m => !search || m.name.includes(search) || m.id.includes(search));
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Package className="h-6 w-6 text-primary" />物料追踪</h1>
-          <p className="text-muted-foreground mt-1">物料全流程追踪与库存管理</p>
-        </div>
-        <div className="flex gap-2">
-          <Button>入库登记</Button>
-          <Button variant="outline">领料申请</Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Package}
+        title="物料追踪"
+        description="物料全流程追踪与库存管理"
+        actions={
+          <>
+            <Button>入库登记</Button>
+            <Button variant="outline">领料申请</Button>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold">1,842</p><p className="text-sm text-muted-foreground">物料种类</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-primary">¥4.5M</p><p className="text-sm text-muted-foreground">库存价值</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-amber-600">18</p><p className="text-sm text-muted-foreground">低库存预警</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-blue-600">23</p><p className="text-sm text-muted-foreground">在途物料</p></CardContent></Card>
+        <StatCard icon={Package} label="物料种类" value="1,842" iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={BarChart3} label="库存价值" value="¥4.5M" iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label="低库存预警" value={18} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Truck} label="在途物料" value={23} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
       </div>
 
       <Card>
@@ -68,5 +72,6 @@ export default function MaterialTracking() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

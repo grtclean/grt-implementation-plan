@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -120,125 +122,92 @@ export default function QualityInterlock() {
   const unreadCount = (unreadCountQuery.data as any)?.count || 0;
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ShieldAlert className="w-7 h-7 text-red-400" />
-            质量工序联动
-          </h1>
-          <p className="text-muted-foreground mt-1">CCD缺陷自动暂停后续工序 · 质量预警通知</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => {
-            utils.qualityInterlock.getLocks.invalidate();
-            utils.qualityInterlock.lockSummary.invalidate();
-            utils.qualityInterlock.getAlerts.invalidate();
-          }}>
-            <RefreshCw className="w-4 h-4 mr-1" /> 刷新
-          </Button>
-          <Dialog open={showTriggerDialog} onOpenChange={setShowTriggerDialog}>
-            <DialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Lock className="w-4 h-4 mr-1" /> 手动锁定工序
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>手动触发工序锁定</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>目标工序</Label>
-                  <Select value={triggerForm.processCode} onValueChange={v => setTriggerForm(f => ({ ...f, processCode: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {PROCESS_CODES.map(c => (
-                        <SelectItem key={c} value={c}>{c} - {PROCESS_NAMES[c]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>严重程度</Label>
-                  <Select value={triggerForm.severity} onValueChange={v => setTriggerForm(f => ({ ...f, severity: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="critical">严重 (Critical)</SelectItem>
-                      <SelectItem value="major">重大 (Major)</SelectItem>
-                      <SelectItem value="minor">轻微 (Minor)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>锁定原因</Label>
-                  <Textarea
-                    value={triggerForm.reason}
-                    onChange={e => setTriggerForm(f => ({ ...f, reason: e.target.value }))}
-                    placeholder="描述锁定原因..."
-                    rows={3}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild><Button variant="outline">取消</Button></DialogClose>
-                <Button
-                  variant="destructive"
-                  disabled={!triggerForm.reason || triggerLockMut.isPending}
-                  onClick={() => triggerLockMut.mutate({
-                    projectId: selectedProject,
-                    processCode: triggerForm.processCode,
-                    severity: triggerForm.severity as any,
-                    reason: triggerForm.reason,
-                  })}
-                >
-                  {triggerLockMut.isPending ? "锁定中..." : "确认锁定"}
+      <PageHeader
+        icon={ShieldAlert}
+        title="质量工序联动"
+        description="CCD缺陷自动暂停后续工序 · 质量预警通知"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => {
+              utils.qualityInterlock.getLocks.invalidate();
+              utils.qualityInterlock.lockSummary.invalidate();
+              utils.qualityInterlock.getAlerts.invalidate();
+            }}>
+              <RefreshCw className="w-4 h-4 mr-1" /> 刷新
+            </Button>
+            <Dialog open={showTriggerDialog} onOpenChange={setShowTriggerDialog}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Lock className="w-4 h-4 mr-1" /> 手动锁定工序
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>手动触发工序锁定</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>目标工序</Label>
+                    <Select value={triggerForm.processCode} onValueChange={v => setTriggerForm(f => ({ ...f, processCode: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {PROCESS_CODES.map(c => (
+                          <SelectItem key={c} value={c}>{c} - {PROCESS_NAMES[c]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>严重程度</Label>
+                    <Select value={triggerForm.severity} onValueChange={v => setTriggerForm(f => ({ ...f, severity: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="critical">严重 (Critical)</SelectItem>
+                        <SelectItem value="major">重大 (Major)</SelectItem>
+                        <SelectItem value="minor">轻微 (Minor)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>锁定原因</Label>
+                    <Textarea
+                      value={triggerForm.reason}
+                      onChange={e => setTriggerForm(f => ({ ...f, reason: e.target.value }))}
+                      placeholder="描述锁定原因..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild><Button variant="outline">取消</Button></DialogClose>
+                  <Button
+                    variant="destructive"
+                    disabled={!triggerForm.reason || triggerLockMut.isPending}
+                    onClick={() => triggerLockMut.mutate({
+                      projectId: selectedProject,
+                      processCode: triggerForm.processCode,
+                      severity: triggerForm.severity as any,
+                      reason: triggerForm.reason,
+                    })}
+                  >
+                    {triggerLockMut.isPending ? "锁定中..." : "确认锁定"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        }
+      />
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-red-500/30">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-500/20"><Lock className="w-5 h-5 text-red-400" /></div>
-            <div>
-              <p className="text-sm text-muted-foreground">当前锁定</p>
-              <p className="text-2xl font-bold text-red-400">{summary.activeLocks || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-yellow-500/30">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-yellow-500/20"><Clock className="w-5 h-5 text-yellow-400" /></div>
-            <div>
-              <p className="text-sm text-muted-foreground">待审批</p>
-              <p className="text-2xl font-bold text-yellow-400">{summary.pendingUnlocks || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-green-500/30">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-green-500/20"><Unlock className="w-5 h-5 text-green-400" /></div>
-            <div>
-              <p className="text-sm text-muted-foreground">已解锁</p>
-              <p className="text-2xl font-bold text-green-400">{summary.totalUnlocked || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-orange-500/30">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orange-500/20"><Bell className="w-5 h-5 text-orange-400" /></div>
-            <div>
-              <p className="text-sm text-muted-foreground">未读预警</p>
-              <p className="text-2xl font-bold text-orange-400">{unreadCount}</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard icon={Lock} label="当前锁定" value={summary.activeLocks || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Clock} label="待审批" value={summary.pendingUnlocks || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+        <StatCard icon={Unlock} label="已解锁" value={summary.totalUnlocked || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Bell} label="未读预警" value={unreadCount} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       {/* Tabs */}
@@ -453,5 +422,6 @@ export default function QualityInterlock() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

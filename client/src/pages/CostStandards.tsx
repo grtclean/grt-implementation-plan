@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -188,15 +189,12 @@ export default function CostStandards() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Calculator className="h-6 w-6 text-primary" />成本标准与产品配置</h1>
-          <p className="text-muted-foreground mt-1">人工费率、制造费用、物料加价规则及产品基准成本管理</p>
-        </div>
+        <PageHeader icon={Calculator} title="成本标准与产品配置" description="人工费率、制造费用、物料加价规则及产品基准成本管理" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold">{LABOR_RATES.length}</p><p className="text-sm text-muted-foreground">人工角色</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-primary">{OVERHEAD_CATEGORIES.length}</p><p className="text-sm text-muted-foreground">费用类别</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-amber-600">{MATERIAL_MARKUPS.length}</p><p className="text-sm text-muted-foreground">加价规则</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-blue-600">{PRODUCT_CONFIGS.length}</p><p className="text-sm text-muted-foreground">产品配置</p></CardContent></Card>
+          <StatCard icon={Users} label="人工角色" value={LABOR_RATES.length} />
+          <StatCard icon={Factory} label="费用类别" value={OVERHEAD_CATEGORIES.length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Package} label="加价规则" value={MATERIAL_MARKUPS.length} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
+          <StatCard icon={Settings} label="产品配置" value={PRODUCT_CONFIGS.length} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
         </div>
         <Tabs defaultValue="labor">
           <TabsList><TabsTrigger value="labor">人工成本</TabsTrigger><TabsTrigger value="overhead">制造费用</TabsTrigger><TabsTrigger value="markup">物料加价</TabsTrigger><TabsTrigger value="products">产品配置</TabsTrigger></TabsList>

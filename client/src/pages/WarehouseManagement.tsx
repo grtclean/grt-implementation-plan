@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -219,15 +220,12 @@ export default function WarehouseManagement() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Warehouse className="h-6 w-6 text-primary" />仓库管理</h1>
-          <p className="text-muted-foreground mt-1">仓库、库位、入库、出库一站式管理</p>
-        </div>
+        <PageHeader icon={Warehouse} title="仓库管理" description="仓库、库位、入库、出库一站式管理" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold">4</p><p className="text-sm text-muted-foreground">仓库总数</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-primary">128</p><p className="text-sm text-muted-foreground">库位总数</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-amber-600">67%</p><p className="text-sm text-muted-foreground">库位利用率</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-blue-600">12</p><p className="text-sm text-muted-foreground">待处理单据</p></CardContent></Card>
+          <StatCard icon={Warehouse} label="仓库总数" value={4} />
+          <StatCard icon={MapPin} label="库位总数" value={128} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Package} label="库位利用率" value="67%" iconColor="text-amber-500" iconBg="bg-amber-500/10" />
+          <StatCard icon={Clock} label="待处理单据" value={12} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
         </div>
         <Tabs defaultValue="warehouses">
           <TabsList><TabsTrigger value="warehouses">仓库列表</TabsTrigger><TabsTrigger value="locations">库位管理</TabsTrigger><TabsTrigger value="receipts">入库管理</TabsTrigger><TabsTrigger value="issues">出库管理</TabsTrigger></TabsList>

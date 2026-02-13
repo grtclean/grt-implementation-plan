@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -124,164 +125,115 @@ export default function BudgetManagement() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold font-heading">出差费用预算管理</h1>
-            <p className="text-muted-foreground mt-1">管理预算标准、计算预算和监控预警</p>
-          </div>
-          <div className="flex gap-2">
-            <Dialog open={calculatorOpen} onOpenChange={setCalculatorOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Calculator className="w-4 h-4" />
-                  预算计算器
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>出差预算计算器</DialogTitle>
-                  <DialogDescription>
-                    输入出差信息，自动计算预算金额
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>出差区域</Label>
-                      <Select value={calcForm.region} onValueChange={(v) => setCalcForm({...calcForm, region: v})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="domestic">国内</SelectItem>
-                          <SelectItem value="apac">亚太</SelectItem>
-                          <SelectItem value="emea">欧美</SelectItem>
-                        </SelectContent>
-                      </Select>
+        <PageHeader
+          icon={DollarSign}
+          title="出差费用预算管理"
+          description="管理预算标准、计算预算和监控预警"
+          actions={
+            <>
+              <Dialog open={calculatorOpen} onOpenChange={setCalculatorOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Calculator className="w-4 h-4" />
+                    预算计算器
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>出差预算计算器</DialogTitle>
+                    <DialogDescription>
+                      输入出差信息，自动计算预算金额
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>出差区域</Label>
+                        <Select value={calcForm.region} onValueChange={(v) => setCalcForm({...calcForm, region: v})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="domestic">国内</SelectItem>
+                            <SelectItem value="apac">亚太</SelectItem>
+                            <SelectItem value="emea">欧美</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>城市等级</Label>
+                        <Select value={calcForm.cityTier} onValueChange={(v) => setCalcForm({...calcForm, cityTier: v})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="tier1">一线城市</SelectItem>
+                            <SelectItem value="tier2">二线城市</SelectItem>
+                            <SelectItem value="tier3">三线城市</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>城市等级</Label>
-                      <Select value={calcForm.cityTier} onValueChange={(v) => setCalcForm({...calcForm, cityTier: v})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="tier1">一线城市</SelectItem>
-                          <SelectItem value="tier2">二线城市</SelectItem>
-                          <SelectItem value="tier3">三线城市</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>员工级别</Label>
+                        <Select value={calcForm.employeeLevel} onValueChange={(v) => setCalcForm({...calcForm, employeeLevel: v})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="staff">普通员工</SelectItem>
+                            <SelectItem value="manager">经理</SelectItem>
+                            <SelectItem value="director">总监</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>出差天数</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={30}
+                          value={calcForm.days}
+                          onChange={(e) => setCalcForm({...calcForm, days: parseInt(e.target.value) || 1})}
+                        />
+                      </div>
+                    </div>
+                    <div className="border rounded-lg p-4 bg-muted/50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">预计预算总额</span>
+                        <span className="text-2xl font-bold text-primary">
+                          ¥{calculateBudget().toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        日均标准: ¥{(calculateBudget() / calcForm.days).toFixed(0)}/天
+                      </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>员工级别</Label>
-                      <Select value={calcForm.employeeLevel} onValueChange={(v) => setCalcForm({...calcForm, employeeLevel: v})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="staff">普通员工</SelectItem>
-                          <SelectItem value="manager">经理</SelectItem>
-                          <SelectItem value="director">总监</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>出差天数</Label>
-                      <Input 
-                        type="number" 
-                        min={1} 
-                        max={30}
-                        value={calcForm.days}
-                        onChange={(e) => setCalcForm({...calcForm, days: parseInt(e.target.value) || 1})}
-                      />
-                    </div>
-                  </div>
-                  <div className="border rounded-lg p-4 bg-muted/50">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">预计预算总额</span>
-                      <span className="text-2xl font-bold text-primary">
-                        ¥{calculateBudget().toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      日均标准: ¥{(calculateBudget() / calcForm.days).toFixed(0)}/天
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setCalculatorOpen(false)}>关闭</Button>
-                  <Button onClick={() => {
-                    // 可以将计算结果应用到出差申请
-                    setCalculatorOpen(false);
-                  }}>应用到申请</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              新建预算标准
-            </Button>
-          </div>
-        </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setCalculatorOpen(false)}>关闭</Button>
+                    <Button onClick={() => {
+                      // 可以将计算结果应用到出差申请
+                      setCalculatorOpen(false);
+                    }}>应用到申请</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                新建预算标准
+              </Button>
+            </>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-primary/10 text-primary">
-                  <DollarSign className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">本月总预算</p>
-                  <p className="text-2xl font-bold">¥{budgetStats.totalBudget.toLocaleString()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">已使用预算</p>
-                  <p className="text-2xl font-bold">¥{budgetStats.usedBudget.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">{budgetStats.utilizationRate}%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-500/10 text-green-500">
-                  <TrendingDown className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">剩余预算</p>
-                  <p className="text-2xl font-bold">¥{budgetStats.remainingBudget.toLocaleString()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-yellow-500/10 text-yellow-500">
-                  <AlertTriangle className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">预警项目</p>
-                  <p className="text-2xl font-bold">{budgetStats.projectsWithWarning}</p>
-                  <p className="text-xs text-red-500">{budgetStats.projectsExceeded}个已超支</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={DollarSign} label="本月总预算" value={`¥${budgetStats.totalBudget.toLocaleString()}`} />
+          <StatCard icon={TrendingUp} label="已使用预算" value={`¥${budgetStats.usedBudget.toLocaleString()}`} subtitle={`${budgetStats.utilizationRate}%`} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={TrendingDown} label="剩余预算" value={`¥${budgetStats.remainingBudget.toLocaleString()}`} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={AlertTriangle} label="预警项目" value={budgetStats.projectsWithWarning} subtitle={`${budgetStats.projectsExceeded}个已超支`} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
         </div>
 
         {/* 标签页内容 */}

@@ -4,13 +4,15 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Download, Upload, Search, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Download, Upload, Search, Edit2, Trash2, Package, AlertTriangle, XCircle, BarChart3 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 
 export default function MaterialManagement() {
@@ -40,66 +42,33 @@ export default function MaterialManagement() {
   const { data: statsData } = trpc.materials.getInventoryStats.useQuery();
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">物料管理</h1>
-          <p className="text-muted-foreground mt-2">管理工业清洗设备物料编码和库存</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            导出
-          </Button>
-          <Button size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            新增物料
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Package}
+        title="物料管理"
+        description="管理工业清洗设备物料编码和库存"
+        actions={
+          <>
+            <Button variant="outline" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              导出
+            </Button>
+            <Button size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              新增物料
+            </Button>
+          </>
+        }
+      />
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">总物料数</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statsData?.totalMaterials || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">活跃物料</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">库存不足</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{statsData?.lowStockMaterials || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">需要补货</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">缺货物料</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{statsData?.outOfStockMaterials || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">紧急采购</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">库存总值</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">¥{(statsData?.totalInventoryValue || 0).toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">评估价值</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard icon={Package} label="总物料数" value={statsData?.totalMaterials || 0} subtitle="活跃物料" iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={AlertTriangle} label="库存不足" value={statsData?.lowStockMaterials || 0} subtitle="需要补货" iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={XCircle} label="缺货物料" value={statsData?.outOfStockMaterials || 0} subtitle="紧急采购" iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={BarChart3} label="库存总值" value={`¥${(statsData?.totalInventoryValue || 0).toLocaleString()}`} subtitle="评估价值" iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       {/* 选项卡 */}
@@ -281,5 +250,6 @@ export default function MaterialManagement() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

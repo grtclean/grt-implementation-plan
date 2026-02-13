@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -111,17 +113,14 @@ export default function QualityCheckpoints() {
   const dashboard = dashboardQuery.data;
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ShieldCheck className="w-7 h-7 text-primary" />
-            质量检查点管理
-          </h1>
-          <p className="text-muted-foreground mt-1">T1-T15工序质量检查、CCD视觉检测、缺陷追踪</p>
-        </div>
-        <div className="flex items-center gap-3">
+      <PageHeader
+        icon={ShieldCheck}
+        title="质量检查点管理"
+        description="T1-T15工序质量检查、CCD视觉检测、缺陷追踪"
+        actions={
           <Select value={selectedProcess} onValueChange={setSelectedProcess}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="选择工序" />
@@ -133,8 +132,8 @@ export default function QualityCheckpoints() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
+        }
+      />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -147,39 +146,11 @@ export default function QualityCheckpoints() {
 
         {/* Dashboard Tab */}
         <TabsContent value="dashboard" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="text-3xl font-bold text-green-600">
-                  {dashboard?.results?.pass_count || 0}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">合格</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="text-3xl font-bold text-red-600">
-                  {dashboard?.results?.fail_count || 0}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">不合格</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="text-3xl font-bold text-yellow-600">
-                  {dashboard?.defects?.open_count || 0}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">待处理缺陷</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="text-3xl font-bold text-blue-600">
-                  {dashboard?.results?.avg_score ? Math.round(Number(dashboard.results.avg_score)) : 0}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">平均评分</p>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard icon={CheckCircle2} label="合格" value={dashboard?.results?.pass_count || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+            <StatCard icon={XCircle} label="不合格" value={dashboard?.results?.fail_count || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
+            <StatCard icon={AlertTriangle} label="待处理缺陷" value={dashboard?.defects?.open_count || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+            <StatCard icon={BarChart3} label="平均评分" value={dashboard?.results?.avg_score ? Math.round(Number(dashboard.results.avg_score)) : 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
           </div>
 
           {/* Pass Rate by Process */}
@@ -491,5 +462,6 @@ export default function QualityCheckpoints() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

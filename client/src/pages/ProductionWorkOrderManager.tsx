@@ -5,6 +5,8 @@
  */
 
 import { useState } from 'react';
+import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from '@/components/grt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -161,91 +163,32 @@ export default function ProductionWorkOrderManager() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Factory className="w-6 h-6 text-primary" />
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Factory}
+        title="生产工单管理"
+        description="M5阶段生产制造工单追踪与管理"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              刷新
+            </Button>
+            <Button size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              新建工单
+            </Button>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">生产工单管理</h1>
-            <p className="text-sm text-muted-foreground">M5阶段生产制造工单追踪与管理</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            刷新
-          </Button>
-          <Button size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            新建工单
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* 统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">总工单数</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-              <ClipboardList className="w-8 h-8 text-muted-foreground/50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">生产中</p>
-                <p className="text-2xl font-bold text-green-500">{stats.inProgress}</p>
-              </div>
-              <Play className="w-8 h-8 text-green-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">已暂停</p>
-                <p className="text-2xl font-bold text-yellow-500">{stats.halted}</p>
-              </div>
-              <Pause className="w-8 h-8 text-yellow-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">已逾期</p>
-                <p className="text-2xl font-bold text-red-500">{stats.overdue}</p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-red-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">平均进度</p>
-                <p className="text-2xl font-bold text-primary">{stats.avgProgress}%</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-primary/50" />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <StatCard icon={ClipboardList} label="总工单数" value={stats.total} />
+        <StatCard icon={Play} label="生产中" value={stats.inProgress} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Pause} label="已暂停" value={stats.halted} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+        <StatCard icon={AlertTriangle} label="已逾期" value={stats.overdue} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={TrendingUp} label="平均进度" value={`${stats.avgProgress}%`} />
       </div>
 
       {/* 过滤器和搜索 */}
@@ -384,5 +327,6 @@ export default function ProductionWorkOrderManager() {
         )}
       </div>
     </div>
+    </Layout>
   );
 }

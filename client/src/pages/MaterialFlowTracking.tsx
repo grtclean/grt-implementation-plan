@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -83,22 +85,19 @@ export default function MaterialFlowTracking() {
   const summary = flowSummaryQuery.data;
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Truck className="w-7 h-7 text-primary" />
-            物料流转追踪
-          </h1>
-          <p className="text-muted-foreground mt-1">T1-T15工序间物料流转状态、UWB定位、生产瓶颈分析</p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        icon={Truck}
+        title="物料流转追踪"
+        description="T1-T15工序间物料流转状态、UWB定位、生产瓶颈分析"
+        actions={
           <Button variant="outline" onClick={() => detectBottlenecksMut.mutate({ projectId: selectedProject })}>
             <Activity className="w-4 h-4 mr-2" />瓶颈检测
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-4 w-full max-w-lg">
@@ -111,35 +110,11 @@ export default function MaterialFlowTracking() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-6 text-center">
-                <Package className="w-8 h-8 mx-auto text-blue-500 mb-2" />
-                <div className="text-3xl font-bold">{summary?.totalMaterials || 0}</div>
-                <p className="text-sm text-muted-foreground">物料总数</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <RefreshCw className="w-8 h-8 mx-auto text-green-500 mb-2" />
-                <div className="text-3xl font-bold">{summary?.totalFlows || 0}</div>
-                <p className="text-sm text-muted-foreground">流转次数</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <Clock className="w-8 h-8 mx-auto text-yellow-500 mb-2" />
-                <div className="text-3xl font-bold">{summary?.avgTransitTime ? Math.round(Number(summary.avgTransitTime)) : 0}</div>
-                <p className="text-sm text-muted-foreground">平均流转时间(分)</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <AlertTriangle className="w-8 h-8 mx-auto text-red-500 mb-2" />
-                <div className="text-3xl font-bold">{summary?.activeBottlenecks || 0}</div>
-                <p className="text-sm text-muted-foreground">活跃瓶颈</p>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard icon={Package} label="物料总数" value={summary?.totalMaterials || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+            <StatCard icon={RefreshCw} label="流转次数" value={summary?.totalFlows || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+            <StatCard icon={Clock} label="平均流转时间(分)" value={summary?.avgTransitTime ? Math.round(Number(summary.avgTransitTime)) : 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+            <StatCard icon={AlertTriangle} label="活跃瓶颈" value={summary?.activeBottlenecks || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
           </div>
 
           {/* Process Flow Visualization */}
@@ -401,5 +376,6 @@ export default function MaterialFlowTracking() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

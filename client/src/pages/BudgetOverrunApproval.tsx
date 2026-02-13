@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -194,81 +195,29 @@ export default function BudgetOverrunApproval() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <AlertTriangle className="w-6 h-6 text-primary" />
-              预算超支审批
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              审批出差费用超出预算的申请
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            刷新
-          </Button>
-        </div>
+        <PageHeader
+          icon={AlertTriangle}
+          title="预算超支审批"
+          description="审批出差费用超出预算的申请"
+          actions={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              刷新
+            </Button>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-sm bg-yellow-500/10">
-                  <Clock className="w-5 h-5 text-yellow-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">待审批</p>
-                  <p className="text-2xl font-bold font-heading">{stats.pending}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-sm bg-green-500/10">
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">已通过</p>
-                  <p className="text-2xl font-bold font-heading">{stats.approved}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-sm bg-red-500/10">
-                  <XCircle className="w-5 h-5 text-red-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">已拒绝</p>
-                  <p className="text-2xl font-bold font-heading">{stats.rejected}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-sm bg-primary/10">
-                  <FileText className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">总计</p>
-                  <p className="text-2xl font-bold font-heading">{stats.total}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Clock} label="待审批" value={stats.pending} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+          <StatCard icon={CheckCircle2} label="已通过" value={stats.approved} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={XCircle} label="已拒绝" value={stats.rejected} iconColor="text-red-500" iconBg="bg-red-500/10" />
+          <StatCard icon={FileText} label="总计" value={stats.total} />
         </div>
 
         {/* 筛选和列表 */}
