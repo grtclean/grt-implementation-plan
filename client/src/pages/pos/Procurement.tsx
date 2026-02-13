@@ -1,4 +1,7 @@
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Progress } from "@/components/ui/progress";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
-import { 
+import {
   ShoppingCart, Clock, CheckCircle2, AlertTriangle, XCircle,
   FileText, Send, Package, User, Loader2, ArrowRight,
   Building2, Truck, DollarSign, Calendar, Edit, Eye,
@@ -228,24 +231,26 @@ export default function POSProcurement() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">采购建议</h1>
-          <p className="text-muted-foreground">PO建议管理与审批流程 - 工程师确认 → 采购确认 → 输出正式PO</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setLocation('/pos/connectors')}>
-            <Settings className="w-4 h-4 mr-2" />
-            ERP配置
-          </Button>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            刷新
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={ShoppingCart}
+        title="采购建议"
+        description="PO建议管理与审批流程 - 工程师确认 → 采购确认 → 输出正式PO"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setLocation('/pos/connectors')}>
+              <Settings className="w-4 h-4 mr-2" />
+              ERP配置
+            </Button>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              刷新
+            </Button>
+          </div>
+        }
+      />
 
       {/* 审批流程说明 */}
       <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
@@ -276,66 +281,52 @@ export default function POSProcurement() {
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <Card className={activeTab === 'pending_engineer' ? 'ring-2 ring-yellow-500' : ''}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">待工程确认</CardTitle>
-            <User className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.pendingEngineer}</div>
-            <p className="text-xs text-muted-foreground">需技术审核</p>
-          </CardContent>
-        </Card>
-        <Card className={activeTab === 'pending_procurement' ? 'ring-2 ring-blue-500' : ''}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">待采购确认</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.pendingProcurement}</div>
-            <p className="text-xs text-muted-foreground">需采购审核</p>
-          </CardContent>
-        </Card>
-        <Card className={activeTab === 'exported' ? 'ring-2 ring-green-500' : ''}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">已输出</CardTitle>
-            <Send className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.exported}</div>
-            <p className="text-xs text-muted-foreground">已下单</p>
-          </CardContent>
-        </Card>
-        <Card className={activeTab === 'rejected' ? 'ring-2 ring-red-500' : ''}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">已驳回</CardTitle>
-            <XCircle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
-            <p className="text-xs text-muted-foreground">需修改</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">长周期件</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.longLeadTime}</div>
-            <p className="text-xs text-muted-foreground">&gt;30天交期</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">预估总额</CardTitle>
-            <DollarSign className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalValue}</div>
-            <p className="text-xs text-muted-foreground">待采购金额</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          icon={User}
+          label="待工程确认"
+          value={stats.pendingEngineer}
+          subtitle="需技术审核"
+          iconColor="text-yellow-500"
+          iconBg="bg-yellow-500/10"
+        />
+        <StatCard
+          icon={ShoppingCart}
+          label="待采购确认"
+          value={stats.pendingProcurement}
+          subtitle="需采购审核"
+          iconColor="text-blue-500"
+          iconBg="bg-blue-500/10"
+        />
+        <StatCard
+          icon={Send}
+          label="已输出"
+          value={stats.exported}
+          subtitle="已下单"
+          iconColor="text-green-500"
+          iconBg="bg-green-500/10"
+        />
+        <StatCard
+          icon={XCircle}
+          label="已驳回"
+          value={stats.rejected}
+          subtitle="需修改"
+          iconColor="text-red-500"
+          iconBg="bg-red-500/10"
+        />
+        <StatCard
+          icon={AlertTriangle}
+          label="长周期件"
+          value={stats.longLeadTime}
+          subtitle=">30天交期"
+          iconColor="text-orange-500"
+          iconBg="bg-orange-500/10"
+        />
+        <StatCard
+          icon={DollarSign}
+          label="预估总额"
+          value={stats.totalValue}
+          subtitle="待采购金额"
+        />
       </div>
 
       {/* 采购建议列表 */}
@@ -697,5 +688,6 @@ export default function POSProcurement() {
         </CardFooter>
       </Card>
     </div>
+    </Layout>
   );
 }

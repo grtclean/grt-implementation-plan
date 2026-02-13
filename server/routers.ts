@@ -13,6 +13,9 @@ import { capabilityRouter } from "./capability-management/capability.router";
 // Import placeholder routers for TypeScript compatibility
 import { placeholderRouters } from "./placeholder-routers";
 
+// Import delivery management router (replaces m7m9 placeholder)
+import { deliveryRouter } from "./delivery/delivery.router";
+
 // Import real implementation routers
 import { changeManagementRouter as realChangeManagementRouter } from "./deployment/changeManagement.router";
 import { securityRouter } from "./security/securityRouter";
@@ -168,7 +171,7 @@ export const appRouter = router({
   reportTemplate: placeholderRouters.reportTemplate,
   cost: placeholderRouters.cost,
   community: placeholderRouters.community,
-  m7m9: placeholderRouters.m7m9,
+  m7m9: deliveryRouter,
   tripRequest: placeholderRouters.tripRequest,
   crm: crmRouter,
   annualPlanning: placeholderRouters.annualPlanning,

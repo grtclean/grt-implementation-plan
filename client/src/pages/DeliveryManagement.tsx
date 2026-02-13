@@ -1,5 +1,7 @@
 import Layout from "@/components/Layout";
 import FeatureGuide from "@/components/FeatureGuide";
+import { PageHeader } from "@/components/grt/PageHeader";
+import { StatCard } from "@/components/grt/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
-import { 
+import {
   Plus, Truck, Package, CheckCircle2, Clock, AlertTriangle, XCircle,
   ChevronRight, Target, TrendingUp, FileCheck, AlertCircle, Bot,
   ClipboardCheck, MapPin, Phone, User, Calendar, ArrowRight, Sparkles,
@@ -119,11 +121,11 @@ export default function DeliveryManagement() {
     criticalIssueCount: 0,
   });
 
-  // Queries - 使用模拟数据，因为后端路由可能还未完全集成
-  const deliveriesQuery = (trpc.m7m9 as any)?.delivery?.list?.useQuery?.({ page: 1, pageSize: 20 }) || { data: null, isLoading: false };
-  const statsQuery = (trpc.m7m9 as any)?.delivery?.getStats?.useQuery?.() || { data: null };
-  const issuesQuery = (trpc.m7m9 as any)?.siteIssue?.list?.useQuery?.({ page: 1, pageSize: 20 }) || { data: null, isLoading: false };
-  const issueStatsQuery = (trpc.m7m9 as any)?.siteIssue?.getStats?.useQuery?.({}) || { data: null };
+  // Queries — typed tRPC calls to real delivery router
+  const deliveriesQuery = trpc.m7m9.delivery.list.useQuery({ page: 1, pageSize: 20 });
+  const statsQuery = trpc.m7m9.delivery.getStats.useQuery();
+  const issuesQuery = trpc.m7m9.siteIssue.list.useQuery({ page: 1, pageSize: 20 });
+  const issueStatsQuery = trpc.m7m9.siteIssue.getStats.useQuery({});
 
   // 模拟数据
   const mockDeliveries = [
@@ -222,36 +224,36 @@ export default function DeliveryManagement() {
   const issues = issuesQuery.data?.items || mockIssues;
   const issueStats = issueStatsQuery.data || mockIssueStats;
 
-  // Mutations - 使用可选链避免错误
-  const createDeliveryMutation = (trpc.m7m9 as any)?.delivery?.create?.useMutation?.({
+  // Mutations — typed tRPC calls
+  const createDeliveryMutation = trpc.m7m9.delivery.create.useMutation({
     onSuccess: () => {
       toast.success("交付任务创建成功");
       setIsCreateDialogOpen(false);
-      deliveriesQuery.refetch?.();
+      deliveriesQuery.refetch();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`创建失败: ${error.message}`);
     },
   });
 
-  const createIssueMutation = (trpc.m7m9 as any)?.siteIssue?.create?.useMutation?.({
+  const createIssueMutation = trpc.m7m9.siteIssue.create.useMutation({
     onSuccess: () => {
       toast.success("现场问题已记录");
       setIsIssueDialogOpen(false);
-      issuesQuery.refetch?.();
+      issuesQuery.refetch();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`创建失败: ${error.message}`);
     },
   });
 
-  const aiGateCheckMutation = (trpc.m7m9 as any)?.gateCheck?.executeAIGateCheck?.useMutation?.({
-    onSuccess: (data: any) => {
+  const aiGateCheckMutation = trpc.m7m9.gateCheck.executeAIGateCheck.useMutation({
+    onSuccess: (data) => {
       toast.success(`AI Gate检查完成: ${data.decision}`);
       setIsAICheckDialogOpen(false);
-      deliveriesQuery.refetch?.();
+      deliveriesQuery.refetch();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`检查失败: ${error.message}`);
     },
   });
@@ -261,23 +263,18 @@ export default function DeliveryManagement() {
       toast.error("请输入项目编号");
       return;
     }
-    if (createDeliveryMutation) {
-      createDeliveryMutation.mutate({
-        projectId: newDelivery.projectId || 1,
-        projectNo: newDelivery.projectNo,
-        customerName: newDelivery.customerName,
-        siteAddress: newDelivery.siteAddress,
-        siteContactName: newDelivery.siteContactName,
-        siteContactPhone: newDelivery.siteContactPhone,
-        plannedM7Date: newDelivery.plannedM7Date,
-        plannedM8Date: newDelivery.plannedM8Date,
-        plannedM9Date: newDelivery.plannedM9Date,
-        specialRequirements: newDelivery.specialRequirements,
-      });
-    } else {
-      toast.success("交付任务创建成功（演示模式）");
-      setIsCreateDialogOpen(false);
-    }
+    createDeliveryMutation.mutate({
+      projectId: newDelivery.projectId || 1,
+      projectNo: newDelivery.projectNo,
+      customerName: newDelivery.customerName,
+      siteAddress: newDelivery.siteAddress,
+      siteContactName: newDelivery.siteContactName,
+      siteContactPhone: newDelivery.siteContactPhone,
+      plannedM7Date: newDelivery.plannedM7Date,
+      plannedM8Date: newDelivery.plannedM8Date,
+      plannedM9Date: newDelivery.plannedM9Date,
+      specialRequirements: newDelivery.specialRequirements,
+    });
   };
 
   const handleCreateIssue = () => {
@@ -285,38 +282,27 @@ export default function DeliveryManagement() {
       toast.error("请输入问题标题");
       return;
     }
-    if (createIssueMutation) {
-      createIssueMutation.mutate({
-        deliveryId: newIssue.deliveryId || selectedDelivery?.id || 1,
-        issueCategory: newIssue.issueCategory,
-        severity: newIssue.severity,
-        title: newIssue.title,
-        description: newIssue.description,
-        affectedComponent: newIssue.affectedComponent,
-      });
-    } else {
-      toast.success("现场问题已记录（演示模式）");
-      setIsIssueDialogOpen(false);
-    }
+    createIssueMutation.mutate({
+      deliveryId: newIssue.deliveryId || selectedDelivery?.id || 1,
+      issueCategory: newIssue.issueCategory,
+      severity: newIssue.severity,
+      title: newIssue.title,
+      description: newIssue.description,
+      affectedComponent: newIssue.affectedComponent,
+    });
   };
 
   const handleAIGateCheck = () => {
-    if (aiGateCheckMutation) {
-      aiGateCheckMutation.mutate({
-        deliveryId: aiGateCheckInput.deliveryId || selectedDelivery?.id || 1,
-        projectNo: aiGateCheckInput.projectNo || selectedDelivery?.projectNo || "PRJ-2024-001",
-        currentStage: aiGateCheckInput.currentStage,
-        shippingCleanlinessReport: aiGateCheckInput.shippingCleanlinessReport || undefined,
-        cycleTimeActual: aiGateCheckInput.cycleTimeActual || undefined,
-        cycleTimeTarget: aiGateCheckInput.cycleTimeTarget || undefined,
-        openIssueCount: aiGateCheckInput.openIssueCount,
-        criticalIssueCount: aiGateCheckInput.criticalIssueCount,
-      });
-    } else {
-      // 演示模式
-      toast.success("AI Gate检查完成: Green_Light（演示模式）");
-      setIsAICheckDialogOpen(false);
-    }
+    aiGateCheckMutation.mutate({
+      deliveryId: aiGateCheckInput.deliveryId || selectedDelivery?.id || 1,
+      projectNo: aiGateCheckInput.projectNo || selectedDelivery?.projectNo || "PRJ-2026-001",
+      currentStage: aiGateCheckInput.currentStage,
+      shippingCleanlinessReport: aiGateCheckInput.shippingCleanlinessReport || undefined,
+      cycleTimeActual: aiGateCheckInput.cycleTimeActual || undefined,
+      cycleTimeTarget: aiGateCheckInput.cycleTimeTarget || undefined,
+      openIssueCount: aiGateCheckInput.openIssueCount,
+      criticalIssueCount: aiGateCheckInput.criticalIssueCount,
+    });
   };
 
   const getStageProgress = (stage: string) => {
@@ -341,18 +327,11 @@ export default function DeliveryManagement() {
       
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <Truck className="w-6 h-6 text-primary" />
-              M7-M9 交付管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              预验收 → 安装调试 → 终验收 全流程管理
-            </p>
-          </div>
-          
-          <div className="flex gap-2">
+        <PageHeader
+          icon={Truck}
+          title="M7-M9 交付管理"
+          description="预验收 → 安装调试 → 终验收 全流程管理"
+          actions={
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-primary hover:bg-primary/90">
@@ -471,66 +450,39 @@ export default function DeliveryManagement() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
+          }
+        />
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">M7 预验收</p>
-                  <p className="text-2xl font-bold text-blue-400">{stats.byStage.M7_Pre_Acceptance}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-blue-500/10">
-                  <ClipboardCheck className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">M8 安装调试</p>
-                  <p className="text-2xl font-bold text-purple-400">{stats.byStage.M8_Installation}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-purple-500/10">
-                  <Settings className="w-6 h-6 text-purple-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">M9 终验收</p>
-                  <p className="text-2xl font-bold text-orange-400">{stats.byStage.M9_Final_Acceptance}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-orange-500/10">
-                  <FileCheck className="w-6 h-6 text-orange-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">已完成</p>
-                  <p className="text-2xl font-bold text-green-400">{stats.byStage.Completed}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-green-500/10">
-                  <CheckCircle2 className="w-6 h-6 text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            icon={ClipboardCheck}
+            label="M7 预验收"
+            value={stats.byStage.M7_Pre_Acceptance}
+            iconColor="text-blue-400"
+            iconBg="bg-blue-500/10"
+          />
+          <StatCard
+            icon={Settings}
+            label="M8 安装调试"
+            value={stats.byStage.M8_Installation}
+            iconColor="text-purple-400"
+            iconBg="bg-purple-500/10"
+          />
+          <StatCard
+            icon={FileCheck}
+            label="M9 终验收"
+            value={stats.byStage.M9_Final_Acceptance}
+            iconColor="text-orange-400"
+            iconBg="bg-orange-500/10"
+          />
+          <StatCard
+            icon={CheckCircle2}
+            label="已完成"
+            value={stats.byStage.Completed}
+            iconColor="text-green-400"
+            iconBg="bg-green-500/10"
+          />
         </div>
 
         {/* Main Content Tabs */}
