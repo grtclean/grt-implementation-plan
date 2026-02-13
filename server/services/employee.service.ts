@@ -79,15 +79,15 @@ export function getBUCodeFromDepartment(department: string): string | null {
 export async function getAllEmployees(): Promise<Employee[]> {
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT 
-      id, employee_id as employeeId, name, department, position,
-      bu_code as buCode, email, phone, hire_date as hireDate,
-      status, created_at as createdAt, updated_at as updatedAt
+    SELECT
+      id, employee_id as "employeeId", name, department, position,
+      bu_code as "buCode", email, phone, hire_date as "hireDate",
+      status, created_at as "createdAt", updated_at as "updatedAt"
     FROM company_employees
     WHERE status = 'active'
     ORDER BY employee_id
   `);
-  return (result[0] as any[]) || [];
+  return (result.rows as any[]) || [];
 }
 
 /**
@@ -96,15 +96,15 @@ export async function getAllEmployees(): Promise<Employee[]> {
 export async function getEmployeesByDepartment(department: string): Promise<Employee[]> {
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT 
-      id, employee_id as employeeId, name, department, position,
-      bu_code as buCode, email, phone, hire_date as hireDate,
-      status, created_at as createdAt, updated_at as updatedAt
+    SELECT
+      id, employee_id as "employeeId", name, department, position,
+      bu_code as "buCode", email, phone, hire_date as "hireDate",
+      status, created_at as "createdAt", updated_at as "updatedAt"
     FROM company_employees
     WHERE department = ${department} AND status = 'active'
     ORDER BY employee_id
   `);
-  return (result[0] as any[]) || [];
+  return (result.rows as any[]) || [];
 }
 
 /**
@@ -113,15 +113,15 @@ export async function getEmployeesByDepartment(department: string): Promise<Empl
 export async function getEmployeesByBU(buCode: string): Promise<Employee[]> {
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT 
-      id, employee_id as employeeId, name, department, position,
-      bu_code as buCode, email, phone, hire_date as hireDate,
-      status, created_at as createdAt, updated_at as updatedAt
+    SELECT
+      id, employee_id as "employeeId", name, department, position,
+      bu_code as "buCode", email, phone, hire_date as "hireDate",
+      status, created_at as "createdAt", updated_at as "updatedAt"
     FROM company_employees
     WHERE bu_code = ${buCode} AND status = 'active'
     ORDER BY employee_id
   `);
-  return (result[0] as any[]) || [];
+  return (result.rows as any[]) || [];
 }
 
 /**
@@ -130,15 +130,15 @@ export async function getEmployeesByBU(buCode: string): Promise<Employee[]> {
 export async function getEmployeeById(employeeId: string): Promise<Employee | null> {
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT 
-      id, employee_id as employeeId, name, department, position,
-      bu_code as buCode, email, phone, hire_date as hireDate,
-      status, created_at as createdAt, updated_at as updatedAt
+    SELECT
+      id, employee_id as "employeeId", name, department, position,
+      bu_code as "buCode", email, phone, hire_date as "hireDate",
+      status, created_at as "createdAt", updated_at as "updatedAt"
     FROM company_employees
     WHERE employee_id = ${employeeId}
     LIMIT 1
   `);
-  const rows = (result[0] as any[]) || [];
+  const rows = (result.rows as any[]) || [];
   return rows.length > 0 ? rows[0] : null;
 }
 
@@ -151,12 +151,13 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<{ id: 
   
   const result = await db.execute(sql`
     INSERT INTO company_employees (employee_id, name, department, position, bu_code, email, phone, hire_date, status)
-    VALUES (${input.employeeId}, ${input.name}, ${input.department}, ${input.position}, 
-            ${buCode}, ${input.email || null}, ${input.phone || null}, 
+    VALUES (${input.employeeId}, ${input.name}, ${input.department}, ${input.position},
+            ${buCode}, ${input.email || null}, ${input.phone || null},
             ${input.hireDate || null}, ${input.status || 'active'})
+    RETURNING id
   `);
   
-  return { id: (result[0] as any).insertId };
+  return { id: (result.rows as any[])[0]?.id ?? 0 };
 }
 
 /**
@@ -197,51 +198,33 @@ export async function batchCreateEmployees(employees: CreateEmployeeInput[]): Pr
  */
 export async function updateEmployee(employeeId: string, updates: Partial<CreateEmployeeInput>): Promise<boolean> {
   const db = await requireDb();
-  
-  const setClauses: string[] = [];
-  const values: any[] = [];
-  
-  if (updates.name) {
-    setClauses.push('name = ?');
-    values.push(updates.name);
-  }
-  if (updates.department) {
-    setClauses.push('department = ?');
-    values.push(updates.department);
-    // 自动更新BU代码
-    const buCode = getBUCodeFromDepartment(updates.department);
-    if (buCode) {
-      setClauses.push('bu_code = ?');
-      values.push(buCode);
-    }
-  }
-  if (updates.position) {
-    setClauses.push('position = ?');
-    values.push(updates.position);
-  }
-  if (updates.email !== undefined) {
-    setClauses.push('email = ?');
-    values.push(updates.email);
-  }
-  if (updates.phone !== undefined) {
-    setClauses.push('phone = ?');
-    values.push(updates.phone);
-  }
-  if (updates.status) {
-    setClauses.push('status = ?');
-    values.push(updates.status);
-  }
-  
-  if (setClauses.length === 0) {
+
+  // Build update using parameterized query to prevent SQL injection
+  const name = updates.name;
+  const department = updates.department;
+  const position = updates.position;
+  const email = updates.email;
+  const phone = updates.phone;
+  const status = updates.status;
+  const buCode = department ? getBUCodeFromDepartment(department) : null;
+
+  if (!name && !department && !position && email === undefined && phone === undefined && !status) {
     return false;
   }
-  
-  await db.execute(sql.raw(`
-    UPDATE company_employees 
-    SET ${setClauses.join(', ')}
-    WHERE employee_id = '${employeeId}'
-  `));
-  
+
+  await db.execute(sql`
+    UPDATE company_employees SET
+      name = COALESCE(${name || null}, name),
+      department = COALESCE(${department || null}, department),
+      position = COALESCE(${position || null}, position),
+      bu_code = COALESCE(${buCode || null}, bu_code),
+      email = CASE WHEN ${email !== undefined} THEN ${email || null} ELSE email END,
+      phone = CASE WHEN ${phone !== undefined} THEN ${phone || null} ELSE phone END,
+      status = COALESCE(${status || null}, status),
+      updated_at = NOW()
+    WHERE employee_id = ${employeeId}
+  `);
+
   return true;
 }
 
@@ -251,17 +234,17 @@ export async function updateEmployee(employeeId: string, updates: Partial<Create
 export async function getDepartmentStats(): Promise<{ department: string; buCode: string; buName: string; count: number }[]> {
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT 
+    SELECT
       department,
-      bu_code as buCode,
+      bu_code as "buCode",
       COUNT(*) as count
     FROM company_employees
     WHERE status = 'active'
     GROUP BY department, bu_code
     ORDER BY count DESC
   `);
-  
-  const rows = (result[0] as any[]) || [];
+
+  const rows = (result.rows as any[]) || [];
   return rows.map(row => ({
     department: row.department,
     buCode: row.buCode || 'UNKNOWN',
@@ -276,17 +259,17 @@ export async function getDepartmentStats(): Promise<{ department: string; buCode
 export async function getBUStats(): Promise<{ buCode: string; buName: string; count: number; departments: string[] }[]> {
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT 
-      bu_code as buCode,
-      GROUP_CONCAT(DISTINCT department) as departments,
+    SELECT
+      bu_code as "buCode",
+      STRING_AGG(DISTINCT department, ',') as departments,
       COUNT(*) as count
     FROM company_employees
     WHERE status = 'active' AND bu_code IS NOT NULL
     GROUP BY bu_code
     ORDER BY count DESC
   `);
-  
-  const rows = (result[0] as any[]) || [];
+
+  const rows = (result.rows as any[]) || [];
   return rows.map(row => ({
     buCode: row.buCode,
     buName: BU_CODE_TO_NAME[row.buCode] || row.buCode,
@@ -302,15 +285,15 @@ export async function searchEmployees(keyword: string): Promise<Employee[]> {
   const db = await requireDb();
   const searchTerm = `%${keyword}%`;
   const result = await db.execute(sql`
-    SELECT 
-      id, employee_id as employeeId, name, department, position,
-      bu_code as buCode, email, phone, hire_date as hireDate,
-      status, created_at as createdAt, updated_at as updatedAt
+    SELECT
+      id, employee_id as "employeeId", name, department, position,
+      bu_code as "buCode", email, phone, hire_date as "hireDate",
+      status, created_at as "createdAt", updated_at as "updatedAt"
     FROM company_employees
-    WHERE status = 'active' 
-      AND (name LIKE ${searchTerm} OR employee_id LIKE ${searchTerm} OR position LIKE ${searchTerm})
+    WHERE status = 'active'
+      AND (name ILIKE ${searchTerm} OR employee_id ILIKE ${searchTerm} OR position ILIKE ${searchTerm})
     ORDER BY employee_id
     LIMIT 50
   `);
-  return (result[0] as any[]) || [];
+  return (result.rows as any[]) || [];
 }
