@@ -10,7 +10,12 @@
     "check": "echo 'TypeScript check skipped'",
     "format": "prettier --write .",
     "test": "vitest run",
-    "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "db:dev:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:prod:migrate": "drizzle-kit generate && drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:check": "drizzle-kit check",
     "dev:windows": "$env:NODE_ENV='development'; tsx watch server/_core/index.ts",
     "build:windows": "vite build --emptyOutDir; esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start:windows": "$env:NODE_ENV='production'; node dist/index.js"

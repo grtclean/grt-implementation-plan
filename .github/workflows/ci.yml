@@ -43,6 +43,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - name: Schema迁移一致性检查
+        run: pnpm db:check
+        env:
+          DATABASE_URL: postgresql://unused:unused@localhost:5432/unused
+        continue-on-error: true
       - run: pnpm test
         env:
           NODE_ENV: test
