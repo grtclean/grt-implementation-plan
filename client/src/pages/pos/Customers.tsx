@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
-import { Plus, Search, Building2, Users, TrendingUp, Target, Star, UserCheck, Phone, Mail, Radar, Eye, Edit, Tag, Crown, Briefcase, Shield } from "lucide-react";
+import { Plus, Search, Building2, Users, TrendingUp, Target, Star, UserCheck, Phone, Mail, Radar, Eye, Edit, Tag, Crown, Briefcase, Shield, Home, ChevronRight } from "lucide-react";
+import { Link } from "wouter";
 
 const customerTypeLabels: Record<string, string> = {
   TIER1_OEM: 'Tier1 OEM', TIER2_SUPPLIER: 'Tier2 供应商', TIER3_SUPPLIER: 'Tier3 供应商',
@@ -387,6 +388,18 @@ export default function POSCustomers() {
 
   return (
     <div className="space-y-6">
+      {/* 面包屑导航 */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/" className="flex items-center gap-1 hover:text-foreground transition-colors">
+          <Home className="w-4 h-4" />
+          首页
+        </Link>
+        <ChevronRight className="w-3 h-3" />
+        <Link href="/pos/dashboard" className="hover:text-foreground transition-colors">POS管理</Link>
+        <ChevronRight className="w-3 h-3" />
+        <span className="text-foreground font-medium">客户管理</span>
+      </nav>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">客户管理</h1>

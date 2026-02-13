@@ -4,6 +4,8 @@
 
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
+import { requireDb } from "../db";
+import { sql } from "drizzle-orm";
 import {
   triggerProcessLock,
   getProcessLocks,
@@ -18,6 +20,7 @@ import {
   markAllAlertsRead,
   getUnreadAlertCount,
   onQualityCheckCompleted,
+  getBlockedByQualityTasks,
 } from "./qualityInterlock.service";
 
 export const qualityInterlockRouter = router({
@@ -144,5 +147,68 @@ export const qualityInterlockRouter = router({
         ...input,
         inspectorId: ctx.user.openId,
       });
+    }),
+
+  // ============ 质量锁定联动排程 (#45) ============
+  /**
+   * 获取因质量锁定而被阻塞的排程任务
+   */
+  getBlockedByQuality: protectedProcedure
+    .input(z.object({
+      projectId: z.string().optional(),
+      processCode: z.string().optional(),
+    }))
+    .query(async ({ input }) => {
+      return getBlockedByQualityTasks(input.projectId, input.processCode);
+    }),
+
+  // ============ 质量缺陷附件管理 ============
+  addDefectAttachment: protectedProcedure
+    .input(z.object({
+      lockId: z.string(),
+      fileName: z.string(),
+      fileUrl: z.string(),
+      fileType: z.string().optional(),
+      fileSize: z.number().optional(),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const result = await db.execute(sql.raw(`
+        INSERT INTO quality_defect_attachments (lock_id, file_name, file_url, file_type, file_size, description, uploaded_by)
+        VALUES (
+          '${input.lockId}', '${input.fileName}', '${input.fileUrl}',
+          ${input.fileType ? `'${input.fileType}'` : 'NULL'},
+          ${input.fileSize !== undefined ? input.fileSize : 'NULL'},
+          ${input.description ? `'${input.description}'` : 'NULL'},
+          ${ctx.user.id}
+        )
+        RETURNING *
+      `));
+      return { success: true, attachment: (result[0] as any[])[0] };
+    }),
+
+  getDefectAttachments: protectedProcedure
+    .input(z.object({
+      lockId: z.string(),
+    }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const result = await db.execute(sql.raw(`
+        SELECT * FROM quality_defect_attachments
+        WHERE lock_id = '${input.lockId}'
+        ORDER BY uploaded_at DESC
+      `));
+      return (result[0] as any[]) || [];
+    }),
+
+  deleteDefectAttachment: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.execute(sql.raw(`DELETE FROM quality_defect_attachments WHERE id = ${input.id}`));
+      return { success: true };
     }),
 });

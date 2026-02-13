@@ -61,6 +61,11 @@ import { toast } from "sonner";
 
 type Severity = 'low' | 'medium' | 'high' | 'critical';
 
+type SecurityAlertTypeValue =
+  | 'intrusion_attempt' | 'rate_limit_exceeded' | 'ip_blocked'
+  | 'sql_injection' | 'xss_attack' | 'command_injection'
+  | 'unauthorized_access' | 'suspicious_activity' | 'license_violation' | 'data_exfiltration';
+
 interface AuditLog {
   id: number;
   eventType: string;
@@ -399,28 +404,28 @@ export default function SecurityDashboard() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">活跃映射数</span>
-                      <span className="font-medium">{(dashboard?.aiProxy as any)?.activeMaps || 0}</span>
+                      <span className="font-medium">{dashboard?.aiProxy?.activeMaps || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">映射总数</span>
-                      <span className="font-medium text-primary">{(dashboard?.aiProxy as any)?.totalMappings || 0}</span>
+                      <span className="font-medium text-primary">{dashboard?.aiProxy?.totalMappings || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">最早映射年龄(ms)</span>
-                      <span className="font-medium text-red-400">{(dashboard?.aiProxy as any)?.oldestMapAge || 0}</span>
+                      <span className="font-medium text-red-400">{dashboard?.aiProxy?.oldestMapAge || 0}</span>
                     </div>
                     <div className="mt-4">
                       <div className="flex justify-between text-sm mb-2">
                         <span className="text-muted-foreground">数据保护率</span>
                         <span className="font-medium">
-                          {(dashboard?.aiProxy as any)?.activeMaps
-                            ? Math.round(((dashboard?.aiProxy as any).totalMappings / (dashboard?.aiProxy as any).activeMaps) * 100)
+                          {dashboard?.aiProxy?.activeMaps
+                            ? Math.round((dashboard.aiProxy.totalMappings / dashboard.aiProxy.activeMaps) * 100)
                             : 0}%
                         </span>
                       </div>
                       <Progress
-                        value={(dashboard?.aiProxy as any)?.activeMaps
-                          ? ((dashboard?.aiProxy as any).totalMappings / (dashboard?.aiProxy as any).activeMaps) * 100
+                        value={dashboard?.aiProxy?.activeMaps
+                          ? (dashboard.aiProxy.totalMappings / dashboard.aiProxy.activeMaps) * 100
                           : 0}
                         className="h-2"
                       />
@@ -439,13 +444,13 @@ export default function SecurityDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {(eventStatsQuery.data as any)?.slice(0, 8).map((stat: any, index: number) => (
+                    {eventStatsQuery.data?.slice(0, 8).map((stat, index) => (
                       <div key={index} className="p-4 rounded-lg bg-muted/30 border border-border">
                         <p className="text-sm text-muted-foreground">{getEventTypeLabel(stat.eventType)}</p>
                         <p className="text-2xl font-bold mt-1">{stat.count}</p>
                       </div>
                     ))}
-                    {(!eventStatsQuery.data || (eventStatsQuery.data as any[]).length === 0) && (
+                    {(!eventStatsQuery.data || eventStatsQuery.data.length === 0) && (
                       <div className="col-span-4 text-center py-8 text-muted-foreground">
                         暂无事件数据
                       </div>
@@ -641,8 +646,8 @@ export default function SecurityDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {(threatStatsQuery.data as any[])?.map((threat: any, index: number) => {
-                      const totalCount = (threatStatsQuery.data as any[])?.reduce((sum: number, t: any) => sum + t.count, 0) || 1;
+                    {threatStatsQuery.data?.map((threat, index) => {
+                      const totalCount = threatStatsQuery.data?.reduce((sum, t) => sum + t.count, 0) || 1;
                       return (
                         <div key={index} className="flex items-center gap-4">
                           <div className="w-32 text-sm">{threat.severity}</div>
@@ -656,7 +661,7 @@ export default function SecurityDashboard() {
                         </div>
                       );
                     })}
-                    {(!threatStatsQuery.data || (threatStatsQuery.data as any[]).length === 0) && (
+                    {(!threatStatsQuery.data || threatStatsQuery.data.length === 0) && (
                       <div className="text-center py-8 text-muted-foreground">
                         <ShieldCheck className="w-12 h-12 mx-auto mb-2 text-green-400" />
                         <p>暂无威胁检测记录</p>
@@ -676,25 +681,25 @@ export default function SecurityDashboard() {
                     <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
                       <p className="text-sm text-muted-foreground">严重威胁</p>
                       <p className="text-2xl font-bold text-red-400">
-                        {(threatStatsQuery.data as any[])?.find((s: any) => s.severity === 'critical')?.count || 0}
+                        {threatStatsQuery.data?.find((s) => s.severity === 'critical')?.count || 0}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/30">
                       <p className="text-sm text-muted-foreground">高危威胁</p>
                       <p className="text-2xl font-bold text-orange-400">
-                        {(threatStatsQuery.data as any[])?.find((s: any) => s.severity === 'high')?.count || 0}
+                        {threatStatsQuery.data?.find((s) => s.severity === 'high')?.count || 0}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
                       <p className="text-sm text-muted-foreground">中等威胁</p>
                       <p className="text-2xl font-bold text-yellow-400">
-                        {(threatStatsQuery.data as any[])?.find((s: any) => s.severity === 'medium')?.count || 0}
+                        {threatStatsQuery.data?.find((s) => s.severity === 'medium')?.count || 0}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
                       <p className="text-sm text-muted-foreground">低危威胁</p>
                       <p className="text-2xl font-bold text-green-400">
-                        {(threatStatsQuery.data as any[])?.find((s: any) => s.severity === 'low')?.count || 0}
+                        {threatStatsQuery.data?.find((s) => s.severity === 'low')?.count || 0}
                       </p>
                     </div>
                   </div>
@@ -900,7 +905,7 @@ function AlertConfigTab() {
     name: '',
     webhookType: 'wecom' as 'wecom' | 'dingtalk' | 'feishu' | 'custom',
     webhookUrl: '',
-    alertTypes: [] as string[],
+    alertTypes: [] as SecurityAlertTypeValue[],
     minSeverity: 'warning' as 'info' | 'warning' | 'critical' | 'emergency',
     mentionAll: false,
     cooldownMinutes: 5,
@@ -967,7 +972,7 @@ function AlertConfigTab() {
     },
   });
 
-  const alertTypeOptions = [
+  const alertTypeOptions: { value: SecurityAlertTypeValue; label: string }[] = [
     { value: 'intrusion_attempt', label: '入侵尝试' },
     { value: 'rate_limit_exceeded', label: '速率限制超出' },
     { value: 'ip_blocked', label: 'IP被封禁' },
@@ -1085,7 +1090,7 @@ function AlertConfigTab() {
                       <Label>Webhook类型</Label>
                       <Select
                         value={newConfig.webhookType}
-                        onValueChange={(v) => setNewConfig({ ...newConfig, webhookType: v as any })}
+                        onValueChange={(v) => setNewConfig({ ...newConfig, webhookType: v as typeof newConfig.webhookType })}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -1112,7 +1117,7 @@ function AlertConfigTab() {
                       <Label>最低告警级别</Label>
                       <Select
                         value={newConfig.minSeverity}
-                        onValueChange={(v) => setNewConfig({ ...newConfig, minSeverity: v as any })}
+                        onValueChange={(v) => setNewConfig({ ...newConfig, minSeverity: v as typeof newConfig.minSeverity })}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -1169,7 +1174,7 @@ function AlertConfigTab() {
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowAddDialog(false)}>取消</Button>
                   <Button
-                    onClick={() => addConfigMutation.mutate(newConfig as any)}
+                    onClick={() => addConfigMutation.mutate(newConfig)}
                     disabled={!newConfig.name || !newConfig.webhookUrl || newConfig.alertTypes.length === 0}
                   >
                     添加

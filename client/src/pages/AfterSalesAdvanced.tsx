@@ -101,7 +101,7 @@ function WebhookConfigTab() {
       if (result.success) {
         toast({ title: "测试成功", description: "Webhook连接正常" });
       } else {
-        toast({ title: "测试失败", description: (result as any).error || "连接失败", variant: "destructive" });
+        toast({ title: "测试失败", description: "连接失败", variant: "destructive" });
       }
       setTestingId(null);
     },
@@ -112,7 +112,7 @@ function WebhookConfigTab() {
   });
   
   // 预览维护提醒消息
-  const { data: previewData } = (trpc.afterSales.reminder as any).previewWeChatMessage.useQuery(
+  const { data: previewData } = trpc.afterSales.reminder.previewWeChatMessage.useQuery(
     { daysAhead: 30 },
     { enabled: previewOpen }
   );
@@ -144,7 +144,7 @@ function WebhookConfigTab() {
       url: formData.webhookUrl,
       type: formData.type,
       description: formData.description,
-    } as any);
+    });
   };
   
   return (
@@ -201,7 +201,7 @@ function WebhookConfigTab() {
                   <Label>类型 *</Label>
                   <Select 
                     value={formData.type} 
-                    onValueChange={(v) => setFormData({ ...formData, type: v as any })}
+                    onValueChange={(v) => setFormData({ ...formData, type: v as "wecom" | "dingtalk" | "feishu" | "custom" })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -284,7 +284,7 @@ function WebhookConfigTab() {
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1 truncate max-w-md">
-                        {webhook.webhookUrl}
+                        {webhook.url}
                       </p>
                       {webhook.description && (
                         <p className="text-xs text-muted-foreground mt-1">{webhook.description}</p>
@@ -293,8 +293,8 @@ function WebhookConfigTab() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch
-                      checked={webhook.enabled === 1}
-                      onCheckedChange={(checked) => toggleMutation.mutate({ id: webhook.id } as any)}
+                      checked={!!webhook.enabled}
+                      onCheckedChange={(checked) => toggleMutation.mutate({ id: webhook.id })}
                     />
                     <Button
                       variant="outline"
@@ -347,7 +347,7 @@ function WebhookConfigTab() {
 // 发送提醒按钮组件
 function SendRemindersButton() {
   const { toast } = useToast();
-  const sendMutation = (trpc.afterSales.reminder as any).sendReminders.useMutation({
+  const sendMutation = trpc.afterSales.reminder.sendReminders.useMutation({
     onSuccess: (result) => {
       if (result.success) {
         toast({ 
@@ -388,7 +388,7 @@ function DataImportTab() {
   const [importResult, setImportResult] = useState<any>(null);
   
   // 导入所有数据
-  const seedAllMutation = (trpc.afterSales.seed as any).seedAll.useMutation({
+  const seedAllMutation = trpc.afterSales.seed.seedAll.useMutation({
     onSuccess: (result) => {
       setImportResult(result);
       if (result.success) {
@@ -410,7 +410,7 @@ function DataImportTab() {
   });
   
   // 仅导入客户
-  const seedClientsMutation = (trpc.afterSales.seed as any).seedClients.useMutation({
+  const seedClientsMutation = trpc.afterSales.seed.seedClients.useMutation({
     onSuccess: (result) => {
       toast({ 
         title: result.success ? "导入成功" : "部分导入失败", 
@@ -424,7 +424,7 @@ function DataImportTab() {
   });
   
   // 仅导入设备
-  const seedEquipmentsMutation = (trpc.afterSales.seed as any).seedEquipments.useMutation({
+  const seedEquipmentsMutation = trpc.afterSales.seed.seedEquipments.useMutation({
     onSuccess: (result) => {
       toast({ 
         title: result.success ? "导入成功" : "部分导入失败", 
@@ -438,7 +438,7 @@ function DataImportTab() {
   });
   
   // 仅导入服务记录
-  const seedLogsMutation = (trpc.afterSales.seed as any).seedServiceLogs.useMutation({
+  const seedLogsMutation = trpc.afterSales.seed.seedServiceLogs.useMutation({
     onSuccess: (result) => {
       toast({ 
         title: result.success ? "导入成功" : "部分导入失败", 
@@ -629,13 +629,13 @@ function ReportGeneratorTab() {
   const [previewReport, setPreviewReport] = useState<any>(null);
   
   // 获取服务工单列表
-  const { data: logsData, isLoading: logsLoading } = (trpc.afterSales.serviceLogs as any).list.useQuery({
+  const { data: logsData, isLoading: logsLoading } = trpc.afterSales.serviceLogs.list.useQuery({
     status: "Completed",
     pageSize: 50,
   });
 
   // 生成多语言报告
-  const generateMutation = (trpc.afterSales.report as any).generateMultiLanguage.useMutation({
+  const generateMutation = trpc.afterSales.report.generateMultiLanguage.useMutation({
     onSuccess: (result) => {
       if (result.success) {
         setGeneratedReports(result.reports);
@@ -848,30 +848,30 @@ function SchedulerTab() {
   const utils = trpc.useUtils();
   
   // 获取定时任务状态
-  const { data: status, isLoading } = (trpc.afterSales.scheduler as any).getStatus.useQuery();
+  const { data: status, isLoading } = trpc.afterSales.scheduler.getStatus.useQuery();
 
   // 获取执行历史
-  const { data: history } = (trpc.afterSales.scheduler as any).getHistory.useQuery({ limit: 10 });
+  const { data: history } = trpc.afterSales.scheduler.getHistory.useQuery({ limit: 10 });
 
   // 启动定时任务
-  const startMutation = (trpc.afterSales.scheduler as any).start.useMutation({
-    onSuccess: (result: any) => {
+  const startMutation = trpc.afterSales.scheduler.start.useMutation({
+    onSuccess: (result) => {
       toast({ title: result.success ? "成功" : "失败", description: result.message });
-      (utils.afterSales.scheduler as any).getStatus.invalidate();
+      utils.afterSales.scheduler.getStatus.invalidate();
     },
   });
 
   // 停止定时任务
-  const stopMutation = (trpc.afterSales.scheduler as any).stop.useMutation({
-    onSuccess: (result: any) => {
+  const stopMutation = trpc.afterSales.scheduler.stop.useMutation({
+    onSuccess: (result) => {
       toast({ title: result.success ? "成功" : "失败", description: result.message });
-      (utils.afterSales.scheduler as any).getStatus.invalidate();
+      utils.afterSales.scheduler.getStatus.invalidate();
     },
   });
 
   // 立即执行
-  const executeMutation = (trpc.afterSales.scheduler as any).executeNow.useMutation({
-    onSuccess: (result: any) => {
+  const executeMutation = trpc.afterSales.scheduler.executeNow.useMutation({
+    onSuccess: (result) => {
       if (result.success) {
         toast({
           title: "执行完成",
@@ -880,8 +880,8 @@ function SchedulerTab() {
       } else {
         toast({ title: "执行失败", description: result.errors.join(", "), variant: "destructive" });
       }
-      (utils.afterSales.scheduler as any).getStatus.invalidate();
-      (utils.afterSales.scheduler as any).getHistory.invalidate();
+      utils.afterSales.scheduler.getStatus.invalidate();
+      utils.afterSales.scheduler.getHistory.invalidate();
     },
   });
   
@@ -1002,11 +1002,11 @@ function SignatureTab() {
   const utils = trpc.useUtils();
   
   // 获取待签字工单
-  const { data: pendingLogs, isLoading } = (trpc.afterSales.signature as any).getPendingLogs.useQuery();
+  const { data: pendingLogs, isLoading } = trpc.afterSales.signature.getPendingLogs.useQuery();
 
   // 生成签字链接
-  const generateUrlMutation = (trpc.afterSales.signature as any).generateUrl.useMutation({
-    onSuccess: (result: any) => {
+  const generateUrlMutation = trpc.afterSales.signature.generateUrl.useMutation({
+    onSuccess: (result) => {
       if (result.success && result.url) {
         const fullUrl = `${window.location.origin}${result.url}`;
         navigator.clipboard.writeText(fullUrl);
@@ -1014,7 +1014,7 @@ function SignatureTab() {
           title: "链接已生成",
           description: `签字链接已复制到剪贴板，有效期至 ${new Date(result.expiresAt!).toLocaleString('zh-CN')}`
         });
-        (utils.afterSales.signature as any).getPendingLogs.invalidate();
+        utils.afterSales.signature.getPendingLogs.invalidate();
       } else {
         toast({ title: "生成失败", description: result.error, variant: "destructive" });
       }
@@ -1022,8 +1022,8 @@ function SignatureTab() {
   });
 
   // 发送提醒
-  const sendReminderMutation = (trpc.afterSales.signature as any).sendReminder.useMutation({
-    onSuccess: (result: any) => {
+  const sendReminderMutation = trpc.afterSales.signature.sendReminder.useMutation({
+    onSuccess: (result) => {
       toast({ title: result.success ? "成功" : "失败", description: result.message });
     },
   });

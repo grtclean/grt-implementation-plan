@@ -179,6 +179,65 @@ const mockAiSopRecommendations = [
   },
 ];
 
+// 模拟BOM步骤级AI SOP推荐
+const mockStepSopRecommendations: Record<string, {
+  id: string;
+  processCode: string;
+  stepId: number;
+  stepName: string;
+  sopCode: string;
+  sopTitle: string;
+  matchScore: number;
+  reason: string;
+  keyPoints: string[];
+}[]> = {
+  "T7": [
+    {
+      id: "step-sop-001",
+      processCode: "T7",
+      stepId: 1,
+      stepName: "电气连接检查",
+      sopCode: "SOP-T7-001-S1",
+      sopTitle: "电气连接检查标准操作规程",
+      matchScore: 0.96,
+      reason: "基于BOM工步'电气连接检查'匹配，包含IC系列特有的连接器检查要点",
+      keyPoints: ["检查连接器插接到位", "确认线束标识正确", "测试绝缘电阻值"],
+    },
+    {
+      id: "step-sop-002",
+      processCode: "T7",
+      stepId: 2,
+      stepName: "清洗液配比调试",
+      sopCode: "SOP-T7-001-S2",
+      sopTitle: "改性醇清洗液配比调试规程",
+      matchScore: 0.94,
+      reason: "基于客户清洁度要求(ISO 16232)和工步'清洗液配比调试'匹配",
+      keyPoints: ["配比浓度3%-5%", "温度控制40-60°C", "循环过滤启动确认"],
+    },
+  ],
+  "T14": [
+    {
+      id: "step-sop-003",
+      processCode: "T14",
+      stepId: 1,
+      stepName: "清洁度验证测试",
+      sopCode: "SOP-T14-003-S1",
+      sopTitle: "ISO 16232清洁度验证测试规程",
+      matchScore: 0.97,
+      reason: "基于客户Tier1级别及ISO 16232 Class 12要求匹配",
+      keyPoints: ["颗粒度计数法", "清洗液取样检测", "报告生成与审核"],
+    },
+  ],
+};
+
+// 模拟步骤SOP关联记录
+const stepSopLinkRecords: {
+  stepId: number;
+  sopRecommendationId: string;
+  accepted: boolean;
+  linkedAt: string;
+}[] = [];
+
 // 模拟风险预警
 const mockRiskAlerts = [
   {
@@ -313,6 +372,88 @@ export const processManagementRouter = router({
       return {
         success: true,
         message: input.accepted ? "已采纳SOP推荐" : "已拒绝SOP推荐",
+      };
+    }),
+
+  // 获取BOM步骤级AI SOP推荐
+  getStepSopRecommendation: publicProcedure
+    .input(z.object({
+      projectId: z.number(),
+      processCode: z.string(),
+      stepId: z.number(),
+      stepName: z.string(),
+    }))
+    .query(({ input }) => {
+      const processRecommendations = mockStepSopRecommendations[input.processCode] || [];
+
+      // 查找匹配的步骤级SOP推荐
+      let result = processRecommendations.filter(r => r.stepId === input.stepId);
+
+      // 如果没有精确匹配，基于步骤名称进行模糊匹配并生成推荐
+      if (result.length === 0) {
+        const processDefinition = T_PROCESS_DEFINITIONS.find(d => d.code === input.processCode);
+        result = [{
+          id: `step-sop-auto-${input.processCode}-${input.stepId}`,
+          processCode: input.processCode,
+          stepId: input.stepId,
+          stepName: input.stepName,
+          sopCode: `SOP-${input.processCode}-AUTO-S${input.stepId}`,
+          sopTitle: `${input.stepName} - ${processDefinition?.nameZh || input.processCode}标准操作规程`,
+          matchScore: 0.75,
+          reason: `基于工步名称'${input.stepName}'和工序${input.processCode}(${processDefinition?.nameZh || ""})自动匹配`,
+          keyPoints: [
+            `执行${input.stepName}前确认前置条件`,
+            `按照${processDefinition?.nameZh || input.processCode}工艺标准操作`,
+            `完成后进行质量自检并记录`,
+          ],
+        }];
+      }
+
+      // 检查是否已关联
+      const linkedRecords = stepSopLinkRecords.filter(
+        r => r.stepId === input.stepId
+      );
+
+      return {
+        projectId: input.projectId,
+        processCode: input.processCode,
+        stepId: input.stepId,
+        stepName: input.stepName,
+        recommendations: result,
+        linkedSops: linkedRecords,
+      };
+    }),
+
+  // 关联/取消关联SOP到BOM步骤
+  linkSopToStep: protectedProcedure
+    .input(z.object({
+      stepId: z.number(),
+      sopRecommendationId: z.string(),
+      accepted: z.boolean(),
+    }))
+    .mutation(({ input }) => {
+      // 检查是否已存在关联记录
+      const existingIndex = stepSopLinkRecords.findIndex(
+        r => r.stepId === input.stepId && r.sopRecommendationId === input.sopRecommendationId
+      );
+
+      if (existingIndex >= 0) {
+        stepSopLinkRecords[existingIndex].accepted = input.accepted;
+        stepSopLinkRecords[existingIndex].linkedAt = new Date().toISOString();
+      } else {
+        stepSopLinkRecords.push({
+          stepId: input.stepId,
+          sopRecommendationId: input.sopRecommendationId,
+          accepted: input.accepted,
+          linkedAt: new Date().toISOString(),
+        });
+      }
+
+      return {
+        success: true,
+        message: input.accepted
+          ? `已将SOP推荐关联到工步(stepId=${input.stepId})`
+          : `已拒绝SOP推荐关联到工步(stepId=${input.stepId})`,
       };
     }),
 

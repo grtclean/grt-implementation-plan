@@ -183,39 +183,98 @@ export const afterSalesRouter = router({
     completed: mockServiceTickets.filter(t => t.status === 'completed').length,
     inProgress: mockServiceTickets.filter(t => t.status === 'in_progress').length
   })),
-  
-  // 客户和设备
-  clients: publicProcedure.query(() => mockCustomers),
-  equipments: publicProcedure.query(() => [
-    { id: 'EQP-001', customerId: 'CUS-001', name: '超声波清洗机-A1', model: 'USC-3000', serialNumber: 'SN2025001', installDate: '2025-11-15', warrantyEnd: '2027-11-15', status: 'active' },
-    { id: 'EQP-002', customerId: 'CUS-002', name: '电池清洗线-B1', model: 'BCL-5000', serialNumber: 'SN2025002', installDate: '2025-10-20', warrantyEnd: '2027-10-20', status: 'active' },
-    { id: 'EQP-003', customerId: 'CUS-005', name: '零部件清洗机-C1', model: 'PCW-2000', serialNumber: 'SN2025003', installDate: '2025-12-01', warrantyEnd: '2027-12-01', status: 'active' }
-  ]),
-  
-  // 服务日志
-  serviceLogs: publicProcedure.query(() => [
-    { id: 'LOG-001', ticketId: 'SVC-001', action: '工程师到达现场', timestamp: '2026-01-25 09:30', operator: '刘洋' },
-    { id: 'LOG-002', ticketId: 'SVC-001', action: '开始设备检查', timestamp: '2026-01-25 10:00', operator: '刘洋' },
-    { id: 'LOG-003', ticketId: 'SVC-002', action: '工单创建', timestamp: '2026-01-28 14:00', operator: '系统' }
-  ]),
-  
-  // 调度
-  scheduler: publicProcedure.query(() => mockServiceTickets.filter(t => t.status !== 'completed')),
-  
-  // 签名
-  signature: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  
-  // 报告
-  report: publicProcedure.input(z.any()).query(() => ({ report: { title: '服务报告', content: '服务完成' } })),
-  
-  // 提醒
-  reminder: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  
-  // 工作流
-  workflow: publicProcedure.input(z.any()).query(() => ({ workflow: { steps: ['接单', '派工', '上门', '服务', '验收'] } })),
-  
-  // 种子数据
-  seed: protectedProcedure.mutation(() => successResponse),
+
+  // 客户子路由
+  clients: router({
+    list: publicProcedure.input(z.any()).query(() => mockCustomers.map(c => ({
+      id: c.id,
+      name: c.name,
+      tier: c.type === 'tier1' ? 'Strategic' as const : 'Standard' as const,
+      status: c.status === 'active' ? 'Active' as const : 'Inactive' as const,
+      contactPerson: c.contact,
+      contactPhone: c.phone,
+      contactEmail: c.email,
+      industry: c.industry,
+      region: c.region,
+    }))),
+    create: protectedProcedure.input(z.any()).mutation(() => successResponse),
+    update: protectedProcedure.input(z.any()).mutation(() => successResponse),
+    delete: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  }),
+
+  // 设备子路由
+  equipments: router({
+    list: publicProcedure.input(z.any()).query(() => [
+      { id: 1, serialNumber: 'SN2025001', modelName: 'USC-3000', equipmentType: '超声波清洗机', operationalStatus: 'Running', location: '苏州工厂A区', lastMaintenanceDate: '2025-11-15', nextDueDate: '2026-05-15', runningHours: 1200, manufacturer: 'GRT', department: '生产部' },
+      { id: 2, serialNumber: 'SN2025002', modelName: 'BCL-5000', equipmentType: '电池清洗线', operationalStatus: 'Running', location: '上海总部B区', lastMaintenanceDate: '2025-10-20', nextDueDate: '2026-04-20', runningHours: 800, manufacturer: 'GRT', department: '生产部' },
+      { id: 3, serialNumber: 'SN2025003', modelName: 'PCW-2000', equipmentType: '零部件清洗机', operationalStatus: 'Idle', location: '芜湖工厂C区', lastMaintenanceDate: '2025-12-01', nextDueDate: '2026-06-01', runningHours: 600, manufacturer: 'GRT', department: '生产部' }
+    ]),
+    getDueSoon: publicProcedure.input(z.any()).query(() => []),
+    create: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  }),
+
+  // 服务工单子路由
+  serviceLogs: router({
+    list: publicProcedure.input(z.any()).query(() => [
+      { id: 1, ticketId: 'SVC-001', serviceType: 'Maintenance', priority: 'Medium', status: 'Completed', issueDescription: '设备定期保养', assignedEngineerName: '刘洋', scheduledDate: '2026-01-25', completionDate: '2026-01-25', equipmentSerialNumber: 'SN2025001', clientName: '博世苏州' },
+      { id: 2, ticketId: 'SVC-002', serviceType: 'Repair', priority: 'High', status: 'In_Progress', issueDescription: '清洗喷头堵塞', assignedEngineerName: '张伟', scheduledDate: '2026-01-28', completionDate: null, equipmentSerialNumber: 'SN2025002', clientName: '采埃孚上海' },
+      { id: 3, ticketId: 'SVC-003', serviceType: 'Inspection', priority: 'Low', status: 'Pending', issueDescription: '季度巡检', assignedEngineerName: null, scheduledDate: '2026-02-01', completionDate: null, equipmentSerialNumber: 'SN2025003', clientName: '大陆芜湖' }
+    ]),
+    create: protectedProcedure.input(z.any()).mutation(() => successResponse),
+    complete: protectedProcedure.input(z.any()).mutation(() => ({ ...successResponse, workflowResult: true })),
+  }),
+
+  // 定时任务子路由
+  scheduler: router({
+    getStatus: publicProcedure.query(() => ({
+      config: { enabled: false, checkTime: '09:00' },
+      lastRunTime: null as string | null,
+      nextRunTime: null as string | null,
+    })),
+    getHistory: publicProcedure.input(z.any()).query(() => [] as { status: string; executedAt: string; details: string }[]),
+    start: protectedProcedure.mutation(() => ({ success: true, message: '定时任务已启动' })),
+    stop: protectedProcedure.mutation(() => ({ success: true, message: '定时任务已停止' })),
+    executeNow: protectedProcedure.mutation(() => ({ success: true, equipmentCount: 0, webhooksSent: 0, errors: [] as string[] })),
+  }),
+
+  // 签字确认子路由
+  signature: router({
+    getPendingLogs: publicProcedure.query(() => [] as { id: number; ticketId: string; serviceType: string; clientName: string; equipmentSerialNumber: string; serviceDate: string }[]),
+    generateUrl: protectedProcedure.input(z.any()).mutation(() => ({ success: true, url: '/signature/mock-token', expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(), error: null as string | null })),
+    sendReminder: protectedProcedure.input(z.any()).mutation(() => ({ success: true, message: '提醒已发送' })),
+  }),
+
+  // 报告子路由
+  report: router({
+    generateMultiLanguage: protectedProcedure.input(z.any()).mutation(() => ({
+      success: true,
+      reports: [] as { title: string; language: string; content: string; aiGenerated: boolean; generatedAt: string }[],
+      error: null as string | null,
+    })),
+  }),
+
+  // 提醒子路由
+  reminder: router({
+    previewWeChatMessage: publicProcedure.input(z.any()).query(() => ({ message: '暂无维护提醒', reminderCount: 0 })),
+    sendReminders: protectedProcedure.mutation(() => ({ success: true, notificationsSent: 0, remindersFound: 0, errors: [] as string[] })),
+  }),
+
+  // 工作流子路由
+  workflow: router({
+    syncAll: protectedProcedure.mutation(() => ({ successCount: 0, failedCount: 0 })),
+  }),
+
+  // 种子数据子路由
+  seed: router({
+    seedAll: protectedProcedure.mutation(() => ({
+      success: true,
+      summary: { clientsCreated: 0, equipmentsCreated: 0, logsCreated: 0 },
+      errors: [] as string[],
+    })),
+    seedClients: protectedProcedure.mutation(() => ({ success: true, clientsCreated: 0 })),
+    seedEquipments: protectedProcedure.mutation(() => ({ success: true, equipmentsCreated: 0 })),
+    seedServiceLogs: protectedProcedure.mutation(() => ({ success: true, logsCreated: 0 })),
+  }),
 });
 
 // ==================== 合规管理路由 ====================
@@ -324,6 +383,7 @@ export const webhookRouter = router({
     url: z.string().url(),
     secret: z.string().optional(),
     enabled: z.boolean().default(false),
+    description: z.string().optional(),
   })).mutation(({ input }) => {
     const webhook = registerWebhook(input);
     return { success: true, message: '创建成功', data: webhook };
@@ -495,21 +555,61 @@ export const namingRouter = router({
   delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(() => successResponse),
   validate: publicProcedure.input(z.any()).query(() => ({ valid: true, suggestions: [] })),
   generate: publicProcedure.input(z.any()).query(() => ({ name: "" })),
-  
-  // 项目编号
-  projectNumbers: publicProcedure.query(() => []),
-  
-  // 变更请求
-  changeRequests: publicProcedure.query(() => []),
-  
-  // 设备型号
-  equipmentModels: publicProcedure.query(() => []),
-  
-  // 审批人
-  approvers: publicProcedure.query(() => []),
-  
-  // 版本
-  versions: publicProcedure.query(() => []),
+
+  // 项目编号 (sub-router)
+  projectNumbers: router({
+    getCounter: publicProcedure.input(z.object({ prefix: z.string() })).query(({ input }) => ({
+      prefix: input.prefix,
+      currentMax: input.prefix === "T" ? 500 : 100,
+      nextAvailable: input.prefix === "T" ? 501 : 101,
+      formatDigits: input.prefix === "T" ? 3 : 3,
+    })),
+    getConversionHistory: publicProcedure.query(() => [] as Array<{ id: string; tempProjectCode: string; formalProjectCode: string; contractNo: string | null; conversionDate: string; numberingVersion: string }>),
+    initCounters: protectedProcedure.mutation(() => successResponse),
+    generateNext: protectedProcedure.input(z.object({ prefix: z.string() })).mutation(({ input }) => `${input.prefix}${(input.prefix === "T" ? 501 : 101).toString().padStart(3, '0')}`),
+    convert: protectedProcedure.input(z.object({ tempCode: z.string(), contractNo: z.string().optional() })).mutation(({ input }) => ({ formalCode: `GRT${input.tempCode.replace(/^T/, '')}` })),
+  }),
+
+  // 变更请求 (sub-router)
+  changeRequests: router({
+    list: publicProcedure.input(z.object({ status: z.string() }).optional()).query(() => [] as Array<{ id: string; requestCode: string; ruleType: string; requestType: string; title: string; status: string; requestorName: string; requestDate: string }>),
+    create: protectedProcedure.input(z.object({
+      requestType: z.string(),
+      ruleType: z.string(),
+      title: z.string(),
+      description: z.string(),
+      reason: z.string(),
+      impactScope: z.string().optional(),
+    })).mutation(() => successResponse),
+    approve: protectedProcedure.input(z.object({ id: z.string() })).mutation(() => successResponse),
+    reject: protectedProcedure.input(z.object({ id: z.string(), notes: z.string().optional() })).mutation(() => successResponse),
+  }),
+
+  // 设备型号 (sub-router)
+  equipmentModels: router({
+    list: publicProcedure.input(z.object({ search: z.string() }).optional()).query(() => [] as Array<{ id: string; numericCode: string; functionCode: string; fullName: string; chineseName: string; processType: string | null; configLevel: string | null; chamberCount: number | null; status: string; namingVersion: string }>),
+    create: protectedProcedure.input(z.any()).mutation(() => successResponse),
+    initSample: protectedProcedure.mutation(() => ({ created: 0 })),
+  }),
+
+  // 审批人 (sub-router)
+  approvers: router({
+    list: publicProcedure.query(() => [] as Array<{ id: string; userId: number; ruleType: string; changeType: string; approvalLevel: number; isActive: boolean; remark: string | null }>),
+    create: protectedProcedure.input(z.object({
+      userId: z.number(),
+      ruleType: z.string(),
+      changeType: z.string(),
+      approvalLevel: z.number().optional(),
+      remark: z.string().optional(),
+    })).mutation(() => successResponse),
+    delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(() => successResponse),
+  }),
+
+  // 版本 (sub-router)
+  versions: router({
+    list: publicProcedure.query(() => [] as Array<{ id: string; versionCode: string; versionName: string | null; ruleType: string; changeType: string; effectiveDate: string; isCurrent: boolean; changeDescription: string | null }>),
+    initDefault: protectedProcedure.mutation(() => successResponse),
+  }),
 });
 
 // ==================== HRM路由 ====================
@@ -538,12 +638,12 @@ export const hrmRouter = router({
   
   // 薪资结构
   getSalaryStructures: publicProcedure.query(() => [
-    { id: 'SAL-001', level: 'P1', baseSalary: 6000, bonus: 1000, description: '初级工程师' },
-    { id: 'SAL-002', level: 'P2', baseSalary: 10000, bonus: 2000, description: '中级工程师' },
-    { id: 'SAL-003', level: 'P3', baseSalary: 15000, bonus: 3000, description: '高级工程师' },
-    { id: 'SAL-004', level: 'P4', baseSalary: 22000, bonus: 5000, description: '资深工程师' },
-    { id: 'SAL-005', level: 'M1', baseSalary: 18000, bonus: 4000, description: '主管' },
-    { id: 'SAL-006', level: 'M2', baseSalary: 28000, bonus: 8000, description: '经理' }
+    { id: 'SAL-001', level: 'P1', department: '研发部', baseSalary: 6000, bonus: 1000, description: '初级工程师', baseSalaryRatioMin: '0.50', baseSalaryRatioMax: '0.60', performanceRatioMin: '0.20', performanceRatioMax: '0.30', bonusRatioMin: '0.10', bonusRatioMax: '0.15', benefitsRatioMin: '0.05', benefitsRatioMax: '0.10', status: 'active' as const },
+    { id: 'SAL-002', level: 'P2', department: '研发部', baseSalary: 10000, bonus: 2000, description: '中级工程师', baseSalaryRatioMin: '0.45', baseSalaryRatioMax: '0.55', performanceRatioMin: '0.25', performanceRatioMax: '0.30', bonusRatioMin: '0.10', bonusRatioMax: '0.20', benefitsRatioMin: '0.05', benefitsRatioMax: '0.10', status: 'active' as const },
+    { id: 'SAL-003', level: 'P3', department: '销售部', baseSalary: 15000, bonus: 3000, description: '高级工程师', baseSalaryRatioMin: '0.40', baseSalaryRatioMax: '0.50', performanceRatioMin: '0.25', performanceRatioMax: '0.35', bonusRatioMin: '0.15', bonusRatioMax: '0.25', benefitsRatioMin: '0.05', benefitsRatioMax: '0.10', status: 'active' as const },
+    { id: 'SAL-004', level: 'P4', department: '技术服务部', baseSalary: 22000, bonus: 5000, description: '资深工程师', baseSalaryRatioMin: '0.35', baseSalaryRatioMax: '0.45', performanceRatioMin: '0.30', performanceRatioMax: '0.35', bonusRatioMin: '0.15', bonusRatioMax: '0.25', benefitsRatioMin: '0.05', benefitsRatioMax: '0.10', status: 'active' as const },
+    { id: 'SAL-005', level: 'M1', department: '生产部', baseSalary: 18000, bonus: 4000, description: '主管', baseSalaryRatioMin: '0.40', baseSalaryRatioMax: '0.50', performanceRatioMin: '0.25', performanceRatioMax: '0.30', bonusRatioMin: '0.15', bonusRatioMax: '0.25', benefitsRatioMin: '0.05', benefitsRatioMax: '0.10', status: 'active' as const },
+    { id: 'SAL-006', level: 'M2', department: '品管部', baseSalary: 28000, bonus: 8000, description: '经理', baseSalaryRatioMin: '0.35', baseSalaryRatioMax: '0.45', performanceRatioMin: '0.30', performanceRatioMax: '0.35', bonusRatioMin: '0.15', bonusRatioMax: '0.25', benefitsRatioMin: '0.05', benefitsRatioMax: '0.10', status: 'active' as const }
   ]),
   
   // 绩效等级
@@ -599,6 +699,132 @@ export const hrmRouter = router({
       upcomingTrainings: mockTrainings.filter(t => t.status === 'scheduled').length
     }
   })),
+
+  // 薪酬初始化
+  initSalaryStructures: protectedProcedure.mutation(() => ({ created: 0 })),
+  initPerformanceGrades: protectedProcedure.mutation(() => ({ created: 0 })),
+
+  // 薪酬计算
+  calculateSalary: publicProcedure.input(z.object({
+    department: z.string(),
+    baseSalary: z.number(),
+    performanceGrade: z.string().optional(),
+    projectBonus: z.number().optional(),
+  })).query(({ input }) => ({
+    baseSalary: input.baseSalary,
+    performanceSalary: Math.round(input.baseSalary * 0.3),
+    bonus: Math.round(input.baseSalary * 0.2) + (input.projectBonus || 0),
+    benefits: Math.round(input.baseSalary * 0.1),
+    monthlyTotal: Math.round(input.baseSalary * 1.6) + (input.projectBonus || 0),
+    annualTotal: Math.round(input.baseSalary * 1.6 * 12) + (input.projectBonus || 0) * 12,
+    breakdown: {} as Record<string, unknown>,
+  })),
+  createSalaryCalculation: protectedProcedure.input(z.any()).mutation(() => successResponse),
+
+  // 定时任务
+  getScheduledTasks: publicProcedure.query(() => [] as Array<{ id: string; taskName: string; taskType: string; cronExpression: string; isEnabled: boolean; lastRunAt: string | null }>),
+  createScheduledTask: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  updateScheduledTask: protectedProcedure.input(z.any()).mutation(() => successResponse),
+
+  // Teams面试
+  getTeamsMeetings: publicProcedure.query(() => [] as Array<{ id: string; subject: string; startTime: string; durationMinutes: number; status: string }>),
+  createTeamsMeeting: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  updateTeamsMeeting: protectedProcedure.input(z.any()).mutation(() => successResponse),
+
+  // AI绩效自动评分
+  calculatePerformanceScore: publicProcedure
+    .input(z.object({
+      userId: z.number(),
+      projectId: z.number(),
+      stageCode: z.string().optional(),
+    }))
+    .query(({ input }) => {
+      // 使用确定性种子生成模拟数据，确保同一输入返回一致的结果
+      const seed = input.userId * 1000 + input.projectId + (input.stageCode ? input.stageCode.length * 7 : 0);
+
+      // 效率评分 (40%): 基于实际工时与计划工时比率
+      const plannedHours = 100 + (seed % 60);
+      const actualHours = plannedHours * (0.7 + ((seed * 13) % 60) / 100);
+      const hoursRatio = plannedHours / Math.max(actualHours, 1);
+      const efficiencyRaw = Math.min(hoursRatio * 100, 100);
+      const efficiencyScore = Math.round(Math.max(0, Math.min(100, efficiencyRaw)));
+
+      // 质量评分 (30%): 基于步骤完成率
+      const totalSteps = 20 + (seed % 15);
+      const completedSteps = Math.round(totalSteps * (0.6 + ((seed * 7) % 40) / 100));
+      const completionRate = completedSteps / totalSteps;
+      const qualityScore = Math.round(Math.max(0, Math.min(100, completionRate * 100)));
+
+      // 创新评分 (15%): 基于AI预设采用率
+      const totalPresets = 10 + (seed % 8);
+      const adoptedPresets = Math.round(totalPresets * (0.3 + ((seed * 11) % 50) / 100));
+      const adoptionRate = adoptedPresets / totalPresets;
+      const innovationScore = Math.round(Math.max(0, Math.min(100, adoptionRate * 100)));
+
+      // 协作评分 (15%): 基于互动次数
+      const interactionCount = 5 + ((seed * 3) % 30);
+      const collaborationScore = Math.round(Math.max(0, Math.min(100, Math.min(interactionCount / 25, 1) * 100)));
+
+      // 总分 = 加权求和
+      const overallScore = Math.round(
+        efficiencyScore * 0.4 +
+        qualityScore * 0.3 +
+        innovationScore * 0.15 +
+        collaborationScore * 0.15
+      );
+
+      // 映射到绩效等级
+      const grade = overallScore >= 90 ? "A"
+        : overallScore >= 80 ? "B"
+        : overallScore >= 70 ? "C"
+        : overallScore >= 60 ? "D"
+        : "E";
+
+      // 生成AI改进建议
+      const recommendations: string[] = [];
+      if (efficiencyScore < 80) {
+        recommendations.push("建议优化工时分配，减少非核心任务的时间投入，提高交付效率");
+      }
+      if (qualityScore < 80) {
+        recommendations.push("建议加强阶段交付物检查，确保每个步骤完整完成后再进入下一步");
+      }
+      if (innovationScore < 60) {
+        recommendations.push("建议积极尝试AI预设工具，利用自动化提升工作产出质量");
+      }
+      if (collaborationScore < 70) {
+        recommendations.push("建议增加与团队成员的沟通互动，参与评审和知识分享活动");
+      }
+      if (overallScore >= 90) {
+        recommendations.push("表现卓越，建议担任导师角色，帮助团队其他成员提升绩效");
+      }
+      if (recommendations.length === 0) {
+        recommendations.push("整体表现良好，保持当前工作节奏，关注持续改进");
+      }
+
+      return {
+        overallScore,
+        grade,
+        dimensions: {
+          efficiency: {
+            score: efficiencyScore,
+            detail: `计划工时 ${plannedHours}h, 实际工时 ${Math.round(actualHours)}h, 效率比 ${(hoursRatio * 100).toFixed(1)}%`,
+          },
+          quality: {
+            score: qualityScore,
+            detail: `总步骤 ${totalSteps}, 已完成 ${completedSteps}, 完成率 ${(completionRate * 100).toFixed(1)}%`,
+          },
+          innovation: {
+            score: innovationScore,
+            detail: `可用AI预设 ${totalPresets}, 已采用 ${adoptedPresets}, 采用率 ${(adoptionRate * 100).toFixed(1)}%`,
+          },
+          collaboration: {
+            score: collaborationScore,
+            detail: `团队互动 ${interactionCount} 次, 活跃度 ${Math.min(interactionCount / 25 * 100, 100).toFixed(1)}%`,
+          },
+        },
+        recommendations,
+      };
+    }),
 });
 
 // ==================== 报表模板路由 ====================

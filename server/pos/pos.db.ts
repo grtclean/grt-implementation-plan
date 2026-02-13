@@ -4,6 +4,7 @@
  */
 
 import { eq, and, like, desc, sql, count, inArray } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import {
   projects,
@@ -448,6 +449,163 @@ export async function updateStageDates(id: number, data: {
   await db.update(projectStagesV2).set(updateData).where(eq(projectStagesV2.id, id));
   
   return { success: true, id };
+}
+
+// ==================== 阶段完成与自动推进 ====================
+
+/**
+ * 阶段顺序定义 (M0 → M12)
+ */
+const STAGE_ORDER = ['M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12'] as const;
+
+/**
+ * M0 退出条件校验
+ * - pm (项目经理) 必须已分配
+ * - budget 必须 > 0
+ */
+function validateM0ExitCriteria(project: {
+  pm: number | null;
+  budget: string | null;
+}): string[] {
+  const missing: string[] = [];
+  if (!project.pm) {
+    missing.push('项目经理 (pm) 未分配');
+  }
+  if (!project.budget || Number(project.budget) <= 0) {
+    missing.push('项目预算 (budget) 必须大于 0');
+  }
+  return missing;
+}
+
+/**
+ * 完成当前阶段并自动推进到下一阶段
+ *
+ * 1. 校验阶段存在且处于 InProgress
+ * 2. 针对特定阶段校验退出条件 (M0)
+ * 3. 将当前阶段标记为 Completed, completionPercent = 100
+ * 4. 将下一阶段标记为 InProgress
+ * 5. 更新项目的 currentStage
+ */
+export async function completeStage(input: {
+  projectId: number;
+  stageCode: string;
+}): Promise<{
+  success: true;
+  completedStage: string;
+  nextStage: string | null;
+}> {
+  const db = await requireDb();
+
+  // ---------- 1. 获取项目 ----------
+  const projectRows = await db
+    .select()
+    .from(projectsV2)
+    .where(eq(projectsV2.id, input.projectId))
+    .limit(1);
+
+  if (projectRows.length === 0) {
+    throw new TRPCError({
+      code: 'NOT_FOUND',
+      message: `项目 ${input.projectId} 不存在`,
+    });
+  }
+
+  const project = projectRows[0];
+
+  // ---------- 2. 获取当前阶段记录, 校验状态为 InProgress ----------
+  const currentStageRows = await db
+    .select()
+    .from(projectStagesV2)
+    .where(
+      and(
+        eq(projectStagesV2.projectId, input.projectId),
+        eq(projectStagesV2.stageCode, input.stageCode as any),
+      ),
+    )
+    .limit(1);
+
+  if (currentStageRows.length === 0) {
+    throw new TRPCError({
+      code: 'NOT_FOUND',
+      message: `项目 ${input.projectId} 中未找到阶段 ${input.stageCode}`,
+    });
+  }
+
+  const currentStageRecord = currentStageRows[0];
+
+  if (currentStageRecord.status !== 'InProgress') {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: `阶段 ${input.stageCode} 当前状态为 ${currentStageRecord.status}，只有 InProgress 状态的阶段才能完成`,
+    });
+  }
+
+  // ---------- 3. 阶段退出条件校验 ----------
+  if (input.stageCode === 'M0') {
+    const missing = validateM0ExitCriteria({
+      pm: project.pm,
+      budget: project.budget,
+    });
+    if (missing.length > 0) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `M0 退出条件未满足: ${missing.join('; ')}`,
+      });
+    }
+  }
+
+  // ---------- 4. 标记当前阶段为 Completed ----------
+  const today = new Date().toISOString().split('T')[0];
+
+  await db
+    .update(projectStagesV2)
+    .set({
+      status: 'Completed' as any,
+      completionPercent: 100,
+      actualEndDate: today,
+    })
+    .where(eq(projectStagesV2.id, currentStageRecord.id));
+
+  // ---------- 5. 找到下一阶段并设为 InProgress ----------
+  const currentIndex = STAGE_ORDER.indexOf(input.stageCode as any);
+  let nextStageCode: string | null = null;
+
+  if (currentIndex >= 0 && currentIndex < STAGE_ORDER.length - 1) {
+    nextStageCode = STAGE_ORDER[currentIndex + 1];
+
+    const nextStageRows = await db
+      .select()
+      .from(projectStagesV2)
+      .where(
+        and(
+          eq(projectStagesV2.projectId, input.projectId),
+          eq(projectStagesV2.stageCode, nextStageCode as any),
+        ),
+      )
+      .limit(1);
+
+    if (nextStageRows.length > 0) {
+      await db
+        .update(projectStagesV2)
+        .set({
+          status: 'InProgress' as any,
+          actualStartDate: today,
+        })
+        .where(eq(projectStagesV2.id, nextStageRows[0].id));
+    }
+
+    // ---------- 6. 更新项目 currentStage ----------
+    await db
+      .update(projectsV2)
+      .set({ currentStage: nextStageCode as any })
+      .where(eq(projectsV2.id, input.projectId));
+  }
+
+  return {
+    success: true,
+    completedStage: input.stageCode,
+    nextStage: nextStageCode,
+  };
 }
 
 // ==================== 版本CRUD操作 ====================

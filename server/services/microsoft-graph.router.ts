@@ -16,6 +16,9 @@ import {
   getUserInfo,
   validateCredentials,
   clearTokenCache,
+  getDriveItems,
+  getFileDownloadUrl,
+  searchFiles,
 } from "./microsoft-graph";
 
 export const microsoftGraphRouter = router({
@@ -208,6 +211,71 @@ export const microsoftGraphRouter = router({
       .query(async ({ input }) => {
         const user = await getUserInfo(input.userId);
         return { user };
+      }),
+  }),
+
+  // SharePoint文件集成
+  sharepoint: router({
+    // 列出文件
+    listFiles: protectedProcedure
+      .input(z.object({
+        siteId: z.string(),
+        folderId: z.string().optional(),
+      }))
+      .query(async ({ input }) => {
+        const items = await getDriveItems(input.siteId, input.folderId);
+        return { items };
+      }),
+
+    // 获取文件下载/查看URL
+    getFileUrl: protectedProcedure
+      .input(z.object({
+        siteId: z.string(),
+        itemId: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const result = await getFileDownloadUrl(input.siteId, input.itemId);
+        return result;
+      }),
+
+    // 搜索文件
+    searchFiles: protectedProcedure
+      .input(z.object({
+        siteId: z.string(),
+        query: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const items = await searchFiles(input.siteId, input.query);
+        return { items };
+      }),
+
+    // 同步项目文件 - 扫描SharePoint文件夹并返回文件元数据列表
+    syncProjectFiles: protectedProcedure
+      .input(z.object({
+        siteId: z.string(),
+        folderId: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const items = await getDriveItems(input.siteId, input.folderId);
+
+        // 筛选文件（排除文件夹），提取元数据用于批量关联到GRT任务
+        const files = items
+          .filter(item => item.file != null)
+          .map(item => ({
+            id: item.id,
+            name: item.name,
+            url: item.webUrl,
+            modifiedDate: item.lastModifiedDateTime,
+            size: item.size,
+            mimeType: item.file?.mimeType ?? "unknown",
+            modifiedBy: item.lastModifiedBy?.user?.displayName ?? "unknown",
+          }));
+
+        return {
+          files,
+          total: files.length,
+          syncedAt: new Date().toISOString(),
+        };
       }),
   }),
 });

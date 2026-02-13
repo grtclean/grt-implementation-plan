@@ -260,6 +260,15 @@ const projectRouter = router({
       return { success: false, error: '阶段不存在' };
     }),
 
+  completeStage: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      stageCode: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      return await posDb.completeStage(input);
+    }),
+
   statistics: protectedProcedure
     .query(async () => {
       try {

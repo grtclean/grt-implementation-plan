@@ -9350,3 +9350,249 @@ export const documentRecommendationLogs = pgTable("document_recommendation_logs"
   index("doc_rec_log_project_idx").on(table.projectId),
   index("doc_rec_log_stage_idx").on(table.stageCode),
 ]);
+
+// ==================== CRM Module V2 Tables ====================
+
+/**
+ * CRM客户表V2 (crm_customers_v2)
+ * 增强版客户主数据管理 - 支持编码自动生成、税号、年收入等字段
+ */
+export const crmCustomersV2 = pgTable("crm_customers_v2", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  name: varchar("name", { length: 200 }).notNull(),
+  shortName: varchar("short_name", { length: 100 }),
+  type: varchar("type", { length: 20 }).notNull().default('prospect'),
+  level: varchar("level", { length: 5 }).default('C'),
+  industry: varchar("industry", { length: 100 }),
+  region: varchar("region", { length: 100 }),
+  address: text("address"),
+  website: varchar("website", { length: 300 }),
+  phone: varchar("phone", { length: 50 }),
+  email: varchar("email", { length: 200 }),
+  taxId: varchar("tax_id", { length: 50 }),
+  annualRevenue: decimal("annual_revenue", { precision: 15, scale: 2 }),
+  employeeCount: integer("employee_count"),
+  source: varchar("source", { length: 50 }),
+  assignedTo: integer("assigned_to"),
+  status: varchar("status", { length: 20 }).default('active'),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("crm_customers_v2_code_idx").on(table.code),
+  index("crm_customers_v2_type_idx").on(table.type),
+  index("crm_customers_v2_status_idx").on(table.status),
+  index("crm_customers_v2_assigned_to_idx").on(table.assignedTo),
+  index("crm_customers_v2_level_idx").on(table.level),
+]);
+
+/**
+ * CRM联系人表V2 (crm_contacts_v2)
+ * 增强版联系人管理 - 支持座机、微信、关键人标记
+ */
+export const crmContactsV2 = pgTable("crm_contacts_v2", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  position: varchar("position", { length: 100 }),
+  department: varchar("department", { length: 100 }),
+  mobile: varchar("mobile", { length: 50 }),
+  landline: varchar("landline", { length: 50 }),
+  email: varchar("email", { length: 200 }),
+  wechat: varchar("wechat", { length: 100 }),
+  isKeyPerson: boolean("is_key_person").default(false),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("crm_contacts_v2_customer_id_idx").on(table.customerId),
+]);
+
+/**
+ * CRM商机表V2 (crm_opportunities_v2)
+ * 增强版商机管理 - 支持多币种、项目关联、竞品分析
+ */
+export const crmOpportunitiesV2 = pgTable("crm_opportunities_v2", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 300 }).notNull(),
+  customerId: integer("customer_id").notNull(),
+  contactId: integer("contact_id"),
+  stage: varchar("stage", { length: 30 }).notNull().default('qualification'),
+  expectedAmount: decimal("expected_amount", { precision: 15, scale: 2 }),
+  currency: varchar("currency", { length: 10 }).default('CNY'),
+  probability: integer("probability").default(20),
+  expectedCloseDate: date("expected_close_date", { mode: 'string' }),
+  actualCloseDate: date("actual_close_date", { mode: 'string' }),
+  productInterest: text("product_interest"),
+  competitorInfo: text("competitor_info"),
+  lostReason: text("lost_reason"),
+  assignedTo: integer("assigned_to"),
+  projectId: integer("project_id"),
+  source: varchar("source", { length: 50 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("crm_opportunities_v2_customer_id_idx").on(table.customerId),
+  index("crm_opportunities_v2_stage_idx").on(table.stage),
+  index("crm_opportunities_v2_assigned_to_idx").on(table.assignedTo),
+  index("crm_opportunities_v2_contact_id_idx").on(table.contactId),
+]);
+
+/**
+ * CRM线索表 (crm_leads)
+ * 销售线索管理 - 支持AI信心评分、线索转换追踪
+ */
+export const crmLeads = pgTable("crm_leads", {
+  id: serial("id").primaryKey(),
+  companyName: varchar("company_name", { length: 200 }).notNull(),
+  contactName: varchar("contact_name", { length: 100 }),
+  contactPhone: varchar("contact_phone", { length: 50 }),
+  contactEmail: varchar("contact_email", { length: 200 }),
+  source: varchar("source", { length: 50 }),
+  productInterest: text("product_interest"),
+  estimatedBudget: decimal("estimated_budget", { precision: 15, scale: 2 }),
+  priority: varchar("priority", { length: 20 }).default('medium'),
+  status: varchar("status", { length: 30 }).default('new'),
+  aiConfidenceScore: decimal("ai_confidence_score", { precision: 5, scale: 4 }),
+  assignedTo: integer("assigned_to"),
+  convertedCustomerId: integer("converted_customer_id"),
+  convertedOpportunityId: integer("converted_opportunity_id"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("crm_leads_status_idx").on(table.status),
+  index("crm_leads_priority_idx").on(table.priority),
+  index("crm_leads_assigned_to_idx").on(table.assignedTo),
+]);
+
+// ==================== 设计变更 → BOM → PO 联动事件表 ====================
+
+/**
+ * 变更事件表 (change_events)
+ * 记录设计变更、BOM变更、采购单更新的链式事件
+ *
+ * 链路: design_change → bom_change → po_update
+ * 当机械设计变更时，通知BOM更新；当BOM变更时，通知采购更新PO
+ */
+export const changeEvents = pgTable("change_events", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  type: varchar("type", { length: 30 }).notNull(), // 'design_change' | 'bom_change' | 'po_update'
+  title: varchar("title", { length: 300 }).notNull(),
+  description: text("description"),
+  sourceChangeId: integer("source_change_id"), // FK to self, for chaining (design_change → bom_change → po_update)
+  status: varchar("status", { length: 30 }).notNull().default('pending'), // 'pending' | 'acknowledged' | 'resolved'
+  affectedItems: text("affected_items"), // JSON array - list of affected BOM items or PO lines
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+  acknowledgedAt: timestamp("acknowledged_at", { mode: 'string' }),
+  acknowledgedBy: integer("acknowledged_by"),
+}, (table) => [
+  index("change_events_project_id_idx").on(table.projectId),
+  index("change_events_type_idx").on(table.type),
+  index("change_events_status_idx").on(table.status),
+  index("change_events_source_change_id_idx").on(table.sourceChangeId),
+  index("change_events_created_by_idx").on(table.createdBy),
+]);
+
+/**
+ * CRM Interaction Log - Customer interaction tracking with complaint early warning
+ *
+ * Records all customer interactions (calls, emails, visits, complaints, meetings, wechat).
+ * Complaint interactions are flagged with severity for early warning purposes.
+ */
+export const crmInteractions = pgTable("crm_interactions", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").notNull(),
+  opportunityId: integer("opportunity_id"),
+  type: varchar("type", { length: 30 }).notNull(), // call, email, visit, complaint, meeting, wechat
+  subject: varchar("subject", { length: 300 }).notNull(),
+  content: text("content"),
+  sentiment: varchar("sentiment", { length: 20 }).default("neutral"), // positive, neutral, negative
+  isComplaint: boolean("is_complaint").default(false),
+  complaintSeverity: varchar("complaint_severity", { length: 20 }), // low, medium, high, critical
+  resolution: text("resolution"),
+  resolvedAt: timestamp("resolved_at", { mode: "string" }),
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
+});
+
+/**
+ * Knowledge Documents - RAG知识库文档表
+ *
+ * 存储GRT实施过程中的技术知识、工艺标准、材料规格、案例等知识条目，
+ * 供AI助手进行检索增强生成(RAG)使用。
+ */
+export const knowledgeDocuments = pgTable("knowledge_documents", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 500 }).notNull(),
+  category: varchar("category", { length: 50 }).notNull(), // technical, process, material, standard, case_study, faq
+  content: text("content").notNull(),
+  tags: text("tags"), // JSON array of tags
+  projectId: integer("project_id"), // optional link to project
+  stageCode: varchar("stage_code", { length: 10 }), // M0-M12 or T1-T15
+  processCode: varchar("process_code", { length: 10 }), // T1-T15
+  source: varchar("source", { length: 100 }), // manual, plm_import, erp_import, meeting_extract
+  relevanceScore: integer("relevance_score").default(0), // usage-based ranking
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
+});
+
+// ==================== 物料-工步关联 (Step Materials) ====================
+
+/**
+ * 工步物料关联表 (step_materials)
+ * 记录每个BOM工步所需的物料及其备料状态
+ */
+export const stepMaterials = pgTable("step_materials", {
+  id: serial("id").primaryKey(),
+  bomStepId: integer("bom_step_id").notNull(),
+  materialCode: varchar("material_code", { length: 50 }).notNull(),
+  materialName: varchar("material_name", { length: 200 }).notNull(),
+  requiredQty: integer("required_qty").notNull().default(1),
+  unit: varchar("unit", { length: 20 }).default("pcs"),
+  availableQty: integer("available_qty").default(0),
+  isReady: boolean("is_ready").default(false),
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
+});
+
+// ==================== BOM步骤返工历史 (Step Rework History) ====================
+
+/**
+ * 工步返工历史表 (step_rework_history)
+ * 记录BOM工步的每次返工事件
+ */
+export const stepReworkHistory = pgTable("step_rework_history", {
+  id: serial("id").primaryKey(),
+  bomStepId: integer("bom_step_id").notNull(),
+  reworkCount: integer("rework_count").notNull(),
+  reason: text("reason").notNull(),
+  triggeredBy: integer("triggered_by").notNull(),
+  triggeredAt: timestamp("triggered_at", { mode: "string" }).defaultNow().notNull(),
+  completedAt: timestamp("completed_at", { mode: "string" }),
+});
+
+// ==================== 质量缺陷附件 (Quality Defect Attachments) ====================
+
+/**
+ * Quality Defect Attachments - 质量缺陷附件表
+ *
+ * 存储质量检查过程中发现的缺陷相关附件（照片、报告等），
+ * 关联到质量工序锁定记录。
+ */
+export const qualityDefectAttachments = pgTable("quality_defect_attachments", {
+  id: serial("id").primaryKey(),
+  lockId: varchar("lock_id", { length: 50 }).notNull(),
+  fileName: varchar("file_name", { length: 500 }).notNull(),
+  fileUrl: varchar("file_url", { length: 1000 }).notNull(),
+  fileType: varchar("file_type", { length: 50 }),
+  fileSize: integer("file_size"),
+  description: text("description"),
+  uploadedBy: integer("uploaded_by").notNull(),
+  uploadedAt: timestamp("uploaded_at", { mode: "string" }).defaultNow().notNull(),
+});

@@ -13,6 +13,7 @@
 import { requireDb } from "../db";
 import { sql, eq, and, desc, asc, like, or, inArray } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
+import { createTimeRecord } from "../production-execution/production-execution.db";
 
 // ============================================================
 // 类型定义
@@ -1370,4 +1371,295 @@ export async function getAiAccuracyDashboard(projectId?: number): Promise<AiAccu
       mostModifiedFields: fieldChanges,
     },
   };
+}
+
+// ============================================================
+// 10. 工时自动推断 (Auto Time Tracking on Step Completion)
+// ============================================================
+
+export async function completeStepWithAutoTime(
+  stepId: number,
+  projectId: number,
+  processCode: string,
+  userId: number,
+  userName: string,
+  notes?: string
+): Promise<{ success: true; autoLoggedHours: number; timeRecordId: string }> {
+  const db = await requireDb();
+
+  // 1. 获取BOM步骤详情
+  const stepResult = await db.execute(sql`
+    SELECT * FROM process_bom_steps WHERE id = ${stepId}
+  `);
+  const step = (stepResult as any)[0]?.[0];
+  if (!step) throw new Error("BOM步骤不存在");
+  if (step.status === 'completed') throw new Error("该步骤已完成");
+
+  const now = Date.now();
+
+  // 2. 计算实际工时
+  let autoLoggedHours: number;
+
+  // 查找该步骤是否有进行中的工时打卡记录（有actual_start_time）
+  const activeLogResult = await db.execute(sql`
+    SELECT * FROM process_step_time_logs
+    WHERE bom_step_id = ${stepId} AND end_time IS NULL
+    ORDER BY start_time ASC
+    LIMIT 1
+  `);
+  const activeLog = (activeLogResult as any)[0]?.[0];
+
+  if (activeLog) {
+    // 有活跃的打卡记录，使用实际start_time计算
+    const startTime = Number(activeLog.start_time);
+    autoLoggedHours = Math.round(((now - startTime) / (1000 * 60 * 60)) * 100) / 100;
+
+    // 结束该打卡记录
+    await db.execute(sql`
+      UPDATE process_step_time_logs
+      SET end_time = ${now}, actual_hours = ${autoLoggedHours},
+          notes = ${notes || null}, status = 'completed', updated_at = NOW()
+      WHERE id = ${activeLog.id}
+    `);
+  } else if (step.theoretical_hours) {
+    // 没有活跃的打卡记录，使用理论工时作为fallback
+    autoLoggedHours = Number(step.theoretical_hours);
+  } else {
+    // 无任何参考，默认0
+    autoLoggedHours = 0;
+  }
+
+  // 3. 更新BOM步骤状态为completed
+  await db.execute(sql`
+    UPDATE process_bom_steps
+    SET status = 'completed', updated_at = NOW()
+    WHERE id = ${stepId}
+  `);
+
+  // 4. 使用production-execution的createTimeRecord自动创建工时记录
+  const today = new Date();
+  const recordDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const timeRecordId = await createTimeRecord({
+    userId,
+    userName,
+    projectId,
+    stageCode: processCode,
+    recordDate,
+    duration: autoLoggedHours,
+    sourceType: 'AUTO_CALC',
+    workType: 'REGULAR',
+    description: notes || `自动工时: 完成步骤 "${step.step_name}"`,
+  });
+
+  return {
+    success: true,
+    autoLoggedHours,
+    timeRecordId: String(timeRecordId),
+  };
+}
+
+// ============================================================
+// 11. AI预设工步批量采纳 (Batch AI Step Adoption by Project/Process)
+// ============================================================
+
+export async function batchAdoptAiPresetsByProject(
+  projectId: number,
+  processCode: string,
+  userId: number,
+  presetIds?: number[]
+): Promise<{ success: true; adoptedCount: number; steps: Array<{ id: number; name: string }> }> {
+  const db = await requireDb();
+
+  // 1. 获取要采纳的AI预设步骤
+  let presets: any[];
+  if (presetIds && presetIds.length > 0) {
+    // 只采纳指定的预设
+    const idList = presetIds.map(Number).join(',');
+    const result = await db.execute(sql.raw(
+      `SELECT * FROM process_ai_preset_steps WHERE id IN (${idList}) AND project_id = ${Number(projectId)} AND process_code = '${String(processCode).replace(/'/g, "''")}'`
+    ));
+    presets = (result as any)[0] || [];
+  } else {
+    // 采纳该项目/工序下所有未确认的AI预设
+    const result = await db.execute(sql`
+      SELECT * FROM process_ai_preset_steps
+      WHERE project_id = ${projectId} AND process_code = ${processCode}
+        AND confirm_status = 'pending'
+      ORDER BY step_number ASC
+    `);
+    presets = (result as any)[0] || [];
+  }
+
+  if (presets.length === 0) {
+    return { success: true, adoptedCount: 0, steps: [] };
+  }
+
+  // 2. 获取当前最大步骤号
+  const maxResult = await db.execute(sql`
+    SELECT MAX(step_number) as max_step FROM process_bom_steps
+    WHERE project_id = ${projectId} AND process_code = ${processCode}
+  `);
+  let nextStep = ((maxResult as any)[0]?.[0]?.max_step || 0) + 1;
+
+  // 3. 逐个创建BOM步骤
+  const adoptedSteps: Array<{ id: number; name: string }> = [];
+
+  for (const preset of presets) {
+    const bomResult = await db.execute(sql`
+      INSERT INTO process_bom_steps
+      (process_instance_id, project_id, process_code, step_number, step_name,
+       process_requirements, process_description, bom_item_reference,
+       theoretical_hours, status, created_by)
+      VALUES (${preset.process_instance_id}, ${preset.project_id}, ${preset.process_code},
+              ${nextStep}, ${preset.step_name}, ${preset.process_requirements},
+              ${preset.process_description}, ${preset.bom_item_reference},
+              ${preset.theoretical_hours}, 'pending', ${userId})
+    `);
+
+    const bomStepId = (bomResult as any)[0]?.insertId;
+    adoptedSteps.push({ id: bomStepId, name: preset.step_name });
+
+    // 标记AI预设为已确认
+    await db.execute(sql`
+      UPDATE process_ai_preset_steps
+      SET confirm_status = 'confirmed', confirmed_by = ${userId}, confirmed_at = NOW(), updated_at = NOW()
+      WHERE id = ${preset.id}
+    `);
+
+    nextStep++;
+  }
+
+  return {
+    success: true,
+    adoptedCount: adoptedSteps.length,
+    steps: adoptedSteps,
+  };
+}
+
+// ============================================================
+// 12. 物料-工步关联与备料校验 (Step Materials)
+// ============================================================
+
+export async function linkMaterialToStep(
+  bomStepId: number,
+  materialCode: string,
+  materialName: string,
+  requiredQty: number,
+  unit: string
+) {
+  const db = await requireDb();
+  const result = await db.execute(sql`
+    INSERT INTO step_materials
+    (bom_step_id, material_code, material_name, required_qty, unit)
+    VALUES (${bomStepId}, ${materialCode}, ${materialName}, ${requiredQty}, ${unit || 'pcs'})
+    RETURNING id
+  `);
+  return { id: (result as any).rows?.[0]?.id };
+}
+
+export async function getStepMaterials(bomStepId: number) {
+  const db = await requireDb();
+  const result = await db.execute(sql`
+    SELECT * FROM step_materials
+    WHERE bom_step_id = ${bomStepId}
+    ORDER BY id ASC
+  `);
+  return (result as any).rows || [];
+}
+
+export async function checkMaterialReadiness(bomStepId: number) {
+  const db = await requireDb();
+  const result = await db.execute(sql`
+    SELECT * FROM step_materials
+    WHERE bom_step_id = ${bomStepId}
+    ORDER BY id ASC
+  `);
+  const materials = (result as any).rows || [];
+  const missing = materials.filter((m: any) => !m.is_ready || Number(m.available_qty) < Number(m.required_qty));
+  return {
+    ready: missing.length === 0 && materials.length > 0,
+    missing: missing.map((m: any) => ({
+      id: m.id,
+      materialCode: m.material_code,
+      materialName: m.material_name,
+      requiredQty: Number(m.required_qty),
+      availableQty: Number(m.available_qty),
+      shortfall: Number(m.required_qty) - Number(m.available_qty),
+    })),
+  };
+}
+
+export async function updateMaterialAvailability(stepMaterialId: number, availableQty: number) {
+  const db = await requireDb();
+
+  // First get the required qty to determine readiness
+  const existing = await db.execute(sql`
+    SELECT required_qty FROM step_materials WHERE id = ${stepMaterialId}
+  `);
+  const row = (existing as any).rows?.[0];
+  if (!row) return { error: "物料记录不存在" };
+
+  const isReady = availableQty >= Number(row.required_qty);
+
+  await db.execute(sql`
+    UPDATE step_materials
+    SET available_qty = ${availableQty}, is_ready = ${isReady}
+    WHERE id = ${stepMaterialId}
+  `);
+  return { success: true, isReady };
+}
+
+// ============================================================
+// 13. BOM步骤返工流程 (Step Rework)
+// ============================================================
+
+export async function triggerRework(stepId: number, userId: number, reason: string) {
+  const db = await requireDb();
+
+  // 1. Validate step exists and is in 'completed' status
+  const stepResult = await db.execute(sql`
+    SELECT * FROM process_bom_steps WHERE id = ${stepId}
+  `);
+  const step = (stepResult as any)[0]?.[0] ?? (stepResult as any).rows?.[0];
+  if (!step) throw new Error("BOM步骤不存在");
+  if (step.status !== 'completed') throw new Error("只有已完成的步骤才能发起返工");
+
+  // 2. Get current rework count
+  const countResult = await db.execute(sql`
+    SELECT COUNT(*) as cnt FROM step_rework_history WHERE bom_step_id = ${stepId}
+  `);
+  const countRow = (countResult as any)[0]?.[0] ?? (countResult as any).rows?.[0];
+  const newReworkCount = Number(countRow?.cnt || 0) + 1;
+
+  // 3. Change step status to 'rework'
+  await db.execute(sql`
+    UPDATE process_bom_steps
+    SET status = 'rework', updated_at = NOW()
+    WHERE id = ${stepId}
+  `);
+
+  // 4. Record rework history
+  await db.execute(sql`
+    INSERT INTO step_rework_history
+    (bom_step_id, rework_count, reason, triggered_by)
+    VALUES (${stepId}, ${newReworkCount}, ${reason}, ${userId})
+  `);
+
+  // 5. Return the updated step
+  const updatedResult = await db.execute(sql`
+    SELECT * FROM process_bom_steps WHERE id = ${stepId}
+  `);
+  const updatedStep = (updatedResult as any)[0]?.[0] ?? (updatedResult as any).rows?.[0];
+  return updatedStep;
+}
+
+export async function getReworkHistory(stepId: number) {
+  const db = await requireDb();
+  const result = await db.execute(sql`
+    SELECT * FROM step_rework_history
+    WHERE bom_step_id = ${stepId}
+    ORDER BY rework_count ASC
+  `);
+  return (result as any).rows || (result as any)[0] || [];
 }

@@ -289,6 +289,84 @@ export async function getUserInfo(userId: string): Promise<{
   return graphRequest(endpoint);
 }
 
+// SharePoint Drive Item类型
+export interface DriveItem {
+  id: string;
+  name: string;
+  size: number;
+  webUrl: string;
+  createdDateTime: string;
+  lastModifiedDateTime: string;
+  file?: {
+    mimeType: string;
+    hashes?: {
+      quickXorHash?: string;
+      sha1Hash?: string;
+      sha256Hash?: string;
+    };
+  };
+  folder?: {
+    childCount: number;
+  };
+  createdBy?: {
+    user?: {
+      displayName: string;
+      id: string;
+    };
+  };
+  lastModifiedBy?: {
+    user?: {
+      displayName: string;
+      id: string;
+    };
+  };
+  "@microsoft.graph.downloadUrl"?: string;
+}
+
+/**
+ * 获取SharePoint站点中的文件列表
+ */
+export async function getDriveItems(
+  siteId: string,
+  folderId?: string
+): Promise<DriveItem[]> {
+  const itemPath = folderId ? `items/${folderId}/children` : "root/children";
+  const endpoint = `/sites/${siteId}/drive/${itemPath}?$top=100&$orderby=name`;
+
+  const response = await graphRequest<{ value: DriveItem[] }>(endpoint);
+  return response.value;
+}
+
+/**
+ * 获取SharePoint文件下载URL
+ */
+export async function getFileDownloadUrl(
+  siteId: string,
+  itemId: string
+): Promise<{ downloadUrl: string; webUrl: string; name: string }> {
+  const endpoint = `/sites/${siteId}/drive/items/${itemId}`;
+
+  const item = await graphRequest<DriveItem>(endpoint);
+  return {
+    downloadUrl: item["@microsoft.graph.downloadUrl"] || item.webUrl,
+    webUrl: item.webUrl,
+    name: item.name,
+  };
+}
+
+/**
+ * 在SharePoint站点中搜索文件
+ */
+export async function searchFiles(
+  siteId: string,
+  query: string
+): Promise<DriveItem[]> {
+  const endpoint = `/sites/${siteId}/drive/root/search(q='${encodeURIComponent(query)}')`;
+
+  const response = await graphRequest<{ value: DriveItem[] }>(endpoint);
+  return response.value;
+}
+
 /**
  * 验证Microsoft Graph API凭据
  */

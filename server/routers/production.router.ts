@@ -266,6 +266,10 @@ let equipments: any[] = [
   { id: 5, code: 'EQ-005', name: '装配线', type: 'ASSEMBLY', status: 'running', location: '车间D', currentWorkOrderId: 4, utilization: 92 },
 ];
 
+// 设备状态变更历史记录
+let equipmentStatusHistory: any[] = [];
+let equipmentStatusHistoryIdCounter = 1;
+
 // ID计数器
 let workOrderIdCounter = 6;
 let qcRecordIdCounter = 4;
@@ -587,7 +591,11 @@ export const productionRouter = router({
     }),
   
   /**
-   * 更新设备状态
+   * 更新设备状态（联动排程资源可用性）
+   *
+   * When equipment status changes (e.g., maintenance -> available or vice versa),
+   * this automatically updates the scheduling system's resource availability
+   * and records the status change for audit trail.
    */
   updateEquipmentStatus: protectedProcedure
     .input(z.object({
@@ -596,20 +604,152 @@ export const productionRouter = router({
       currentWorkOrderId: z.number().nullable().optional(),
       notes: z.string().optional(),
     }))
-    .mutation(({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const eq = equipments.find(e => e.id === input.id);
       if (!eq) {
         throw new TRPCError({ code: 'NOT_FOUND', message: '设备不存在' });
       }
-      
+
+      const previousStatus = eq.status;
+      const previousWorkOrderId = eq.currentWorkOrderId;
+
+      // Update equipment status
       eq.status = input.status;
       if (input.currentWorkOrderId !== undefined) {
         eq.currentWorkOrderId = input.currentWorkOrderId;
       }
-      
-      return eq;
+
+      // Update utilization based on status
+      if (input.status === 'maintenance' || input.status === 'fault' || input.status === 'offline') {
+        eq.utilization = 0;
+      }
+
+      // Record status change in history for audit trail
+      const historyEntry = {
+        id: equipmentStatusHistoryIdCounter++,
+        equipmentId: eq.id,
+        equipmentCode: eq.code,
+        equipmentName: eq.name,
+        previousStatus,
+        newStatus: input.status,
+        previousWorkOrderId,
+        newWorkOrderId: eq.currentWorkOrderId,
+        notes: input.notes || null,
+        changedBy: ctx.user?.id || null,
+        changedByName: ctx.user?.name || null,
+        changedAt: new Date().toISOString(),
+      };
+      equipmentStatusHistory.push(historyEntry);
+
+      // Determine scheduling resource availability based on the new status
+      const isAvailable = input.status === 'idle' || input.status === 'running';
+      const wasAvailable = previousStatus === 'idle' || previousStatus === 'running';
+
+      // If availability changed, update scheduling system's resource availability
+      let schedulingUpdateResult: any = null;
+      if (isAvailable !== wasAvailable) {
+        try {
+          const { getDb } = await import('../db');
+          const db: any = await getDb();
+          if (db) {
+            const today = new Date().toISOString().split('T')[0];
+
+            // Try to find a matching scheduling resource for this equipment
+            const [resourceRows] = await db.execute(
+              'SELECT id, availability_calendar FROM scheduling_resources WHERE resource_name = ? AND resource_type = ?',
+              [eq.name, 'equipment']
+            ) as any[];
+
+            if (resourceRows && resourceRows.length > 0) {
+              const resource = resourceRows[0];
+              let calendar = resource.availability_calendar || [];
+              if (typeof calendar === 'string') {
+                try { calendar = JSON.parse(calendar); } catch { calendar = []; }
+              }
+
+              // Update or add today's availability entry
+              const existingIndex = calendar.findIndex((c: any) => c.date === today);
+              const newEntry = {
+                date: today,
+                available: isAvailable,
+                availableHours: isAvailable ? 8 : 0,
+                reason: input.notes || `Equipment status changed to ${input.status}`,
+              };
+
+              if (existingIndex >= 0) {
+                calendar[existingIndex] = newEntry;
+              } else {
+                calendar.push(newEntry);
+              }
+
+              await db.execute(
+                'UPDATE scheduling_resources SET availability_calendar = ?, status = ? WHERE id = ?',
+                [JSON.stringify(calendar), isAvailable ? 'available' : 'unavailable', resource.id]
+              );
+
+              schedulingUpdateResult = {
+                resourceId: resource.id,
+                updatedAvailability: isAvailable,
+                date: today,
+              };
+            }
+          }
+        } catch (error) {
+          // Scheduling update is best-effort; log but do not fail
+          console.warn('[Production] Failed to update scheduling resource availability:', error);
+        }
+      }
+
+      return {
+        equipment: eq,
+        statusChange: {
+          from: previousStatus,
+          to: input.status,
+          availabilityChanged: isAvailable !== wasAvailable,
+        },
+        schedulingUpdate: schedulingUpdateResult,
+        historyEntryId: historyEntry.id,
+      };
     }),
-  
+
+  /**
+   * 获取设备状态变更历史（审计追踪）
+   * Equipment status change audit trail.
+   */
+  getEquipmentStatusHistory: publicProcedure
+    .input(z.object({
+      equipmentId: z.number().optional(),
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      page: z.number().default(1),
+      pageSize: z.number().default(20),
+    }).optional())
+    .query(({ input }) => {
+      let result = [...equipmentStatusHistory];
+
+      if (input?.equipmentId) {
+        result = result.filter(h => h.equipmentId === input.equipmentId);
+      }
+      if (input?.startDate) {
+        result = result.filter(h => h.changedAt >= input.startDate!);
+      }
+      if (input?.endDate) {
+        const endDateWithTime = input.endDate + 'T23:59:59.999Z';
+        result = result.filter(h => h.changedAt <= endDateWithTime);
+      }
+
+      // Sort by most recent first
+      result.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime());
+
+      const total = result.length;
+      const page = input?.page || 1;
+      const pageSize = input?.pageSize || 20;
+      const start = (page - 1) * pageSize;
+      const items = result.slice(start, start + pageSize);
+
+      return { items, total, page, pageSize };
+    }),
+
   // ===== 生产统计 =====
   
   /**

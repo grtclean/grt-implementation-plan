@@ -47,39 +47,39 @@ function ClientsTab() {
   const [editingClient, setEditingClient] = useState<any>(null);
   
   const utils = trpc.useUtils();
-  const { data: clientsData, isLoading } = (trpc.afterSales.clients as any).list.useQuery({
+  const { data: clientsData, isLoading } = trpc.afterSales.clients.list.useQuery({
     search: search || undefined,
-    tier: tierFilter !== "all" ? tierFilter as any : undefined,
+    tier: tierFilter !== "all" ? tierFilter : undefined,
   });
 
-  const createMutation = (trpc.afterSales.clients as any).create.useMutation({
+  const createMutation = trpc.afterSales.clients.create.useMutation({
     onSuccess: () => {
       toast({ title: "成功", description: "客户创建成功" });
       setIsCreateOpen(false);
-      (utils.afterSales.clients as any).list.invalidate();
+      utils.afterSales.clients.list.invalidate();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({ title: "错误", description: error.message, variant: "destructive" });
     },
   });
 
-  const updateMutation = (trpc.afterSales.clients as any).update.useMutation({
+  const updateMutation = trpc.afterSales.clients.update.useMutation({
     onSuccess: () => {
       toast({ title: "成功", description: "客户更新成功" });
       setEditingClient(null);
-      (utils.afterSales.clients as any).list.invalidate();
+      utils.afterSales.clients.list.invalidate();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({ title: "错误", description: error.message, variant: "destructive" });
     },
   });
 
-  const deleteMutation = (trpc.afterSales.clients as any).delete.useMutation({
+  const deleteMutation = trpc.afterSales.clients.delete.useMutation({
     onSuccess: () => {
       toast({ title: "成功", description: "客户删除成功" });
-      (utils.afterSales.clients as any).list.invalidate();
+      utils.afterSales.clients.list.invalidate();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({ title: "错误", description: error.message, variant: "destructive" });
     },
   });
@@ -363,19 +363,19 @@ function EquipmentsTab() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   
   const utils = trpc.useUtils();
-  const { data: equipmentsData, isLoading } = (trpc.afterSales.equipments as any).list.useQuery({
+  const { data: equipmentsData, isLoading } = trpc.afterSales.equipments.list.useQuery({
     search: search || undefined,
-    operationalStatus: statusFilter !== "all" ? statusFilter as any : undefined,
+    operationalStatus: statusFilter !== "all" ? statusFilter : undefined,
   });
 
-  const { data: dueSoonData } = (trpc.afterSales.equipments as any).getDueSoon.useQuery({ daysAhead: 30 });
+  const { data: dueSoonData } = trpc.afterSales.equipments.getDueSoon.useQuery({ daysAhead: 30 });
 
-  const createMutation = (trpc.afterSales.equipments as any).create.useMutation({
+  const createMutation = trpc.afterSales.equipments.create.useMutation({
     onSuccess: () => {
       toast({ title: "成功", description: "设备创建成功" });
-      (utils.afterSales.equipments as any).list.invalidate();
+      utils.afterSales.equipments.list.invalidate();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({ title: "错误", description: error.message, variant: "destructive" });
     },
   });
@@ -518,7 +518,7 @@ function EquipmentForm({
   onSubmit: (data: any) => void; 
   isLoading: boolean;
 }) {
-  const { data: clientsData } = (trpc.afterSales.clients as any).list.useQuery({});
+  const { data: clientsData } = trpc.afterSales.clients.list.useQuery({});
   
   const [formData, setFormData] = useState({
     serialNumber: initialData?.serialNumber || "",
@@ -638,47 +638,47 @@ function ServiceLogsTab() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   
   const utils = trpc.useUtils();
-  const { data: logsData, isLoading } = (trpc.afterSales.serviceLogs as any).list.useQuery({
+  const { data: logsData, isLoading } = trpc.afterSales.serviceLogs.list.useQuery({
     search: search || undefined,
-    status: statusFilter !== "all" ? statusFilter as any : undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
   });
 
-  const createMutation = (trpc.afterSales.serviceLogs as any).create.useMutation({
+  const createMutation = trpc.afterSales.serviceLogs.create.useMutation({
     onSuccess: () => {
       toast({ title: "成功", description: "工单创建成功" });
       setIsCreateOpen(false);
-      (utils.afterSales.serviceLogs as any).list.invalidate();
+      utils.afterSales.serviceLogs.list.invalidate();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({ title: "错误", description: error.message, variant: "destructive" });
     },
   });
 
-  const completeMutation = (trpc.afterSales.serviceLogs as any).complete.useMutation({
-    onSuccess: (result: any) => {
+  const completeMutation = trpc.afterSales.serviceLogs.complete.useMutation({
+    onSuccess: (result) => {
       toast({
         title: "成功",
         description: result.workflowResult
           ? `工单已完成，设备维护记录已自动更新`
           : "工单已完成"
       });
-      (utils.afterSales.serviceLogs as any).list.invalidate();
-      (utils.afterSales.equipments as any).list.invalidate();
+      utils.afterSales.serviceLogs.list.invalidate();
+      utils.afterSales.equipments.list.invalidate();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({ title: "错误", description: error.message, variant: "destructive" });
     },
   });
 
-  const syncMutation = (trpc.afterSales.workflow as any).syncAll.useMutation({
-    onSuccess: (result: any) => {
+  const syncMutation = trpc.afterSales.workflow.syncAll.useMutation({
+    onSuccess: (result) => {
       toast({
         title: "同步完成",
         description: `成功同步 ${result.successCount} 条记录，失败 ${result.failedCount} 条`
       });
-      (utils.afterSales.equipments as any).list.invalidate();
+      utils.afterSales.equipments.list.invalidate();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({ title: "同步失败", description: error.message, variant: "destructive" });
     },
   });
@@ -844,7 +844,7 @@ function ServiceLogForm({
   onSubmit: (data: any) => void; 
   isLoading: boolean;
 }) {
-  const { data: equipmentsData } = (trpc.afterSales.equipments as any).list.useQuery({});
+  const { data: equipmentsData } = trpc.afterSales.equipments.list.useQuery({});
   
   const [formData, setFormData] = useState({
     equipmentId: initialData?.equipmentId?.toString() || "",

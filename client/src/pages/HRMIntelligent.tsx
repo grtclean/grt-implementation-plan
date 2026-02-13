@@ -65,30 +65,30 @@ export default function HRMIntelligent() {
   const salaryStructuresQuery = trpc.hrm.getSalaryStructures.useQuery();
   const performanceGradesQuery = trpc.hrm.getPerformanceGrades.useQuery();
   
-  // 安全访问数据 - 处理后端返回的嵌套对象结构
-  const positions = { data: Array.isArray(positionsQuery.data) ? positionsQuery.data : ((positionsQuery.data as any)?.positions || []), refetch: positionsQuery.refetch, isLoading: positionsQuery.isLoading };
-  const candidates = { data: Array.isArray(candidatesQuery.data) ? candidatesQuery.data : ((candidatesQuery.data as any)?.candidates || []), refetch: candidatesQuery.refetch, isLoading: candidatesQuery.isLoading };
-  const employees = { data: Array.isArray(employeesQuery.data) ? employeesQuery.data : ((employeesQuery.data as any)?.employees || []), refetch: employeesQuery.refetch, isLoading: employeesQuery.isLoading };
-  const salaryStructures = { data: Array.isArray(salaryStructuresQuery.data) ? salaryStructuresQuery.data : ((salaryStructuresQuery.data as any)?.structures || []), refetch: salaryStructuresQuery.refetch, isLoading: salaryStructuresQuery.isLoading };
-  const performanceGrades = { data: Array.isArray(performanceGradesQuery.data) ? performanceGradesQuery.data : ((performanceGradesQuery.data as any)?.grades || []), refetch: performanceGradesQuery.refetch, isLoading: performanceGradesQuery.isLoading };
+  // 安全访问数据
+  const positions = { data: positionsQuery.data ?? [], refetch: positionsQuery.refetch, isLoading: positionsQuery.isLoading };
+  const candidates = { data: candidatesQuery.data ?? [], refetch: candidatesQuery.refetch, isLoading: candidatesQuery.isLoading };
+  const employees = { data: employeesQuery.data ?? [], refetch: employeesQuery.refetch, isLoading: employeesQuery.isLoading };
+  const salaryStructures = { data: salaryStructuresQuery.data ?? [], refetch: salaryStructuresQuery.refetch, isLoading: salaryStructuresQuery.isLoading };
+  const performanceGrades = { data: performanceGradesQuery.data ?? [], refetch: performanceGradesQuery.refetch, isLoading: performanceGradesQuery.isLoading };
 
   // 初始化默认数据
-  const initSalaryStructures = (trpc.hrm as any).initSalaryStructures.useMutation({
-    onSuccess: (data: any) => {
+  const initSalaryStructures = trpc.hrm.initSalaryStructures.useMutation({
+    onSuccess: (data) => {
       toast.success(`成功初始化 ${data.created} 个薪酬结构`);
       salaryStructures.refetch();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`初始化失败: ${error.message}`);
     }
   });
 
-  const initPerformanceGrades = (trpc.hrm as any).initPerformanceGrades.useMutation({
-    onSuccess: (data: any) => {
+  const initPerformanceGrades = trpc.hrm.initPerformanceGrades.useMutation({
+    onSuccess: (data) => {
       toast.success(`成功初始化 ${data.created} 个绩效等级`);
       performanceGrades.refetch();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`初始化失败: ${error.message}`);
     }
   });
@@ -775,7 +775,7 @@ export default function HRMIntelligent() {
                       <div className="flex items-center gap-4">
                         <div className="text-right">
                           <p className="text-sm text-muted-foreground">AI匹配度</p>
-                          <p className="text-lg font-bold text-primary">{(candidate as any).aiMatchScore || 0}%</p>
+                          <p className="text-lg font-bold text-primary">0%</p>
                         </div>
                         <Badge variant={
                           candidate.status === 'hired' ? 'default' :
@@ -1221,17 +1221,28 @@ export default function HRMIntelligent() {
   );
 }
 
+// 薪酬计算结果类型
+interface SalaryCalculationResult {
+  baseSalary?: number;
+  performanceSalary?: number;
+  bonus?: number;
+  benefits?: number;
+  monthlyTotal?: number;
+  annualTotal?: number;
+  breakdown?: Record<string, unknown>;
+}
+
 // 薪酬计算器组件
 function SalaryCalculator() {
   const [department, setDepartment] = useState("");
   const [baseSalary, setBaseSalary] = useState("");
   const [performanceGrade, setPerformanceGrade] = useState("");
   const [projectBonus, setProjectBonus] = useState("");
-  const [calculationResult, setCalculationResult] = useState<any>(null);
+  const [calculationResult, setCalculationResult] = useState<SalaryCalculationResult | null>(null);
 
   const salaryStructures = trpc.hrm.getSalaryStructures.useQuery();
   const performanceGrades = trpc.hrm.getPerformanceGrades.useQuery();
-  const calculateSalary = (trpc.hrm as any).calculateSalary.useQuery(
+  const calculateSalary = trpc.hrm.calculateSalary.useQuery(
     {
       department,
       baseSalary: parseFloat(baseSalary) || 0,
@@ -1250,7 +1261,7 @@ function SalaryCalculator() {
     }
   }, [calculateSalary.data]);
 
-  const saveSalaryCalculation = (trpc.hrm as any).createSalaryCalculation.useMutation({
+  const saveSalaryCalculation = trpc.hrm.createSalaryCalculation.useMutation({
     onSuccess: () => {
       toast.success("薪酬计算结果已保存");
     },
@@ -1300,7 +1311,7 @@ function SalaryCalculator() {
                   <SelectValue placeholder="选择部门" />
                 </SelectTrigger>
                 <SelectContent>
-                  {salaryStructures.data?.map((s: any) => (
+                  {salaryStructures.data?.map((s) => (
                     <SelectItem key={s.id} value={s.department || s.level}>
                       {s.department || s.level}
                     </SelectItem>
@@ -1326,9 +1337,9 @@ function SalaryCalculator() {
                   <SelectValue placeholder="选择绩效等级" />
                 </SelectTrigger>
                 <SelectContent>
-                  {performanceGrades.data?.map((g: any) => (
-                    <SelectItem key={g.id} value={g.gradeCode || g.grade}>
-                      {g.gradeCode || g.grade} - {g.gradeName || g.description} (系数: {g.coefficient || g.bonusRate})
+                  {performanceGrades.data?.map((g) => (
+                    <SelectItem key={g.id} value={g.grade}>
+                      {g.grade} - {g.description} (系数: {g.bonusRate})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1513,14 +1524,14 @@ function SalaryCalculator() {
 // 定时任务管理组件
 function ScheduledTasksManager() {
   const [showNewTaskDialog, setShowNewTaskDialog] = useState(false);
-  const [newTask, setNewTask] = useState({
+  const [newTask, setNewTask] = useState<{ taskName: string; taskType: string; cronExpression: string }>({
     taskName: "",
-    taskType: "performance_review_reminder" as const,
+    taskType: "performance_review_reminder",
     cronExpression: "0 0 14 * * 2", // 每周二下午2点
   });
 
-  const scheduledTasks = (trpc.hrm as any).getScheduledTasks.useQuery();
-  const createTask = (trpc.hrm as any).createScheduledTask.useMutation({
+  const scheduledTasks = trpc.hrm.getScheduledTasks.useQuery();
+  const createTask = trpc.hrm.createScheduledTask.useMutation({
     onSuccess: () => {
       toast.success("定时任务创建成功");
       setShowNewTaskDialog(false);
@@ -1531,7 +1542,7 @@ function ScheduledTasksManager() {
     },
   });
 
-  const updateTask = (trpc.hrm as any).updateScheduledTask.useMutation({
+  const updateTask = trpc.hrm.updateScheduledTask.useMutation({
     onSuccess: () => {
       toast.success("任务状态已更新");
       scheduledTasks.refetch();
@@ -1583,7 +1594,7 @@ function ScheduledTasksManager() {
                   <Label>任务类型</Label>
                   <Select
                     value={newTask.taskType}
-                    onValueChange={(v: any) => setNewTask({ ...newTask, taskType: v })}
+                    onValueChange={(v) => setNewTask({ ...newTask, taskType: v })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -1695,7 +1706,7 @@ function ScheduledTasksManager() {
             </div>
           ))}
 
-          {(!scheduledTasks || scheduledTasks.length === 0) && (
+          {(!scheduledTasks.data || scheduledTasks.data.length === 0) && (
             <div className="p-8 text-center text-muted-foreground">
               <Timer className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>暂无定时任务</p>
@@ -1719,10 +1730,11 @@ function TeamsInterviewSystem() {
   const [meetingSubject, setMeetingSubject] = useState("");
   const [meetingTime, setMeetingTime] = useState("");
 
-  const candidates = (trpc.hrm as any).getCandidates.useQuery({ status: "interviewing" });
-  const teamsMeetings = (trpc.hrm as any).getTeamsMeetings.useQuery();
+  const candidatesQuery = trpc.hrm.getCandidates.useQuery();
+  const candidates = { data: (candidatesQuery.data ?? []).filter(c => c.status === "interviewing") };
+  const teamsMeetings = trpc.hrm.getTeamsMeetings.useQuery();
 
-  const createMeeting = (trpc.hrm as any).createTeamsMeeting.useMutation({
+  const createMeeting = trpc.hrm.createTeamsMeeting.useMutation({
     onSuccess: () => {
       toast.success("Teams面试会议已创建");
       setShowScheduleDialog(false);
@@ -1733,7 +1745,7 @@ function TeamsInterviewSystem() {
     },
   });
 
-  const updateMeeting = (trpc.hrm as any).updateTeamsMeeting.useMutation({
+  const updateMeeting = trpc.hrm.updateTeamsMeeting.useMutation({
     onSuccess: () => {
       toast.success("会议状态已更新");
       teamsMeetings.refetch();
@@ -1911,7 +1923,7 @@ function TeamsInterviewSystem() {
                 </div>
               ))}
 
-              {(!teamsMeetings || teamsMeetings.length === 0) && (
+              {(!teamsMeetings.data || teamsMeetings.data.length === 0) && (
                 <div className="p-8 text-center text-muted-foreground">
                   <Video className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>暂无面试安排</p>

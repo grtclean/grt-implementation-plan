@@ -91,6 +91,10 @@ import { buRouter } from "./routers/bu.router";
 import { bomRouter } from "./routers/bom.router";
 import { warehouseRouter } from "./routers/warehouse.router";
 import { docIntelligenceRouter } from "./doc-intelligence/doc-intelligence.router";
+import { crmRouter } from "./crm/crm.router";
+import { changeEventRouter } from "./modules/changeEvent.router";
+import { knowledgeBaseRouter as realKnowledgeBaseRouter } from "./modules/knowledge-base.router";
+import { timeReconciliationRouter } from "./services/time-reconciliation.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -148,7 +152,7 @@ export const appRouter = router({
   community: placeholderRouters.community,
   m7m9: placeholderRouters.m7m9,
   tripRequest: placeholderRouters.tripRequest,
-  crm: placeholderRouters.crm,
+  crm: crmRouter,
   annualPlanning: placeholderRouters.annualPlanning,
   changeManagement: realChangeManagementRouter,
   expenseReportScheduler: placeholderRouters.expenseReportScheduler,
@@ -195,7 +199,7 @@ export const appRouter = router({
   expenseComparison: placeholderRouters.expenseComparison,
   budgetOverrunApproval: placeholderRouters.budgetOverrunApproval,
   aiChat: placeholderRouters.aiChat,
-  knowledgeBase: placeholderRouters.knowledgeBase,
+  knowledgeBase: realKnowledgeBaseRouter,
   users: placeholderRouters.users,
   auth: placeholderRouters.auth,
   analytics: placeholderRouters.analytics,
@@ -286,6 +290,12 @@ export const appRouter = router({
 
   // Phase A: 工程文档AI推荐系统 (语义搜索、阶段文档推荐、完备性检查)
   docIntelligence: docIntelligenceRouter,
+
+  // 设计变更 → BOM → PO 联动通知 (变更链追溯)
+  changeEvent: changeEventRouter,
+
+  // 三套工时对账 (UWB / BOM步骤 / 生产执行 工时对比)
+  timeReconciliation: timeReconciliationRouter,
 
   // Additional placeholder routers
   travelDashboard: placeholderRouters.travelDashboard,

@@ -50,41 +50,41 @@ function ChangeRequestsTab() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   
-  const { data: requests, isLoading, refetch } = (trpc.naming.changeRequests as any).list.useQuery(
-    statusFilter !== "all" ? { status: statusFilter as any } : undefined
+  const { data: requests, isLoading, refetch } = trpc.naming.changeRequests.list.useQuery(
+    statusFilter !== "all" ? { status: statusFilter } : undefined
   );
-  
-  const createMutation = (trpc.naming.changeRequests as any).create.useMutation({
+
+  const createMutation = trpc.naming.changeRequests.create.useMutation({
     onSuccess: () => {
       toast.success("变更请求已创建");
       setIsCreateDialogOpen(false);
       refetch();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error.message);
     }
   });
 
-  const approveMutation = (trpc.naming.changeRequests as any).approve.useMutation({
+  const approveMutation = trpc.naming.changeRequests.approve.useMutation({
     onSuccess: () => {
       toast.success("变更请求已批准");
       refetch();
     }
   });
 
-  const rejectMutation = (trpc.naming.changeRequests as any).reject.useMutation({
+  const rejectMutation = trpc.naming.changeRequests.reject.useMutation({
     onSuccess: () => {
       toast.success("变更请求已驳回");
       refetch();
     }
   });
-  
+
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     createMutation.mutate({
-      requestType: formData.get("requestType") as any,
-      ruleType: formData.get("ruleType") as any,
+      requestType: formData.get("requestType") as string,
+      ruleType: formData.get("ruleType") as string,
       title: formData.get("title") as string,
       description: formData.get("description") as string,
       reason: formData.get("reason") as string,
@@ -210,7 +210,7 @@ function ChangeRequestsTab() {
             </TableHeader>
             <TableBody>
               {requests && requests.length > 0 ? (
-                requests.map((request: any) => (
+                requests.map((request) => (
                   <TableRow key={request.id}>
                     <TableCell className="font-mono text-sm">{request.requestCode}</TableCell>
                     <TableCell><RuleTypeBadge type={request.ruleType} /></TableCell>
@@ -273,18 +273,18 @@ function EquipmentModelsTab() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   
-  const { data: models, isLoading, refetch } = (trpc.naming.equipmentModels as any).list.useQuery(
+  const { data: models, isLoading, refetch } = trpc.naming.equipmentModels.list.useQuery(
     searchTerm ? { search: searchTerm } : undefined
   );
 
-  const initMutation = (trpc.naming.equipmentModels as any).initSample.useMutation({
+  const initMutation = trpc.naming.equipmentModels.initSample.useMutation({
     onSuccess: (result) => {
       toast.success(`已初始化 ${result?.created || 0} 个设备型号`);
       refetch();
     }
   });
-  
-  const createMutation = (trpc.naming.equipmentModels as any).create.useMutation({
+
+  const createMutation = trpc.naming.equipmentModels.create.useMutation({
     onSuccess: () => {
       toast.success("设备型号已创建");
       setIsCreateDialogOpen(false);
@@ -425,7 +425,7 @@ function EquipmentModelsTab() {
             </TableHeader>
             <TableBody>
               {models && models.length > 0 ? (
-                models.map((model: any) => (
+                models.map((model) => (
                   <TableRow key={model.id}>
                     <TableCell className="font-mono font-bold text-primary">{model.numericCode}</TableCell>
                     <TableCell className="font-mono">{model.functionCode}</TableCell>
@@ -459,26 +459,26 @@ function EquipmentModelsTab() {
 
 // Project Numbers Tab
 function ProjectNumbersTab() {
-  const { data: tCounter, refetch: refetchT } = (trpc.naming.projectNumbers as any).getCounter.useQuery({ prefix: "T" });
-  const { data: grtCounter, refetch: refetchGRT } = (trpc.naming.projectNumbers as any).getCounter.useQuery({ prefix: "GRT" });
-  const { data: conversionHistory, refetch: refetchHistory } = (trpc.naming.projectNumbers as any).getConversionHistory.useQuery();
+  const { data: tCounter, refetch: refetchT } = trpc.naming.projectNumbers.getCounter.useQuery({ prefix: "T" });
+  const { data: grtCounter, refetch: refetchGRT } = trpc.naming.projectNumbers.getCounter.useQuery({ prefix: "GRT" });
+  const { data: conversionHistory, refetch: refetchHistory } = trpc.naming.projectNumbers.getConversionHistory.useQuery();
 
-  const initMutation = (trpc.naming.projectNumbers as any).initCounters.useMutation({
+  const initMutation = trpc.naming.projectNumbers.initCounters.useMutation({
     onSuccess: () => {
       toast.success("计数器已初始化");
       refetchT();
       refetchGRT();
     }
   });
-  
-  const generateTMutation = (trpc.naming.projectNumbers as any).generateNext.useMutation({
-    onSuccess: (code: any) => {
+
+  const generateTMutation = trpc.naming.projectNumbers.generateNext.useMutation({
+    onSuccess: (code) => {
       toast.success(`已生成临时编号: ${code}`);
       refetchT();
     }
   });
 
-  const generateGRTMutation = (trpc.naming.projectNumbers as any).generateNext.useMutation({
+  const generateGRTMutation = trpc.naming.projectNumbers.generateNext.useMutation({
     onSuccess: (code) => {
       toast.success(`已生成正式编号: ${code}`);
       refetchGRT();
@@ -488,7 +488,7 @@ function ProjectNumbersTab() {
   const [convertCode, setConvertCode] = useState("");
   const [contractNo, setContractNo] = useState("");
   
-  const convertMutation = (trpc.naming.projectNumbers as any).convert.useMutation({
+  const convertMutation = trpc.naming.projectNumbers.convert.useMutation({
     onSuccess: (result) => {
       toast.success(`已转换为正式编号: ${result.formalCode}`);
       setConvertCode("");
@@ -653,7 +653,7 @@ function ProjectNumbersTab() {
               </TableHeader>
               <TableBody>
                 {conversionHistory && conversionHistory.length > 0 ? (
-                  conversionHistory.map((record: any) => (
+                  conversionHistory.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell className="font-mono">{record.tempProjectCode}</TableCell>
                       <TableCell className="font-mono font-bold text-primary">{record.formalProjectCode}</TableCell>
@@ -684,10 +684,10 @@ function ProjectNumbersTab() {
 function ApproversTab() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   
-  const { data: approvers, isLoading, refetch } = (trpc.naming.approvers as any).list.useQuery();
+  const { data: approvers, isLoading, refetch } = trpc.naming.approvers.list.useQuery();
   const { data: users } = trpc.users.getAll.useQuery();
 
-  const createMutation = (trpc.naming.approvers as any).create.useMutation({
+  const createMutation = trpc.naming.approvers.create.useMutation({
     onSuccess: () => {
       toast.success("审批人已添加");
       setIsCreateDialogOpen(false);
@@ -698,7 +698,7 @@ function ApproversTab() {
     }
   });
   
-  const deleteMutation = (trpc.naming.approvers as any).delete.useMutation({
+  const deleteMutation = trpc.naming.approvers.delete.useMutation({
     onSuccess: () => {
       toast.success("审批人已删除");
       refetch();
@@ -710,8 +710,8 @@ function ApproversTab() {
     const formData = new FormData(e.currentTarget);
     createMutation.mutate({
       userId: parseInt(formData.get("userId") as string),
-      ruleType: formData.get("ruleType") as any,
-      changeType: formData.get("changeType") as any,
+      ruleType: formData.get("ruleType") as string,
+      changeType: formData.get("changeType") as string,
       approvalLevel: parseInt(formData.get("approvalLevel") as string) || 1,
       remark: formData.get("remark") as string,
     });
@@ -748,7 +748,7 @@ function ApproversTab() {
                     <SelectValue placeholder="选择用户" />
                   </SelectTrigger>
                   <SelectContent>
-                    {users?.map((user: any) => (
+                    {users?.map((user) => (
                       <SelectItem key={user.id} value={user.id.toString()}>
                         {user.name || user.email || `用户${user.id}`}
                       </SelectItem>
@@ -829,7 +829,7 @@ function ApproversTab() {
             </TableHeader>
             <TableBody>
               {approvers && approvers.length > 0 ? (
-                approvers.map((approver: any) => (
+                approvers.map((approver) => (
                   <TableRow key={approver.id}>
                     <TableCell>用户 {approver.userId}</TableCell>
                     <TableCell>
@@ -879,9 +879,9 @@ function ApproversTab() {
 
 // Versions Tab
 function VersionsTab() {
-  const { data: versions, isLoading, refetch } = (trpc.naming.versions as any).list.useQuery();
+  const { data: versions, isLoading, refetch } = trpc.naming.versions.list.useQuery();
 
-  const initMutation = (trpc.naming.versions as any).initDefault.useMutation({
+  const initMutation = trpc.naming.versions.initDefault.useMutation({
     onSuccess: () => {
       toast.success("默认版本已初始化");
       refetch();
@@ -923,7 +923,7 @@ function VersionsTab() {
             </TableHeader>
             <TableBody>
               {versions && versions.length > 0 ? (
-                versions.map((version: any) => (
+                versions.map((version) => (
                   <TableRow key={version.id}>
                     <TableCell className="font-mono font-bold">{version.versionCode}</TableCell>
                     <TableCell>{version.versionName || "-"}</TableCell>

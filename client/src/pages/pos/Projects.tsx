@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
-import { Plus, Search, Filter, ChevronRight } from "lucide-react";
+import { Plus, Search, Filter, ChevronRight, Home } from "lucide-react";
 
 const STAGES = ['M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12'] as const;
 
@@ -57,6 +57,18 @@ export default function POSProjects() {
 
   return (
     <div className="space-y-6">
+      {/* 面包屑导航 */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/" className="flex items-center gap-1 hover:text-foreground transition-colors">
+          <Home className="w-4 h-4" />
+          首页
+        </Link>
+        <ChevronRight className="w-3 h-3" />
+        <Link href="/pos/dashboard" className="hover:text-foreground transition-colors">POS管理</Link>
+        <ChevronRight className="w-3 h-3" />
+        <span className="text-foreground font-medium">项目管理</span>
+      </nav>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">项目管理</h1>

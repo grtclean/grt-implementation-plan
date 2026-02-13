@@ -30,6 +30,7 @@ import HRMIntelligent from "./pages/HRMIntelligent";
 import AuditLogViewer from "./pages/AuditLogViewer";
 import GroupNotificationManagement from "./pages/GroupNotificationManagement";
 import AIAssistantHub from "./pages/AIAssistantHub";
+import AiAssistantHubPage from "./pages/AiAssistantHubPage";
 import DigitalAssistants from "./pages/DigitalAssistants";
 import AIEffectivenessTracking from "./pages/AIEffectivenessTracking";
 import NotebookSearch from "./pages/NotebookSearch";
@@ -92,10 +93,12 @@ import WorkflowManagement from "./pages/WorkflowManagement";
 import NotificationAggregationPreview from "./pages/NotificationAggregationPreview";
 import NotificationAggregationConfig from "./pages/NotificationAggregationConfig";
 import ProductionDashboard from "./pages/ProductionDashboard";
+import ProductionCommandCenter from "./pages/ProductionCommandCenter";
 import WorkerManagement from "./pages/WorkerManagement";
 import QCManagement from "./pages/QCManagement";
 import M1KickoffDashboard from "./pages/M1KickoffDashboard";
 import M7M9DeliveryTrack from "./pages/M7M9DeliveryTrack";
+import FATCoordination from "./pages/FATCoordination";
 import UWBManagement from "./pages/UWBManagement";
 import WorkerImport from "./pages/WorkerImport";
 import CronMonitor from "./pages/CronMonitor";
@@ -116,7 +119,6 @@ import SecurityDashboard from "./pages/SecurityDashboard";
 import SocialCommunity from "./pages/SocialCommunity";
 import LiquidWorkforce from "./pages/LiquidWorkforce";
 import AISales from "./pages/AISales";
-// StageGate merged into RDVerificationCenter
 import PersonalAgent from "./pages/PersonalAgent";
 import SocialCommunitySettings from "./pages/SocialCommunitySettings";
 import SocialCommunityAnalytics from "./pages/SocialCommunityAnalytics";
@@ -126,13 +128,11 @@ import CertificateTemplates from "./pages/admin/CertificateTemplates";
 import SystemGuideBook from "./pages/SystemGuideBook";
 import LiquidWorkforceHub from "./pages/LiquidWorkforceHub";
 import AiSalesHub from "./pages/AiSalesHub";
-// StageGateHub merged into RDVerificationCenter
 import PersonalAgentHub from "./pages/PersonalAgentHub";
 import ProjectHub from "./pages/ProjectHub";
 import SocialCommunityHub from "./pages/SocialCommunityHub";
 import LiquidWorkforceHubEnhanced from "./pages/LiquidWorkforceHubEnhanced";
 import AiSalesHubEnhanced from "./pages/AiSalesHubEnhanced";
-// StageGateHubEnhanced merged into RDVerificationCenter
 import PersonalAgentHubEnhanced from "./pages/PersonalAgentHubEnhanced";
 import ProjectHubEnhanced from "./pages/ProjectHubEnhanced";
 import SocialCommunityHubEnhanced from "./pages/SocialCommunityHubEnhanced";
@@ -247,6 +247,7 @@ import TemporaryPermissions from "./pages/TemporaryPermissions";
 import PermissionBlacklist from "./pages/PermissionBlacklist";
 import MenuAnalytics from "./pages/MenuAnalytics";
 import RoleDashboard from "./pages/RoleDashboard";
+import RAGTrainingCenter from "./pages/RAGTrainingCenter";
 
 // Protected route wrapper component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -355,6 +356,9 @@ function Router() {
       <Route path={"/group-notifications"}>
         <ProtectedRoute component={GroupNotificationManagement} />
       </Route>
+      <Route path={"/ai-hub"}>
+        <ProtectedRoute component={AiAssistantHubPage} />
+      </Route>
       <Route path={"/ai-assistant"}>
         <ProtectedRoute component={AIAssistantHub} />
       </Route>
@@ -409,12 +413,8 @@ function Router() {
       <Route path={"/hr-lifecycle"}>
         <ProtectedRoute component={HRLifecycle} />
       </Route>
-      {/* 研发验证中心 (合并 project-gate, stage-gate, stage-gate-hub, stage-gate-enhanced) */}
+      {/* 研发验证中心 */}
       <Route path={"/rd-verification"}>
-        <ProtectedRoute component={RDVerificationCenter} />
-      </Route>
-      {/* 向后兼容: /project-gate 重定向到新页面 */}
-      <Route path={"/project-gate"}>
         <ProtectedRoute component={RDVerificationCenter} />
       </Route>
       <Route path={"/community"}>
@@ -487,6 +487,11 @@ function Router() {
         <ProtectedRoute component={NotificationAggregationConfig} />
       </Route>
       
+      {/* 生产指挥中心 */}
+      <Route path={"/production-command-center"}>
+        <ProtectedRoute component={ProductionCommandCenter} />
+      </Route>
+
       {/* v2.5.26 M5生产看板页面 */}
       <Route path={"/production-dashboard"}>
         <ProtectedRoute component={ProductionDashboard} />
@@ -535,6 +540,11 @@ function Router() {
       {/* v2.5.34 M7-M9交付跟踪 */}
       <Route path={"/m7-m9-delivery"}>
         <ProtectedRoute component={M7M9DeliveryTrack} />
+      </Route>
+
+      {/* M8 FAT协调工作台 */}
+      <Route path={"/fat-coordination"}>
+        <ProtectedRoute component={FATCoordination} />
       </Route>
       
       {/* v2.5.36 M7-M9交付管理 */}
@@ -608,10 +618,6 @@ function Router() {
       <Route path="/ai-sales">
         <ProtectedRoute component={AISales} />
       </Route>
-      {/* /stage-gate -> 向后兼容重定向到研发验证中心 */}
-      <Route path="/stage-gate">
-        <ProtectedRoute component={RDVerificationCenter} />
-      </Route>
       <Route path="/personal-agent">
         <ProtectedRoute component={PersonalAgent} />
       </Route>
@@ -648,9 +654,6 @@ function Router() {
       <Route path="/ai-sales-hub">
         <ProtectedRoute component={AiSalesHub} />
       </Route>
-      <Route path="/stage-gate-hub">
-        <ProtectedRoute component={RDVerificationCenter} />
-      </Route>
       <Route path="/personal-agent-hub">
         <ProtectedRoute component={PersonalAgentHub} />
       </Route>
@@ -666,9 +669,6 @@ function Router() {
       </Route>
       <Route path="/ai-sales-enhanced">
         <ProtectedRoute component={AiSalesHubEnhanced} />
-      </Route>
-      <Route path="/stage-gate-enhanced">
-        <ProtectedRoute component={RDVerificationCenter} />
       </Route>
       <Route path="/personal-agent-enhanced">
         <ProtectedRoute component={PersonalAgentHubEnhanced} />
@@ -997,6 +997,11 @@ function Router() {
         <ProtectedRoute component={RoleDashboard} />
       </Route>
       {/* 新增模块路由结束 */}
+
+      {/* RAG知识库训练中心 */}
+      <Route path="/rag-training">
+        <ProtectedRoute component={RAGTrainingCenter} />
+      </Route>
 
       {/* Mobile H5 routes */}
       <Route path={"/m/location"}>

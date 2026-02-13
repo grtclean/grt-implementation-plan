@@ -4,7 +4,7 @@
  */
 import { useState } from "react";
 import Layout from "@/components/Layout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
@@ -12,8 +12,9 @@ import { Link } from "wouter";
 import {
   Shield, GitBranch, CheckCircle, AlertTriangle, Zap,
   FolderKanban, FileCheck, ClipboardList, Settings,
-  ChevronRight, Home,
+  ChevronRight, Home, Workflow,
 } from "lucide-react";
+import PMWorkflowGuide from "@/components/PMWorkflowGuide";
 
 // 子组件
 import StageOverview from "./rd-verification/StageOverview";
@@ -29,18 +30,20 @@ export default function RDVerificationCenter() {
     retry: false,
     refetchOnWindowFocus: false,
   });
-  const { data: statisticsData, isLoading: gateStatsLoading } = (trpc.projectGate as any).getGateStatistics.useQuery(undefined, {
+  const { data: stageStatsData, isLoading: gateStatsLoading } = trpc.projectGate.getStageStats.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
   });
-  const statistics = statisticsData?.statistics || statisticsData || {};
 
-  const totalProjects = statistics?.totalProjects || 0;
-  const passRate = statistics?.passRate
-    ? Math.round(
-        (Object.values(statistics.passRate) as number[]).reduce((a, b) => a + b, 0) /
-        Math.max(Object.values(statistics.passRate).length, 1)
-      )
+  const totalProjects = stageStatsData?.totalProjects || 0;
+  const passRate = stageStatsData?.avgProgress || 0;
+
+  // 从 stageGate.getStats 的原始数据中计算信号和必检项数量
+  const totalSignals = Array.isArray(stats?.signals)
+    ? stats.signals.reduce((sum: number, r: { count: number }) => sum + Number(r.count || 0), 0)
+    : 0;
+  const mandatoryItems = Array.isArray(stats?.gates)
+    ? stats.gates.reduce((sum: number, r: { count: number }) => sum + Number(r.count || 0), 0)
     : 0;
 
   return (
@@ -67,6 +70,23 @@ export default function RDVerificationCenter() {
           </p>
         </div>
 
+        {/* M0-M12 阶段流水线 */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+              <Workflow className="w-4 h-4" />
+              项目阶段进度 (M0-M12)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PMWorkflowGuide
+              currentStage={4}
+              completedStages={[0, 1, 2, 3]}
+              compact
+            />
+          </CardContent>
+        </Card>
+
         {/* 统计卡片区 - 固定高度防止布局跳动 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard
@@ -90,7 +110,7 @@ export default function RDVerificationCenter() {
             iconBg="bg-purple-500/10 text-purple-400"
             icon={<Zap className="w-6 h-6" />}
             label="拉动信号"
-            value={(stats as any)?.totalSignals || 0}
+            value={totalSignals}
             loading={statsLoading}
           />
           <StatCard
@@ -98,7 +118,7 @@ export default function RDVerificationCenter() {
             iconBg="bg-orange-500/10 text-orange-400"
             icon={<AlertTriangle className="w-6 h-6" />}
             label="一票否决项"
-            value={(stats as any)?.mandatoryItems || 0}
+            value={mandatoryItems}
             loading={statsLoading}
           />
         </div>

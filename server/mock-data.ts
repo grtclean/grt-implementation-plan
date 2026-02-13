@@ -197,20 +197,20 @@ export const mockEmployeeCapabilities = [
 
 // ==================== HRM模拟数据 ====================
 export const mockPositions = [
-  { id: "POS-001", name: "电气研发工程师", department: "研发部", level: "P3", headcount: 5, filled: 4, requirements: "本科及以上，3年以上PLC编程经验" },
-  { id: "POS-002", name: "机械工程师", department: "研发部", level: "P3", headcount: 4, filled: 3, requirements: "本科及以上，熟悉SolidWorks/AutoCAD" },
-  { id: "POS-003", name: "销售经理", department: "销售部", level: "M2", headcount: 3, filled: 2, requirements: "5年以上工业设备销售经验" },
-  { id: "POS-004", name: "技术工程师", department: "技术服务部", level: "P2", headcount: 8, filled: 6, requirements: "大专及以上，2年以上设备调试经验" },
-  { id: "POS-005", name: "生产经理", department: "生产部", level: "M2", headcount: 2, filled: 2, requirements: "5年以上生产管理经验" },
-  { id: "POS-006", name: "品质工程师", department: "品管部", level: "P2", headcount: 3, filled: 2, requirements: "熟悉ISO9001质量管理体系" }
+  { id: "POS-001", name: "电气研发工程师", department: "研发部", level: "P3", headcount: 5, filled: 4, requirements: "本科及以上，3年以上PLC编程经验", positionCode: "RD-EE-001", status: "active" as const, responsibilities: "负责PLC程序开发与调试", keyTasks: "编写PLC程序、电气设计", kpiIndicators: "项目交付率、代码质量" },
+  { id: "POS-002", name: "机械工程师", department: "研发部", level: "P3", headcount: 4, filled: 3, requirements: "本科及以上，熟悉SolidWorks/AutoCAD", positionCode: "RD-ME-001", status: "active" as const, responsibilities: "负责机械结构设计", keyTasks: "3D建模、出图、BOM编制", kpiIndicators: "设计准确率、项目进度" },
+  { id: "POS-003", name: "销售经理", department: "销售部", level: "M2", headcount: 3, filled: 2, requirements: "5年以上工业设备销售经验", positionCode: "SA-MG-001", status: "active" as const, responsibilities: "负责区域销售管理", keyTasks: "客户开发、订单跟进", kpiIndicators: "销售额、回款率" },
+  { id: "POS-004", name: "技术工程师", department: "技术服务部", level: "P2", headcount: 8, filled: 6, requirements: "大专及以上，2年以上设备调试经验", positionCode: "TS-TE-001", status: "active" as const, responsibilities: "负责设备安装调试及售后", keyTasks: "设备调试、故障排查", kpiIndicators: "客户满意度、响应时效" },
+  { id: "POS-005", name: "生产经理", department: "生产部", level: "M2", headcount: 2, filled: 2, requirements: "5年以上生产管理经验", positionCode: "PR-MG-001", status: "active" as const, responsibilities: "负责生产计划与管理", keyTasks: "排产、质量控制", kpiIndicators: "产能利用率、良品率" },
+  { id: "POS-006", name: "品质工程师", department: "品管部", level: "P2", headcount: 3, filled: 2, requirements: "熟悉ISO9001质量管理体系", positionCode: "QA-QE-001", status: "active" as const, responsibilities: "负责质量检验与改进", keyTasks: "来料检验、过程检验", kpiIndicators: "检验合格率、不良率" }
 ];
 
 export const mockCandidates = [
-  { id: "CAN-001", name: "陈小明", position: "电气研发工程师", status: "interviewing", source: "BOSS直聘", applyDate: "2026-01-15", phone: "13900139001", email: "chen@email.com", experience: "5年", education: "本科" },
-  { id: "CAN-002", name: "李小红", position: "机械工程师", status: "offer", source: "猎聘网", applyDate: "2026-01-10", phone: "13900139002", email: "li@email.com", experience: "4年", education: "硕士" },
-  { id: "CAN-003", name: "王小强", position: "技术工程师", status: "hired", source: "内部推荐", applyDate: "2025-12-20", phone: "13900139003", email: "wang@email.com", experience: "3年", education: "大专" },
-  { id: "CAN-004", name: "张小丽", position: "销售经理", status: "new", source: "校园招聘", applyDate: "2026-01-20", phone: "13900139004", email: "zhang@email.com", experience: "6年", education: "本科" },
-  { id: "CAN-005", name: "刘小伟", position: "品质工程师", status: "rejected", source: "BOSS直聘", applyDate: "2026-01-05", phone: "13900139005", email: "liu@email.com", experience: "2年", education: "本科" }
+  { id: "CAN-001", name: "陈小明", position: "电气研发工程师", positionName: "电气研发工程师", status: "interviewing", source: "BOSS直聘", applyDate: "2026-01-15", phone: "13900139001", email: "chen@email.com", experience: "5年", education: "本科", age: 28, workYears: 5 },
+  { id: "CAN-002", name: "李小红", position: "机械工程师", positionName: "机械工程师", status: "offer", source: "猎聘网", applyDate: "2026-01-10", phone: "13900139002", email: "li@email.com", experience: "4年", education: "硕士", age: 27, workYears: 4 },
+  { id: "CAN-003", name: "王小强", position: "技术工程师", positionName: "技术工程师", status: "hired", source: "内部推荐", applyDate: "2025-12-20", phone: "13900139003", email: "wang@email.com", experience: "3年", education: "大专", age: 25, workYears: 3 },
+  { id: "CAN-004", name: "张小丽", position: "销售经理", positionName: "销售经理", status: "new", source: "校园招聘", applyDate: "2026-01-20", phone: "13900139004", email: "zhang@email.com", experience: "6年", education: "本科", age: 30, workYears: 6 },
+  { id: "CAN-005", name: "刘小伟", position: "品质工程师", positionName: "品质工程师", status: "rejected", source: "BOSS直聘", applyDate: "2026-01-05", phone: "13900139005", email: "liu@email.com", experience: "2年", education: "本科", age: 24, workYears: 2 }
 ];
 
 export const mockEmployees = [

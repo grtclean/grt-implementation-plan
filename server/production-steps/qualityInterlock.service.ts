@@ -130,12 +130,44 @@ export async function triggerProcessLock(params: {
     }
   }
 
+  // 联动排程：阻塞依赖被锁定工序的排程任务 (#45)
+  let blockedTaskCount = 0;
+  if (lockedRecords.length > 0) {
+    const lockedCodes = processesToLock;
+    for (const code of lockedCodes) {
+      const blockReason = `质量锁定：${PROCESS_NAMES[params.processCode] || params.processCode}发现${params.severity === 'critical' ? '严重' : '重要'}缺陷，工序${code}已被锁定`;
+      // Block scheduling tasks whose task_type maps to the locked process code,
+      // or whose required_resources / bu_code references the locked process.
+      // We match tasks that are pending or scheduled and contain the locked process code.
+      await db.execute(sql`
+        UPDATE scheduling_tasks SET
+          status = 'blocked',
+          block_reason = ${blockReason},
+          blocked_by_lock_process = ${code},
+          updated_at = ${now}
+        WHERE status IN ('pending', 'scheduled')
+          AND (
+            bu_code = ${code}
+            OR task_name LIKE ${'%' + code + '%'}
+            OR required_resources LIKE ${'%' + code + '%'}
+          )
+      `);
+      // Count affected rows from a separate query for the return value
+      const countRows = (await db.execute(sql`
+        SELECT COUNT(*) as cnt FROM scheduling_tasks
+        WHERE status = 'blocked' AND blocked_by_lock_process = ${code}
+      `)).rows;
+      blockedTaskCount += Number((countRows as any[])[0]?.cnt || 0);
+    }
+  }
+
   return {
     locked: lockedRecords.length > 0,
     lockedCount: lockedRecords.length,
     lockedProcesses: lockedRecords,
-    message: lockedRecords.length > 0 
-      ? `已锁定${lockedRecords.length}个后续工序` 
+    blockedTaskCount,
+    message: lockedRecords.length > 0
+      ? `已锁定${lockedRecords.length}个后续工序，阻塞${blockedTaskCount}个排程任务`
       : '所有后续工序已处于锁定状态',
   };
 }
@@ -246,7 +278,7 @@ export async function approveUnlock(params: {
     SELECT * FROM quality_process_locks WHERE id = ${params.lockId}
   `)).rows;
   const lock = (lockRows2 as any[])[0];
-  
+
   if (lock) {
     await createQualityAlert({
       projectId: lock.project_id,
@@ -258,6 +290,33 @@ export async function approveUnlock(params: {
       recipientRole: 'all',
       relatedLockId: params.lockId,
     });
+
+    // 联动排程：批准解锁时恢复被阻塞的排程任务 (#45)
+    if (params.approved && lock.locked_process_code) {
+      const processCode = lock.locked_process_code as string;
+      // Check if there are other active locks on this same process code for the same project
+      const otherLocks = (await db.execute(sql`
+        SELECT id FROM quality_process_locks
+        WHERE project_id = ${lock.project_id}
+          AND locked_process_code = ${processCode}
+          AND status = 'locked'
+          AND id != ${params.lockId}
+        LIMIT 1
+      `)).rows;
+
+      // Only unblock if no other active locks remain for this process
+      if ((otherLocks as any[]).length === 0) {
+        await db.execute(sql`
+          UPDATE scheduling_tasks SET
+            status = 'pending',
+            block_reason = ${null},
+            blocked_by_lock_process = ${null},
+            updated_at = ${now}
+          WHERE status = 'blocked'
+            AND blocked_by_lock_process = ${processCode}
+        `);
+      }
+    }
   }
 
   return { success: true, status: newStatus };
@@ -291,6 +350,41 @@ export async function getProcessLockSummary(projectId: string) {
     summary: (summary as any[])[0] || {},
     lockedProcesses: processStatus as any[],
   };
+}
+
+/** 获取因质量锁定而被阻塞的排程任务 (#45) */
+export async function getBlockedByQualityTasks(projectId?: string, processCode?: string) {
+  const db = await requireDb();
+
+  if (projectId && processCode) {
+    const rows = (await db.execute(sql`
+      SELECT * FROM scheduling_tasks
+      WHERE status = 'blocked'
+        AND blocked_by_lock_process IS NOT NULL
+        AND (project_id = ${projectId} OR bu_code = ${processCode})
+      ORDER BY priority DESC, created_at DESC
+    `)).rows;
+    return rows as any[];
+  }
+
+  if (projectId) {
+    const rows = (await db.execute(sql`
+      SELECT * FROM scheduling_tasks
+      WHERE status = 'blocked'
+        AND blocked_by_lock_process IS NOT NULL
+        AND project_id = ${projectId}
+      ORDER BY priority DESC, created_at DESC
+    `)).rows;
+    return rows as any[];
+  }
+
+  const rows = (await db.execute(sql`
+    SELECT * FROM scheduling_tasks
+    WHERE status = 'blocked'
+      AND blocked_by_lock_process IS NOT NULL
+    ORDER BY priority DESC, created_at DESC
+  `)).rows;
+  return rows as any[];
 }
 
 // ============================================================

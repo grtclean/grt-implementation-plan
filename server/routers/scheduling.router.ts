@@ -1050,4 +1050,139 @@ export const schedulingRouter = router({
       await simulateWorkReportEvent(input.taskId, input.resourceId, input.reportedHours);
       return { success: true, message: '模拟报工事件已发送' };
     }),
+
+  // ==================== 任务下发 (#44) ====================
+
+  /**
+   * 将排程结果下发给工人
+   */
+  dispatchToWorkers: protectedProcedure
+    .input(z.object({ jobId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const db: any = await getDb();
+
+      // 获取排程任务信息
+      const [jobRows] = await db.execute(
+        'SELECT * FROM scheduling_jobs WHERE id = ?',
+        [input.jobId]
+      ) as any[];
+
+      if (jobRows.length === 0) {
+        throw new Error('排程任务不存在');
+      }
+
+      const job = jobRows[0];
+      if (job.status !== 'completed') {
+        throw new Error('排程任务尚未完成，无法下发');
+      }
+
+      // 获取排程结果中的任务-资源分配
+      const [resultRows] = await db.execute(
+        `SELECT sr.*, st.task_name, st.bu_code, st.task_type
+         FROM scheduling_results sr
+         LEFT JOIN scheduling_tasks st ON sr.task_id = st.id
+         WHERE sr.job_id = ?
+         ORDER BY sr.sequence_order`,
+        [input.jobId]
+      ) as any[];
+
+      if (resultRows.length === 0) {
+        throw new Error('排程结果为空，无可下发任务');
+      }
+
+      const assignments: Array<{ taskId: string; resourceId: string; startTime: string; endTime: string }> = [];
+      let dispatched = 0;
+
+      for (const row of resultRows) {
+        if (!row.resource_id) continue;
+
+        const dispatchId = uuidv4();
+
+        // 检查是否已下发过
+        const [existing] = await db.execute(
+          'SELECT id FROM scheduling_dispatches WHERE job_id = ? AND task_id = ? AND resource_id = ?',
+          [input.jobId, row.task_id, row.resource_id]
+        ) as any[];
+
+        if (existing.length > 0) {
+          // 更新已有记录
+          await db.execute(
+            `UPDATE scheduling_dispatches SET
+               scheduled_start = ?, scheduled_end = ?, status = 'dispatched',
+               dispatched_by = ?, dispatched_at = NOW(), updated_at = NOW()
+             WHERE job_id = ? AND task_id = ? AND resource_id = ?`,
+            [
+              row.scheduled_start,
+              row.scheduled_end,
+              ctx.user.id,
+              input.jobId,
+              row.task_id,
+              row.resource_id,
+            ]
+          );
+        } else {
+          // 创建新的下发记录
+          await db.execute(
+            `INSERT INTO scheduling_dispatches
+             (id, job_id, task_id, resource_id, task_name, bu_code, task_type,
+              scheduled_start, scheduled_end, duration_hours,
+              status, dispatched_by, dispatched_at, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dispatched', ?, NOW(), NOW(), NOW())`,
+            [
+              dispatchId,
+              input.jobId,
+              row.task_id,
+              row.resource_id,
+              row.task_name || null,
+              row.bu_code || null,
+              row.task_type || null,
+              row.scheduled_start,
+              row.scheduled_end,
+              row.duration_hours,
+              ctx.user.id,
+            ]
+          );
+        }
+
+        assignments.push({
+          taskId: row.task_id,
+          resourceId: row.resource_id,
+          startTime: row.scheduled_start,
+          endTime: row.scheduled_end,
+        });
+        dispatched++;
+      }
+
+      return { dispatched, assignments };
+    }),
+
+  /**
+   * 查询工人已下发的任务
+   */
+  getWorkerDispatches: protectedProcedure
+    .input(z.object({
+      workerId: z.number().optional(),
+      date: z.string().optional(),
+    }))
+    .query(async ({ input }) => {
+      const db: any = await getDb();
+
+      let query = 'SELECT * FROM scheduling_dispatches WHERE 1=1';
+      const params: any[] = [];
+
+      if (input.workerId !== undefined) {
+        query += ' AND resource_id = ?';
+        params.push(String(input.workerId));
+      }
+
+      if (input.date) {
+        query += ' AND DATE(scheduled_start) <= ? AND DATE(scheduled_end) >= ?';
+        params.push(input.date, input.date);
+      }
+
+      query += ' ORDER BY scheduled_start ASC';
+
+      const [rows] = await db.execute(query, params);
+      return rows as any[];
+    }),
 });

@@ -80,6 +80,8 @@ import {
   LayoutDashboard,
   BellRing,
   Crown,
+  Cable,
+  RefreshCw,
   type LucideIcon,
 } from "lucide-react";
 import type { UserRole } from "@/contexts/UserProfileContext";
@@ -122,14 +124,12 @@ export interface MenuGroup {
 }
 
 // ============================================
-// 菜单配置 - 按业务流程重组
-// 12个一级模块，面向事业部微分工
+// 菜单配置 - 按业务流程重�?// 12个一级模块，面向事业部微分工
 // ============================================
 
 export const menuConfig: MenuGroup[] = [
   // ────────────────────────────────────
-  // 一、工作台（所有人可见）
-  // ────────────────────────────────────
+  // 一、工作台（所有人可见）  // ────────────────────────────────────
   {
     name: "工作台",
     nameEn: "Workspace",
@@ -142,13 +142,12 @@ export const menuConfig: MenuGroup[] = [
       { name: "通知中心", nameEn: "Notifications", path: "/notifications", icon: BellRing },
       { name: "智慧会议", nameEn: "Smart Meeting", path: "/smart-meeting", icon: Video },
       { name: "实施路线图", nameEn: "Roadmap", path: "/roadmap", icon: Calendar },
-      { name: "工具集", nameEn: "Tools", path: "/tools", icon: Layers },
+      { name: "工具箱", nameEn: "Tools", path: "/tools", icon: Layers },
     ],
   },
 
   // ────────────────────────────────────
-  // 二、市场与销售
-  // ────────────────────────────────────
+  // 二、市场与销售  // ────────────────────────────────────
   {
     name: "市场与销售",
     nameEn: "Sales & Marketing",
@@ -171,8 +170,7 @@ export const menuConfig: MenuGroup[] = [
   },
 
   // ────────────────────────────────────
-  // 三、研发设计（TX-001~TX-005）
-  // ────────────────────────────────────
+  // 三、研发设计（TX-001~TX-005）  // ────────────────────────────────────
   {
     name: "研发设计",
     nameEn: "R&D Design",
@@ -192,8 +190,7 @@ export const menuConfig: MenuGroup[] = [
   },
 
   // ────────────────────────────────────
-  // 四、项目管理
-  // ────────────────────────────────────
+  // 四、项目管理  // ────────────────────────────────────
   {
     name: "项目管理",
     nameEn: "Project Management",
@@ -210,12 +207,24 @@ export const menuConfig: MenuGroup[] = [
       { name: "交付管理", nameEn: "Delivery Mgmt", path: "/delivery-management", icon: Truck },
       { name: "AI计划助手", nameEn: "AI Planning", path: "/ai/planning-assistant", icon: Bot },
       { name: "风险管理", nameEn: "Risk Mgmt", path: "/risks", icon: AlertTriangle },
+      // ── POS (Project Organization System) ──
+      { name: "POS总览", nameEn: "POS Dashboard", path: "/pos/dashboard", icon: LayoutDashboard, isNew: true,
+        allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "bu_sales"] },
+      { name: "POS项目", nameEn: "POS Projects", path: "/pos/projects", icon: FolderKanban, isNew: true,
+        allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "bu_sales"] },
+      { name: "POS客户", nameEn: "POS Customers", path: "/pos/customers", icon: Users, isNew: true,
+        allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "bu_sales"] },
+      { name: "POS采购", nameEn: "POS Procurement", path: "/pos/procurement", icon: ShoppingCart, isNew: true,
+        allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "bu_sales"] },
+      { name: "POS-MES同步", nameEn: "POS MES Sync", path: "/pos/mes", icon: RefreshCw, isNew: true,
+        allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "bu_sales"] },
+      { name: "POS连接器配置", nameEn: "POS Connectors", path: "/pos/connectors", icon: Cable, isNew: true,
+        allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "bu_sales"] },
     ],
   },
 
   // ────────────────────────────────────
-  // 五、生产制造（TX-006~TX-012）
-  // ────────────────────────────────────
+  // 五、生产制造（TX-006~TX-012）  // ────────────────────────────────────
   {
     name: "生产制造",
     nameEn: "Manufacturing",
@@ -224,6 +233,7 @@ export const menuConfig: MenuGroup[] = [
     icon: Factory,
     permissionKey: "canAccessManufacturing",
     items: [
+      { name: "生产指挥中心", nameEn: "Command Center", path: "/production-command-center", icon: Monitor, isNew: true },
       { name: "生产看板", nameEn: "Production Board", path: "/production-dashboard", icon: Factory },
       { name: "工序管理", nameEn: "Process Mgmt", path: "/process-management", icon: Wrench, isNew: true },
       { name: "工人管理", nameEn: "Worker Mgmt", path: "/worker-management", icon: HardHat },
@@ -232,12 +242,13 @@ export const menuConfig: MenuGroup[] = [
       { name: "质检管理", nameEn: "QC Management", path: "/qc-management", icon: ClipboardCheck },
       { name: "UWB定位", nameEn: "UWB Tracking", path: "/uwb-management", icon: MapPin },
       { name: "物料追踪", nameEn: "Material Tracking", path: "/material-tracking", icon: Package, isNew: true },
+      { name: "M8 FAT协调", nameEn: "M8 FAT Coordination", path: "/fat-coordination", icon: ClipboardCheck, isNew: true,
+        allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "cs_engineer"] },
     ],
   },
 
   // ────────────────────────────────────
-  // 六、客户服务（TX-013~TX-015 + 售后）
-  // ────────────────────────────────────
+  // 六、客户服务（TX-013~TX-015 + 售后）  // ────────────────────────────────────
   {
     name: "客户服务",
     nameEn: "Customer Service",
@@ -256,8 +267,7 @@ export const menuConfig: MenuGroup[] = [
   },
 
   // ────────────────────────────────────
-  // 七、人力资源
-  // ────────────────────────────────────
+  // 七、人力资源  // ────────────────────────────────────
   {
     name: "人力资源",
     nameEn: "Human Resources",
@@ -266,7 +276,7 @@ export const menuConfig: MenuGroup[] = [
     icon: Users,
     items: [
       // 员工管理子模块
-      { name: "HRM智能化", nameEn: "HRM Intelligent", path: "/hrm-intelligent", icon: Brain,
+      { name: "HRM智能台", nameEn: "HRM Intelligent", path: "/hrm-intelligent", icon: Brain,
         allowedRoles: ["admin", "director", "hr_manager", "hr_specialist"] },
       { name: "HR链路", nameEn: "HR Lifecycle", path: "/hr-lifecycle", icon: Users,
         allowedRoles: ["admin", "director", "hr_manager", "hr_specialist"] },
@@ -294,8 +304,7 @@ export const menuConfig: MenuGroup[] = [
   },
 
   // ────────────────────────────────────
-  // 八、能力体系
-  // ────────────────────────────────────
+  // 八、能力体系  // ────────────────────────────────────
   {
     name: "能力体系",
     nameEn: "Capability System",
@@ -304,7 +313,7 @@ export const menuConfig: MenuGroup[] = [
     icon: Brain,
     items: [
       { name: "我的能力档案", nameEn: "My Capability", path: "/capability-os", icon: Brain },
-      { name: "能力仪表盘", nameEn: "Capability Dashboard", path: "/capability-dashboard", icon: BarChart3 },
+      { name: "能力仪表板", nameEn: "Capability Dashboard", path: "/capability-dashboard", icon: BarChart3 },
       { name: "证据提交", nameEn: "Evidence Submit", path: "/evidence-submission", icon: FileCheck },
       { name: "能力证书", nameEn: "Certificates", path: "/capability-certificates", icon: Medal },
       { name: "能力徽章", nameEn: "Badges", path: "/capability-badges", icon: Award },
@@ -317,8 +326,7 @@ export const menuConfig: MenuGroup[] = [
   },
 
   // ────────────────────────────────────
-  // 九、财务管理
-  // ────────────────────────────────────
+  // 九、财务管理  // ────────────────────────────────────
   {
     name: "财务管理",
     nameEn: "Finance",
@@ -343,8 +351,7 @@ export const menuConfig: MenuGroup[] = [
   },
 
   // ────────────────────────────────────
-  // 十、AI助手（统一入口 + 通用工具）
-  // ────────────────────────────────────
+  // 十、AI助手（统一入口 + 通用工具）  // ────────────────────────────────────
   {
     name: "AI助手",
     nameEn: "AI Intelligence",
@@ -352,6 +359,7 @@ export const menuConfig: MenuGroup[] = [
     nameFr: "Intelligence IA",
     icon: Bot,
     items: [
+      { name: "AI助手中心", nameEn: "AI Hub", path: "/ai-hub", icon: Bot, isNew: true },
       { name: "AI对话助手", nameEn: "AI Chat", path: "/ai-assistant", icon: Bot },
       { name: "AI KPI助手", nameEn: "KPI Assistant", path: "/ai/kpi-assistant", icon: Gauge },
       { name: "数字助理", nameEn: "Digital Assistants", path: "/digital-assistants", icon: Cpu },
@@ -363,12 +371,12 @@ export const menuConfig: MenuGroup[] = [
         allowedRoles: ["admin"] },
       { name: "Agent管理", nameEn: "Agent Units", path: "/agent-unit-management", icon: Cpu,
         allowedRoles: ["admin"] },
+      { name: "知识库训练", nameEn: "KB Training", path: "/rag-training", icon: BookOpen, isNew: true },
     ],
   },
 
   // ────────────────────────────────────
-  // 十一、战略规划（总监以上）
-  // ────────────────────────────────────
+  // 十一、战略规划（总监以上）  // ────────────────────────────────────
   {
     name: "战略规划",
     nameEn: "Strategic Planning",
@@ -385,8 +393,7 @@ export const menuConfig: MenuGroup[] = [
   },
 
   // ────────────────────────────────────
-  // 十二、系统管理（admin可见）
-  // ────────────────────────────────────
+  // 十二、系统管理（admin可见）  // ────────────────────────────────────
   {
     name: "系统管理",
     nameEn: "System Admin",
@@ -395,12 +402,12 @@ export const menuConfig: MenuGroup[] = [
     icon: Settings,
     allowedRoles: ["admin"],
     items: [
-      { name: "用户与权限", nameEn: "Users & Permissions", path: "/permission-management", icon: Lock },
+      { name: "用户与权限", nameEn: "Users & Permissions", path: "/permissions", icon: Lock },
       { name: "菜单管理", nameEn: "Menu Management", path: "/menu-management", icon: Menu },
       { name: "组织架构", nameEn: "Organization", path: "/organization-management", icon: Building2, isNew: true },
-      { name: "审计日志", nameEn: "Audit Log", path: "/audit-log", icon: FileText },
+      { name: "审计日志", nameEn: "Audit Log", path: "/audit-logs", icon: FileText },
       { name: "系统监控", nameEn: "System Monitor", path: "/grt-operation", icon: Gauge },
-      { name: "安全仪表板", nameEn: "Security", path: "/security-dashboard", icon: Shield },
+      { name: "安全仪表板", nameEn: "Security", path: "/security", icon: Shield },
       { name: "合规仪表板", nameEn: "Compliance", path: "/compliance-dashboard", icon: Shield },
       { name: "通知渠道", nameEn: "Notifications", path: "/admin/notification-settings", icon: Bell },
       { name: "钉钉配置", nameEn: "DingTalk", path: "/admin/dingtalk-settings", icon: Bell },
@@ -432,9 +439,9 @@ export const menuConfig: MenuGroup[] = [
     items: [
       { name: "社群管理", nameEn: "Community", path: "/community", icon: MessageSquare },
       { name: "协作空间", nameEn: "Collaboration", path: "/collaboration", icon: Users },
-      { name: "群通知", nameEn: "Group Alerts", path: "/group-notification", icon: Send },
+      { name: "群通知", nameEn: "Group Alerts", path: "/group-notifications", icon: Send },
       { name: "文档管理", nameEn: "Documents", path: "/docs", icon: FileText },
-      { name: "帮助中心", nameEn: "Help Center", path: "/help-center", icon: BookOpen },
+      { name: "帮助中心", nameEn: "Help Center", path: "/help", icon: BookOpen },
     ],
   },
 ];

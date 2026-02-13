@@ -5,11 +5,11 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
-import { 
-  BarChart3, 
-  TrendingUp, 
+import {
+  BarChart3,
+  TrendingUp,
   TrendingDown,
-  AlertTriangle, 
+  AlertTriangle,
   CheckCircle2,
   Clock,
   Target,
@@ -24,7 +24,9 @@ import {
   Zap,
   Calendar,
   DollarSign,
-  Percent
+  Percent,
+  Home,
+  ChevronRight
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -252,6 +254,18 @@ export default function POSDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* 面包屑导航 */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/" className="flex items-center gap-1 hover:text-foreground transition-colors">
+          <Home className="w-4 h-4" />
+          首页
+        </Link>
+        <ChevronRight className="w-3 h-3" />
+        <Link href="/pos/dashboard" className="hover:text-foreground transition-colors">POS管理</Link>
+        <ChevronRight className="w-3 h-3" />
+        <span className="text-foreground font-medium">总览</span>
+      </nav>
+
       {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div>

@@ -24,6 +24,10 @@ import {
   aiLearningRecords,
 } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
+import {
+  searchDocuments,
+  incrementRelevance,
+} from "../modules/knowledge-base.service";
 
 // ==================== 输入验证 ====================
 
@@ -238,20 +242,54 @@ export const employeeAiAssistantRouter = router({
           content: input.message,
         });
 
+        // RAG: 检索知识库中与用户消息相关的文档
+        let knowledgeContext = "";
+        let matchedDocIds: number[] = [];
+        try {
+          const searchResults = await searchDocuments(input.message, { limit: 3 });
+          if (searchResults.length > 0) {
+            matchedDocIds = searchResults.map((r) => r.id);
+            const knowledgeEntries = searchResults
+              .map(
+                (r, i) =>
+                  `[知识条目${i + 1}] ${r.title}\n类别: ${r.category}\n内容: ${r.content}`
+              )
+              .join("\n\n");
+            knowledgeContext = `基于以下知识库条目:\n\n${knowledgeEntries}\n\n`;
+          }
+        } catch (ragError) {
+          // RAG查询失败不应阻断LLM调用，继续使用无上下文模式
+          console.error("[sendMessage] RAG search error:", ragError);
+        }
+
+        // 构建用户消息（如果有知识库上下文则注入）
+        const userContent = knowledgeContext
+          ? `${knowledgeContext}请基于以上知识库信息回答用户的问题: ${input.message}`
+          : input.message;
+
         // 调用LLM获取响应
         const llmResponse = await invokeLLM({
           messages: [
             {
               role: "system",
               content:
-                "你是一个专业的个人AI助手，帮助员工进行职业发展、技能提升和日常工作协助。请以友好、专业的方式回复。",
+                "你是一个专业的个人AI助手，帮助员工进行职业发展、技能提升和日常工作协助。你可以利用知识库中的技术文档来回答GRT清洗设备相关的专业问题。请以友好、专业的方式回复。",
             },
             {
               role: "user",
-              content: input.message,
+              content: userContent,
             },
           ],
         });
+
+        // RAG: 对匹配的知识文档提升相关性分数
+        for (const docId of matchedDocIds) {
+          try {
+            await incrementRelevance(docId);
+          } catch (relError) {
+            console.error("[sendMessage] incrementRelevance error:", relError);
+          }
+        }
 
         const assistantContent =
           llmResponse.choices?.[0]?.message?.content || "无法生成回复";

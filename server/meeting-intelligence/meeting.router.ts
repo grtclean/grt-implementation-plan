@@ -234,7 +234,61 @@ Format as JSON with keys: summary, decisions, actionItems, risks, strategicAlign
           metadata: input.metadata,
           sortOrder: input.sortOrder,
         });
-        return { id, success: true };
+
+        // P2: When an action_item content block is created, try to create a linked devTask
+        let linkedTaskCreated = false;
+        if (input.blockType === 'action_item') {
+          try {
+            // Parse assignee: "[name]:" or "name:" at the start of content
+            let assignee: string | null = null;
+            const bracketMatch = input.content.match(/^\[([^\]]+)\]\s*[:：]/);
+            const colonMatch = input.content.match(/^([^:：\n]{1,20})[:：]/);
+            if (bracketMatch) {
+              assignee = bracketMatch[1].trim();
+            } else if (colonMatch) {
+              assignee = colonMatch[1].trim();
+            }
+
+            // Parse deadline: "截止X/XX", "截止YYYY-MM-DD", "before YYYY-MM-DD", "deadline YYYY-MM-DD"
+            let deadline: string | null = null;
+            const deadlinePatterns = [
+              /截止\s*(\d{4}[-/]\d{1,2}[-/]\d{1,2})/,
+              /截止\s*(\d{1,2}[-/]\d{1,2})/,
+              /before\s+(\d{4}[-/]\d{1,2}[-/]\d{1,2})/i,
+              /deadline\s*[:：]?\s*(\d{4}[-/]\d{1,2}[-/]\d{1,2})/i,
+            ];
+            for (const pattern of deadlinePatterns) {
+              const match = input.content.match(pattern);
+              if (match) {
+                deadline = match[1];
+                break;
+              }
+            }
+
+            const { createDevTask } = await import('../db');
+            const taskResult = await createDevTask({
+              title: `[会议Action] ${input.content.substring(0, 100)}`,
+              description: `From meeting content block.\nAssignee: ${assignee || 'TBD'}\nDeadline: ${deadline || 'TBD'}\nMeeting ID: ${input.meetingId}\nFull content: ${input.content}`,
+              version: 'v2.0',
+              module: 'meeting-intelligence',
+              type: 'feature',
+              priority: 'medium',
+              status: 'backlog',
+              dueDate: deadline || undefined,
+            } as any);
+
+            if (taskResult) {
+              linkedTaskCreated = true;
+              console.log(
+                `[contentBlocks.create] Created linked devTask for action_item. Assignee: ${assignee}, Deadline: ${deadline}, Task ID: ${(taskResult as any).id}`
+              );
+            }
+          } catch (error) {
+            console.error('[contentBlocks.create] Failed to create linked task for action_item:', error);
+          }
+        }
+
+        return { id, success: true, linkedTaskCreated };
       }),
 
     update: protectedProcedure

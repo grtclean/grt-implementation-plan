@@ -56,6 +56,17 @@ import {
   getWorkerDailySummary,
   // AI准确度反馈
   getAiAccuracyDashboard,
+  // P0: 减少手动输入
+  completeStepWithAutoTime,
+  batchAdoptAiPresetsByProject,
+  // 物料-工步关联
+  linkMaterialToStep,
+  getStepMaterials,
+  checkMaterialReadiness,
+  updateMaterialAvailability,
+  // BOM步骤返工
+  triggerRework,
+  getReworkHistory,
 } from "./processSteps.service";
 
 export const processStepsRouter = router({
@@ -92,11 +103,30 @@ export const processStepsRouter = router({
       theoreticalHours: z.number().optional(),
       plannedWorkerName: z.string().optional(),
       plannedWorkerId: z.number().optional(),
-      status: z.enum(["pending", "in_progress", "completed"]).optional(),
+      status: z.enum(["pending", "in_progress", "completed", "rework"]).optional(),
     }))
     .mutation(async ({ input }) => {
       const { id, ...data } = input;
       return updateBomStep(id, data);
+    }),
+
+  // P0: 工时自动推断 - 完成步骤时自动创建工时记录
+  completeStepWithAutoTime: protectedProcedure
+    .input(z.object({
+      stepId: z.number(),
+      projectId: z.number(),
+      processCode: z.string(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      return completeStepWithAutoTime(
+        input.stepId,
+        input.projectId,
+        input.processCode,
+        ctx.user.id,
+        ctx.user.name || `用户#${ctx.user.id}`,
+        input.notes
+      );
     }),
 
   deleteBomStep: protectedProcedure
@@ -188,6 +218,22 @@ export const processStepsRouter = router({
     .input(z.object({ aiPresetIds: z.array(z.number()) }))
     .mutation(async ({ input, ctx }) => {
       return batchAdoptAiPresets(input.aiPresetIds, ctx.user.id);
+    }),
+
+  // P0: AI预设工步批量采纳（按项目/工序，支持选择性或全量采纳）
+  batchAdoptAiPresetsByProject: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      processCode: z.string(),
+      presetIds: z.array(z.number()).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      return batchAdoptAiPresetsByProject(
+        input.projectId,
+        input.processCode,
+        ctx.user.id,
+        input.presetIds
+      );
     }),
 
   // ============================================================
@@ -400,5 +446,67 @@ export const processStepsRouter = router({
     .input(z.object({ projectId: z.number().optional() }))
     .query(async ({ input }) => {
       return getAiAccuracyDashboard(input.projectId);
+    }),
+
+  // ============================================================
+  // 物料-工步关联与备料校验
+  // ============================================================
+
+  linkMaterial: protectedProcedure
+    .input(z.object({
+      bomStepId: z.number(),
+      materialCode: z.string(),
+      materialName: z.string(),
+      requiredQty: z.number().default(1),
+      unit: z.string().default("pcs"),
+    }))
+    .mutation(async ({ input }) => {
+      return linkMaterialToStep(
+        input.bomStepId,
+        input.materialCode,
+        input.materialName,
+        input.requiredQty,
+        input.unit
+      );
+    }),
+
+  getStepMaterials: protectedProcedure
+    .input(z.object({ bomStepId: z.number() }))
+    .query(async ({ input }) => {
+      return getStepMaterials(input.bomStepId);
+    }),
+
+  checkMaterialReadiness: protectedProcedure
+    .input(z.object({ bomStepId: z.number() }))
+    .query(async ({ input }) => {
+      return checkMaterialReadiness(input.bomStepId);
+    }),
+
+  updateMaterialAvailability: protectedProcedure
+    .input(z.object({
+      stepMaterialId: z.number(),
+      availableQty: z.number(),
+    }))
+    .mutation(async ({ input }) => {
+      return updateMaterialAvailability(input.stepMaterialId, input.availableQty);
+    }),
+
+  // ============================================================
+  // BOM步骤返工流程
+  // ============================================================
+
+  triggerRework: protectedProcedure
+    .input(z.object({
+      stepId: z.number(),
+      reason: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      return triggerRework(input.stepId, ctx.user.id, input.reason);
+    }),
+
+  getReworkHistory: protectedProcedure
+    .input(z.object({ stepId: z.number() }))
+    .query(async ({ input }) => {
+      return getReworkHistory(input.stepId);
     }),
 });

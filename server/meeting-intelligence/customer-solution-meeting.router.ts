@@ -342,12 +342,55 @@ export const customerSolutionMeetingRouter = router({
       reviewComments: z.string().optional()
     }))
     .mutation(async ({ input, ctx }) => {
-      return reviewSolutionVersion({
+      await reviewSolutionVersion({
         versionId: input.versionId,
         status: input.status,
         reviewerId: String(ctx.user.id),
         reviewerName: ctx.user.name || String(ctx.user.id),
         reviewComments: input.reviewComments
       });
+
+      // P1: When a solution version is approved, auto-update the linked opportunity's expectedAmount
+      if (input.status === 'approved') {
+        try {
+          const { requireDb } = await import('../db');
+          const db = await requireDb();
+
+          // Fetch the approved version to get meetingId and quotedPrice
+          const versionResult = await (db as any).execute({
+            sql: `SELECT meeting_id, quoted_price FROM solution_versions WHERE id = ?`,
+            args: [input.versionId]
+          });
+
+          if (versionResult.rows.length > 0) {
+            const { meeting_id, quoted_price } = versionResult.rows[0] as any;
+
+            if (quoted_price != null) {
+              // Fetch the meeting to check for relatedOpportunityId
+              const meeting = await getCustomerSolutionMeeting(meeting_id);
+
+              if (meeting?.relatedOpportunityId) {
+                const { crmOpportunitiesV2 } = await import('../../drizzle/schema');
+                const { eq } = await import('drizzle-orm');
+
+                const opportunityId = Number(meeting.relatedOpportunityId);
+                if (!isNaN(opportunityId)) {
+                  await db
+                    .update(crmOpportunitiesV2)
+                    .set({ expectedAmount: String(quoted_price) })
+                    .where(eq(crmOpportunitiesV2.id, opportunityId));
+
+                  console.log(
+                    `[reviewVersion] Auto-updated opportunity #${opportunityId} expectedAmount to ${quoted_price} from approved solution version ${input.versionId}`
+                  );
+                }
+              }
+            }
+          }
+        } catch (error) {
+          // Log but do not fail the review operation
+          console.error('[reviewVersion] Failed to auto-update opportunity amount:', error);
+        }
+      }
     })
 });

@@ -13,16 +13,18 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
-import { 
-  Activity, AlertTriangle, CheckCircle2, ChevronRight, 
+import {
+  Activity, AlertTriangle, CheckCircle2, ChevronRight,
   Clock, FileText, Lock, MessageSquare, Zap, Layout,
   Calendar, ShieldAlert, UserCircle, Play, Settings,
   Wrench, Cpu, Cog, Package, TestTube, Truck, Target,
-  Timer, ClipboardCheck, RefreshCw, Loader2
+  Timer, ClipboardCheck, RefreshCw, Loader2, Filter, X
 } from 'lucide-react';
 import { useLanguage } from "@/contexts/LanguageContext";
 import LayoutComponent from "@/components/Layout";
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
@@ -62,6 +64,64 @@ interface AIKnowledge {
   sop: string;
   risk: string;
   files: string[];
+}
+
+// ============================================================================
+// ROLE-BASED VIEW FILTER DEFINITIONS
+// ============================================================================
+
+type StepFilterPreset = 'all' | 'mechanical' | 'electrical' | 'custom';
+
+interface StepFilterConfig {
+  preset: StepFilterPreset;
+  label: string;
+  labelZh: string;
+  steps: string[];  // empty means show all
+  badgeColor: string;
+}
+
+const STEP_FILTER_PRESETS: Record<StepFilterPreset, StepFilterConfig> = {
+  all: {
+    preset: 'all',
+    label: 'All Steps',
+    labelZh: '全部工序',
+    steps: [],
+    badgeColor: 'bg-slate-600 text-slate-100',
+  },
+  mechanical: {
+    preset: 'mechanical',
+    label: 'Mechanical (T3-T5)',
+    labelZh: '机械工序 (T3-T5)',
+    steps: ['T3', 'T4', 'T5'],
+    badgeColor: 'bg-amber-600 text-amber-100',
+  },
+  electrical: {
+    preset: 'electrical',
+    label: 'Electrical (T6-T8)',
+    labelZh: '电气工序 (T6-T8)',
+    steps: ['T6', 'T7', 'T8'],
+    badgeColor: 'bg-cyan-600 text-cyan-100',
+  },
+  custom: {
+    preset: 'custom',
+    label: 'Custom',
+    labelZh: '自定义',
+    steps: [],
+    badgeColor: 'bg-purple-600 text-purple-100',
+  },
+};
+
+/**
+ * Maps the auth system role (bu_mech, bu_elec, etc.) to a default step filter preset.
+ * admin and bu_pm see all steps; engineers see their relevant steps by default.
+ */
+function getDefaultFilterForRole(role?: string): StepFilterPreset {
+  if (!role) return 'all';
+  const r = role.toLowerCase();
+  if (r === 'bu_mech') return 'mechanical';
+  if (r === 'bu_elec') return 'electrical';
+  // admin, bu_pm, and all other roles: show all
+  return 'all';
 }
 
 // ============================================================================
@@ -210,6 +270,20 @@ export default function ProductionExecutionView() {
   const CURRENT_USER_ROLE: UserRole = (user?.role?.toUpperCase() as UserRole) || 'ELECTRICAL';
   const CURRENT_USER_ID = user?.id || 1;
   const CURRENT_USER_NAME = user?.name || 'Demo User';
+
+  // ==========================================================================
+  // Role-based Step Filter State
+  // ==========================================================================
+  const [stepFilterPreset, setStepFilterPreset] = useState<StepFilterPreset>(() =>
+    getDefaultFilterForRole(user?.role)
+  );
+
+  // Reinitialize the filter when the user's role becomes available (async auth)
+  useEffect(() => {
+    if (user?.role) {
+      setStepFilterPreset(getDefaultFilterForRole(user.role));
+    }
+  }, [user?.role]);
   
   // ==========================================================================
   // tRPC Queries
@@ -278,8 +352,8 @@ export default function ProductionExecutionView() {
   // Data Processing
   // ==========================================================================
   
-  // 合并API数据和默认数据
-  const T_STAGES: TStage[] = useMemo(() => {
+  // 合并API数据和默认数据 (all stages, unfiltered)
+  const ALL_T_STAGES: TStage[] = useMemo(() => {
     if (projectStagesData?.data?.stages && projectStagesData.data.stages.length > 0) {
       return projectStagesData.data.stages.map((stage: any) => ({
         id: stage.stageCode,
@@ -297,8 +371,24 @@ export default function ProductionExecutionView() {
     }
     return DEFAULT_T_STAGES;
   }, [projectStagesData]);
-  
-  const activeStage = useMemo(() => 
+
+  // Apply the role-based step filter
+  const activeFilterConfig = STEP_FILTER_PRESETS[stepFilterPreset];
+  const T_STAGES: TStage[] = useMemo(() => {
+    if (stepFilterPreset === 'all' || activeFilterConfig.steps.length === 0) {
+      return ALL_T_STAGES;
+    }
+    return ALL_T_STAGES.filter(stage => activeFilterConfig.steps.includes(stage.id));
+  }, [ALL_T_STAGES, stepFilterPreset, activeFilterConfig]);
+
+  // When filter changes, ensure activeStageId still points to a visible stage
+  useEffect(() => {
+    if (T_STAGES.length > 0 && !T_STAGES.find(s => s.id === activeStageId)) {
+      setActiveStageId(T_STAGES[0].id);
+    }
+  }, [T_STAGES, activeStageId]);
+
+  const activeStage = useMemo(() =>
     T_STAGES.find(s => s.id === activeStageId) || T_STAGES[0],
     [activeStageId, T_STAGES]
   );
@@ -482,9 +572,9 @@ export default function ProductionExecutionView() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleRefresh}
               className="border-slate-700 text-slate-400 hover:text-white"
             >
@@ -499,9 +589,57 @@ export default function ProductionExecutionView() {
           </div>
         </header>
 
-        {/* PIPELINE VISUALIZATION (T1-T15) */}
+        {/* ROLE-BASED STEP FILTER BAR */}
+        <div className="flex items-center justify-between mb-4 px-2">
+          <div className="flex items-center gap-3">
+            <Filter size={14} className="text-slate-500" />
+            <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+              {language === 'zh' ? '工序筛选' : 'Step Filter'}
+            </span>
+            <Select
+              value={stepFilterPreset}
+              onValueChange={(value: string) => setStepFilterPreset(value as StepFilterPreset)}
+            >
+              <SelectTrigger className="w-[200px] h-8 text-xs bg-slate-900/80 border-slate-700 text-slate-300 focus:ring-orange-500/30">
+                <SelectValue placeholder={language === 'zh' ? '选择筛选' : 'Select filter'} />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-900 border-slate-700">
+                <SelectItem value="all" className="text-slate-300 text-xs focus:bg-slate-800">
+                  {language === 'zh' ? '全部工序 (T1-T15)' : 'All Steps (T1-T15)'}
+                </SelectItem>
+                <SelectItem value="mechanical" className="text-slate-300 text-xs focus:bg-slate-800">
+                  {language === 'zh' ? '机械工序 (T3-T5)' : 'Mechanical (T3-T5)'}
+                </SelectItem>
+                <SelectItem value="electrical" className="text-slate-300 text-xs focus:bg-slate-800">
+                  {language === 'zh' ? '电气工序 (T6-T8)' : 'Electrical (T6-T8)'}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Active filter badge indicator */}
+            {stepFilterPreset !== 'all' && (
+              <Badge
+                className={`${activeFilterConfig.badgeColor} text-[10px] px-2 py-0.5 font-medium flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity`}
+                onClick={() => setStepFilterPreset('all')}
+              >
+                <Filter size={10} />
+                {language === 'zh' ? activeFilterConfig.labelZh : activeFilterConfig.label}
+                <X size={10} className="ml-0.5" />
+              </Badge>
+            )}
+          </div>
+
+          <div className="text-xs text-slate-500">
+            {language === 'zh'
+              ? `显示 ${T_STAGES.length} / ${ALL_T_STAGES.length} 工序`
+              : `Showing ${T_STAGES.length} / ${ALL_T_STAGES.length} steps`
+            }
+          </div>
+        </div>
+
+        {/* PIPELINE VISUALIZATION (filtered T-stages) */}
         <div className="mb-8 overflow-x-auto pb-4">
-          <div className="flex items-center min-w-[1200px] px-2">
+          <div className="flex items-center px-2" style={{ minWidth: `${Math.max(T_STAGES.length * 80, 400)}px` }}>
             {T_STAGES.map((stage, idx) => {
               const isActive = stage.id === activeStageId;
               const isPast = idx < activeStageIndex;

@@ -566,120 +566,109 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
           </div>
         ) : (
           <>
-            {/* Cost Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">总预算</p>
-                      <p className="text-2xl font-bold font-heading mt-1">
-                        {formatCurrency(costSummary?.summary.totalBudget || 0)}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-full bg-blue-500/20">
-                      <Calculator className="w-6 h-6 text-blue-500" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Top-level tab navigation */}
+            <Tabs defaultValue="project-cost" className="space-y-6">
+              <TabsList className="grid w-full max-w-lg grid-cols-3">
+                <TabsTrigger value="project-cost" className="gap-1.5">
+                  <DollarSign className="w-4 h-4" />
+                  项目成本
+                </TabsTrigger>
+                <TabsTrigger value="cost-analysis" className="gap-1.5">
+                  <PieChart className="w-4 h-4" />
+                  成本分析
+                </TabsTrigger>
+                <TabsTrigger value="cost-budget" className="gap-1.5">
+                  <Calculator className="w-4 h-4" />
+                  成本预算
+                </TabsTrigger>
+              </TabsList>
 
-              <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">实际成本</p>
-                      <p className="text-2xl font-bold font-heading mt-1">
-                        {formatCurrency(costSummary?.summary.totalSpent || 0)}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-full bg-green-500/20">
-                      <DollarSign className="w-6 h-6 text-green-500" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* ========== Tab 1: 项目成本 ========== */}
+              <TabsContent value="project-cost" className="space-y-4">
+                {/* Cost Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">总预算</p>
+                          <p className="text-2xl font-bold font-heading mt-1">
+                            {formatCurrency(costSummary?.summary.totalBudget || 0)}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-full bg-blue-500/20">
+                          <Calculator className="w-6 h-6 text-blue-500" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              <Card className={`bg-gradient-to-br ${
-                ((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0
-                  ? "from-emerald-500/10 to-emerald-600/5 border-emerald-500/20"
-                  : "from-red-500/10 to-red-600/5 border-red-500/20"
-              }`}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">成本偏差</p>
-                      <p className="text-2xl font-bold font-heading mt-1 flex items-center gap-1">
-                        {((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? (
-                          <ArrowDownRight className="w-5 h-5 text-emerald-500" />
-                        ) : (
-                          <ArrowUpRight className="w-5 h-5 text-red-500" />
-                        )}
-                        {formatCurrency(Math.abs((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)))}
-                      </p>
-                    </div>
-                    <div className={`p-3 rounded-full ${
-                      ((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? "bg-emerald-500/20" : "bg-red-500/20"
-                    }`}>
-                      {((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? (
-                        <TrendingDown className="w-6 h-6 text-emerald-500" />
-                      ) : (
-                        <TrendingUp className="w-6 h-6 text-red-500" />
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">实际成本</p>
+                          <p className="text-2xl font-bold font-heading mt-1">
+                            {formatCurrency(costSummary?.summary.totalSpent || 0)}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-full bg-green-500/20">
+                          <DollarSign className="w-6 h-6 text-green-500" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">CPI 成本绩效指数</p>
-                      <p className="text-2xl font-bold font-heading mt-1">
-                        {costSummary?.summary.totalSpent ? (costSummary.summary.totalBudget / costSummary.summary.totalSpent).toFixed(2) : "1.00"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-full bg-purple-500/20">
-                      <PieChart className="w-6 h-6 text-purple-500" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <Card className={`bg-gradient-to-br ${
+                    ((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0
+                      ? "from-emerald-500/10 to-emerald-600/5 border-emerald-500/20"
+                      : "from-red-500/10 to-red-600/5 border-red-500/20"
+                  }`}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">成本偏差</p>
+                          <p className="text-2xl font-bold font-heading mt-1 flex items-center gap-1">
+                            {((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? (
+                              <ArrowDownRight className="w-5 h-5 text-emerald-500" />
+                            ) : (
+                              <ArrowUpRight className="w-5 h-5 text-red-500" />
+                            )}
+                            {formatCurrency(Math.abs((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)))}
+                          </p>
+                        </div>
+                        <div className={`p-3 rounded-full ${
+                          ((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? "bg-emerald-500/20" : "bg-red-500/20"
+                        }`}>
+                          {((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? (
+                            <TrendingDown className="w-6 h-6 text-emerald-500" />
+                          ) : (
+                            <TrendingUp className="w-6 h-6 text-red-500" />
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-            {/* Budget Utilization */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">预算使用情况</CardTitle>
-                <CardDescription>
-                  已使用 {costSummary?.summary.totalBudget ? Math.round((costSummary.summary.totalSpent / costSummary.summary.totalBudget) * 100) : 0}% 的总预算
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Progress
-                  value={costSummary?.summary.totalBudget ? Math.round((costSummary.summary.totalSpent / costSummary.summary.totalBudget) * 100) : 0}
-                  className="h-3"
-                />
-                <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-                  <span>已使用: {formatCurrency(costSummary?.summary.totalSpent || 0)}</span>
-                  <span>剩余: {formatCurrency((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0))}</span>
+                  <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">CPI 成本绩效指数</p>
+                          <p className="text-2xl font-bold font-heading mt-1">
+                            {costSummary?.summary.totalSpent ? (costSummary.summary.totalBudget / costSummary.summary.totalSpent).toFixed(2) : "1.00"}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-full bg-purple-500/20">
+                          <PieChart className="w-6 h-6 text-purple-500" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Tabs for different views */}
-            <Tabs defaultValue="records" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <TabsList>
-                  <TabsTrigger value="records">成本记录</TabsTrigger>
-                  <TabsTrigger value="budgets">预算管理</TabsTrigger>
-                  <TabsTrigger value="labor">人工成本</TabsTrigger>
-                  <TabsTrigger value="alerts">预警规则</TabsTrigger>
-                  <TabsTrigger value="notebook">笔记</TabsTrigger>
-                </TabsList>
-
-                <div className="flex gap-2">
+                {/* Cost Records */}
+                <div className="flex items-center justify-end">
                   <Dialog open={showAddRecordDialog} onOpenChange={setShowAddRecordDialog}>
                     <DialogTrigger asChild>
                       <Button size="sm">
@@ -795,97 +784,8 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                     </DialogContent>
                   </Dialog>
 
-                  <Dialog open={showAddBudgetDialog} onOpenChange={setShowAddBudgetDialog}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" variant="outline">
-                        <Plus className="w-4 h-4 mr-1" />
-                        添加预算
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>添加预算</DialogTitle>
-                        <DialogDescription>设置项目预算</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label>成本类别 *</Label>
-                          <Select
-                            value={budgetForm.categoryId.toString()}
-                            onValueChange={(value) => setBudgetForm({ ...budgetForm, categoryId: parseInt(value) })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="选择类别" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {categories?.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id.toString()}>
-                                  {cat.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>预算年度 *</Label>
-                            <Input
-                              type="number"
-                              value={budgetForm.budgetYear}
-                              onChange={(e) => setBudgetForm({ ...budgetForm, budgetYear: parseInt(e.target.value) })}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>预算月份</Label>
-                            <Select
-                              value={budgetForm.budgetMonth?.toString() || ""}
-                              onValueChange={(value) => setBudgetForm({ ...budgetForm, budgetMonth: value ? parseInt(value) : undefined })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="年度预算" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="">年度预算</SelectItem>
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
-                                  <SelectItem key={month} value={month.toString()}>{month}月</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>预算金额 (元) *</Label>
-                          <Input
-                            type="number"
-                            value={budgetForm.budgetAmount}
-                            onChange={(e) => setBudgetForm({ ...budgetForm, budgetAmount: parseFloat(e.target.value) || 0 })}
-                            placeholder="0.00"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>备注</Label>
-                          <Textarea
-                            value={budgetForm.remark}
-                            onChange={(e) => setBudgetForm({ ...budgetForm, remark: e.target.value })}
-                            placeholder="备注信息..."
-                          />
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => setShowAddBudgetDialog(false)}>
-                          取消
-                        </Button>
-                        <Button onClick={handleCreateBudget} disabled={createBudgetMutation.isPending}>
-                          {createBudgetMutation.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
-                          创建
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
                 </div>
-              </div>
 
-              <TabsContent value="records">
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -945,75 +845,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
-
-              <TabsContent value="budgets">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Calculator className="w-5 h-5" />
-                      预算列表
-                    </CardTitle>
-                    <CardDescription>
-                      共 {budgets?.length || 0} 项预算
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {budgets && budgets.length > 0 ? (
-                      <div className="space-y-3">
-                        {budgets.map((budget, idx) => {
-                          const bgt = budget as any;
-                          const budgetAmount = bgt.budgetAmount || budget.budget || 0;
-                          const usedAmount = bgt.usedAmount || budget.spent || 0;
-                          const utilization = budgetAmount > 0
-                            ? Math.round((Number(usedAmount) / Number(budgetAmount)) * 100)
-                            : 0;
-                          return (
-                            <div
-                              key={bgt.id || idx}
-                              className="p-4 rounded-lg border bg-card"
-                            >
-                              <div className="flex items-center justify-between mb-3">
-                                <div>
-                                  <p className="font-medium">{budget.projectName || "未分类"}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {bgt.budgetYear ? `${bgt.budgetYear}年` : ""} {bgt.budgetMonth ? `${bgt.budgetMonth}月` : "年度预算"}
-                                  </p>
-                                </div>
-                                <Badge variant="outline" className={
-                                  bgt.status === "approved" ? "bg-green-500/20 text-green-400" :
-                                  bgt.status === "rejected" ? "bg-red-500/20 text-red-400" :
-                                  bgt.status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
-                                  "bg-muted text-muted-foreground"
-                                }>
-                                  {bgt.status === "approved" ? "已批准" :
-                                   bgt.status === "rejected" ? "已驳回" :
-                                   bgt.status === "pending" ? "待审批" : "草稿"}
-                                </Badge>
-                              </div>
-                              <Progress value={utilization} className="h-2 mb-2" />
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">
-                                  已使用: {formatCurrency(Number(usedAmount))} ({utilization}%)
-                                </span>
-                                <span className="font-medium">
-                                  预算: {formatCurrency(Number(budgetAmount))}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        暂无预算数据
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="labor">
+                {/* Labor Costs */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -1068,8 +900,29 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                 </Card>
               </TabsContent>
 
-              {/* Alerts Tab */}
-              <TabsContent value="alerts" className="space-y-4">
+              {/* ========== Tab 2: 成本分析 ========== */}
+              <TabsContent value="cost-analysis" className="space-y-4">
+                {/* Budget Utilization Overview */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">预算使用情况</CardTitle>
+                    <CardDescription>
+                      已使用 {costSummary?.summary.totalBudget ? Math.round((costSummary.summary.totalSpent / costSummary.summary.totalBudget) * 100) : 0}% 的总预算
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Progress
+                      value={costSummary?.summary.totalBudget ? Math.round((costSummary.summary.totalSpent / costSummary.summary.totalBudget) * 100) : 0}
+                      className="h-3"
+                    />
+                    <div className="flex justify-between mt-2 text-sm text-muted-foreground">
+                      <span>已使用: {formatCurrency(costSummary?.summary.totalSpent || 0)}</span>
+                      <span>剩余: {formatCurrency((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0))}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Alerts */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
@@ -1944,10 +1797,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                     </div>
                   </DialogContent>
                 </Dialog>
-              </TabsContent>
-
-              {/* Notebook Tab */}
-              <TabsContent value="notebook">
+                {/* Notebook */}
                 <Card>
                   <CardHeader>
                     <CardTitle>成本管理笔记</CardTitle>
@@ -1962,6 +1812,164 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                         processId={selectedProjectId.toString()}
                         processStep="成本管理"
                       />
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* ========== Tab 3: 成本预算 ========== */}
+              <TabsContent value="cost-budget" className="space-y-4">
+                <div className="flex items-center justify-end">
+                  <Dialog open={showAddBudgetDialog} onOpenChange={setShowAddBudgetDialog}>
+                    <DialogTrigger asChild>
+                      <Button size="sm">
+                        <Plus className="w-4 h-4 mr-1" />
+                        添加预算
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>添加预算</DialogTitle>
+                        <DialogDescription>设置项目预算</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label>成本类别 *</Label>
+                          <Select
+                            value={budgetForm.categoryId.toString()}
+                            onValueChange={(value) => setBudgetForm({ ...budgetForm, categoryId: parseInt(value) })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="选择类别" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories?.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id.toString()}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>预算年度 *</Label>
+                            <Input
+                              type="number"
+                              value={budgetForm.budgetYear}
+                              onChange={(e) => setBudgetForm({ ...budgetForm, budgetYear: parseInt(e.target.value) })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>预算月份</Label>
+                            <Select
+                              value={budgetForm.budgetMonth?.toString() || ""}
+                              onValueChange={(value) => setBudgetForm({ ...budgetForm, budgetMonth: value ? parseInt(value) : undefined })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="年度预算" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">年度预算</SelectItem>
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
+                                  <SelectItem key={month} value={month.toString()}>{month}月</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>预算金额 (元) *</Label>
+                          <Input
+                            type="number"
+                            value={budgetForm.budgetAmount}
+                            onChange={(e) => setBudgetForm({ ...budgetForm, budgetAmount: parseFloat(e.target.value) || 0 })}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>备注</Label>
+                          <Textarea
+                            value={budgetForm.remark}
+                            onChange={(e) => setBudgetForm({ ...budgetForm, remark: e.target.value })}
+                            placeholder="备注信息..."
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setShowAddBudgetDialog(false)}>
+                          取消
+                        </Button>
+                        <Button onClick={handleCreateBudget} disabled={createBudgetMutation.isPending}>
+                          {createBudgetMutation.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                          创建
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                {/* Budget List */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Calculator className="w-5 h-5" />
+                      预算列表
+                    </CardTitle>
+                    <CardDescription>
+                      共 {budgets?.length || 0} 项预算
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {budgets && budgets.length > 0 ? (
+                      <div className="space-y-3">
+                        {budgets.map((budget, idx) => {
+                          const bgt = budget as any;
+                          const budgetAmount = bgt.budgetAmount || budget.budget || 0;
+                          const usedAmount = bgt.usedAmount || budget.spent || 0;
+                          const utilization = budgetAmount > 0
+                            ? Math.round((Number(usedAmount) / Number(budgetAmount)) * 100)
+                            : 0;
+                          return (
+                            <div
+                              key={bgt.id || idx}
+                              className="p-4 rounded-lg border bg-card"
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <div>
+                                  <p className="font-medium">{budget.projectName || "未分类"}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {bgt.budgetYear ? `${bgt.budgetYear}年` : ""} {bgt.budgetMonth ? `${bgt.budgetMonth}月` : "年度预算"}
+                                  </p>
+                                </div>
+                                <Badge variant="outline" className={
+                                  bgt.status === "approved" ? "bg-green-500/20 text-green-400" :
+                                  bgt.status === "rejected" ? "bg-red-500/20 text-red-400" :
+                                  bgt.status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
+                                  "bg-muted text-muted-foreground"
+                                }>
+                                  {bgt.status === "approved" ? "已批准" :
+                                   bgt.status === "rejected" ? "已驳回" :
+                                   bgt.status === "pending" ? "待审批" : "草稿"}
+                                </Badge>
+                              </div>
+                              <Progress value={utilization} className="h-2 mb-2" />
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">
+                                  已使用: {formatCurrency(Number(usedAmount))} ({utilization}%)
+                                </span>
+                                <span className="font-medium">
+                                  预算: {formatCurrency(Number(budgetAmount))}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        暂无预算数据
+                      </div>
                     )}
                   </CardContent>
                 </Card>
