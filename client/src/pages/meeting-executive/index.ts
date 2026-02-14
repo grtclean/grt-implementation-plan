@@ -14,3 +14,4 @@ export { PredictiveAnalyticsTab } from "./PredictiveAnalyticsTab";
 export { ReportsTab } from "./ReportsTab";
 export { KnowledgeGraphTab } from "./KnowledgeGraphTab";
 export { MeetingAssistantTab } from "./MeetingAssistantTab";
+export { WorkflowCoachingTab } from "./WorkflowCoachingTab";
