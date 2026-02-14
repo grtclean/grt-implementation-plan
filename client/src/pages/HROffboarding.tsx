@@ -39,6 +39,7 @@ import {
   Bot,
   BarChart3,
 } from "lucide-react";
+import { PageHeader, StatCard } from "@/components/grt";
 import { toast } from "sonner";
 
 // ============================================================================
@@ -258,199 +259,131 @@ export default function HROffboarding() {
 
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <LogOut className="w-6 h-6 text-primary" />
-              员工离职管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              管理从离职申请到交接完成的完整离职流程
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              导出报告
-            </Button>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  新建离职申请
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
-                  <DialogTitle>新建离职申请</DialogTitle>
-                  <DialogDescription>
-                    填写离职申请信息，系统将自动启动审批流程
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="employeeCode">员工编号 *</Label>
-                      <Input
-                        id="employeeCode"
-                        value={newRequest.employeeId}
-                        onChange={(e) => setNewRequest({ ...newRequest, employeeId: e.target.value })}
-                        placeholder="EMP-XXX"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="employeeName">员工姓名 *</Label>
-                      <Input
-                        id="employeeName"
-                        value={newRequest.employeeName}
-                        onChange={(e) => setNewRequest({ ...newRequest, employeeName: e.target.value })}
-                        placeholder="员工姓名"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="department">部门 *</Label>
-                      <Input
-                        id="department"
-                        value={newRequest.department}
-                        onChange={(e) => setNewRequest({ ...newRequest, department: e.target.value })}
-                        placeholder="所属部门"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="position">职位 *</Label>
-                      <Input
-                        id="position"
-                        value={newRequest.position}
-                        onChange={(e) => setNewRequest({ ...newRequest, position: e.target.value })}
-                        placeholder="当前职位"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="lastWorkingDay">最后工作日 *</Label>
-                    <Input
-                      id="lastWorkingDay"
-                      type="date"
-                      value={newRequest.lastWorkingDay}
-                      onChange={(e) => setNewRequest({ ...newRequest, lastWorkingDay: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="reason">离职原因 *</Label>
-                    <Select
-                      value={newRequest.reason}
-                      onValueChange={(value) => setNewRequest({ ...newRequest, reason: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="选择离职原因" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="个人发展">个人发展</SelectItem>
-                        <SelectItem value="家庭原因">家庭原因</SelectItem>
-                        <SelectItem value="薪资待遇">薪资待遇</SelectItem>
-                        <SelectItem value="工作环境">工作环境</SelectItem>
-                        <SelectItem value="职业转换">职业转换</SelectItem>
-                        <SelectItem value="其他">其他</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center space-x-2 p-3 bg-blue-500/10 rounded-lg">
-                    <Bot className="w-5 h-5 text-blue-400" />
-                    <span className="text-sm text-blue-400">
-                      AI 建议：根据员工信息，预估离职补偿金额
-                    </span>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                    取消
+        <PageHeader
+          icon={LogOut}
+          title="员工离职管理"
+          description="管理从离职申请到交接完成的完整离职流程"
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline">
+                <Download className="w-4 h-4 mr-2" />
+                导出报告
+              </Button>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-primary hover:bg-primary/90">
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    新建离职申请
                   </Button>
-                  <Button onClick={handleCreateRequest}>
-                    提交申请
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px]">
+                  <DialogHeader>
+                    <DialogTitle>新建离职申请</DialogTitle>
+                    <DialogDescription>
+                      填写离职申请信息，系统将自动启动审批流程
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="employeeCode">员工编号 *</Label>
+                        <Input
+                          id="employeeCode"
+                          value={newRequest.employeeId}
+                          onChange={(e) => setNewRequest({ ...newRequest, employeeId: e.target.value })}
+                          placeholder="EMP-XXX"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="employeeName">员工姓名 *</Label>
+                        <Input
+                          id="employeeName"
+                          value={newRequest.employeeName}
+                          onChange={(e) => setNewRequest({ ...newRequest, employeeName: e.target.value })}
+                          placeholder="员工姓名"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="department">部门 *</Label>
+                        <Input
+                          id="department"
+                          value={newRequest.department}
+                          onChange={(e) => setNewRequest({ ...newRequest, department: e.target.value })}
+                          placeholder="所属部门"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="position">职位 *</Label>
+                        <Input
+                          id="position"
+                          value={newRequest.position}
+                          onChange={(e) => setNewRequest({ ...newRequest, position: e.target.value })}
+                          placeholder="当前职位"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="lastWorkingDay">最后工作日 *</Label>
+                      <Input
+                        id="lastWorkingDay"
+                        type="date"
+                        value={newRequest.lastWorkingDay}
+                        onChange={(e) => setNewRequest({ ...newRequest, lastWorkingDay: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="reason">离职原因 *</Label>
+                      <Select
+                        value={newRequest.reason}
+                        onValueChange={(value) => setNewRequest({ ...newRequest, reason: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择离职原因" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="个人发展">个人发展</SelectItem>
+                          <SelectItem value="家庭原因">家庭原因</SelectItem>
+                          <SelectItem value="薪资待遇">薪资待遇</SelectItem>
+                          <SelectItem value="工作环境">工作环境</SelectItem>
+                          <SelectItem value="职业转换">职业转换</SelectItem>
+                          <SelectItem value="其他">其他</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center space-x-2 p-3 bg-blue-500/10 rounded-lg">
+                      <Bot className="w-5 h-5 text-blue-400" />
+                      <span className="text-sm text-blue-400">
+                        AI 建议：根据员工信息，预估离职补偿金额
+                      </span>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                      取消
+                    </Button>
+                    <Button onClick={handleCreateRequest}>
+                      提交申请
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          }
+        />
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">总申请数</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-blue-500/10">
-                  <Users className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">待审批</p>
-                  <p className="text-2xl font-bold text-yellow-400">{stats.pending}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-yellow-500/10">
-                  <Clock className="w-6 h-6 text-yellow-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">进行中</p>
-                  <p className="text-2xl font-bold text-purple-400">{stats.inProgress}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-purple-500/10">
-                  <ArrowRight className="w-6 h-6 text-purple-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">已完成</p>
-                  <p className="text-2xl font-bold text-green-400">{stats.completed}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-green-500/10">
-                  <CheckCircle2 className="w-6 h-6 text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">平均交接进度</p>
-                  <p className="text-2xl font-bold text-orange-400">{stats.avgHandoverProgress}%</p>
-                </div>
-                <div className="p-3 rounded-lg bg-orange-500/10">
-                  <FileText className="w-6 h-6 text-orange-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Users} label="总申请数" value={stats.total} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          <StatCard icon={Clock} label="待审批" value={stats.pending} iconColor="text-yellow-400" iconBg="bg-yellow-500/10" />
+          <StatCard icon={ArrowRight} label="进行中" value={stats.inProgress} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+          <StatCard icon={CheckCircle2} label="已完成" value={stats.completed} iconColor="text-green-400" iconBg="bg-green-500/10" />
+          <StatCard icon={FileText} label="平均交接进度" value={`${stats.avgHandoverProgress}%`} iconColor="text-orange-400" iconBg="bg-orange-500/10" />
         </div>
 
         {/* Main Tabs */}

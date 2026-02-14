@@ -45,6 +45,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { PageHeader, StatCard } from "@/components/grt";
 import { toast } from "sonner";
 
 const showPlaceholder = (featureName: string) => {
@@ -97,85 +98,30 @@ export default function HRMIntelligent() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-heading flex items-center gap-3">
-              <Brain className="w-8 h-8 text-primary" />
-              HRM智能化管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              人力资源智能化管理系统 - 岗位职责、AI面试、培训管理、薪酬体系
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Download className="w-4 h-4 mr-2" />
-              导出报表
-            </Button>
-            <Button variant="outline" size="sm">
-              <Settings className="w-4 h-4 mr-2" />
-              系统设置
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Brain}
+          title="HRM智能化管理"
+          description="人力资源智能化管理系统 - 岗位职责、AI面试、培训管理、薪酬体系"
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                导出报表
+              </Button>
+              <Button variant="outline" size="sm">
+                <Settings className="w-4 h-4 mr-2" />
+                系统设置
+              </Button>
+            </div>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border hover:border-primary/50 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500">
-                  <Briefcase className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">岗位数量</p>
-                  <p className="text-2xl font-bold">{positions.data?.length || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border hover:border-primary/50 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-500/10 text-green-500">
-                  <Users className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">在职员工</p>
-                  <p className="text-2xl font-bold">{employees.data?.length || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border hover:border-primary/50 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-orange-500/10 text-orange-500">
-                  <Search className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">待面试候选人</p>
-                  <p className="text-2xl font-bold">{candidates.data?.filter(c => c.status === 'interviewing').length || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border hover:border-primary/50 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-purple-500/10 text-purple-500">
-                  <GraduationCap className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">培训计划</p>
-                  <p className="text-2xl font-bold">12</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Briefcase} label="岗位数量" value={positions.data?.length || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Users} label="在职员工" value={employees.data?.length || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Search} label="待面试候选人" value={candidates.data?.filter(c => c.status === 'interviewing').length || 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+          <StatCard icon={GraduationCap} label="培训计划" value={12} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
         </div>
 
         {/* 主要内容区域 */}

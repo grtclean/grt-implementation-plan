@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -120,32 +122,30 @@ export default function SalaryBonus() {
   const detail = detailQuery.data as any;
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <DollarSign className="w-7 h-7 text-emerald-400" />
-            薪酬奖金管理
-          </h1>
-          <p className="text-muted-foreground mt-1">绩效数据自动计算奖金 · 审批发放流程</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => {
-            utils.salaryBonus.list.invalidate();
-            utils.salaryBonus.stats.invalidate();
-          }}>
-            <RefreshCw className="w-4 h-4 mr-1" /> 刷新
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => exportMut.mutate({})}>
-            <Download className="w-4 h-4 mr-1" /> 导出CSV
-          </Button>
-          <Dialog open={showBatchCalcDialog} onOpenChange={setShowBatchCalcDialog}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Calculator className="w-4 h-4 mr-1" /> 批量计算
-              </Button>
-            </DialogTrigger>
+      <PageHeader
+        icon={DollarSign}
+        title="薪酬奖金管理"
+        description="绩效数据自动计算奖金 · 审批发放流程"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => {
+              utils.salaryBonus.list.invalidate();
+              utils.salaryBonus.stats.invalidate();
+            }}>
+              <RefreshCw className="w-4 h-4 mr-1" /> 刷新
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => exportMut.mutate({})}>
+              <Download className="w-4 h-4 mr-1" /> 导出CSV
+            </Button>
+            <Dialog open={showBatchCalcDialog} onOpenChange={setShowBatchCalcDialog}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Calculator className="w-4 h-4 mr-1" /> 批量计算
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>批量计算绩效奖金</DialogTitle>
@@ -193,9 +193,10 @@ export default function SalaryBonus() {
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+            </Dialog>
+          </div>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -560,5 +561,6 @@ export default function SalaryBonus() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

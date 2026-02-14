@@ -11,6 +11,8 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -168,26 +170,22 @@ export default function SalaryApproval() {
   const workflows = (workflowsQuery.data as any)?.workflows || workflowsQuery.data || [];
 
   return (
-    <div className="space-y-6 p-6">
+    <Layout>
+    <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-heading font-bold flex items-center gap-3">
-            <ClipboardCheck className="w-7 h-7 text-primary" />
-            薪酬审批工作流
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            多级审批流程：计算 → 主管审核 → HR确认 → 财务发放
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <Send className="w-4 h-4 mr-1" />
-                提交审批
-              </Button>
-            </DialogTrigger>
+      <PageHeader
+        icon={ClipboardCheck}
+        title="薪酬审批工作流"
+        description="多级审批流程：计算 → 主管审核 → HR确认 → 财务发放"
+        actions={
+          <div className="flex items-center gap-2">
+            <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Send className="w-4 h-4 mr-1" />
+                  提交审批
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>提交薪酬审批</DialogTitle>
@@ -231,9 +229,10 @@ export default function SalaryApproval() {
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+            </Dialog>
+          </div>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -595,5 +594,6 @@ export default function SalaryApproval() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

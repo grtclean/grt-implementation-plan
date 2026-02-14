@@ -31,6 +31,7 @@ import {
   XCircle
 } from "lucide-react";
 import { useState } from "react";
+import { PageHeader } from "@/components/grt";
 import { toast } from "sonner";
 
 export default function TrainingManagement() {
@@ -193,130 +194,126 @@ export default function TrainingManagement() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold tracking-tight">
-              {t("training.title") || "培训管理"}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {t("training.desc") || "培训计划、效果评估与证书管理"}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {/* 管理员测试数据按钮 */}
-            {user?.role === 'admin' && (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsSeedingData(true);
-                    seedTrainingDataMutation.mutate();
-                  }}
-                  disabled={isSeedingData}
-                  className="border-green-500/30 text-green-400 hover:bg-green-500/10"
-                >
-                  {isSeedingData ? (
-                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  ) : (
-                    <Database className="w-4 h-4 mr-1" />
-                  )}
-                  生成测试数据
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    if (window.confirm('确定要清除所有培训数据吗？此操作不可撤销。')) {
-                      setIsClearingData(true);
-                      clearTrainingDataMutation.mutate();
-                    }
-                  }}
-                  disabled={isClearingData}
-                  className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-                >
-                  {isClearingData ? (
-                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4 mr-1" />
-                  )}
-                  清除数据
-                </Button>
-              </>
-            )}
-            <Dialog open={showCreateTrainingDialog} onOpenChange={setShowCreateTrainingDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-1" />
-                  新建培训
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>新建培训计划</DialogTitle>
-                  <DialogDescription>创建新的培训课程安排</DialogDescription>
-                </DialogHeader>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const formData = new FormData(e.currentTarget);
-                    createTrainingMutation.mutate({
-                      name: formData.get("title") as string,
-                      description: formData.get("description") as string || undefined,
-                      externalTrainer: formData.get("trainer") as string || undefined,
-                      trainingOrg: formData.get("location") as string || undefined,
-                      plannedStartDate: new Date(formData.get("startTime") as string),
-                      plannedEndDate: new Date(formData.get("endTime") as string),
-                      maxParticipants: parseInt(formData.get("maxParticipants") as string) || undefined,
-                    });
-                  }}
-                  className="space-y-4"
-                >
-                  <div className="space-y-2">
-                    <Label htmlFor="title">培训主题 *</Label>
-                    <Input id="title" name="title" placeholder="如：新员工入职培训" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="description">培训描述</Label>
-                    <Textarea id="description" name="description" placeholder="培训内容和目标" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+        <PageHeader
+          icon={GraduationCap}
+          title={t("training.title") || "培训管理"}
+          description={t("training.desc") || "培训计划、效果评估与证书管理"}
+          actions={
+            <div className="flex items-center gap-2">
+              {/* 管理员测试数据按钮 */}
+              {user?.role === 'admin' && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsSeedingData(true);
+                      seedTrainingDataMutation.mutate();
+                    }}
+                    disabled={isSeedingData}
+                    className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+                  >
+                    {isSeedingData ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <Database className="w-4 h-4 mr-1" />
+                    )}
+                    生成测试数据
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (window.confirm('确定要清除所有培训数据吗？此操作不可撤销。')) {
+                        setIsClearingData(true);
+                        clearTrainingDataMutation.mutate();
+                      }
+                    }}
+                    disabled={isClearingData}
+                    className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                  >
+                    {isClearingData ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 mr-1" />
+                    )}
+                    清除数据
+                  </Button>
+                </>
+              )}
+              <Dialog open={showCreateTrainingDialog} onOpenChange={setShowCreateTrainingDialog}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-1" />
+                    新建培训
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>新建培训计划</DialogTitle>
+                    <DialogDescription>创建新的培训课程安排</DialogDescription>
+                  </DialogHeader>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      createTrainingMutation.mutate({
+                        name: formData.get("title") as string,
+                        description: formData.get("description") as string || undefined,
+                        externalTrainer: formData.get("trainer") as string || undefined,
+                        trainingOrg: formData.get("location") as string || undefined,
+                        plannedStartDate: new Date(formData.get("startTime") as string),
+                        plannedEndDate: new Date(formData.get("endTime") as string),
+                        maxParticipants: parseInt(formData.get("maxParticipants") as string) || undefined,
+                      });
+                    }}
+                    className="space-y-4"
+                  >
                     <div className="space-y-2">
-                      <Label htmlFor="trainer">培训讲师</Label>
-                      <Input id="trainer" name="trainer" placeholder="讲师姓名" />
+                      <Label htmlFor="title">培训主题 *</Label>
+                      <Input id="title" name="title" placeholder="如：新员工入职培训" required />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="location">培训地点</Label>
-                      <Input id="location" name="location" placeholder="会议室/线上" />
+                      <Label htmlFor="description">培训描述</Label>
+                      <Textarea id="description" name="description" placeholder="培训内容和目标" />
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="trainer">培训讲师</Label>
+                        <Input id="trainer" name="trainer" placeholder="讲师姓名" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="location">培训地点</Label>
+                        <Input id="location" name="location" placeholder="会议室/线上" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="startTime">开始时间 *</Label>
+                        <Input id="startTime" name="startTime" type="datetime-local" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="endTime">结束时间 *</Label>
+                        <Input id="endTime" name="endTime" type="datetime-local" required />
+                      </div>
+                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="startTime">开始时间 *</Label>
-                      <Input id="startTime" name="startTime" type="datetime-local" required />
+                      <Label htmlFor="maxParticipants">最大参与人数</Label>
+                      <Input id="maxParticipants" name="maxParticipants" type="number" placeholder="不限" />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="endTime">结束时间 *</Label>
-                      <Input id="endTime" name="endTime" type="datetime-local" required />
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => setShowCreateTrainingDialog(false)}>
+                        取消
+                      </Button>
+                      <Button type="submit" disabled={createTrainingMutation.isPending}>
+                        {createTrainingMutation.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                        创建
+                      </Button>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="maxParticipants">最大参与人数</Label>
-                    <Input id="maxParticipants" name="maxParticipants" type="number" placeholder="不限" />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setShowCreateTrainingDialog(false)}>
-                      取消
-                    </Button>
-                    <Button type="submit" disabled={createTrainingMutation.isPending}>
-                      {createTrainingMutation.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
-                      创建
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          }
+        />
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

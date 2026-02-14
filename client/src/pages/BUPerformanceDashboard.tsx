@@ -12,9 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Building2, 
-  TrendingUp, 
+import { PageHeader } from "@/components/grt";
+import {
+  Building2,
+  TrendingUp,
   TrendingDown,
   Users,
   FolderKanban,
@@ -201,49 +202,50 @@ export default function BUPerformanceDashboard() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">BU事业部绩效看板</h1>
-            <p className="text-muted-foreground">查看各事业部的项目数量、营收、人员利用率等KPI指标</p>
-          </div>
-          <div className="flex gap-2">
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="选择周期" />
-              </SelectTrigger>
-              <SelectContent>
-                {periodOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedBU || 'all'} onValueChange={(v) => setSelectedBU(v === 'all' ? null : v)}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="选择事业部" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部事业部</SelectItem>
-                {busData?.bus.map((bu) => (
-                  <SelectItem key={bu.code} value={bu.code}>{bu.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={() => refetchStats()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              刷新
-            </Button>
-            {(!statsData?.stats || statsData.stats.length === 0) && (
-              <Button 
-                onClick={() => initSampleDataMutation.mutate()}
-                disabled={initSampleDataMutation.isPending}
-              >
-                {initSampleDataMutation.isPending ? "初始化中..." : "初始化示例数据"}
+        <PageHeader
+          icon={Building2}
+          title="BU事业部绩效看板"
+          description="查看各事业部的项目数量、营收、人员利用率等KPI指标"
+          actions={
+            <div className="flex gap-2">
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="选择周期" />
+                </SelectTrigger>
+                <SelectContent>
+                  {periodOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedBU || 'all'} onValueChange={(v) => setSelectedBU(v === 'all' ? null : v)}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="选择事业部" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部事业部</SelectItem>
+                  {busData?.bus.map((bu) => (
+                    <SelectItem key={bu.code} value={bu.code}>{bu.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={() => refetchStats()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                刷新
               </Button>
-            )}
-          </div>
-        </div>
+              {(!statsData?.stats || statsData.stats.length === 0) && (
+                <Button
+                  onClick={() => initSampleDataMutation.mutate()}
+                  disabled={initSampleDataMutation.isPending}
+                >
+                  {initSampleDataMutation.isPending ? "初始化中..." : "初始化示例数据"}
+                </Button>
+              )}
+            </div>
+          }
+        />
 
         {statsLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -4,6 +4,7 @@
  */
 
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -135,21 +136,12 @@ export default function EmployeeTimeDetails() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题和返回按钮 */}
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setLocation("/compliance-dashboard")}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            返回
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">员工工时详情</h1>
-            <p className="text-muted-foreground">查看员工的完整工时记录和合规状态</p>
-          </div>
-        </div>
+        {/* 页面标题 */}
+        <PageHeader
+          icon={Clock}
+          title="员工工时详情"
+          description="查看员工的完整工时记录和合规状态"
+        />
 
         {/* 员工基本信息卡片 */}
         <Card className="bg-card/50 border-border">

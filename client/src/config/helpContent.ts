@@ -418,6 +418,176 @@ export const helpContentMap: Record<string, PageHelpContent> = {
     ],
   },
 
+  "/employee-performance": {
+    title: "员工智能绩效",
+    description: "综合绩效评估与智能分析",
+    overview: "员工智能绩效页面整合日/周/月/季/年绩效数据，结合工作计划输出、会议表现、项目表现等多维度指标，通过雷达图、折线图和热力图进行可视化分析，支持AI智能评估。",
+    steps: [
+      { title: "选择员工", description: "在员工信息区域选择要查看绩效的员工" },
+      { title: "查看综合评分", description: "顶部统计卡片展示综合评分、工作计划、会议和项目表现" },
+      { title: "多维分析", description: "通过雷达图和趋势图查看各维度绩效表现" },
+      { title: "AI对比分析", description: "点击对比分析按钮，AI自动生成绩效对比报告" },
+    ],
+    faq: [
+      { question: "绩效评分如何计算？", answer: "综合评分基于工作计划完成度(40%)、会议表现(20%)、项目贡献(30%)和协作评价(10%)加权计算。" },
+      { question: "如何导出绩效报告？", answer: "点击右上角的导出报告按钮，可导出PDF格式的完整绩效报告。" },
+    ],
+  },
+
+  "/employee-management": {
+    title: "员工管理",
+    description: "公司组织架构和人员信息管理",
+    overview: "员工管理页面提供公司组织架构和人员信息的统一管理，支持按事业部查看员工分布，一键同步简道云数据以保持信息最新。",
+    steps: [
+      { title: "查看BU分布", description: "顶部统计卡片展示各事业部员工数量" },
+      { title: "搜索员工", description: "使用搜索框按姓名、工号或部门搜索员工" },
+      { title: "同步数据", description: "点击一键更新组织架构按钮同步最新数据" },
+    ],
+    faq: [
+      { question: "数据来源是什么？", answer: "员工数据来自简道云HR系统，通过API自动同步。" },
+      { question: "如何初始化数据？", answer: "首次使用时点击初始化数据按钮，系统将从简道云拉取全量员工数据。" },
+    ],
+  },
+
+  "/compliance/employee/:id": {
+    title: "员工工时详情",
+    description: "员工工时记录和合规状态",
+    overview: "员工工时详情页面展示单个员工的完整工时记录、历史违规情况和合规趋势图表，帮助管理者监控员工的工时合规性。",
+    steps: [
+      { title: "查看基本信息", description: "顶部展示员工的姓名、部门、岗位等基本信息" },
+      { title: "查看工时统计", description: "统计卡片显示本周工时、待处理预警、已解决预警和合规率" },
+      { title: "分析趋势", description: "通过图表查看历史工时趋势和合规变化" },
+    ],
+    faq: [
+      { question: "合规率如何计算？", answer: "合规率 = (合规工时天数 / 总工作天数) × 100%，低于90%会触发预警。" },
+      { question: "预警处理流程是什么？", answer: "预警产生后由主管确认，需要在3个工作日内处理并提交说明。" },
+    ],
+  },
+
+  "/offboarding": {
+    title: "员工离职数据管理",
+    description: "员工离职流程与数据保留管理",
+    overview: "员工离职数据管理页面提供完整的离职流程管理，包括离职记录创建、工作交接跟踪、绩效归属确认和历史数据查询功能。",
+    steps: [
+      { title: "新建离职记录", description: "点击新建按钮创建员工离职记录" },
+      { title: "跟踪工作交接", description: "在工作交接标签页查看和管理交接进度" },
+      { title: "确认绩效归属", description: "在绩效归属标签页确认离职员工的绩效数据归属" },
+      { title: "数据查询", description: "在数据查询标签页搜索历史离职记录" },
+    ],
+    faq: [
+      { question: "离职数据保留多久？", answer: "离职员工数据保留5年，符合劳动法规要求。" },
+      { question: "交接进度如何更新？", answer: "由交接负责人在系统中逐项确认完成状态，系统自动计算总进度。" },
+    ],
+  },
+
+  "/hr/offboarding-new": {
+    title: "员工离职管理",
+    description: "从离职申请到交接完成的流程管理",
+    overview: "员工离职管理页面用于处理完整的离职流程，从离职申请提交、审批到最终交接完成，支持AI智能预估离职补偿。",
+    steps: [
+      { title: "创建离职申请", description: "点击新建离职申请按钮，填写员工信息和离职原因" },
+      { title: "审批处理", description: "对待审批的离职申请进行审核" },
+      { title: "跟踪交接", description: "监控离职员工的工作交接进度" },
+      { title: "查看统计", description: "通过统计卡片了解离职申请的整体情况" },
+    ],
+    faq: [
+      { question: "审批流程是什么？", answer: "离职申请需经过直属主管→HR→部门总监三级审批。" },
+      { question: "AI补偿预估准确吗？", answer: "AI基于员工工龄、薪资和历史数据预估，供参考使用，最终以HR核算为准。" },
+    ],
+  },
+
+  "/hrm-intelligent": {
+    title: "HRM智能化管理",
+    description: "人力资源智能化管理系统",
+    overview: "HRM智能化管理系统集成岗位职责管理、AI面试评估、培训计划制定和薪酬体系分析等功能，通过AI技术提升人力资源管理效率。",
+    steps: [
+      { title: "管理岗位", description: "创建和维护岗位职责描述，AI自动生成岗位画像" },
+      { title: "AI面试", description: "使用AI辅助面试评估，自动生成候选人评分" },
+      { title: "培训管理", description: "制定智能培训计划，AI推荐个性化学习路径" },
+      { title: "薪酬分析", description: "查看薪酬体系分析和市场对标数据" },
+    ],
+    faq: [
+      { question: "AI面试如何评估候选人？", answer: "AI通过分析候选人简历、面试回答和行为特征进行多维度评估，生成综合评分报告。" },
+      { question: "如何添加新岗位？", answer: "在岗位管理标签页点击新增岗位，填写岗位信息后AI将自动生成岗位职责描述。" },
+    ],
+  },
+
+  "/salary-bonus": {
+    title: "薪酬奖金管理",
+    description: "奖金计算与发放管理",
+    overview: "薪酬奖金管理页面用于管理员工的奖金计算、审批和发放流程，支持批量计算和CSV导出。",
+    steps: [
+      { title: "查看奖金列表", description: "浏览当前周期所有员工的奖金计算结果" },
+      { title: "批量计算", description: "点击批量计算按钮，按月份和BU进行奖金批量计算" },
+      { title: "调整和审核", description: "对计算结果进行调整和审核" },
+      { title: "导出数据", description: "点击导出CSV按钮导出奖金数据" },
+    ],
+    faq: [
+      { question: "奖金计算公式是什么？", answer: "奖金基于绩效评分、岗位系数和部门预算综合计算，具体公式由HR部门设定。" },
+      { question: "如何修改奖金金额？", answer: "点击对应记录的编辑按钮可手动调整金额，调整后需重新审批。" },
+    ],
+  },
+
+  "/salary-approval": {
+    title: "薪酬审批工作流",
+    description: "多级薪酬审批流程管理",
+    overview: "薪酬审批工作流页面管理薪酬方案的多级审批流程，从计算完成到主管审核、HR确认、财务发放的完整链路。",
+    steps: [
+      { title: "提交审批", description: "选择要提交的薪酬方案，点击提交审批按钮" },
+      { title: "审批处理", description: "审批人查看详情后进行批准或驳回操作" },
+      { title: "查看进度", description: "通过审批流程图查看当前审批进度" },
+    ],
+    faq: [
+      { question: "审批需要多长时间？", answer: "标准审批流程预计3-5个工作日，加急审批1-2个工作日。" },
+      { question: "被驳回后如何处理？", answer: "收到驳回通知后修改方案重新提交，系统会记录每次修改历史。" },
+    ],
+  },
+
+  "/salary-report": {
+    title: "薪酬报告",
+    description: "薪酬数据统计与分析报告",
+    overview: "薪酬报告页面提供全面的薪酬数据统计和分析，包括员工数、奖金总额、平均奖金、平均评分和处罚总额等核心指标。",
+    steps: [
+      { title: "选择周期", description: "通过顶部下拉框选择要查看的统计周期" },
+      { title: "查看核心指标", description: "五个统计卡片展示关键薪酬指标" },
+      { title: "分析详情", description: "查看部门分布、趋势变化等详细分析" },
+    ],
+    faq: [
+      { question: "报告数据是否实时？", answer: "报告数据每日凌晨更新，如需最新数据可点击刷新按钮。" },
+      { question: "如何导出报告？", answer: "页面底部提供导出功能，支持Excel和PDF格式。" },
+    ],
+  },
+
+  "/worker-performance": {
+    title: "工人绩效排行榜",
+    description: "一线工人绩效排名与分析",
+    overview: "工人绩效排行榜页面展示一线生产工人的绩效排名，支持按不同时间周期查看，帮助管理者了解工人产能和工作表现。",
+    steps: [
+      { title: "选择周期", description: "选择日/周/月/季度查看不同时间维度的排名" },
+      { title: "查看排行", description: "浏览工人绩效排名和各项指标得分" },
+      { title: "分析个人", description: "点击工人姓名查看详细的绩效分析" },
+    ],
+    faq: [
+      { question: "绩效如何排名？", answer: "基于产量、质量、效率和出勤等多维度指标加权计算综合排名。" },
+      { question: "排名多久更新一次？", answer: "日排名每天凌晨更新，周/月排名在周期结束后次日更新。" },
+    ],
+  },
+
+  "/bu-performance": {
+    title: "BU绩效看板",
+    description: "事业部绩效综合展示",
+    overview: "BU绩效看板页面展示各事业部的综合绩效数据，支持按不同时间周期和事业部筛选查看，帮助管理层横向对比各BU表现。",
+    steps: [
+      { title: "选择筛选条件", description: "通过顶部的周期和BU下拉框筛选数据" },
+      { title: "查看总览", description: "查看各BU的核心绩效指标对比" },
+      { title: "深入分析", description: "点击具体BU卡片进入详细分析页面" },
+    ],
+    faq: [
+      { question: "BU绩效包含哪些指标？", answer: "包括营收、利润率、项目完成率、客户满意度和人均产出等核心指标。" },
+      { question: "数据来源是什么？", answer: "数据聚合自财务、项目管理、客户服务等多个子系统。" },
+    ],
+  },
+
   // ========== 客户服务 ==========
   "/field-installation": {
     title: "现场安装",

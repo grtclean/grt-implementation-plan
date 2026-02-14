@@ -6,6 +6,7 @@
 
 import { useState, useMemo } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import FeatureGuide from "@/components/FeatureGuide";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -856,31 +857,27 @@ export default function EmployeeIntelligentPerformance() {
 
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <User className="w-6 h-6 text-primary" />
-              员工智能绩效
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              综合绩效评估与智能分析
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsComparisonDialogOpen(true)}>
-              <ActivityIcon className="w-4 h-4 mr-2" />
-              对比分析
-            </Button>
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              导出报告
-            </Button>
-            <Button>
-              <Sparkles className="w-4 h-4 mr-2" />
-              AI分析
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={User}
+          title="员工智能绩效"
+          description="综合绩效评估与智能分析"
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsComparisonDialogOpen(true)}>
+                <ActivityIcon className="w-4 h-4 mr-2" />
+                对比分析
+              </Button>
+              <Button variant="outline">
+                <Download className="w-4 h-4 mr-2" />
+                导出报告
+              </Button>
+              <Button>
+                <Sparkles className="w-4 h-4 mr-2" />
+                AI分析
+              </Button>
+            </div>
+          }
+        />
 
         {/* 员工选择 */}
         <Card className="bg-card/50 border-border">

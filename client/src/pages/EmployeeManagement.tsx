@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -129,42 +130,38 @@ export default function EmployeeManagement() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold flex items-center gap-3">
-              <Users className="w-8 h-8 text-primary" />
-              员工管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              管理公司组织架构和人员信息，支持一键同步简道云数据
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleInitialize}
-              disabled={isInitializing}
-            >
-              {isInitializing ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Upload className="w-4 h-4 mr-2" />
-              )}
-              初始化数据
-            </Button>
-            <Button 
-              onClick={handleSync}
-              disabled={isSyncing}
-            >
-              {isSyncing ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              一键更新组织架构
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Users}
+          title="员工管理"
+          description="管理公司组织架构和人员信息，支持一键同步简道云数据"
+          actions={
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleInitialize}
+                disabled={isInitializing}
+              >
+                {isInitializing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4 mr-2" />
+                )}
+                初始化数据
+              </Button>
+              <Button
+                onClick={handleSync}
+                disabled={isSyncing}
+              >
+                {isSyncing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                一键更新组织架构
+              </Button>
+            </div>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

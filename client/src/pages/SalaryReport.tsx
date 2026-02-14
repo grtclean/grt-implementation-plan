@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -91,102 +93,37 @@ export default function SalaryReport() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-heading font-bold flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-violet-500/20">
-              <BarChart3 className="w-6 h-6 text-violet-400" />
-            </div>
-            薪酬报表可视化分析
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            月度奖金分布 · 部门对比 · 绩效-薪酬相关性 · 趋势分析
-          </p>
-        </div>
-        <div className="flex gap-2 items-center">
-          <Select value={periodType} onValueChange={setPeriodType}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="weekly">周报</SelectItem>
-              <SelectItem value="monthly">月报</SelectItem>
-              <SelectItem value="quarterly">季报</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={refetchAll}>
-            <RefreshCw className="w-4 h-4 mr-2" /> 刷新
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title="薪酬报表可视化分析"
+        description="月度奖金分布 · 部门对比 · 绩效-薪酬相关性 · 趋势分析"
+        actions={
+          <div className="flex gap-2 items-center">
+            <Select value={periodType} onValueChange={setPeriodType}>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="weekly">周报</SelectItem>
+                <SelectItem value="monthly">月报</SelectItem>
+                <SelectItem value="quarterly">季报</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={refetchAll}>
+              <RefreshCw className="w-4 h-4 mr-2" /> 刷新
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-violet-500/20">
-                <Users className="w-5 h-5 text-violet-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">员工数</p>
-                <p className="text-xl font-bold">{summary.unique_workers ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/20">
-                <DollarSign className="w-5 h-5 text-green-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">奖金总额</p>
-                <p className="text-xl font-bold">¥{Number(summary.total_bonus_amount || 0).toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/20">
-                <Target className="w-5 h-5 text-blue-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">平均奖金</p>
-                <p className="text-xl font-bold">¥{Number(summary.avg_bonus || 0).toFixed(0)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/20">
-                <TrendingUp className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">平均评分</p>
-                <p className="text-xl font-bold">{Number(summary.avg_score || 0).toFixed(1)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-500/20">
-                <AlertTriangle className="w-5 h-5 text-red-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">处罚总额</p>
-                <p className="text-xl font-bold">¥{Number(summary.total_penalties || 0).toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Users} label="员工数" value={summary.unique_workers ?? 0} iconColor="text-violet-400" iconBg="bg-violet-500/20" />
+        <StatCard icon={DollarSign} label="奖金总额" value={`¥${Number(summary.total_bonus_amount || 0).toLocaleString()}`} iconColor="text-green-400" iconBg="bg-green-500/20" />
+        <StatCard icon={Target} label="平均奖金" value={`¥${Number(summary.avg_bonus || 0).toFixed(0)}`} iconColor="text-blue-400" iconBg="bg-blue-500/20" />
+        <StatCard icon={TrendingUp} label="平均评分" value={Number(summary.avg_score || 0).toFixed(1)} iconColor="text-primary" iconBg="bg-primary/20" />
+        <StatCard icon={AlertTriangle} label="处罚总额" value={`¥${Number(summary.total_penalties || 0).toLocaleString()}`} iconColor="text-red-400" iconBg="bg-red-500/20" />
       </div>
 
       {/* Tabs */}
@@ -561,6 +498,6 @@ export default function SalaryReport() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }
-

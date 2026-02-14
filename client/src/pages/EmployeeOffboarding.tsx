@@ -13,6 +13,7 @@
 
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -117,54 +118,25 @@ export default function EmployeeOffboarding() {
     <Layout>
       <div className="flex-1 space-y-6 p-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <UserMinus className="w-6 h-6 text-primary" />
-              员工离职数据管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              管理员工离职流程、数据保留、工作交接与绩效归属
-            </p>
-          </div>
-          <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-            <Plus className="w-4 h-4" />
-            新建离职记录
-          </Button>
-        </div>
+        <PageHeader
+          icon={UserMinus}
+          title="员工离职数据管理"
+          description="管理员工离职流程、数据保留、工作交接与绩效归属"
+          actions={
+            <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+              <Plus className="w-4 h-4" />
+              新建离职记录
+            </Button>
+          }
+        />
 
         {/* 统计概览卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <StatsCard
-            title="总计"
-            value={statsQuery.data?.total || 0}
-            icon={<Users className="w-5 h-5" />}
-            color="text-foreground"
-          />
-          <StatsCard
-            title="草稿"
-            value={statsQuery.data?.draft || 0}
-            icon={<FileText className="w-5 h-5" />}
-            color="text-muted-foreground"
-          />
-          <StatsCard
-            title="审批中"
-            value={statsQuery.data?.inProgress || 0}
-            icon={<Clock className="w-5 h-5" />}
-            color="text-yellow-500"
-          />
-          <StatsCard
-            title="已完成"
-            value={statsQuery.data?.completed || 0}
-            icon={<CheckCircle2 className="w-5 h-5" />}
-            color="text-green-500"
-          />
-          <StatsCard
-            title="已取消"
-            value={statsQuery.data?.cancelled || 0}
-            icon={<XCircle className="w-5 h-5" />}
-            color="text-red-500"
-          />
+          <StatCard icon={Users} label="总计" value={statsQuery.data?.total || 0} />
+          <StatCard icon={FileText} label="草稿" value={statsQuery.data?.draft || 0} />
+          <StatCard icon={Clock} label="审批中" value={statsQuery.data?.inProgress || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+          <StatCard icon={CheckCircle2} label="已完成" value={statsQuery.data?.completed || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={XCircle} label="已取消" value={statsQuery.data?.cancelled || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
         </div>
 
         {/* 主内容区 */}
@@ -233,24 +205,6 @@ export default function EmployeeOffboarding() {
         )}
       </div>
     </Layout>
-  );
-}
-
-// ============================================================
-// 统计卡片组件
-// ============================================================
-
-function StatsCard({ title, value, icon, color }: { title: string; value: number; icon: React.ReactNode; color: string }) {
-  return (
-    <Card>
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className={`${color}`}>{icon}</div>
-        <div>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
