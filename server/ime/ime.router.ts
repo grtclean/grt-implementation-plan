@@ -765,4 +765,79 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       return imeService.getKnowledgeDashboard(input ?? {});
     }),
+
+  // ========================================================================
+  // Phase 8: Meeting AI Assistant
+  // ========================================================================
+
+  generateBrief: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.generateMeetingBrief(input.meetingId);
+    }),
+
+  getMeetingBrief: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const safeId = input.meetingId.replace(/'/g, "''");
+      const result = await db.execute(sql.raw(
+        `SELECT * FROM ime_meeting_briefs WHERE meeting_id = '${safeId}' ORDER BY generated_at DESC LIMIT 1`
+      ));
+      return (result.rows as any[])[0] || null;
+    }),
+
+  generateAgenda: protectedProcedure
+    .input(z.object({
+      topic: z.string(),
+      participants: z.array(z.string()).optional(),
+      durationMinutes: z.number().min(10).max(480).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.generateAgendaSuggestion(input.topic, input.participants, input.durationMinutes);
+    }),
+
+  generateMinutes: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.generateMeetingMinutes(input.meetingId);
+    }),
+
+  getMeetingMinutes: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const safeId = input.meetingId.replace(/'/g, "''");
+      const result = await db.execute(sql.raw(
+        `SELECT * FROM ime_meeting_minutes WHERE meeting_id = '${safeId}' ORDER BY generated_at DESC LIMIT 1`
+      ));
+      return (result.rows as any[])[0] || null;
+    }),
+
+  generateFollowUp: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.generateFollowUpPlan(input.meetingId);
+    }),
+
+  askAssistant: protectedProcedure
+    .input(z.object({
+      sessionId: z.string(),
+      question: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx as any).user?.openId || "unknown";
+      return imeService.askMeetingAssistant(input.sessionId, input.question, userId);
+    }),
+
+  chatHistory: protectedProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const safeSession = input.sessionId.replace(/'/g, "''");
+      const result = await db.execute(sql.raw(
+        `SELECT role, content, created_at FROM ime_ai_conversations WHERE session_id = '${safeSession}' ORDER BY created_at ASC LIMIT 100`
+      ));
+      return result.rows;
+    }),
 });

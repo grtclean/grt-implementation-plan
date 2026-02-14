@@ -5159,3 +5159,364 @@ export async function getKnowledgeDashboard(filters?: {
     })),
   };
 }
+
+// ============================================================================
+// Phase 8: Meeting AI Assistant — Pre-Meeting Brief
+// ============================================================================
+
+export async function generateMeetingBrief(meetingId: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+
+  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meeting = (meetingRes.rows as any[])[0];
+  if (!meeting) throw new Error("Meeting not found");
+
+  // Gather participant history
+  const contribRes = await db.execute(sql.raw(
+    `SELECT employee_name, employee_id, AVG(contribution_score) as avg_score, COUNT(*) as meetings
+     FROM meeting_contributions WHERE meeting_id = '${safeId}' OR employee_id IN
+       (SELECT DISTINCT employee_id FROM meeting_contributions WHERE meeting_id = '${safeId}')
+     GROUP BY employee_name, employee_id ORDER BY avg_score DESC LIMIT 15`
+  ));
+
+  // Pending action items from past meetings with same participants
+  const actionRes = await db.execute(sql.raw(
+    `SELECT ai.content, ai.assigned_to, ai.status, ai.due_date, mr.title as source_meeting
+     FROM ime_action_items ai
+     JOIN meeting_records mr ON ai.meeting_id = mr.id
+     WHERE ai.status NOT IN ('completed', 'cancelled')
+     ORDER BY ai.created_at DESC LIMIT 10`
+  ));
+
+  // Recent decisions related to this meeting's channel
+  const decisionRes = await db.execute(sql.raw(
+    `SELECT ke.entity_value, ke.related_speaker, mr.title, ke.extracted_at
+     FROM ime_knowledge_entities ke
+     JOIN meeting_records mr ON ke.meeting_id = mr.id
+     WHERE ke.entity_type = 'decision'
+     ORDER BY ke.extracted_at DESC LIMIT 10`
+  ));
+
+  // Topic history
+  const topicRes = await db.execute(sql.raw(
+    `SELECT topic_name, status, meeting_appearances FROM ime_topic_continuity
+     WHERE status NOT IN ('closed') ORDER BY created_at DESC LIMIT 10`
+  ));
+
+  const contextData = [
+    `会议: ${meeting.title || "未命名"}`,
+    `摘要: ${meeting.summary || "无"}`,
+    `参与者: ${(contribRes.rows as any[]).map((c: any) => c.employee_name).join(", ")}`,
+    `待办行动项: ${(actionRes.rows as any[]).map((a: any) => `${a.content}(${a.assigned_to})`).join("; ")}`,
+    `近期决策: ${(decisionRes.rows as any[]).map((d: any) => d.entity_value).join("; ")}`,
+    `活跃议题: ${(topicRes.rows as any[]).map((t: any) => t.topic_name).join(", ")}`,
+  ].join("\n");
+
+  const llmResult = await invokeLLM({
+    system: "你是会议准备助手。基于会议历史数据，为即将召开的会议生成准备简报。",
+    prompt: `请为以下会议生成准备简报:\n${contextData}`,
+    schema: {
+      type: "object",
+      properties: {
+        participant_summary: { type: "array", items: { type: "object", properties: { name: { type: "string" }, role: { type: "string" }, note: { type: "string" } } } },
+        pending_items: { type: "array", items: { type: "string" } },
+        relevant_decisions: { type: "array", items: { type: "string" } },
+        topic_context: { type: "array", items: { type: "string" } },
+        suggested_questions: { type: "array", items: { type: "string" } },
+        risk_alerts: { type: "array", items: { type: "string" } },
+        narrative: { type: "string" },
+      },
+      required: ["suggested_questions", "narrative"],
+    },
+  });
+
+  const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
+
+  await db.execute(sql.raw(`DELETE FROM ime_meeting_briefs WHERE meeting_id = '${safeId}'`));
+  await db.execute(sql.raw(`
+    INSERT INTO ime_meeting_briefs (meeting_id, participant_summary, pending_action_items, relevant_decisions, topic_history, suggested_questions, risk_alerts, ai_narrative, generated_at, created_at)
+    VALUES ('${safeId}', '${JSON.stringify(parsed.participant_summary || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.pending_items || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.relevant_decisions || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.topic_context || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.suggested_questions || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.risk_alerts || []).replace(/'/g, "''")}', '${String(parsed.narrative || "").replace(/'/g, "''")}', NOW(), NOW())
+  `));
+
+  return {
+    meetingId,
+    participantSummary: parsed.participant_summary || [],
+    pendingItems: parsed.pending_items || [],
+    relevantDecisions: parsed.relevant_decisions || [],
+    topicContext: parsed.topic_context || [],
+    suggestedQuestions: parsed.suggested_questions || [],
+    riskAlerts: parsed.risk_alerts || [],
+    narrative: parsed.narrative || "",
+  };
+}
+
+// ============================================================================
+// Phase 8: Meeting AI Assistant — Agenda Suggestion
+// ============================================================================
+
+export async function generateAgendaSuggestion(
+  topic: string,
+  participants?: string[],
+  durationMinutes?: number,
+) {
+  const duration = durationMinutes || 60;
+  const participantList = participants?.join(", ") || "未指定";
+
+  const llmResult = await invokeLLM({
+    system: "你是会议议程设计专家。基于主题、参与者和时长设计最佳议程。",
+    prompt: `请设计会议议程:\n主题: ${topic}\n参与者: ${participantList}\n时长: ${duration}分钟`,
+    schema: {
+      type: "object",
+      properties: {
+        agenda_items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              duration_minutes: { type: "number" },
+              description: { type: "string" },
+              facilitator: { type: "string" },
+            },
+            required: ["title", "duration_minutes"],
+          },
+        },
+        success_criteria: { type: "array", items: { type: "string" } },
+        preparation_notes: { type: "array", items: { type: "string" } },
+        tips: { type: "string" },
+      },
+      required: ["agenda_items"],
+    },
+  });
+
+  const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
+
+  return {
+    topic,
+    duration,
+    agendaItems: parsed.agenda_items || [],
+    successCriteria: parsed.success_criteria || [],
+    preparationNotes: parsed.preparation_notes || [],
+    tips: parsed.tips || "",
+  };
+}
+
+// ============================================================================
+// Phase 8: Meeting AI Assistant — Meeting Minutes
+// ============================================================================
+
+export async function generateMeetingMinutes(meetingId: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+
+  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meeting = (meetingRes.rows as any[])[0];
+  if (!meeting) throw new Error("Meeting not found");
+
+  const blocksRes = await db.execute(sql.raw(
+    `SELECT speaker, content, block_type FROM meeting_content_blocks WHERE meeting_id = '${safeId}' ORDER BY timestamp_start`
+  ));
+  const contribRes = await db.execute(sql.raw(
+    `SELECT employee_name FROM meeting_contributions WHERE meeting_id = '${safeId}'`
+  ));
+  const actionRes = await db.execute(sql.raw(
+    `SELECT content, assigned_to, status, priority, due_date FROM ime_action_items WHERE meeting_id = '${safeId}'`
+  ));
+  const entityRes = await db.execute(sql.raw(
+    `SELECT entity_type, entity_value FROM ime_knowledge_entities WHERE meeting_id = '${safeId}' AND entity_type = 'decision'`
+  ));
+
+  const transcript = (blocksRes.rows as any[]).map((b: any) => `[${b.speaker}] ${b.content}`).join("\n").slice(0, 6000);
+  const attendees = (contribRes.rows as any[]).map((c: any) => c.employee_name);
+  const decisions = (entityRes.rows as any[]).map((e: any) => e.entity_value);
+  const actions = (actionRes.rows as any[]).map((a: any) => ({ item: a.content, owner: a.assigned_to, status: a.status }));
+
+  const llmResult = await invokeLLM({
+    system: "你是会议纪要生成专家。基于会议内容生成结构化的会议纪要。",
+    prompt: `会议: ${meeting.title || "未命名"}\n日期: ${meeting.meeting_date || "N/A"}\n参与者: ${attendees.join(", ")}\n已知决策: ${decisions.join("; ")}\n行动项: ${actions.map(a => `${a.item}(${a.owner})`).join("; ")}\n\n会议内容:\n${transcript}`,
+    schema: {
+      type: "object",
+      properties: {
+        agenda_items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              topic: { type: "string" },
+              discussion: { type: "string" },
+              outcome: { type: "string" },
+            },
+            required: ["topic"],
+          },
+        },
+        decisions: { type: "array", items: { type: "string" } },
+        action_items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { item: { type: "string" }, owner: { type: "string" }, due: { type: "string" } },
+            required: ["item"],
+          },
+        },
+        key_points: { type: "array", items: { type: "string" } },
+        next_steps: { type: "array", items: { type: "string" } },
+        narrative: { type: "string" },
+      },
+      required: ["agenda_items", "decisions"],
+    },
+  });
+
+  const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
+
+  await db.execute(sql.raw(`DELETE FROM ime_meeting_minutes WHERE meeting_id = '${safeId}'`));
+  await db.execute(sql.raw(`
+    INSERT INTO ime_meeting_minutes (meeting_id, attendees, agenda_items, decisions_recorded, action_items_summary, key_discussion_points, next_steps, ai_narrative, generated_at, created_at)
+    VALUES ('${safeId}', '${JSON.stringify(attendees).replace(/'/g, "''")}', '${JSON.stringify(parsed.agenda_items || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.decisions || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.action_items || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.key_points || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.next_steps || []).replace(/'/g, "''")}', '${String(parsed.narrative || "").replace(/'/g, "''")}', NOW(), NOW())
+  `));
+
+  return {
+    meetingId,
+    attendees,
+    agendaItems: parsed.agenda_items || [],
+    decisions: parsed.decisions || [],
+    actionItems: parsed.action_items || [],
+    keyPoints: parsed.key_points || [],
+    nextSteps: parsed.next_steps || [],
+    narrative: parsed.narrative || "",
+  };
+}
+
+// ============================================================================
+// Phase 8: Meeting AI Assistant — Follow-Up Plan
+// ============================================================================
+
+export async function generateFollowUpPlan(meetingId: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+
+  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meeting = (meetingRes.rows as any[])[0];
+  if (!meeting) throw new Error("Meeting not found");
+
+  const actionRes = await db.execute(sql.raw(`SELECT * FROM ime_action_items WHERE meeting_id = '${safeId}'`));
+  const entityRes = await db.execute(sql.raw(`SELECT * FROM ime_knowledge_entities WHERE meeting_id = '${safeId}'`));
+  const effRes = await db.execute(sql.raw(`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = '${safeId}' LIMIT 1`));
+  const retroRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_retrospectives WHERE meeting_id = '${safeId}' LIMIT 1`));
+
+  const context = [
+    `会议: ${meeting.title}`,
+    `行动项: ${(actionRes.rows as any[]).map((a: any) => `${a.content}→${a.assigned_to}(${a.status})`).join("; ")}`,
+    `关键实体: ${(entityRes.rows as any[]).map((e: any) => `${e.entity_type}:${e.entity_value}`).join("; ")}`,
+    (effRes.rows as any[])[0] ? `效能: ${(effRes.rows as any[])[0].overall_score}分` : "",
+    (retroRes.rows as any[])[0] ? `回顾评级: ${(retroRes.rows as any[])[0].overall_grade}` : "",
+  ].filter(Boolean).join("\n");
+
+  const llmResult = await invokeLLM({
+    system: "你是会议跟进计划专家。基于会议结果生成详细的后续行动计划。",
+    prompt: `请为以下会议生成跟进计划:\n${context}`,
+    schema: {
+      type: "object",
+      properties: {
+        immediate_actions: { type: "array", items: { type: "object", properties: { action: { type: "string" }, owner: { type: "string" }, deadline: { type: "string" } }, required: ["action"] } },
+        follow_up_meetings: { type: "array", items: { type: "object", properties: { topic: { type: "string" }, suggested_date: { type: "string" }, participants: { type: "string" } }, required: ["topic"] } },
+        risk_mitigations: { type: "array", items: { type: "string" } },
+        communication_plan: { type: "array", items: { type: "object", properties: { audience: { type: "string" }, message: { type: "string" }, channel: { type: "string" } }, required: ["audience", "message"] } },
+        narrative: { type: "string" },
+      },
+      required: ["immediate_actions"],
+    },
+  });
+
+  const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
+
+  return {
+    meetingId,
+    immediateActions: parsed.immediate_actions || [],
+    followUpMeetings: parsed.follow_up_meetings || [],
+    riskMitigations: parsed.risk_mitigations || [],
+    communicationPlan: parsed.communication_plan || [],
+    narrative: parsed.narrative || "",
+  };
+}
+
+// ============================================================================
+// Phase 8: Meeting AI Assistant — Conversational Q&A
+// ============================================================================
+
+export async function askMeetingAssistant(
+  sessionId: string,
+  question: string,
+  userId?: string,
+) {
+  const db = await requireDb();
+  const safeSession = sessionId.replace(/'/g, "''");
+  const safeUser = (userId || "anonymous").replace(/'/g, "''");
+
+  // Store user question
+  await db.execute(sql.raw(`
+    INSERT INTO ime_ai_conversations (session_id, user_id, role, content, created_at)
+    VALUES ('${safeSession}', '${safeUser}', 'user', '${question.replace(/'/g, "''")}', NOW())
+  `));
+
+  // Get conversation history for context
+  const historyRes = await db.execute(sql.raw(
+    `SELECT role, content FROM ime_ai_conversations WHERE session_id = '${safeSession}' ORDER BY created_at DESC LIMIT 10`
+  ));
+  const history = (historyRes.rows as any[]).reverse();
+
+  // Gather relevant meeting data for RAG context
+  const recentMeetingsRes = await db.execute(sql.raw(
+    `SELECT id, title, summary, meeting_date FROM meeting_records ORDER BY meeting_date DESC LIMIT 10`
+  ));
+  const recentStatsRes = await db.execute(sql.raw(
+    `SELECT COUNT(*) as total_meetings,
+            AVG(mes.overall_score) as avg_effectiveness
+     FROM meeting_records mr
+     LEFT JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id`
+  ));
+  const recentActionsRes = await db.execute(sql.raw(
+    `SELECT content, assigned_to, status FROM ime_action_items ORDER BY created_at DESC LIMIT 10`
+  ));
+  const recentDecisionsRes = await db.execute(sql.raw(
+    `SELECT entity_value, related_speaker FROM ime_knowledge_entities WHERE entity_type = 'decision' ORDER BY extracted_at DESC LIMIT 10`
+  ));
+
+  const ragContext = [
+    `最近会议: ${(recentMeetingsRes.rows as any[]).map((m: any) => `${m.title}(${m.meeting_date ? new Date(m.meeting_date).toLocaleDateString("zh-CN") : ""})`).join(", ")}`,
+    `统计: 总计${(recentStatsRes.rows as any[])[0]?.total_meetings || 0}次会议, 平均效能${Math.round(Number((recentStatsRes.rows as any[])[0]?.avg_effectiveness) || 0)}分`,
+    `待办行动项: ${(recentActionsRes.rows as any[]).filter((a: any) => a.status !== "completed").map((a: any) => `${a.content}(${a.assigned_to})`).join("; ")}`,
+    `近期决策: ${(recentDecisionsRes.rows as any[]).map((d: any) => d.entity_value).join("; ")}`,
+  ].join("\n");
+
+  const conversationMessages = history.map((h: any) => `${h.role === "user" ? "用户" : "助手"}: ${h.content}`).join("\n");
+
+  const llmResult = await invokeLLM({
+    system: `你是GRT智能会议助手。基于会议数据回答用户问题。提供准确、有帮助的回答。\n\n可用数据:\n${ragContext}`,
+    prompt: `对话历史:\n${conversationMessages}\n\n用户问题: ${question}`,
+    schema: {
+      type: "object",
+      properties: {
+        answer: { type: "string" },
+        referenced_meetings: { type: "array", items: { type: "string" } },
+        suggestions: { type: "array", items: { type: "string" } },
+      },
+      required: ["answer"],
+    },
+  });
+
+  const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
+  const answer = parsed.answer || "抱歉，无法回答此问题。";
+
+  // Store assistant response
+  await db.execute(sql.raw(`
+    INSERT INTO ime_ai_conversations (session_id, user_id, role, content, context, created_at)
+    VALUES ('${safeSession}', '${safeUser}', 'assistant', '${answer.replace(/'/g, "''")}', '${JSON.stringify({ referenced_meetings: parsed.referenced_meetings, suggestions: parsed.suggestions }).replace(/'/g, "''")}', NOW())
+  `));
+
+  return {
+    answer,
+    referencedMeetings: parsed.referenced_meetings || [],
+    suggestions: parsed.suggestions || [],
+  };
+}
