@@ -398,4 +398,96 @@ export const imeRouter = router({
     .mutation(async ({ input }) => {
       return imeService.updateTopicStatus(input.topicId, input.status);
     }),
+
+  // ========================================================================
+  // Phase 4: Sentiment Analysis
+  // ========================================================================
+
+  analyzeSentiment: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.analyzeMeetingSentiment(input.meetingId);
+    }),
+
+  sentimentDashboard: protectedProcedure
+    .input(z.object({
+      channelId: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getSentimentDashboard(input ?? {});
+    }),
+
+  batchAnalyzeSentiment: protectedProcedure
+    .input(z.object({ meetingIds: z.array(z.string()).min(1).max(50) }))
+    .mutation(async ({ input }) => {
+      return imeService.batchAnalyzeSentiment(input.meetingIds);
+    }),
+
+  // ========================================================================
+  // Phase 4: Meeting Health & Optimization
+  // ========================================================================
+
+  computeHealth: protectedProcedure
+    .input(z.object({
+      scope: z.string(),
+      scopeId: z.string().optional(),
+      period: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.computeMeetingHealth(input.scope, input.scopeId, input.period);
+    }),
+
+  healthDashboard: protectedProcedure
+    .input(z.object({
+      scope: z.string().optional(),
+      period: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getHealthDashboard(input ?? {});
+    }),
+
+  optimizationRecommendations: protectedProcedure
+    .input(z.object({
+      scope: z.string(),
+      scopeId: z.string().optional(),
+    }))
+    .query(async ({ input }) => {
+      return imeService.getOptimizationRecommendations(input.scope, input.scopeId);
+    }),
+
+  // ========================================================================
+  // Phase 4: Digest & Alerts
+  // ========================================================================
+
+  generateDigest: protectedProcedure
+    .input(z.object({
+      digestType: z.string(),
+      scope: z.string(),
+      scopeId: z.string().optional(),
+      period: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.generateDigest(input.digestType, input.scope, input.scopeId, input.period);
+    }),
+
+  digestHistory: protectedProcedure
+    .input(z.object({
+      digestType: z.string().optional(),
+      scope: z.string().optional(),
+      limit: z.number().min(1).max(100).optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getDigestHistory(input ?? {});
+    }),
+
+  activeAlerts: protectedProcedure
+    .input(z.object({
+      scope: z.string().optional(),
+      scopeId: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getActiveAlerts(input?.scope, input?.scopeId);
+    }),
 });

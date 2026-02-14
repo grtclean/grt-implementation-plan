@@ -10216,3 +10216,60 @@ export const imeTopicContinuity = pgTable("ime_topic_continuity", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ============================================
+// G-IME Phase 4: Meeting Sentiment Analysis
+// ============================================
+
+export const imeMeetingSentiment = pgTable("ime_meeting_sentiment", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  overallSentiment: varchar("overall_sentiment", { length: 20 }),
+  sentimentScore: real("sentiment_score"),
+  tensionLevel: real("tension_level"),
+  collaborationTone: real("collaboration_tone"),
+  frustrationIndicators: integer("frustration_indicators").default(0),
+  consensusReached: boolean("consensus_reached"),
+  speakerSentiments: text("speaker_sentiments"),
+  emotionalArc: text("emotional_arc"),
+  conflictTopics: text("conflict_topics"),
+  aiNarrative: text("ai_narrative"),
+  analyzedAt: timestamp("analyzed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================
+// G-IME Phase 4: Meeting Health Score
+// ============================================
+
+export const imeMeetingHealth = pgTable("ime_meeting_health", {
+  id: serial("id").primaryKey(),
+  scope: varchar("scope", { length: 50 }).notNull(),
+  scopeId: varchar("scope_id", { length: 100 }),
+  period: varchar("period", { length: 20 }),
+  healthScore: real("health_score"),
+  dimensions: text("dimensions"),
+  grade: varchar("grade", { length: 2 }),
+  recommendations: text("recommendations"),
+  benchmarkComparison: text("benchmark_comparison"),
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================
+// G-IME Phase 4: Digest & Alerts
+// ============================================
+
+export const imeDigestAlerts = pgTable("ime_digest_alerts", {
+  id: serial("id").primaryKey(),
+  digestType: varchar("digest_type", { length: 30 }).notNull(),
+  scope: varchar("scope", { length: 50 }),
+  scopeId: varchar("scope_id", { length: 100 }),
+  period: varchar("period", { length: 30 }),
+  summary: text("summary"),
+  highlights: text("highlights"),
+  alerts: text("alerts"),
+  metrics: text("metrics"),
+  generatedAt: timestamp("generated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});

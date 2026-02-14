@@ -5,3 +5,6 @@ export { LiveAssistantTab } from "./LiveAssistantTab";
 export { MeetingCostTab } from "./MeetingCostTab";
 export { ActionItemTrackerTab } from "./ActionItemTrackerTab";
 export { TopicContinuityTab } from "./TopicContinuityTab";
+export { SentimentAnalysisTab } from "./SentimentAnalysisTab";
+export { MeetingHealthTab } from "./MeetingHealthTab";
+export { DigestAlertsTab } from "./DigestAlertsTab";
