@@ -1489,6 +1489,1080 @@ export const helpContentMap: Record<string, PageHelpContent> = {
       { question: "支持自定义报表吗？", answer: "支持，可在报表配置中自定义维度、指标和可视化类型。" },
     ],
   },
+
+  // ========== Batch G: 项目/规划/会议/工作流 ==========
+  "/project-hub": {
+    title: "项目中心",
+    description: "项目总览与管理入口",
+    overview: "项目中心展示所有项目的状态概览，支持快速导航到具体项目的各阶段详情。",
+    steps: [
+      { title: "查看项目列表", description: "浏览所有项目及其当前状态" },
+      { title: "筛选项目", description: "按BU、状态、阶段等条件筛选" },
+      { title: "进入项目详情", description: "点击项目卡片查看详细信息" },
+    ],
+    faq: [
+      { question: "如何创建新项目？", answer: "点击右上角'创建项目'按钮，填写基本信息后提交。" },
+    ],
+  },
+  "/project-enhanced": {
+    title: "项目中心增强版",
+    description: "增强版项目管理视图",
+    overview: "提供更丰富的项目可视化和分析功能，包括项目时间线、资源分配等高级视图。",
+    steps: [
+      { title: "选择视图", description: "在不同视图模式间切换" },
+      { title: "分析项目", description: "查看项目健康度和风险指标" },
+    ],
+    faq: [
+      { question: "和标准版有什么区别？", answer: "增强版提供更多可视化图表和高级分析功能。" },
+    ],
+  },
+  "/annual-agenda": {
+    title: "年度日程",
+    description: "年度会议与活动日程管理",
+    overview: "管理全年的重要会议、评审和活动安排，支持日历视图和列表视图。",
+    steps: [
+      { title: "查看日程", description: "在日历或列表中查看年度日程" },
+      { title: "创建日程", description: "添加新的会议或活动" },
+      { title: "同步日历", description: "与外部日历同步" },
+    ],
+    faq: [
+      { question: "可以导出日程吗？", answer: "支持导出为Excel或同步到钉钉/飞书日历。" },
+    ],
+  },
+  "/annual-planning": {
+    title: "年度规划管理",
+    description: "年度项目规划与目标管理",
+    overview: "制定和管理年度项目计划，包括目标设定、资源分配和进度追踪。",
+    steps: [
+      { title: "设定目标", description: "设定年度业务目标和KPI" },
+      { title: "分配资源", description: "规划人员和预算资源" },
+      { title: "跟踪进度", description: "监控各项目执行进度" },
+    ],
+    faq: [
+      { question: "规划可以调整吗？", answer: "支持通过变更管理流程调整年度规划。" },
+    ],
+  },
+  "/agenda": {
+    title: "议程管理",
+    description: "会议议程安排与培训计划管理",
+    overview: "统一管理各类会议议程、培训计划和年度活动安排。",
+    steps: [
+      { title: "创建议程", description: "新建会议或培训议程" },
+      { title: "分配参与者", description: "添加参会人员和主持人" },
+      { title: "跟踪执行", description: "记录会议纪要和行动项" },
+    ],
+    faq: [
+      { question: "如何查看本周会议？", answer: "首页统计卡片显示本周会议数，点击可查看详情。" },
+    ],
+  },
+  "/gantt": {
+    title: "甘特图",
+    description: "项目进度甘特图可视化",
+    overview: "以甘特图形式展示项目任务的时间安排和依赖关系，支持拖拽调整。",
+    steps: [
+      { title: "选择项目", description: "选择要查看的项目" },
+      { title: "查看进度", description: "在甘特图中查看任务进度" },
+      { title: "调整计划", description: "拖拽任务条调整时间安排" },
+    ],
+    faq: [
+      { question: "支持导出甘特图吗？", answer: "支持导出为图片或PDF格式。" },
+    ],
+  },
+  "/process-progress": {
+    title: "工序进度看板",
+    description: "生产工序进度实时监控",
+    overview: "实时展示各工序的完成进度、人员效率和异常情况。",
+    steps: [
+      { title: "选择项目", description: "输入项目ID查看工序进度" },
+      { title: "查看看板", description: "查看各工序的完成率和状态" },
+      { title: "分析瓶颈", description: "识别效率瓶颈工序" },
+    ],
+    faq: [
+      { question: "数据多久更新一次？", answer: "看板数据每分钟自动刷新，也可手动刷新。" },
+    ],
+  },
+  "/change-management": {
+    title: "变更治理中心",
+    description: "项目变更请求管理与审批",
+    overview: "管理项目变更请求(CR)的全生命周期，包括提交、评审、审批和执行。",
+    steps: [
+      { title: "提交变更", description: "创建变更请求并填写影响分析" },
+      { title: "评审变更", description: "相关方评审变更影响和方案" },
+      { title: "执行变更", description: "批准后执行变更并跟踪结果" },
+    ],
+    faq: [
+      { question: "变更需要几级审批？", answer: "根据变更影响等级，分为一级(部门)和二级(跨部门)审批。" },
+    ],
+  },
+  "/intelligent-scheduling": {
+    title: "智能排程中心",
+    description: "AI智能生产排程与资源优化",
+    overview: "利用AI算法自动优化生产排程，考虑设备产能、人员可用性和交付优先级。",
+    steps: [
+      { title: "导入需求", description: "导入待排程的生产任务" },
+      { title: "运行排程", description: "AI自动计算最优排程方案" },
+      { title: "确认执行", description: "确认并下发排程计划" },
+    ],
+    faq: [
+      { question: "排程考虑哪些因素？", answer: "考虑设备产能、人员技能、交付时间和物料可用性。" },
+    ],
+  },
+  "/collaboration": {
+    title: "实时协作工作台",
+    description: "团队多人协作空间",
+    overview: "提供多人实时协作的工作台，支持文档协同编辑和实时沟通。",
+    steps: [
+      { title: "创建空间", description: "创建新的协作空间" },
+      { title: "邀请成员", description: "邀请团队成员加入" },
+      { title: "协同工作", description: "多人实时编辑和讨论" },
+    ],
+    faq: [
+      { question: "最多支持多少人同时协作？", answer: "单个空间支持最多50人同时在线协作。" },
+    ],
+  },
+  "/tasks": {
+    title: "开发任务看板",
+    description: "开发任务管理与追踪",
+    overview: "管理和追踪开发任务的完整生命周期，支持看板、列表等多种视图。",
+    steps: [
+      { title: "创建任务", description: "创建新的开发任务" },
+      { title: "分配任务", description: "将任务分配给开发人员" },
+      { title: "跟踪进度", description: "更新任务状态和工时" },
+    ],
+    faq: [
+      { question: "如何查看逾期任务？", answer: "顶部统计卡片显示逾期任务数，点击可筛选查看。" },
+    ],
+  },
+  "/workflow-management": {
+    title: "工作流管理",
+    description: "自动化工作流配置与监控",
+    overview: "创建和管理自动化工作流，监控执行状态和成功率。",
+    steps: [
+      { title: "创建工作流", description: "定义工作流的触发条件和执行步骤" },
+      { title: "配置动作", description: "设置每个节点的执行动作" },
+      { title: "监控执行", description: "查看工作流执行日志和统计" },
+    ],
+    faq: [
+      { question: "工作流失败后会重试吗？", answer: "支持配置自动重试策略，包括重试次数和间隔。" },
+    ],
+  },
+  "/knowledge-graph-approval": {
+    title: "知识图谱扩展审批",
+    description: "知识图谱自动扩展建议审批",
+    overview: "审批和管理AI自动生成的知识图谱扩展建议，确保知识库质量。",
+    steps: [
+      { title: "查看建议", description: "浏览AI生成的扩展建议" },
+      { title: "审核内容", description: "评估建议的准确性和相关性" },
+      { title: "批准/拒绝", description: "批准有效建议或拒绝不当内容" },
+    ],
+    faq: [
+      { question: "批准后多久生效？", answer: "批准后立即应用到知识图谱，可在'已应用'标签查看。" },
+    ],
+  },
+  "/meeting-intelligence": {
+    title: "会议智能",
+    description: "AI驱动的智能会议管理",
+    overview: "利用AI技术辅助会议管理，包括自动纪要生成、行动项提取和会议效率分析。",
+    steps: [
+      { title: "创建会议", description: "设置会议主题和参与者" },
+      { title: "AI纪要", description: "会议结束后AI自动生成纪要" },
+      { title: "跟踪行动项", description: "追踪会议产生的行动项" },
+    ],
+    faq: [
+      { question: "AI纪要准确吗？", answer: "AI纪要准确率约90%，可以人工编辑和修正。" },
+    ],
+  },
+
+  // ========== Batch H: 工程/BOM/POS/清洗 ==========
+  "/bom-excel-import": {
+    title: "BOM Excel导入",
+    description: "通过Excel批量导入BOM数据",
+    overview: "支持通过Excel模板批量导入BOM(物料清单)数据，包含数据校验和错误提示。",
+    steps: [
+      { title: "下载模板", description: "下载标准BOM Excel模板" },
+      { title: "填写数据", description: "按模板格式填写BOM数据" },
+      { title: "上传导入", description: "上传Excel文件并确认导入" },
+    ],
+    faq: [
+      { question: "支持什么格式？", answer: "支持.xlsx和.xls格式的Excel文件。" },
+    ],
+  },
+  "/bom-import": {
+    title: "BOM导入",
+    description: "BOM数据导入管理",
+    overview: "管理BOM数据的导入记录，查看导入历史和统计信息。",
+    steps: [
+      { title: "选择导入方式", description: "选择Excel导入或API同步" },
+      { title: "数据校验", description: "系统自动校验数据格式和完整性" },
+      { title: "确认导入", description: "确认数据无误后执行导入" },
+    ],
+    faq: [
+      { question: "导入失败怎么办？", answer: "可查看错误详情，修正后重新导入失败的记录。" },
+    ],
+  },
+  "/bom-verification": {
+    title: "BOM验证",
+    description: "BOM数据完整性验证",
+    overview: "对导入的BOM数据进行完整性和一致性验证，确保数据质量。",
+    steps: [
+      { title: "选择BOM", description: "选择要验证的BOM数据" },
+      { title: "运行验证", description: "执行自动化验证规则" },
+      { title: "查看结果", description: "查看验证报告并处理异常" },
+    ],
+    faq: [
+      { question: "验证包含哪些检查？", answer: "包括层级完整性、物料编码有效性、数量合理性等检查。" },
+    ],
+  },
+  "/engineer-checkpoints": {
+    title: "工程师检查点",
+    description: "工程检查点管理与审批",
+    overview: "管理项目各阶段的工程检查点，包括审批流程和状态跟踪。",
+    steps: [
+      { title: "创建检查点", description: "为项目阶段创建检查点" },
+      { title: "提交审批", description: "完成检查后提交审批" },
+      { title: "查看结果", description: "查看审批状态和反馈" },
+    ],
+    faq: [
+      { question: "检查点通过率如何计算？", answer: "通过率 = 已通过数 / 总提交数 × 100%。" },
+    ],
+  },
+  "/gemini-spec": {
+    title: "Gemini规格书",
+    description: "Gemini项目规格书管理",
+    overview: "管理Gemini项目的规格书文档，支持版本管理和协同编辑。",
+    steps: [
+      { title: "创建规格书", description: "基于模板创建新的规格书" },
+      { title: "编辑内容", description: "填写技术参数和要求" },
+      { title: "审核发布", description: "提交审核后正式发布" },
+    ],
+    faq: [
+      { question: "规格书支持版本对比吗？", answer: "支持，可对比任意两个版本的差异。" },
+    ],
+  },
+  "/deployment-spec": {
+    title: "部署规格",
+    description: "系统部署技术规格管理",
+    overview: "管理系统部署的技术规格文档，包括环境要求、配置参数和部署步骤。",
+    steps: [
+      { title: "查看规格", description: "查看当前部署规格文档" },
+      { title: "编辑配置", description: "更新部署参数和配置" },
+      { title: "导出文档", description: "导出部署规格书" },
+    ],
+    faq: [
+      { question: "支持快捷键吗？", answer: "支持，查看顶部操作区的快捷键提示。" },
+    ],
+  },
+  "/fat-coordination": {
+    title: "FAT协调工作台",
+    description: "工厂验收测试协调管理",
+    overview: "协调和管理工厂验收测试(FAT)的全过程，包括计划、执行和报告。",
+    steps: [
+      { title: "制定计划", description: "创建FAT测试计划和用例" },
+      { title: "执行测试", description: "记录测试执行结果" },
+      { title: "生成报告", description: "生成FAT测试报告" },
+    ],
+    faq: [
+      { question: "FAT和SAT有什么区别？", answer: "FAT是工厂验收测试，SAT是现场验收测试，FAT在出厂前进行。" },
+    ],
+  },
+  "/gate-checklist-settings": {
+    title: "Gate检查清单配置",
+    description: "Stage Gate检查项配置管理",
+    overview: "配置各阶段Gate评审的检查清单项，定义必选项和评分标准。",
+    steps: [
+      { title: "选择Gate", description: "选择要配置的Gate阶段" },
+      { title: "编辑检查项", description: "添加或修改检查清单项" },
+      { title: "设置规则", description: "配置必选项和评分权重" },
+    ],
+    faq: [
+      { question: "可以按项目类型配置不同清单吗？", answer: "支持，可为不同项目类型设置独立的检查清单模板。" },
+    ],
+  },
+  "/architecture": {
+    title: "架构规划",
+    description: "系统架构设计与规划",
+    overview: "管理系统架构设计文档，包括技术选型、模块划分和接口定义。",
+    steps: [
+      { title: "查看架构", description: "查看当前系统架构图" },
+      { title: "编辑设计", description: "更新架构设计文档" },
+      { title: "下载文档", description: "导出架构设计文档" },
+    ],
+    faq: [
+      { question: "架构文档支持协同编辑吗？", answer: "支持，多人可同时编辑不同章节。" },
+    ],
+  },
+  "/model-explainability": {
+    title: "模型可解释性报告",
+    description: "AI模型决策可解释性分析",
+    overview: "展示AI模型的决策过程和可解释性分析报告，帮助理解模型预测逻辑。",
+    steps: [
+      { title: "选择模型", description: "选择要分析的AI模型" },
+      { title: "查看报告", description: "查看特征重要性和决策路径" },
+      { title: "导出报告", description: "导出可解释性分析报告" },
+    ],
+    faq: [
+      { question: "支持哪些解释方法？", answer: "支持SHAP值、特征重要性排序和决策树可视化。" },
+    ],
+  },
+  "/pos/connectors": {
+    title: "连接器配置",
+    description: "第三方系统连接器管理",
+    overview: "配置和管理与第三方系统的数据连接，支持多种连接协议。",
+    steps: [
+      { title: "添加连接器", description: "创建新的系统连接" },
+      { title: "配置参数", description: "设置连接参数和认证信息" },
+      { title: "测试连接", description: "验证连接是否正常" },
+    ],
+    faq: [
+      { question: "支持哪些连接协议？", answer: "支持REST API、GraphQL、SOAP和数据库直连。" },
+    ],
+  },
+  "/pos/customers": {
+    title: "客户管理",
+    description: "POS客户画像与分析",
+    overview: "管理POS系统中的客户信息，包括客户画像、决策结构和项目关联。",
+    steps: [
+      { title: "添加客户", description: "录入客户基本信息" },
+      { title: "完善画像", description: "补充决策人和组织结构" },
+      { title: "关联项目", description: "将客户与项目关联" },
+    ],
+    faq: [
+      { question: "客户等级如何划分？", answer: "按年度采购额和合作深度分为Tier1/Tier2/Tier3。" },
+    ],
+  },
+  "/cleaning-trajectory-3d": {
+    title: "清洗轨迹3D可视化",
+    description: "清洗轨迹三维可视化展示",
+    overview: "以3D方式展示清洗设备的运动轨迹和覆盖范围。",
+    steps: [
+      { title: "选择记录", description: "选择要查看的清洗记录" },
+      { title: "3D查看", description: "在3D视图中查看轨迹" },
+      { title: "分析覆盖", description: "分析清洗覆盖率" },
+    ],
+    faq: [
+      { question: "需要特殊浏览器吗？", answer: "需要支持WebGL的现代浏览器，推荐Chrome。" },
+    ],
+  },
+  "/grt-cleaning-strategy": {
+    title: "GRT清洗策略动作库",
+    description: "清洗策略配置与动作管理",
+    overview: "管理GRT清洗设备的策略库，定义清洗动作序列和参数。",
+    steps: [
+      { title: "查看策略", description: "浏览现有清洗策略" },
+      { title: "创建策略", description: "定义新的清洗策略" },
+      { title: "验证测试", description: "通过模拟验证策略效果" },
+    ],
+    faq: [
+      { question: "策略可以复用吗？", answer: "支持，可以基于现有策略创建副本并修改。" },
+    ],
+  },
+  "/toothpaste-test": {
+    title: "牙膏试验数据录入",
+    description: "牙膏清洗试验数据采集",
+    overview: "录入清洗设备牙膏试验的测试数据，包括参数和结果。",
+    steps: [
+      { title: "选择工位", description: "选择测试工位和设备" },
+      { title: "录入数据", description: "输入试验参数和测试结果" },
+      { title: "提交保存", description: "确认数据后提交保存" },
+    ],
+    faq: [
+      { question: "数据可以修改吗？", answer: "提交前可以修改，提交后需要管理员审批才能修改。" },
+    ],
+  },
+  "/toothpaste-test-history": {
+    title: "牙膏试验历史记录",
+    description: "历史试验数据查询与分析",
+    overview: "查询和分析历史牙膏试验数据，支持趋势分析和对比。",
+    steps: [
+      { title: "筛选条件", description: "按时间、工位等条件筛选" },
+      { title: "查看数据", description: "查看历史试验记录" },
+      { title: "导出报告", description: "导出试验数据报告" },
+    ],
+    faq: [
+      { question: "可以对比不同批次吗？", answer: "支持，选择多条记录后可进行批次间对比分析。" },
+    ],
+  },
+
+  // ========== Batch K: 集成/配置 ==========
+  "/cron-monitor": {
+    title: "定时任务监控",
+    description: "系统定时任务状态监控",
+    overview: "监控所有定时任务的运行状态、执行历史和错误日志。",
+    steps: [
+      { title: "查看任务列表", description: "浏览所有定时任务及其状态" },
+      { title: "查看执行历史", description: "查看任务的执行记录" },
+      { title: "处理异常", description: "排查和处理任务异常" },
+    ],
+    faq: [
+      { question: "任务失败会通知吗？", answer: "会，支持钉钉、邮件等多渠道告警通知。" },
+    ],
+  },
+  "/admin/dingtalk-settings": {
+    title: "钉钉设置",
+    description: "钉钉集成配置管理",
+    overview: "配置钉钉机器人、通知渠道和消息模板。",
+    steps: [
+      { title: "配置机器人", description: "添加钉钉群机器人" },
+      { title: "设置模板", description: "配置消息通知模板" },
+      { title: "测试发送", description: "测试消息推送" },
+    ],
+    faq: [
+      { question: "支持多个群吗？", answer: "支持，可配置多个群机器人并按场景分配。" },
+    ],
+  },
+  "/admin/erp-configuration": {
+    title: "ERP连接配置",
+    description: "ERP系统连接配置管理",
+    overview: "配置SAP、Oracle、金蝶等ERP系统的数据同步连接。",
+    steps: [
+      { title: "添加连接", description: "配置ERP连接参数" },
+      { title: "测试连接", description: "验证连接是否正常" },
+      { title: "数据同步", description: "执行增量或全量同步" },
+    ],
+    faq: [
+      { question: "支持哪些ERP系统？", answer: "支持SAP、Oracle、金蝶和自定义ERP系统。" },
+    ],
+  },
+  "/admin/erp-connection": {
+    title: "ERP连接管理",
+    description: "ERP系统连接状态管理",
+    overview: "管理和监控ERP系统连接的健康状态和同步日志。",
+    steps: [
+      { title: "查看连接", description: "查看所有ERP连接状态" },
+      { title: "检查同步", description: "查看数据同步日志" },
+      { title: "排查问题", description: "诊断并修复连接问题" },
+    ],
+    faq: [
+      { question: "同步冲突如何处理？", answer: "系统会标记冲突记录，由管理员手动处理。" },
+    ],
+  },
+  "/jiandaoyun": {
+    title: "简道云分析",
+    description: "简道云数据分析与报表",
+    overview: "对接简道云平台数据，提供数据分析和可视化报表。",
+    steps: [
+      { title: "连接数据源", description: "配置简道云API连接" },
+      { title: "选择表单", description: "选择要分析的表单数据" },
+      { title: "生成报表", description: "生成数据分析报表" },
+    ],
+    faq: [
+      { question: "数据实时同步吗？", answer: "支持定时同步和手动刷新两种模式。" },
+    ],
+  },
+  "/jiandaoyun-integration": {
+    title: "简道云集成",
+    description: "简道云系统集成配置",
+    overview: "配置与简道云平台的数据集成，支持双向数据同步。",
+    steps: [
+      { title: "配置连接", description: "设置API密钥和权限" },
+      { title: "映射字段", description: "配置字段映射关系" },
+      { title: "启动同步", description: "启动数据同步任务" },
+    ],
+    faq: [
+      { question: "支持双向同步吗？", answer: "支持，可配置GRT到简道云和简道云到GRT的双向同步。" },
+    ],
+  },
+  "/migration": {
+    title: "迁移任务",
+    description: "系统数据迁移任务管理",
+    overview: "管理系统间的数据迁移任务，支持增量和全量迁移。",
+    steps: [
+      { title: "创建任务", description: "配置迁移源和目标" },
+      { title: "预览数据", description: "预览将要迁移的数据" },
+      { title: "执行迁移", description: "执行迁移任务并监控进度" },
+    ],
+    faq: [
+      { question: "迁移过程中可以回滚吗？", answer: "支持，系统会自动创建回滚点。" },
+    ],
+  },
+  "/naming-rules": {
+    title: "命名规则管理",
+    description: "系统编码命名规则配置",
+    overview: "管理系统中各类编码的命名规则，确保编码规范统一。",
+    steps: [
+      { title: "查看规则", description: "浏览现有命名规则" },
+      { title: "编辑规则", description: "修改命名规则模板" },
+      { title: "验证规则", description: "测试规则是否生效" },
+    ],
+    faq: [
+      { question: "修改规则会影响现有编码吗？", answer: "不会，规则只对新创建的编码生效。" },
+    ],
+  },
+  "/notification-aggregation-config": {
+    title: "消息聚合配置",
+    description: "通知消息聚合规则配置",
+    overview: "配置消息聚合规则，减少重复通知，提升消息质量。",
+    steps: [
+      { title: "创建规则", description: "定义消息聚合规则" },
+      { title: "设置条件", description: "配置聚合条件和时间窗口" },
+      { title: "测试预览", description: "预览聚合效果" },
+    ],
+    faq: [
+      { question: "聚合会丢失消息吗？", answer: "不会，聚合只合并展示方式，所有原始消息都保留。" },
+    ],
+  },
+  "/notification-aggregation": {
+    title: "消息聚合预览",
+    description: "聚合通知效果预览",
+    overview: "预览消息聚合后的展示效果，确认聚合规则是否符合预期。",
+    steps: [
+      { title: "选择规则", description: "选择要预览的聚合规则" },
+      { title: "查看效果", description: "查看聚合前后的对比" },
+      { title: "调整优化", description: "根据预览结果调整规则" },
+    ],
+    faq: [
+      { question: "预览是实时数据吗？", answer: "是，使用最近24小时的真实通知数据。" },
+    ],
+  },
+  "/scheduler": {
+    title: "调度管理",
+    description: "系统任务调度配置",
+    overview: "管理系统中的定时任务调度，包括创建、暂停和监控调度任务。",
+    steps: [
+      { title: "创建调度", description: "配置调度任务和执行周期" },
+      { title: "管理任务", description: "暂停、恢复或删除调度" },
+      { title: "查看日志", description: "查看任务执行日志" },
+    ],
+    faq: [
+      { question: "支持Cron表达式吗？", answer: "支持，可使用标准Cron表达式定义执行周期。" },
+    ],
+  },
+  "/webhook": {
+    title: "Webhook管理",
+    description: "Webhook事件订阅管理",
+    overview: "配置和管理系统Webhook，支持事件订阅和回调通知。",
+    steps: [
+      { title: "创建Webhook", description: "配置回调URL和事件类型" },
+      { title: "设置认证", description: "配置签名密钥和认证方式" },
+      { title: "测试回调", description: "发送测试事件验证配置" },
+    ],
+    faq: [
+      { question: "Webhook失败会重试吗？", answer: "会，默认重试3次，间隔递增。" },
+    ],
+  },
+  "/webhook-settings": {
+    title: "Webhook设置",
+    description: "Webhook全局配置",
+    overview: "配置Webhook的全局参数，包括超时、重试策略和日志保留。",
+    steps: [
+      { title: "配置参数", description: "设置全局超时和重试策略" },
+      { title: "管理密钥", description: "管理签名密钥" },
+      { title: "查看日志", description: "查看全局调用日志" },
+    ],
+    faq: [
+      { question: "日志保留多久？", answer: "默认保留30天，可在设置中调整。" },
+    ],
+  },
+  "/admin/webhooks": {
+    title: "Webhook管理后台",
+    description: "管理员Webhook配置",
+    overview: "管理员级别的Webhook配置和监控，支持全局管理所有Webhook。",
+    steps: [
+      { title: "查看所有Webhook", description: "浏览系统中所有已配置的Webhook" },
+      { title: "管理配置", description: "编辑或删除Webhook配置" },
+      { title: "监控状态", description: "监控Webhook调用状态和成功率" },
+    ],
+    faq: [
+      { question: "可以批量管理吗？", answer: "支持批量启用、禁用和删除操作。" },
+    ],
+  },
+  "/group-notifications": {
+    title: "群组通知管理",
+    description: "群组消息通知配置",
+    overview: "管理各群组的通知配置，包括消息类型、发送频率和接收人。",
+    steps: [
+      { title: "选择群组", description: "选择要配置的群组" },
+      { title: "配置规则", description: "设置通知规则和模板" },
+      { title: "测试发送", description: "发送测试通知" },
+    ],
+    faq: [
+      { question: "支持哪些群组类型？", answer: "支持钉钉群、企业微信群和飞书群。" },
+    ],
+  },
+  "/settings/microsoft-graph": {
+    title: "Microsoft Graph设置",
+    description: "Microsoft Graph API配置",
+    overview: "配置Microsoft Graph API连接，用于Office 365集成。",
+    steps: [
+      { title: "注册应用", description: "在Azure AD中注册应用" },
+      { title: "配置权限", description: "设置API权限和范围" },
+      { title: "测试连接", description: "验证API连接是否正常" },
+    ],
+    faq: [
+      { question: "需要Azure订阅吗？", answer: "需要Azure AD租户，用于OAuth2认证。" },
+    ],
+  },
+  "/settings/social-platform": {
+    title: "社交平台设置",
+    description: "社交平台集成配置",
+    overview: "配置微信、钉钉等社交平台的集成参数。",
+    steps: [
+      { title: "选择平台", description: "选择要配置的社交平台" },
+      { title: "配置参数", description: "设置AppID、密钥等参数" },
+      { title: "测试集成", description: "测试平台连接" },
+    ],
+    faq: [
+      { question: "支持哪些平台？", answer: "支持微信、企业微信、钉钉和飞书。" },
+    ],
+  },
+  "/production/notification-channels": {
+    title: "通知渠道设置",
+    description: "生产通知渠道配置",
+    overview: "配置生产系统的通知渠道，支持多种告警方式。",
+    steps: [
+      { title: "添加渠道", description: "配置新的通知渠道" },
+      { title: "设置模板", description: "定义通知消息模板" },
+      { title: "测试推送", description: "发送测试通知验证配置" },
+    ],
+    faq: [
+      { question: "渠道故障有备选吗？", answer: "支持配置备用渠道，主渠道故障时自动切换。" },
+    ],
+  },
+
+  // ========== Batch L: 业务/财务/合规 ==========
+  "/after-sales-advanced": {
+    title: "售后服务高级功能",
+    description: "售后服务高级分析与管理",
+    overview: "提供售后服务的高级分析功能，包括服务趋势、客户满意度和SLA监控。",
+    steps: [
+      { title: "查看概览", description: "查看售后服务关键指标" },
+      { title: "分析趋势", description: "分析服务请求趋势" },
+      { title: "优化流程", description: "基于数据优化服务流程" },
+    ],
+    faq: [
+      { question: "SLA违规会通知吗？", answer: "会，系统自动监控SLA并在接近违规时告警。" },
+    ],
+  },
+  "/after-sales": {
+    title: "售后服务管理",
+    description: "售后服务工单管理",
+    overview: "管理售后服务工单的全生命周期，从创建到关闭。",
+    steps: [
+      { title: "创建工单", description: "录入客户服务请求" },
+      { title: "分配处理", description: "将工单分配给服务工程师" },
+      { title: "跟踪关闭", description: "跟踪处理进度直至关闭" },
+    ],
+    faq: [
+      { question: "工单优先级如何确定？", answer: "根据客户等级和问题类型自动计算优先级。" },
+    ],
+  },
+  "/business-units": {
+    title: "事业部管理",
+    description: "事业部信息与绩效管理",
+    overview: "管理各事业部的基本信息、绩效指标和关键业绩数据。",
+    steps: [
+      { title: "查看事业部", description: "浏览所有事业部列表" },
+      { title: "编辑信息", description: "更新事业部基本信息" },
+      { title: "查看绩效", description: "查看各事业部KPI达成情况" },
+    ],
+    faq: [
+      { question: "如何添加新事业部？", answer: "点击'创建事业部'按钮，填写基本信息后提交。" },
+    ],
+  },
+  "/bu-team-management": {
+    title: "BU团队管理",
+    description: "事业部人员管理与映射",
+    overview: "管理事业部人员配置，支持自动匹配和手动映射。",
+    steps: [
+      { title: "查看人员", description: "查看各BU的人员配置" },
+      { title: "自动匹配", description: "使用AI自动匹配人员归属" },
+      { title: "手动调整", description: "手动调整人员映射关系" },
+    ],
+    faq: [
+      { question: "自动匹配准确率如何？", answer: "基于历史数据，匹配准确率约95%。" },
+    ],
+  },
+  "/capability-management": {
+    title: "能力管理",
+    description: "组织能力评估与管理",
+    overview: "评估和管理组织各项能力指标，支持能力差距分析和提升计划。",
+    steps: [
+      { title: "评估能力", description: "对各项能力指标进行评估" },
+      { title: "分析差距", description: "识别能力差距和改进方向" },
+      { title: "制定计划", description: "制定能力提升计划" },
+    ],
+    faq: [
+      { question: "评估周期是多久？", answer: "建议每季度评估一次，年度进行全面评估。" },
+    ],
+  },
+  "/ccd-integration": {
+    title: "CCD视觉检测集成",
+    description: "CCD视觉检测系统数据集成",
+    overview: "集成CCD视觉检测设备的数据，实时获取检测结果和统计信息。",
+    steps: [
+      { title: "配置设备", description: "注册CCD检测设备" },
+      { title: "数据同步", description: "同步检测数据到系统" },
+      { title: "查看结果", description: "查看检测结果和统计" },
+    ],
+    faq: [
+      { question: "支持哪些CCD品牌？", answer: "支持海康、大华等主流CCD品牌设备。" },
+    ],
+  },
+  "/ccd-realtime": {
+    title: "CCD检测实时推送",
+    description: "CCD检测结果实时监控",
+    overview: "实时接收和展示CCD视觉检测结果，支持异常告警。",
+    steps: [
+      { title: "连接设备", description: "确认CCD设备连接状态" },
+      { title: "实时监控", description: "查看实时检测数据流" },
+      { title: "处理异常", description: "处理检测异常告警" },
+    ],
+    faq: [
+      { question: "推送延迟大吗？", answer: "通常在1秒内，依赖网络环境。" },
+    ],
+  },
+  "/certification-management": {
+    title: "资质管理中心",
+    description: "企业资质证书管理",
+    overview: "管理企业各类资质证书，包括有效期提醒和续期跟踪。",
+    steps: [
+      { title: "录入证书", description: "录入资质证书信息" },
+      { title: "设置提醒", description: "配置到期提醒规则" },
+      { title: "续期管理", description: "管理证书续期流程" },
+    ],
+    faq: [
+      { question: "证书到期前多久提醒？", answer: "默认提前30天和7天各提醒一次，可自定义。" },
+    ],
+  },
+  "/admin/certificates": {
+    title: "证书模板管理",
+    description: "能力证书模板配置",
+    overview: "管理能力认证证书的模板，包括布局设计和字段配置。",
+    steps: [
+      { title: "创建模板", description: "设计新的证书模板" },
+      { title: "配置字段", description: "定义证书中的动态字段" },
+      { title: "预览发布", description: "预览证书效果后发布" },
+    ],
+    faq: [
+      { question: "模板支持自定义logo吗？", answer: "支持，可上传企业logo和自定义背景图。" },
+    ],
+  },
+  "/compliance-dashboard": {
+    title: "合规仪表盘",
+    description: "跨国合规监控与管理",
+    overview: "监控企业合规状态，包括数据合规、贸易合规和审计报告。",
+    steps: [
+      { title: "查看概览", description: "查看合规状态总览" },
+      { title: "处理预警", description: "处理合规风险预警" },
+      { title: "生成报告", description: "生成合规审计报告" },
+    ],
+    faq: [
+      { question: "支持哪些合规标准？", answer: "支持GDPR、SOX、中国网络安全法等主要合规标准。" },
+    ],
+  },
+  "/compliance/rules-config": {
+    title: "合规规则配置",
+    description: "合规检查规则管理",
+    overview: "配置合规检查规则，定义检查项、阈值和处理流程。",
+    steps: [
+      { title: "创建规则", description: "定义合规检查规则" },
+      { title: "设置阈值", description: "配置告警阈值和处理流程" },
+      { title: "启用规则", description: "激活规则开始自动检查" },
+    ],
+    faq: [
+      { question: "规则变更需要审批吗？", answer: "需要，合规规则变更需要合规官审批。" },
+    ],
+  },
+  "/expense-comparison": {
+    title: "费用对比",
+    description: "多维度费用对比分析",
+    overview: "对比分析不同时期、部门、项目的费用数据。",
+    steps: [
+      { title: "选择维度", description: "选择对比维度和时间范围" },
+      { title: "查看对比", description: "查看费用对比图表" },
+      { title: "导出报表", description: "导出对比分析报表" },
+    ],
+    faq: [
+      { question: "支持同比环比吗？", answer: "支持，可选择同比(年)和环比(月)两种对比方式。" },
+    ],
+  },
+  "/expense-forecast": {
+    title: "费用预测",
+    description: "AI驱动的费用预测分析",
+    overview: "基于历史数据和AI模型预测未来费用趋势。",
+    steps: [
+      { title: "选择范围", description: "选择预测的费用类别和时间" },
+      { title: "查看预测", description: "查看AI生成的预测结果" },
+      { title: "调整参数", description: "调整预测模型参数" },
+    ],
+    faq: [
+      { question: "预测准确度如何？", answer: "历史验证准确度约85%，随数据积累持续提升。" },
+    ],
+  },
+  "/expense-report": {
+    title: "费用报告",
+    description: "费用统计报表生成",
+    overview: "生成各类费用统计报表，支持自定义报表模板。",
+    steps: [
+      { title: "选择模板", description: "选择报表模板或自定义" },
+      { title: "设置参数", description: "配置时间范围和筛选条件" },
+      { title: "生成导出", description: "生成报表并导出" },
+    ],
+    faq: [
+      { question: "报表可以定时发送吗？", answer: "可以，在报表调度中配置定时生成和发送。" },
+    ],
+  },
+  "/expense-report-scheduler": {
+    title: "费用报告调度",
+    description: "费用报表定时生成配置",
+    overview: "配置费用报表的自动生成和发送调度。",
+    steps: [
+      { title: "创建调度", description: "配置报表生成周期" },
+      { title: "设置收件人", description: "添加报表接收人" },
+      { title: "启动调度", description: "激活自动调度任务" },
+    ],
+    faq: [
+      { question: "最短调度周期是多少？", answer: "支持每日、每周、每月三种调度周期。" },
+    ],
+  },
+  "/global-growth-tracker": {
+    title: "全球增长追踪",
+    description: "全球业务增长数据追踪",
+    overview: "追踪和分析全球各区域的业务增长数据。",
+    steps: [
+      { title: "选择区域", description: "选择要查看的业务区域" },
+      { title: "查看数据", description: "查看增长趋势和关键指标" },
+      { title: "对比分析", description: "区域间增长数据对比" },
+    ],
+    faq: [
+      { question: "数据来源是什么？", answer: "数据来自各区域ERP和CRM系统的自动同步。" },
+    ],
+  },
+  "/quotation-create": {
+    title: "报价生成",
+    description: "AI辅助报价生成",
+    overview: "利用AI辅助生成报价方案，支持智能定价和竞品分析。",
+    steps: [
+      { title: "输入需求", description: "输入客户需求和项目参数" },
+      { title: "AI生成", description: "AI自动生成报价方案" },
+      { title: "调整提交", description: "人工调整后提交审批" },
+    ],
+    faq: [
+      { question: "AI报价依据什么？", answer: "基于历史成交价、成本模型和市场数据综合计算。" },
+    ],
+  },
+  "/travel-dashboard": {
+    title: "差旅仪表盘",
+    description: "差旅费用统计与分析",
+    overview: "展示差旅相关的费用统计和趋势分析。",
+    steps: [
+      { title: "查看统计", description: "查看差旅费用总览" },
+      { title: "分析趋势", description: "分析差旅费用趋势" },
+      { title: "管理预算", description: "监控差旅预算执行" },
+    ],
+    faq: [
+      { question: "可以按部门查看吗？", answer: "支持按部门、项目和人员等维度查看。" },
+    ],
+  },
+  "/trip-request": {
+    title: "出差申请",
+    description: "出差申请提交与审批",
+    overview: "提交出差申请，包括行程安排、预算估算和审批流程。",
+    steps: [
+      { title: "填写申请", description: "填写出差目的、行程和预算" },
+      { title: "提交审批", description: "提交给上级审批" },
+      { title: "跟踪状态", description: "查看审批进度" },
+    ],
+    faq: [
+      { question: "审批需要多久？", answer: "一般1-2个工作日，紧急出差可走加急流程。" },
+    ],
+  },
+
+  // ========== Batch M: IoT/UWB/文档/杂项 ==========
+  "/iot-dashboard": {
+    title: "物联网仪表盘",
+    description: "IoT设备监控与管理",
+    overview: "实时监控IoT设备状态，展示设备数据和告警信息。",
+    steps: [
+      { title: "选择设备", description: "选择要监控的设备组" },
+      { title: "查看数据", description: "查看设备实时数据" },
+      { title: "处理告警", description: "响应设备异常告警" },
+    ],
+    faq: [
+      { question: "设备离线会通知吗？", answer: "会，设备离线超过5分钟自动触发告警。" },
+    ],
+  },
+  "/uwb-management": {
+    title: "UWB定位系统管理",
+    description: "UWB室内定位系统管理",
+    overview: "管理UWB定位标签和基站，监控定位精度和设备状态。",
+    steps: [
+      { title: "管理设备", description: "添加和管理UWB标签和基站" },
+      { title: "查看定位", description: "查看实时定位地图" },
+      { title: "分析数据", description: "分析定位数据和轨迹" },
+    ],
+    faq: [
+      { question: "定位精度是多少？", answer: "在良好环境下精度可达10-30cm。" },
+    ],
+  },
+  "/production/uwb-devices": {
+    title: "UWB设备管理",
+    description: "UWB硬件设备配置管理",
+    overview: "管理UWB定位系统的硬件设备，包括基站、标签和中继器。",
+    steps: [
+      { title: "添加设备", description: "注册新的UWB设备" },
+      { title: "配置参数", description: "设置设备参数和分组" },
+      { title: "监控状态", description: "监控设备在线状态和电量" },
+    ],
+    faq: [
+      { question: "设备固件可以远程升级吗？", answer: "支持，可通过管理界面远程推送固件更新。" },
+    ],
+  },
+  "/worker-import": {
+    title: "工人数据导入",
+    description: "批量导入工人信息",
+    overview: "通过Excel批量导入工人基本信息和技能数据。",
+    steps: [
+      { title: "下载模板", description: "下载标准导入模板" },
+      { title: "准备数据", description: "按模板格式填写工人数据" },
+      { title: "上传导入", description: "上传文件并确认导入" },
+    ],
+    faq: [
+      { question: "重复数据怎么处理？", answer: "系统自动识别重复记录，可选择覆盖或跳过。" },
+    ],
+  },
+  "/worker-management": {
+    title: "工人管理",
+    description: "产线工人信息管理",
+    overview: "管理产线工人的基本信息、技能等级、考勤和绩效数据。",
+    steps: [
+      { title: "查看工人", description: "浏览工人列表和详细信息" },
+      { title: "管理技能", description: "更新工人技能等级和认证" },
+      { title: "查看绩效", description: "查看工人绩效排行" },
+    ],
+    faq: [
+      { question: "如何批量导入工人？", answer: "使用'工人数据导入'功能可通过Excel批量导入。" },
+    ],
+  },
+  "/m/field-dashboard": {
+    title: "现场工程师工作台",
+    description: "现场工程师移动端工作台",
+    overview: "现场工程师的专属工作台，支持现场任务管理和数据采集。",
+    steps: [
+      { title: "查看任务", description: "查看今日待办任务" },
+      { title: "现场记录", description: "记录现场情况和数据" },
+      { title: "提交报告", description: "提交现场工作报告" },
+    ],
+    faq: [
+      { question: "支持离线使用吗？", answer: "基本功能支持离线，联网后自动同步数据。" },
+    ],
+  },
+  "/certificate-verify": {
+    title: "能力证书验证",
+    description: "在线证书真伪验证",
+    overview: "验证能力认证证书的真实性和有效期。",
+    steps: [
+      { title: "输入编号", description: "输入证书编号" },
+      { title: "查看结果", description: "查看验证结果和证书详情" },
+    ],
+    faq: [
+      { question: "支持扫码验证吗？", answer: "支持，证书上的二维码可直接扫码验证。" },
+    ],
+  },
+  "/docs/guide": {
+    title: "指南阅读器",
+    description: "系统指南文档阅读",
+    overview: "在线阅读系统使用指南和操作手册。",
+    steps: [
+      { title: "选择文档", description: "选择要阅读的指南文档" },
+      { title: "阅读内容", description: "阅读文档内容" },
+      { title: "打印/导出", description: "打印或导出文档" },
+    ],
+    faq: [
+      { question: "文档可以下载吗？", answer: "支持下载PDF格式的离线文档。" },
+    ],
+  },
+  "/docs": {
+    title: "文档中心",
+    description: "系统文档与知识库",
+    overview: "系统所有文档的统一入口，包括使用手册、API文档和最佳实践。",
+    steps: [
+      { title: "搜索文档", description: "按关键词搜索相关文档" },
+      { title: "浏览分类", description: "按分类浏览文档列表" },
+      { title: "阅读文档", description: "点击查看文档详情" },
+    ],
+    faq: [
+      { question: "可以贡献文档吗？", answer: "可以，在文档详情页点击'编辑'按钮提交修改建议。" },
+    ],
+  },
+  "/subsystem-help": {
+    title: "子系统操作手册",
+    description: "各子系统操作指南",
+    overview: "提供各子系统的详细操作手册和最佳实践指南。",
+    steps: [
+      { title: "选择子系统", description: "选择要查看的子系统" },
+      { title: "查看手册", description: "阅读操作手册内容" },
+      { title: "实践操作", description: "按手册步骤进行操作" },
+    ],
+    faq: [
+      { question: "手册有视频教程吗？", answer: "部分模块提供视频教程，标记有视频图标。" },
+    ],
+  },
+  "/gamification": {
+    title: "成就系统",
+    description: "用户成就与积分系统",
+    overview: "展示用户的成就徽章、积分排行和挑战进度。",
+    steps: [
+      { title: "查看成就", description: "查看已获得和待解锁的成就" },
+      { title: "参与挑战", description: "参加各类积分挑战活动" },
+      { title: "兑换奖励", description: "使用积分兑换奖励" },
+    ],
+    faq: [
+      { question: "积分怎么获得？", answer: "完成任务、参加培训、贡献文档等都可以获得积分。" },
+    ],
+  },
+  "/live-documents": {
+    title: "活文档管理",
+    description: "实时更新的活文档系统",
+    overview: "管理可实时更新的活文档，支持版本追踪和协同编辑。",
+    steps: [
+      { title: "创建文档", description: "创建新的活文档" },
+      { title: "编辑内容", description: "在线编辑文档内容" },
+      { title: "发布版本", description: "发布文档新版本" },
+    ],
+    faq: [
+      { question: "活文档和普通文档的区别？", answer: "活文档支持嵌入实时数据源，内容随数据自动更新。" },
+    ],
+  },
+  "/notebook-search": {
+    title: "笔记搜索与导出",
+    description: "笔记全文搜索和批量导出",
+    overview: "对系统中的笔记进行全文搜索，支持高级筛选和批量导出。",
+    steps: [
+      { title: "输入关键词", description: "输入搜索关键词" },
+      { title: "筛选结果", description: "使用标签和日期筛选" },
+      { title: "导出笔记", description: "选择笔记批量导出" },
+    ],
+    faq: [
+      { question: "支持哪些导出格式？", answer: "支持PDF、Markdown和Word格式。" },
+    ],
+  },
+  "/red-blue-board": {
+    title: "红蓝对抗看板",
+    description: "红蓝对抗项目管理看板",
+    overview: "管理红蓝对抗项目的攻防进度，跟踪问题发现和解决。",
+    steps: [
+      { title: "选择项目", description: "选择红蓝对抗项目" },
+      { title: "查看进度", description: "查看攻防双方进度" },
+      { title: "处理问题", description: "记录和解决发现的问题" },
+    ],
+    faq: [
+      { question: "红蓝对抗是什么？", answer: "红队模拟攻击，蓝队负责防御，用于评估系统安全性。" },
+    ],
+  },
+  "/translation-contribute": {
+    title: "翻译贡献",
+    description: "多语言翻译协作平台",
+    overview: "参与系统多语言翻译工作，提交翻译建议和审核翻译质量。",
+    steps: [
+      { title: "选择语言", description: "选择要翻译的目标语言" },
+      { title: "提交翻译", description: "对未翻译内容提交翻译" },
+      { title: "审核翻译", description: "审核其他人的翻译建议" },
+    ],
+    faq: [
+      { question: "翻译被采纳有奖励吗？", answer: "有，每条被采纳的翻译可获得积分奖励。" },
+    ],
+  },
 };
 
 /**
