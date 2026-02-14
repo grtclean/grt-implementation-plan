@@ -26,6 +26,9 @@ import {
   MeetingPatternsTab,
   HrSignalsTab,
   LiveAssistantTab,
+  MeetingCostTab,
+  ActionItemTrackerTab,
+  TopicContinuityTab,
 } from "./meeting-executive";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -850,6 +853,9 @@ export default function MeetingExecutive() {
           <TabsTrigger value="patterns">会议模式</TabsTrigger>
           <TabsTrigger value="hr-signals">HR信号</TabsTrigger>
           <TabsTrigger value="live">实时助手</TabsTrigger>
+          <TabsTrigger value="cost">会议成本</TabsTrigger>
+          <TabsTrigger value="action-items">行动项追踪</TabsTrigger>
+          <TabsTrigger value="topics">议题追踪</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -882,6 +888,18 @@ export default function MeetingExecutive() {
 
         <TabsContent value="live">
           <LiveAssistantTab />
+        </TabsContent>
+
+        <TabsContent value="cost">
+          <MeetingCostTab />
+        </TabsContent>
+
+        <TabsContent value="action-items">
+          <ActionItemTrackerTab />
+        </TabsContent>
+
+        <TabsContent value="topics">
+          <TopicContinuityTab />
         </TabsContent>
       </Tabs>
     </div>

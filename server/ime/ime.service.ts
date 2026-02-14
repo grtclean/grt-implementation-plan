@@ -1468,3 +1468,746 @@ export async function endLiveSession(sessionId: number) {
     analysis: analysisResult,
   };
 }
+
+// ============================================================================
+// Phase 3 — Feature 1: Meeting Cost Calculator
+// ============================================================================
+
+export async function computeMeetingCost(meetingId: string) {
+  const db = await requireDb();
+
+  // 1. Get meeting record
+  const meetingResult = await db.execute(sql`
+    SELECT id, title, meeting_date FROM meeting_records WHERE id = ${meetingId}
+  `);
+  const meeting = (meetingResult.rows as any[])[0];
+  if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
+
+  // 2. Compute duration from content blocks timestamps
+  const durationResult = await db.execute(sql`
+    SELECT
+      MIN(timestamp_start) as min_start,
+      MAX(timestamp_end) as max_end
+    FROM meeting_content_blocks
+    WHERE meeting_id = ${meetingId}
+      AND timestamp_start IS NOT NULL
+      AND timestamp_end IS NOT NULL
+  `);
+  const dRow = (durationResult.rows as any[])[0];
+  let durationMinutes = 60; // fallback
+  if (dRow?.min_start != null && dRow?.max_end != null) {
+    durationMinutes = Math.max(1, (Number(dRow.max_end) - Number(dRow.min_start)) / 60);
+  }
+  const durationHours = durationMinutes / 60;
+
+  // 3. Get participants from meeting_contributions
+  const contribResult = await db.execute(sql`
+    SELECT employee_id, employee_name FROM meeting_contributions
+    WHERE meeting_id = ${meetingId}
+  `);
+  const participants = contribResult.rows as any[];
+  const participantCount = participants.length || 1;
+
+  // 4. Resolve hourly rates
+  const DEFAULT_HOURLY_RATE = 150; // yuan/hr fallback
+  const breakdown: { name: string; hourlyRate: number; cost: number }[] = [];
+
+  for (const p of participants) {
+    let hourlyRate = DEFAULT_HOURLY_RATE;
+
+    // Try salary_calculations first
+    try {
+      const salaryResult = await db.execute(sql.raw(`
+        SELECT "annualTotal" FROM salary_calculations
+        WHERE "employeeCode" = '${(p.employee_id || '').replace(/'/g, "''")}'
+        ORDER BY "calculatedAt" DESC LIMIT 1
+      `));
+      const salRow = (salaryResult.rows as any[])[0];
+      if (salRow?.annualTotal) {
+        hourlyRate = Number(salRow.annualTotal) / 2080;
+      } else {
+        // Try hrm_salary_structures midpoint
+        const structResult = await db.execute(sql.raw(`
+          SELECT "midPoint" FROM hrm_salary_structures LIMIT 1
+        `));
+        const structRow = (structResult.rows as any[])[0];
+        if (structRow?.midPoint) {
+          hourlyRate = Number(structRow.midPoint) / 2080;
+        }
+      }
+    } catch {
+      // Use default
+    }
+
+    const cost = hourlyRate * durationHours;
+    breakdown.push({
+      name: p.employee_name || p.employee_id,
+      hourlyRate: Math.round(hourlyRate * 100) / 100,
+      cost: Math.round(cost * 100) / 100,
+    });
+  }
+
+  const totalCost = breakdown.reduce((sum, b) => sum + b.cost, 0);
+
+  // 5. Get decision / action item counts
+  const blockCountResult = await db.execute(sql`
+    SELECT block_type, COUNT(*) as cnt FROM meeting_content_blocks
+    WHERE meeting_id = ${meetingId}
+    GROUP BY block_type
+  `);
+  const blockCounts: Record<string, number> = {};
+  for (const row of blockCountResult.rows as any[]) {
+    blockCounts[row.block_type] = Number(row.cnt);
+  }
+  const decisionCount = blockCounts["decision"] || 0;
+  const actionItemCount = blockCounts["action_item"] || 0;
+
+  const costPerDecision = decisionCount > 0 ? totalCost / decisionCount : null;
+  const costPerActionItem = actionItemCount > 0 ? totalCost / actionItemCount : null;
+
+  // 6. ROI score = effectiveness overall_score / (total_cost / 1000)
+  let roiScore: number | null = null;
+  try {
+    const effResult = await db.execute(sql`
+      SELECT overall_score FROM meeting_effectiveness_scores
+      WHERE meeting_id = ${meetingId} LIMIT 1
+    `);
+    const effRow = (effResult.rows as any[])[0];
+    if (effRow?.overall_score && totalCost > 0) {
+      roiScore = Math.round((Number(effRow.overall_score) / (totalCost / 1000)) * 100) / 100;
+    }
+  } catch { /* no effectiveness data */ }
+
+  // 7. Delete + insert
+  await db.execute(sql`DELETE FROM ime_meeting_costs WHERE meeting_id = ${meetingId}`);
+  await db.execute(sql.raw(`
+    INSERT INTO ime_meeting_costs
+      (meeting_id, duration_minutes, participant_count, total_cost, cost_per_decision, cost_per_action_item, roi_score, participant_breakdown, computed_at)
+    VALUES (
+      '${meetingId.replace(/'/g, "''")}',
+      ${durationMinutes},
+      ${participantCount},
+      ${Math.round(totalCost * 100) / 100},
+      ${costPerDecision !== null ? Math.round(costPerDecision * 100) / 100 : 'NULL'},
+      ${costPerActionItem !== null ? Math.round(costPerActionItem * 100) / 100 : 'NULL'},
+      ${roiScore ?? 'NULL'},
+      '${JSON.stringify(breakdown).replace(/'/g, "''")}',
+      NOW()
+    )
+  `));
+
+  return {
+    meetingId,
+    meetingTitle: meeting.title,
+    durationMinutes: Math.round(durationMinutes),
+    participantCount,
+    totalCost: Math.round(totalCost * 100) / 100,
+    costPerDecision: costPerDecision !== null ? Math.round(costPerDecision * 100) / 100 : null,
+    costPerActionItem: costPerActionItem !== null ? Math.round(costPerActionItem * 100) / 100 : null,
+    roiScore,
+    breakdown,
+  };
+}
+
+export async function getCostDashboard(filters: { channelId?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  const conditions: string[] = ["1=1"];
+  if (filters.channelId) conditions.push(`mr.channel_id = '${filters.channelId}'`);
+  if (filters.dateFrom) conditions.push(`mr.meeting_date >= '${filters.dateFrom}'`);
+  if (filters.dateTo) conditions.push(`mr.meeting_date <= '${filters.dateTo}'`);
+  const where = conditions.join(" AND ");
+
+  // Aggregate stats
+  const statsResult = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as meeting_count,
+      COALESCE(SUM(mc.total_cost::numeric), 0) as total_spend,
+      COALESCE(AVG(mc.total_cost::numeric), 0) as avg_cost,
+      COALESCE(AVG(mc.duration_minutes), 0) as avg_duration
+    FROM ime_meeting_costs mc
+    JOIN meeting_records mr ON mc.meeting_id = mr.id
+    WHERE ${where}
+  `));
+  const stats = (statsResult.rows as any[])[0] || {};
+
+  // Top 5 most expensive
+  const topResult = await db.execute(sql.raw(`
+    SELECT mc.*, mr.title as meeting_title, mr.meeting_date
+    FROM ime_meeting_costs mc
+    JOIN meeting_records mr ON mc.meeting_id = mr.id
+    WHERE ${where}
+    ORDER BY mc.total_cost::numeric DESC
+    LIMIT 5
+  `));
+
+  // Monthly cost trend (last 12 months)
+  const trendResult = await db.execute(sql.raw(`
+    SELECT
+      TO_CHAR(mr.meeting_date, 'YYYY-MM') as month,
+      COUNT(*) as meeting_count,
+      SUM(mc.total_cost::numeric) as total_cost,
+      AVG(mc.total_cost::numeric) as avg_cost
+    FROM ime_meeting_costs mc
+    JOIN meeting_records mr ON mc.meeting_id = mr.id
+    WHERE ${where}
+    GROUP BY TO_CHAR(mr.meeting_date, 'YYYY-MM')
+    ORDER BY month DESC
+    LIMIT 12
+  `));
+
+  // Cost vs effectiveness scatter data
+  const scatterResult = await db.execute(sql.raw(`
+    SELECT
+      mc.meeting_id,
+      mr.title as meeting_title,
+      mc.total_cost::numeric as cost,
+      mes.overall_score as effectiveness,
+      mc.participant_count
+    FROM ime_meeting_costs mc
+    JOIN meeting_records mr ON mc.meeting_id = mr.id
+    LEFT JOIN meeting_effectiveness_scores mes ON mc.meeting_id = mes.meeting_id
+    WHERE ${where} AND mes.overall_score IS NOT NULL
+    ORDER BY mc.total_cost::numeric DESC
+    LIMIT 50
+  `));
+
+  return {
+    stats: {
+      meetingCount: Number(stats.meeting_count) || 0,
+      totalSpend: Math.round(Number(stats.total_spend) * 100) / 100,
+      avgCost: Math.round(Number(stats.avg_cost) * 100) / 100,
+      avgDuration: Math.round(Number(stats.avg_duration)),
+    },
+    topExpensive: topResult.rows,
+    monthlyTrend: (trendResult.rows as any[]).reverse(),
+    scatterData: scatterResult.rows,
+  };
+}
+
+export async function batchComputeCosts(meetingIds: string[]) {
+  const results: { meetingId: string; success: boolean; error?: string; totalCost?: number }[] = [];
+  for (const meetingId of meetingIds) {
+    try {
+      const result = await computeMeetingCost(meetingId);
+      results.push({ meetingId, success: true, totalCost: result.totalCost });
+    } catch (e: any) {
+      results.push({ meetingId, success: false, error: e.message });
+    }
+  }
+  return results;
+}
+
+// ============================================================================
+// Phase 3 — Feature 2: Action Item Tracker
+// ============================================================================
+
+export async function extractAndTrackActionItems(meetingId: string) {
+  const db = await requireDb();
+
+  // 1. Get action_item blocks from this meeting
+  const blocksResult = await db.execute(sql`
+    SELECT id, content, speaker, sort_order
+    FROM meeting_content_blocks
+    WHERE meeting_id = ${meetingId} AND block_type = 'action_item'
+    ORDER BY sort_order ASC
+  `);
+  const newBlocks = blocksResult.rows as any[];
+
+  if (newBlocks.length === 0) {
+    return { meetingId, matched: 0, created: 0, message: "No action items found in this meeting" };
+  }
+
+  // 2. Get existing open/in_progress/stale items
+  const existingResult = await db.execute(sql`
+    SELECT id, content, owner, status, meeting_appearances, appearance_count
+    FROM ime_action_items
+    WHERE status IN ('open', 'in_progress', 'stale')
+    ORDER BY created_at DESC
+    LIMIT 200
+  `);
+  const existingItems = existingResult.rows as any[];
+
+  // 3. LLM fuzzy-match
+  let matches: { newIndex: number; existingId: number; confidence: number }[] = [];
+  let newItems: { index: number; content: string; owner: string }[] = [];
+
+  const newItemsSummary = newBlocks.map((b: any, i: number) => ({
+    index: i,
+    content: b.content,
+    speaker: b.speaker,
+  }));
+
+  const existingSummary = existingItems.map((item: any) => ({
+    id: item.id,
+    content: item.content,
+    owner: item.owner,
+  }));
+
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "You are an action item matching assistant. Match new action items from a meeting against existing tracked items. Return JSON only.",
+        },
+        {
+          role: "user",
+          content: `New action items from meeting:\n${JSON.stringify(newItemsSummary, null, 2)}\n\nExisting tracked items:\n${JSON.stringify(existingSummary, null, 2)}\n\nFor each new item, determine if it matches an existing item (same task, possibly rephrased). Return:\n- matches: array of {newIndex, existingId, confidence (0-1)}\n- newItems: array of {index, content, owner (speaker name)}`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "action_item_matches",
+          schema: {
+            type: "object",
+            properties: {
+              matches: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    newIndex: { type: "number" },
+                    existingId: { type: "number" },
+                    confidence: { type: "number" },
+                  },
+                  required: ["newIndex", "existingId", "confidence"],
+                  additionalProperties: false,
+                },
+              },
+              newItems: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    index: { type: "number" },
+                    content: { type: "string" },
+                    owner: { type: "string" },
+                  },
+                  required: ["index", "content", "owner"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["matches", "newItems"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+
+    const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+    matches = parsed.matches || [];
+    newItems = parsed.newItems || [];
+  } catch (e) {
+    console.error("[IME] Action item LLM matching failed, using heuristic:", e);
+    // Heuristic fallback: exact content substring matching
+    const matchedIndices = new Set<number>();
+    for (let i = 0; i < newBlocks.length; i++) {
+      const content = (newBlocks[i].content || "").toLowerCase();
+      let found = false;
+      for (const existing of existingItems) {
+        const existingContent = (existing.content || "").toLowerCase();
+        if (content.includes(existingContent.substring(0, 30)) || existingContent.includes(content.substring(0, 30))) {
+          matches.push({ newIndex: i, existingId: existing.id, confidence: 0.6 });
+          matchedIndices.add(i);
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        newItems.push({ index: i, content: newBlocks[i].content, owner: newBlocks[i].speaker || "" });
+      }
+    }
+  }
+
+  // 4. Process matches: append meetingId to appearances, increment count
+  let matchedCount = 0;
+  for (const match of matches) {
+    const existing = existingItems.find((e: any) => e.id === match.existingId);
+    if (!existing) continue;
+
+    const appearances = JSON.parse(existing.meeting_appearances || "[]");
+    if (!appearances.includes(meetingId)) {
+      appearances.push(meetingId);
+    }
+    const newCount = (Number(existing.appearance_count) || 1) + 1;
+    const newStatus = newCount >= 3 && existing.status === "open" ? "stale" : existing.status;
+
+    await db.execute(sql.raw(`
+      UPDATE ime_action_items
+      SET meeting_appearances = '${JSON.stringify(appearances).replace(/'/g, "''")}',
+          appearance_count = ${newCount},
+          last_seen_date = NOW(),
+          status = '${newStatus}',
+          ai_match_confidence = ${match.confidence},
+          updated_at = NOW()
+      WHERE id = ${existing.id}
+    `));
+    matchedCount++;
+  }
+
+  // 5. Insert new items
+  let createdCount = 0;
+  for (const item of newItems) {
+    const block = newBlocks[item.index];
+    await db.execute(sql.raw(`
+      INSERT INTO ime_action_items
+        (content, owner, origin_meeting_id, origin_block_id, status, meeting_appearances, appearance_count, first_seen_date, last_seen_date)
+      VALUES (
+        '${(item.content || block?.content || "").replace(/'/g, "''")}',
+        '${(item.owner || block?.speaker || "").replace(/'/g, "''")}',
+        '${meetingId.replace(/'/g, "''")}',
+        ${block?.id ?? 'NULL'},
+        'open',
+        '${JSON.stringify([meetingId])}',
+        1,
+        NOW(),
+        NOW()
+      )
+    `));
+    createdCount++;
+  }
+
+  return { meetingId, matched: matchedCount, created: createdCount };
+}
+
+export async function getActionItemDashboard(filters: { status?: string; owner?: string }) {
+  const db = await requireDb();
+
+  const conditions: string[] = ["1=1"];
+  if (filters.status) conditions.push(`status = '${filters.status}'`);
+  if (filters.owner) conditions.push(`owner ILIKE '%${filters.owner}%'`);
+  const where = conditions.join(" AND ");
+
+  // Status counts
+  const statusResult = await db.execute(sql.raw(`
+    SELECT status, COUNT(*) as cnt FROM ime_action_items GROUP BY status
+  `));
+  const statusCounts: Record<string, number> = {};
+  for (const row of statusResult.rows as any[]) {
+    statusCounts[row.status] = Number(row.cnt);
+  }
+
+  const total = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+  const completed = statusCounts["completed"] || 0;
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  // Avg resolution days
+  const avgResult = await db.execute(sql.raw(`
+    SELECT AVG(EXTRACT(EPOCH FROM (resolved_date - first_seen_date)) / 86400) as avg_days
+    FROM ime_action_items
+    WHERE status = 'completed' AND resolved_date IS NOT NULL
+  `));
+  const avgResolutionDays = Math.round(Number((avgResult.rows as any[])[0]?.avg_days) || 0);
+
+  // Stale items (top 20)
+  const staleResult = await db.execute(sql.raw(`
+    SELECT * FROM ime_action_items
+    WHERE status = 'stale'
+    ORDER BY appearance_count DESC, last_seen_date DESC
+    LIMIT 20
+  `));
+
+  // Owner rankings
+  const ownerResult = await db.execute(sql.raw(`
+    SELECT
+      owner,
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+      SUM(CASE WHEN status = 'stale' THEN 1 ELSE 0 END) as stale
+    FROM ime_action_items
+    WHERE owner IS NOT NULL AND owner != ''
+    GROUP BY owner
+    ORDER BY total DESC
+    LIMIT 20
+  `));
+
+  // All items with filter
+  const itemsResult = await db.execute(sql.raw(`
+    SELECT * FROM ime_action_items
+    WHERE ${where}
+    ORDER BY updated_at DESC
+    LIMIT 100
+  `));
+
+  return {
+    statusCounts,
+    total,
+    completionRate,
+    avgResolutionDays,
+    staleItems: staleResult.rows,
+    ownerRankings: ownerResult.rows,
+    items: itemsResult.rows,
+  };
+}
+
+export async function updateActionItemStatus(itemId: number, status: string) {
+  const db = await requireDb();
+  const resolvedClause = status === "completed" ? ", resolved_date = NOW()" : "";
+  await db.execute(sql.raw(`
+    UPDATE ime_action_items
+    SET status = '${status}'${resolvedClause}, updated_at = NOW()
+    WHERE id = ${itemId}
+  `));
+  return { success: true, itemId, status };
+}
+
+// ============================================================================
+// Phase 3 — Feature 3: Topic Continuity
+// ============================================================================
+
+export async function extractAndTrackTopics(meetingId: string) {
+  const db = await requireDb();
+
+  // 1. Get all content blocks + meeting metadata
+  const meetingResult = await db.execute(sql`
+    SELECT id, title, objective, summary, meeting_date FROM meeting_records WHERE id = ${meetingId}
+  `);
+  const meeting = (meetingResult.rows as any[])[0];
+  if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
+
+  const blocksResult = await db.execute(sql`
+    SELECT block_type, content, speaker
+    FROM meeting_content_blocks
+    WHERE meeting_id = ${meetingId}
+    ORDER BY sort_order ASC
+  `);
+  const blocks = blocksResult.rows as any[];
+
+  // 2. Get existing non-closed topics
+  const existingResult = await db.execute(sql`
+    SELECT id, topic_name, topic_description, status, meeting_appearances, appearance_count
+    FROM ime_topic_continuity
+    WHERE status NOT IN ('closed', 'decided')
+    ORDER BY last_seen_date DESC
+    LIMIT 100
+  `);
+  const existingTopics = existingResult.rows as any[];
+
+  // 3. LLM extracts topics
+  let topicResults: {
+    matched: { existingId: number; topicName: string; statusInThisMeeting: string; summary: string; confidence: number }[];
+    newTopics: { topicName: string; description: string; status: string; summary: string }[];
+  } = { matched: [], newTopics: [] };
+
+  const blockSummary = blocks.slice(0, 50).map((b: any) => `[${b.block_type}] ${b.speaker}: ${(b.content || "").substring(0, 200)}`).join("\n");
+  const existingSummary = existingTopics.map((t: any) => ({
+    id: t.id,
+    topicName: t.topic_name,
+    status: t.status,
+  }));
+
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "You are a meeting topic analyst. Extract 3-7 key discussion topics from a meeting and match them against existing tracked topics. Return JSON only.",
+        },
+        {
+          role: "user",
+          content: `Meeting: "${meeting.title}"\nObjective: ${meeting.objective || "N/A"}\nSummary: ${meeting.summary || "N/A"}\n\nContent blocks:\n${blockSummary}\n\nExisting tracked topics:\n${JSON.stringify(existingSummary, null, 2)}\n\nExtract 3-7 topics discussed in this meeting. For each topic:\n- If it matches an existing topic, include existingId\n- statusInThisMeeting: one of "introduced", "debated", "decided", "closed"\n- summary: brief description of what was discussed about this topic in this meeting`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "topic_extraction",
+          schema: {
+            type: "object",
+            properties: {
+              matched: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    existingId: { type: "number" },
+                    topicName: { type: "string" },
+                    statusInThisMeeting: { type: "string" },
+                    summary: { type: "string" },
+                    confidence: { type: "number" },
+                  },
+                  required: ["existingId", "topicName", "statusInThisMeeting", "summary", "confidence"],
+                  additionalProperties: false,
+                },
+              },
+              newTopics: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    topicName: { type: "string" },
+                    description: { type: "string" },
+                    status: { type: "string" },
+                    summary: { type: "string" },
+                  },
+                  required: ["topicName", "description", "status", "summary"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["matched", "newTopics"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+
+    const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+    topicResults = { matched: parsed.matched || [], newTopics: parsed.newTopics || [] };
+  } catch (e) {
+    console.error("[IME] Topic extraction LLM failed, using heuristic:", e);
+    // Heuristic fallback: extract from decision/insight blocks
+    const decisionBlocks = blocks.filter((b: any) => b.block_type === "decision" || b.block_type === "insight");
+    for (const block of decisionBlocks.slice(0, 5)) {
+      const topicName = (block.content || "").substring(0, 100);
+      topicResults.newTopics.push({
+        topicName,
+        description: block.content || "",
+        status: block.block_type === "decision" ? "decided" : "introduced",
+        summary: block.content || "",
+      });
+    }
+  }
+
+  // 4. Process matched topics
+  let matchedCount = 0;
+  for (const match of topicResults.matched) {
+    const existing = existingTopics.find((t: any) => t.id === match.existingId);
+    if (!existing) continue;
+
+    const appearances = JSON.parse(existing.meeting_appearances || "[]");
+    appearances.push({
+      meetingId,
+      date: meeting.meeting_date,
+      statusAtMeeting: match.statusInThisMeeting,
+      summary: match.summary,
+    });
+    const newCount = (Number(existing.appearance_count) || 1) + 1;
+
+    // Determine new status
+    let newStatus = match.statusInThisMeeting;
+    if (newStatus === "decided" || newStatus === "closed") {
+      // Keep as decided/closed
+    } else if (newCount >= 3 && existing.status !== "decided") {
+      newStatus = "stalled";
+    }
+
+    const resolvedClause = (newStatus === "decided" || newStatus === "closed")
+      ? `, resolved_meeting_id = '${meetingId.replace(/'/g, "''")}', resolved_date = NOW()`
+      : "";
+
+    await db.execute(sql.raw(`
+      UPDATE ime_topic_continuity
+      SET meeting_appearances = '${JSON.stringify(appearances).replace(/'/g, "''")}',
+          appearance_count = ${newCount},
+          last_seen_date = NOW(),
+          status = '${newStatus}',
+          ai_match_confidence = ${match.confidence}${resolvedClause},
+          updated_at = NOW()
+      WHERE id = ${existing.id}
+    `));
+    matchedCount++;
+  }
+
+  // 5. Insert new topics
+  let createdCount = 0;
+  for (const topic of topicResults.newTopics) {
+    const appearance = [{
+      meetingId,
+      date: meeting.meeting_date,
+      statusAtMeeting: topic.status,
+      summary: topic.summary,
+    }];
+
+    const resolvedClause = (topic.status === "decided" || topic.status === "closed")
+      ? `, '${meetingId.replace(/'/g, "''")}', NOW()`
+      : ", NULL, NULL";
+
+    await db.execute(sql.raw(`
+      INSERT INTO ime_topic_continuity
+        (topic_name, topic_description, status, meeting_appearances, appearance_count, first_seen_meeting_id, first_seen_date, last_seen_date, resolved_meeting_id, resolved_date)
+      VALUES (
+        '${(topic.topicName || "").replace(/'/g, "''")}',
+        '${(topic.description || "").replace(/'/g, "''")}',
+        '${topic.status}',
+        '${JSON.stringify(appearance).replace(/'/g, "''")}',
+        1,
+        '${meetingId.replace(/'/g, "''")}',
+        NOW(),
+        NOW()${resolvedClause}
+      )
+    `));
+    createdCount++;
+  }
+
+  return { meetingId, matched: matchedCount, created: createdCount };
+}
+
+export async function getTopicContinuityDashboard(filters: { status?: string }) {
+  const db = await requireDb();
+
+  const conditions: string[] = ["1=1"];
+  if (filters.status) conditions.push(`status = '${filters.status}'`);
+  const where = conditions.join(" AND ");
+
+  // Status distribution
+  const statusResult = await db.execute(sql.raw(`
+    SELECT status, COUNT(*) as cnt FROM ime_topic_continuity GROUP BY status
+  `));
+  const statusCounts: Record<string, number> = {};
+  for (const row of statusResult.rows as any[]) {
+    statusCounts[row.status] = Number(row.cnt);
+  }
+
+  // Stalled topics (top 20)
+  const stalledResult = await db.execute(sql.raw(`
+    SELECT * FROM ime_topic_continuity
+    WHERE status = 'stalled'
+    ORDER BY appearance_count DESC, last_seen_date DESC
+    LIMIT 20
+  `));
+
+  // Resolution stats
+  const resResult = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as resolved_count,
+      AVG(EXTRACT(EPOCH FROM (resolved_date - first_seen_date)) / 86400) as avg_days
+    FROM ime_topic_continuity
+    WHERE status IN ('decided', 'closed') AND resolved_date IS NOT NULL
+  `));
+  const resStats = (resResult.rows as any[])[0] || {};
+
+  // Topic timeline (last 50)
+  const timelineResult = await db.execute(sql.raw(`
+    SELECT * FROM ime_topic_continuity
+    WHERE ${where}
+    ORDER BY last_seen_date DESC
+    LIMIT 50
+  `));
+
+  return {
+    statusCounts,
+    stalledTopics: stalledResult.rows,
+    resolutionStats: {
+      resolvedCount: Number(resStats.resolved_count) || 0,
+      avgResolutionDays: Math.round(Number(resStats.avg_days) || 0),
+    },
+    topics: timelineResult.rows,
+  };
+}
+
+export async function updateTopicStatus(topicId: number, status: string) {
+  const db = await requireDb();
+  const resolvedClause = (status === "decided" || status === "closed") ? ", resolved_date = NOW()" : "";
+  await db.execute(sql.raw(`
+    UPDATE ime_topic_continuity
+    SET status = '${status}'${resolvedClause}, updated_at = NOW()
+    WHERE id = ${topicId}
+  `));
+  return { success: true, topicId, status };
+}

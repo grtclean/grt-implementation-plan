@@ -317,4 +317,85 @@ export const imeRouter = router({
         liveContributionSnapshot: JSON.parse(session.live_contribution_snapshot || "{}"),
       };
     }),
+
+  // ========================================================================
+  // Phase 3: Meeting Cost Calculator
+  // ========================================================================
+
+  computeMeetingCost: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.computeMeetingCost(input.meetingId);
+    }),
+
+  costDashboard: protectedProcedure
+    .input(z.object({
+      channelId: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getCostDashboard(input ?? {});
+    }),
+
+  batchComputeCosts: protectedProcedure
+    .input(z.object({ meetingIds: z.array(z.string()).min(1).max(50) }))
+    .mutation(async ({ input }) => {
+      return imeService.batchComputeCosts(input.meetingIds);
+    }),
+
+  // ========================================================================
+  // Phase 3: Action Item Tracker
+  // ========================================================================
+
+  extractActionItems: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.extractAndTrackActionItems(input.meetingId);
+    }),
+
+  actionItemDashboard: protectedProcedure
+    .input(z.object({
+      status: z.string().optional(),
+      owner: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getActionItemDashboard(input ?? {});
+    }),
+
+  updateActionItemStatus: protectedProcedure
+    .input(z.object({
+      itemId: z.number(),
+      status: z.enum(["open", "in_progress", "completed", "stale", "cancelled"]),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.updateActionItemStatus(input.itemId, input.status);
+    }),
+
+  // ========================================================================
+  // Phase 3: Topic Continuity
+  // ========================================================================
+
+  extractTopics: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.extractAndTrackTopics(input.meetingId);
+    }),
+
+  topicContinuityDashboard: protectedProcedure
+    .input(z.object({
+      status: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getTopicContinuityDashboard(input ?? {});
+    }),
+
+  updateTopicStatus: protectedProcedure
+    .input(z.object({
+      topicId: z.number(),
+      status: z.enum(["introduced", "debated", "decided", "closed", "stalled"]),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.updateTopicStatus(input.topicId, input.status);
+    }),
 });
