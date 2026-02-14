@@ -9,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  CalendarDays, 
-  Loader2, 
+import { PageHeader } from "@/components/grt";
+import Layout from "@/components/Layout";
+import {
+  CalendarDays,
+  Loader2,
   Sparkles,
   Clock,
   Users,
@@ -136,14 +138,13 @@ export default function AIPlanningAssistant() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <CalendarDays className="w-6 h-6 text-primary" />
-          {t('title')}
-        </h1>
-        <p className="text-muted-foreground mt-1">{t('description')}</p>
-      </div>
+      <PageHeader
+        icon={CalendarDays}
+        title={t('title')}
+        description={t('description')}
+      />
 
       <Card>
         <CardHeader>
@@ -332,5 +333,6 @@ export default function AIPlanningAssistant() {
         </Tabs>
       )}
     </div>
+    </Layout>
   );
 }

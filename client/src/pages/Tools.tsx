@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { ArrowUpRight, Box, Database, Eye, Glasses, LayoutTemplate, Server } from "lucide-react";
+import { PageHeader } from "@/components/grt";
 
 export default function Tools() {
   const { t } = useLanguage();
@@ -117,11 +118,12 @@ export default function Tools() {
 
   return (
     <Layout>
-      <div className="space-y-8">
-        <div className="border-b border-border pb-6">
-          <h1 className="text-3xl font-heading font-bold tracking-tight text-foreground">{t("tools.title")}</h1>
-          <p className="text-muted-foreground mt-2">{t("tools.subtitle")}</p>
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          icon={LayoutTemplate}
+          title={t("tools.title")}
+          description={t("tools.subtitle")}
+        />
 
         <Tabs defaultValue="core" className="space-y-8">
           <TabsList className="bg-card border border-border p-1 h-auto flex-wrap justify-start gap-2">

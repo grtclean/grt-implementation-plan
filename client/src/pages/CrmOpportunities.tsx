@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -143,151 +144,107 @@ export default function CrmOpportunities() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-primary rounded-sm"></span>
-              {t("crm.opp.title")}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {t("crm.opp.subtitle")}
-            </p>
-          </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90">
-                <Plus className="w-4 h-4 mr-2" />
-                {t("crm.opp.newOpportunity")}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>{t("crm.opp.newOpportunity")}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>{t("crm.opp.opportunityName")} *</Label>
-                  <Input
-                    value={newOpportunity.name}
-                    onChange={(e) => setNewOpportunity({ ...newOpportunity, name: e.target.value })}
-                    placeholder={t("crm.opp.enterOpportunityName")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("crm.opp.relatedCustomer")} *</Label>
-                  <Select
-                    value={newOpportunity.customerId.toString()}
-                    onValueChange={(v) => setNewOpportunity({ ...newOpportunity, customerId: parseInt(v) })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("crm.opp.selectCustomer")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id.toString()}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+        <PageHeader
+          icon={Target}
+          title={t("crm.opp.title")}
+          description={t("crm.opp.subtitle")}
+          actions={
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t("crm.opp.newOpportunity")}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{t("crm.opp.newOpportunity")}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>{t("crm.opp.expectedAmount")}</Label>
+                    <Label>{t("crm.opp.opportunityName")} *</Label>
                     <Input
-                      type="number"
-                      value={newOpportunity.expectedAmount}
-                      onChange={(e) => setNewOpportunity({ ...newOpportunity, expectedAmount: parseFloat(e.target.value) || 0 })}
-                      placeholder="0"
+                      value={newOpportunity.name}
+                      onChange={(e) => setNewOpportunity({ ...newOpportunity, name: e.target.value })}
+                      placeholder={t("crm.opp.enterOpportunityName")}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>{t("crm.opp.probability")} (%)</Label>
+                    <Label>{t("crm.opp.relatedCustomer")} *</Label>
+                    <Select
+                      value={newOpportunity.customerId.toString()}
+                      onValueChange={(v) => setNewOpportunity({ ...newOpportunity, customerId: parseInt(v) })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t("crm.opp.selectCustomer")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customers.map((c) => (
+                          <SelectItem key={c.id} value={c.id.toString()}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>{t("crm.opp.expectedAmount")}</Label>
+                      <Input
+                        type="number"
+                        value={newOpportunity.expectedAmount}
+                        onChange={(e) => setNewOpportunity({ ...newOpportunity, expectedAmount: parseFloat(e.target.value) || 0 })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t("crm.opp.probability")} (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newOpportunity.probability}
+                        onChange={(e) => setNewOpportunity({ ...newOpportunity, probability: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("crm.opp.expectedCloseDate")}</Label>
                     <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={newOpportunity.probability}
-                      onChange={(e) => setNewOpportunity({ ...newOpportunity, probability: parseInt(e.target.value) || 0 })}
+                      type="date"
+                      value={newOpportunity.expectedCloseDate}
+                      onChange={(e) => setNewOpportunity({ ...newOpportunity, expectedCloseDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("common.description")}</Label>
+                    <Textarea
+                      value={newOpportunity.description}
+                      onChange={(e) => setNewOpportunity({ ...newOpportunity, description: e.target.value })}
+                      placeholder={t("crm.opp.enterOpportunityName")}
+                      rows={3}
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>{t("crm.opp.expectedCloseDate")}</Label>
-                  <Input
-                    type="date"
-                    value={newOpportunity.expectedCloseDate}
-                    onChange={(e) => setNewOpportunity({ ...newOpportunity, expectedCloseDate: e.target.value })}
-                  />
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                    {t("common.cancel")}
+                  </Button>
+                  <Button onClick={handleCreate} disabled={createMutation.isPending}>
+                    {createMutation.isPending ? t("crm.opp.creating") : t("common.create")}
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label>{t("common.description")}</Label>
-                  <Textarea
-                    value={newOpportunity.description}
-                    onChange={(e) => setNewOpportunity({ ...newOpportunity, description: e.target.value })}
-                    placeholder={t("crm.opp.enterOpportunityName")}
-                    rows={3}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  {t("common.cancel")}
-                </Button>
-                <Button onClick={handleCreate} disabled={createMutation.isPending}>
-                  {createMutation.isPending ? t("crm.opp.creating") : t("common.create")}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </DialogContent>
+            </Dialog>
+          }
+        />
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-primary/10 text-primary">
-                <Target className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("crm.opp.activeOpportunities")}</p>
-                <p className="text-2xl font-bold">{activeOpportunities}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-blue-500/10 text-blue-500">
-                <DollarSign className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("crm.opp.totalExpectedAmount")}</p>
-                <p className="text-2xl font-bold">{formatCurrency(totalValue)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-yellow-500/10 text-yellow-500">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("crm.opp.weightedAmount")}</p>
-                <p className="text-2xl font-bold">{formatCurrency(weightedValue)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-green-500/10 text-green-500">
-                <BarChart3 className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("crm.opp.wonDeals")}</p>
-                <p className="text-2xl font-bold">{wonOpportunities}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Target} label={t("crm.opp.activeOpportunities")} value={activeOpportunities} iconColor="text-primary" iconBg="bg-primary/10" />
+          <StatCard icon={DollarSign} label={t("crm.opp.totalExpectedAmount")} value={formatCurrency(totalValue)} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={TrendingUp} label={t("crm.opp.weightedAmount")} value={formatCurrency(weightedValue)} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+          <StatCard icon={BarChart3} label={t("crm.opp.wonDeals")} value={wonOpportunities} iconColor="text-green-500" iconBg="bg-green-500/10" />
         </div>
 
         {/* Search */}

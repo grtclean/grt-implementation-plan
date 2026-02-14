@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { PageHeader, StatCard } from "@/components/grt";
 
 // ===== 类型定义 =====
 
@@ -194,18 +195,13 @@ export default function SecurityDashboard() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Shield className="w-6 h-6 text-primary" />
-              安全监控中心
-            </h1>
-            <p className="text-muted-foreground">实时监控系统安全状态、威胁检测和审计日志</p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+        <PageHeader
+          icon={Shield}
+          title="安全监控中心"
+          description="实时监控系统安全状态、威胁检测和审计日志"
+          actions={
+            <Button
+              variant="outline"
               onClick={() => {
                 dashboardQuery.refetch();
                 auditLogsQuery.refetch();
@@ -221,114 +217,43 @@ export default function SecurityDashboard() {
               )}
               刷新数据
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* 安全概览卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 安全事件 */}
-          <Card className="bg-card/50 border-border hover:border-primary/50 transition-colors">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">24小时安全事件</p>
-                  <p className="text-3xl font-bold mt-1">
-                    {isLoading ? '-' : dashboard?.overview.totalEvents24h || 0}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-blue-500/10">
-                  <Activity className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center text-sm">
-                <TrendingUp className="w-4 h-4 text-green-400 mr-1" />
-                <span className="text-green-400">正常</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 严重威胁 */}
-          <Card className="bg-card/50 border-border hover:border-red-500/50 transition-colors">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">严重威胁</p>
-                  <p className="text-3xl font-bold mt-1 text-red-400">
-                    {isLoading ? '-' : dashboard?.overview.criticalEvents24h || 0}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-red-500/10">
-                  <ShieldAlert className="w-6 h-6 text-red-400" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center text-sm">
-                {(dashboard?.overview.criticalEvents24h || 0) > 0 ? (
-                  <>
-                    <AlertCircle className="w-4 h-4 text-red-400 mr-1" />
-                    <span className="text-red-400">需要关注</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 text-green-400 mr-1" />
-                    <span className="text-green-400">无威胁</span>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 登录失败 */}
-          <Card className="bg-card/50 border-border hover:border-orange-500/50 transition-colors">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">登录失败</p>
-                  <p className="text-3xl font-bold mt-1 text-orange-400">
-                    {isLoading ? '-' : dashboard?.overview.failedLogins24h || 0}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-orange-500/10">
-                  <XCircle className="w-6 h-6 text-orange-400" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center text-sm">
-                {(dashboard?.overview.failedLogins24h || 0) > 10 ? (
-                  <>
-                    <AlertTriangle className="w-4 h-4 text-orange-400 mr-1" />
-                    <span className="text-orange-400">异常增多</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 text-green-400 mr-1" />
-                    <span className="text-green-400">正常范围</span>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 封禁IP */}
-          <Card className="bg-card/50 border-border hover:border-purple-500/50 transition-colors">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">封禁IP</p>
-                  <p className="text-3xl font-bold mt-1 text-purple-400">
-                    {isLoading ? '-' : dashboard?.overview.blockedIPs || 0}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-purple-500/10">
-                  <Ban className="w-6 h-6 text-purple-400" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center text-sm">
-                <Globe className="w-4 h-4 text-muted-foreground mr-1" />
-                <span className="text-muted-foreground">
-                  {dashboard?.overview.activeSessions || 0} 活跃会话
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            icon={Activity}
+            label="24小时安全事件"
+            value={isLoading ? '-' : dashboard?.overview.totalEvents24h || 0}
+            subtitle="正常"
+            iconColor="text-blue-400"
+            iconBg="bg-blue-500/10"
+          />
+          <StatCard
+            icon={ShieldAlert}
+            label="严重威胁"
+            value={isLoading ? '-' : dashboard?.overview.criticalEvents24h || 0}
+            subtitle={(dashboard?.overview.criticalEvents24h || 0) > 0 ? '需要关注' : '无威胁'}
+            iconColor="text-red-400"
+            iconBg="bg-red-500/10"
+          />
+          <StatCard
+            icon={XCircle}
+            label="登录失败"
+            value={isLoading ? '-' : dashboard?.overview.failedLogins24h || 0}
+            subtitle={(dashboard?.overview.failedLogins24h || 0) > 10 ? '异常增多' : '正常范围'}
+            iconColor="text-orange-400"
+            iconBg="bg-orange-500/10"
+          />
+          <StatCard
+            icon={Ban}
+            label="封禁IP"
+            value={isLoading ? '-' : dashboard?.overview.blockedIPs || 0}
+            subtitle=""
+            iconColor="text-purple-400"
+            iconBg="bg-purple-500/10"
+          />
         </div>
 
         {/* 标签页内容 */}

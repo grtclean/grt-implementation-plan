@@ -1,5 +1,6 @@
 import React from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,22 +76,17 @@ export default function AdminDashboard() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Shield className="w-6 h-6 text-primary" />
-              管理员控制台
-            </h1>
-            <p className="text-muted-foreground">
-              系统管理、用户权限和安全监控
-            </p>
-          </div>
-          <Badge variant="destructive" className="flex items-center gap-1">
-            <Shield className="w-3 h-3" />
-            管理员权限
-          </Badge>
-        </div>
+        <PageHeader
+          icon={Shield}
+          title="管理员控制台"
+          description="系统管理、用户权限和安全监控"
+          actions={
+            <Badge variant="destructive" className="flex items-center gap-1">
+              <Shield className="w-3 h-3" />
+              管理员权限
+            </Badge>
+          }
+        />
 
         {/* 系统状态卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

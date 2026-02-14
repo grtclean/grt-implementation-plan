@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -327,91 +328,33 @@ export default function Notifications() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <Bell className="w-6 h-6 text-primary" />
-              通知中心
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {unreadCount > 0 ? `您有 ${unreadCount} 条未读通知` : "所有通知已读"}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleMarkAllAsRead}>
-              <Check className="w-4 h-4 mr-2" />
-              全部已读
-            </Button>
-            <Button variant="outline">
-              <Settings className="w-4 h-4 mr-2" />
-              通知设置
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Bell}
+          title="通知中心"
+          description={unreadCount > 0 ? `您有 ${unreadCount} 条未读通知` : "所有通知已读"}
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleMarkAllAsRead}>
+                <Check className="w-4 h-4 mr-2" />
+                全部已读
+              </Button>
+              <Button variant="outline">
+                <Settings className="w-4 h-4 mr-2" />
+                通知设置
+              </Button>
+            </div>
+          }
+        />
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">未读通知</p>
-                  <p className="text-2xl font-bold">{unreadCount}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-blue-500/10">
-                  <Bell className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">重要通知</p>
-                  <p className="text-2xl font-bold text-yellow-400">{importantCount}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-yellow-500/10">
-                  <AlertTriangle className="w-6 h-6 text-yellow-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">AI 建议</p>
-                  <p className="text-2xl font-bold text-purple-400">{aiSuggestionCount}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-purple-500/10">
-                  <Zap className="w-6 h-6 text-purple-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">今日通知</p>
-                  <p className="text-2xl font-bold text-green-400">
-                    {mockNotifications.filter(n => {
-                      const today = new Date().toDateString();
-                      return new Date(n.createdAt).toDateString() === today;
-                    }).length}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-green-500/10">
-                  <Clock className="w-6 h-6 text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Bell} label="未读通知" value={unreadCount} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          <StatCard icon={AlertTriangle} label="重要通知" value={importantCount} iconColor="text-yellow-400" iconBg="bg-yellow-500/10" />
+          <StatCard icon={Zap} label="AI 建议" value={aiSuggestionCount} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+          <StatCard icon={Clock} label="今日通知" value={mockNotifications.filter(n => {
+            const today = new Date().toDateString();
+            return new Date(n.createdAt).toDateString() === today;
+          }).length} iconColor="text-green-400" iconBg="bg-green-500/10" />
         </div>
 
         {/* Main Content */}

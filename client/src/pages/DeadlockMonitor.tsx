@@ -9,6 +9,8 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -172,30 +174,29 @@ export default function DeadlockMonitor() {
   }
   
   return (
-    <div className="container py-8 space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">死锁监控仪表板</h1>
-          <p className="text-muted-foreground mt-1">
-            实时监控系统死锁状态，自动检测并解决资源竞争问题
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-            刷新
-          </Button>
-          <Button onClick={handleManualCheck} disabled={isRefreshing}>
-            <Zap className="w-4 h-4 mr-2" />
-            手动检测
-          </Button>
-        </div>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Shield}
+        title="死锁监控仪表板"
+        description="实时监控系统死锁状态，自动检测并解决资源竞争问题"
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+              刷新
+            </Button>
+            <Button onClick={handleManualCheck} disabled={isRefreshing}>
+              <Zap className="w-4 h-4 mr-2" />
+              手动检测
+            </Button>
+          </div>
+        }
+      />
       
       {/* 状态卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -660,5 +661,6 @@ export default function DeadlockMonitor() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

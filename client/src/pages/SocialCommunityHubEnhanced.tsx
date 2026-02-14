@@ -2,6 +2,8 @@
  * 社群管理中心增强版 - 批量审核、AI评分、脱敏测试
  */
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -75,16 +77,13 @@ export default function SocialCommunityHubEnhanced() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <MessageSquare className="w-6 h-6 text-primary" />
-            社群管理中心 (增强版)
-          </h1>
-          <p className="text-muted-foreground mt-1">批量审核、AI回复评分、脱敏规则测试、活跃度分析</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={MessageSquare}
+        title="社群管理中心 (增强版)"
+        description="批量审核、AI回复评分、脱敏规则测试、活跃度分析"
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
@@ -297,5 +296,6 @@ export default function SocialCommunityHubEnhanced() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

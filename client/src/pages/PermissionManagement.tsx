@@ -20,8 +20,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { AlertCircle, Plus, Edit2, Trash2, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Plus, Edit2, Trash2, CheckCircle2, Shield } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PageHeader } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 /**
  * 权限管理主页面
@@ -43,15 +45,13 @@ export default function PermissionManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* 页面标题 */}
-        <div>
-          <h1 className="text-4xl font-bold text-foreground">权限管理</h1>
-          <p className="text-muted-foreground mt-2">
-            管理系统角色、权限和用户权限分配
-          </p>
-        </div>
+    <Layout>
+    <div className="space-y-6">
+        <PageHeader
+          icon={Shield}
+          title="权限管理"
+          description="管理系统角色、权限和用户权限分配"
+        />
 
         {/* 标签页 */}
         <Tabs defaultValue="roles" className="w-full">
@@ -82,8 +82,8 @@ export default function PermissionManagement() {
             <AuditLogsTab />
           </TabsContent>
         </Tabs>
-      </div>
     </div>
+    </Layout>
   );
 }
 

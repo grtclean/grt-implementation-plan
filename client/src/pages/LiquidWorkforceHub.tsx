@@ -7,6 +7,8 @@ import { toast } from "sonner";
 const showPlaceholder = (featureName: string) => {
   toast.info('功能完善中', { description: `${featureName}功能正在开发完善中，敬请期待` });
 };
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,51 +50,20 @@ export default function LiquidWorkforceHub() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Briefcase className="w-6 h-6 text-primary" />
-            液态用工中心
-          </h1>
-          <p className="text-muted-foreground mt-1">技能胶囊市场、任务竞标、智能合约管理</p>
-        </div>
-        <Button size="sm"><Plus className="w-4 h-4 mr-2" />发布技能</Button>
-      </div>
+      <PageHeader
+        icon={Briefcase}
+        title="液态用工中心"
+        description="技能胶囊市场、任务竞标、智能合约管理"
+        actions={<Button size="sm"><Plus className="w-4 h-4 mr-2" />发布技能</Button>}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">技能胶囊</p><p className="text-2xl font-bold text-primary">156</p></div>
-              <Award className="w-8 h-8 text-primary/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">活跃竞标</p><p className="text-2xl font-bold text-green-400">23</p></div>
-              <Gavel className="w-8 h-8 text-green-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">执行中合约</p><p className="text-2xl font-bold text-blue-400">8</p></div>
-              <FileCheck className="w-8 h-8 text-blue-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">本月收益</p><p className="text-2xl font-bold text-purple-400">¥45K</p></div>
-              <TrendingUp className="w-8 h-8 text-purple-500/50" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Award} label="技能胶囊" value={156} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Gavel} label="活跃竞标" value={23} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={FileCheck} label="执行中合约" value={8} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={TrendingUp} label="本月收益" value="¥45K" iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -195,5 +166,6 @@ export default function LiquidWorkforceHub() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

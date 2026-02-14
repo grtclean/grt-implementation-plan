@@ -1,4 +1,6 @@
 import { getErrorLogs, clearErrorLogs } from "@/components/ErrorBoundary";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Trash2, Download, RefreshCw } from "lucide-react";
@@ -55,51 +57,46 @@ export default function ErrorLogViewer() {
   }, []);
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <AlertTriangle className="text-destructive" />
-              错误日志查看器
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              监控系统中发生的所有错误，帮助诊断和修复问题
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={refreshLogs}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <RefreshCw size={16} />
-              刷新
-            </Button>
-            <Button
-              onClick={handleDownloadLogs}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-              disabled={logs.length === 0}
-            >
-              <Download size={16} />
-              下载日志
-            </Button>
-            <Button
-              onClick={handleClearLogs}
-              variant="destructive"
-              size="sm"
-              className="flex items-center gap-2"
-              disabled={logs.length === 0}
-            >
-              <Trash2 size={16} />
-              清除日志
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={AlertTriangle}
+          title="错误日志查看器"
+          description="监控系统中发生的所有错误，帮助诊断和修复问题"
+          actions={
+            <div className="flex gap-2">
+              <Button
+                onClick={refreshLogs}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw size={16} />
+                刷新
+              </Button>
+              <Button
+                onClick={handleDownloadLogs}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                disabled={logs.length === 0}
+              >
+                <Download size={16} />
+                下载日志
+              </Button>
+              <Button
+                onClick={handleClearLogs}
+                variant="destructive"
+                size="sm"
+                className="flex items-center gap-2"
+                disabled={logs.length === 0}
+              >
+                <Trash2 size={16} />
+                清除日志
+              </Button>
+            </div>
+          }
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4">
@@ -257,6 +254,6 @@ export default function ErrorLogViewer() {
           </Card>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }

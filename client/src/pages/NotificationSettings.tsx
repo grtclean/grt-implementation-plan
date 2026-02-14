@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 
 // 通知渠道类型
 type ChannelType = "dingtalk" | "wecom" | "feishu";
@@ -247,31 +248,26 @@ export default function NotificationSettings() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Bell className="w-6 h-6 text-primary" />
-              多渠道通知管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              配置钉钉、企业微信、飞书等通知渠道
-            </p>
-          </div>
-          <Button onClick={saveConfig} disabled={saving}>
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                保存中...
-              </>
-            ) : (
-              <>
-                <Settings className="w-4 h-4 mr-2" />
-                保存配置
-              </>
-            )}
-          </Button>
-        </div>
+        <PageHeader
+          icon={Bell}
+          title="多渠道通知管理"
+          description="配置钉钉、企业微信、飞书等通知渠道"
+          actions={
+            <Button onClick={saveConfig} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  保存中...
+                </>
+              ) : (
+                <>
+                  <Settings className="w-4 h-4 mr-2" />
+                  保存配置
+                </>
+              )}
+            </Button>
+          }
+        />
 
         {/* 渠道选择卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

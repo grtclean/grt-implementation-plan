@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Calculator, 
-  Loader2, 
+import { PageHeader } from "@/components/grt";
+import Layout from "@/components/Layout";
+import {
+  Calculator,
+  Loader2,
   FileText,
   Sparkles,
   TrendingUp,
@@ -138,14 +140,13 @@ export default function AIQuotationAssistant() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Calculator className="w-6 h-6 text-primary" />
-          {t('title')}
-        </h1>
-        <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
-      </div>
+      <PageHeader
+        icon={Calculator}
+        title={t('title')}
+        description={t('subtitle')}
+      />
 
       <Tabs defaultValue="new" className="space-y-4">
         <TabsList>
@@ -335,5 +336,6 @@ export default function AIQuotationAssistant() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

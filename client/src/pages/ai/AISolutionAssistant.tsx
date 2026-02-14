@@ -10,11 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Lightbulb, 
-  Send, 
-  Loader2, 
-  CheckCircle2, 
+import { PageHeader } from "@/components/grt";
+import Layout from "@/components/Layout";
+import {
+  Lightbulb,
+  Send,
+  Loader2,
+  CheckCircle2,
   History,
   Sparkles,
   FileText,
@@ -192,14 +194,13 @@ export default function AISolutionAssistant() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Lightbulb className="w-6 h-6 text-primary" />
-          {t('title')}
-        </h1>
-        <p className="text-muted-foreground mt-1">{t('description')}</p>
-      </div>
+      <PageHeader
+        icon={Lightbulb}
+        title={t('title')}
+        description={t('description')}
+      />
 
       <Tabs defaultValue="new" className="space-y-4">
         <TabsList>
@@ -390,5 +391,6 @@ export default function AISolutionAssistant() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

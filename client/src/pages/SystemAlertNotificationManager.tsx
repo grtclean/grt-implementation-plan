@@ -50,6 +50,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PageHeader, StatCard } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 // 类型定义
 type AlertLevel = 'info' | 'warning' | 'critical' | 'emergency';
@@ -318,83 +320,27 @@ export default function SystemAlertNotificationManager() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Bell className="w-6 h-6" />
-            系统告警通知
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            配置告警规则和通知渠道，实时监控系统健康状态
-          </p>
-        </div>
-        <Button onClick={() => setShowAddRuleDialog(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          添加规则
-        </Button>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Bell}
+        title="系统告警通知"
+        description="配置告警规则和通知渠道，实时监控系统健康状态"
+        actions={
+          <Button onClick={() => setShowAddRuleDialog(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            添加规则
+          </Button>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">告警规则</p>
-                <p className="text-2xl font-bold">{stats.enabledRules}/{stats.totalRules}</p>
-              </div>
-              <Settings className="w-8 h-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">活跃告警</p>
-                <p className="text-2xl font-bold text-destructive">{stats.activeAlerts}</p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-destructive" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">已确认</p>
-                <p className="text-2xl font-bold">{stats.acknowledgedAlerts}</p>
-              </div>
-              <Eye className="w-8 h-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">已解决</p>
-                <p className="text-2xl font-bold text-green-600">{stats.resolvedAlerts}</p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">通知渠道</p>
-                <p className="text-2xl font-bold">
-                  {notificationConfigs.filter(c => c.enabled).length}/{notificationConfigs.length}
-                </p>
-              </div>
-              <Send className="w-8 h-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Settings} label="告警规则" value={`${stats.enabledRules}/${stats.totalRules}`} />
+        <StatCard icon={AlertTriangle} label="活跃告警" value={stats.activeAlerts} iconColor="text-destructive" iconBg="bg-destructive/10" />
+        <StatCard icon={Eye} label="已确认" value={stats.acknowledgedAlerts} />
+        <StatCard icon={CheckCircle} label="已解决" value={stats.resolvedAlerts} iconColor="text-green-600" iconBg="bg-green-500/10" />
+        <StatCard icon={Send} label="通知渠道" value={`${notificationConfigs.filter(c => c.enabled).length}/${notificationConfigs.length}`} />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -671,5 +617,6 @@ export default function SystemAlertNotificationManager() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

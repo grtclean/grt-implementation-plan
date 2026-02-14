@@ -2,6 +2,8 @@
  * 社群管理中心 - 消息审核、AI回复、脱敏测试、群消息统计
  */
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -24,51 +26,20 @@ export default function SocialCommunityHub() {
   const [testInput, setTestInput] = useState("");
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <MessageSquare className="w-6 h-6 text-primary" />
-            社群管理中心
-          </h1>
-          <p className="text-muted-foreground mt-1">消息审核、AI回复、脱敏过滤、统计分析</p>
-        </div>
-        <Button size="sm"><Bot className="w-4 h-4 mr-2" />配置AI助手</Button>
-      </div>
+      <PageHeader
+        icon={MessageSquare}
+        title="社群管理中心"
+        description="消息审核、AI回复、脱敏过滤、统计分析"
+        actions={<Button size="sm"><Bot className="w-4 h-4 mr-2" />配置AI助手</Button>}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">待审核回复</p><p className="text-2xl font-bold text-primary">8</p></div>
-              <MessageSquare className="w-8 h-8 text-primary/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">今日已发布</p><p className="text-2xl font-bold text-green-400">23</p></div>
-              <Send className="w-8 h-8 text-green-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">脱敏处理</p><p className="text-2xl font-bold text-blue-400">156</p></div>
-              <Shield className="w-8 h-8 text-blue-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">活跃群组</p><p className="text-2xl font-bold text-purple-400">12</p></div>
-              <BarChart3 className="w-8 h-8 text-purple-500/50" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={MessageSquare} label="待审核回复" value={8} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Send} label="今日已发布" value={23} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Shield} label="脱敏处理" value={156} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={BarChart3} label="活跃群组" value={12} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -165,5 +136,6 @@ export default function SocialCommunityHub() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

@@ -27,6 +27,7 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader, StatCard } from "@/components/grt";
 
 export default function UserProfileSettings() {
   const { t } = useLanguage();
@@ -122,68 +123,27 @@ export default function UserProfileSettings() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold flex items-center gap-3">
-              <User className="w-8 h-8 text-primary" />
-              个人设置
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              管理您的工作计划、培训计划、项目计划和绩效报告偏好设置
-            </p>
-          </div>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4 mr-2" />
-            )}
-            保存设置
-          </Button>
-        </div>
+        <PageHeader
+          icon={User}
+          title="个人设置"
+          description="管理您的工作计划、培训计划、项目计划和绩效报告偏好设置"
+          actions={
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              保存设置
+            </Button>
+          }
+        />
 
         {/* 任务概览卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <Calendar className="w-5 h-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">今日待办</p>
-                  <p className="text-2xl font-bold">{todayTasks?.length || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-500/10">
-                  <AlertTriangle className="w-5 h-5 text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">逾期任务</p>
-                  <p className="text-2xl font-bold text-orange-500">{overdueTasks?.length || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">提醒时间</p>
-                  <p className="text-2xl font-bold">{profile.taskReminderTime}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Calendar} label="今日待办" value={todayTasks?.length || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={AlertTriangle} label="逾期任务" value={overdueTasks?.length || 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+          <StatCard icon={CheckCircle2} label="提醒时间" value={profile.taskReminderTime} iconColor="text-green-500" iconBg="bg-green-500/10" />
         </div>
 
         {/* 设置选项卡 */}

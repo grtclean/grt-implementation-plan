@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   TrendingUp, BarChart3, Zap, MessageCircle, CheckCircle2, XCircle,
   ArrowUp, ArrowDown, Activity
 } from "lucide-react";
+import { PageHeader } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 // 谈判会话数据
 const negotiationSessions = [
@@ -73,16 +75,13 @@ export default function AiSalesHubEnhanced() {
   const sessionEmotions = emotionAnalysis.filter(e => e.sessionId === selectedSession.id);
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-primary" />
-            AI销售中心 (增强版)
-          </h1>
-          <p className="text-muted-foreground mt-1">AI谈判可视化、ZOPA计算、情绪分析</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={TrendingUp}
+        title="AI销售中心 (增强版)"
+        description="AI谈判可视化、ZOPA计算、情绪分析"
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 bg-card border border-border">
@@ -236,5 +235,6 @@ export default function AiSalesHubEnhanced() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

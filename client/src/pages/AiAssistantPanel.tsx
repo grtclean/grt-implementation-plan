@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Bot, Zap, CheckCircle, Clock } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { PageHeader, StatCard } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 export default function AiAssistantPanel() {
   const { toast } = useToast();
@@ -37,38 +39,19 @@ export default function AiAssistantPanel() {
   );
 
   return (
+    <Layout>
     <div className="space-y-6">
+      <PageHeader
+        icon={Bot}
+        title="AI助手面板"
+        description="展示员工数字助手和功能型AI助手"
+      />
+
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">员工数字助手</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats?.employeeDigitalAssistants || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">已配置</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">功能型助手</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats?.functionalAssistants || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">活跃</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">建议执行</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats?.totalExecutions || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">总计</p>
-          </CardContent>
-        </Card>
+        <StatCard icon={Bot} label="员工数字助手" value={stats?.employeeDigitalAssistants || 0} subtitle="已配置" iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Zap} label="功能型助手" value={stats?.functionalAssistants || 0} subtitle="活跃" iconColor="text-yellow-500" iconBg="bg-yellow-100" />
+        <StatCard icon={CheckCircle} label="建议执行" value={stats?.totalExecutions || 0} subtitle="总计" iconColor="text-green-500" iconBg="bg-green-100" />
       </div>
 
       {/* 主要内容区域 */}
@@ -242,5 +225,6 @@ export default function AiAssistantPanel() {
         </Card>
       )}
     </div>
+    </Layout>
   );
 }

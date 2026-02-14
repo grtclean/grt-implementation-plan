@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/grt";
 
 // ===== 类型定义 =====
 
@@ -287,27 +288,24 @@ export default function SystemDeployment() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Server className="w-6 h-6" />
-              系统部署管理
-            </h1>
-            <p className="text-muted-foreground">管理测试/正式双环境部署和系统安装</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setActiveTab('installer')}>
-              <Download className="w-4 h-4 mr-2" />
-              下载安装包
-            </Button>
-            <Dialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Play className="w-4 h-4 mr-2" />
-                  新建部署
-                </Button>
-              </DialogTrigger>
+        <PageHeader
+          icon={Server}
+          title="系统部署管理"
+          description="管理测试/正式双环境部署和系统安装"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setActiveTab('installer')}>
+                <Download className="w-4 h-4 mr-2" />
+                下载安装包
+              </Button>
+              <Button onClick={() => setIsInstallDialogOpen(true)}>
+                <Play className="w-4 h-4 mr-2" />
+                新建部署
+              </Button>
+            </>
+          }
+        />
+              <Dialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen}>
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>系统部署向导</DialogTitle>
@@ -624,8 +622,6 @@ export default function SystemDeployment() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
         
         {/* 主内容区 */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>

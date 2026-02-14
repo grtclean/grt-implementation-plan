@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -177,195 +178,150 @@ export default function CrmCustomers() {
       />
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-primary rounded-sm"></span>
-              {t("crm.title")}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {t("crm.subtitle")}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* 管理员可见的生成测试数据按钮 */}
-            {user?.role === "admin" && (
-              <Button
-                variant="outline"
-                onClick={handleSeedData}
-                disabled={isSeedingData}
-                className="border-primary/30 hover:bg-primary/10"
-              >
-                {isSeedingData ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Database className="w-4 h-4 mr-2" />
-                )}
-                {t("crm.generateTestData")}
-              </Button>
-            )}
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t("crm.newCustomer")}
+        <PageHeader
+          icon={Building2}
+          title={t("crm.title")}
+          description={t("crm.subtitle")}
+          actions={
+            <div className="flex items-center gap-2">
+              {user?.role === "admin" && (
+                <Button
+                  variant="outline"
+                  onClick={handleSeedData}
+                  disabled={isSeedingData}
+                  className="border-primary/30 hover:bg-primary/10"
+                >
+                  {isSeedingData ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Database className="w-4 h-4 mr-2" />
+                  )}
+                  {t("crm.generateTestData")}
                 </Button>
-              </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{t("crm.newCustomer")}</DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-2 gap-4 py-4">
-                <div className="space-y-2">
-                  <Label>{t("crm.customerName")} *</Label>
-                  <Input
-                    value={newCustomer.name}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
-                    placeholder={t("crm.enterCustomerName")}
-                  />
+              )}
+              <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-primary hover:bg-primary/90">
+                    <Plus className="w-4 h-4 mr-2" />
+                    {t("crm.newCustomer")}
+                  </Button>
+                </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>{t("crm.newCustomer")}</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-2 gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label>{t("crm.customerName")} *</Label>
+                    <Input
+                      value={newCustomer.name}
+                      onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                      placeholder={t("crm.enterCustomerName")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("crm.customerShortName")}</Label>
+                    <Input
+                      value={newCustomer.shortName}
+                      onChange={(e) => setNewCustomer({ ...newCustomer, shortName: e.target.value })}
+                      placeholder={t("crm.enterShortName")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("crm.customerType")}</Label>
+                    <Select
+                      value={newCustomer.type}
+                      onValueChange={(v) => setNewCustomer({ ...newCustomer, type: v as any })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="prospect">{t("crm.prospect")}</SelectItem>
+                        <SelectItem value="customer">{t("crm.customer")}</SelectItem>
+                        <SelectItem value="partner">{t("crm.partner")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("crm.customerLevel")}</Label>
+                    <Select
+                      value={newCustomer.level}
+                      onValueChange={(v) => setNewCustomer({ ...newCustomer, level: v as any })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="A">A</SelectItem>
+                        <SelectItem value="B">B</SelectItem>
+                        <SelectItem value="C">C</SelectItem>
+                        <SelectItem value="D">D</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("crm.industry")}</Label>
+                    <Input
+                      value={newCustomer.industry}
+                      onChange={(e) => setNewCustomer({ ...newCustomer, industry: e.target.value })}
+                      placeholder={t("crm.enterIndustry")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("crm.phone")}</Label>
+                    <Input
+                      value={newCustomer.phone}
+                      onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                      placeholder={t("crm.enterPhone")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("crm.email")}</Label>
+                    <Input
+                      value={newCustomer.email}
+                      onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                      placeholder={t("crm.enterEmail")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("crm.address")}</Label>
+                    <Input
+                      value={newCustomer.address}
+                      onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                      placeholder={t("crm.enterAddress")}
+                    />
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <Label>{t("crm.remark")}</Label>
+                    <Textarea
+                      value={newCustomer.remark}
+                      onChange={(e) => setNewCustomer({ ...newCustomer, remark: e.target.value })}
+                      placeholder={t("crm.enterRemark")}
+                      rows={3}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>{t("crm.customerShortName")}</Label>
-                  <Input
-                    value={newCustomer.shortName}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, shortName: e.target.value })}
-                    placeholder={t("crm.enterShortName")}
-                  />
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                    {t("common.cancel")}
+                  </Button>
+                  <Button onClick={handleCreate} disabled={createMutation.isPending}>
+                    {createMutation.isPending ? t("common.loading") : t("common.create")}
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label>{t("crm.customerType")}</Label>
-                  <Select
-                    value={newCustomer.type}
-                    onValueChange={(v) => setNewCustomer({ ...newCustomer, type: v as any })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="prospect">{t("crm.prospect")}</SelectItem>
-                      <SelectItem value="customer">{t("crm.customer")}</SelectItem>
-                      <SelectItem value="partner">{t("crm.partner")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("crm.customerLevel")}</Label>
-                  <Select
-                    value={newCustomer.level}
-                    onValueChange={(v) => setNewCustomer({ ...newCustomer, level: v as any })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="A">A</SelectItem>
-                      <SelectItem value="B">B</SelectItem>
-                      <SelectItem value="C">C</SelectItem>
-                      <SelectItem value="D">D</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("crm.industry")}</Label>
-                  <Input
-                    value={newCustomer.industry}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, industry: e.target.value })}
-                    placeholder={t("crm.enterIndustry")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("crm.phone")}</Label>
-                  <Input
-                    value={newCustomer.phone}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
-                    placeholder={t("crm.enterPhone")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("crm.email")}</Label>
-                  <Input
-                    value={newCustomer.email}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
-                    placeholder={t("crm.enterEmail")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("crm.address")}</Label>
-                  <Input
-                    value={newCustomer.address}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
-                    placeholder={t("crm.enterAddress")}
-                  />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label>{t("crm.remark")}</Label>
-                  <Textarea
-                    value={newCustomer.remark}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, remark: e.target.value })}
-                    placeholder={t("crm.enterRemark")}
-                    rows={3}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  {t("common.cancel")}
-                </Button>
-                <Button onClick={handleCreate} disabled={createMutation.isPending}>
-                  {createMutation.isPending ? t("common.loading") : t("common.create")}
-                </Button>
-              </div>
-            </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+              </DialogContent>
+              </Dialog>
+            </div>
+          }
+        />
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-primary/10 text-primary">
-                <Building2 className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("crm.totalCustomers")}</p>
-                <p className="text-2xl font-bold">{totalCustomers}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-blue-500/10 text-blue-500">
-                <Users className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("crm.potentialCustomers")}</p>
-                <p className="text-2xl font-bold">{prospectCount}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-green-500/10 text-green-500">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("crm.formalCustomers")}</p>
-                <p className="text-2xl font-bold">{customerCount}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-yellow-500/10 text-yellow-500">
-                <Star className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("crm.aLevelCustomers")}</p>
-                <p className="text-2xl font-bold">{aLevelCount}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Building2} label={t("crm.totalCustomers")} value={totalCustomers} iconColor="text-primary" iconBg="bg-primary/10" />
+          <StatCard icon={Users} label={t("crm.potentialCustomers")} value={prospectCount} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={TrendingUp} label={t("crm.formalCustomers")} value={customerCount} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Star} label={t("crm.aLevelCustomers")} value={aLevelCount} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
         </div>
 
         {/* Filters */}

@@ -19,6 +19,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { trpc } from "@/lib/trpc";
+import { PageHeader, StatCard } from "@/components/grt";
+import Layout from "@/components/Layout";
 import {
   Brain, BarChart3, TrendingUp, CheckCircle2, XCircle,
   Edit, Loader2, Target, Sparkles, AlertTriangle,
@@ -38,29 +40,25 @@ export default function AiAccuracyDashboard() {
   const data = accuracyQuery.data as any;
 
   return (
+    <Layout>
     <div className="space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Brain className="w-7 h-7 text-purple-600" />
-            AI预设准确度分析
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            采纳率统计 · 工序维度分析 · 修改幅度追踪 · 趋势优化
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Label className="text-sm whitespace-nowrap">筛选项目:</Label>
-          <Input
-            type="number"
-            placeholder="全部项目"
-            className="w-32"
-            value={projectId || ""}
-            onChange={(e) => setProjectId(e.target.value ? parseInt(e.target.value) : undefined)}
-          />
-        </div>
-      </div>
+      <PageHeader
+        icon={Brain}
+        title="AI预设准确度分析"
+        description="采纳率统计 · 工序维度分析 · 修改幅度追踪 · 趋势优化"
+        actions={
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">筛选项目:</Label>
+            <Input
+              type="number"
+              placeholder="全部项目"
+              className="w-32"
+              value={projectId || ""}
+              onChange={(e) => setProjectId(e.target.value ? parseInt(e.target.value) : undefined)}
+            />
+          </div>
+        }
+      />
 
       {accuracyQuery.isLoading ? (
         <Card>
@@ -73,43 +71,11 @@ export default function AiAccuracyDashboard() {
         <>
           {/* 总体统计卡片 */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
-              <CardContent className="p-4 text-center">
-                <Target className="w-5 h-5 text-purple-600 mx-auto mb-1" />
-                <div className="text-3xl font-bold text-purple-700 dark:text-purple-300">
-                  {data.overall.adoptionRate.toFixed(1)}%
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">总采纳率</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">{data.overall.directAdoptionRate.toFixed(1)}%</div>
-                <div className="text-xs text-muted-foreground mt-1">直接采纳率</div>
-                <div className="text-[10px] text-green-600">{data.overall.confirmedCount} 项</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{data.overall.modificationRate.toFixed(1)}%</div>
-                <div className="text-xs text-muted-foreground mt-1">修改后采纳</div>
-                <div className="text-[10px] text-blue-600">{data.overall.modifiedCount} 项</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-red-600">{data.overall.rejectionRate.toFixed(1)}%</div>
-                <div className="text-xs text-muted-foreground mt-1">拒绝率</div>
-                <div className="text-[10px] text-red-600">{data.overall.rejectedCount} 项</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold">{data.overall.totalPresets}</div>
-                <div className="text-xs text-muted-foreground mt-1">AI预设总数</div>
-                <div className="text-[10px] text-amber-600">待处理: {data.overall.pendingCount}</div>
-              </CardContent>
-            </Card>
+            <StatCard icon={Target} label="总采纳率" value={`${data.overall.adoptionRate.toFixed(1)}%`} iconColor="text-purple-600" iconBg="bg-purple-100" />
+            <StatCard icon={CheckCircle2} label="直接采纳率" value={`${data.overall.directAdoptionRate.toFixed(1)}%`} subtitle={`${data.overall.confirmedCount} 项`} iconColor="text-green-600" iconBg="bg-green-100" />
+            <StatCard icon={Edit} label="修改后采纳" value={`${data.overall.modificationRate.toFixed(1)}%`} subtitle={`${data.overall.modifiedCount} 项`} iconColor="text-blue-600" iconBg="bg-blue-100" />
+            <StatCard icon={XCircle} label="拒绝率" value={`${data.overall.rejectionRate.toFixed(1)}%`} subtitle={`${data.overall.rejectedCount} 项`} iconColor="text-red-600" iconBg="bg-red-100" />
+            <StatCard icon={Activity} label="AI预设总数" value={data.overall.totalPresets} subtitle={`待处理: ${data.overall.pendingCount}`} iconColor="text-amber-600" iconBg="bg-amber-100" />
           </div>
 
           {/* 采纳率可视化条 */}
@@ -347,5 +313,6 @@ export default function AiAccuracyDashboard() {
         </Card>
       )}
     </div>
+    </Layout>
   );
 }

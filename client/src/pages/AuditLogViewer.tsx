@@ -5,6 +5,7 @@
 
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -170,32 +171,27 @@ export default function AuditLogViewer() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-heading flex items-center gap-3">
-              <Shield className="w-8 h-8 text-primary" />
-              审计日志管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              查看敏感数据访问记录、权限变更历史和安全统计分析
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => {
-              auditLogs.refetch();
-              permissionHistory.refetch();
-              auditStats.refetch();
-            }}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              刷新
-            </Button>
-            <Button onClick={handleExportCSV}>
-              <Download className="w-4 h-4 mr-2" />
-              导出CSV
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Shield}
+          title="审计日志管理"
+          description="查看敏感数据访问记录、权限变更历史和安全统计分析"
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => {
+                auditLogs.refetch();
+                permissionHistory.refetch();
+                auditStats.refetch();
+              }}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                刷新
+              </Button>
+              <Button onClick={handleExportCSV}>
+                <Download className="w-4 h-4 mr-2" />
+                导出CSV
+              </Button>
+            </div>
+          }
+        />
 
         {/* 标签页 */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

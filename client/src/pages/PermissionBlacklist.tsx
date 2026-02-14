@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShieldAlert, Plus, Search, User, Lock, Unlock, AlertTriangle, Clock } from "lucide-react";
+import { PageHeader, StatCard } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 interface BlacklistEntry {
   id: string;
@@ -36,33 +38,35 @@ export default function PermissionBlacklist() {
   const filtered = MOCK_BLACKLIST.filter(b => !search || b.user.includes(search) || b.blockedModule.includes(search));
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><ShieldAlert className="h-6 w-6 text-primary" />权限黑名单</h1>
-          <p className="text-muted-foreground mt-1">特定用户权限禁止管理 · 安全审计</p>
-        </div>
-        <Dialog open={showAdd} onOpenChange={setShowAdd}>
-          <DialogTrigger asChild>
-            <Button variant="destructive"><Plus className="h-4 w-4 mr-2" />添加黑名单</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>添加权限黑名单</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2"><Label>目标用户</Label><Input placeholder="搜索用户..." /></div>
-              <div className="space-y-2"><Label>限制模块</Label><Select><SelectTrigger><SelectValue placeholder="选择模块" /></SelectTrigger><SelectContent><SelectItem value="finance">财务管理</SelectItem><SelectItem value="hr">人力资源</SelectItem><SelectItem value="contract">合同管理</SelectItem><SelectItem value="salary">薪酬管理</SelectItem></SelectContent></Select></div>
-              <div className="space-y-2"><Label>限制操作</Label><Input placeholder="如: 查看、导出、修改..." /></div>
-              <div className="space-y-2"><Label>原因说明</Label><Input placeholder="限制原因..." /></div>
-            </div>
-            <DialogFooter><Button variant="destructive" onClick={() => setShowAdd(false)}>确认添加</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <PageHeader
+        icon={ShieldAlert}
+        title="权限黑名单"
+        description="特定用户权限禁止管理 · 安全审计"
+        actions={
+          <Dialog open={showAdd} onOpenChange={setShowAdd}>
+            <DialogTrigger asChild>
+              <Button variant="destructive"><Plus className="h-4 w-4 mr-2" />添加黑名单</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>添加权限黑名单</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2"><Label>目标用户</Label><Input placeholder="搜索用户..." /></div>
+                <div className="space-y-2"><Label>限制模块</Label><Select><SelectTrigger><SelectValue placeholder="选择模块" /></SelectTrigger><SelectContent><SelectItem value="finance">财务管理</SelectItem><SelectItem value="hr">人力资源</SelectItem><SelectItem value="contract">合同管理</SelectItem><SelectItem value="salary">薪酬管理</SelectItem></SelectContent></Select></div>
+                <div className="space-y-2"><Label>限制操作</Label><Input placeholder="如: 查看、导出、修改..." /></div>
+                <div className="space-y-2"><Label>原因说明</Label><Input placeholder="限制原因..." /></div>
+              </div>
+              <DialogFooter><Button variant="destructive" onClick={() => setShowAdd(false)}>确认添加</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       <div className="grid grid-cols-3 gap-4">
-        <Card className="border-red-200"><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-red-600">2</p><p className="text-sm text-muted-foreground">生效中黑名单</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-gray-400">1</p><p className="text-sm text-muted-foreground">已解除</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold">3</p><p className="text-sm text-muted-foreground">总记录</p></CardContent></Card>
+        <StatCard icon={Lock} label="生效中黑名单" value={2} iconColor="text-red-600" iconBg="bg-red-500/10" />
+        <StatCard icon={Unlock} label="已解除" value={1} iconColor="text-gray-400" iconBg="bg-gray-500/10" />
+        <StatCard icon={ShieldAlert} label="总记录" value={3} />
       </div>
 
       <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center gap-2 text-sm">
@@ -106,5 +110,6 @@ export default function PermissionBlacklist() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

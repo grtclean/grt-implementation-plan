@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -645,26 +646,23 @@ export default function CustomerQuestionnaire() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              客户需求问卷
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              零件清洗设备需求调查表 - 基于GRTclean标准问卷
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={handleSaveDraft}>
-              <Save className="w-4 h-4 mr-2" />
-              保存草稿
-            </Button>
-            <Button variant="default" onClick={handleAIRecommend}>
-              <Sparkles className="w-4 h-4 mr-2" />
-              AI方案推荐
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={FileText}
+          title="客户需求问卷"
+          description="零件清洗设备需求调查表 - 基于GRTclean标准问卷"
+          actions={
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleSaveDraft}>
+                <Save className="w-4 h-4 mr-2" />
+                保存草稿
+              </Button>
+              <Button variant="default" onClick={handleAIRecommend}>
+                <Sparkles className="w-4 h-4 mr-2" />
+                AI方案推荐
+              </Button>
+            </div>
+          }
+        />
 
         {/* 进度条 */}
         <Card>

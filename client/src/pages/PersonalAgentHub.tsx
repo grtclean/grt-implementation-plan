@@ -2,6 +2,8 @@
  * 个人智能体中心 - 行为探针、技能推断、知识图谱、成长曲线
  */
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -31,51 +33,20 @@ export default function PersonalAgentHub() {
   const [activeTab, setActiveTab] = useState("behavior");
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <User className="w-6 h-6 text-primary" />
-            个人智能体中心
-          </h1>
-          <p className="text-muted-foreground mt-1">行为探针、技能推断、知识图谱、成长追踪</p>
-        </div>
-        <Button size="sm"><Award className="w-4 h-4 mr-2" />生成能力证书</Button>
-      </div>
+      <PageHeader
+        icon={User}
+        title="个人智能体中心"
+        description="行为探针、技能推断、知识图谱、成长追踪"
+        actions={<Button size="sm"><Award className="w-4 h-4 mr-2" />生成能力证书</Button>}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">行为记录</p><p className="text-2xl font-bold text-primary">1,234</p></div>
-              <Activity className="w-8 h-8 text-primary/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">推断技能</p><p className="text-2xl font-bold text-green-400">12</p></div>
-              <Brain className="w-8 h-8 text-green-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">知识节点</p><p className="text-2xl font-bold text-blue-400">89</p></div>
-              <Network className="w-8 h-8 text-blue-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">成长指数</p><p className="text-2xl font-bold text-purple-400">+15%</p></div>
-              <TrendingUp className="w-8 h-8 text-purple-500/50" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Activity} label="行为记录" value="1,234" iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Brain} label="推断技能" value={12} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Network} label="知识节点" value={89} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={TrendingUp} label="成长指数" value="+15%" iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -178,5 +149,6 @@ export default function PersonalAgentHub() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

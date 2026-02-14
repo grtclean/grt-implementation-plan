@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { MessageSquare, Target, Brain, Shield, TrendingUp, Play, Pause, RotateCcw } from "lucide-react";
+import { PageHeader, StatCard } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 const mockNegotiations = [
   { id: "neg_001", clientAgent: "上汽采购AI", round: 5, ourOffer: 125000, clientOffer: 98000, zopaMin: 105000, zopaMax: 130000, sentiment: "positive", status: "negotiating" },
@@ -32,51 +34,20 @@ export default function AiSalesHub() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <MessageSquare className="w-6 h-6 text-primary" />
-            AI销售中心
-          </h1>
-          <p className="text-muted-foreground mt-1">AI-to-AI谈判、ZOPA分析、情绪洞察</p>
-        </div>
-        <Button size="sm"><Play className="w-4 h-4 mr-2" />启动新谈判</Button>
-      </div>
+      <PageHeader
+        icon={MessageSquare}
+        title="AI销售中心"
+        description="AI-to-AI谈判、ZOPA分析、情绪洞察"
+        actions={<Button size="sm"><Play className="w-4 h-4 mr-2" />启动新谈判</Button>}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">进行中谈判</p><p className="text-2xl font-bold text-primary">12</p></div>
-              <MessageSquare className="w-8 h-8 text-primary/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">成交率</p><p className="text-2xl font-bold text-green-400">78%</p></div>
-              <Target className="w-8 h-8 text-green-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">ZKP验证</p><p className="text-2xl font-bold text-blue-400">45</p></div>
-              <Shield className="w-8 h-8 text-blue-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">本月成交额</p><p className="text-2xl font-bold text-purple-400">¥2.8M</p></div>
-              <TrendingUp className="w-8 h-8 text-purple-500/50" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={MessageSquare} label="进行中谈判" value={12} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Target} label="成交率" value="78%" iconColor="text-green-500" iconBg="bg-green-100" />
+        <StatCard icon={Shield} label="ZKP验证" value={45} iconColor="text-blue-500" iconBg="bg-blue-100" />
+        <StatCard icon={TrendingUp} label="本月成交额" value="¥2.8M" iconColor="text-purple-500" iconBg="bg-purple-100" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -178,5 +149,6 @@ export default function AiSalesHub() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

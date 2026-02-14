@@ -27,6 +27,8 @@ import {
   Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PageHeader } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 interface ComponentHealth {
   name: string;
@@ -146,33 +148,29 @@ export default function SystemHealthDashboard() {
   };
 
   return (
-    <div className="container py-6 space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Activity className="w-6 h-6 text-primary" />
-            系统健康检查
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            实时监控系统运行状态和资源使用情况
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-muted-foreground">
-            <Clock className="w-4 h-4 inline mr-1" />
-            最后更新: {lastUpdate.toLocaleTimeString()}
-          </div>
-          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
-            {isRefreshing ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
-            )}
-            刷新
-          </Button>
-        </div>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Activity}
+        title="系统健康检查"
+        description="实时监控系统运行状态和资源使用情况"
+        actions={
+          <>
+            <div className="text-sm text-muted-foreground">
+              <Clock className="w-4 h-4 inline mr-1" />
+              最后更新: {lastUpdate.toLocaleTimeString()}
+            </div>
+            <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+              {isRefreshing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              刷新
+            </Button>
+          </>
+        }
+      />
 
       {/* 整体状态 */}
       <Card className={`border-2 ${
@@ -480,5 +478,6 @@ export default function SystemHealthDashboard() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

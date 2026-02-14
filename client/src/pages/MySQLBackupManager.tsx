@@ -4,6 +4,8 @@
  */
 
 import { useState } from 'react';
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -139,110 +141,42 @@ export default function MySQLBackupManager() {
   };
 
   return (
-    <div className="container py-6 space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Database className="w-6 h-6 text-primary" />
-            MySQL备份管理
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            数据库自动备份、恢复和计划任务管理
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setShowConfigDialog(true)}>
-            <Settings className="w-4 h-4 mr-2" />
-            配置
-          </Button>
-          <Button onClick={handleManualBackup} disabled={isBackupRunning}>
-            {isBackupRunning ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                备份中...
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 mr-2" />
-                立即备份
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Database}
+        title="MySQL备份管理"
+        description="数据库自动备份、恢复和计划任务管理"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowConfigDialog(true)}>
+              <Settings className="w-4 h-4 mr-2" />
+              配置
+            </Button>
+            <Button onClick={handleManualBackup} disabled={isBackupRunning}>
+              {isBackupRunning ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  备份中...
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 mr-2" />
+                  立即备份
+                </>
+              )}
+            </Button>
+          </div>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Database className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">总备份数</p>
-                <p className="text-2xl font-bold">{stats.totalBackups}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">成功率</p>
-                <p className="text-2xl font-bold">{stats.successRate}%</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <HardDrive className="w-5 h-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">总大小</p>
-                <p className="text-2xl font-bold">{formatSize(stats.totalSize)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-500/10">
-                <Clock className="w-5 h-5 text-orange-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">上次备份</p>
-                <p className="text-sm font-medium">{stats.lastBackup}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-500/10">
-                <Calendar className="w-5 h-5 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">下次备份</p>
-                <p className="text-sm font-medium">{stats.nextBackup}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Database} label="总备份数" value={stats.totalBackups} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={CheckCircle2} label="成功率" value={`${stats.successRate}%`} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={HardDrive} label="总大小" value={formatSize(stats.totalSize)} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Clock} label="上次备份" value={stats.lastBackup} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Calendar} label="下次备份" value={stats.nextBackup} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       {/* 主要内容 */}
@@ -467,5 +401,6 @@ if ($BackupFile.EndsWith(".zip")) {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

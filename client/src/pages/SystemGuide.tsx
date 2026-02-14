@@ -17,15 +17,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { 
-  BookOpen, 
-  Briefcase, 
-  CheckCircle2, 
-  FileText, 
-  Search, 
-  Settings, 
-  Shield, 
-  User, 
+import {
+  BookOpen,
+  Briefcase,
+  CheckCircle2,
+  FileText,
+  Search,
+  Settings,
+  Shield,
+  User,
   Users,
   Wrench,
   DollarSign,
@@ -33,6 +33,7 @@ import {
   Target,
   AlertTriangle
 } from "lucide-react";
+import { PageHeader } from "@/components/grt";
 
 // 系统使用规范
 const systemGuidelines = [
@@ -222,24 +223,22 @@ export default function SystemGuide() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">系统使用规范</h1>
-            <p className="text-muted-foreground">
-              系统操作规范和各角色工作指导书
-            </p>
-          </div>
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="搜索指南..." 
-              className="pl-10"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
+        <PageHeader
+          icon={BookOpen}
+          title="系统使用规范"
+          description="系统操作规范和各角色工作指导书"
+          actions={
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="搜索指南..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+          }
+        />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">

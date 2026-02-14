@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Edit2, Trash2, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, Plus, Edit2, Trash2, Eye, EyeOff, Menu } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
 
@@ -76,12 +78,13 @@ export default function MenuManagement() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* 页面标题 */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">菜单管理</h1>
-        <p className="text-muted-foreground">管理系统菜单项、权限和可见性设置</p>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Menu}
+        title="菜单管理"
+        description="管理系统菜单项、权限和可见性设置"
+      />
 
       {/* 搜索和筛选 */}
       <Card>
@@ -312,5 +315,6 @@ export default function MenuManagement() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

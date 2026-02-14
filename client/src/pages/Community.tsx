@@ -12,6 +12,7 @@
 
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -38,19 +39,16 @@ export default function Community() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold tracking-tight">
-              社群管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              GRTclean技术交流群管理 - 物理连通，逻辑隔离，内容审批
-            </p>
-          </div>
-          <Badge variant="outline" className="text-primary border-primary">
-            Pilot D
-          </Badge>
-        </div>
+        <PageHeader
+          icon={Users}
+          title="社群管理"
+          description="GRTclean技术交流群管理 - 物理连通，逻辑隔离，内容审批"
+          actions={
+            <Badge variant="outline" className="text-primary border-primary">
+              Pilot D
+            </Badge>
+          }
+        />
 
         {/* 统计卡片 */}
         <StatsCards />
@@ -104,49 +102,13 @@ export default function Community() {
 // ============ 统计卡片组件 ============
 function StatsCards() {
   const { data: stats, isLoading } = trpc.community.getStats.useQuery();
-  
-  const cards = [
-    { 
-      title: "活跃成员", 
-      value: (stats as any)?.totalMembers || 0, 
-      icon: Users, 
-      color: "text-blue-500" 
-    },
-    { 
-      title: "今日消息", 
-      value: (stats as any)?.totalMessages || 0, 
-      icon: MessageSquare, 
-      color: "text-green-500" 
-    },
-    { 
-      title: "待审批", 
-      value: 0, 
-      icon: AlertTriangle, 
-      color: "text-yellow-500" 
-    },
-    { 
-      title: "商机转化", 
-      value: (stats as any)?.leadsGenerated || 0, 
-      icon: BarChart3, 
-      color: "text-primary" 
-    },
-  ];
-  
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {cards.map((card, i) => (
-        <Card key={i} className="bg-card/50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-muted ${card.color}`}>
-              <card.icon className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{card.title}</p>
-              <p className="text-2xl font-bold">{isLoading ? "-" : card.value}</p>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+      <StatCard icon={Users} label="活跃成员" value={isLoading ? "-" : ((stats as any)?.totalMembers || 0)} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+      <StatCard icon={MessageSquare} label="今日消息" value={isLoading ? "-" : ((stats as any)?.totalMessages || 0)} iconColor="text-green-500" iconBg="bg-green-500/10" />
+      <StatCard icon={AlertTriangle} label="待审批" value={isLoading ? "-" : 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+      <StatCard icon={BarChart3} label="商机转化" value={isLoading ? "-" : ((stats as any)?.leadsGenerated || 0)} iconColor="text-primary" iconBg="bg-primary/10" />
     </div>
   );
 }

@@ -3,10 +3,12 @@
  * 部门管理、岗位管理、组织树
  */
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, Users, ChevronRight, ChevronDown, Settings, User } from "lucide-react";
+import { Building2, Plus, Users, ChevronRight, ChevronDown, Settings, User, Briefcase } from "lucide-react";
 
 interface OrgNode {
   name: string;
@@ -60,23 +62,25 @@ function OrgNodeComponent({ node, depth = 0 }: { node: OrgNode; depth?: number }
 
 export default function OrganizationManagement() {
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Building2 className="h-6 w-6 text-primary" />组织架构</h1>
-          <p className="text-muted-foreground mt-1">组织管理 · 部门岗位 · 人员配置</p>
-        </div>
-        <div className="flex gap-2">
-          <Button><Plus className="h-4 w-4 mr-2" />新建部门</Button>
-          <Button variant="outline"><Settings className="h-4 w-4 mr-2" />岗位管理</Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Building2}
+        title="组织架构"
+        description="组织管理 · 部门岗位 · 人员配置"
+        actions={
+          <div className="flex gap-2">
+            <Button><Plus className="h-4 w-4 mr-2" />新建部门</Button>
+            <Button variant="outline"><Settings className="h-4 w-4 mr-2" />岗位管理</Button>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold">5</p><p className="text-sm text-muted-foreground">事业部</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold">12</p><p className="text-sm text-muted-foreground">部门/团队</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold">140</p><p className="text-sm text-muted-foreground">总人数</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-primary">28</p><p className="text-sm text-muted-foreground">岗位类型</p></CardContent></Card>
+        <StatCard icon={Building2} label="事业部" value={5} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Users} label="部门/团队" value={12} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={User} label="总人数" value={140} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Briefcase} label="岗位类型" value={28} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       <Card>
@@ -86,5 +90,6 @@ export default function OrganizationManagement() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

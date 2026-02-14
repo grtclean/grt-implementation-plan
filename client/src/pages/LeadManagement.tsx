@@ -5,6 +5,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -400,72 +401,30 @@ export default function LeadManagement() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-primary rounded-sm"></span>
-              商机管理
-            </h1>
-            <p className="text-muted-foreground mt-1">AI智能识别高意向客户，自动创建并跟进商机</p>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setIsImportOpen(true)} variant="outline" size="sm">
-              <Upload className="w-4 h-4 mr-2" />
-              导入商机
-            </Button>
-            <Button onClick={() => refetchLeads()} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              刷新
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Target}
+          title="商机管理"
+          description="AI智能识别高意向客户，自动创建并跟进商机"
+          actions={
+            <div className="flex gap-2">
+              <Button onClick={() => setIsImportOpen(true)} variant="outline" size="sm">
+                <Upload className="w-4 h-4 mr-2" />
+                导入商机
+              </Button>
+              <Button onClick={() => refetchLeads()} variant="outline" size="sm">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                刷新
+              </Button>
+            </div>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500">
-                <Users className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">总商机数</p>
-                <p className="text-2xl font-bold">{stats?.total || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-orange-500/10 text-orange-500">
-                <AlertCircle className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">高优先级</p>
-                <p className="text-2xl font-bold">{stats?.highPriority || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-green-500/10 text-green-500">
-                <Activity className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">平均置信度</p>
-                <p className="text-2xl font-bold">{stats?.avgConfidence || 0}%</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-primary/10 text-primary">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">预估总金额</p>
-                <p className="text-2xl font-bold">¥{((stats?.totalValue || 0) / 10000).toFixed(1)}万</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Users} label="总商机数" value={stats?.total || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={AlertCircle} label="高优先级" value={stats?.highPriority || 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+          <StatCard icon={Activity} label="平均置信度" value={`${stats?.avgConfidence || 0}%`} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={TrendingUp} label="预估总金额" value={`¥${((stats?.totalValue || 0) / 10000).toFixed(1)}万`} iconColor="text-primary" iconBg="bg-primary/10" />
         </div>
 
         {/* 主要内容区 */}

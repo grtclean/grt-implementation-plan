@@ -55,6 +55,7 @@ import {
   UserCheck,
   AlertTriangle,
 } from "lucide-react";
+import { PageHeader, StatCard } from "@/components/grt";
 
 // BU定义
 const BU_OPTIONS = [
@@ -241,86 +242,31 @@ export default function UserStatusManagement() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Users className="h-8 w-8 text-primary" />
-              用户状态管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              查看和管理所有用户的Profile设置状态
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-              刷新
-            </Button>
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              导出
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Users}
+          title="用户状态管理"
+          description="查看和管理所有用户的Profile设置状态"
+          actions={
+            <>
+              <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+                刷新
+              </Button>
+              <Button variant="outline" onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                导出
+              </Button>
+            </>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">总用户数</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                </div>
-                <Users className="h-8 w-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">已配置</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.configured}</p>
-                </div>
-                <UserCheck className="h-8 w-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">未配置</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.unconfigured}</p>
-                </div>
-                <Settings className="h-8 w-8 text-yellow-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">有逾期任务</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.withOverdue}</p>
-                </div>
-                <AlertTriangle className="h-8 w-8 text-red-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">已启用提醒</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.reminderEnabled}</p>
-                </div>
-                <Bell className="h-8 w-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Users} label="总用户数" value={stats.total} />
+          <StatCard icon={UserCheck} label="已配置" value={stats.configured} iconColor="text-green-600" iconBg="bg-green-500/10" />
+          <StatCard icon={Settings} label="未配置" value={stats.unconfigured} iconColor="text-yellow-600" iconBg="bg-yellow-500/10" />
+          <StatCard icon={AlertTriangle} label="有逾期任务" value={stats.withOverdue} iconColor="text-red-600" iconBg="bg-red-500/10" />
+          <StatCard icon={Bell} label="已启用提醒" value={stats.reminderEnabled} iconColor="text-blue-600" iconBg="bg-blue-500/10" />
         </div>
 
         {/* 筛选和搜索 */}

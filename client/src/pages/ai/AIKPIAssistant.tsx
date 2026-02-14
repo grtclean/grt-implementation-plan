@@ -7,9 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Target, 
-  Loader2, 
+import { PageHeader } from "@/components/grt";
+import Layout from "@/components/Layout";
+import {
+  Target,
+  Loader2,
   Sparkles,
   TrendingUp,
   TrendingDown,
@@ -142,14 +144,13 @@ export default function AIKPIAssistant() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Target className="w-6 h-6 text-primary" />
-          {t('title')}
-        </h1>
-        <p className="text-muted-foreground mt-1">{t('description')}</p>
-      </div>
+      <PageHeader
+        icon={Target}
+        title={t('title')}
+        description={t('description')}
+      />
 
       <Card>
         <CardContent className="py-4">
@@ -343,5 +344,6 @@ export default function AIKPIAssistant() {
         </Tabs>
       )}
     </div>
+    </Layout>
   );
 }

@@ -4,9 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Zap, MessageSquare, Settings } from "lucide-react";
+import { AlertCircle, Bot, Plus, Zap, MessageSquare, Settings } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader, StatCard } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 export default function AIAssistantPage() {
   const { toast } = useToast();
@@ -45,54 +47,19 @@ export default function AIAssistantPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* 页面标题 */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">AI助手管理</h1>
-        <p className="text-muted-foreground">
-          管理系统AI助手、生成建议和跟踪执行效果
-        </p>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Bot}
+        title="AI助手管理"
+        description="管理系统AI助手、生成建议和跟踪执行效果"
+      />
 
       {/* 快速操作 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">活跃助手</p>
-                <p className="text-3xl font-bold mt-2">
-                  {assistants?.filter((a) => a.isActive).length || 0}
-                </p>
-              </div>
-              <Zap className="w-8 h-8 text-yellow-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">待处理建议</p>
-                <p className="text-3xl font-bold mt-2">12</p>
-              </div>
-              <MessageSquare className="w-8 h-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">执行成功率</p>
-                <p className="text-3xl font-bold mt-2">87%</p>
-              </div>
-              <AlertCircle className="w-8 h-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Zap} label="活跃助手" value={assistants?.filter((a) => a.isActive).length || 0} iconColor="text-yellow-500" iconBg="bg-yellow-100" />
+        <StatCard icon={MessageSquare} label="待处理建议" value={12} iconColor="text-blue-500" iconBg="bg-blue-100" />
+        <StatCard icon={AlertCircle} label="执行成功率" value="87%" iconColor="text-green-500" iconBg="bg-green-100" />
       </div>
 
       {/* 搜索和操作 */}
@@ -238,5 +205,6 @@ export default function AIAssistantPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

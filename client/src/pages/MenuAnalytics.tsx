@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart3, TrendingUp, Users, Clock, MousePointerClick, Star, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
+import { PageHeader, StatCard } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 const TOP_PAGES = [
   { path: "/", name: "我的看板", visits: 1250, users: 128, avgTime: "3m 20s", trend: "up" },
@@ -38,44 +40,34 @@ const ROLE_USAGE = [
 
 export default function MenuAnalytics() {
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><BarChart3 className="h-6 w-6 text-primary" />菜单使用分析</h1>
-          <p className="text-muted-foreground mt-1">菜单热度 · 使用趋势 · 用户行为分析</p>
-        </div>
-        <div className="flex gap-2">
-          <Select defaultValue="7d">
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1d">今天</SelectItem>
-              <SelectItem value="7d">最近7天</SelectItem>
-              <SelectItem value="30d">最近30天</SelectItem>
-              <SelectItem value="90d">最近90天</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline"><RefreshCw className="h-4 w-4 mr-2" />刷新</Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title="菜单使用分析"
+        description="菜单热度 · 使用趋势 · 用户行为分析"
+        actions={
+          <>
+            <Select defaultValue="7d">
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1d">今天</SelectItem>
+                <SelectItem value="7d">最近7天</SelectItem>
+                <SelectItem value="30d">最近30天</SelectItem>
+                <SelectItem value="90d">最近90天</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline"><RefreshCw className="h-4 w-4 mr-2" />刷新</Button>
+          </>
+        }
+      />
 
       {/* 整体统计 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4">
-          <div className="flex justify-between"><div><p className="text-sm text-muted-foreground">总页面访问</p><p className="text-2xl font-bold">12,580</p></div><MousePointerClick className="h-8 w-8 text-muted-foreground/20" /></div>
-          <p className="text-xs text-green-600 mt-1"><ArrowUp className="inline h-3 w-3" />+12% vs 上周</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex justify-between"><div><p className="text-sm text-muted-foreground">活跃用户</p><p className="text-2xl font-bold">128</p></div><Users className="h-8 w-8 text-muted-foreground/20" /></div>
-          <p className="text-xs text-green-600 mt-1"><ArrowUp className="inline h-3 w-3" />+5% vs 上周</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex justify-between"><div><p className="text-sm text-muted-foreground">平均停留时间</p><p className="text-2xl font-bold">5m 22s</p></div><Clock className="h-8 w-8 text-muted-foreground/20" /></div>
-          <p className="text-xs text-muted-foreground mt-1">稳定</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex justify-between"><div><p className="text-sm text-muted-foreground">收藏使用率</p><p className="text-2xl font-bold">42%</p></div><Star className="h-8 w-8 text-muted-foreground/20" /></div>
-          <p className="text-xs text-green-600 mt-1"><ArrowUp className="inline h-3 w-3" />+8%</p>
-        </CardContent></Card>
+        <StatCard icon={MousePointerClick} label="总页面访问" value="12,580" trend={{ value: 12, label: "vs 上周" }} />
+        <StatCard icon={Users} label="活跃用户" value={128} trend={{ value: 5, label: "vs 上周" }} />
+        <StatCard icon={Clock} label="平均停留时间" value="5m 22s" subtitle="稳定" />
+        <StatCard icon={Star} label="收藏使用率" value="42%" trend={{ value: 8, label: "" }} />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -146,5 +138,6 @@ export default function MenuAnalytics() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

@@ -2,6 +2,8 @@
  * 液态用工中心增强版 - 技能认证审核、竞标匹配、版税分成
  */
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,16 +60,13 @@ export default function LiquidWorkforceHubEnhanced() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Briefcase className="w-6 h-6 text-primary" />
-            液态用工中心 (增强版)
-          </h1>
-          <p className="text-muted-foreground mt-1">技能认证审核、竞标智能匹配、版税分成管理</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Briefcase}
+        title="液态用工中心 (增强版)"
+        description="技能认证审核、竞标智能匹配、版税分成管理"
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 bg-card border border-border">
@@ -202,5 +201,6 @@ export default function LiquidWorkforceHubEnhanced() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

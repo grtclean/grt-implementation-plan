@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -160,19 +161,13 @@ export default function CustomerValueView() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-heading flex items-center gap-3">
-              <Users className="w-8 h-8 text-primary" />
-              {isZh ? '客户价值视图' : 'Customer Value View'}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {isZh 
-                ? '基于角色的客户场景映射与任务驱动视图' 
-                : 'Role-based customer scenario mapping and task-driven view'}
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Users}
+          title={isZh ? '客户价值视图' : 'Customer Value View'}
+          description={isZh
+            ? '基于角色的客户场景映射与任务驱动视图'
+            : 'Role-based customer scenario mapping and task-driven view'}
+        />
 
         {/* 当前用户任务卡片 */}
         <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">

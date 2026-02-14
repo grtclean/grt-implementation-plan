@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -113,165 +114,131 @@ export default function CrmContacts() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-primary rounded-sm"></span>
-              {t("crm.contacts.title")}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {t("crm.contacts.subtitle")}
-            </p>
-          </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90">
-                <Plus className="w-4 h-4 mr-2" />
-                {t("crm.contacts.newContact")}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>{t("crm.contacts.newContact")}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>{t("crm.contacts.name")} *</Label>
-                  <Input
-                    value={newContact.name}
-                    onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                    placeholder={t("crm.contacts.enterName")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("crm.contacts.customer")} *</Label>
-                  <Select
-                    value={newContact.customerId.toString()}
-                    onValueChange={(v) => setNewContact({ ...newContact, customerId: parseInt(v) })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("crm.contacts.selectCustomer")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id.toString()}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>{t("crm.contacts.position")}</Label>
-                    <Input
-                      value={newContact.position}
-                      onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
-                      placeholder={t("crm.contacts.enterPosition")}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{t("crm.contacts.department")}</Label>
-                    <Input
-                      value={newContact.department}
-                      onChange={(e) => setNewContact({ ...newContact, department: e.target.value })}
-                      placeholder={t("crm.contacts.enterDepartment")}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>{t("crm.contacts.mobile")}</Label>
-                    <Input
-                      value={newContact.mobile}
-                      onChange={(e) => setNewContact({ ...newContact, mobile: e.target.value })}
-                      placeholder={t("crm.contacts.enterMobile")}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{t("crm.contacts.landline")}</Label>
-                    <Input
-                      value={newContact.phone}
-                      onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                      placeholder={t("crm.contacts.enterLandline")}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("crm.email")}</Label>
-                  <Input
-                    value={newContact.email}
-                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                    placeholder={t("crm.contacts.enterEmail")}
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isKeyContact"
-                    checked={newContact.isKeyPerson === "yes"}
-                    onChange={(e) => setNewContact({ ...newContact, isKeyPerson: e.target.checked ? "yes" : "no" })}
-                    className="rounded border-border"
-                  />
-                  <Label htmlFor="isKeyContact">{t("crm.contacts.setAsKeyPerson")}</Label>
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("crm.remark")}</Label>
-                  <Textarea
-                    value={newContact.remark}
-                    onChange={(e) => setNewContact({ ...newContact, remark: e.target.value })}
-                    placeholder={t("crm.contacts.enterRemark")}
-                    rows={2}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  {t("common.cancel")}
+        <PageHeader
+          icon={Users}
+          title={t("crm.contacts.title")}
+          description={t("crm.contacts.subtitle")}
+          actions={
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t("crm.contacts.newContact")}
                 </Button>
-                <Button onClick={handleCreate} disabled={createMutation.isPending}>
-                  {createMutation.isPending ? t("crm.contacts.creating") : t("common.create")}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{t("crm.contacts.newContact")}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>{t("crm.contacts.name")} *</Label>
+                    <Input
+                      value={newContact.name}
+                      onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                      placeholder={t("crm.contacts.enterName")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("crm.contacts.customer")} *</Label>
+                    <Select
+                      value={newContact.customerId.toString()}
+                      onValueChange={(v) => setNewContact({ ...newContact, customerId: parseInt(v) })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t("crm.contacts.selectCustomer")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customers.map((c) => (
+                          <SelectItem key={c.id} value={c.id.toString()}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>{t("crm.contacts.position")}</Label>
+                      <Input
+                        value={newContact.position}
+                        onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
+                        placeholder={t("crm.contacts.enterPosition")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t("crm.contacts.department")}</Label>
+                      <Input
+                        value={newContact.department}
+                        onChange={(e) => setNewContact({ ...newContact, department: e.target.value })}
+                        placeholder={t("crm.contacts.enterDepartment")}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>{t("crm.contacts.mobile")}</Label>
+                      <Input
+                        value={newContact.mobile}
+                        onChange={(e) => setNewContact({ ...newContact, mobile: e.target.value })}
+                        placeholder={t("crm.contacts.enterMobile")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t("crm.contacts.landline")}</Label>
+                      <Input
+                        value={newContact.phone}
+                        onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                        placeholder={t("crm.contacts.enterLandline")}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("crm.email")}</Label>
+                    <Input
+                      value={newContact.email}
+                      onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                      placeholder={t("crm.contacts.enterEmail")}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="isKeyContact"
+                      checked={newContact.isKeyPerson === "yes"}
+                      onChange={(e) => setNewContact({ ...newContact, isKeyPerson: e.target.checked ? "yes" : "no" })}
+                      className="rounded border-border"
+                    />
+                    <Label htmlFor="isKeyContact">{t("crm.contacts.setAsKeyPerson")}</Label>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("crm.remark")}</Label>
+                    <Textarea
+                      value={newContact.remark}
+                      onChange={(e) => setNewContact({ ...newContact, remark: e.target.value })}
+                      placeholder={t("crm.contacts.enterRemark")}
+                      rows={2}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                    {t("common.cancel")}
+                  </Button>
+                  <Button onClick={handleCreate} disabled={createMutation.isPending}>
+                    {createMutation.isPending ? t("crm.contacts.creating") : t("common.create")}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          }
+        />
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-primary/10 text-primary">
-                <Users className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("crm.contacts.totalContacts")}</p>
-                <p className="text-2xl font-bold">{totalContacts}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-yellow-500/10 text-yellow-500">
-                <Star className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("crm.contacts.keyContacts")}</p>
-                <p className="text-2xl font-bold">{keyContacts}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-blue-500/10 text-blue-500">
-                <Building2 className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("crm.contacts.relatedCustomers")}</p>
-                <p className="text-2xl font-bold">{uniqueCustomers}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Users} label={t("crm.contacts.totalContacts")} value={totalContacts} iconColor="text-primary" iconBg="bg-primary/10" />
+          <StatCard icon={Star} label={t("crm.contacts.keyContacts")} value={keyContacts} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+          <StatCard icon={Building2} label={t("crm.contacts.relatedCustomers")} value={uniqueCustomers} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
         </div>
 
         {/* Filters */}

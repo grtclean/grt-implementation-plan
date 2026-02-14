@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -159,12 +161,13 @@ export default function MonitoringDashboard() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* 页面标题 */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">监控仪表板</h1>
-        <p className="text-muted-foreground mt-2">实时监控系统状态、历史趋势分析、告警统计和优化建议</p>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Activity}
+        title="监控仪表板"
+        description="实时监控系统状态、历史趋势分析、告警统计和优化建议"
+      />
 
       {/* 实时监控面板 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -496,5 +499,6 @@ export default function MonitoringDashboard() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

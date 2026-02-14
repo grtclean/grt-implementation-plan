@@ -9,12 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  BookOpen, Search, Target, GitBranch, Users, MessageSquare, 
+import {
+  BookOpen, Search, Target, GitBranch, Users, MessageSquare,
   Briefcase, TrendingUp, Brain, Shield, FileText, Rocket,
   Database, Webhook, Award, ChevronRight, ExternalLink,
   Lightbulb, AlertCircle, CheckCircle2, Info
 } from "lucide-react";
+import { PageHeader } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 // 指南内容数据
 const guideCategories = [
@@ -486,19 +488,13 @@ export default function SystemGuideBook() {
   })).filter(category => category.articles.length > 0);
 
   return (
-    <div className="space-y-6 p-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-primary" />
-            GRT智能系统使用指南
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            完整的系统操作手册和最佳实践指南
-          </p>
-        </div>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={BookOpen}
+        title="GRT智能系统使用指南"
+        description="完整的系统操作手册和最佳实践指南"
+      />
 
       {/* 搜索框 */}
       <div className="relative max-w-md">
@@ -712,5 +708,6 @@ export default function SystemGuideBook() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

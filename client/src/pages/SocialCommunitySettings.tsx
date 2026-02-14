@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -149,17 +150,11 @@ export default function SocialCommunitySettings() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Settings className="w-6 h-6 text-primary" />
-              社群管理设置
-            </h1>
-            <p className="text-muted-foreground">
-              配置消息脱敏规则、AI回复模板和Webhook集成
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Settings}
+          title="社群管理设置"
+          description="配置消息脱敏规则、AI回复模板和Webhook集成"
+        />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">

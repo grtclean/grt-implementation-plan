@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Shield, Plus, Clock, User, CheckCircle2, XCircle, AlertTriangle, Calendar, Search } from "lucide-react";
+import { PageHeader, StatCard } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 interface TempPermission {
   id: string;
@@ -37,37 +39,39 @@ export default function TemporaryPermissions() {
   const filtered = MOCK_TEMP_PERMS.filter(p => !search || p.user.includes(search) || p.module.includes(search));
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Shield className="h-6 w-6 text-primary" />临时权限管理</h1>
-          <p className="text-muted-foreground mt-1">时限性权限授予 · 自动过期 · 审计追踪</p>
-        </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />授予临时权限</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>授予临时权限</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2"><Label>目标用户</Label><Select><SelectTrigger><SelectValue placeholder="选择用户" /></SelectTrigger><SelectContent><SelectItem value="zhao">赵工</SelectItem><SelectItem value="chen">陈工</SelectItem><SelectItem value="li">李工</SelectItem></SelectContent></Select></div>
-              <div className="space-y-2"><Label>授予角色</Label><Select><SelectTrigger><SelectValue placeholder="选择角色" /></SelectTrigger><SelectContent><SelectItem value="bu_sales">销售工程师</SelectItem><SelectItem value="bu_pm">项目经理</SelectItem><SelectItem value="finance_specialist">财务专员</SelectItem><SelectItem value="hr_specialist">HR专员</SelectItem></SelectContent></Select></div>
-              <div className="space-y-2"><Label>授权模块</Label><Input placeholder="如: 客户管理、项目管理" /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>开始日期</Label><Input type="date" /></div>
-                <div className="space-y-2"><Label>结束日期</Label><Input type="date" /></div>
+      <PageHeader
+        icon={Shield}
+        title="临时权限管理"
+        description="时限性权限授予 · 自动过期 · 审计追踪"
+        actions={
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-2" />授予临时权限</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>授予临时权限</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2"><Label>目标用户</Label><Select><SelectTrigger><SelectValue placeholder="选择用户" /></SelectTrigger><SelectContent><SelectItem value="zhao">赵工</SelectItem><SelectItem value="chen">陈工</SelectItem><SelectItem value="li">李工</SelectItem></SelectContent></Select></div>
+                <div className="space-y-2"><Label>授予角色</Label><Select><SelectTrigger><SelectValue placeholder="选择角色" /></SelectTrigger><SelectContent><SelectItem value="bu_sales">销售工程师</SelectItem><SelectItem value="bu_pm">项目经理</SelectItem><SelectItem value="finance_specialist">财务专员</SelectItem><SelectItem value="hr_specialist">HR专员</SelectItem></SelectContent></Select></div>
+                <div className="space-y-2"><Label>授权模块</Label><Input placeholder="如: 客户管理、项目管理" /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>开始日期</Label><Input type="date" /></div>
+                  <div className="space-y-2"><Label>结束日期</Label><Input type="date" /></div>
+                </div>
+                <div className="space-y-2"><Label>授权原因</Label><Input placeholder="说明授权原因..." /></div>
               </div>
-              <div className="space-y-2"><Label>授权原因</Label><Input placeholder="说明授权原因..." /></div>
-            </div>
-            <DialogFooter><Button onClick={() => setShowCreateDialog(false)}>确认授予</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <DialogFooter><Button onClick={() => setShowCreateDialog(false)}>确认授予</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       <div className="grid grid-cols-3 gap-4">
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-blue-600">3</p><p className="text-sm text-muted-foreground">生效中</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-gray-400">8</p><p className="text-sm text-muted-foreground">已过期</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-amber-600">1</p><p className="text-sm text-muted-foreground">即将过期(3天内)</p></CardContent></Card>
+        <StatCard icon={CheckCircle2} label="生效中" value={3} iconColor="text-blue-600" iconBg="bg-blue-500/10" />
+        <StatCard icon={Clock} label="已过期" value={8} iconColor="text-gray-400" iconBg="bg-gray-500/10" />
+        <StatCard icon={AlertTriangle} label="即将过期(3天内)" value={1} iconColor="text-amber-600" iconBg="bg-amber-500/10" />
       </div>
 
       <Card>
@@ -105,5 +109,6 @@ export default function TemporaryPermissions() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

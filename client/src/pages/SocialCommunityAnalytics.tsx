@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -49,119 +50,73 @@ export default function SocialCommunityAnalytics() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <BarChart3 className="w-6 h-6 text-primary" />
-              消息统计分析
-            </h1>
-            <p className="text-muted-foreground">
-              社群消息数据分析、成员画像、活跃度统计
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="选择群组" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部群组</SelectItem>
-                {groups?.items?.map((group: any) => (
-                  <SelectItem key={group.id} value={group.id.toString()}>
-                    {group.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-[120px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">近7天</SelectItem>
-                <SelectItem value="30d">近30天</SelectItem>
-                <SelectItem value="90d">近90天</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <PageHeader
+          icon={BarChart3}
+          title="消息统计分析"
+          description="社群消息数据分析、成员画像、活跃度统计"
+          actions={
+            <div className="flex gap-2">
+              <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="选择群组" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部群组</SelectItem>
+                  {groups?.items?.map((group: any) => (
+                    <SelectItem key={group.id} value={group.id.toString()}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7d">近7天</SelectItem>
+                  <SelectItem value="30d">近30天</SelectItem>
+                  <SelectItem value="90d">近90天</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          }
+        />
 
         {/* 核心指标卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">总消息数</p>
-                  <p className="text-3xl font-bold">{stats?.totalMessages || 0}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    {trendChange >= 0 ? (
-                      <TrendingUp className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <TrendingUp className="w-4 h-4 text-red-500 rotate-180" />
-                    )}
-                    <span className={`text-xs ${trendChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {trendChange >= 0 ? '+' : ''}{trendChange}% 较上周
-                    </span>
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-blue-500/10">
-                  <MessageSquare className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">今日消息</p>
-                  <p className="text-3xl font-bold">{stats?.todayMessages || 0}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    实时更新
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-green-500/10">
-                  <Activity className="w-6 h-6 text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">敏感消息</p>
-                  <p className="text-3xl font-bold">{stats?.sensitiveMessages || 0}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    占比 {stats?.totalMessages ? Math.round((stats.sensitiveMessages / stats.totalMessages) * 100) : 0}%
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-yellow-500/10">
-                  <AlertTriangle className="w-6 h-6 text-yellow-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">待回复</p>
-                  <p className="text-3xl font-bold">{stats?.needsReplyMessages || 0}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    平均响应 {stats?.avgResponseTime || 0} 分钟
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-purple-500/10">
-                  <Clock className="w-6 h-6 text-purple-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            icon={MessageSquare}
+            label="总消息数"
+            value={stats?.totalMessages || 0}
+            subtitle={`${trendChange >= 0 ? '+' : ''}${trendChange}% 较上周`}
+            iconColor="text-blue-500"
+            iconBg="bg-blue-500/10"
+          />
+          <StatCard
+            icon={Activity}
+            label="今日消息"
+            value={stats?.todayMessages || 0}
+            subtitle="实时更新"
+            iconColor="text-green-500"
+            iconBg="bg-green-500/10"
+          />
+          <StatCard
+            icon={AlertTriangle}
+            label="敏感消息"
+            value={stats?.sensitiveMessages || 0}
+            subtitle={`占比 ${stats?.totalMessages ? Math.round((stats.sensitiveMessages / stats.totalMessages) * 100) : 0}%`}
+            iconColor="text-yellow-500"
+            iconBg="bg-yellow-500/10"
+          />
+          <StatCard
+            icon={Clock}
+            label="待回复"
+            value={stats?.needsReplyMessages || 0}
+            subtitle={`平均响应 ${stats?.avgResponseTime || 0} 分钟`}
+            iconColor="text-purple-500"
+            iconBg="bg-purple-500/10"
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

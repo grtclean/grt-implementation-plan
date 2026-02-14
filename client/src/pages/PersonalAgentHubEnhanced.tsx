@@ -2,6 +2,8 @@
  * 个人智能体中心增强版 - 行为数据聚合、技能推断、知识图谱
  */
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,16 +75,13 @@ export default function PersonalAgentHubEnhanced() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Brain className="w-6 h-6 text-primary" />
-            个人智能体中心 (增强版)
-          </h1>
-          <p className="text-muted-foreground mt-1">行为数据聚合、技能自动推断、知识图谱可视化</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Brain}
+        title="个人智能体中心 (增强版)"
+        description="行为数据聚合、技能自动推断、知识图谱可视化"
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
@@ -289,5 +288,6 @@ export default function PersonalAgentHubEnhanced() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

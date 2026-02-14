@@ -914,6 +914,581 @@ export const helpContentMap: Record<string, PageHelpContent> = {
       { question: "拉动信号的用途是什么？", answer: "拉动信号用于门径通过后自动触发下游生产设备的JIT/JIS拉动动作，如通知AAS设备开始加工准备。" },
     ],
   },
+
+  // ========== AI助手 ==========
+  "/ai-assistant": {
+    title: "AI助手管理",
+    description: "管理和配置AI助手实例",
+    overview: "AI助手管理页面集中管理所有AI助手配置，包括员工数字助手、功能型助手和建议执行统计。",
+    steps: [
+      { title: "查看助手列表", description: "浏览已配置的AI助手及其运行状态" },
+      { title: "配置助手", description: "新建或编辑AI助手的模型、提示词和权限设置" },
+      { title: "查看执行记录", description: "查看AI建议执行情况和效果统计" },
+    ],
+    faq: [
+      { question: "如何创建新的AI助手？", answer: "点击页面右上角的「新建助手」按钮，填写助手名称、模型和提示词配置即可。" },
+    ],
+  },
+  "/ai-sales-hub": {
+    title: "AI销售中心",
+    description: "AI-to-AI谈判、ZOPA分析、情绪洞察",
+    overview: "AI销售中心提供AI辅助的销售谈判功能，包括实时谈判模拟、ZOPA（可能达成协议区间）分析、ZKP零知识证明验证，以及客户情绪洞察。",
+    steps: [
+      { title: "启动谈判", description: "点击「启动新谈判」创建AI辅助的谈判会话" },
+      { title: "分析ZOPA", description: "系统自动计算双方的可接受价格区间" },
+      { title: "查看情绪分析", description: "AI实时分析客户情绪变化和谈判意愿" },
+    ],
+    faq: [
+      { question: "什么是ZOPA分析？", answer: "ZOPA（Zone of Possible Agreement）是买卖双方可能达成一致的价格区间，AI会根据历史数据和市场情况自动计算。" },
+    ],
+  },
+  "/ai-sales-enhanced": {
+    title: "AI销售中心（增强版）",
+    description: "AI谈判可视化、ZOPA计算、情绪分析",
+    overview: "增强版AI销售中心提供更丰富的可视化和分析功能，支持谈判过程回放和深度情绪分析。",
+    steps: [
+      { title: "查看谈判仪表盘", description: "总览所有进行中和已完成的AI谈判" },
+      { title: "分析谈判数据", description: "深度分析谈判成功率、平均周期等指标" },
+    ],
+    faq: [
+      { question: "增强版和标准版有什么区别？", answer: "增强版提供更详细的数据可视化和高级分析功能，适合管理层使用。" },
+    ],
+  },
+  "/ai/solution-assistant": {
+    title: "AI方案助手",
+    description: "智能方案生成与优化",
+    overview: "AI方案助手根据客户需求自动生成技术方案，支持方案比对、优化建议和一键导出。",
+    steps: [
+      { title: "输入需求", description: "描述客户需求和技术要求" },
+      { title: "生成方案", description: "AI根据需求自动生成推荐方案" },
+      { title: "优化调整", description: "根据反馈调整方案细节" },
+    ],
+    faq: [
+      { question: "AI方案准确度如何？", answer: "方案基于历史成功案例库生成，准确度取决于需求描述的详细程度，建议结合专家审核使用。" },
+    ],
+  },
+  "/ai/quotation-assistant": {
+    title: "AI报价助手",
+    description: "智能报价计算与优化",
+    overview: "AI报价助手自动计算项目报价，综合考虑成本、市场价格和历史数据，生成最优报价方案。",
+    steps: [
+      { title: "选择产品配置", description: "选择需要报价的产品和配置项" },
+      { title: "AI计算报价", description: "系统自动计算成本和建议售价" },
+      { title: "调整导出", description: "调整利润率和折扣后导出报价单" },
+    ],
+    faq: [
+      { question: "报价是如何计算的？", answer: "AI综合考虑原材料成本、加工工时、市场竞品价格和历史成交数据计算建议报价。" },
+    ],
+  },
+  "/ai/planning-assistant": {
+    title: "AI规划助手",
+    description: "智能项目规划与排程",
+    overview: "AI规划助手自动生成项目计划，优化资源分配和时间排程，支持多方案对比。",
+    steps: [
+      { title: "设定目标", description: "定义项目目标、约束条件和优先级" },
+      { title: "生成规划", description: "AI自动生成最优项目规划方案" },
+      { title: "调整确认", description: "微调资源分配和关键节点后确认方案" },
+    ],
+    faq: [
+      { question: "AI如何优化排程？", answer: "AI考虑资源可用性、依赖关系和历史工期数据，使用优化算法生成最短路径方案。" },
+    ],
+  },
+  "/ai/kpi-assistant": {
+    title: "AI KPI助手",
+    description: "智能KPI分析与预测",
+    overview: "AI KPI助手自动分析关键绩效指标趋势，提供预测和改进建议。",
+    steps: [
+      { title: "选择指标", description: "选择要分析的KPI指标维度" },
+      { title: "查看分析", description: "AI展示趋势分析和异常检测结果" },
+      { title: "获取建议", description: "查看AI生成的改进建议和行动项" },
+    ],
+    faq: [
+      { question: "KPI预测准确吗？", answer: "预测基于历史数据趋势和季节性模型，短期预测（1-3个月）准确度较高。" },
+    ],
+  },
+  "/ai-accuracy": {
+    title: "AI准确度分析",
+    description: "AI预设准确度分析仪表盘",
+    overview: "监控和分析AI模型预测准确度，追踪模型性能变化趋势，及时发现精度下降问题。",
+    steps: [
+      { title: "查看总览", description: "查看各AI模型的综合准确度指标" },
+      { title: "分析趋势", description: "查看准确度随时间变化的趋势图" },
+      { title: "对比模型", description: "对比不同模型或不同版本的准确度差异" },
+    ],
+    faq: [
+      { question: "准确度低于阈值怎么办？", answer: "系统会自动告警，建议检查训练数据质量或考虑模型重训。" },
+    ],
+  },
+
+  // ========== 社区/社群 ==========
+  "/community": {
+    title: "社群管理",
+    description: "技术交流群管理与消息审批",
+    overview: "社群管理页面提供企业技术社群的统一管理，包括群组管理、消息审核、成员管理和商机转化追踪。",
+    steps: [
+      { title: "查看社群列表", description: "浏览和管理所有技术交流群" },
+      { title: "审核消息", description: "查看和处理待审核的群消息" },
+      { title: "管理成员", description: "添加、移除或调整社群成员权限" },
+    ],
+    faq: [
+      { question: "如何创建新的社群？", answer: "在社群列表页点击「新建群组」按钮，填写群名、描述并添加初始成员即可。" },
+    ],
+  },
+  "/liquid-workforce-hub": {
+    title: "液态用工中心",
+    description: "技能胶囊市场、任务竞标、智能合约",
+    overview: "液态用工中心提供内部人力资源灵活调配平台，支持技能胶囊发布、任务竞标和基于智能合约的自动结算。",
+    steps: [
+      { title: "浏览技能市场", description: "查看可用的技能胶囊和持有者信息" },
+      { title: "参与任务竞标", description: "查看开放任务并提交竞标方案" },
+      { title: "管理合约", description: "查看执行中的智能合约状态和支付进度" },
+    ],
+    faq: [
+      { question: "什么是技能胶囊？", answer: "技能胶囊是将个人专业技能结构化封装后的可交易单元，包含技能等级、验证证明和使用记录。" },
+    ],
+  },
+  "/liquid-workforce-enhanced": {
+    title: "液态用工中心（增强版）",
+    description: "技能认证审核、竞标智能匹配、版税管理",
+    overview: "增强版液态用工中心提供更完善的管理功能，包括技能认证审核流程和智能竞标匹配算法。",
+    steps: [
+      { title: "审核技能认证", description: "管理员审核技能认证申请" },
+      { title: "配置匹配规则", description: "设置任务与技能的智能匹配参数" },
+    ],
+    faq: [
+      { question: "增强版有什么额外功能？", answer: "增强版增加了管理员审核流程、AI智能匹配和版税分成管理功能。" },
+    ],
+  },
+  "/personal-agent-hub": {
+    title: "个人智能体中心",
+    description: "行为探针、技能推断、知识图谱",
+    overview: "个人智能体中心通过行为数据采集和AI分析，自动推断个人技能画像，构建知识图谱并追踪成长轨迹。",
+    steps: [
+      { title: "查看行为数据", description: "浏览系统采集的个人行为记录" },
+      { title: "查看技能推断", description: "AI根据行为数据推断的技能画像" },
+      { title: "浏览知识图谱", description: "查看个人知识关联图谱" },
+    ],
+    faq: [
+      { question: "行为数据包含哪些内容？", answer: "包括系统操作记录、项目参与情况、知识库贡献和培训完成情况等。" },
+    ],
+  },
+  "/personal-agent-enhanced": {
+    title: "个人智能体中心（增强版）",
+    description: "行为聚合、技能推断、知识图谱可视化",
+    overview: "增强版提供更深度的行为分析和可视化的知识图谱展示功能。",
+    steps: [
+      { title: "查看详细分析", description: "深度分析个人行为模式和技能成长趋势" },
+      { title: "探索知识图谱", description: "交互式探索个人知识关联网络" },
+    ],
+    faq: [
+      { question: "知识图谱如何生成？", answer: "AI从项目文档、代码贡献和交流记录中自动提取知识节点并建立关联关系。" },
+    ],
+  },
+  "/social-community-hub": {
+    title: "社群管理中心",
+    description: "消息审核、AI回复、脱敏过滤",
+    overview: "社群管理中心提供消息审核、AI自动回复配置和敏感信息脱敏过滤功能。",
+    steps: [
+      { title: "审核消息", description: "查看和审核待发布的社群消息" },
+      { title: "配置AI回复", description: "设置AI自动回复模板和触发规则" },
+      { title: "管理脱敏规则", description: "配置敏感信息检测和脱敏规则" },
+    ],
+    faq: [
+      { question: "AI回复如何工作？", answer: "AI根据预设模板和上下文自动生成回复建议，需人工审核后发布。" },
+    ],
+  },
+  "/social-community-enhanced": {
+    title: "社群管理中心（增强版）",
+    description: "批量审核、AI评分、脱敏测试",
+    overview: "增强版社群管理中心支持批量消息审核、AI回复质量评分和脱敏规则测试功能。",
+    steps: [
+      { title: "批量审核", description: "选择多条消息进行批量审核操作" },
+      { title: "AI评分分析", description: "查看AI回复的质量评分和改进建议" },
+    ],
+    faq: [
+      { question: "批量审核如何操作？", answer: "勾选多条消息后，使用顶部批量操作栏进行通过、拒绝或标记操作。" },
+    ],
+  },
+  "/social-community-settings": {
+    title: "社群管理设置",
+    description: "脱敏规则、AI模板、Webhook配置",
+    overview: "配置社群管理的全局设置，包括消息脱敏规则、AI回复模板和Webhook集成。",
+    steps: [
+      { title: "配置脱敏规则", description: "设置敏感信息检测正则和替换规则" },
+      { title: "管理AI模板", description: "创建和编辑AI自动回复模板" },
+      { title: "配置Webhook", description: "设置消息事件的Webhook通知地址" },
+    ],
+    faq: [
+      { question: "脱敏规则支持自定义吗？", answer: "支持，可以配置自定义正则表达式和替换文本来定义脱敏规则。" },
+    ],
+  },
+  "/social-community-analytics": {
+    title: "消息统计分析",
+    description: "消息数据分析、成员画像、活跃度统计",
+    overview: "社群消息统计分析页面提供消息量趋势、成员活跃度排行、影响力分析等数据。",
+    steps: [
+      { title: "选择范围", description: "选择要分析的群组和时间范围" },
+      { title: "查看趋势", description: "查看消息量随时间变化的趋势图" },
+      { title: "分析成员", description: "查看成员活跃度排行和影响力指数" },
+    ],
+    faq: [
+      { question: "影响力指数如何计算？", answer: "综合消息数量、被引用次数、话题发起量和回复互动率计算。" },
+    ],
+  },
+
+  // ========== CRM/销售 ==========
+  "/crm": {
+    title: "客户管理",
+    description: "客户信息管理与分级维护",
+    overview: "CRM客户管理模块提供客户全生命周期管理，包括客户录入、分级、跟进记录和商机追踪。",
+    steps: [
+      { title: "查看客户列表", description: "浏览和搜索已录入的客户信息" },
+      { title: "新建客户", description: "点击「新建客户」录入客户基本信息" },
+      { title: "管理分级", description: "根据客户价值设置A/B/C/D等级" },
+    ],
+    faq: [
+      { question: "客户等级如何划分？", answer: "A级为核心客户，B级为重要客户，C级为一般客户，D级为潜在客户。等级影响跟进策略和资源分配。" },
+    ],
+  },
+  "/crm/opportunities": {
+    title: "商机管理",
+    description: "销售商机跟踪与预测",
+    overview: "管理销售漏斗中的商机，追踪每个商机的阶段进展、预计金额和成交概率。",
+    steps: [
+      { title: "查看商机列表", description: "浏览所有活跃商机及其当前阶段" },
+      { title: "创建商机", description: "关联客户创建新的销售商机" },
+      { title: "更新进展", description: "推进商机阶段并记录跟进情况" },
+    ],
+    faq: [
+      { question: "加权金额是如何计算的？", answer: "加权金额 = 预计金额 × 成交概率。用于预测销售收入。" },
+    ],
+  },
+  "/crm/contacts": {
+    title: "联系人管理",
+    description: "客户联系人信息维护",
+    overview: "管理客户的关键联系人信息，包括职位、联系方式和关键决策人标记。",
+    steps: [
+      { title: "查看联系人", description: "浏览所有客户联系人信息" },
+      { title: "添加联系人", description: "为客户添加新的联系人" },
+      { title: "标记关键人", description: "将重要联系人标记为关键决策人" },
+    ],
+    faq: [
+      { question: "什么是关键联系人？", answer: "关键联系人是客户方参与决策的重要人员，标记后会在商机跟进中优先显示。" },
+    ],
+  },
+  "/leads": {
+    title: "商机管理",
+    description: "商机线索跟踪与AI预测",
+    overview: "商机管理页面集中管理所有销售线索，支持AI置信度预测和预估金额统计。",
+    steps: [
+      { title: "查看商机列表", description: "浏览全部商机线索及优先级排序" },
+      { title: "导入线索", description: "从外部渠道批量导入商机线索" },
+      { title: "AI分析", description: "查看AI对商机成交概率的预测分析" },
+    ],
+    faq: [
+      { question: "AI置信度是什么？", answer: "AI根据客户行为、历史数据和市场趋势计算的商机成交概率预测值。" },
+    ],
+  },
+  "/customer-questionnaire": {
+    title: "客户需求问卷",
+    description: "智能需求采集与AI方案推荐",
+    overview: "通过结构化问卷采集客户需求信息，AI自动分析需求并推荐最佳技术方案。",
+    steps: [
+      { title: "填写需求", description: "按模块填写客户的技术需求和业务场景" },
+      { title: "AI推荐", description: "点击「AI方案推荐」获取智能推荐方案" },
+      { title: "保存导出", description: "保存草稿或导出完整的需求分析报告" },
+    ],
+    faq: [
+      { question: "AI推荐方案准确吗？", answer: "AI基于历史成功案例库推荐方案，建议结合实际情况和专家意见做最终决策。" },
+    ],
+  },
+  "/customer-value-view": {
+    title: "客户价值视图",
+    description: "基于角色的客户场景映射",
+    overview: "客户价值视图根据不同角色展示定制化的客户信息和任务驱动视图。",
+    steps: [
+      { title: "选择角色", description: "选择当前查看角色（销售/技术/管理等）" },
+      { title: "查看场景", description: "浏览该角色关注的客户场景和任务" },
+      { title: "执行任务", description: "从视图直接跳转到相关任务操作" },
+    ],
+    faq: [
+      { question: "不同角色看到的内容不同吗？", answer: "是的，系统根据角色自动筛选最相关的客户信息和待办任务。" },
+    ],
+  },
+
+  // ========== 系统管理 ==========
+  "/admin-dashboard": {
+    title: "管理员仪表盘",
+    description: "系统运维监控与管理",
+    overview: "管理员仪表盘提供系统整体运行状态概览，包括用户活跃度、系统性能和告警信息。",
+    steps: [
+      { title: "查看系统状态", description: "监控服务器、数据库和应用的运行状态" },
+      { title: "处理告警", description: "查看和处理系统告警通知" },
+      { title: "管理用户", description: "快捷入口管理系统用户和权限" },
+    ],
+    faq: [
+      { question: "告警多久更新一次？", answer: "系统状态每30秒自动刷新，关键告警实时推送。" },
+    ],
+  },
+  "/monitoring": {
+    title: "系统监控",
+    description: "服务器与应用性能监控",
+    overview: "系统监控仪表盘展示服务器资源、应用性能和接口响应时间等关键指标。",
+    steps: [
+      { title: "查看资源监控", description: "监控CPU、内存和磁盘使用情况" },
+      { title: "查看性能指标", description: "查看接口响应时间和吞吐量" },
+      { title: "设置告警", description: "配置性能阈值告警规则" },
+    ],
+    faq: [
+      { question: "如何设置告警阈值？", answer: "在告警设置中配置指标名称、阈值和通知方式即可。" },
+    ],
+  },
+  "/audit-logs": {
+    title: "审计日志",
+    description: "系统操作审计追踪",
+    overview: "审计日志记录系统中所有关键操作，支持按时间、用户和操作类型筛选查询。",
+    steps: [
+      { title: "筛选日志", description: "设置时间范围和操作类型进行筛选" },
+      { title: "查看详情", description: "点击日志条目查看操作详细信息" },
+      { title: "导出报告", description: "导出审计日志为报告文件" },
+    ],
+    faq: [
+      { question: "审计日志保留多长时间？", answer: "默认保留180天，可在系统设置中调整保留策略。" },
+    ],
+  },
+  "/deadlock-monitor": {
+    title: "死锁监控",
+    description: "数据库死锁检测与分析",
+    overview: "死锁监控页面实时检测数据库死锁事件，分析死锁原因并提供优化建议。",
+    steps: [
+      { title: "查看死锁事件", description: "浏览近期发生的死锁事件列表" },
+      { title: "分析原因", description: "查看死锁涉及的SQL语句和锁等待图" },
+      { title: "优化建议", description: "查看AI分析的优化建议" },
+    ],
+    faq: [
+      { question: "如何预防死锁？", answer: "确保事务中访问表的顺序一致，避免长事务，适当使用索引。" },
+    ],
+  },
+  "/error-logs": {
+    title: "错误日志",
+    description: "系统错误日志查看与分析",
+    overview: "集中查看和分析系统运行中产生的错误日志，支持按级别和模块筛选。",
+    steps: [
+      { title: "筛选错误", description: "按错误级别、模块和时间范围筛选" },
+      { title: "查看堆栈", description: "查看错误详情和调用堆栈信息" },
+      { title: "标记处理", description: "标记已处理的错误并记录解决方案" },
+    ],
+    faq: [
+      { question: "如何设置错误告警？", answer: "在通知设置中配置错误级别阈值和通知渠道。" },
+    ],
+  },
+  "/permissions": {
+    title: "权限管理",
+    description: "用户角色与权限配置",
+    overview: "权限管理页面配置系统角色和权限策略，支持RBAC和属性级别的访问控制。",
+    steps: [
+      { title: "管理角色", description: "创建和编辑角色及其权限集合" },
+      { title: "分配权限", description: "为用户分配角色和特殊权限" },
+      { title: "查看权限矩阵", description: "查看角色-功能权限对照矩阵" },
+    ],
+    faq: [
+      { question: "权限变更多久生效？", answer: "权限变更即时生效，用户下次请求时将使用新的权限策略。" },
+    ],
+  },
+  "/menu-management": {
+    title: "菜单管理",
+    description: "系统导航菜单配置",
+    overview: "管理系统侧边栏导航菜单，配置菜单项的顺序、可见性和权限控制。",
+    steps: [
+      { title: "查看菜单树", description: "浏览当前菜单结构和层级关系" },
+      { title: "编辑菜单项", description: "修改菜单名称、图标、路径等属性" },
+      { title: "调整排序", description: "拖拽调整菜单项的显示顺序" },
+    ],
+    faq: [
+      { question: "菜单变更需要发布吗？", answer: "菜单配置修改后即时生效，无需额外发布操作。" },
+    ],
+  },
+  "/system-deployment": {
+    title: "系统部署",
+    description: "环境配置与部署管理",
+    overview: "系统部署页面管理多环境部署配置、版本发布和回滚操作。",
+    steps: [
+      { title: "查看环境", description: "查看各环境的部署状态和版本信息" },
+      { title: "发布版本", description: "选择环境执行版本发布操作" },
+      { title: "回滚操作", description: "如需回滚，选择历史版本执行回滚" },
+    ],
+    faq: [
+      { question: "回滚操作安全吗？", answer: "回滚会还原到指定版本的代码和数据库迁移，建议先在测试环境验证。" },
+    ],
+  },
+  "/security": {
+    title: "安全仪表盘",
+    description: "系统安全态势感知",
+    overview: "安全仪表盘展示系统安全状态，包括访问异常检测、漏洞扫描和安全评分。",
+    steps: [
+      { title: "查看安全评分", description: "查看系统整体安全评分和各维度得分" },
+      { title: "处理告警", description: "查看和处理安全告警事件" },
+      { title: "漏洞管理", description: "查看已发现的漏洞和修复进度" },
+    ],
+    faq: [
+      { question: "安全评分如何计算？", answer: "综合考虑漏洞数量、告警处理率、密码策略合规度等多个维度计算。" },
+    ],
+  },
+  "/grt-operation": {
+    title: "GRT运营仪表盘",
+    description: "GRT系统运营数据分析",
+    overview: "GRT运营仪表盘展示系统使用情况、功能活跃度和用户行为分析数据。",
+    steps: [
+      { title: "查看使用概览", description: "查看日活、月活和功能使用排行" },
+      { title: "分析用户行为", description: "分析用户的使用路径和偏好" },
+      { title: "生成报告", description: "生成运营分析报告" },
+    ],
+    faq: [
+      { question: "数据更新频率是多少？", answer: "运营数据每小时汇总更新一次，实时数据可在监控页面查看。" },
+    ],
+  },
+  "/admin/notification-settings": {
+    title: "通知设置",
+    description: "系统通知渠道与规则配置",
+    overview: "配置系统通知的发送规则、通知渠道和接收人策略。",
+    steps: [
+      { title: "配置渠道", description: "设置邮件、站内信和Webhook通知渠道" },
+      { title: "设置规则", description: "配置不同事件类型的通知规则" },
+      { title: "管理模板", description: "编辑通知消息模板" },
+    ],
+    faq: [
+      { question: "支持哪些通知渠道？", answer: "支持站内信、邮件、企业微信和自定义Webhook四种通知渠道。" },
+    ],
+  },
+  "/guide": {
+    title: "系统使用指南",
+    description: "GRT系统使用教程",
+    overview: "系统使用指南提供各模块的操作教程和最佳实践，帮助用户快速上手。",
+    steps: [
+      { title: "选择模块", description: "选择要学习的功能模块" },
+      { title: "阅读教程", description: "按步骤阅读操作指南" },
+      { title: "实践操作", description: "在沙箱环境中实践所学内容" },
+    ],
+    faq: [
+      { question: "有视频教程吗？", answer: "部分核心模块提供视频教程，可在教程详情页查看。" },
+    ],
+  },
+  "/system-guide": {
+    title: "系统引导",
+    description: "新用户引导与功能介绍",
+    overview: "系统引导页面为新用户提供分步引导，介绍系统核心功能和操作流程。",
+    steps: [
+      { title: "完成引导", description: "按提示完成新用户引导流程" },
+      { title: "了解功能", description: "浏览各功能模块的简要介绍" },
+    ],
+    faq: [
+      { question: "可以跳过引导吗？", answer: "可以，点击「跳过」按钮直接进入系统。之后可在设置中重新启动引导。" },
+    ],
+  },
+  "/user-profile": {
+    title: "个人设置",
+    description: "个人信息与偏好设置",
+    overview: "个人设置页面管理用户基本信息、工作计划偏好和通知提醒设置。",
+    steps: [
+      { title: "编辑基本信息", description: "更新姓名、部门等基本信息" },
+      { title: "配置工作计划", description: "设置工作计划频率和提醒时间" },
+      { title: "通知偏好", description: "配置各类通知的接收偏好" },
+    ],
+    faq: [
+      { question: "如何修改密码？", answer: "在安全设置Tab中点击「修改密码」按钮。" },
+    ],
+  },
+  "/user-status-management": {
+    title: "用户状态管理",
+    description: "管理所有用户Profile配置状态",
+    overview: "用户状态管理页面供管理员查看所有用户的Profile配置情况，追踪未配置用户和逾期任务。",
+    steps: [
+      { title: "查看用户列表", description: "浏览所有用户及其Profile配置状态" },
+      { title: "筛选用户", description: "按事业部、配置状态筛选用户" },
+      { title: "发送提醒", description: "向未配置用户发送配置提醒通知" },
+    ],
+    faq: [
+      { question: "如何提醒用户完成配置？", answer: "在用户列表中点击邮件图标可向该用户发送配置提醒。" },
+    ],
+  },
+  "/notifications": {
+    title: "通知中心",
+    description: "系统通知与消息管理",
+    overview: "通知中心集中展示系统通知、任务提醒和消息推送，支持已读标记和批量管理。",
+    steps: [
+      { title: "查看通知", description: "浏览所有未读和已读通知" },
+      { title: "标记已读", description: "单个或批量标记通知为已读" },
+      { title: "管理偏好", description: "设置通知接收偏好和免打扰时段" },
+    ],
+    faq: [
+      { question: "如何关闭某类通知？", answer: "在通知设置中取消对应类型的通知开关即可。" },
+    ],
+  },
+  "/organization-management": {
+    title: "组织架构管理",
+    description: "事业部与部门架构管理",
+    overview: "组织架构管理页面维护企业组织架构树，管理事业部、部门和岗位信息。",
+    steps: [
+      { title: "查看架构树", description: "浏览企业组织架构层级关系" },
+      { title: "管理部门", description: "创建、编辑或调整部门信息" },
+      { title: "人员管理", description: "查看各部门人员配置情况" },
+    ],
+    faq: [
+      { question: "组织架构变更会影响权限吗？", answer: "会的，部门调整会自动更新关联用户的BU归属和相应权限。" },
+    ],
+  },
+  "/temporary-permissions": {
+    title: "临时权限",
+    description: "临时权限授予与管理",
+    overview: "临时权限功能允许管理员为用户授予限时权限，到期自动回收。",
+    steps: [
+      { title: "授予权限", description: "选择用户和权限项，设置有效期" },
+      { title: "查看记录", description: "浏览当前生效的临时权限列表" },
+      { title: "撤销权限", description: "提前撤销不再需要的临时权限" },
+    ],
+    faq: [
+      { question: "临时权限最长多久？", answer: "默认最长30天，管理员可根据需要设置更长期限。" },
+    ],
+  },
+  "/permission-blacklist": {
+    title: "权限黑名单",
+    description: "权限禁止列表管理",
+    overview: "权限黑名单管理特定用户或角色的权限禁止规则，黑名单优先级高于角色权限。",
+    steps: [
+      { title: "添加黑名单", description: "选择用户和要禁止的权限项" },
+      { title: "查看列表", description: "浏览当前生效的黑名单规则" },
+      { title: "移除规则", description: "删除不再需要的黑名单规则" },
+    ],
+    faq: [
+      { question: "黑名单和角色权限冲突怎么办？", answer: "黑名单优先级最高，即使角色有某权限，黑名单也会阻止访问。" },
+    ],
+  },
+  "/menu-analytics": {
+    title: "菜单分析",
+    description: "菜单使用数据分析",
+    overview: "菜单分析仪表盘展示各菜单项的使用频率、用户偏好和访问路径分析。",
+    steps: [
+      { title: "查看热度图", description: "查看菜单项使用频率热度图" },
+      { title: "分析路径", description: "分析用户的导航路径和行为模式" },
+      { title: "优化建议", description: "查看基于数据的菜单优化建议" },
+    ],
+    faq: [
+      { question: "数据统计范围是多久？", answer: "默认统计近30天数据，可切换为7天、90天或自定义时间范围。" },
+    ],
+  },
+  "/operations-analytics": {
+    title: "运营分析",
+    description: "系统运营数据统计与分析",
+    overview: "运营分析页面提供系统各维度的运营数据统计，支持多维度交叉分析和趋势预测。",
+    steps: [
+      { title: "选择维度", description: "选择要分析的数据维度和指标" },
+      { title: "查看报表", description: "查看统计图表和明细数据" },
+      { title: "导出数据", description: "导出分析报表" },
+    ],
+    faq: [
+      { question: "支持自定义报表吗？", answer: "支持，可在报表配置中自定义维度、指标和可视化类型。" },
+    ],
+  },
 };
 
 /**

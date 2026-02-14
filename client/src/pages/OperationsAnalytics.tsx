@@ -3,6 +3,7 @@
  */
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -73,16 +74,13 @@ export default function OperationsAnalytics() {
 
   return (
     <Layout>
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <BarChart3 className="h-6 w-6 text-primary" />运营分析
-            </h1>
-            <p className="text-muted-foreground mt-1">全局运营指标 · AI驱动洞察</p>
-          </div>
-          <Badge variant="outline" className="gap-1"><Sparkles className="h-3 w-3" />实时数据</Badge>
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          icon={BarChart3}
+          title="运营分析"
+          description="全局运营指标 · AI驱动洞察"
+          actions={<Badge variant="outline" className="gap-1"><Sparkles className="h-3 w-3" />实时数据</Badge>}
+        />
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
