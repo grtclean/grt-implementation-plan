@@ -1150,19 +1150,6 @@ export const helpContentMap: Record<string, PageHelpContent> = {
       { question: "客户等级如何划分？", answer: "A级为核心客户，B级为重要客户，C级为一般客户，D级为潜在客户。等级影响跟进策略和资源分配。" },
     ],
   },
-  "/crm/opportunities": {
-    title: "商机管理",
-    description: "销售商机跟踪与预测",
-    overview: "管理销售漏斗中的商机，追踪每个商机的阶段进展、预计金额和成交概率。",
-    steps: [
-      { title: "查看商机列表", description: "浏览所有活跃商机及其当前阶段" },
-      { title: "创建商机", description: "关联客户创建新的销售商机" },
-      { title: "更新进展", description: "推进商机阶段并记录跟进情况" },
-    ],
-    faq: [
-      { question: "加权金额是如何计算的？", answer: "加权金额 = 预计金额 × 成交概率。用于预测销售收入。" },
-    ],
-  },
   "/crm/contacts": {
     title: "联系人管理",
     description: "客户联系人信息维护",
