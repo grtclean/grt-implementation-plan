@@ -490,4 +490,88 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       return imeService.getActiveAlerts(input?.scope, input?.scopeId);
     }),
+
+  // ========================================================================
+  // Phase 5: Meeting ROI
+  // ========================================================================
+
+  computeRoi: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.computeMeetingRoi(input.meetingId);
+    }),
+
+  roiDashboard: protectedProcedure
+    .input(z.object({
+      channelId: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getRoiDashboard(input ?? {});
+    }),
+
+  batchComputeRoi: protectedProcedure
+    .input(z.object({ meetingIds: z.array(z.string()).min(1).max(50) }))
+    .mutation(async ({ input }) => {
+      return imeService.batchComputeRoi(input.meetingIds);
+    }),
+
+  // ========================================================================
+  // Phase 5: Attendee Optimization
+  // ========================================================================
+
+  optimizeAttendees: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.optimizeAttendees(input.meetingId);
+    }),
+
+  optimizationDashboard: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getOptimizationDashboard(input ?? {});
+    }),
+
+  suggestParticipants: protectedProcedure
+    .input(z.object({
+      topic: z.string(),
+      excludeIds: z.array(z.string()).optional(),
+    }))
+    .query(async ({ input }) => {
+      return imeService.suggestParticipantsForTopic(input.topic, input.excludeIds);
+    }),
+
+  // ========================================================================
+  // Phase 5: Predictive Analytics
+  // ========================================================================
+
+  predictEffectiveness: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.predictMeetingEffectiveness(input.meetingId);
+    }),
+
+  detectFatigue: protectedProcedure
+    .input(z.object({
+      scope: z.string(),
+      scopeId: z.string().optional(),
+      period: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.detectMeetingFatigue(input.scope, input.scopeId, input.period);
+    }),
+
+  predictionDashboard: protectedProcedure
+    .input(z.object({
+      scope: z.string().optional(),
+      period: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getPredictionDashboard(input ?? {});
+    }),
 });

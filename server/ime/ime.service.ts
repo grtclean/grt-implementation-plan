@@ -3101,3 +3101,912 @@ export async function getActiveAlerts(scope?: string, scopeId?: string) {
 
   return { alerts: unique, totalCritical: unique.filter((a) => a.severity === "critical").length, totalWarning: unique.filter((a) => a.severity === "warning").length };
 }
+
+// ============================================================================
+// Phase 5: Meeting ROI & Outcome Tracking
+// ============================================================================
+
+export async function computeMeetingRoi(meetingId: string) {
+  const db = await requireDb();
+
+  // 1. Get meeting info
+  const meetingResult = await db.execute(sql`
+    SELECT id, title, objective, summary FROM meeting_records WHERE id = ${meetingId}
+  `);
+  const meeting = (meetingResult.rows as any[])[0];
+  if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
+
+  // 2. Get cost from ime_meeting_costs (fallback: estimate)
+  const costResult = await db.execute(sql`
+    SELECT total_cost, participant_count, duration_minutes FROM ime_meeting_costs WHERE meeting_id = ${meetingId} LIMIT 1
+  `);
+  const costRow = (costResult.rows as any[])[0];
+  const totalCost = costRow ? Number(costRow.total_cost) : 500;
+
+  // 3. Count decisions and action items from content blocks
+  const blocksResult = await db.execute(sql.raw(`
+    SELECT block_type, COUNT(*) as cnt FROM meeting_content_blocks
+    WHERE meeting_id = '${meetingId.replace(/'/g, "''")}'
+    AND block_type IN ('decision', 'action_item')
+    GROUP BY block_type
+  `));
+  let decisionCount = 0, actionItemCount = 0;
+  for (const row of blocksResult.rows as any[]) {
+    if (row.block_type === "decision") decisionCount = Number(row.cnt);
+    if (row.block_type === "action_item") actionItemCount = Number(row.cnt);
+  }
+
+  // 4. Action item completion status
+  const actionResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total,
+           SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
+    FROM ime_action_items
+    WHERE origin_meeting_id = '${meetingId.replace(/'/g, "''")}'
+  `));
+  const actionRow = (actionResult.rows as any[])[0];
+  const completedActionCount = Number(actionRow?.completed) || 0;
+
+  // 5. Resolved topics linked to this meeting
+  const topicResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as cnt FROM ime_topic_continuity
+    WHERE status IN ('resolved', 'decided', 'closed')
+    AND meeting_appearances ILIKE '%${meetingId.replace(/'/g, "''")}%'
+  `));
+  const resolvedTopics = Number((topicResult.rows as any[])[0]?.cnt) || 0;
+
+  // 6. LLM ROI analysis
+  let outcomeScore = 0, roiGrade = "C", outcomes: any[] = [], aiNarrative = "";
+
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "你是会议ROI分析专家。根据会议数据评估投资回报率。返回JSON。",
+        },
+        {
+          role: "user",
+          content: `会议: "${meeting.title}"\n目标: ${meeting.objective || "N/A"}\n摘要: ${(meeting.summary || "").substring(0, 500)}\n\n成本: ¥${totalCost}\n决策数: ${decisionCount}\n行动项: ${actionItemCount}\n已完成行动项: ${completedActionCount}\n已解决议题: ${resolvedTopics}\n\n请评估:\n- outcomeScore (0-100)\n- grade (A/B/C/D/F)\n- outcomes: [{type: decision|deliverable|resolved_topic, description, value: high|medium|low}]\n- narrative: 2-3句中文ROI评估`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "roi_analysis",
+          schema: {
+            type: "object",
+            properties: {
+              outcomeScore: { type: "number" },
+              grade: { type: "string" },
+              outcomes: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    type: { type: "string" },
+                    description: { type: "string" },
+                    value: { type: "string" },
+                  },
+                  required: ["type", "description", "value"],
+                  additionalProperties: false,
+                },
+              },
+              narrative: { type: "string" },
+            },
+            required: ["outcomeScore", "grade", "outcomes", "narrative"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+
+    const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+    outcomeScore = parsed.outcomeScore ?? 0;
+    roiGrade = parsed.grade ?? "C";
+    outcomes = parsed.outcomes ?? [];
+    aiNarrative = parsed.narrative ?? "";
+  } catch (e) {
+    console.error("[IME] ROI LLM analysis failed, using heuristic:", e);
+    const costNormalized = Math.min(totalCost / 5000, 1);
+    outcomeScore = Math.min(100, (decisionCount * 20 + completedActionCount * 15 + resolvedTopics * 10) * (1 - costNormalized * 0.3));
+    outcomeScore = Math.max(0, Math.round(outcomeScore));
+  }
+
+  if (!aiNarrative) {
+    roiGrade = outcomeScore >= 80 ? "A" : outcomeScore >= 60 ? "B" : outcomeScore >= 40 ? "C" : outcomeScore >= 20 ? "D" : "F";
+  }
+
+  const costPerDecision = decisionCount > 0 ? totalCost / decisionCount : null;
+  const costPerActionItem = actionItemCount > 0 ? totalCost / actionItemCount : null;
+
+  // 7. Delete+insert
+  await db.execute(sql`DELETE FROM ime_meeting_roi WHERE meeting_id = ${meetingId}`);
+  await db.execute(sql.raw(`
+    INSERT INTO ime_meeting_roi
+      (meeting_id, total_cost, decision_count, action_item_count, completed_action_count,
+       cost_per_decision, cost_per_action_item, outcome_score, roi_grade, outcomes, ai_narrative, computed_at)
+    VALUES (
+      '${meetingId.replace(/'/g, "''")}',
+      ${totalCost},
+      ${decisionCount},
+      ${actionItemCount},
+      ${completedActionCount},
+      ${costPerDecision ?? "NULL"},
+      ${costPerActionItem ?? "NULL"},
+      ${outcomeScore},
+      '${roiGrade}',
+      '${JSON.stringify(outcomes).replace(/'/g, "''")}',
+      '${(aiNarrative || "").replace(/'/g, "''")}',
+      NOW()
+    )
+  `));
+
+  return { meetingId, totalCost, decisionCount, actionItemCount, completedActionCount, outcomeScore, roiGrade, outcomes, aiNarrative };
+}
+
+export async function getRoiDashboard(filters: { channelId?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  const conditions: string[] = ["1=1"];
+  if (filters.channelId) conditions.push(`mr.channel_id = '${filters.channelId.replace(/'/g, "''")}'`);
+  if (filters.dateFrom) conditions.push(`mr.meeting_date >= '${filters.dateFrom}'`);
+  if (filters.dateTo) conditions.push(`mr.meeting_date <= '${filters.dateTo}'`);
+  const where = conditions.join(" AND ");
+
+  const statsResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total_analyzed,
+           AVG(roi.outcome_score) as avg_score,
+           AVG(roi.cost_per_decision::numeric) as avg_cost_per_decision,
+           SUM(roi.total_cost::numeric) as total_cost
+    FROM ime_meeting_roi roi
+    JOIN meeting_records mr ON roi.meeting_id = mr.id
+    WHERE ${where}
+  `));
+  const stats = (statsResult.rows as any[])[0] || {};
+
+  const gradeResult = await db.execute(sql.raw(`
+    SELECT roi.roi_grade as grade, COUNT(*) as cnt
+    FROM ime_meeting_roi roi
+    JOIN meeting_records mr ON roi.meeting_id = mr.id
+    WHERE ${where}
+    GROUP BY roi.roi_grade
+  `));
+  const gradeDistribution = (gradeResult.rows as any[]).map((r: any) => ({ grade: r.grade, count: Number(r.cnt) }));
+
+  const bestResult = await db.execute(sql.raw(`
+    SELECT roi.*, mr.title as meeting_title, mr.meeting_date
+    FROM ime_meeting_roi roi
+    JOIN meeting_records mr ON roi.meeting_id = mr.id
+    WHERE ${where}
+    ORDER BY roi.outcome_score DESC LIMIT 5
+  `));
+
+  const worstResult = await db.execute(sql.raw(`
+    SELECT roi.*, mr.title as meeting_title, mr.meeting_date
+    FROM ime_meeting_roi roi
+    JOIN meeting_records mr ON roi.meeting_id = mr.id
+    WHERE ${where}
+    ORDER BY roi.outcome_score ASC LIMIT 5
+  `));
+
+  const deptResult = await db.execute(sql.raw(`
+    SELECT roi.department_id,
+           AVG(roi.outcome_score) as avg_score,
+           AVG(roi.cost_per_decision::numeric) as avg_cost_per_decision,
+           COUNT(*) as meeting_count
+    FROM ime_meeting_roi roi
+    JOIN meeting_records mr ON roi.meeting_id = mr.id
+    WHERE ${where} AND roi.department_id IS NOT NULL
+    GROUP BY roi.department_id
+    ORDER BY avg_score DESC
+  `));
+
+  const trendResult = await db.execute(sql.raw(`
+    SELECT TO_CHAR(roi.computed_at, 'YYYY-MM') as month,
+           AVG(roi.outcome_score) as avg_score,
+           COUNT(*) as meeting_count,
+           SUM(roi.total_cost::numeric) as total_cost
+    FROM ime_meeting_roi roi
+    JOIN meeting_records mr ON roi.meeting_id = mr.id
+    WHERE ${where}
+    GROUP BY TO_CHAR(roi.computed_at, 'YYYY-MM')
+    ORDER BY month
+  `));
+
+  const scatterResult = await db.execute(sql.raw(`
+    SELECT roi.total_cost::numeric as cost,
+           roi.outcome_score as score,
+           mc.participant_count as participants,
+           mr.title
+    FROM ime_meeting_roi roi
+    JOIN meeting_records mr ON roi.meeting_id = mr.id
+    LEFT JOIN ime_meeting_costs mc ON roi.meeting_id = mc.meeting_id
+    WHERE ${where}
+  `));
+
+  return {
+    stats: {
+      totalAnalyzed: Number(stats.total_analyzed) || 0,
+      avgScore: Math.round(Number(stats.avg_score) || 0),
+      avgCostPerDecision: Math.round(Number(stats.avg_cost_per_decision) || 0),
+      totalCost: Math.round(Number(stats.total_cost) || 0),
+    },
+    gradeDistribution,
+    bestRoi: bestResult.rows,
+    worstRoi: worstResult.rows,
+    departmentComparison: deptResult.rows,
+    monthlyTrend: trendResult.rows,
+    scatterData: scatterResult.rows,
+  };
+}
+
+export async function batchComputeRoi(meetingIds: string[]) {
+  const results: any[] = [];
+  for (const id of meetingIds) {
+    try {
+      const result = await computeMeetingRoi(id);
+      results.push({ meetingId: id, success: true, ...result });
+    } catch (e: any) {
+      results.push({ meetingId: id, success: false, error: e.message });
+    }
+  }
+  return { processed: results.length, results };
+}
+
+// ============================================================================
+// Phase 5: Attendee Optimization & Smart Scheduling
+// ============================================================================
+
+export async function optimizeAttendees(meetingId: string) {
+  const db = await requireDb();
+
+  const meetingResult = await db.execute(sql`
+    SELECT id, title, objective, summary FROM meeting_records WHERE id = ${meetingId}
+  `);
+  const meeting = (meetingResult.rows as any[])[0];
+  if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
+
+  const participantsResult = await db.execute(sql.raw(`
+    SELECT mc.employee_id, mc.employee_name,
+           mc.contribution_score,
+           mc.intervention_count, mc.decision_count
+    FROM meeting_contributions mc
+    WHERE mc.meeting_id = '${meetingId.replace(/'/g, "''")}'
+    ORDER BY mc.contribution_score DESC
+  `));
+  const currentParticipants = participantsResult.rows as any[];
+
+  const enrichedParticipants: any[] = [];
+  for (const p of currentParticipants) {
+    const histResult = await db.execute(sql.raw(`
+      SELECT AVG(contribution_score) as avg_score,
+             COUNT(*) as meeting_count,
+             AVG(intervention_count) as avg_engagement
+      FROM meeting_contributions
+      WHERE employee_id = '${(p.employee_id || "").replace(/'/g, "''")}'
+    `));
+    const hist = (histResult.rows as any[])[0] || {};
+    enrichedParticipants.push({
+      employeeId: p.employee_id,
+      name: p.employee_name,
+      avgScore: Math.round(Number(hist.avg_score) || Number(p.contribution_score)),
+      avgEngagement: Math.round(Number(hist.avg_engagement) || 0),
+      meetingCount: Number(hist.meeting_count) || 1,
+      currentScore: Number(p.contribution_score),
+    });
+  }
+
+  const costResult = await db.execute(sql`
+    SELECT participant_count, duration_minutes, total_cost FROM ime_meeting_costs WHERE meeting_id = ${meetingId} LIMIT 1
+  `);
+  const costRow = (costResult.rows as any[])[0];
+  const durationMinutes = costRow ? Number(costRow.duration_minutes) : 60;
+  const costPerPerson = costRow && costRow.participant_count ? Number(costRow.total_cost) / Number(costRow.participant_count) : 200;
+
+  let recommendedParticipants: any[] = [], overInvitedParticipants: any[] = [];
+  let optimalSize = currentParticipants.length, compositionAdvice: any = null, aiNarrative = "";
+  let estimatedCostSaving = 0;
+
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "你是会议参会者优化专家。分析参会者数据，识别超邀人员和推荐新增人员。返回JSON。",
+        },
+        {
+          role: "user",
+          content: `会议: "${meeting.title}"\n目标: ${meeting.objective || "N/A"}\n\n当前参会者(${enrichedParticipants.length}人):\n${JSON.stringify(enrichedParticipants, null, 2)}\n\n请分析:\n- overInvited: [{employeeId, name, avgScore, costWaste, reason}] (平均分<30且参会>=3次)\n- optimalSize: 最佳人数\n- compositionAdvice: {roleGap: string, recommendation: string}\n- narrative: 2-3句中文建议`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "attendee_optimization",
+          schema: {
+            type: "object",
+            properties: {
+              overInvited: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    employeeId: { type: "string" },
+                    name: { type: "string" },
+                    avgScore: { type: "number" },
+                    costWaste: { type: "number" },
+                    reason: { type: "string" },
+                  },
+                  required: ["employeeId", "name", "avgScore", "costWaste", "reason"],
+                  additionalProperties: false,
+                },
+              },
+              optimalSize: { type: "number" },
+              compositionAdvice: {
+                type: "object",
+                properties: {
+                  roleGap: { type: "string" },
+                  recommendation: { type: "string" },
+                },
+                required: ["roleGap", "recommendation"],
+                additionalProperties: false,
+              },
+              narrative: { type: "string" },
+            },
+            required: ["overInvited", "optimalSize", "compositionAdvice", "narrative"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+
+    const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+    overInvitedParticipants = parsed.overInvited ?? [];
+    optimalSize = parsed.optimalSize ?? currentParticipants.length;
+    compositionAdvice = parsed.compositionAdvice ?? null;
+    aiNarrative = parsed.narrative ?? "";
+  } catch (e) {
+    console.error("[IME] Attendee optimization LLM failed, using heuristic:", e);
+    overInvitedParticipants = enrichedParticipants
+      .filter((p) => p.avgScore < 30 && p.meetingCount >= 3)
+      .map((p) => ({
+        employeeId: p.employeeId,
+        name: p.name,
+        avgScore: p.avgScore,
+        costWaste: Math.round(costPerPerson),
+        reason: `平均贡献分${p.avgScore}，参与${p.meetingCount}次会议`,
+      }));
+    optimalSize = Math.max(3, currentParticipants.length - overInvitedParticipants.length);
+  }
+
+  estimatedCostSaving = Math.round(overInvitedParticipants.length * costPerPerson * (durationMinutes / 60));
+
+  await db.execute(sql`DELETE FROM ime_attendee_optimization WHERE meeting_id = ${meetingId}`);
+  await db.execute(sql.raw(`
+    INSERT INTO ime_attendee_optimization
+      (meeting_id, scope, meeting_title, meeting_topic, current_participants, recommended_participants,
+       over_invited_participants, optimal_size, current_size, estimated_cost_saving, composition_advice, ai_narrative, computed_at)
+    VALUES (
+      '${meetingId.replace(/'/g, "''")}',
+      'meeting',
+      '${(meeting.title || "").replace(/'/g, "''")}',
+      '${(meeting.objective || "").replace(/'/g, "''")}',
+      '${JSON.stringify(enrichedParticipants).replace(/'/g, "''")}',
+      '${JSON.stringify(recommendedParticipants).replace(/'/g, "''")}',
+      '${JSON.stringify(overInvitedParticipants).replace(/'/g, "''")}',
+      ${optimalSize},
+      ${currentParticipants.length},
+      ${estimatedCostSaving},
+      ${compositionAdvice ? `'${JSON.stringify(compositionAdvice).replace(/'/g, "''")}'` : "NULL"},
+      '${(aiNarrative || "").replace(/'/g, "''")}',
+      NOW()
+    )
+  `));
+
+  return {
+    meetingId,
+    currentSize: currentParticipants.length,
+    optimalSize,
+    overInvited: overInvitedParticipants,
+    recommended: recommendedParticipants,
+    estimatedCostSaving,
+    compositionAdvice,
+    aiNarrative,
+    currentParticipants: enrichedParticipants,
+  };
+}
+
+export async function getOptimizationDashboard(filters: { department?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  const conditions: string[] = ["1=1"];
+  if (filters.department) conditions.push(`ao.meeting_title ILIKE '%${filters.department.replace(/'/g, "''")}%'`);
+  if (filters.dateFrom) conditions.push(`ao.computed_at >= '${filters.dateFrom}'`);
+  if (filters.dateTo) conditions.push(`ao.computed_at <= '${filters.dateTo}'`);
+  const where = conditions.join(" AND ");
+
+  const statsResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total_optimized,
+           AVG(ao.estimated_cost_saving::numeric) as avg_saving,
+           AVG(ao.current_size - ao.optimal_size) as avg_size_gap
+    FROM ime_attendee_optimization ao
+    WHERE ${where}
+  `));
+  const stats = (statsResult.rows as any[])[0] || {};
+
+  const recentResult = await db.execute(sql.raw(`
+    SELECT ao.over_invited_participants FROM ime_attendee_optimization ao WHERE ${where}
+  `));
+  const overInvitedFreq: Record<string, { name: string; count: number }> = {};
+  for (const row of recentResult.rows as any[]) {
+    try {
+      const list = JSON.parse(row.over_invited_participants || "[]");
+      for (const p of list) {
+        const key = p.employeeId || p.name;
+        if (!overInvitedFreq[key]) overInvitedFreq[key] = { name: p.name, count: 0 };
+        overInvitedFreq[key].count++;
+      }
+    } catch { /* skip */ }
+  }
+  const overInvitedRankings = Object.values(overInvitedFreq).sort((a, b) => b.count - a.count).slice(0, 20);
+
+  const recentOptResult = await db.execute(sql.raw(`
+    SELECT * FROM ime_attendee_optimization ao
+    WHERE ${where}
+    ORDER BY ao.computed_at DESC LIMIT 20
+  `));
+
+  return {
+    stats: {
+      totalOptimized: Number(stats.total_optimized) || 0,
+      avgSaving: Math.round(Number(stats.avg_saving) || 0),
+      avgSizeGap: Math.round(Number(stats.avg_size_gap) || 0),
+    },
+    overInvitedRankings,
+    recentOptimizations: recentOptResult.rows,
+  };
+}
+
+export async function suggestParticipantsForTopic(topic: string, excludeIds?: string[]) {
+  const db = await requireDb();
+
+  const topicResult = await db.execute(sql.raw(`
+    SELECT topic_name, meeting_appearances FROM ime_topic_continuity
+    WHERE topic_name ILIKE '%${topic.replace(/'/g, "''")}%'
+    OR topic_description ILIKE '%${topic.replace(/'/g, "''")}%'
+    ORDER BY appearance_count DESC
+    LIMIT 20
+  `));
+
+  const meetingIds = new Set<string>();
+  for (const row of topicResult.rows as any[]) {
+    try {
+      const appearances = JSON.parse(row.meeting_appearances || "[]");
+      for (const a of appearances) {
+        if (a.meetingId) meetingIds.add(a.meetingId);
+      }
+    } catch { /* skip */ }
+  }
+
+  if (meetingIds.size === 0) {
+    return { topic, suggestions: [], message: "未找到相关议题的历史会议" };
+  }
+
+  const idList = Array.from(meetingIds).map((id) => `'${id.replace(/'/g, "''")}'`).join(",");
+  const excludeClause = excludeIds && excludeIds.length > 0
+    ? `AND mc.employee_id NOT IN (${excludeIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(",")})`
+    : "";
+
+  const contribResult = await db.execute(sql.raw(`
+    SELECT mc.employee_id, mc.employee_name,
+           AVG(mc.contribution_score) as avg_score,
+           COUNT(*) as topic_meeting_count,
+           SUM(mc.decision_count) as total_decisions
+    FROM meeting_contributions mc
+    WHERE mc.meeting_id IN (${idList}) ${excludeClause}
+    GROUP BY mc.employee_id, mc.employee_name
+    HAVING COUNT(*) >= 1
+    ORDER BY avg_score DESC
+    LIMIT 10
+  `));
+
+  const suggestions = (contribResult.rows as any[]).map((r: any) => ({
+    employeeId: r.employee_id,
+    name: r.employee_name,
+    avgScore: Math.round(Number(r.avg_score)),
+    topicMeetingCount: Number(r.topic_meeting_count),
+    totalDecisions: Number(r.total_decisions),
+    reason: `在${Number(r.topic_meeting_count)}次相关会议中平均贡献分${Math.round(Number(r.avg_score))}`,
+  }));
+
+  return { topic, suggestions };
+}
+
+// ============================================================================
+// Phase 5: Predictive Analytics & Forecasting
+// ============================================================================
+
+export async function predictMeetingEffectiveness(meetingId: string) {
+  const db = await requireDb();
+
+  const meetingResult = await db.execute(sql`
+    SELECT id, title, channel_id, objective FROM meeting_records WHERE id = ${meetingId}
+  `);
+  const meeting = (meetingResult.rows as any[])[0];
+  if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
+
+  const participantsResult = await db.execute(sql.raw(`
+    SELECT mc.employee_id, mc.employee_name,
+           AVG(mc.contribution_score) as avg_score,
+           STDDEV(mc.contribution_score) as score_variance,
+           COUNT(*) as meeting_count,
+           AVG(mc.intervention_count) as avg_interventions
+    FROM meeting_contributions mc
+    WHERE mc.employee_id IN (
+      SELECT DISTINCT employee_id FROM meeting_contributions WHERE meeting_id = '${meetingId.replace(/'/g, "''")}'
+    )
+    GROUP BY mc.employee_id, mc.employee_name
+  `));
+  const participants = participantsResult.rows as any[];
+  const avgParticipantScore = participants.length > 0
+    ? participants.reduce((sum: number, p: any) => sum + Number(p.avg_score || 0), 0) / participants.length
+    : 50;
+  const highPerformerRatio = participants.length > 0
+    ? participants.filter((p: any) => Number(p.avg_score) >= 70).length / participants.length
+    : 0;
+
+  const channelResult = await db.execute(sql.raw(`
+    SELECT AVG(mes.overall_score) as avg_effectiveness
+    FROM meeting_effectiveness_scores mes
+    JOIN meeting_records mr ON mes.meeting_id = mr.id
+    WHERE mr.channel_id = '${(meeting.channel_id || "").replace(/'/g, "''")}'
+  `));
+  const channelAvg = Number((channelResult.rows as any[])[0]?.avg_effectiveness) || 50;
+
+  const recentResult = await db.execute(sql.raw(`
+    SELECT mes.overall_score FROM meeting_effectiveness_scores mes
+    JOIN meeting_records mr ON mes.meeting_id = mr.id
+    WHERE mr.channel_id = '${(meeting.channel_id || "").replace(/'/g, "''")}'
+    ORDER BY mr.meeting_date DESC LIMIT 5
+  `));
+  const recentScores = (recentResult.rows as any[]).map((r: any) => Number(r.overall_score));
+  const recentTrend = recentScores.length >= 2
+    ? (recentScores[0] - recentScores[recentScores.length - 1]) / recentScores.length
+    : 0;
+
+  const stalledResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as cnt FROM ime_topic_continuity WHERE status = 'stalled'
+  `));
+  const stalledTopics = Number((stalledResult.rows as any[])[0]?.cnt) || 0;
+
+  let predictedScore = 50, confidenceLevel = 0.5, riskLevel = "medium";
+  let riskFactors: any[] = [], recommendations: any[] = [], aiNarrative = "";
+
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "你是会议效能预测专家。根据历史数据预测即将举行的会议的效果。返回JSON。",
+        },
+        {
+          role: "user",
+          content: `会议: "${meeting.title}"\n渠道平均效能: ${channelAvg.toFixed(1)}\n参会者数: ${participants.length}\n平均参会者分: ${avgParticipantScore.toFixed(1)}\n高绩效占比: ${(highPerformerRatio * 100).toFixed(0)}%\n近期趋势: ${recentTrend.toFixed(1)}\n停滞议题: ${stalledTopics}\n\n请预测:\n- predictedScore (0-100)\n- confidenceLevel (0-1)\n- riskLevel (high/medium/low/none)\n- riskFactors: [{factor, weight, description}]\n- recommendations: [{action, priority, expectedImpact}]\n- narrative: 2-3句中文预测分析`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "meeting_prediction",
+          schema: {
+            type: "object",
+            properties: {
+              predictedScore: { type: "number" },
+              confidenceLevel: { type: "number" },
+              riskLevel: { type: "string" },
+              riskFactors: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    factor: { type: "string" },
+                    weight: { type: "number" },
+                    description: { type: "string" },
+                  },
+                  required: ["factor", "weight", "description"],
+                  additionalProperties: false,
+                },
+              },
+              recommendations: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    action: { type: "string" },
+                    priority: { type: "string" },
+                    expectedImpact: { type: "string" },
+                  },
+                  required: ["action", "priority", "expectedImpact"],
+                  additionalProperties: false,
+                },
+              },
+              narrative: { type: "string" },
+            },
+            required: ["predictedScore", "confidenceLevel", "riskLevel", "riskFactors", "recommendations", "narrative"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+
+    const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+    predictedScore = parsed.predictedScore ?? 50;
+    confidenceLevel = parsed.confidenceLevel ?? 0.5;
+    riskLevel = parsed.riskLevel ?? "medium";
+    riskFactors = parsed.riskFactors ?? [];
+    recommendations = parsed.recommendations ?? [];
+    aiNarrative = parsed.narrative ?? "";
+  } catch (e) {
+    console.error("[IME] Prediction LLM failed, using heuristic:", e);
+    const sizeBonus = participants.length >= 3 && participants.length <= 8 ? 10 : participants.length > 12 ? -10 : 0;
+    predictedScore = Math.round(avgParticipantScore * 0.4 + channelAvg * 0.3 + (recentTrend > 0 ? 60 : 40) * 0.2 + (50 + sizeBonus) * 0.1);
+    predictedScore = Math.max(0, Math.min(100, predictedScore));
+    confidenceLevel = Math.min(0.3 + participants.length * 0.05, 0.8);
+    riskLevel = predictedScore >= 70 ? "low" : predictedScore >= 40 ? "medium" : "high";
+  }
+
+  await db.execute(sql.raw(`
+    DELETE FROM ime_meeting_predictions WHERE meeting_id = '${meetingId.replace(/'/g, "''")}' AND prediction_type = 'effectiveness'
+  `));
+  await db.execute(sql.raw(`
+    INSERT INTO ime_meeting_predictions
+      (meeting_id, scope, prediction_type, predicted_score, confidence_level, risk_level,
+       risk_factors, features, recommendations, ai_narrative, predicted_at)
+    VALUES (
+      '${meetingId.replace(/'/g, "''")}',
+      'meeting',
+      'effectiveness',
+      ${predictedScore},
+      ${confidenceLevel},
+      '${riskLevel}',
+      '${JSON.stringify(riskFactors).replace(/'/g, "''")}',
+      '${JSON.stringify({ avgParticipantScore, channelAvg, recentTrend, highPerformerRatio, stalledTopics, participantCount: participants.length }).replace(/'/g, "''")}',
+      '${JSON.stringify(recommendations).replace(/'/g, "''")}',
+      '${(aiNarrative || "").replace(/'/g, "''")}',
+      NOW()
+    )
+  `));
+
+  return {
+    meetingId,
+    predictedScore,
+    confidenceLevel,
+    riskLevel,
+    riskFactors,
+    recommendations,
+    aiNarrative,
+    features: { avgParticipantScore, channelAvg, recentTrend, highPerformerRatio, stalledTopics },
+  };
+}
+
+export async function detectMeetingFatigue(scope: string, scopeId?: string, period?: string) {
+  const db = await requireDb();
+
+  const dateRange = period === "monthly" ? "30 days" : period === "quarterly" ? "90 days" : "60 days";
+  const scopeCondition = scopeId
+    ? `AND mr.channel_id = '${scopeId.replace(/'/g, "''")}'`
+    : "";
+
+  const engagementResult = await db.execute(sql.raw(`
+    SELECT pe.meeting_id, pe.engagement_level, pe.engagement_score,
+           mr.meeting_date, mr.channel_id
+    FROM ime_participant_engagement pe
+    JOIN meeting_records mr ON pe.meeting_id = mr.id
+    WHERE mr.meeting_date >= NOW() - INTERVAL '${dateRange}' ${scopeCondition}
+    ORDER BY mr.meeting_date ASC
+  `));
+  const engagements = engagementResult.rows as any[];
+
+  if (engagements.length === 0) {
+    return { scope, scopeId, fatigueIndex: 0, message: "数据不足以进行疲劳检测" };
+  }
+
+  const scores = engagements.map((e: any) => Number(e.engagement_score) || 0);
+  const n = scores.length;
+  const halfIdx = Math.floor(n / 2);
+  const firstHalfAvg = scores.slice(0, halfIdx).reduce((s, v) => s + v, 0) / Math.max(halfIdx, 1);
+  const secondHalfAvg = scores.slice(halfIdx).reduce((s, v) => s + v, 0) / Math.max(n - halfIdx, 1);
+
+  const xMean = (n - 1) / 2;
+  const yMean = scores.reduce((s, v) => s + v, 0) / n;
+  let numerator = 0, denominator = 0;
+  for (let i = 0; i < n; i++) {
+    numerator += (i - xMean) * (scores[i] - yMean);
+    denominator += (i - xMean) * (i - xMean);
+  }
+  const slope = denominator !== 0 ? numerator / denominator : 0;
+
+  const uniqueDates = new Set(engagements.map((e: any) => e.meeting_date?.toISOString?.()?.split("T")?.[0] || ""));
+  const weeksInPeriod = Math.max(1, parseInt(dateRange) / 7);
+  const meetingsPerWeek = uniqueDates.size / weeksInPeriod;
+
+  let fatigueIndex = 0, trendDirection = "stable", recommendations: any[] = [], aiNarrative = "";
+  let trendForecast: any[] = [];
+
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "你是会议疲劳检测专家。分析参与度趋势，检测会议疲劳信号。返回JSON。",
+        },
+        {
+          role: "user",
+          content: `范围: ${scope}\n周期: ${dateRange}\n会议数: ${n}\n参与度趋势斜率: ${slope.toFixed(3)}\n前半段平均: ${firstHalfAvg.toFixed(1)}\n后半段平均: ${secondHalfAvg.toFixed(1)}\n每周会议数: ${meetingsPerWeek.toFixed(1)}\n\n请分析:\n- fatigueIndex (0-100, 越高越疲劳)\n- trendDirection (declining/stable/improving)\n- recommendations: [{action, priority, expectedImpact}]\n- narrative: 2-3句中文疲劳分析`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "fatigue_detection",
+          schema: {
+            type: "object",
+            properties: {
+              fatigueIndex: { type: "number" },
+              trendDirection: { type: "string" },
+              recommendations: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    action: { type: "string" },
+                    priority: { type: "string" },
+                    expectedImpact: { type: "string" },
+                  },
+                  required: ["action", "priority", "expectedImpact"],
+                  additionalProperties: false,
+                },
+              },
+              narrative: { type: "string" },
+            },
+            required: ["fatigueIndex", "trendDirection", "recommendations", "narrative"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+
+    const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+    fatigueIndex = parsed.fatigueIndex ?? 0;
+    trendDirection = parsed.trendDirection ?? "stable";
+    recommendations = parsed.recommendations ?? [];
+    aiNarrative = parsed.narrative ?? "";
+  } catch (e) {
+    console.error("[IME] Fatigue detection LLM failed, using heuristic:", e);
+    const declineRatio = firstHalfAvg > 0 ? (firstHalfAvg - secondHalfAvg) / firstHalfAvg : 0;
+    fatigueIndex = Math.min(100, Math.max(0, Math.round(declineRatio * 100 + (slope < 0 ? Math.abs(slope) * 20 : 0) + (meetingsPerWeek > 5 ? 15 : 0))));
+    trendDirection = slope < -0.5 ? "declining" : slope > 0.5 ? "improving" : "stable";
+  }
+
+  const avgScore = yMean;
+  trendForecast = [1, 2, 3, 4].map((i) => ({
+    period: `+${i}`,
+    predictedScore: Math.max(0, Math.min(100, Math.round(avgScore + slope * (n + i * 5)))),
+    confidence: Math.max(0.2, 0.8 - i * 0.15),
+  }));
+
+  await db.execute(sql.raw(`
+    INSERT INTO ime_meeting_predictions
+      (meeting_id, scope, scope_id, prediction_type, predicted_score, confidence_level, risk_level,
+       fatigue_index, trend_forecast, recommendations, ai_narrative, predicted_at)
+    VALUES (
+      '',
+      '${(scope || "").replace(/'/g, "''")}',
+      ${scopeId ? `'${scopeId.replace(/'/g, "''")}'` : "NULL"},
+      'fatigue',
+      ${Math.round(avgScore)},
+      0.7,
+      '${fatigueIndex >= 60 ? "high" : fatigueIndex >= 30 ? "medium" : "low"}',
+      ${fatigueIndex},
+      '${JSON.stringify(trendForecast).replace(/'/g, "''")}',
+      '${JSON.stringify(recommendations).replace(/'/g, "''")}',
+      '${(aiNarrative || "").replace(/'/g, "''")}',
+      NOW()
+    )
+  `));
+
+  return {
+    scope,
+    scopeId,
+    fatigueIndex,
+    trendDirection,
+    trendForecast,
+    recommendations,
+    aiNarrative,
+    stats: { slope, firstHalfAvg, secondHalfAvg, meetingsPerWeek, totalMeetings: n },
+  };
+}
+
+export async function getPredictionDashboard(filters: { scope?: string; period?: string }) {
+  const db = await requireDb();
+
+  const conditions: string[] = ["1=1"];
+  if (filters.scope) conditions.push(`p.scope = '${filters.scope.replace(/'/g, "''")}'`);
+  const where = conditions.join(" AND ");
+
+  const typeStatsResult = await db.execute(sql.raw(`
+    SELECT p.prediction_type,
+           COUNT(*) as cnt,
+           AVG(p.predicted_score) as avg_predicted,
+           AVG(p.confidence_level) as avg_confidence
+    FROM ime_meeting_predictions p
+    WHERE ${where}
+    GROUP BY p.prediction_type
+  `));
+
+  const atRiskResult = await db.execute(sql.raw(`
+    SELECT p.*, mr.title as meeting_title, mr.meeting_date
+    FROM ime_meeting_predictions p
+    LEFT JOIN meeting_records mr ON p.meeting_id = mr.id
+    WHERE ${where} AND p.prediction_type = 'effectiveness' AND p.risk_level IN ('high', 'medium')
+    ORDER BY p.predicted_score ASC
+    LIMIT 20
+  `));
+
+  const accuracyResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total,
+           AVG(p.prediction_accuracy) as avg_accuracy,
+           AVG(ABS(p.predicted_score - p.actual_score)) as avg_error
+    FROM ime_meeting_predictions p
+    WHERE ${where} AND p.actual_score IS NOT NULL
+  `));
+  const accuracy = (accuracyResult.rows as any[])[0] || {};
+
+  const fatigueResult = await db.execute(sql.raw(`
+    SELECT DISTINCT ON (p.scope_id) p.scope_id, p.fatigue_index, p.risk_level, p.ai_narrative
+    FROM ime_meeting_predictions p
+    WHERE p.prediction_type = 'fatigue' AND p.fatigue_index IS NOT NULL
+    ORDER BY p.scope_id, p.predicted_at DESC
+  `));
+
+  const riskFactorResult = await db.execute(sql.raw(`
+    SELECT p.risk_factors FROM ime_meeting_predictions p
+    WHERE ${where} AND p.risk_factors IS NOT NULL AND p.risk_factors != '[]'
+    ORDER BY p.predicted_at DESC LIMIT 50
+  `));
+  const factorFreq: Record<string, number> = {};
+  for (const row of riskFactorResult.rows as any[]) {
+    try {
+      const factors = JSON.parse(row.risk_factors || "[]");
+      for (const f of factors) {
+        const key = f.factor || "unknown";
+        factorFreq[key] = (factorFreq[key] || 0) + 1;
+      }
+    } catch { /* skip */ }
+  }
+  const riskFactorRankings = Object.entries(factorFreq)
+    .map(([factor, count]) => ({ factor, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 15);
+
+  return {
+    typeStats: (typeStatsResult.rows as any[]).map((r: any) => ({
+      type: r.prediction_type,
+      count: Number(r.cnt),
+      avgPredicted: Math.round(Number(r.avg_predicted) || 0),
+      avgConfidence: Number(Number(r.avg_confidence || 0).toFixed(2)),
+    })),
+    atRiskMeetings: atRiskResult.rows,
+    accuracy: {
+      total: Number(accuracy.total) || 0,
+      avgAccuracy: Number(Number(accuracy.avg_accuracy || 0).toFixed(1)),
+      avgError: Number(Number(accuracy.avg_error || 0).toFixed(1)),
+    },
+    fatigueData: fatigueResult.rows,
+    riskFactorRankings,
+  };
+}
