@@ -7,6 +7,7 @@
  */
 
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import {
@@ -200,15 +201,7 @@ export default function AiAssistantHubPage() {
     <Layout>
       <div className="space-y-8">
         {/* Page header */}
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Bot className="w-7 h-7 text-primary" />
-            AI助手中心
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            统一管理所有AI助手和智能工具
-          </p>
-        </div>
+        <PageHeader icon={Bot} title="AI助手中心" description="统一管理所有AI助手和智能工具" />
 
         {/* Groups */}
         {assistantGroups.map((group) => (

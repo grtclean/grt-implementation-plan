@@ -24,6 +24,7 @@ import {
   Users,
   Calendar,
 } from "lucide-react";
+import { PageHeader } from "@/components/grt";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Streamdown } from "streamdown";
 
@@ -275,23 +276,11 @@ export default function SmartMeeting() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Video className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">
-                {language === "zh" ? "智慧会议" : "Smart Meeting"}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {language === "zh" 
-                  ? "会议驾驶舱 - 议程管理、协作记录、AI洞察" 
-                  : "Meeting Cockpit - Agenda, Collaboration, AI Insights"}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+        <PageHeader
+          icon={Video}
+          title={language === "zh" ? "智慧会议" : "Smart Meeting"}
+          description={language === "zh" ? "会议驾驶舱 - 议程管理、协作记录、AI洞察" : "Meeting Cockpit - Agenda, Collaboration, AI Insights"}
+          actions={<>
             <Badge variant="outline" className="gap-1">
               <Users className="w-3 h-3" />
               {language === "zh" ? "3 参会者" : "3 Participants"}
@@ -300,8 +289,8 @@ export default function SmartMeeting() {
               <Calendar className="w-3 h-3" />
               {new Date().toLocaleDateString()}
             </Badge>
-          </div>
-        </div>
+          </>}
+        />
 
         {/* 三栏布局 - 会议驾驶舱 */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-6">

@@ -8,6 +8,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -289,17 +290,11 @@ export default function RAGTrainingCenter() {
         </nav>
 
         {/* Page Title */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <BookOpen className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">RAG 知识库训练中心</h1>
-            <p className="text-muted-foreground text-sm">
-              上传文档、智能解析、编辑确认、批量入库
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={BookOpen}
+          title="RAG 知识库训练中心"
+          description="上传文档、智能解析、编辑确认、批量入库"
+        />
 
         {/* Alert */}
         {alert && (
@@ -340,28 +335,16 @@ export default function RAGTrainingCenter() {
             </>
           ) : (
             <>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                    <Database className="h-4 w-4" />
-                    总文档数
-                  </div>
-                  <p className="text-2xl font-bold">
-                    {statsQuery.data?.total ?? 0}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                    <Plus className="h-4 w-4" />
-                    本周新增
-                  </div>
-                  <p className="text-2xl font-bold">
-                    {statsQuery.data?.thisWeek ?? 0}
-                  </p>
-                </CardContent>
-              </Card>
+              <StatCard
+                icon={Database}
+                label="总文档数"
+                value={statsQuery.data?.total ?? 0}
+              />
+              <StatCard
+                icon={Plus}
+                label="本周新增"
+                value={statsQuery.data?.thisWeek ?? 0}
+              />
               <Card className="col-span-2">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">

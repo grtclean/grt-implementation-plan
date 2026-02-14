@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,13 +99,7 @@ export default function AIServiceAssistant() {
   return (
     <Layout>
       <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Headphones className="w-6 h-6 text-primary" />
-            AI服务助手
-          </h1>
-          <p className="text-muted-foreground mt-1">智能故障诊断、维保计划管理与知识库匹配</p>
-        </div>
+        <PageHeader icon={Headphones} title="AI服务助手" description="智能故障诊断、维保计划管理与知识库匹配" />
 
         <Tabs defaultValue="diagnosis" className="space-y-4">
           <TabsList>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -86,13 +87,7 @@ export default function AIQualityAssistant() {
   return (
     <Layout>
       <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" />
-            AI质量助手
-          </h1>
-          <p className="text-muted-foreground mt-1">缺陷根因分析、检测计划生成与CAPA追踪管理</p>
-        </div>
+        <PageHeader icon={Shield} title="AI质量助手" description="缺陷根因分析、检测计划生成与CAPA追踪管理" />
 
         <Tabs defaultValue="defect" className="space-y-4">
           <TabsList>

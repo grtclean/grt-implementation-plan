@@ -4,18 +4,19 @@
  */
 
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { 
-  AlertTriangle, 
-  CheckCircle2, 
-  Clock, 
-  FileText, 
-  Users, 
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Users,
   Shield,
   Target,
   Zap,
@@ -123,107 +124,55 @@ export default function M1KickoffDashboard() {
     setIsRedBlueDialogOpen(false);
   };
 
-  const getRiskLevelColor = (level: string) => {
-    switch (level) {
-      case "Critical": return "bg-red-500";
-      case "High": return "bg-orange-500";
-      case "Medium": return "bg-yellow-500";
-      case "Low": return "bg-green-500";
-      default: return "bg-gray-500";
-    }
-  };
+  const riskLevelColors = createStatusColorMap({
+    Critical: "red",
+    High: "orange",
+    Medium: "yellow",
+    Low: "green",
+  });
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Pass": return <Badge className="bg-green-500">通过</Badge>;
-      case "Warning": return <Badge className="bg-yellow-500">警告</Badge>;
-      case "Fail": return <Badge className="bg-red-500">失败</Badge>;
-      case "Pending": return <Badge className="bg-gray-500">待确认</Badge>;
-      default: return <Badge>{status}</Badge>;
-    }
+  const ursStatusColors = createStatusColorMap({
+    Pass: "green",
+    Warning: "yellow",
+    Fail: "red",
+    Pending: "gray",
+  });
+
+  const ursStatusLabels: Record<string, string> = {
+    Pass: "通过",
+    Warning: "警告",
+    Fail: "失败",
+    Pending: "待确认",
   };
 
   return (
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Target className="w-6 h-6 text-primary" />
-              M1 项目启动会仪表盘
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Risk Radar AI Agent 风险预警 · URS评审 · 红蓝对抗配置
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline">
-              <FileText className="w-4 h-4 mr-2" />
-              导出报告
-            </Button>
-            <Button>
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              确认启动
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Target}
+          title="M1 项目启动会仪表盘"
+          description="Risk Radar AI Agent 风险预警 · URS评审 · 红蓝对抗配置"
+          actions={
+            <>
+              <Button variant="outline">
+                <FileText className="w-4 h-4 mr-2" />
+                导出报告
+              </Button>
+              <Button>
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                确认启动
+              </Button>
+            </>
+          }
+        />
 
         {/* 项目概览卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <FileText className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">项目编号</p>
-                  <p className="font-bold">{mockProjectData.projectNo}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <Users className="w-5 h-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">客户</p>
-                  <p className="font-bold">{mockProjectData.customerName}</p>
-                  <Badge className="mt-1 bg-red-500">{mockProjectData.customerTier}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <TrendingUp className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">合同金额</p>
-                  <p className="font-bold">¥{(mockProjectData.contractValue / 10000).toFixed(0)}万</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-500/10">
-                  <Clock className="w-5 h-5 text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">目标交付</p>
-                  <p className="font-bold">{mockProjectData.targetDeliveryDate}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={FileText} label="项目编号" value={mockProjectData.projectNo} />
+          <StatCard icon={Users} label="客户" value={mockProjectData.customerName} subtitle={mockProjectData.customerTier} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={TrendingUp} label="合同金额" value={`¥${(mockProjectData.contractValue / 10000).toFixed(0)}万`} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Clock} label="目标交付" value={mockProjectData.targetDeliveryDate} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
         </div>
 
         {/* 风险评估总览 */}
@@ -236,9 +185,9 @@ export default function M1KickoffDashboard() {
               </CardTitle>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">风险等级:</span>
-                <Badge className={getRiskLevelColor(mockRiskAssessment.riskLevel)}>
+                <StatusBadge color={riskLevelColors[mockRiskAssessment.riskLevel as keyof typeof riskLevelColors] ?? "gray"}>
                   {mockRiskAssessment.riskLevel}
-                </Badge>
+                </StatusBadge>
                 <span className="text-sm text-muted-foreground ml-2">评分:</span>
                 <span className="font-bold">{mockRiskAssessment.riskScore}/100</span>
               </div>
@@ -365,7 +314,11 @@ export default function M1KickoffDashboard() {
                       {mockUrsChecklist.map((item, index) => (
                         <tr key={index} className="border-b">
                           <td className="p-3">{item.item}</td>
-                          <td className="p-3">{getStatusBadge(item.status)}</td>
+                          <td className="p-3">
+                            <StatusBadge color={ursStatusColors[item.status as keyof typeof ursStatusColors] ?? "gray"}>
+                              {ursStatusLabels[item.status] ?? item.status}
+                            </StatusBadge>
+                          </td>
                           <td className="p-3 text-sm text-muted-foreground">{item.notes}</td>
                         </tr>
                       ))}

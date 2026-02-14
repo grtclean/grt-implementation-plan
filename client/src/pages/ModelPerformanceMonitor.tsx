@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from '@/components/grt';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,8 +30,6 @@ import {
   RefreshCw,
   Settings,
   Target,
-  TrendingDown,
-  TrendingUp,
   XCircle,
   Zap
 } from 'lucide-react';
@@ -167,7 +166,7 @@ function generateMockTrend(modelType: ModelType, period: Period): TrendDataPoint
 
 // ==================== 组件 ====================
 
-function StatusBadge({ status }: { status: HealthStatus['status'] }) {
+function ModelStatusBadge({ status }: { status: HealthStatus['status'] }) {
   const config = {
     healthy: { label: '健康', variant: 'default' as const, icon: CheckCircle2, className: 'bg-green-500/10 text-green-500 border-green-500/20' },
     degraded: { label: '降级', variant: 'secondary' as const, icon: AlertTriangle, className: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
@@ -185,58 +184,6 @@ function StatusBadge({ status }: { status: HealthStatus['status'] }) {
   );
 }
 
-function MetricCard({ 
-  title, 
-  value, 
-  unit, 
-  icon: Icon, 
-  trend, 
-  trendLabel,
-  color = 'primary'
-}: { 
-  title: string; 
-  value: string | number; 
-  unit?: string;
-  icon: any;
-  trend?: number;
-  trendLabel?: string;
-  color?: 'primary' | 'success' | 'warning' | 'danger';
-}) {
-  const colorClasses = {
-    primary: 'text-primary',
-    success: 'text-green-500',
-    warning: 'text-yellow-500',
-    danger: 'text-red-500'
-  };
-  
-  return (
-    <Card className="bg-card/50 border-border">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-muted-foreground">{title}</span>
-          <Icon className={`w-4 h-4 ${colorClasses[color]}`} />
-        </div>
-        <div className="flex items-baseline gap-1">
-          <span className="text-2xl font-bold">{value}</span>
-          {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
-        </div>
-        {trend !== undefined && (
-          <div className="flex items-center gap-1 mt-2 text-xs">
-            {trend >= 0 ? (
-              <TrendingUp className="w-3 h-3 text-green-500" />
-            ) : (
-              <TrendingDown className="w-3 h-3 text-red-500" />
-            )}
-            <span className={trend >= 0 ? 'text-green-500' : 'text-red-500'}>
-              {trend >= 0 ? '+' : ''}{(trend * 100).toFixed(1)}%
-            </span>
-            {trendLabel && <span className="text-muted-foreground">{trendLabel}</span>}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 function TrendChart({ data, metric }: { data: TrendDataPoint[]; metric: 'calls' | 'accuracy' | 'avgLatency' }) {
   const maxValue = Math.max(...data.map(d => d[metric]));
@@ -290,7 +237,7 @@ function ModelCard({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">{MODEL_NAMES[modelType]}</CardTitle>
-          <StatusBadge status={health.status} />
+          <ModelStatusBadge status={health.status} />
         </div>
         <CardDescription>版本 {metrics.modelVersion}</CardDescription>
       </CardHeader>
@@ -407,79 +354,67 @@ export default function ModelPerformanceMonitor() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Gauge className="w-6 h-6 text-primary" />
-              模型性能监控
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              实时监控AI模型的预测准确率、调用次数和响应时间
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="auto-refresh" className="text-sm">自动刷新</Label>
-              <Switch
-                id="auto-refresh"
-                checked={autoRefresh}
-                onCheckedChange={setAutoRefresh}
-              />
-            </div>
-            
-            <Select value={selectedPeriod} onValueChange={(v) => setSelectedPeriod(v as Period)}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="hour">最近1小时</SelectItem>
-                <SelectItem value="day">最近24小时</SelectItem>
-                <SelectItem value="week">最近7天</SelectItem>
-                <SelectItem value="month">最近30天</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              刷新
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Gauge}
+          title="模型性能监控"
+          description="实时监控AI模型的预测准确率、调用次数和响应时间"
+          actions={
+            <>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="auto-refresh" className="text-sm">自动刷新</Label>
+                <Switch
+                  id="auto-refresh"
+                  checked={autoRefresh}
+                  onCheckedChange={setAutoRefresh}
+                />
+              </div>
+              <Select value={selectedPeriod} onValueChange={(v) => setSelectedPeriod(v as Period)}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hour">最近1小时</SelectItem>
+                  <SelectItem value="day">最近24小时</SelectItem>
+                  <SelectItem value="week">最近7天</SelectItem>
+                  <SelectItem value="month">最近30天</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={handleRefresh}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                刷新
+              </Button>
+            </>
+          }
+        />
         
         {/* 汇总指标 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <MetricCard
-            title="总调用次数"
-            value={summary.totalCalls.toLocaleString()}
+          <StatCard
             icon={Activity}
-            trend={0.12}
-            trendLabel="vs 上期"
-            color="primary"
+            label="总调用次数"
+            value={summary.totalCalls.toLocaleString()}
+            trend={{ value: 12, label: "vs 上期" }}
           />
-          <MetricCard
-            title="平均准确率"
-            value={(summary.avgAccuracy * 100).toFixed(1)}
-            unit="%"
+          <StatCard
             icon={Target}
-            trend={0.03}
-            trendLabel="vs 上期"
-            color="success"
+            label="平均准确率"
+            value={`${(summary.avgAccuracy * 100).toFixed(1)}%`}
+            iconColor="text-green-600"
+            iconBg="bg-green-100"
+            trend={{ value: 3, label: "vs 上期" }}
           />
-          <MetricCard
-            title="平均响应时间"
-            value={summary.avgLatency.toFixed(0)}
-            unit="ms"
+          <StatCard
             icon={Clock}
-            trend={-0.05}
-            trendLabel="vs 上期"
-            color="primary"
+            label="平均响应时间"
+            value={`${summary.avgLatency.toFixed(0)}ms`}
+            trend={{ value: -5, label: "vs 上期" }}
           />
-          <MetricCard
-            title="健康模型"
-            value={`${summary.healthyCount}/${modelTypes.length}`}
+          <StatCard
             icon={CheckCircle2}
-            color={summary.healthyCount === modelTypes.length ? 'success' : 'warning'}
+            label="健康模型"
+            value={`${summary.healthyCount}/${modelTypes.length}`}
+            iconColor={summary.healthyCount === modelTypes.length ? "text-green-600" : "text-yellow-600"}
+            iconBg={summary.healthyCount === modelTypes.length ? "bg-green-100" : "bg-yellow-100"}
           />
         </div>
         
@@ -514,7 +449,7 @@ export default function ModelPerformanceMonitor() {
                       <div>
                         <CardTitle className="flex items-center gap-2">
                           {MODEL_NAMES[selectedModel]}
-                          <StatusBadge status={selectedHealth.status} />
+                          <ModelStatusBadge status={selectedHealth.status} />
                         </CardTitle>
                         <CardDescription>版本 {selectedMetrics.modelVersion}</CardDescription>
                       </div>

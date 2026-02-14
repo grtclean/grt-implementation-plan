@@ -5,6 +5,7 @@
 
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -233,87 +234,30 @@ export default function DigitalAssistants() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-heading flex items-center gap-3">
-              <Bot className="w-8 h-8 text-primary" />
-              数字助手管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              管理员工数字助手(DA)和功能型AI助手配置
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => employeeDAs.refetch()}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              刷新
-            </Button>
-            <Button size="sm" onClick={() => setShowCreateDialog(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              创建数字助手
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Bot}
+          title="数字助手管理"
+          description="管理员工数字助手(DA)和功能型AI助手配置"
+          actions={
+            <>
+              <Button variant="outline" size="sm" onClick={() => employeeDAs.refetch()}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                刷新
+              </Button>
+              <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                创建数字助手
+              </Button>
+            </>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border hover:border-primary/50 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500">
-                  <User className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">员工DA总数</p>
-                  <p className="text-2xl font-bold">{employeeDAs.data?.length || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border hover:border-primary/50 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-500/10 text-green-500">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">已激活</p>
-                  <p className="text-2xl font-bold">
-                    {employeeDAs.data?.filter(da => da.isActive === 1).length || 0}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border hover:border-primary/50 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-orange-500/10 text-orange-500">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">功能型助手</p>
-                  <p className="text-2xl font-bold">{functionalAssistants.data?.length || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border hover:border-primary/50 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-purple-500/10 text-purple-500">
-                  <Zap className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">今日交互</p>
-                  <p className="text-2xl font-bold">0</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={User} label="员工DA总数" value={employeeDAs.data?.length || 0} iconColor="text-blue-600" iconBg="bg-blue-100" />
+          <StatCard icon={CheckCircle2} label="已激活" value={employeeDAs.data?.filter(da => da.isActive === 1).length || 0} iconColor="text-green-600" iconBg="bg-green-100" />
+          <StatCard icon={Sparkles} label="功能型助手" value={functionalAssistants.data?.length || 0} iconColor="text-orange-600" iconBg="bg-orange-100" />
+          <StatCard icon={Zap} label="今日交互" value={0} iconColor="text-purple-600" iconBg="bg-purple-100" />
         </div>
 
         {/* 主要内容区域 */}

@@ -3,6 +3,7 @@
  */
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -121,15 +122,7 @@ export default function HistoricalCases() {
   return (
     <Layout>
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <BookOpen className="h-6 w-6 text-primary" />历史案例库
-            </h1>
-            <p className="text-muted-foreground mt-1">知识沉淀 · AI智能推荐</p>
-          </div>
-          <Badge variant="outline" className="gap-1">{CASES.length} 条案例</Badge>
-        </div>
+        <PageHeader icon={BookOpen} title="历史案例库" description="知识沉淀 · AI智能推荐" actions={<Badge variant="outline" className="gap-1">{CASES.length} 条案例</Badge>} />
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>

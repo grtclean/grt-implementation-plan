@@ -3,6 +3,7 @@
  */
 
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -82,17 +83,12 @@ export default function AIEarlyWarning() {
     <Layout>
       <div className="space-y-6 p-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <AlertTriangle className="h-6 w-6 text-yellow-500" />
-              AI Early Warning Center
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              3-Layer AI monitoring: Health Scanner, Risk Scorer, Narrative Engine
-            </p>
-          </div>
-          <div className="flex items-center gap-2">            <Button
+        <PageHeader
+          icon={AlertTriangle}
+          title="AI Early Warning Center"
+          description="3-Layer AI monitoring: Health Scanner, Risk Scorer, Narrative Engine"
+          actions={
+            <Button
               variant="outline"
               size="sm"
               onClick={() => setShowNotifications((v) => !v)}
@@ -105,8 +101,8 @@ export default function AIEarlyWarning() {
                 </span>
               )}
             </Button>
-          </div>
-        </div>
+          }
+        />
         {/* Notification Panel */}
         {showNotifications && (
           <Card>

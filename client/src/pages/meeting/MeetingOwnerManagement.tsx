@@ -33,6 +33,7 @@ import {
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from '@/components/grt';
 
 // 会议类型配置
 const MEETING_TYPES = [
@@ -156,76 +157,24 @@ export default function MeetingOwnerManagement() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Crown className="h-6 w-6 text-yellow-500" />
-              Meeting Owner 管理
-            </h1>
-            <p className="text-muted-foreground">
-              为不同会议类型指派负责人，配置自动上报规则
-            </p>
-          </div>
-          <Button onClick={() => setShowAddDialog(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            指派MO
-          </Button>
-        </div>
+        <PageHeader
+          icon={Crown}
+          title="Meeting Owner 管理"
+          description="为不同会议类型指派负责人，配置自动上报规则"
+          actions={
+            <Button onClick={() => setShowAddDialog(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              指派MO
+            </Button>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-primary/10">
-                  <Crown className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                  <p className="text-sm text-muted-foreground">总MO数</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-blue-100">
-                  <Users className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.internal}</p>
-                  <p className="text-sm text-muted-foreground">内部会议</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-green-100">
-                  <Users className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.customer}</p>
-                  <p className="text-sm text-muted-foreground">客户会议</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-yellow-100">
-                  <Bell className="h-6 w-6 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.autoReport}</p>
-                  <p className="text-sm text-muted-foreground">自动上报</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Crown} label="总MO数" value={stats.total} iconColor="text-primary" iconBg="bg-primary/10" />
+          <StatCard icon={Users} label="内部会议" value={stats.internal} iconColor="text-blue-600" iconBg="bg-blue-500/10" />
+          <StatCard icon={Users} label="客户会议" value={stats.customer} iconColor="text-green-600" iconBg="bg-green-500/10" />
+          <StatCard icon={Bell} label="自动上报" value={stats.autoReport} iconColor="text-yellow-600" iconBg="bg-yellow-500/10" />
         </div>
 
         <Tabs defaultValue="owners" className="w-full">

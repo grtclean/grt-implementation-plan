@@ -39,6 +39,7 @@ import {
   Target,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader, StatCard } from "@/components/grt";
 
 // ============================================================================
 // 类型定义
@@ -452,207 +453,139 @@ export default function MyTasks() {
 
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <ListTodo className="w-6 h-6 text-primary" />
-              我的任务
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {todoCount} 个待办 · {inProgressCount} 个进行中
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline">
-              <Filter className="w-4 h-4 mr-2" />
-              筛选
-            </Button>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="w-4 h-4 mr-2" />
-                  新建任务
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
-                  <DialogTitle>创建新任务</DialogTitle>
-                  <DialogDescription>
-                    填写任务信息，AI 可以帮助您优化任务描述
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="title">任务标题 *</Label>
-                    <Input
-                      id="title"
-                      value={newTask.title}
-                      onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                      placeholder="任务标题"
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="description">任务描述</Label>
-                    <Textarea
-                      id="description"
-                      value={newTask.description}
-                      onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                      placeholder="任务详细描述"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+        <PageHeader
+          icon={ListTodo}
+          title="我的任务"
+          description={`${todoCount} 个待办 · ${inProgressCount} 个进行中`}
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline">
+                <Filter className="w-4 h-4 mr-2" />
+                筛选
+              </Button>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-primary hover:bg-primary/90">
+                    <Plus className="w-4 h-4 mr-2" />
+                    新建任务
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px]">
+                  <DialogHeader>
+                    <DialogTitle>创建新任务</DialogTitle>
+                    <DialogDescription>
+                      填写任务信息，AI 可以帮助您优化任务描述
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="category">分类</Label>
-                      <Select
-                        value={newTask.category}
-                        onValueChange={(value: any) => setNewTask({ ...newTask, category: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="hr">人力资源</SelectItem>
-                          <SelectItem value="procurement">采购</SelectItem>
-                          <SelectItem value="delivery">交付</SelectItem>
-                          <SelectItem value="meeting">会议</SelectItem>
-                          <SelectItem value="performance">绩效</SelectItem>
-                          <SelectItem value="other">其他</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="title">任务标题 *</Label>
+                      <Input
+                        id="title"
+                        value={newTask.title}
+                        onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                        placeholder="任务标题"
+                      />
                     </div>
 
                     <div className="grid gap-2">
-                      <Label htmlFor="priority">优先级</Label>
-                      <Select
-                        value={newTask.priority}
-                        onValueChange={(value: any) => setNewTask({ ...newTask, priority: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="high">高</SelectItem>
-                          <SelectItem value="medium">中</SelectItem>
-                          <SelectItem value="low">低</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="description">任务描述</Label>
+                      <Textarea
+                        id="description"
+                        value={newTask.description}
+                        onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                        placeholder="任务详细描述"
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="category">分类</Label>
+                        <Select
+                          value={newTask.category}
+                          onValueChange={(value: any) => setNewTask({ ...newTask, category: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="hr">人力资源</SelectItem>
+                            <SelectItem value="procurement">采购</SelectItem>
+                            <SelectItem value="delivery">交付</SelectItem>
+                            <SelectItem value="meeting">会议</SelectItem>
+                            <SelectItem value="performance">绩效</SelectItem>
+                            <SelectItem value="other">其他</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="priority">优先级</Label>
+                        <Select
+                          value={newTask.priority}
+                          onValueChange={(value: any) => setNewTask({ ...newTask, priority: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="high">高</SelectItem>
+                            <SelectItem value="medium">中</SelectItem>
+                            <SelectItem value="low">低</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="dueDate">截止日期</Label>
+                      <Input
+                        id="dueDate"
+                        type="date"
+                        value={newTask.dueDate}
+                        onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="tags">标签</Label>
+                      <Input
+                        id="tags"
+                        value={newTask.tags}
+                        onChange={(e) => setNewTask({ ...newTask, tags: e.target.value })}
+                        placeholder="用逗号分隔多个标签"
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2 p-3 bg-purple-500/10 rounded-lg">
+                      <Bot className="w-5 h-5 text-purple-400" />
+                      <span className="text-sm text-purple-400">
+                        AI 可以帮助您优化任务描述和预估完成时间
+                      </span>
                     </div>
                   </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="dueDate">截止日期</Label>
-                    <Input
-                      id="dueDate"
-                      type="date"
-                      value={newTask.dueDate}
-                      onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="tags">标签</Label>
-                    <Input
-                      id="tags"
-                      value={newTask.tags}
-                      onChange={(e) => setNewTask({ ...newTask, tags: e.target.value })}
-                      placeholder="用逗号分隔多个标签"
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2 p-3 bg-purple-500/10 rounded-lg">
-                    <Bot className="w-5 h-5 text-purple-400" />
-                    <span className="text-sm text-purple-400">
-                      AI 可以帮助您优化任务描述和预估完成时间
-                    </span>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                    取消
-                  </Button>
-                  <Button onClick={handleCreateTask}>
-                    创建任务
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                      取消
+                    </Button>
+                    <Button onClick={handleCreateTask}>
+                      创建任务
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          }
+        />
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">待处理</p>
-                  <p className="text-2xl font-bold">{todoCount}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-blue-500/10">
-                  <ListTodo className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">进行中</p>
-                  <p className="text-2xl font-bold text-purple-400">{inProgressCount}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-purple-500/10">
-                  <ArrowRight className="w-6 h-6 text-purple-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">已完成</p>
-                  <p className="text-2xl font-bold text-green-400">{completedCount}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-green-500/10">
-                  <CheckCircle2 className="w-6 h-6 text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">已收藏</p>
-                  <p className="text-2xl font-bold text-yellow-400">{starredCount}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-yellow-500/10">
-                  <Star className="w-6 h-6 text-yellow-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">已逾期</p>
-                  <p className="text-2xl font-bold text-red-400">{overdueCount}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-red-500/10">
-                  <AlertTriangle className="w-6 h-6 text-red-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={ListTodo} label="待处理" value={todoCount} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          <StatCard icon={ArrowRight} label="进行中" value={inProgressCount} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+          <StatCard icon={CheckCircle2} label="已完成" value={completedCount} iconColor="text-green-400" iconBg="bg-green-500/10" />
+          <StatCard icon={Star} label="已收藏" value={starredCount} iconColor="text-yellow-400" iconBg="bg-yellow-500/10" />
+          <StatCard icon={AlertTriangle} label="已逾期" value={overdueCount} iconColor="text-red-400" iconBg="bg-red-500/10" />
         </div>
 
         {/* Main Tabs */}

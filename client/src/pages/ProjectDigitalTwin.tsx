@@ -11,6 +11,7 @@ import {
   Cpu, TrendingUp, DollarSign, Shield, Users, AlertTriangle,
   Clock, Sparkles, Play, RotateCcw,
 } from "lucide-react";
+import { PageHeader } from "@/components/grt";
 import StagePipeline from "./rd-verification/StagePipeline";
 import { STAGES } from "../../../shared/stage-definitions";
 
@@ -125,18 +126,12 @@ export default function ProjectDigitalTwin() {
     <Layout>
       <div className="space-y-6 p-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Cpu className="h-6 w-6 text-primary" />项目数字孪生
-            </h1>
-            <p className="text-muted-foreground mt-1">{PROJECT.id} · {PROJECT.name}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">{PROJECT.model}</Badge>
-            <Badge variant="secondary">{PROJECT.customer}</Badge>
-          </div>
-        </div>
+        <PageHeader
+          icon={Cpu}
+          title="项目数字孪生"
+          description={PROJECT.id + " · " + PROJECT.name}
+          actions={<><Badge variant="outline">{PROJECT.model}</Badge><Badge variant="secondary">{PROJECT.customer}</Badge></>}
+        />
 
         {/* Stage Pipeline */}
         <Card>

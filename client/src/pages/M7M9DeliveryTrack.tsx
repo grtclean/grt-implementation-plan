@@ -4,17 +4,18 @@
  */
 
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { 
-  CheckCircle2, 
-  Clock, 
-  FileText, 
-  Users, 
+import {
+  CheckCircle2,
+  Clock,
+  FileText,
+  Users,
   Shield,
   Target,
   Truck,
@@ -88,32 +89,42 @@ export default function M7M9DeliveryTrack() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("gate");
 
-  const getDecisionBadge = (decision: string) => {
-    switch (decision) {
-      case "Green_Light": return <Badge className="bg-green-500">✅ 通过</Badge>;
-      case "Conditional_Pass": return <Badge className="bg-yellow-500">⚠️ 有条件通过</Badge>;
-      case "Blocked_Issue": return <Badge className="bg-red-500">🚫 阻塞</Badge>;
-      default: return <Badge>{decision}</Badge>;
-    }
+  const decisionColors = createStatusColorMap({
+    Green_Light: "green",
+    Conditional_Pass: "yellow",
+    Blocked_Issue: "red",
+  });
+
+  const decisionLabels: Record<string, string> = {
+    Green_Light: "通过",
+    Conditional_Pass: "有条件通过",
+    Blocked_Issue: "阻塞",
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Pass": return <Badge className="bg-green-500">通过</Badge>;
-      case "Warning": return <Badge className="bg-yellow-500">警告</Badge>;
-      case "Fail": return <Badge className="bg-red-500">失败</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
-    }
+  const gateStatusColors = createStatusColorMap({
+    Pass: "green",
+    Warning: "yellow",
+    Fail: "red",
+  });
+
+  const gateStatusLabels: Record<string, string> = {
+    Pass: "通过",
+    Warning: "警告",
+    Fail: "失败",
   };
 
-  const getIssueStatusBadge = (status: string) => {
-    switch (status) {
-      case "Open": return <Badge className="bg-red-500">待处理</Badge>;
-      case "In_Progress": return <Badge className="bg-blue-500">处理中</Badge>;
-      case "Pending_Approval": return <Badge className="bg-yellow-500">待审批</Badge>;
-      case "Resolved": return <Badge className="bg-green-500">已解决</Badge>;
-      default: return <Badge>{status}</Badge>;
-    }
+  const issueStatusColors = createStatusColorMap({
+    Open: "red",
+    In_Progress: "blue",
+    Pending_Approval: "yellow",
+    Resolved: "green",
+  });
+
+  const issueStatusLabels: Record<string, string> = {
+    Open: "待处理",
+    In_Progress: "处理中",
+    Pending_Approval: "待审批",
+    Resolved: "已解决",
   };
 
   const getMilestoneStatus = (status: string) => {
@@ -129,95 +140,31 @@ export default function M7M9DeliveryTrack() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Truck className="w-6 h-6 text-primary" />
-              M7-M9 交付跟踪仪表盘
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Gatekeeper AI · Site Copilot AI · 预验收/安装/最终验收全流程管理
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline">
-              <Camera className="w-4 h-4 mr-2" />
-              上传现场照片
-            </Button>
-            <Button>
-              <Bot className="w-4 h-4 mr-2" />
-              AI助手
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Truck}
+          title="M7-M9 交付跟踪仪表盘"
+          description="Gatekeeper AI · Site Copilot AI · 预验收/安装/最终验收全流程管理"
+          actions={
+            <>
+              <Button variant="outline">
+                <Camera className="w-4 h-4 mr-2" />
+                上传现场照片
+              </Button>
+              <Button>
+                <Bot className="w-4 h-4 mr-2" />
+                AI助手
+              </Button>
+            </>
+          }
+        />
 
         {/* 项目概览 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <FileText className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">项目编号</p>
-                  <p className="font-bold">{mockDeliveryData.projectNo}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <Users className="w-5 h-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">客户</p>
-                  <p className="font-bold">{mockDeliveryData.customerName}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <Target className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">当前阶段</p>
-                  <p className="font-bold">M7 预验收</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-500/10">
-                  <Wrench className="w-5 h-5 text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">现场工程师</p>
-                  <p className="font-bold">{mockDeliveryData.siteEngineer}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <Clock className="w-5 h-5 text-purple-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">计划安装</p>
-                  <p className="font-bold">{mockDeliveryData.plannedInstallDate}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={FileText} label="项目编号" value={mockDeliveryData.projectNo} />
+          <StatCard icon={Users} label="客户" value={mockDeliveryData.customerName} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Target} label="当前阶段" value="M7 预验收" iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Wrench} label="现场工程师" value={mockDeliveryData.siteEngineer} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+          <StatCard icon={Clock} label="计划安装" value={mockDeliveryData.plannedInstallDate} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
         </div>
 
         {/* 里程碑进度 */}
@@ -293,7 +240,9 @@ export default function M7M9DeliveryTrack() {
                     Gatekeeper AI 检查结果
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    {getDecisionBadge(mockGateCheckResult.decision)}
+                    <StatusBadge color={decisionColors[mockGateCheckResult.decision as keyof typeof decisionColors] ?? "gray"}>
+                      {decisionLabels[mockGateCheckResult.decision] ?? mockGateCheckResult.decision}
+                    </StatusBadge>
                     <span className="text-sm text-muted-foreground ml-2">
                       风险评分: {mockGateCheckResult.riskScore}/100
                     </span>
@@ -314,7 +263,11 @@ export default function M7M9DeliveryTrack() {
                       {mockGateCheckResult.checklistResults.map((item, index) => (
                         <tr key={index} className="border-b">
                           <td className="p-3">{item.item}</td>
-                          <td className="p-3">{getStatusBadge(item.status)}</td>
+                          <td className="p-3">
+                            <StatusBadge color={gateStatusColors[item.status as keyof typeof gateStatusColors] ?? "gray"}>
+                              {gateStatusLabels[item.status] ?? item.status}
+                            </StatusBadge>
+                          </td>
                           <td className="p-3 text-sm text-muted-foreground">{item.notes}</td>
                         </tr>
                       ))}
@@ -358,7 +311,9 @@ export default function M7M9DeliveryTrack() {
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <Badge variant="outline">{issue.category.replace("_", " ")}</Badge>
-                          {getIssueStatusBadge(issue.status)}
+                          <StatusBadge color={issueStatusColors[issue.status as keyof typeof issueStatusColors] ?? "gray"}>
+                            {issueStatusLabels[issue.status] ?? issue.status}
+                          </StatusBadge>
                           <Badge variant={issue.priority === "High" ? "destructive" : "secondary"}>
                             {issue.priority}
                           </Badge>

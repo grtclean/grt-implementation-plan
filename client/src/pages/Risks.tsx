@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,10 +12,7 @@ export default function Risks() {
   return (
     <Layout>
       <div className="space-y-8">
-        <div className="border-b border-border pb-6">
-          <h1 className="text-3xl font-heading font-bold tracking-tight text-foreground">{t("risks.title")}</h1>
-          <p className="text-muted-foreground mt-2">{t("risks.subtitle")}</p>
-        </div>
+        <PageHeader icon={ShieldAlert} title={t("risks.title")} description={t("risks.subtitle")} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Risk Strategies */}

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatusBadge, createStatusColorMap } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,22 +119,30 @@ export default function ProjectPhaseDocuments() {
     return <XCircle className="w-4 h-4 text-red-500" />;
   };
 
-  const statusLabel = (status: string) => {
-    if (status === "uploaded") return <Badge className="bg-green-500/20 text-green-400">已上传</Badge>;
-    if (status === "expired") return <Badge className="bg-yellow-500/20 text-yellow-400">已过期</Badge>;
-    return <Badge className="bg-red-500/20 text-red-400">缺失</Badge>;
+  const docStatusColors = createStatusColorMap({
+    uploaded: "green",
+    expired: "yellow",
+    missing: "red",
+  });
+
+  const statusLabelMap: Record<string, string> = {
+    uploaded: "已上传",
+    expired: "已过期",
+    missing: "缺失",
   };
+
+  const statusLabel = (status: string) => (
+    <StatusBadge color={docStatusColors[status] ?? "gray"}>{statusLabelMap[status] ?? status}</StatusBadge>
+  );
 
   return (
     <Layout>
       <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FolderOpen className="w-6 h-6 text-primary" />
-            阶段文档管理
-          </h1>
-          <p className="text-muted-foreground mt-1">管理项目各阶段(M0-M12)必需文档，确保交付完整性</p>
-        </div>
+        <PageHeader
+          icon={FolderOpen}
+          title="阶段文档管理"
+          description="管理项目各阶段(M0-M12)必需文档，确保交付完整性"
+        />
 
         {/* Project & Stage Selection */}
         <div className="flex flex-wrap gap-4">

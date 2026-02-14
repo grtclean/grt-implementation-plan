@@ -2,6 +2,7 @@ import Layout from "@/components/Layout";
 import AISuggestionPanelWithMode from "@/components/AISuggestionPanelWithMode";
 import ProcessNotebook from "@/components/ProcessNotebook";
 import FeatureGuide from "@/components/FeatureGuide";
+import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -9,12 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
-import { 
-  Plus, FolderKanban, Users, FileText, 
+import {
+  Plus, FolderKanban, Users, FileText,
   CheckCircle2, Clock, Pause, XCircle,
   ChevronRight, Target, TrendingUp, DollarSign
 } from "lucide-react";
@@ -22,14 +22,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 // Status badge colors
-const statusColors: Record<string, string> = {
-  draft: "bg-slate-500/20 text-slate-400 border-slate-500/30",
-  planning: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  active: "bg-green-500/20 text-green-400 border-green-500/30",
-  on_hold: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  completed: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  cancelled: "bg-red-500/20 text-red-400 border-red-500/30",
-};
+const statusColors = createStatusColorMap({
+  draft: "slate",
+  planning: "blue",
+  active: "green",
+  on_hold: "yellow",
+  completed: "emerald",
+  cancelled: "red",
+});
 
 const statusIcons: Record<string, React.ReactNode> = {
   draft: <FileText className="w-3 h-3" />,
@@ -40,18 +40,18 @@ const statusIcons: Record<string, React.ReactNode> = {
   cancelled: <XCircle className="w-3 h-3" />,
 };
 
-const typeColors: Record<string, string> = {
-  standard: "bg-slate-500/20 text-slate-400 border-slate-500/30",
-  key: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  strategic: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-};
+const typeColors = createStatusColorMap({
+  standard: "slate",
+  key: "orange",
+  strategic: "purple",
+});
 
-const priorityColors: Record<string, string> = {
-  critical: "bg-red-500/20 text-red-400",
-  high: "bg-orange-500/20 text-orange-400",
-  medium: "bg-yellow-500/20 text-yellow-400",
-  low: "bg-green-500/20 text-green-400",
-};
+const priorityColors = createStatusColorMap({
+  critical: "red",
+  high: "orange",
+  medium: "yellow",
+  low: "green",
+});
 
 export default function ProjectManagement() {
   const { t } = useLanguage();
@@ -124,175 +124,122 @@ export default function ProjectManagement() {
       />
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <FolderKanban className="w-6 h-6 text-primary" />
-              {t("projects.title")}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {t("projects.desc")}
-            </p>
-          </div>
-          
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90">
-                <Plus className="w-4 h-4 mr-2" />
-                {t("projects.new")}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>{t("projects.createTitle")}</DialogTitle>
-                <DialogDescription>
-                  {t("projects.createDesc")}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">{t("projects.name")} *</Label>
-                  <Input
-                    id="name"
-                    value={newProject.name}
-                    onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                    placeholder={t("projects.namePlaceholder")}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="shortName">{t("projects.shortName")}</Label>
-                  <Input
-                    id="shortName"
-                    value={newProject.shortName}
-                    onChange={(e) => setNewProject({ ...newProject, shortName: e.target.value })}
-                    placeholder={t("projects.shortNamePlaceholder")}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label>{t("projects.type")}</Label>
-                    <Select
-                      value={newProject.type}
-                      onValueChange={(value: "standard" | "key" | "strategic") => 
-                        setNewProject({ ...newProject, type: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="standard">{t("projects.type.standard")}</SelectItem>
-                        <SelectItem value="key">{t("projects.type.key")}</SelectItem>
-                        <SelectItem value="strategic">{t("projects.type.strategic")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>{t("projects.priority")}</Label>
-                    <Select
-                      value={newProject.priority}
-                      onValueChange={(value: "critical" | "high" | "medium" | "low") => 
-                        setNewProject({ ...newProject, priority: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="critical">{t("projects.priority.critical")}</SelectItem>
-                        <SelectItem value="high">{t("projects.priority.high")}</SelectItem>
-                        <SelectItem value="medium">{t("projects.priority.medium")}</SelectItem>
-                        <SelectItem value="low">{t("projects.priority.low")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="budget">{t("projects.budget")}</Label>
-                  <Input
-                    id="budget"
-                    type="number"
-                    value={newProject.budget}
-                    onChange={(e) => setNewProject({ ...newProject, budget: e.target.value })}
-                    placeholder={t("projects.budgetPlaceholder")}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="description">{t("projects.description")}</Label>
-                  <Textarea
-                    id="description"
-                    value={newProject.description}
-                    onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                    placeholder={t("projects.descPlaceholder")}
-                    rows={3}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>{t("common.cancel")}</Button>
-                <Button onClick={handleCreateProject} disabled={createProjectMutation.isPending}>
-                  {createProjectMutation.isPending ? t("projects.creating") : t("projects.create")}
+        <PageHeader
+          icon={FolderKanban}
+          title={t("projects.title")}
+          description={t("projects.desc")}
+          actions={
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t("projects.new")}
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>{t("projects.createTitle")}</DialogTitle>
+                  <DialogDescription>
+                    {t("projects.createDesc")}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">{t("projects.name")} *</Label>
+                    <Input
+                      id="name"
+                      value={newProject.name}
+                      onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                      placeholder={t("projects.namePlaceholder")}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="shortName">{t("projects.shortName")}</Label>
+                    <Input
+                      id="shortName"
+                      value={newProject.shortName}
+                      onChange={(e) => setNewProject({ ...newProject, shortName: e.target.value })}
+                      placeholder={t("projects.shortNamePlaceholder")}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label>{t("projects.type")}</Label>
+                      <Select
+                        value={newProject.type}
+                        onValueChange={(value: "standard" | "key" | "strategic") =>
+                          setNewProject({ ...newProject, type: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">{t("projects.type.standard")}</SelectItem>
+                          <SelectItem value="key">{t("projects.type.key")}</SelectItem>
+                          <SelectItem value="strategic">{t("projects.type.strategic")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>{t("projects.priority")}</Label>
+                      <Select
+                        value={newProject.priority}
+                        onValueChange={(value: "critical" | "high" | "medium" | "low") =>
+                          setNewProject({ ...newProject, priority: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="critical">{t("projects.priority.critical")}</SelectItem>
+                          <SelectItem value="high">{t("projects.priority.high")}</SelectItem>
+                          <SelectItem value="medium">{t("projects.priority.medium")}</SelectItem>
+                          <SelectItem value="low">{t("projects.priority.low")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="budget">{t("projects.budget")}</Label>
+                    <Input
+                      id="budget"
+                      type="number"
+                      value={newProject.budget}
+                      onChange={(e) => setNewProject({ ...newProject, budget: e.target.value })}
+                      placeholder={t("projects.budgetPlaceholder")}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">{t("projects.description")}</Label>
+                    <Textarea
+                      id="description"
+                      value={newProject.description}
+                      onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                      placeholder={t("projects.descPlaceholder")}
+                      rows={3}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>{t("common.cancel")}</Button>
+                  <Button onClick={handleCreateProject} disabled={createProjectMutation.isPending}>
+                    {createProjectMutation.isPending ? t("projects.creating") : t("projects.create")}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          }
+        />
 
         {/* Statistics Cards */}
         {statistics && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-card/50 border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-sm bg-primary/10 text-primary">
-                    <FolderKanban className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t("projects.stats.total")}</p>
-                    <p className="text-2xl font-bold">{statistics.total}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card/50 border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-sm bg-green-500/10 text-green-400">
-                    <TrendingUp className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t("projects.stats.active")}</p>
-                    <p className="text-2xl font-bold">{statistics.byStatus.active}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card/50 border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-sm bg-emerald-500/10 text-emerald-400">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t("projects.stats.completed")}</p>
-                    <p className="text-2xl font-bold">{statistics.byStatus.completed}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card/50 border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-sm bg-orange-500/10 text-orange-400">
-                    <DollarSign className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t("projects.stats.totalBudget")}</p>
-                    <p className="text-2xl font-bold">{statistics.totalBudget}{t("projects.budgetUnit")}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <StatCard icon={FolderKanban} label={t("projects.stats.total")} value={statistics.total} />
+            <StatCard icon={TrendingUp} label={t("projects.stats.active")} value={statistics.byStatus.active} iconColor="text-green-400" iconBg="bg-green-500/10" />
+            <StatCard icon={CheckCircle2} label={t("projects.stats.completed")} value={statistics.byStatus.completed} iconColor="text-emerald-400" iconBg="bg-emerald-500/10" />
+            <StatCard icon={DollarSign} label={t("projects.stats.totalBudget")} value={`${statistics.totalBudget}${t("projects.budgetUnit")}`} iconColor="text-orange-400" iconBg="bg-orange-500/10" />
           </div>
         )}
 
@@ -321,15 +268,12 @@ export default function ProjectManagement() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="text-xs font-mono text-muted-foreground">{project.projectCode}</span>
-                            <Badge variant="outline" className={typeColors[project.type]}>
+                            <StatusBadge color={typeColors[project.type]}>
                               {t(`projects.type.${project.type}`)}
-                            </Badge>
-                            <Badge variant="outline" className={statusColors[project.status]}>
-                              {statusIcons[project.status]}
-                              <span className="ml-1">
-                                {t(`projects.status.${project.status}`)}
-                              </span>
-                            </Badge>
+                            </StatusBadge>
+                            <StatusBadge color={statusColors[project.status]} icon={statusIcons[project.status]}>
+                              {t(`projects.status.${project.status}`)}
+                            </StatusBadge>
                           </div>
                           <h3 className="text-lg font-semibold mb-1">{project.name}</h3>
                           {project.description && (
@@ -346,9 +290,9 @@ export default function ProjectManagement() {
                                 {project.budget}{t("projects.budgetUnit")}
                               </span>
                             )}
-                            <span className={`px-2 py-0.5 rounded text-xs ${priorityColors[project.priority]}`}>
+                            <StatusBadge color={priorityColors[project.priority]}>
                               {t(`projects.priority.${project.priority}`)}
-                            </span>
+                            </StatusBadge>
                           </div>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -385,10 +329,9 @@ export default function ProjectManagement() {
                           <span className="text-xs font-mono text-muted-foreground">{project.projectCode}</span>
                           <h3 className="font-semibold">{project.name}</h3>
                         </div>
-                        <Badge variant="outline" className={statusColors.active}>
-                          <TrendingUp className="w-3 h-3 mr-1" />
+                        <StatusBadge color={statusColors.active} icon={<TrendingUp className="w-3 h-3" />}>
                           {t("projects.status.active")}
-                        </Badge>
+                        </StatusBadge>
                       </div>
                     </CardContent>
                   </Card>
@@ -410,10 +353,9 @@ export default function ProjectManagement() {
                           <span className="text-xs font-mono text-muted-foreground">{project.projectCode}</span>
                           <h3 className="font-semibold">{project.name}</h3>
                         </div>
-                        <Badge variant="outline" className={statusColors.draft}>
-                          <FileText className="w-3 h-3 mr-1" />
+                        <StatusBadge color={statusColors.draft} icon={<FileText className="w-3 h-3" />}>
                           {t("projects.status.draft")}
-                        </Badge>
+                        </StatusBadge>
                       </div>
                     </CardContent>
                   </Card>
@@ -435,10 +377,9 @@ export default function ProjectManagement() {
                           <span className="text-xs font-mono text-muted-foreground">{project.projectCode}</span>
                           <h3 className="font-semibold">{project.name}</h3>
                         </div>
-                        <Badge variant="outline" className={statusColors.completed}>
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                        <StatusBadge color={statusColors.completed} icon={<CheckCircle2 className="w-3 h-3" />}>
                           {t("projects.status.completed")}
-                        </Badge>
+                        </StatusBadge>
                       </div>
                     </CardContent>
                   </Card>

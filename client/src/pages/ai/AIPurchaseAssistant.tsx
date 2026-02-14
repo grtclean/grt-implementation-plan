@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,13 +84,7 @@ export default function AIPurchaseAssistant() {
   return (
     <Layout>
       <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ShoppingCart className="w-6 h-6 text-primary" />
-            AI采购助手
-          </h1>
-          <p className="text-muted-foreground mt-1">智能供应商推荐、价格对比与采购策略优化</p>
-        </div>
+        <PageHeader icon={ShoppingCart} title="AI采购助手" description="智能供应商推荐、价格对比与采购策略优化" />
 
         <Tabs defaultValue="suppliers" className="space-y-4">
           <TabsList>

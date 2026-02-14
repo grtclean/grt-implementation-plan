@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatusBadge, createStatusColorMap } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,12 +33,19 @@ interface SOPRecord {
 const CATEGORIES: SOPCategory[] = ["清洗工艺", "质量检测", "设备维护", "安全操作", "客户验收", "包装运输"];
 const EQUIPMENT_MODELS = ["USC-3000", "USC-2000", "SPR-5000", "SPR-3000", "ASC-5000"];
 
-const STATUS_CONFIG: Record<SOPStatus, { label: string; color: string; icon: typeof CheckCircle }> = {
-  draft: { label: "草稿", color: "bg-gray-500/20 text-gray-400", icon: Edit },
-  review: { label: "审核中", color: "bg-yellow-500/20 text-yellow-400", icon: Clock },
-  approved: { label: "已批准", color: "bg-green-500/20 text-green-400", icon: CheckCircle },
-  archived: { label: "已归档", color: "bg-slate-500/20 text-slate-400", icon: Archive },
+const STATUS_CONFIG: Record<SOPStatus, { label: string; icon: typeof CheckCircle }> = {
+  draft: { label: "草稿", icon: Edit },
+  review: { label: "审核中", icon: Clock },
+  approved: { label: "已批准", icon: CheckCircle },
+  archived: { label: "已归档", icon: Archive },
 };
+
+const statusColors = createStatusColorMap({
+  draft: "slate",
+  review: "yellow",
+  approved: "green",
+  archived: "slate",
+});
 
 const CATEGORY_COLORS: Record<string, string> = {
   "清洗工艺": "bg-blue-500/20 text-blue-400",
@@ -96,18 +104,16 @@ export default function SOPLibrary() {
   return (
     <Layout>
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <BookOpen className="w-6 h-6 text-primary" />
-              SOP模板库
-            </h1>
-            <p className="text-muted-foreground mt-1">标准操作流程模板管理，覆盖清洗设备全生命周期</p>
-          </div>
-          <Button onClick={() => setShowCreateDialog(!showCreateDialog)}>
-            <Plus className="w-4 h-4 mr-2" />创建SOP
-          </Button>
-        </div>
+        <PageHeader
+          icon={BookOpen}
+          title="SOP模板库"
+          description="标准操作流程模板管理，覆盖清洗设备全生命周期"
+          actions={
+            <Button onClick={() => setShowCreateDialog(!showCreateDialog)}>
+              <Plus className="w-4 h-4 mr-2" />创建SOP
+            </Button>
+          }
+        />
 
         <Tabs defaultValue="list" className="space-y-4">
           <TabsList>
@@ -157,7 +163,7 @@ export default function SOPLibrary() {
                             <span className="font-mono text-sm text-muted-foreground">{sop.code}</span>
                             <CardTitle className="text-base">{sop.title}</CardTitle>
                             <Badge className={CATEGORY_COLORS[sop.category]}>{sop.category}</Badge>
-                            <Badge className={statusCfg.color}>{statusCfg.label}</Badge>
+                            <StatusBadge color={statusColors[sop.status]}>{statusCfg.label}</StatusBadge>
                             <Badge variant="outline">v{sop.version}</Badge>
                           </div>
                           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">

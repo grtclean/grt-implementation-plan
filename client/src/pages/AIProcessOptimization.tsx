@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import FeatureGuide from "@/components/FeatureGuide";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +29,6 @@ import {
   Settings,
   Zap,
   Lightbulb,
-  ThumbsUp,
   Eye,
   Play,
   PauseCircle,
@@ -444,99 +444,61 @@ export default function AIProcessOptimization() {
 
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-primary" />
-              AI 流程优化建议中心
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              基于 AI 分析的智能流程优化建议，持续提升运营效率
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline">
-              <Settings className="w-4 h-4 mr-2" />
-              优化设置
-            </Button>
-            <Button className="bg-primary hover:bg-primary/90">
-              <Zap className="w-4 h-4 mr-2" />
-              生成新建议
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Sparkles}
+          title="AI 流程优化建议中心"
+          description="基于 AI 分析的智能流程优化建议，持续提升运营效率"
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline">
+                <Settings className="w-4 h-4 mr-2" />
+                优化设置
+              </Button>
+              <Button className="bg-primary hover:bg-primary/90">
+                <Zap className="w-4 h-4 mr-2" />
+                生成新建议
+              </Button>
+            </div>
+          }
+        />
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">总建议数</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-blue-500/10">
-                  <Lightbulb className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">待处理</p>
-                  <p className="text-2xl font-bold text-yellow-400">{stats.pending}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-yellow-500/10">
-                  <AlertTriangle className="w-6 h-6 text-yellow-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">执行中</p>
-                  <p className="text-2xl font-bold text-blue-400">{stats.inProgress}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-blue-500/10">
-                  <Play className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">已完成</p>
-                  <p className="text-2xl font-bold text-green-400">{stats.completed}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-green-500/10">
-                  <CheckCircle2 className="w-6 h-6 text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">平均提升</p>
-                  <p className="text-2xl font-bold text-purple-400">+{stats.avgImpact}%</p>
-                </div>
-                <div className="p-3 rounded-lg bg-purple-500/10">
-                  <TrendingUp className="w-6 h-6 text-purple-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            icon={Lightbulb}
+            label="总建议数"
+            value={stats.total}
+            iconColor="text-blue-400"
+            iconBg="bg-blue-500/10"
+          />
+          <StatCard
+            icon={AlertTriangle}
+            label="待处理"
+            value={stats.pending}
+            iconColor="text-yellow-400"
+            iconBg="bg-yellow-500/10"
+          />
+          <StatCard
+            icon={Play}
+            label="执行中"
+            value={stats.inProgress}
+            iconColor="text-blue-400"
+            iconBg="bg-blue-500/10"
+          />
+          <StatCard
+            icon={CheckCircle2}
+            label="已完成"
+            value={stats.completed}
+            iconColor="text-green-400"
+            iconBg="bg-green-500/10"
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="平均提升"
+            value={`+${stats.avgImpact}%`}
+            iconColor="text-purple-400"
+            iconBg="bg-purple-500/10"
+          />
         </div>
 
         {/* Main Tabs */}

@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatusBadge, createStatusColorMap } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -290,56 +291,59 @@ export default function AITriggerSettings() {
     );
   };
 
+  const executionStatusColors = createStatusColorMap({
+    Success: "green",
+    Failed: "red",
+    Running: "blue",
+  });
+
+  const executionStatusLabels: Record<string, string> = {
+    Success: "成功",
+    Failed: "失败",
+    Running: "执行中",
+  };
+
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Success":
-        return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">成功</Badge>;
-      case "Failed":
-        return <Badge className="bg-red-500/10 text-red-500 border-red-500/20">失败</Badge>;
-      case "Running":
-        return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">执行中</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+    const color = executionStatusColors[status];
+    if (color) {
+      return <StatusBadge color={color}>{executionStatusLabels[status]}</StatusBadge>;
     }
+    return <Badge variant="outline">{status}</Badge>;
   };
 
   return (
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <Zap className="w-6 h-6 text-primary" />
-              AI Agent触发器配置
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              配置AI Agent自动触发条件，实现项目风险分析、Gate检查、现场诊断的智能化
-            </p>
-          </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                新增触发器
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>新增AI触发器</DialogTitle>
-                <DialogDescription>
-                  配置AI Agent的自动触发条件和执行参数
-                </DialogDescription>
-              </DialogHeader>
-              <TriggerForm 
-                formData={formData} 
-                setFormData={setFormData}
-                onSubmit={handleCreate}
-                isLoading={createMutation.isPending}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+        <PageHeader
+          icon={Zap}
+          title="AI Agent触发器配置"
+          description="配置AI Agent自动触发条件，实现项目风险分析、Gate检查、现场诊断的智能化"
+          actions={
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  新增触发器
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>新增AI触发器</DialogTitle>
+                  <DialogDescription>
+                    配置AI Agent的自动触发条件和执行参数
+                  </DialogDescription>
+                </DialogHeader>
+                <TriggerForm
+                  formData={formData}
+                  setFormData={setFormData}
+                  onSubmit={handleCreate}
+                  isLoading={createMutation.isPending}
+                />
+              </DialogContent>
+            </Dialog>
+          }
+        />
 
         {/* 工业清洗设备行业提示 */}
         <Card className="bg-primary/5 border-primary/20">

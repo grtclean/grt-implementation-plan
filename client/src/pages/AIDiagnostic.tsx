@@ -11,6 +11,7 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -231,18 +232,17 @@ export default function AIDiagnostic() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">AI智能诊断</h1>
-            <p className="text-muted-foreground">
-              基于Gemini AI的设备故障诊断与解决方案推荐系统
-            </p>
-          </div>
-          <Badge variant="outline" className="flex items-center gap-1">
-            <Cpu className="h-3 w-3" />
-            Gemini AI 驱动
-          </Badge>
-        </div>
+        <PageHeader
+          icon={Cpu}
+          title="AI智能诊断"
+          description="基于Gemini AI的设备故障诊断与解决方案推荐系统"
+          actions={
+            <Badge variant="outline" className="flex items-center gap-1">
+              <Cpu className="h-3 w-3" />
+              Gemini AI 驱动
+            </Badge>
+          }
+        />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">

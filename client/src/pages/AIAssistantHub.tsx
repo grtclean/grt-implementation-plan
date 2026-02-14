@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -735,27 +736,23 @@ export default function AIAssistantHub() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Brain className="w-7 h-7 text-primary" />
-              AI 助手中心
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              智能助手为您提供专业的业务支持和个性化服务
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <BookOpen className="w-4 h-4 mr-2" />
-              使用指南
-            </Button>
-            <Button variant="outline" size="sm">
-              <Settings className="w-4 h-4 mr-2" />
-              设置
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Brain}
+          title="AI 助手中心"
+          description="智能助手为您提供专业的业务支持和个性化服务"
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <BookOpen className="w-4 h-4 mr-2" />
+                使用指南
+              </Button>
+              <Button variant="outline" size="sm">
+                <Settings className="w-4 h-4 mr-2" />
+                设置
+              </Button>
+            </div>
+          }
+        />
 
         {/* 助手选择卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">

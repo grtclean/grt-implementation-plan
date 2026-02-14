@@ -4,6 +4,7 @@
  */
 
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,8 +14,6 @@ import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import {
   BarChart3,
-  TrendingUp,
-  TrendingDown,
   Target,
   Clock,
   ThumbsUp,
@@ -82,40 +81,36 @@ export default function AIEffectivenessTracking() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <BarChart3 className="w-6 h-6 text-primary" />
-              AI建议效果追踪
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              监控AI助手的采纳率和执行效果，持续优化AI表现
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                statsQuery.refetch();
-                logsQuery.refetch();
-                integrationStatsQuery.refetch();
-              }}
-              disabled={statsQuery.isLoading}
-            >
-              {statsQuery.isLoading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              刷新数据
-            </Button>
-            <Button variant="outline" size="sm">
-              <Download className="w-4 h-4 mr-2" />
-              导出报告
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={BarChart3}
+          title="AI建议效果追踪"
+          description="监控AI助手的采纳率和执行效果，持续优化AI表现"
+          actions={
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  statsQuery.refetch();
+                  logsQuery.refetch();
+                  integrationStatsQuery.refetch();
+                }}
+                disabled={statsQuery.isLoading}
+              >
+                {statsQuery.isLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                刷新数据
+              </Button>
+              <Button variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                导出报告
+              </Button>
+            </div>
+          }
+        />
 
         {/* 筛选器 */}
         <div className="flex items-center gap-4">
@@ -152,80 +147,35 @@ export default function AIEffectivenessTracking() {
 
         {/* 概览卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">总调用次数</p>
-                  <p className="text-3xl font-bold mt-1">{totalCalls}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-blue-500/10">
-                  <Brain className="w-6 h-6 text-blue-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">整体采纳率</p>
-                  <p className="text-3xl font-bold mt-1">
-                    {(overallAdoptionRate * 100).toFixed(1)}%
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-green-500/10">
-                  <ThumbsUp className="w-6 h-6 text-green-500" />
-                </div>
-              </div>
-              <div className="mt-2 flex items-center gap-1 text-xs">
-                {overallAdoptionRate >= 0.7 ? (
-                  <>
-                    <TrendingUp className="w-3 h-3 text-green-500" />
-                    <span className="text-green-500">表现良好</span>
-                  </>
-                ) : (
-                  <>
-                    <TrendingDown className="w-3 h-3 text-orange-500" />
-                    <span className="text-orange-500">需要优化</span>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">平均响应时间</p>
-                  <p className="text-3xl font-bold mt-1">
-                    {(avgResponseTime / 1000).toFixed(1)}s
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-purple-500/10">
-                  <Clock className="w-6 h-6 text-purple-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">活跃员工DA</p>
-                  <p className="text-3xl font-bold mt-1">
-                    {(integrationStats as any)?.totalEmployeeDAs || 0}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-orange-500/10">
-                  <Target className="w-6 h-6 text-orange-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            icon={Brain}
+            label="总调用次数"
+            value={totalCalls}
+            iconColor="text-blue-500"
+            iconBg="bg-blue-500/10"
+          />
+          <StatCard
+            icon={ThumbsUp}
+            label="整体采纳率"
+            value={`${(overallAdoptionRate * 100).toFixed(1)}%`}
+            iconColor="text-green-500"
+            iconBg="bg-green-500/10"
+            subtitle={overallAdoptionRate >= 0.7 ? "表现良好" : "需要优化"}
+          />
+          <StatCard
+            icon={Clock}
+            label="平均响应时间"
+            value={`${(avgResponseTime / 1000).toFixed(1)}s`}
+            iconColor="text-purple-500"
+            iconBg="bg-purple-500/10"
+          />
+          <StatCard
+            icon={Target}
+            label="活跃员工DA"
+            value={(integrationStats as any)?.totalEmployeeDAs || 0}
+            iconColor="text-orange-500"
+            iconBg="bg-orange-500/10"
+          />
         </div>
 
         {/* 执行模式对比 */}

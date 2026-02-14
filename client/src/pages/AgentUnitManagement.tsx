@@ -6,11 +6,11 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,13 +18,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { 
-  QrCode, 
-  Plus, 
-  Search, 
-  RefreshCw, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  QrCode,
+  Plus,
+  Search,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
   Clock,
   Camera,
   Cpu,
@@ -35,11 +35,18 @@ import {
 
 // 状态配置
 const STATUS_CONFIG = {
-  pending: { label: "待装配", color: "bg-gray-500", icon: Clock },
-  calibrating: { label: "标定中", color: "bg-blue-500", icon: Activity },
-  passed: { label: "合格", color: "bg-green-500", icon: CheckCircle2 },
-  rework: { label: "需返工", color: "bg-red-500", icon: XCircle },
+  pending: { label: "待装配", icon: Clock },
+  calibrating: { label: "标定中", icon: Activity },
+  passed: { label: "合格", icon: CheckCircle2 },
+  rework: { label: "需返工", icon: XCircle },
 };
+
+const statusColors = createStatusColorMap({
+  pending: "gray",
+  calibrating: "blue",
+  passed: "green",
+  rework: "red",
+});
 
 export default function AgentUnitManagement() {
   const { user } = useAuth();
@@ -183,107 +190,81 @@ export default function AgentUnitManagement() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Cpu className="w-8 h-8 text-primary" />
-              GRT-Atom 智能体单体管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              SN码扫描 · 状态追踪 · 标定数据管理 · 自动判定工作流
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsScanMode(!isScanMode)}>
-              <QrCode className="w-4 h-4 mr-2" />
-              {isScanMode ? "退出扫描" : "扫描模式"}
-            </Button>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  新建单体
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>新建智能体单体</DialogTitle>
-                  <DialogDescription>录入新的智能体单体信息</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label>SN码 *</Label>
-                    <Input 
-                      placeholder="扫描或输入SN码..."
-                      value={newUnit.serialNumber}
-                      onChange={(e) => setNewUnit({ ...newUnit, serialNumber: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>设备型号</Label>
-                    <Input 
-                      placeholder="如: GRT-UC-3000"
-                      value={newUnit.equipmentModel}
-                      onChange={(e) => setNewUnit({ ...newUnit, equipmentModel: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>批次号</Label>
-                    <Input 
-                      placeholder="如: 2026-01-001"
-                      value={newUnit.batchNumber}
-                      onChange={(e) => setNewUnit({ ...newUnit, batchNumber: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>备注</Label>
-                    <Textarea 
-                      placeholder="备注信息..."
-                      value={newUnit.notes}
-                      onChange={(e) => setNewUnit({ ...newUnit, notes: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>取消</Button>
-                  <Button onClick={handleCreate} disabled={createMutation.isPending}>
-                    {createMutation.isPending ? "创建中..." : "创建"}
+        <PageHeader
+          icon={Cpu}
+          title="GRT-Atom 智能体单体管理"
+          description="SN码扫描 · 状态追踪 · 标定数据管理 · 自动判定工作流"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setIsScanMode(!isScanMode)}>
+                <QrCode className="w-4 h-4 mr-2" />
+                {isScanMode ? "退出扫描" : "扫描模式"}
+              </Button>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    新建单体
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>新建智能体单体</DialogTitle>
+                    <DialogDescription>录入新的智能体单体信息</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>SN码 *</Label>
+                      <Input
+                        placeholder="扫描或输入SN码..."
+                        value={newUnit.serialNumber}
+                        onChange={(e) => setNewUnit({ ...newUnit, serialNumber: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>设备型号</Label>
+                      <Input
+                        placeholder="如: GRT-UC-3000"
+                        value={newUnit.equipmentModel}
+                        onChange={(e) => setNewUnit({ ...newUnit, equipmentModel: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>批次号</Label>
+                      <Input
+                        placeholder="如: 2026-01-001"
+                        value={newUnit.batchNumber}
+                        onChange={(e) => setNewUnit({ ...newUnit, batchNumber: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>备注</Label>
+                      <Textarea
+                        placeholder="备注信息..."
+                        value={newUnit.notes}
+                        onChange={(e) => setNewUnit({ ...newUnit, notes: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>取消</Button>
+                    <Button onClick={handleCreate} disabled={createMutation.isPending}>
+                      {createMutation.isPending ? "创建中..." : "创建"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          }
+        />
         
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">总数</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                </div>
-                <Cpu className="w-8 h-8 text-primary opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-          {Object.entries(STATUS_CONFIG).map(([key, config]) => {
-            const Icon = config.icon;
-            return (
-              <Card key={key}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{config.label}</p>
-                      <p className="text-2xl font-bold">{stats.byStatus[key as keyof typeof stats.byStatus] || 0}</p>
-                    </div>
-                    <Icon className={`w-8 h-8 opacity-50 ${key === 'passed' ? 'text-green-500' : key === 'rework' ? 'text-red-500' : key === 'calibrating' ? 'text-blue-500' : 'text-gray-500'}`} />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          <StatCard icon={Cpu} label="总数" value={stats.total} />
+          <StatCard icon={Clock} label="待装配" value={stats.byStatus.pending || 0} iconColor="text-gray-600" iconBg="bg-gray-100" />
+          <StatCard icon={Activity} label="标定中" value={stats.byStatus.calibrating || 0} iconColor="text-blue-600" iconBg="bg-blue-100" />
+          <StatCard icon={CheckCircle2} label="合格" value={stats.byStatus.passed || 0} iconColor="text-green-600" iconBg="bg-green-100" />
+          <StatCard icon={XCircle} label="需返工" value={stats.byStatus.rework || 0} iconColor="text-red-600" iconBg="bg-red-100" />
         </div>
         
         {/* 扫描模式 */}
@@ -365,10 +346,12 @@ export default function AgentUnitManagement() {
                         <TableCell>{unit.equipmentModel || "-"}</TableCell>
                         <TableCell>{unit.batchNumber || "-"}</TableCell>
                         <TableCell>
-                          <Badge className={`${statusConfig?.color} text-white`}>
-                            <StatusIcon className="w-3 h-3 mr-1" />
+                          <StatusBadge
+                            color={statusColors[unit.status as keyof typeof statusColors] || "gray"}
+                            icon={<StatusIcon className="w-3 h-3" />}
+                          >
                             {statusConfig?.label}
-                          </Badge>
+                          </StatusBadge>
                         </TableCell>
                         <TableCell>{unit.calibrationDate ? new Date(unit.calibrationDate).toLocaleDateString() : "-"}</TableCell>
                         <TableCell>
@@ -415,9 +398,9 @@ export default function AgentUnitManagement() {
                         </CardTitle>
                         <CardDescription>{selectedUnit.equipmentModel || "未指定型号"}</CardDescription>
                       </div>
-                      <Badge className={`${STATUS_CONFIG[selectedUnit.status as keyof typeof STATUS_CONFIG]?.color} text-white text-lg px-4 py-1`}>
+                      <StatusBadge color={statusColors[selectedUnit.status as keyof typeof statusColors] || "gray"}>
                         {STATUS_CONFIG[selectedUnit.status as keyof typeof STATUS_CONFIG]?.label}
-                      </Badge>
+                      </StatusBadge>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -603,9 +586,9 @@ export default function AgentUnitManagement() {
                           {(selectedUnit.calibrationResult as any).checkResults?.map((result: any, index: number) => (
                             <div key={index} className="p-3 rounded-lg border">
                               <p className="text-sm font-medium">{result.checkType.replace(/_/g, " ")}</p>
-                              <Badge className={result.result === "pass" ? "bg-green-500" : result.result === "warning" ? "bg-yellow-500" : "bg-red-500"}>
+                              <StatusBadge color={result.result === "pass" ? "green" : result.result === "warning" ? "yellow" : "red"}>
                                 {result.result === "pass" ? "通过" : result.result === "warning" ? "警告" : "失败"}
-                              </Badge>
+                              </StatusBadge>
                             </div>
                           ))}
                         </div>

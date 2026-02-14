@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -67,15 +68,16 @@ export default function Roadmap() {
   return (
     <Layout>
       <div className="space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border pb-6">
-          <div>
-            <h1 className="text-3xl font-heading font-bold tracking-tight text-foreground">{t("roadmap.title")}</h1>
-            <p className="text-muted-foreground mt-2">{t("roadmap.subtitle")}</p>
-          </div>
-          <Badge variant="outline" className="px-4 py-1.5 text-sm font-mono border-primary text-primary bg-primary/5">
-            {t("roadmap.duration")}
-          </Badge>
-        </div>
+        <PageHeader
+          icon={Rocket}
+          title={t("roadmap.title")}
+          description={t("roadmap.subtitle")}
+          actions={
+            <Badge variant="outline" className="px-4 py-1.5 text-sm font-mono border-primary text-primary bg-primary/5">
+              {t("roadmap.duration")}
+            </Badge>
+          }
+        />
 
         <div className="relative">
           {/* Timeline Background Image */}
