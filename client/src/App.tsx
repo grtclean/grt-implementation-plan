@@ -172,6 +172,7 @@ import EmployeeIntelligentPerformance from "./pages/EmployeeIntelligentPerforman
 import UserProfileSettings from "./pages/UserProfileSettings";
 import UserStatusManagement from "./pages/UserStatusManagement";
 import SmartMeeting from "./pages/SmartMeeting";
+import MeetingExecutive from "./pages/MeetingExecutive";
 import AdminDashboard from "./pages/AdminDashboard";
 import MonitoringDashboard from "./pages/MonitoringDashboard";
 import ErrorLogViewer from "./pages/ErrorLogViewer";
@@ -291,6 +292,7 @@ function Router() {
       <Route path={"/tools"} component={Tools} />
       <Route path={"/risks"} component={Risks} />
       <Route path={"/smart-meeting"} component={SmartMeeting} />
+      <Route path={"/meeting-executive"} component={MeetingExecutive} />
       <Route path={"/admin-dashboard"} component={AdminDashboard} />
       <Route path={"/monitoring"} component={MonitoringDashboard} />
       <Route path={"/jiandaoyun"} component={JiandaoyunAnalysis} />

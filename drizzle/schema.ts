@@ -10045,3 +10045,39 @@ export const productConfigurations = pgTable("product_configurations", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ============================================
+// G-IME: Meeting Contributions - 参会者贡献分析
+// ============================================
+
+export const meetingContributions = pgTable("meeting_contributions", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  employeeId: varchar("employee_id", { length: 36 }).notNull(),
+  employeeName: varchar("employee_name", { length: 200 }),
+  speakingTime: integer("speaking_time"),
+  interventionCount: integer("intervention_count"),
+  decisionCount: integer("decision_count"),
+  actionItemCount: integer("action_item_count"),
+  questionCount: integer("question_count"),
+  insightCount: integer("insight_count"),
+  contributionScore: real("contribution_score"),
+  aiAnalysis: text("ai_analysis"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================
+// G-IME: Meeting Effectiveness Scores - 会议效能评分
+// ============================================
+
+export const meetingEffectivenessScores = pgTable("meeting_effectiveness_scores", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  objectiveAchievement: real("objective_achievement"),
+  participationBalance: real("participation_balance"),
+  decisionClarity: real("decision_clarity"),
+  actionableOutcomes: real("actionable_outcomes"),
+  overallScore: real("overall_score"),
+  aiNarrative: text("ai_narrative"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
