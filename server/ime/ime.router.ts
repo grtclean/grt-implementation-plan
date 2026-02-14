@@ -942,4 +942,99 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       return imeService.getMeetingCultureScore(input?.department, input?.period);
     }),
+
+  // Phase 10: Integration Hub & System Settings
+
+  createIntegration: protectedProcedure
+    .input(z.object({
+      name: z.string(),
+      integrationType: z.string(),
+      provider: z.string(),
+      config: z.any().optional(),
+      syncDirection: z.string().optional(),
+      syncFrequency: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      return imeService.createIntegration({ ...input, createdBy: (ctx as any).user?.openId || "unknown" });
+    }),
+
+  listIntegrations: protectedProcedure
+    .query(async () => {
+      const db = await requireDb();
+      const result = await db.execute(sql.raw(`SELECT * FROM ime_integrations ORDER BY created_at DESC`));
+      return result.rows;
+    }),
+
+  updateIntegration: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      config: z.any().optional(),
+      syncDirection: z.string().optional(),
+      syncFrequency: z.string().optional(),
+      status: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const sets: string[] = [];
+      if (input.name) sets.push(`name = '${input.name.replace(/'/g, "''")}'`);
+      if (input.config !== undefined) sets.push(`config = '${JSON.stringify(input.config).replace(/'/g, "''")}'`);
+      if (input.syncDirection) sets.push(`sync_direction = '${input.syncDirection}'`);
+      if (input.syncFrequency) sets.push(`sync_frequency = '${input.syncFrequency}'`);
+      if (input.status) sets.push(`status = '${input.status}'`);
+      sets.push("updated_at = NOW()");
+      await db.execute(sql.raw(`UPDATE ime_integrations SET ${sets.join(", ")} WHERE id = ${input.id}`));
+      return { success: true };
+    }),
+
+  deleteIntegration: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.execute(sql.raw(`DELETE FROM ime_integrations WHERE id = ${input.id}`));
+      return { success: true };
+    }),
+
+  syncIntegration: protectedProcedure
+    .input(z.object({ integrationId: z.number() }))
+    .mutation(async ({ input }) => {
+      return imeService.syncIntegration(input.integrationId);
+    }),
+
+  integrationLogs: protectedProcedure
+    .input(z.object({ integrationId: z.number().optional(), limit: z.number().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const where = input?.integrationId ? `WHERE integration_id = ${input.integrationId}` : "";
+      const limit = input?.limit || 50;
+      const result = await db.execute(sql.raw(
+        `SELECT * FROM ime_integration_logs ${where} ORDER BY executed_at DESC LIMIT ${limit}`
+      ));
+      return result.rows;
+    }),
+
+  updateSetting: protectedProcedure
+    .input(z.object({
+      key: z.string(),
+      value: z.string(),
+      type: z.string().optional(),
+      category: z.string().optional(),
+      label: z.string().optional(),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      return imeService.updateSystemSetting(input.key, input.value, {
+        type: input.type,
+        category: input.category,
+        label: input.label,
+        description: input.description,
+        updatedBy: (ctx as any).user?.openId || "unknown",
+      });
+    }),
+
+  systemSettings: protectedProcedure
+    .input(z.object({ category: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getSystemSettings(input?.category);
+    }),
 });
