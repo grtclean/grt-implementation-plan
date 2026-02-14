@@ -85,6 +85,7 @@ import {
   RefreshCw,
   Warehouse,
   Boxes,
+  CheckSquare,
   type LucideIcon,
 } from "lucide-react";
 import type { UserRole } from "@/contexts/UserProfileContext";
@@ -204,6 +205,7 @@ export const menuConfig: MenuGroup[] = [
     items: [
       { name: "项目列表", nameEn: "Projects", path: "/projects", icon: FolderKanban, requiresBU: true },
       { name: "研发验证中心", nameEn: "R&D Verification", path: "/rd-verification", icon: Shield, isNew: true },
+      { name: "门径管理", nameEn: "Stage Gate", path: "/stage-gate", icon: CheckSquare, isNew: true },
       { name: "M1启动会", nameEn: "M1 Kickoff", path: "/m1-kickoff", icon: Sparkles },
       { name: "M7-M9交付", nameEn: "M7-M9 Delivery", path: "/m7-m9-delivery", icon: Clock },
       { name: "项目看板", nameEn: "Kanban Board", path: "/tasks", icon: Kanban },

@@ -492,6 +492,27 @@ export const helpContentMap: Record<string, PageHelpContent> = {
       { question: "如何提交问题反馈？", answer: "在侧边栏底部点击「反馈」按钮提交问题。" },
     ],
   },
+
+  // ========== 门径管理 ==========
+  "/stage-gate": {
+    title: "门径管理",
+    description: "M0-M12 阶段门禁检查与生产拉动信号",
+    overview: "门径管理是项目全生命周期阶段门禁检查系统，覆盖M0（商机识别）到M12（项目结项）共13个阶段。每个阶段设有检查清单（含一票否决项），支持自动验证对接ERP/PLM系统，以及生产拉动信号管理（JIT/JIS）。",
+    steps: [
+      { title: "选择项目", description: "在页面右上角的项目选择器中选择要管理的项目" },
+      { title: "查看总览", description: "总览Tab展示M0-M12流水线，点击阶段查看通过性检查结果" },
+      { title: "管理检查项", description: "检查项Tab可筛选、新增、更新检查项状态，支持自动验证" },
+      { title: "导入模板", description: "在总览Tab点击「导入标准模板」为项目快速初始化M3-M12检查项" },
+      { title: "管理拉动信号", description: "拉动信号Tab可创建、发送和确认生产拉动信号" },
+      { title: "查看分析", description: "分析Tab展示各阶段通过率、信号分布和验证方式统计" },
+    ],
+    faq: [
+      { question: "什么是一票否决项？", answer: "一票否决项是标记为强制必须通过的检查项。只要有任何一个一票否决项未通过，该阶段门径就不允许通过。" },
+      { question: "自动验证是如何工作的？", answer: "配置了自动验证源（如PLM_Model_Status、ERP_BOM_Consistency）的检查项可以自动对接外部系统验证。点击「自动验证」按钮即可触发。" },
+      { question: "如何导入模板检查项？", answer: "在总览Tab点击「导入标准模板」按钮，系统会为项目批量创建M3-M12的标准检查项模板。" },
+      { question: "拉动信号的用途是什么？", answer: "拉动信号用于门径通过后自动触发下游生产设备的JIT/JIS拉动动作，如通知AAS设备开始加工准备。" },
+    ],
+  },
 };
 
 /**

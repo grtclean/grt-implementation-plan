@@ -55,6 +55,7 @@ import ComplianceRulesConfig from "./pages/ComplianceRulesConfig";
 import ChangeManagement from "./pages/ChangeManagement";
 import HRLifecycle from "./pages/HRLifecycle";
 const RDVerificationCenter = React.lazy(() => import("./pages/RDVerificationCenter"));
+const StageGateDashboard = React.lazy(() => import("./pages/StageGateDashboard"));
 import Community from "./pages/Community";
 import LeadManagement from "./pages/LeadManagement";
 import SchedulerManagement from "./pages/SchedulerManagement";
@@ -439,6 +440,10 @@ function Router() {
       {/* 研发验证中心 */}
       <Route path={"/rd-verification"}>
         <ProtectedRoute component={RDVerificationCenter} />
+      </Route>
+      {/* 门径管理 */}
+      <Route path={"/stage-gate"}>
+        <ProtectedRoute component={StageGateDashboard} />
       </Route>
       <Route path={"/community"}>
         <ProtectedRoute component={Community} />
