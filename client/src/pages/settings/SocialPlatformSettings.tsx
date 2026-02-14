@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import Layout from '@/components/Layout';
+import { PageHeader } from "@/components/grt";
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -639,18 +640,11 @@ export default function SocialPlatformSettings() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Settings className="w-6 h-6" />
-              社群平台配置
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              配置企业微信、钉钉、飞书等平台的连接，实现社群消息同步和自动回复
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Settings}
+          title="社群平台配置"
+          description="配置企业微信、钉钉、飞书等平台的连接，实现社群消息同步和自动回复"
+        />
 
         {/* 平台状态概览 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

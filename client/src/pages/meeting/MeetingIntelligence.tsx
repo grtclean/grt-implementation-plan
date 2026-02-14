@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { ChannelSidebar } from "@/components/meeting/ChannelSidebar";
 import { InsightPanel } from "@/components/meeting/InsightPanel";
 import ExportHistory from "@/components/meeting/ExportHistory";
@@ -180,33 +181,31 @@ export default function MeetingIntelligence() {
             <>
               {/* Channel Header */}
               <div className="p-4 border-b border-border/50 bg-[#0B1120]">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h1 className="text-xl font-bold flex items-center gap-2">
-                      <span className="text-primary">#</span>
-                      {selectedChannel.name}
+                <PageHeader
+                  icon={Brain}
+                  title={`# ${selectedChannel.name}${selectedChannel.is_confidential ? '' : ''}`}
+                  description={`${meetings?.length || 0} 个会议记录`}
+                  actions={
+                    <>
                       {selectedChannel.is_confidential && (
                         <Badge variant="outline" className="text-rose-400 border-rose-500/50">
                           机密
                         </Badge>
                       )}
-                    </h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {meetings?.length || 0} 个会议记录
-                    </p>
-                  </div>
-                  <Button className="gap-2" onClick={() => setIsCreateMeetingOpen(true)}>
-                    <Plus className="w-4 h-4" />
-                    新建会议
-                  </Button>
-                  <CreateMeetingDialog
-                    open={isCreateMeetingOpen}
-                    onOpenChange={setIsCreateMeetingOpen}
-                    channelName={selectedChannel.name}
-                    onCreateMeeting={handleCreateMeeting}
-                    isCreating={createMeeting.isPending}
-                  />
-                </div>
+                      <Button className="gap-2" onClick={() => setIsCreateMeetingOpen(true)}>
+                        <Plus className="w-4 h-4" />
+                        新建会议
+                      </Button>
+                      <CreateMeetingDialog
+                        open={isCreateMeetingOpen}
+                        onOpenChange={setIsCreateMeetingOpen}
+                        channelName={selectedChannel.name}
+                        onCreateMeeting={handleCreateMeeting}
+                        isCreating={createMeeting.isPending}
+                      />
+                    </>
+                  }
+                />
               </div>
 
               {/* Content Area with Tabs */}

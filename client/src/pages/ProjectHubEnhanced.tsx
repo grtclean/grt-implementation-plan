@@ -7,10 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
+import {
   FolderKanban, FileText, GitBranch, BarChart3, Bell,
   Calendar, ChevronRight, Clock, AlertTriangle
 } from "lucide-react";
+import { PageHeader } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 // 项目模板库
 const projectTemplates = [
@@ -70,16 +72,13 @@ export default function ProjectHubEnhanced() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FolderKanban className="w-6 h-6 text-primary" />
-            项目中心 (增强版)
-          </h1>
-          <p className="text-muted-foreground mt-1">模板库管理、变更追踪、甘特图依赖、里程碑提醒</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={FolderKanban}
+        title="项目中心 (增强版)"
+        description="模板库管理、变更追踪、甘特图依赖、里程碑提醒"
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-5 bg-card border border-border">
@@ -276,5 +275,6 @@ export default function ProjectHubEnhanced() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

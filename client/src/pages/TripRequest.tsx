@@ -6,6 +6,8 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -297,68 +299,27 @@ export default function TripRequest() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <Layout>
+    <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Plane className="w-6 h-6 text-primary" />
-            出差申请管理
-          </h1>
-          <p className="text-muted-foreground mt-1">管理您的出差申请、行程安排和审批状态</p>
-        </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          新建出差申请
-        </Button>
-      </div>
+      <PageHeader
+        icon={Plane}
+        title="出差申请管理"
+        description="管理您的出差申请、行程安排和审批状态"
+        actions={
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            新建出差申请
+          </Button>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">总申请数</p>
-                <p className="text-2xl font-bold">{(statistics as any)?.total || 0}</p>
-              </div>
-              <FileText className="w-8 h-8 text-primary opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">待审批</p>
-                <p className="text-2xl font-bold text-yellow-500">{(statistics as any)?.byStatus?.pending || 0}</p>
-              </div>
-              <Clock className="w-8 h-8 text-yellow-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">进行中</p>
-                <p className="text-2xl font-bold text-blue-500">{(statistics as any)?.byStatus?.in_progress || 0}</p>
-              </div>
-              <Plane className="w-8 h-8 text-blue-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">预算总额</p>
-                <p className="text-2xl font-bold">¥{((statistics as any)?.totalBudget || 0).toLocaleString()}</p>
-              </div>
-              <DollarSign className="w-8 h-8 text-green-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={FileText} label="总申请数" value={(statistics as any)?.total || 0} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Clock} label="待审批" value={(statistics as any)?.byStatus?.pending || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+        <StatCard icon={Plane} label="进行中" value={(statistics as any)?.byStatus?.in_progress || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={DollarSign} label="预算总额" value={`¥${((statistics as any)?.totalBudget || 0).toLocaleString()}`} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       {/* 出差申请列表 */}
@@ -845,5 +806,6 @@ export default function TripRequest() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

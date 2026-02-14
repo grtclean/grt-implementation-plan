@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -970,13 +971,7 @@ export default function AfterSalesManagement() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">售后服务管理</h1>
-          <p className="text-muted-foreground mt-1">
-            管理客户档案、设备资产和服务工单
-          </p>
-        </div>
+        <PageHeader icon={ClipboardList} title="售后服务管理" description="管理客户档案、设备资产和服务工单" />
         
         {/* 标签页 */}
         <Tabs defaultValue="clients" className="space-y-4">

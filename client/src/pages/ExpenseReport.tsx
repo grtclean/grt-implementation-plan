@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -91,25 +92,21 @@ export default function ExpenseReport() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <BarChart3 className="w-6 h-6 text-primary" />
-              出差费用统计报表
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              按部门、项目、时间等维度分析出差费用
-            </p>
-          </div>
-          <Button onClick={handleExport} disabled={exportMutation.isPending}>
-            {exportMutation.isPending ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4 mr-2" />
-            )}
-            导出Excel
-          </Button>
-        </div>
+        <PageHeader
+          icon={BarChart3}
+          title="出差费用统计报表"
+          description="按部门、项目、时间等维度分析出差费用"
+          actions={
+            <Button onClick={handleExport} disabled={exportMutation.isPending}>
+              {exportMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              导出Excel
+            </Button>
+          }
+        />
 
         {/* 筛选条件 */}
         <Card>

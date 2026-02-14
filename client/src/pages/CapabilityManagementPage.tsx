@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,70 +47,16 @@ export default function CapabilityManagementPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* 页面标题 */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">能力管理</h1>
-        <p className="text-muted-foreground">
-          管理员工能力、证据、升级评估和发展路径
-        </p>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader icon={Award} title="能力管理" description="管理员工能力、证据、升级评估和发展路径" />
 
       {/* 快速统计 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">总能力数</p>
-                <p className="text-3xl font-bold mt-2">{capabilities?.length || 0}</p>
-              </div>
-              <Award className="w-8 h-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">待升级</p>
-                <p className="text-3xl font-bold mt-2">
-                  {capabilities?.filter((c) => c.status === "pending_upgrade").length || 0}
-                </p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">已认证</p>
-                <p className="text-3xl font-bold mt-2">
-                  {capabilities?.filter((c) => c.status === "certified").length || 0}
-                </p>
-              </div>
-              <Award className="w-8 h-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">涉及人员</p>
-                <p className="text-3xl font-bold mt-2">
-                  {new Set(capabilities?.map((c) => c.employeeId)).size || 0}
-                </p>
-              </div>
-              <Users className="w-8 h-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Award} label="总能力数" value={capabilities?.length || 0} iconColor="text-purple-500" iconBg="bg-purple-50" />
+        <StatCard icon={TrendingUp} label="待升级" value={capabilities?.filter((c) => c.status === "pending_upgrade").length || 0} iconColor="text-green-500" iconBg="bg-green-50" />
+        <StatCard icon={Award} label="已认证" value={capabilities?.filter((c) => c.status === "certified").length || 0} iconColor="text-blue-500" iconBg="bg-blue-50" />
+        <StatCard icon={Users} label="涉及人员" value={new Set(capabilities?.map((c) => c.employeeId)).size || 0} iconColor="text-orange-500" iconBg="bg-orange-50" />
       </div>
 
       {/* 搜索和操作 */}
@@ -278,5 +226,6 @@ export default function CapabilityManagementPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

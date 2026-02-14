@@ -5,6 +5,8 @@
 
 import React, { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -145,10 +147,14 @@ export default function MeetingDashboard() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <Layout>
+    <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">会议管理</h1>
+      <PageHeader
+        icon={Calendar}
+        title="会议管理"
+        description="会议列表和管理界面"
+        actions={
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -291,7 +297,8 @@ export default function MeetingDashboard() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       {/* 过滤器 */}
       <Card>
@@ -459,5 +466,6 @@ export default function MeetingDashboard() {
         </div>
       )}
     </div>
+    </Layout>
   );
 }

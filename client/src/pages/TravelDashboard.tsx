@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -190,18 +191,12 @@ export default function TravelDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 md:p-6">
         {/* 顶部标题栏 */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-              <Globe className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
-                出差数据大屏
-              </h1>
-              <p className="text-sm text-slate-400">Travel Management Dashboard</p>
-            </div>
-          </div>
-          
+          <PageHeader
+            icon={Globe}
+            title="出差数据大屏"
+            description="Travel Management Dashboard"
+          />
+
           <div className="flex items-center gap-4">
             {/* 时间显示 */}
             <div className="text-right">

@@ -1,4 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -214,39 +216,39 @@ export default function StageDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href={`/pos/projects/${projectId}`}>
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                返回项目
-              </Button>
-            </Link>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-primary border-primary">
-                {stageCode}
-              </Badge>
-              <h1 className="text-xl font-bold">{stageConfig.name}</h1>
-              {getStatusBadge(stageData.status)}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowUploadDialog(true)}>
-              <Upload className="w-4 h-4 mr-2" />
-              上传文档
+    <Layout>
+      <div className="space-y-6">
+        {/* 返回按钮 */}
+        <div className="flex items-center gap-4">
+          <Link href={`/pos/projects/${projectId}`}>
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              返回项目
             </Button>
-            <Button size="sm" onClick={() => setShowReviewDialog(true)}>
-              <MessageSquare className="w-4 h-4 mr-2" />
-              提交评审
-            </Button>
-          </div>
+          </Link>
+          <Badge variant="outline" className="text-primary border-primary">
+            {stageCode}
+          </Badge>
+          {getStatusBadge(stageData.status)}
         </div>
-      </header>
 
-      <main className="container py-6 space-y-6">
+        <PageHeader
+          icon={Target}
+          title={`${stageCode} - ${stageConfig.name}`}
+          description={stageConfig.description}
+          actions={
+            <>
+              <Button variant="outline" size="sm" onClick={() => setShowUploadDialog(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                上传文档
+              </Button>
+              <Button size="sm" onClick={() => setShowReviewDialog(true)}>
+                <MessageSquare className="w-4 h-4 mr-2" />
+                提交评审
+              </Button>
+            </>
+          }
+        />
         {/* 阶段进度概览 */}
         <Card>
           <CardHeader>
@@ -554,7 +556,6 @@ export default function StageDetail() {
             </div>
           </CardContent>
         </Card>
-      </main>
 
       {/* 评审对话框 */}
       <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
@@ -686,5 +687,6 @@ export default function StageDetail() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

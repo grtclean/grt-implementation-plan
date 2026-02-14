@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -436,19 +437,13 @@ export default function FATCoordination() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <ClipboardCheck className="h-7 w-7 text-blue-500" />
-              {language === "zh" ? "M8 FAT协调工作台" : "M8 FAT Coordination"}
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {language === "zh"
-                ? "出厂验收测试 (Factory Acceptance Test) — 测试计划、实时结果、检查项完成度、客户签署"
-                : "Factory Acceptance Test — Test Plan, Live Results, Checklist Completion, Customer Sign-off"}
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={ClipboardCheck}
+          title={language === "zh" ? "M8 FAT协调工作台" : "M8 FAT Coordination"}
+          description={language === "zh"
+            ? "出厂验收测试 (Factory Acceptance Test) — 测试计划、实时结果、检查项完成度、客户签署"
+            : "Factory Acceptance Test — Test Plan, Live Results, Checklist Completion, Customer Sign-off"}
+        />
 
         {/* 加载骨架屏 */}
         {isLoading && (

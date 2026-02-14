@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import Layout from '@/components/Layout';
+import { PageHeader } from '@/components/grt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -252,25 +254,27 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
   };
 
   return (
+    <Layout>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* 头部 */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">{meetingTitle}</h1>
-            <p className="text-slate-600 mt-1">智慧会议管理系统 - 优化版本</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExportMinutes}>
-              <Download className="w-4 h-4 mr-2" />
-              导出纪要
-            </Button>
-            <Button variant="outline" size="sm">
-              <Share2 className="w-4 h-4 mr-2" />
-              分享
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Clock}
+          title={meetingTitle}
+          description="智慧会议管理系统 - 优化版本"
+          actions={
+            <>
+              <Button variant="outline" size="sm" onClick={handleExportMinutes}>
+                <Download className="w-4 h-4 mr-2" />
+                导出纪要
+              </Button>
+              <Button variant="outline" size="sm">
+                <Share2 className="w-4 h-4 mr-2" />
+                分享
+              </Button>
+            </>
+          }
+        />
 
         {/* 主容器 - 三列布局 */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -460,5 +464,6 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
         </div>
       </div>
     </div>
+    </Layout>
   );
 }

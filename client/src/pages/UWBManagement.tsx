@@ -5,6 +5,7 @@
  */
 
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -191,42 +192,18 @@ export default function UWBManagement() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold font-heading flex items-center gap-2">
-              <MapPin className="w-6 h-6 text-primary" />
-              UWB定位系统管理
-            </h1>
-            <p className="text-muted-foreground mt-1">管理UWB标签、工人绑定和实时位置追踪</p>
-          </div>
-          <Button onClick={handleRefresh}><RefreshCw className="w-4 h-4 mr-1" />刷新数据</Button>
-        </div>
+        <PageHeader
+          icon={MapPin}
+          title="UWB定位系统管理"
+          description="管理UWB标签、工人绑定和实时位置追踪"
+          actions={<Button onClick={handleRefresh}><RefreshCw className="w-4 h-4 mr-1" />刷新数据</Button>}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10 text-primary"><Tag className="w-5 h-5" /></div>
-              <div><p className="text-sm text-muted-foreground">总标签数</p><p className="text-xl font-bold">{stats.totalTags}</p></div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10 text-green-500"><Signal className="w-5 h-5" /></div>
-              <div><p className="text-sm text-muted-foreground">在线标签</p><p className="text-xl font-bold">{stats.activeTags}</p></div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500"><Battery className="w-5 h-5" /></div>
-              <div><p className="text-sm text-muted-foreground">低电量</p><p className="text-xl font-bold">{stats.lowBatteryTags}</p></div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-500/10 text-red-500"><AlertTriangle className="w-5 h-5" /></div>
-              <div><p className="text-sm text-muted-foreground">丢失标签</p><p className="text-xl font-bold">{stats.lostTags}</p></div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Tag} label="总标签数" value={stats.totalTags} />
+          <StatCard icon={Signal} label="在线标签" value={stats.activeTags} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Battery} label="低电量" value={stats.lowBatteryTags} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+          <StatCard icon={AlertTriangle} label="丢失标签" value={stats.lostTags} iconColor="text-red-500" iconBg="bg-red-500/10" />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>

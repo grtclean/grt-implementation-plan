@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { BarChart3, Building2, Calendar, ChevronLeft, ChevronRight, Milestone } from "lucide-react";
+import { PageHeader } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 const MOCK_TASKS = [
   { id: 1, name: "需求分析", project: "缸体清洗线", start: 1, duration: 3, progress: 100, color: "bg-green-500" },
@@ -27,13 +29,13 @@ export default function GanttChart() {
   const { currentBU } = useUserProfile();
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><BarChart3 className="h-6 w-6 text-primary" />甘特图</h1>
-          <p className="text-muted-foreground mt-1">项目进度可视化 · 任务依赖管理</p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        icon={BarChart3}
+        title="甘特图"
+        description="项目进度可视化 · 任务依赖管理"
+        actions={<>
           {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
           <Select defaultValue="all">
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
@@ -43,8 +45,8 @@ export default function GanttChart() {
               <SelectItem value="p2">变速箱清洗</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-      </div>
+        </>}
+      />
 
       <Card>
         <CardHeader>
@@ -94,5 +96,6 @@ export default function GanttChart() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

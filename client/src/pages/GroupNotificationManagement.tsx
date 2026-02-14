@@ -5,6 +5,7 @@
 
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -99,32 +100,27 @@ export default function GroupNotificationManagement() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-heading flex items-center gap-3">
-              <Users className="w-8 h-8 text-primary" />
-              群组通知管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              管理部门群组、会议群组、培训群组，配置和发送群组通知
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => groups.refetch()}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              刷新
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => initGroups.mutate()}
-              disabled={initGroups.isPending}
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              {initGroups.isPending ? "初始化中..." : "初始化默认群组"}
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Users}
+          title="群组通知管理"
+          description="管理部门群组、会议群组、培训群组，配置和发送群组通知"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => groups.refetch()}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                刷新
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => initGroups.mutate()}
+                disabled={initGroups.isPending}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                {initGroups.isPending ? "初始化中..." : "初始化默认群组"}
+              </Button>
+            </>
+          }
+        />
 
         {/* 标签页 */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

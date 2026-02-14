@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import {
@@ -458,21 +460,16 @@ export default function DevTaskBoard() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* ========== Header ========== */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-            <span className="w-1.5 h-6 bg-primary rounded-sm"></span>
-            {language === "zh" ? "开发任务看板" : "Development Task Board"}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {language === "zh"
-              ? "管理和追踪Claude Code开发任务"
-              : "Manage and track Claude Code development tasks"}
-          </p>
-        </div>
-
+      <PageHeader
+        icon={Code}
+        title={language === "zh" ? "开发任务看板" : "Development Task Board"}
+        description={language === "zh"
+          ? "管理和追踪Claude Code开发任务"
+          : "Manage and track Claude Code development tasks"}
+        actions={
         <div className="flex gap-2">
           {/* View mode toggle */}
           <div className="flex border rounded-md">
@@ -679,66 +676,45 @@ export default function DevTaskBoard() {
             </DialogContent>
           </Dialog>
         </div>
-      </div>
+        }
+      />
 
       {/* ========== Enhanced Stats Panel ========== */}
       <div className="space-y-3">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-3 flex items-center gap-3">
-              <div className="p-2 rounded-sm bg-primary/10 text-primary">
-                <FileText className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">{language === "zh" ? "总任务" : "Total"}</p>
-                <p className="text-xl font-bold">{totalTasks}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-3 flex items-center gap-3">
-              <div className="p-2 rounded-sm bg-yellow-500/10 text-yellow-500">
-                <PlayCircle className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">{language === "zh" ? "进行中" : "Active"}</p>
-                <p className="text-xl font-bold">{inProgressTasks}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-3 flex items-center gap-3">
-              <div className="p-2 rounded-sm bg-green-500/10 text-green-500">
-                <CheckCircle2 className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">{language === "zh" ? "已完成" : "Done"}</p>
-                <p className="text-xl font-bold">{completedTasks}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className={`bg-card/50 border-border ${overdueTasks > 0 ? "border-red-500/50" : ""}`}>
-            <CardContent className="p-3 flex items-center gap-3">
-              <div className={`p-2 rounded-sm ${overdueTasks > 0 ? "bg-red-500/10 text-red-500" : "bg-muted text-muted-foreground"}`}>
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">{language === "zh" ? "逾期" : "Overdue"}</p>
-                <p className={`text-xl font-bold ${overdueTasks > 0 ? "text-red-500" : ""}`}>{overdueTasks}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-3 flex items-center gap-3">
-              <div className="p-2 rounded-sm bg-blue-500/10 text-blue-500">
-                <Timer className="w-4 h-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground">{language === "zh" ? "工时" : "Hours"}</p>
-                <p className="text-sm font-bold">{totalActual}/{totalEstimated}h</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            icon={FileText}
+            label={language === "zh" ? "总任务" : "Total"}
+            value={totalTasks}
+          />
+          <StatCard
+            icon={PlayCircle}
+            label={language === "zh" ? "进行中" : "Active"}
+            value={inProgressTasks}
+            iconColor="text-yellow-500"
+            iconBg="bg-yellow-500/10"
+          />
+          <StatCard
+            icon={CheckCircle2}
+            label={language === "zh" ? "已完成" : "Done"}
+            value={completedTasks}
+            iconColor="text-green-500"
+            iconBg="bg-green-500/10"
+          />
+          <StatCard
+            icon={AlertTriangle}
+            label={language === "zh" ? "逾期" : "Overdue"}
+            value={overdueTasks}
+            iconColor={overdueTasks > 0 ? "text-red-500" : "text-muted-foreground"}
+            iconBg={overdueTasks > 0 ? "bg-red-500/10" : "bg-muted"}
+          />
+          <StatCard
+            icon={Timer}
+            label={language === "zh" ? "工时" : "Hours"}
+            value={`${totalActual}/${totalEstimated}h`}
+            iconColor="text-blue-500"
+            iconBg="bg-blue-500/10"
+          />
         </div>
         {/* Overall progress bar */}
         <div className="flex items-center gap-3 px-1">
@@ -1518,5 +1494,6 @@ export default function DevTaskBoard() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

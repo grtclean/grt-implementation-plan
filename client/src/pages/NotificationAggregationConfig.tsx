@@ -4,6 +4,8 @@
  */
 
 import { useState, useEffect } from 'react';
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -142,91 +144,38 @@ export default function NotificationAggregationConfig() {
   if (!selectedRule) return null;
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      {/* 头部 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Settings className="h-8 w-8 text-primary" />
-            消息聚合规则配置
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            管理通知消息的聚合策略，防止消息轰炸并优化通知体验
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {hasChanges && (
-            <Badge variant="outline" className="text-orange-500">
-              <AlertCircle className="h-3 w-3 mr-1" />
-              未保存
-            </Badge>
-          )}
-          <Button variant="outline" onClick={handleReset}>
-            <RotateCcw className="h-4 w-4 mr-1" />
-            重置
-          </Button>
-          <Button onClick={handleSave} disabled={!hasChanges}>
-            <Save className="h-4 w-4 mr-1" />
-            保存配置
-          </Button>
-        </div>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Settings}
+        title="消息聚合规则配置"
+        description="管理通知消息的聚合策略，防止消息轰炸并优化通知体验"
+        actions={
+          <>
+            {hasChanges && (
+              <Badge variant="outline" className="text-orange-500">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                未保存
+              </Badge>
+            )}
+            <Button variant="outline" onClick={handleReset}>
+              <RotateCcw className="h-4 w-4 mr-1" />
+              重置
+            </Button>
+            <Button onClick={handleSave} disabled={!hasChanges}>
+              <Save className="h-4 w-4 mr-1" />
+              保存配置
+            </Button>
+          </>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">总规则数</p>
-                <p className="text-2xl font-bold">{rules.length}</p>
-              </div>
-              <Layers className="h-8 w-8 text-muted-foreground opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">已启用</p>
-                <p className="text-2xl font-bold text-green-500">
-                  {rules.filter(r => r.enabled).length}
-                </p>
-              </div>
-              <CheckCircle2 className="h-8 w-8 text-green-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">平均时间窗口</p>
-                <p className="text-2xl font-bold">
-                  {Math.round(rules.reduce((sum, r) => sum + r.timeWindowMinutes, 0) / rules.length)}分钟
-                </p>
-              </div>
-              <Clock className="h-8 w-8 text-muted-foreground opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">覆盖渠道</p>
-                <p className="text-2xl font-bold">
-                  {new Set(rules.flatMap(r => r.channels)).size}
-                </p>
-              </div>
-              <Bell className="h-8 w-8 text-muted-foreground opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Layers} label="总规则数" value={rules.length} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={CheckCircle2} label="已启用" value={rules.filter(r => r.enabled).length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Clock} label="平均时间窗口" value={`${Math.round(rules.reduce((sum, r) => sum + r.timeWindowMinutes, 0) / rules.length)}分钟`} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Bell} label="覆盖渠道" value={new Set(rules.flatMap(r => r.channels)).size} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       {/* 主内容区 */}
@@ -544,5 +493,6 @@ export default function NotificationAggregationConfig() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

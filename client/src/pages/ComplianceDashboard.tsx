@@ -19,6 +19,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/grt";
 import { Database, Loader2 } from "lucide-react";
 import {
   AlertTriangle,
@@ -329,124 +330,120 @@ export default function ComplianceDashboard() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold flex items-center gap-3">
-              <Shield className="w-8 h-8 text-primary" />
-              德美跨国合规仪表板
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              实时监控员工工时合规状态、违规预警和审批队列
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm">
-              <Filter className="w-4 h-4 mr-2" />
-              筛选
-            </Button>
-            {user?.role === 'admin' && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setLocation('/compliance/rules-config')}
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                规则配置
+        <PageHeader
+          icon={Shield}
+          title="德美跨国合规仪表板"
+          description="实时监控员工工时合规状态、违规预警和审批队列"
+          actions={
+            <>
+              <Button variant="outline" size="sm">
+                <Filter className="w-4 h-4 mr-2" />
+                筛选
               </Button>
-            )}
-            <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Download className="w-4 h-4 mr-2" />
-                  导出报告
+              {user?.role === 'admin' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation('/compliance/rules-config')}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  规则配置
                 </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>导出合规报告</DialogTitle>
-                  <DialogDescription>
-                    选择报告格式并下载合规状态报告
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>报告格式</Label>
-                    <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as "pdf" | "excel" | "csv")}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="选择格式" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pdf">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-red-500" />
-                            PDF 报告
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="excel">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-green-500" />
-                            Excel 表格
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="csv">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-blue-500" />
-                            CSV 数据
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    <p><strong>PDF:</strong> 专业报告格式，包含统计图表和分析建议</p>
-                    <p><strong>Excel:</strong> 详细数据表格，便于进一步分析</p>
-                    <p><strong>CSV:</strong> 纯数据格式，适合导入其他系统</p>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
-                    取消
+              )}
+              <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="w-4 h-4 mr-2" />
+                    导出报告
                   </Button>
-                  <Button 
-                    onClick={() => {
-                      exportReportMutation.mutate({ format: exportFormat });
-                      setExportDialogOpen(false);
-                    }}
-                    disabled={exportReportMutation.isPending}
-                  >
-                    {exportReportMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Download className="w-4 h-4 mr-2" />
-                    )}
-                    下载报告
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            {/* 仅管理员可见的测试数据按钮 */}
-            {user?.role === 'admin' && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => seedDataMutation.mutate()}
-                disabled={seedDataMutation.isPending}
-                className="border-orange-500/50 text-orange-500 hover:bg-orange-500/10"
-              >
-                {seedDataMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Database className="w-4 h-4 mr-2" />
-                )}
-                生成测试数据
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>导出合规报告</DialogTitle>
+                    <DialogDescription>
+                      选择报告格式并下载合规状态报告
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>报告格式</Label>
+                      <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as "pdf" | "excel" | "csv")}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择格式" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pdf">
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-4 h-4 text-red-500" />
+                              PDF 报告
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="excel">
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-4 h-4 text-green-500" />
+                              Excel 表格
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="csv">
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-4 h-4 text-blue-500" />
+                              CSV 数据
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p><strong>PDF:</strong> 专业报告格式，包含统计图表和分析建议</p>
+                      <p><strong>Excel:</strong> 详细数据表格，便于进一步分析</p>
+                      <p><strong>CSV:</strong> 纯数据格式，适合导入其他系统</p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
+                      取消
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        exportReportMutation.mutate({ format: exportFormat });
+                        setExportDialogOpen(false);
+                      }}
+                      disabled={exportReportMutation.isPending}
+                    >
+                      {exportReportMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4 mr-2" />
+                      )}
+                      下载报告
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              {/* 仅管理员可见的测试数据按钮 */}
+              {user?.role === 'admin' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => seedDataMutation.mutate()}
+                  disabled={seedDataMutation.isPending}
+                  className="border-orange-500/50 text-orange-500 hover:bg-orange-500/10"
+                >
+                  {seedDataMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Database className="w-4 h-4 mr-2" />
+                  )}
+                  生成测试数据
+                </Button>
+              )}
+              <Button size="sm">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                刷新数据
               </Button>
-            )}
-            <Button size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              刷新数据
-            </Button>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* 管辖区选择 */}
         <div className="flex gap-2">

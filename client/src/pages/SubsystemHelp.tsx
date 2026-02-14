@@ -1,5 +1,6 @@
 import Layout from "@/components/Layout";
-import SubsystemHelpPanel, { 
+import { PageHeader } from "@/components/grt";
+import SubsystemHelpPanel, {
   SubsystemType, 
   allSubsystemHelpContents 
 } from "@/components/SubsystemHelpPanel";
@@ -60,18 +61,11 @@ export default function SubsystemHelp() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-primary rounded-sm"></span>
-              子系统操作手册
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Subsystem Operation Manual - 各子系统的操作步骤、前期输入和执行效果
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={BookOpen}
+          title="子系统操作手册"
+          description="Subsystem Operation Manual - 各子系统的操作步骤、前期输入和执行效果"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 左侧：子系统列表 */}

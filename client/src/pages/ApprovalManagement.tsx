@@ -2,6 +2,8 @@
  * 审批管理页面
  */
 import { useState } from 'react';
+import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from '@/components/grt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -70,56 +72,47 @@ export default function ApprovalManagement() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">审批管理</h1>
-          <p className="text-muted-foreground mt-2">处理待审批的采购申请、订单和其他文件</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Clock}
+        title="审批管理"
+        description="处理待审批的采购申请、订单和其他文件"
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">待审批</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{statsData?.pendingTasksCount || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">需要处理</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">超期任务</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{statsData?.overdueTasksCount || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">紧急处理</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">平均审批时间</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statsData?.averageApprovalTime || 0} 分钟</div>
-            <p className="text-xs text-muted-foreground mt-1">本月平均</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">本月已处理</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{(statsData as any)?.completedThisMonth || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">审批完成</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          icon={Clock}
+          label="待审批"
+          value={statsData?.pendingTasksCount || 0}
+          subtitle="需要处理"
+          iconColor="text-orange-500"
+          iconBg="bg-orange-50"
+        />
+        <StatCard
+          icon={AlertCircle}
+          label="超期任务"
+          value={statsData?.overdueTasksCount || 0}
+          subtitle="紧急处理"
+          iconColor="text-red-500"
+          iconBg="bg-red-50"
+        />
+        <StatCard
+          icon={Clock}
+          label="平均审批时间"
+          value={`${statsData?.averageApprovalTime || 0} 分钟`}
+          subtitle="本月平均"
+        />
+        <StatCard
+          icon={CheckCircle}
+          label="本月已处理"
+          value={(statsData as any)?.completedThisMonth || 0}
+          subtitle="审批完成"
+          iconColor="text-green-500"
+          iconBg="bg-green-50"
+        />
       </div>
 
       {/* 审批任务列表 */}
@@ -249,5 +242,6 @@ export default function ApprovalManagement() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

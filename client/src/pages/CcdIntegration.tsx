@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -108,84 +110,30 @@ export default function CcdIntegration() {
   const stats = (statsQuery.data ?? {}) as any;
 
   return (
+    <Layout>
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-heading font-bold flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-cyan-500/20">
-              <Cpu className="w-6 h-6 text-cyan-400" />
-            </div>
-            CCD视觉检测集成
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            CCD检测设备与质量联动系统的桥接集成 · 自动化缺陷检测闭环
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => { bridgeConfigsQuery.refetch(); inspectionLogsQuery.refetch(); statsQuery.refetch(); }}>
-            <RefreshCw className="w-4 h-4 mr-2" /> 刷新
-          </Button>
-          <Button onClick={() => setShowSubmitDialog(true)} className="bg-cyan-600 hover:bg-cyan-700">
-            <Camera className="w-4 h-4 mr-2" /> 提交检测结果
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Cpu}
+        title="CCD视觉检测集成"
+        description="CCD检测设备与质量联动系统的桥接集成 · 自动化缺陷检测闭环"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => { bridgeConfigsQuery.refetch(); inspectionLogsQuery.refetch(); statsQuery.refetch(); }}>
+              <RefreshCw className="w-4 h-4 mr-2" /> 刷新
+            </Button>
+            <Button onClick={() => setShowSubmitDialog(true)} className="bg-cyan-600 hover:bg-cyan-700">
+              <Camera className="w-4 h-4 mr-2" /> 提交检测结果
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-cyan-500/20">
-                <Activity className="w-5 h-5 text-cyan-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">活跃桥接</p>
-                <p className="text-xl font-bold">{stats.activeConfigs ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/20">
-                <CheckCircle2 className="w-5 h-5 text-green-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">检测总次数</p>
-                <p className="text-xl font-bold">{stats.totalInspections ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-500/20">
-                <AlertTriangle className="w-5 h-5 text-red-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">联动触发次数</p>
-                <p className="text-xl font-bold">{stats.interlockTriggered ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/20">
-                <BarChart3 className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">合格率</p>
-                <p className="text-xl font-bold">{stats.passRate ? `${Number(stats.passRate).toFixed(1)}%` : 'N/A'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Activity} label="活跃桥接" value={stats.activeConfigs ?? 0} iconColor="text-cyan-400" iconBg="bg-cyan-500/20" />
+        <StatCard icon={CheckCircle2} label="检测总次数" value={stats.totalInspections ?? 0} iconColor="text-green-400" iconBg="bg-green-500/20" />
+        <StatCard icon={AlertTriangle} label="联动触发次数" value={stats.interlockTriggered ?? 0} iconColor="text-red-400" iconBg="bg-red-500/20" />
+        <StatCard icon={BarChart3} label="合格率" value={stats.passRate ? `${Number(stats.passRate).toFixed(1)}%` : 'N/A'} iconColor="text-primary" iconBg="bg-primary/20" />
       </div>
 
       {/* Tabs */}
@@ -449,5 +397,6 @@ export default function CcdIntegration() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

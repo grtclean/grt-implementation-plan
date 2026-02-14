@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -271,17 +272,11 @@ export default function NotebookSearch() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold tracking-tight">
-              笔记搜索与导出
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              跨项目搜索笔记内容，批量导出知识沉淀
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Search}
+          title="笔记搜索与导出"
+          description="跨项目搜索笔记内容，批量导出知识沉淀"
+        />
 
         {/* Search Section */}
         <Card>
@@ -515,58 +510,10 @@ export default function NotebookSearch() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-blue-500/20">
-                  <BookOpen className="w-6 h-6 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">总笔记数</p>
-                  <p className="text-2xl font-bold">1,234</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-green-500/20">
-                  <FolderOpen className="w-6 h-6 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">关联项目</p>
-                  <p className="text-2xl font-bold">56</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-purple-500/20">
-                  <Tag className="w-6 h-6 text-purple-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">AI建议</p>
-                  <p className="text-2xl font-bold">328</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-orange-500/20">
-                  <Download className="w-6 h-6 text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">本月导出</p>
-                  <p className="text-2xl font-bold">12</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={BookOpen} label="总笔记数" value="1,234" iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={FolderOpen} label="关联项目" value={56} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Tag} label="AI建议" value={328} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+          <StatCard icon={Download} label="本月导出" value={12} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
         </div>
       </div>
     </Layout>

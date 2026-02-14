@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -218,33 +219,29 @@ export default function ArchitecturePlan() {
     <Layout>
       <div className="space-y-8">
         {/* 页面标题 */}
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-heading font-bold flex items-center gap-3">
-              <Layers className="w-8 h-8 text-primary" />
-              {language === 'zh' ? '系统架构规划' : 'Architecture Plan'}
-            </h1>
-            <p className="text-muted-foreground mt-2 max-w-2xl">
-              {language === 'zh' 
-                ? '基于localhost:3000的科学化系统架构，整合简道云数据结构，便于Claude Code实施'
-                : 'Scientific system architecture based on localhost:3000, integrating Jiandaoyun data structure for Claude Code implementation'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link href="/docs/guide">
-              <Button variant="outline">
-                <FileCode className="w-4 h-4 mr-2" />
-                {language === 'zh' ? '开发指南' : 'Dev Guide'}
-              </Button>
-            </Link>
-            <a href="/docs/GRT_Architecture_Upgrade_Plan.md" download>
-              <Button>
-                <Download className="w-4 h-4 mr-2" />
-                {language === 'zh' ? '下载规划文档' : 'Download Plan'}
-              </Button>
-            </a>
-          </div>
-        </div>
+        <PageHeader
+          icon={Layers}
+          title={language === 'zh' ? '系统架构规划' : 'Architecture Plan'}
+          description={language === 'zh'
+            ? '基于localhost:3000的科学化系统架构，整合简道云数据结构，便于Claude Code实施'
+            : 'Scientific system architecture based on localhost:3000, integrating Jiandaoyun data structure for Claude Code implementation'}
+          actions={
+            <>
+              <Link href="/docs/guide">
+                <Button variant="outline">
+                  <FileCode className="w-4 h-4 mr-2" />
+                  {language === 'zh' ? '开发指南' : 'Dev Guide'}
+                </Button>
+              </Link>
+              <a href="/docs/GRT_Architecture_Upgrade_Plan.md" download>
+                <Button>
+                  <Download className="w-4 h-4 mr-2" />
+                  {language === 'zh' ? '下载规划文档' : 'Download Plan'}
+                </Button>
+              </a>
+            </>
+          }
+        />
 
         {/* 标签页 */}
         <Tabs defaultValue="architecture" className="space-y-6">

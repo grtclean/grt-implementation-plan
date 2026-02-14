@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -178,19 +179,12 @@ export default function AgendaManagement() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold tracking-tight">
-              {t("agenda.title") || "议程管理"}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {t("agenda.desc") || "企业会议、培训和年度计划管理"}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {/* Initialize Meeting Types Button */}
-            {(!meetingTypes || meetingTypes.length === 0) && (
+        <PageHeader
+          icon={CalendarDays}
+          title={t("agenda.title") || "议程管理"}
+          description={t("agenda.desc") || "企业会议、培训和年度计划管理"}
+          actions={
+            (!meetingTypes || meetingTypes.length === 0) ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -204,59 +198,16 @@ export default function AgendaManagement() {
                 )}
                 初始化会议类型
               </Button>
-            )}
-          </div>
-        </div>
+            ) : undefined
+          }
+        />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-primary/10 text-primary">
-                <Calendar className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">本周会议</p>
-                <p className="text-2xl font-bold">{meetings?.length || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-blue-500/10 text-blue-500">
-                <GraduationCap className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">培训计划</p>
-                <p className="text-2xl font-bold">{(trainings as any)?.length || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-green-500/10 text-green-500">
-                <Target className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">年度计划</p>
-                <p className="text-2xl font-bold">{annualPlans?.length || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-purple-500/10 text-purple-500">
-                <CalendarDays className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">会议类型</p>
-                <p className="text-2xl font-bold">{meetingTypes?.length || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Calendar} label="本周会议" value={meetings?.length || 0} iconColor="text-primary" iconBg="bg-primary/10" />
+          <StatCard icon={GraduationCap} label="培训计划" value={(trainings as any)?.length || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Target} label="年度计划" value={annualPlans?.length || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={CalendarDays} label="会议类型" value={meetingTypes?.length || 0} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
         </div>
 
         {/* Tabs */}

@@ -4,6 +4,7 @@
  */
 
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -144,16 +145,12 @@ export default function WorkerImport() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold font-heading flex items-center gap-2">
-              <FileSpreadsheet className="w-6 h-6 text-primary" />
-              工人数据导入
-            </h1>
-            <p className="text-muted-foreground mt-1">从Excel文件批量导入工人信息</p>
-          </div>
-          <Button variant="outline" onClick={() => toast({ title: "正在下载模板..." })}><Download className="w-4 h-4 mr-1" />下载模板</Button>
-        </div>
+        <PageHeader
+          icon={FileSpreadsheet}
+          title="工人数据导入"
+          description="从Excel文件批量导入工人信息"
+          actions={<Button variant="outline" onClick={() => toast({ title: "正在下载模板..." })}><Download className="w-4 h-4 mr-1" />下载模板</Button>}
+        />
 
         <div className="flex items-center gap-2 mb-6">
           <div className={`flex items-center gap-2 ${step === "upload" ? "text-primary" : "text-muted-foreground"}`}><div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === "upload" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>1</div><span className="text-sm font-medium">上传文件</span></div>
@@ -204,10 +201,10 @@ export default function WorkerImport() {
         {step === "preview" && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="bg-card/50 border-border"><CardContent className="p-4 flex items-center gap-3"><div className="p-2 rounded-lg bg-primary/10 text-primary"><FileSpreadsheet className="w-5 h-5" /></div><div><p className="text-sm text-muted-foreground">总记录数</p><p className="text-xl font-bold">{previewStats.total}</p></div></CardContent></Card>
-              <Card className="bg-card/50 border-border"><CardContent className="p-4 flex items-center gap-3"><div className="p-2 rounded-lg bg-green-500/10 text-green-500"><CheckCircle2 className="w-5 h-5" /></div><div><p className="text-sm text-muted-foreground">有效</p><p className="text-xl font-bold">{previewStats.valid}</p></div></CardContent></Card>
-              <Card className="bg-card/50 border-border"><CardContent className="p-4 flex items-center gap-3"><div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500"><AlertTriangle className="w-5 h-5" /></div><div><p className="text-sm text-muted-foreground">警告</p><p className="text-xl font-bold">{previewStats.warning}</p></div></CardContent></Card>
-              <Card className="bg-card/50 border-border"><CardContent className="p-4 flex items-center gap-3"><div className="p-2 rounded-lg bg-red-500/10 text-red-500"><XCircle className="w-5 h-5" /></div><div><p className="text-sm text-muted-foreground">错误</p><p className="text-xl font-bold">{previewStats.error}</p></div></CardContent></Card>
+              <StatCard icon={FileSpreadsheet} label="总记录数" value={previewStats.total} />
+              <StatCard icon={CheckCircle2} label="有效" value={previewStats.valid} iconColor="text-green-500" iconBg="bg-green-500/10" />
+              <StatCard icon={AlertTriangle} label="警告" value={previewStats.warning} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+              <StatCard icon={XCircle} label="错误" value={previewStats.error} iconColor="text-red-500" iconBg="bg-red-500/10" />
             </div>
             <Card className="bg-card/50 border-border">
               <CardHeader className="flex flex-row items-center justify-between"><CardTitle>数据预览</CardTitle><div className="flex gap-2"><Button variant="outline" onClick={() => setStep("mapping")}>上一步</Button><Button onClick={handleStartImport} disabled={previewStats.error > 0}>开始导入</Button></div></CardHeader>

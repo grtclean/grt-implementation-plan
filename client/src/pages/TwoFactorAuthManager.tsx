@@ -4,6 +4,8 @@
  */
 
 import { useState } from 'react';
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -215,22 +217,18 @@ export default function TwoFactorAuthManager() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="w-6 h-6" />
-            双因素认证(2FA)
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            使用TOTP验证码增强账户安全性
-          </p>
-        </div>
-        <Badge variant={status.enabled ? 'default' : 'secondary'}>
-          {status.enabled ? '已启用' : '未启用'}
-        </Badge>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Shield}
+        title="双因素认证(2FA)"
+        description="使用TOTP验证码增强账户安全性"
+        actions={
+          <Badge variant={status.enabled ? 'default' : 'secondary'}>
+            {status.enabled ? '已启用' : '未启用'}
+          </Badge>
+        }
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
@@ -603,5 +601,6 @@ export default function TwoFactorAuthManager() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

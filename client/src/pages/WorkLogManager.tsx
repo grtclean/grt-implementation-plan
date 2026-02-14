@@ -5,6 +5,8 @@
  */
 
 import { useState } from 'react';
+import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from '@/components/grt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -184,68 +186,67 @@ export default function WorkLogManager() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <Layout>
+    <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Clock className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">工时打卡管理</h1>
-            <p className="text-sm text-muted-foreground">工人打卡记录追踪与工时统计</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            刷新
-          </Button>
-          <Button size="sm">
-            <Play className="w-4 h-4 mr-2" />
-            手动打卡
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Clock}
+        title="工时打卡管理"
+        description="工人打卡记录追踪与工时统计"
+        actions={
+          <>
+            <Button variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              刷新
+            </Button>
+            <Button size="sm">
+              <Play className="w-4 h-4 mr-2" />
+              手动打卡
+            </Button>
+          </>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">总记录</p>
-            <p className="text-2xl font-bold">{stats.total}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">进行中</p>
-            <p className="text-2xl font-bold text-green-500">{stats.active}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">已完成</p>
-            <p className="text-2xl font-bold text-blue-500">{stats.completed}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">已取消</p>
-            <p className="text-2xl font-bold text-red-500">{stats.cancelled}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">总工时</p>
-            <p className="text-2xl font-bold text-primary">{stats.totalHours}h</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">在岗人数</p>
-            <p className="text-2xl font-bold text-yellow-500">{stats.activeWorkers}</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          icon={ClipboardList}
+          label="总记录"
+          value={stats.total}
+        />
+        <StatCard
+          icon={Play}
+          label="进行中"
+          value={stats.active}
+          iconColor="text-green-500"
+          iconBg="bg-green-500/10"
+        />
+        <StatCard
+          icon={CheckCircle2}
+          label="已完成"
+          value={stats.completed}
+          iconColor="text-blue-500"
+          iconBg="bg-blue-500/10"
+        />
+        <StatCard
+          icon={XCircle}
+          label="已取消"
+          value={stats.cancelled}
+          iconColor="text-red-500"
+          iconBg="bg-red-500/10"
+        />
+        <StatCard
+          icon={Timer}
+          label="总工时"
+          value={`${stats.totalHours}h`}
+        />
+        <StatCard
+          icon={Users}
+          label="在岗人数"
+          value={stats.activeWorkers}
+          iconColor="text-yellow-500"
+          iconBg="bg-yellow-500/10"
+        />
       </div>
 
       {/* 当前在岗人员 */}
@@ -415,5 +416,6 @@ export default function WorkLogManager() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

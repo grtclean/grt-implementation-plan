@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -221,27 +222,23 @@ export default function DeploymentSpec() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold flex items-center gap-3">
-              <Server className="w-8 h-8 text-primary" />
-              部署规范
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              GRT智慧系统部署、运维与版本管理规范
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              <Keyboard className="w-3 h-3 mr-1" />
-              F5 部署检查
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              <Keyboard className="w-3 h-3 mr-1" />
-              F6 更新检查
-            </Badge>
-          </div>
-        </div>
+        <PageHeader
+          icon={Server}
+          title="部署规范"
+          description="GRT智慧系统部署、运维与版本管理规范"
+          actions={
+            <>
+              <Badge variant="outline" className="text-xs">
+                <Keyboard className="w-3 h-3 mr-1" />
+                F5 部署检查
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                <Keyboard className="w-3 h-3 mr-1" />
+                F6 更新检查
+              </Badge>
+            </>
+          }
+        />
 
         {/* 快捷操作栏 */}
         <div className="flex gap-3">

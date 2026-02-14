@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -385,23 +386,19 @@ export default function UWBDeviceManagement() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Radio className="w-6 h-6 text-primary" />
-              UWB设备管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              配置和管理UWB定位设备，支持多种协议（Decawave、Ubisense、Sewio、Pozyx）
-            </p>
-          </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2" onClick={resetForm}>
-                <Plus className="w-4 h-4" />
-                添加设备
-              </Button>
-            </DialogTrigger>
+        <PageHeader
+          icon={Radio}
+          title="UWB设备管理"
+          description="配置和管理UWB定位设备，支持多种协议（Decawave、Ubisense、Sewio、Pozyx）"
+          actions={
+            <Button className="gap-2" onClick={() => { resetForm(); setIsAddDialogOpen(true); }}>
+              <Plus className="w-4 h-4" />
+              添加设备
+            </Button>
+          }
+        />
+
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>添加UWB设备</DialogTitle>
@@ -409,7 +406,7 @@ export default function UWBDeviceManagement() {
                   配置新的UWB定位设备，填写设备信息和连接参数
                 </DialogDescription>
               </DialogHeader>
-              <DeviceForm 
+              <DeviceForm
                 formData={formData}
                 setFormData={setFormData}
                 showAuthConfig={showAuthConfig}
@@ -420,65 +417,14 @@ export default function UWBDeviceManagement() {
               />
             </DialogContent>
           </Dialog>
-        </div>
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Router className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">设备总数</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/10">
-                <Wifi className="w-5 h-5 text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">在线</p>
-                <p className="text-2xl font-bold text-emerald-500">{stats.online}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gray-500/10">
-                <WifiOff className="w-5 h-5 text-gray-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">离线</p>
-                <p className="text-2xl font-bold text-gray-500">{stats.offline}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-rose-500/10">
-                <AlertCircle className="w-5 h-5 text-rose-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">错误</p>
-                <p className="text-2xl font-bold text-rose-500">{stats.error}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Zap className="w-5 h-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">已启用</p>
-                <p className="text-2xl font-bold text-blue-500">{stats.enabled}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Router} label="设备总数" value={stats.total} />
+          <StatCard icon={Wifi} label="在线" value={stats.online} iconColor="text-emerald-500" iconBg="bg-emerald-500/10" />
+          <StatCard icon={WifiOff} label="离线" value={stats.offline} iconColor="text-gray-500" iconBg="bg-gray-500/10" />
+          <StatCard icon={AlertCircle} label="错误" value={stats.error} iconColor="text-rose-500" iconBg="bg-rose-500/10" />
+          <StatCard icon={Zap} label="已启用" value={stats.enabled} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
         </div>
 
         {/* 主内容区 */}

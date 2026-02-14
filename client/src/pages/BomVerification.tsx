@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -125,29 +127,27 @@ export default function BomVerification() {
   const detail = detailQuery.data as any;
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ClipboardCheck className="w-7 h-7 text-blue-400" />
-            BOM校验管理
-          </h1>
-          <p className="text-muted-foreground mt-1">物料流转BOM自动校验 · 校验不通过自动拦截</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => {
-            utils.bomVerification.list.invalidate();
-            utils.bomVerification.stats.invalidate();
-          }}>
-            <RefreshCw className="w-4 h-4 mr-1" /> 刷新
-          </Button>
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="w-4 h-4 mr-1" /> 新建校验
-              </Button>
-            </DialogTrigger>
+      <PageHeader
+        icon={ClipboardCheck}
+        title="BOM校验管理"
+        description="物料流转BOM自动校验 · 校验不通过自动拦截"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => {
+              utils.bomVerification.list.invalidate();
+              utils.bomVerification.stats.invalidate();
+            }}>
+              <RefreshCw className="w-4 h-4 mr-1" /> 刷新
+            </Button>
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="w-4 h-4 mr-1" /> 新建校验
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>新建BOM校验记录</DialogTitle>
@@ -190,9 +190,10 @@ export default function BomVerification() {
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+            </Dialog>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -571,5 +572,6 @@ export default function BomVerification() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

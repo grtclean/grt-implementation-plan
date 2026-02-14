@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -347,22 +348,19 @@ export default function JiandaoyunAnalysis() {
             <span className="text-foreground">{language === "zh" ? "简道云系统分析" : "Jiandaoyun Analysis"}</span>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-heading font-bold tracking-tight">
-                {language === "zh" ? "简道云现有系统分析" : "Jiandaoyun System Analysis"}
-              </h1>
-              <p className="text-muted-foreground mt-2 max-w-2xl">
-                {language === "zh"
-                  ? "基于GRT公司简道云平台的完整系统结构提取与分析，为智能系统实施提供数据基础。"
-                  : "Complete system structure extraction and analysis from GRT's Jiandaoyun platform, providing data foundation for intelligent system implementation."}
-              </p>
-            </div>
-            <Badge variant="outline" className="self-start px-3 py-1 border-primary/30 text-primary">
-              <Database className="w-4 h-4 mr-2" />
-              {language === "zh" ? "数据提取完成" : "Data Extracted"}
-            </Badge>
-          </div>
+          <PageHeader
+            icon={Database}
+            title={language === "zh" ? "简道云现有系统分析" : "Jiandaoyun System Analysis"}
+            description={language === "zh"
+              ? "基于GRT公司简道云平台的完整系统结构提取与分析，为智能系统实施提供数据基础。"
+              : "Complete system structure extraction and analysis from GRT's Jiandaoyun platform, providing data foundation for intelligent system implementation."}
+            actions={
+              <Badge variant="outline" className="self-start px-3 py-1 border-primary/30 text-primary">
+                <Database className="w-4 h-4 mr-2" />
+                {language === "zh" ? "数据提取完成" : "Data Extracted"}
+              </Badge>
+            }
+          />
         </div>
 
         {/* Stats Overview */}

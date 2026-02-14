@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Database, RefreshCw, Settings, Plus, TestTube, History, CheckCircle, XCircle, Clock, Loader2 } from "lucide-react";
 
 export default function ErpConfiguration() {
@@ -122,25 +124,21 @@ export default function ErpConfiguration() {
   }
 
   return (
+    <Layout>
     <div className="space-y-6 p-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Database className="w-6 h-6 text-primary" />
-            ERP连接配置
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            配置和管理SAP、Oracle、金蝶等ERP系统的数据同步连接
-          </p>
-        </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              添加连接
-            </Button>
-          </DialogTrigger>
+      <PageHeader
+        icon={Database}
+        title="ERP连接配置"
+        description="配置和管理SAP、Oracle、金蝶等ERP系统的数据同步连接"
+        actions={
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            添加连接
+          </Button>
+        }
+      />
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>添加ERP连接</DialogTitle>
@@ -215,7 +213,6 @@ export default function ErpConfiguration() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
 
       {/* 连接列表 */}
       <div className="grid gap-4">
@@ -342,5 +339,6 @@ export default function ErpConfiguration() {
         </Dialog>
       )}
     </div>
+    </Layout>
   );
 }

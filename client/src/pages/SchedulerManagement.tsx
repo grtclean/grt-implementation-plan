@@ -4,6 +4,7 @@
  */
 
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -133,26 +134,21 @@ export default function SchedulerManagement() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Timer className="w-6 h-6 text-primary" />
-              定时任务管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              管理系统定时任务，查看执行历史和配置提醒规则
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={() => { refetchTasks(); refetchLogs(); }}
-            className="gap-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            刷新
-          </Button>
-        </div>
+        <PageHeader
+          icon={Timer}
+          title="定时任务管理"
+          description="管理系统定时任务，查看执行历史和配置提醒规则"
+          actions={
+            <Button
+              variant="outline"
+              onClick={() => { refetchTasks(); refetchLogs(); }}
+              className="gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              刷新
+            </Button>
+          }
+        />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>

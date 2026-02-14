@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -170,22 +171,18 @@ export default function GlobalGrowthTracker() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-heading flex items-center gap-3">
-              <Globe className="w-8 h-8 text-primary" />
-              {isZh ? '全球增长追踪器' : 'Global Growth Tracker'}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {isZh 
-                ? '2028战略目标：3亿元收入 - 区域资源配置与收入追踪' 
-                : '2028 Strategy: 300M CNY Revenue - Regional Resource Allocation & Revenue Tracking'}
-            </p>
-          </div>
-          <Badge variant="outline" className="text-lg px-4 py-2">
-            2028 Strategy
-          </Badge>
-        </div>
+        <PageHeader
+          icon={Globe}
+          title={isZh ? '全球增长追踪器' : 'Global Growth Tracker'}
+          description={isZh
+            ? '2028战略目标：3亿元收入 - 区域资源配置与收入追踪'
+            : '2028 Strategy: 300M CNY Revenue - Regional Resource Allocation & Revenue Tracking'}
+          actions={
+            <Badge variant="outline" className="text-lg px-4 py-2">
+              2028 Strategy
+            </Badge>
+          }
+        />
 
         {/* 全球概览卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

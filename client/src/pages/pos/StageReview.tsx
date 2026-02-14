@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -253,6 +255,7 @@ export default function StageReview() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* 面包屑导航 */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -265,35 +268,37 @@ export default function StageReview() {
         <span className="text-foreground font-medium">{stage} 评审</span>
       </nav>
 
-      {/* 返回按钮和标题 */}
+      {/* 返回按钮 */}
       <div className="flex items-center gap-4">
         <Link href={`/pos/projects/${projectId}`}>
           <Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-2" />返回项目</Button>
         </Link>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">
-            {stage} - {isM3 ? '立项评审' : '方案冻结 P1'}
-          </h1>
-          <p className="text-muted-foreground">
-            {isM3 ? '项目立项与资源分配评审' : '设计评审与方案确认（五节车厢）'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="text-right mr-4">
-            <p className="text-sm text-muted-foreground">完成进度</p>
-            <p className="font-medium">{Math.round(calculateProgress())}%</p>
-          </div>
-          <Progress value={calculateProgress()} className="w-32" />
-        </div>
-        <Button onClick={handleSubmitReview} disabled={isSubmitting}>
-          {isSubmitting ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 mr-2" />
-          )}
-          提交评审
-        </Button>
       </div>
+
+      <PageHeader
+        icon={CheckCircle2}
+        title={`${stage} - ${isM3 ? '立项评审' : '方案冻结 P1'}`}
+        description={isM3 ? '项目立项与资源分配评审' : '设计评审与方案确认（五节车厢）'}
+        actions={
+          <>
+            <div className="flex items-center gap-2">
+              <div className="text-right mr-4">
+                <p className="text-sm text-muted-foreground">完成进度</p>
+                <p className="font-medium">{Math.round(calculateProgress())}%</p>
+              </div>
+              <Progress value={calculateProgress()} className="w-32" />
+            </div>
+            <Button onClick={handleSubmitReview} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+              )}
+              提交评审
+            </Button>
+          </>
+        }
+      />
 
       {/* 评审状态概览 */}
       {getReviewStatus.data && (
@@ -646,5 +651,6 @@ export default function StageReview() {
         </Card>
       )}
     </div>
+    </Layout>
   );
 }

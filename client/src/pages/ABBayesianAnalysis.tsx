@@ -4,6 +4,8 @@
  */
 
 import { useState } from 'react';
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -166,12 +168,13 @@ export default function ABBayesianAnalysis() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">A/B测试贝叶斯分析</h1>
-          <p className="text-muted-foreground">使用贝叶斯统计方法分析实验结果</p>
-        </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={BarChart3}
+        title="A/B测试贝叶斯分析"
+        description="使用贝叶斯统计方法分析实验结果"
+        actions={
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button>
@@ -200,46 +203,15 @@ export default function ABBayesianAnalysis() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">测试总数</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.totalTests}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-blue-500" />
-              <span className="text-sm text-muted-foreground">进行中</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.runningTests}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm text-muted-foreground">已得出结论</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.conclusiveTests}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-purple-500" />
-              <span className="text-sm text-muted-foreground">平均胜出概率</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{formatProbability(stats.averageWinProbability)}</p>
-          </CardContent>
-        </Card>
+        <StatCard icon={BarChart3} label="测试总数" value={stats.totalTests} iconColor="text-muted-foreground" iconBg="bg-muted" />
+        <StatCard icon={Activity} label="进行中" value={stats.runningTests} iconColor="text-blue-500" iconBg="bg-blue-50" />
+        <StatCard icon={CheckCircle} label="已得出结论" value={stats.conclusiveTests} iconColor="text-green-500" iconBg="bg-green-50" />
+        <StatCard icon={Target} label="平均胜出概率" value={formatProbability(stats.averageWinProbability)} iconColor="text-purple-500" iconBg="bg-purple-50" />
       </div>
 
       <Tabs defaultValue="tests" className="space-y-4">
@@ -413,5 +385,6 @@ export default function ABBayesianAnalysis() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

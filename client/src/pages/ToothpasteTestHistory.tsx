@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -160,21 +161,15 @@ export default function ToothpasteTestHistory() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <FlaskConical className="w-6 h-6 text-primary" />
-              牙膏试验历史记录
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              查看历史试验数据和统计分析
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <Badge variant="outline" className="text-lg px-3 py-1">
-              共 {totalCount?.count || 0} 条记录
-            </Badge>
-            <div className="flex items-center gap-2">
+        <PageHeader
+          icon={FlaskConical}
+          title="牙膏试验历史记录"
+          description="查看历史试验数据和统计分析"
+          actions={
+            <>
+              <Badge variant="outline" className="text-lg px-3 py-1">
+                共 {totalCount?.count || 0} 条记录
+              </Badge>
               <Select
                 value={exportFormat}
                 onValueChange={(value) => setExportFormat(value as "excel" | "pdf" | "csv")}
@@ -196,9 +191,9 @@ export default function ToothpasteTestHistory() {
                 <Download className="w-4 h-4" />
                 {isExporting ? "导出中..." : "导出报表"}
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* 标签页 */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -358,40 +353,10 @@ export default function ToothpasteTestHistory() {
 
             {/* 统计卡片 */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-muted-foreground">总测试数</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{statistics?.totalTests || 0}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-muted-foreground">通过数</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-green-500">{statistics?.passedTests || 0}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-muted-foreground">失败数</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-red-500">{statistics?.failedTests || 0}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-muted-foreground">通过率</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-primary">
-                    {statistics?.passRate?.toFixed(1) || 0}%
-                  </div>
-                </CardContent>
-              </Card>
+              <StatCard icon={BarChart3} label="总测试数" value={statistics?.totalTests || 0} iconColor="text-blue-500" iconBg="bg-blue-50" />
+              <StatCard icon={CheckCircle2} label="通过数" value={statistics?.passedTests || 0} iconColor="text-green-500" iconBg="bg-green-50" />
+              <StatCard icon={XCircle} label="失败数" value={statistics?.failedTests || 0} iconColor="text-red-500" iconBg="bg-red-50" />
+              <StatCard icon={Activity} label="通过率" value={`${statistics?.passRate?.toFixed(1) || 0}%`} iconColor="text-primary" iconBg="bg-primary/10" />
             </div>
 
             {/* 特征类型分布 */}

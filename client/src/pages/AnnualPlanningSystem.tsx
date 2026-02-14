@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Upload, CheckCircle2, AlertCircle, FileText, BarChart3, GitBranch } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { PageHeader } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 // Sub-components
 import KPIInputForm from './annual-planning/KPIInputForm';
@@ -71,34 +73,25 @@ export default function AnnualPlanningSystem() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold font-heading">Annual Planning & Change Management</h1>
-              <p className="text-muted-foreground mt-2">
-                Manage annual KPIs, organization structure, and process improvements with AI assistance
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="px-3 py-2 border border-border rounded-md bg-background text-foreground"
-              >
-                {[2024, 2025, 2026, 2027].map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
+    <Layout>
+      <div className="space-y-6">
+        {/* Header */}
+        <PageHeader
+          icon={BarChart3}
+          title="Annual Planning & Change Management"
+          description="Manage annual KPIs, organization structure, and process improvements with AI assistance"
+          actions={
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="px-3 py-2 border border-border rounded-md bg-background text-foreground"
+            >
+              {[2024, 2025, 2026, 2027].map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          }
+        />
         {/* Status Overview */}
         {dashboardQuery.data?.dashboard && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -310,6 +303,6 @@ export default function AnnualPlanningSystem() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </Layout>
   );
 }

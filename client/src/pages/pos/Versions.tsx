@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -514,17 +516,20 @@ export default function POSVersions() {
   const displayVersions = versions && versions.length > 0 ? versions : sampleVersions;
 
   return (
+    <Layout>
     <div className="space-y-6">
-      {/* 返回按钮和标题 */}
+      {/* 返回按钮 */}
       <div className="flex items-center gap-4">
         <Link href={`/pos/projects/${projectId}`}>
           <Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-2" />返回项目</Button>
         </Link>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">版本管理</h1>
-          <p className="text-muted-foreground">AI版本对比与激活 - 支持JSON结构化Diff</p>
-        </div>
       </div>
+
+      <PageHeader
+        icon={GitBranch}
+        title="版本管理"
+        description="AI版本对比与激活 - 支持JSON结构化Diff"
+      />
 
       {/* 版本说明 */}
       <Card className="border-blue-500/50">
@@ -690,5 +695,6 @@ export default function POSVersions() {
         onClose={() => setShowCompareDialog(false)}
       />
     </div>
+    </Layout>
   );
 }

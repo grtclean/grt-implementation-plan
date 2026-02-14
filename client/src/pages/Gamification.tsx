@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,10 +36,10 @@ export default function Gamification() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Trophy className="h-8 w-8 text-yellow-500" />
-          <h1 className="text-2xl font-bold">{isZh ? "成就系统" : "Achievement System"}</h1>
-        </div>
+        <PageHeader
+          icon={Trophy}
+          title={isZh ? "成就系统" : "Achievement System"}
+        />
 
         <Tabs defaultValue="profile" className="w-full">
           <TabsList>

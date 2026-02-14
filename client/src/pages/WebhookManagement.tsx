@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -297,87 +298,42 @@ export default function WebhookManagement() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold flex items-center gap-3">
-              <Webhook className="w-8 h-8 text-primary" />
-              Webhook管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              配置和管理系统通知的Webhook端点
-            </p>
-          </div>
-          <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90" onClick={() => resetForm()}>
-                <Plus className="w-4 h-4 mr-2" />
-                新建Webhook
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>新建Webhook</DialogTitle>
-                <DialogDescription>配置新的Webhook端点接收系统通知</DialogDescription>
-              </DialogHeader>
-              <WebhookForm
-                formData={formData}
-                setFormData={setFormData}
-                toggleEvent={toggleEvent}
-                onSubmit={handleCreate}
-                isLoading={createMutation.isPending}
-                submitLabel="创建"
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+        <PageHeader
+          icon={Webhook}
+          title="Webhook管理"
+          description="配置和管理系统通知的Webhook端点"
+          actions={
+            <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90" onClick={() => resetForm()}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  新建Webhook
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>新建Webhook</DialogTitle>
+                  <DialogDescription>配置新的Webhook端点接收系统通知</DialogDescription>
+                </DialogHeader>
+                <WebhookForm
+                  formData={formData}
+                  setFormData={setFormData}
+                  toggleEvent={toggleEvent}
+                  onSubmit={handleCreate}
+                  isLoading={createMutation.isPending}
+                  submitLabel="创建"
+                />
+              </DialogContent>
+            </Dialog>
+          }
+        />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-primary/10 text-primary">
-                <Webhook className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Webhook总数</p>
-                <p className="text-2xl font-bold">{webhooks?.length || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-green-500/10 text-green-500">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">已启用</p>
-                <p className="text-2xl font-bold">{webhooks?.filter(w => w.enabled).length || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-blue-500/10 text-blue-500">
-                <Send className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">今日发送</p>
-                <p className="text-2xl font-bold">-</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-sm bg-red-500/10 text-red-500">
-                <AlertCircle className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">失败次数</p>
-                <p className="text-2xl font-bold">-</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Webhook} label="Webhook总数" value={webhooks?.length || 0} iconColor="text-primary" iconBg="bg-primary/10" />
+          <StatCard icon={CheckCircle2} label="已启用" value={webhooks?.filter(w => w.enabled).length || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Send} label="今日发送" value="-" iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={AlertCircle} label="失败次数" value="-" iconColor="text-red-500" iconBg="bg-red-500/10" />
         </div>
 
         {/* Tabs */}

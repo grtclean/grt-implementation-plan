@@ -9,7 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { 
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
+import {
   Database, CheckCircle, XCircle, RefreshCw, Settings,
   Server, Key, Globe, Clock, AlertTriangle
 } from "lucide-react";
@@ -134,16 +136,13 @@ export default function ErpConnectionManager() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Database className="w-6 h-6 text-primary" />
-            ERP连接管理
-          </h1>
-          <p className="text-muted-foreground mt-1">配置和管理SAP、Oracle、金蝶等ERP系统的API连接</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Database}
+        title="ERP连接管理"
+        description="配置和管理SAP、Oracle、金蝶等ERP系统的API连接"
+      />
 
       {/* ERP系统状态概览 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -287,5 +286,6 @@ export default function ErpConnectionManager() {
         ))}
       </Tabs>
     </div>
+    </Layout>
   );
 }

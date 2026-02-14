@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -399,49 +400,45 @@ export default function GateChecklistSettings() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <ClipboardCheck className="w-6 h-6 text-primary" />
-              Gate检查清单配置
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              配置M7-M9各阶段的检查项，支持工业清洗设备行业专用检查标准
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={applyTier1Weights} disabled={updateMutation.isPending}>
-              <Target className="w-4 h-4 mr-2" />
-              Tier1权重预设
-            </Button>
-            <Button variant="outline" onClick={handleImportTemplate} disabled={importTemplateMutation.isPending}>
-              <Copy className="w-4 h-4 mr-2" />
-              导入行业模板
-            </Button>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  新增检查项
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>新增检查项</DialogTitle>
-                  <DialogDescription>
-                    为 {GATE_STAGES.find(g => g.value === selectedGate)?.label} 添加检查项
-                  </DialogDescription>
-                </DialogHeader>
-                <ChecklistItemForm 
-                  formData={formData} 
-                  setFormData={setFormData}
-                  onSubmit={handleCreate}
-                  isLoading={createMutation.isPending}
-                />
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+        <PageHeader
+          icon={ClipboardCheck}
+          title="Gate检查清单配置"
+          description="配置M7-M9各阶段的检查项，支持工业清洗设备行业专用检查标准"
+          actions={
+            <>
+              <Button variant="outline" onClick={applyTier1Weights} disabled={updateMutation.isPending}>
+                <Target className="w-4 h-4 mr-2" />
+                Tier1权重预设
+              </Button>
+              <Button variant="outline" onClick={handleImportTemplate} disabled={importTemplateMutation.isPending}>
+                <Copy className="w-4 h-4 mr-2" />
+                导入行业模板
+              </Button>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    新增检查项
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>新增检查项</DialogTitle>
+                    <DialogDescription>
+                      为 {GATE_STAGES.find(g => g.value === selectedGate)?.label} 添加检查项
+                    </DialogDescription>
+                  </DialogHeader>
+                  <ChecklistItemForm
+                    formData={formData}
+                    setFormData={setFormData}
+                    onSubmit={handleCreate}
+                    isLoading={createMutation.isPending}
+                  />
+                </DialogContent>
+              </Dialog>
+            </>
+          }
+        />
 
         {/* 工业清洗设备行业提示 */}
         <Card className="bg-blue-500/5 border-blue-500/20">

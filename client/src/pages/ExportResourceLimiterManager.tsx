@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
+import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from '@/components/grt';
 import { Activity, Cpu, HardDrive, Play, Pause, XCircle, Clock, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 
 interface ExportTask {
@@ -61,54 +63,20 @@ export default function ExportResourceLimiterManager() {
   };
 
   return (
+    <Layout>
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">导出任务资源限制</h1>
-          <p className="text-muted-foreground">动态调整并发数量，避免资源争抢</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Activity}
+        title="导出任务资源限制"
+        description="动态调整并发数量，避免资源争抢"
+      />
 
       {/* 系统负载监控 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Cpu className="h-4 w-4 text-blue-500" />
-              <span className="text-sm text-muted-foreground">CPU使用率</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{load.cpuUsagePercent}%</p>
-            <Progress value={load.cpuUsagePercent} className="h-2 mt-2" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <HardDrive className="h-4 w-4 text-green-500" />
-              <span className="text-sm text-muted-foreground">内存使用</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{(load.memoryUsageMB / 1024).toFixed(1)} GB</p>
-            <Progress value={(load.memoryUsageMB / load.memoryTotalMB) * 100} className="h-2 mt-2" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-orange-500" />
-              <span className="text-sm text-muted-foreground">活跃任务</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.runningTasks}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-purple-500" />
-              <span className="text-sm text-muted-foreground">排队任务</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.queuedTasks}</p>
-          </CardContent>
-        </Card>
+        <StatCard icon={Cpu} label="CPU使用率" value={`${load.cpuUsagePercent}%`} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={HardDrive} label="内存使用" value={`${(load.memoryUsageMB / 1024).toFixed(1)} GB`} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Activity} label="活跃任务" value={stats.runningTasks} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Clock} label="排队任务" value={stats.queuedTasks} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       {/* 并发控制 */}
@@ -194,5 +162,6 @@ export default function ExportResourceLimiterManager() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

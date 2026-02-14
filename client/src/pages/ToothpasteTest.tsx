@@ -1,7 +1,8 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import ToothpasteTestDataEntry from "@/components/ToothpasteTestDataEntry";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, TestTube } from "lucide-react";
 import { Link } from "wouter";
 
 export default function ToothpasteTest() {
@@ -21,8 +22,9 @@ export default function ToothpasteTest() {
               返回清洗策略
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold">牙膏试验数据录入</h1>
         </div>
+
+        <PageHeader icon={TestTube} title="牙膏试验数据录入" />
 
         {/* 牙膏试验数据录入组件 */}
         <ToothpasteTestDataEntry onSubmit={handleSubmit} />

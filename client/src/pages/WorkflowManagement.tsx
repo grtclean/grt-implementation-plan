@@ -11,6 +11,7 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from '@/components/grt';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -252,104 +253,74 @@ export default function WorkflowManagement() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <Activity className="w-6 h-6 text-primary" />
-              工作流管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              管理和监控自动化工作流的执行
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={toggleScheduler}
-              className={isSchedulerRunning ? 'border-green-500/50' : 'border-red-500/50'}
-            >
-              {isSchedulerRunning ? (
-                <>
-                  <Pause className="w-4 h-4 mr-2" />
-                  暂停调度
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 mr-2" />
-                  启动调度
-                </>
-              )}
-            </Button>
-            <Button onClick={handleManualTrigger} disabled={isRunning}>
-              {isRunning ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  执行中...
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 mr-2" />
-                  立即执行
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Activity}
+          title="工作流管理"
+          description="管理和监控自动化工作流的执行"
+          actions={
+            <>
+              <Button
+                variant="outline"
+                onClick={toggleScheduler}
+                className={isSchedulerRunning ? 'border-green-500/50' : 'border-red-500/50'}
+              >
+                {isSchedulerRunning ? (
+                  <>
+                    <Pause className="w-4 h-4 mr-2" />
+                    暂停调度
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 mr-2" />
+                    启动调度
+                  </>
+                )}
+              </Button>
+              <Button onClick={handleManualTrigger} disabled={isRunning}>
+                {isRunning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    执行中...
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 mr-2" />
+                    立即执行
+                  </>
+                )}
+              </Button>
+            </>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">总执行次数</p>
-                  <p className="text-2xl font-bold">{stats.totalExecutions}</p>
-                </div>
-                <History className="w-8 h-8 text-primary/50" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">成功率</p>
-                  <p className="text-2xl font-bold text-green-500">
-                    {stats.totalExecutions > 0
-                      ? Math.round((stats.successfulExecutions / stats.totalExecutions) * 100)
-                      : 0}%
-                  </p>
-                </div>
-                <CheckCircle2 className="w-8 h-8 text-green-500/50" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">创建任务数</p>
-                  <p className="text-2xl font-bold">{stats.totalTasksCreated}</p>
-                </div>
-                <Activity className="w-8 h-8 text-primary/50" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">下次执行</p>
-                  <p className="text-sm font-medium">
-                    {stats.nextScheduledTime
-                      ? new Date(stats.nextScheduledTime).toLocaleDateString('zh-CN', { weekday: 'short', month: 'short', day: 'numeric' })
-                      : '-'}
-                  </p>
-                </div>
-                <Calendar className="w-8 h-8 text-primary/50" />
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            icon={History}
+            label="总执行次数"
+            value={stats.totalExecutions}
+          />
+          <StatCard
+            icon={CheckCircle2}
+            label="成功率"
+            value={`${stats.totalExecutions > 0
+              ? Math.round((stats.successfulExecutions / stats.totalExecutions) * 100)
+              : 0}%`}
+            iconColor="text-green-500"
+            iconBg="bg-green-500/10"
+          />
+          <StatCard
+            icon={Activity}
+            label="创建任务数"
+            value={stats.totalTasksCreated}
+          />
+          <StatCard
+            icon={Calendar}
+            label="下次执行"
+            value={stats.nextScheduledTime
+              ? new Date(stats.nextScheduledTime).toLocaleDateString('zh-CN', { weekday: 'short', month: 'short', day: 'numeric' })
+              : '-'}
+          />
         </div>
 
         {/* 主内容区 */}

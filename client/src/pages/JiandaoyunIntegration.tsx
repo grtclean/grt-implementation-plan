@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -938,42 +939,38 @@ export default function JiandaoyunIntegration() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold flex items-center gap-3">
-              <Database className="w-8 h-8 text-primary" />
-              简道云集成
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              连接简道云平台，同步组织架构、人员角色和业务数据
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => testConnectionMutation.mutate()}
-              disabled={testConnectionMutation.isPending}
-            >
-              {testConnectionMutation.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              测试连接
-            </Button>
-            <Button
-              onClick={() => fullSyncMutation.mutate()}
-              disabled={fullSyncMutation.isPending}
-            >
-              {fullSyncMutation.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Database className="w-4 h-4 mr-2" />
-              )}
-              全量同步
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Database}
+          title="简道云集成"
+          description="连接简道云平台，同步组织架构、人员角色和业务数据"
+          actions={
+            <>
+              <Button
+                variant="outline"
+                onClick={() => testConnectionMutation.mutate()}
+                disabled={testConnectionMutation.isPending}
+              >
+                {testConnectionMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                测试连接
+              </Button>
+              <Button
+                onClick={() => fullSyncMutation.mutate()}
+                disabled={fullSyncMutation.isPending}
+              >
+                {fullSyncMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Database className="w-4 h-4 mr-2" />
+                )}
+                全量同步
+              </Button>
+            </>
+          }
+        />
 
         {/* 状态卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

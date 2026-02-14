@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -162,17 +164,14 @@ export default function MicrosoftGraphSettings() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Settings className="w-6 h-6 text-primary" />
-            {t('title')}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t('description')}</p>
-        </div>
-        {statusBadge[config.status]}
-      </div>
+      <PageHeader
+        icon={Settings}
+        title={t('title')}
+        description={t('description')}
+        actions={statusBadge[config.status]}
+      />
 
       <Tabs defaultValue="config" className="space-y-4">
         <TabsList>
@@ -344,5 +343,6 @@ export default function MicrosoftGraphSettings() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

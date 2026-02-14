@@ -3,6 +3,8 @@
  * 管理培训证书、能力认证证书的模板设计和生成
  */
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -143,18 +145,13 @@ export default function CertificateTemplates() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Award className="w-6 h-6 text-primary" />
-            证书模板管理
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            管理培训证书、能力认证证书的模板设计和颁发
-          </p>
-        </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Award}
+        title="证书模板管理"
+        description="管理培训证书、能力认证证书的模板设计和颁发"
+        actions={
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -224,7 +221,8 @@ export default function CertificateTemplates() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -506,5 +504,6 @@ export default function CertificateTemplates() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

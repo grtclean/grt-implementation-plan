@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -157,42 +158,35 @@ export default function GuideReader() {
     <Layout>
       <div className="h-[calc(100vh-120px)] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
-          <div className="flex items-center gap-4">
-            <Link href="/docs">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ChevronLeft className="w-4 h-4" />
-                {language === "zh" ? "返回文档中心" : "Back to Docs"}
-              </Button>
-            </Link>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Book className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-xl font-heading font-bold">
-                  {language === "zh" ? "GRT NocoBase 系统开发指南" : "GRT NocoBase Development Guide"}
-                </h1>
-                <p className="text-xs text-muted-foreground font-mono">v1.0 | 2026-01-16</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowToc(!showToc)}
-              className="gap-2"
-            >
-              {showToc ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-              {language === "zh" ? "目录" : "TOC"}
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Download className="w-4 h-4" />
-              {language === "zh" ? "下载PDF" : "Download PDF"}
-            </Button>
-          </div>
+        <div className="border-b border-border pb-4 mb-4">
+          <PageHeader
+            icon={Book}
+            title={language === "zh" ? "GRT NocoBase 系统开发指南" : "GRT NocoBase Development Guide"}
+            description="v1.0 | 2026-01-16"
+            actions={
+              <>
+                <Link href="/docs">
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <ChevronLeft className="w-4 h-4" />
+                    {language === "zh" ? "返回文档中心" : "Back to Docs"}
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowToc(!showToc)}
+                  className="gap-2"
+                >
+                  {showToc ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+                  {language === "zh" ? "目录" : "TOC"}
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="w-4 h-4" />
+                  {language === "zh" ? "下载PDF" : "Download PDF"}
+                </Button>
+              </>
+            }
+          />
         </div>
 
         {/* Main Content */}

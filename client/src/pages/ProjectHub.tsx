@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FolderKanban, FileText, CheckSquare, BarChart3, Plus, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { PageHeader, StatCard } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 const mockProjects = [
   { id: "prj_001", name: "上汽清洗线项目", customer: "上汽大众", stage: "M5", progress: 65, status: "on_track", pmName: "张工" },
@@ -39,51 +41,20 @@ export default function ProjectHub() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FolderKanban className="w-6 h-6 text-primary" />
-            项目中心
-          </h1>
-          <p className="text-muted-foreground mt-1">项目全生命周期管理、M0-M12状态追踪</p>
-        </div>
-        <Button size="sm" onClick={() => showPlaceholder('新建项目')}><Plus className="w-4 h-4 mr-2" />新建项目</Button>
-      </div>
+      <PageHeader
+        icon={FolderKanban}
+        title="项目中心"
+        description="项目全生命周期管理、M0-M12状态追踪"
+        actions={<Button size="sm" onClick={() => showPlaceholder('新建项目')}><Plus className="w-4 h-4 mr-2" />新建项目</Button>}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">进行中项目</p><p className="text-2xl font-bold text-primary">12</p></div>
-              <FolderKanban className="w-8 h-8 text-primary/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">按计划进行</p><p className="text-2xl font-bold text-green-400">8</p></div>
-              <CheckCircle2 className="w-8 h-8 text-green-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 border-yellow-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">风险项目</p><p className="text-2xl font-bold text-yellow-400">3</p></div>
-              <AlertTriangle className="w-8 h-8 text-yellow-500/50" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-muted-foreground">待审批交付物</p><p className="text-2xl font-bold text-blue-400">5</p></div>
-              <CheckSquare className="w-8 h-8 text-blue-500/50" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={FolderKanban} label="进行中项目" value={12} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={CheckCircle2} label="按计划进行" value={8} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label="风险项目" value={3} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+        <StatCard icon={CheckSquare} label="待审批交付物" value={5} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -182,5 +153,6 @@ export default function ProjectHub() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

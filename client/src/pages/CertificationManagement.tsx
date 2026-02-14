@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -694,69 +695,24 @@ export default function CertificationManagement() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-heading flex items-center gap-3">
-              <Award className="w-8 h-8 text-primary" />
-              资质管理中心
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              全球OEM/Tier1/Tier2客户门户资格要求与GRT资质建设计划
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <ReminderSettings />
-            <GapAnalysisReport />
-          </div>
-        </div>
+        <PageHeader
+          icon={Award}
+          title="资质管理中心"
+          description="全球OEM/Tier1/Tier2客户门户资格要求与GRT资质建设计划"
+          actions={
+            <>
+              <ReminderSettings />
+              <GapAnalysisReport />
+            </>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-green-500/10 text-green-500">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">现有资质</p>
-                <p className="text-2xl font-bold">{grtCertifications.length}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500">
-                <Target className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">计划认证</p>
-                <p className="text-2xl font-bold">{totalPlanned}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-yellow-500/10 text-yellow-500">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">平均进度</p>
-                <p className="text-2xl font-bold">{avgProgress}%</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-purple-500/10 text-purple-500">
-                <Clock className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">总预算</p>
-                <p className="text-2xl font-bold">¥{totalBudget}万</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={CheckCircle2} label="现有资质" value={grtCertifications.length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Target} label="计划认证" value={totalPlanned} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={TrendingUp} label="平均进度" value={`${avgProgress}%`} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+          <StatCard icon={Clock} label="总预算" value={`¥${totalBudget}万`} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
         </div>
 
         {/* 标签页 */}

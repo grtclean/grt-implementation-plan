@@ -4,6 +4,7 @@
  */
 
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -111,22 +112,20 @@ export default function CronMonitor() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold font-heading flex items-center gap-2">
-              <Clock className="w-6 h-6 text-primary" />
-              定时任务监控
-            </h1>
-            <p className="text-muted-foreground mt-1">管理和监控系统定时任务执行状态</p>
-          </div>
-          <Button onClick={() => toast({ title: "正在刷新任务状态..." })}><RefreshCw className="w-4 h-4 mr-1" />刷新状态</Button>
-        </div>
+        <PageHeader
+          icon={Clock}
+          title="定时任务监控"
+          description="管理和监控系统定时任务执行状态"
+          actions={
+            <Button onClick={() => toast({ title: "正在刷新任务状态..." })}><RefreshCw className="w-4 h-4 mr-1" />刷新状态</Button>
+          }
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border"><CardContent className="p-4 flex items-center gap-3"><div className="p-2 rounded-lg bg-primary/10 text-primary"><Settings className="w-5 h-5" /></div><div><p className="text-sm text-muted-foreground">总任务数</p><p className="text-xl font-bold">{stats.totalTasks}</p></div></CardContent></Card>
-          <Card className="bg-card/50 border-border"><CardContent className="p-4 flex items-center gap-3"><div className="p-2 rounded-lg bg-green-500/10 text-green-500"><CheckCircle2 className="w-5 h-5" /></div><div><p className="text-sm text-muted-foreground">已启用</p><p className="text-xl font-bold">{stats.enabledTasks}</p></div></CardContent></Card>
-          <Card className="bg-card/50 border-border"><CardContent className="p-4 flex items-center gap-3"><div className="p-2 rounded-lg bg-blue-500/10 text-blue-500"><Play className="w-5 h-5" /></div><div><p className="text-sm text-muted-foreground">运行中</p><p className="text-xl font-bold">{stats.runningTasks}</p></div></CardContent></Card>
-          <Card className="bg-card/50 border-border"><CardContent className="p-4 flex items-center gap-3"><div className="p-2 rounded-lg bg-red-500/10 text-red-500"><XCircle className="w-5 h-5" /></div><div><p className="text-sm text-muted-foreground">失败</p><p className="text-xl font-bold">{stats.failedTasks}</p></div></CardContent></Card>
+          <StatCard icon={Settings} label="总任务数" value={stats.totalTasks} />
+          <StatCard icon={CheckCircle2} label="已启用" value={stats.enabledTasks} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Play} label="运行中" value={stats.runningTasks} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={XCircle} label="失败" value={stats.failedTasks} iconColor="text-red-500" iconBg="bg-red-500/10" />
         </div>
 
         <Card className="bg-card/50 border-border">

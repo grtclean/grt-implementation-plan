@@ -13,6 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { CheckCircle, AlertCircle, RefreshCw, Settings, Database, Clock } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
+import Layout from '@/components/Layout';
+import { PageHeader } from '@/components/grt';
 
 export default function ERPIntegration() {
   const { toast } = useToast();
@@ -101,18 +103,20 @@ export default function ERPIntegration() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">ERP集成管理</h1>
-          <p className="text-muted-foreground mt-2">配置和管理天思ERP系统集成</p>
-        </div>
-        <Button variant="outline" className="gap-2">
-          <Settings className="w-4 h-4" />
-          集成设置
-        </Button>
-      </div>
+      <PageHeader
+        icon={Database}
+        title="ERP集成管理"
+        description="配置和管理天思ERP系统集成"
+        actions={
+          <Button variant="outline" className="gap-2">
+            <Settings className="w-4 h-4" />
+            集成设置
+          </Button>
+        }
+      />
 
       {/* 连接状态 */}
       {statusData && (
@@ -471,5 +475,6 @@ export default function ERPIntegration() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

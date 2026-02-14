@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import FeatureGuide from "@/components/FeatureGuide";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -406,22 +407,19 @@ export default function WorkerManagement() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Users className="w-6 h-6 text-primary" />
-              工人管理
-            </h1>
-            <p className="text-muted-foreground mt-1">生产工人信息管理、效率统计与绩效分析</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" onClick={() => { refetchWorkers(); toast.success("数据已刷新"); }}>
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button><Plus className="w-4 h-4 mr-2" />添加工人</Button>
-              </DialogTrigger>
+        <PageHeader
+          icon={Users}
+          title="工人管理"
+          description="生产工人信息管理、效率统计与绩效分析"
+          actions={
+            <>
+              <Button variant="outline" size="icon" onClick={() => { refetchWorkers(); toast.success("数据已刷新"); }}>
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="w-4 h-4 mr-2" />添加工人</Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>添加新工人</DialogTitle>
@@ -600,17 +598,18 @@ export default function WorkerManagement() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">总工人数</p><p className="text-2xl font-bold">{stats.totalWorkers}</p></div><Users className="w-8 h-8 text-blue-500/50" /></div></CardContent></Card>
-          <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">在职人数</p><p className="text-2xl font-bold text-green-500">{stats.activeWorkers}</p></div><User className="w-8 h-8 text-green-500/50" /></div></CardContent></Card>
-          <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">待处理预警</p><p className="text-2xl font-bold text-orange-500">{(alertsData as any)?.total || 0}</p></div><Bell className="w-8 h-8 text-orange-500/50" /></div></CardContent></Card>
-          <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">效率排名人数</p><p className="text-2xl font-bold text-purple-500">{rankingData?.length || 0}</p></div><Target className="w-8 h-8 text-purple-500/50" /></div></CardContent></Card>
-          <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">优秀工人</p><p className="text-2xl font-bold text-cyan-500">{efficiencyDistribution.excellent}</p></div><Star className="w-8 h-8 text-cyan-500/50" /></div></CardContent></Card>
-          <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">最佳员工</p><p className="text-2xl font-bold text-yellow-500 truncate">{stats.topPerformer}</p></div><Trophy className="w-8 h-8 text-yellow-500/50" /></div></CardContent></Card>
+          <StatCard icon={Users} label="总工人数" value={stats.totalWorkers} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={User} label="在职人数" value={stats.activeWorkers} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Bell} label="待处理预警" value={(alertsData as any)?.total || 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+          <StatCard icon={Target} label="效率排名人数" value={rankingData?.length || 0} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+          <StatCard icon={Star} label="优秀工人" value={efficiencyDistribution.excellent} iconColor="text-cyan-500" iconBg="bg-cyan-500/10" />
+          <StatCard icon={Trophy} label="最佳员工" value={stats.topPerformer} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
         </div>
 
         <Tabs defaultValue="list" className="space-y-4">

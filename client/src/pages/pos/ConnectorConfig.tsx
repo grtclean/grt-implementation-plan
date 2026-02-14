@@ -5,6 +5,8 @@
 
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -186,29 +188,24 @@ export default function ConnectorConfig() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container py-8">
+    <Layout>
+      <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <Settings className="w-8 h-8 text-primary" />
-              第三方连接器配置
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              管理ERP、MES、IM等第三方系统连接，所有敏感信息通过环境变量管理
-            </p>
-          </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => {
-                setEditingConnector(null);
-                setFormData({ connectorCode: "", connectorName: "", connectorType: "ERP", config: "{}" });
-              }}>
-                <Plus className="w-4 h-4 mr-2" />
-                添加连接器
-              </Button>
-            </DialogTrigger>
+        <PageHeader
+          icon={Settings}
+          title="第三方连接器配置"
+          description="管理ERP、MES、IM等第三方系统连接，所有敏感信息通过环境变量管理"
+          actions={
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => {
+                  setEditingConnector(null);
+                  setFormData({ connectorCode: "", connectorName: "", connectorType: "ERP", config: "{}" });
+                }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  添加连接器
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>{editingConnector ? "编辑连接器" : "添加连接器"}</DialogTitle>
@@ -281,10 +278,11 @@ export default function ConnectorConfig() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
+          }
+        />
 
         {/* 连接器类型说明 */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {Object.entries(connectorDescriptions).map(([type, desc]) => (
             <Card key={type} className="bg-card/50">
               <CardContent className="p-4 text-center">
@@ -372,7 +370,7 @@ export default function ConnectorConfig() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </Layout>
   );
 }
 

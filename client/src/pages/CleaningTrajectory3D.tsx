@@ -1,7 +1,8 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import CleaningTrajectory3DViewer from "@/components/CleaningTrajectory3DViewer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Box } from "lucide-react";
 import { Link } from "wouter";
 
 export default function CleaningTrajectory3D() {
@@ -16,8 +17,9 @@ export default function CleaningTrajectory3D() {
               返回清洗策略
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold">清洗轨迹3D可视化</h1>
         </div>
+
+        <PageHeader icon={Box} title="清洗轨迹3D可视化" />
 
         {/* 3D可视化组件 */}
         <CleaningTrajectory3DViewer height={500} />

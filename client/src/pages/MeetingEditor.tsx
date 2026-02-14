@@ -13,6 +13,8 @@ import Placeholder from "@tiptap/extension-placeholder";
 // @ts-ignore - tiptap optional dependency
 import Link from "@tiptap/extension-link";
 import { trpc } from "@/lib/trpc";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -183,66 +185,68 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <Layout>
+    <div className="space-y-6">
       {/* 页面标题和操作栏 */}
       <div className="space-y-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">{meeting.title}</h1>
-            <p className="text-gray-600 mt-1">{meeting.description}</p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleManualSave}
-              disabled={isSaving}
-              className="gap-2"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  保存中...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  保存
-                </>
-              )}
-            </Button>
+        <PageHeader
+          icon={Save}
+          title={meeting.title}
+          description={meeting.description}
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManualSave}
+                disabled={isSaving}
+                className="gap-2"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    保存中...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    保存
+                  </>
+                )}
+              </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateInsights}
-              disabled={isGeneratingInsights}
-              className="gap-2"
-            >
-              {isGeneratingInsights ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  生成中...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  AI分析
-                </>
-              )}
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateInsights}
+                disabled={isGeneratingInsights}
+                className="gap-2"
+              >
+                {isGeneratingInsights ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    生成中...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    AI分析
+                  </>
+                )}
+              </Button>
 
-            <Button variant="outline" size="sm" className="gap-2">
-              <Download className="w-4 h-4" />
-              导出
-            </Button>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Download className="w-4 h-4" />
+                导出
+              </Button>
 
-            <Button variant="outline" size="sm" className="gap-2">
-              <Share2 className="w-4 h-4" />
-              分享
-            </Button>
-          </div>
-        </div>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Share2 className="w-4 h-4" />
+                分享
+              </Button>
+            </>
+          }
+        />
 
         {/* 会议信息 */}
         <div className="flex items-center gap-6 text-sm text-gray-600">
@@ -367,6 +371,7 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }
 

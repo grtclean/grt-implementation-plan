@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,37 +132,35 @@ export default function RedBlueBoard() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-heading font-bold flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-red-500/20 to-blue-500/20"><Shield className="w-6 h-6 text-primary" /></div>
-              {language === 'zh' ? '红蓝对抗项目看板' : 'Red-Blue Adversarial Board'}
-            </h1>
-            <p className="text-muted-foreground mt-1">{language === 'zh' ? 'Tier1客户项目红蓝对抗交付管理，G1-G4门禁状态追踪' : 'Tier1 customer project red-blue adversarial delivery management'}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              {language === 'zh' ? '刷新' : 'Refresh'}
-            </Button>
-            <Select value={selectedProject} onValueChange={setSelectedProject}>
-              <SelectTrigger className="w-[280px]"><SelectValue placeholder={language === 'zh' ? '选择项目' : 'Select Project'} /></SelectTrigger>
-              <SelectContent>
-                {projects?.map((project: any) => (
-                  <SelectItem key={project.id} value={project.id.toString()}>
-                    <div className="flex items-center gap-2"><Badge variant="outline" className="text-xs">{project.tier}</Badge><span>{project.name}</span></div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <PageHeader
+          icon={Shield}
+          title={language === 'zh' ? '红蓝对抗项目看板' : 'Red-Blue Adversarial Board'}
+          description={language === 'zh' ? 'Tier1客户项目红蓝对抗交付管理，G1-G4门禁状态追踪' : 'Tier1 customer project red-blue adversarial delivery management'}
+          actions={
+            <>
+              <Button variant="outline" size="sm" onClick={handleRefresh}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                {language === 'zh' ? '刷新' : 'Refresh'}
+              </Button>
+              <Select value={selectedProject} onValueChange={setSelectedProject}>
+                <SelectTrigger className="w-[280px]"><SelectValue placeholder={language === 'zh' ? '选择项目' : 'Select Project'} /></SelectTrigger>
+                <SelectContent>
+                  {projects?.map((project: any) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      <div className="flex items-center gap-2"><Badge variant="outline" className="text-xs">{project.tier}</Badge><span>{project.name}</span></div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          }
+        />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-primary/10"><Layers className="w-5 h-5 text-primary" /></div><div><p className="text-sm text-muted-foreground">{language === 'zh' ? '活跃项目' : 'Active Projects'}</p><p className="text-2xl font-bold">{stats.totalProjects}</p></div></div></CardContent></Card>
-          <Card className="bg-card/50 border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-blue-500/10"><Play className="w-5 h-5 text-blue-500" /></div><div><p className="text-sm text-muted-foreground">{language === 'zh' ? '对抗进行中' : 'In Progress'}</p><p className="text-2xl font-bold">{stats.inProgress}</p></div></div></CardContent></Card>
-          <Card className="bg-card/50 border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-red-500/10"><ShieldAlert className="w-5 h-5 text-red-500" /></div><div><p className="text-sm text-muted-foreground">{language === 'zh' ? '待解决问题' : 'Open Issues'}</p><p className="text-2xl font-bold">{stats.openIssues}</p></div></div></CardContent></Card>
-          <Card className="bg-card/50 border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-green-500/10"><ShieldCheck className="w-5 h-5 text-green-500" /></div><div><p className="text-sm text-muted-foreground">{language === 'zh' ? '今日解决' : 'Resolved Today'}</p><p className="text-2xl font-bold">{stats.resolvedToday}</p></div></div></CardContent></Card>
+          <StatCard icon={Layers} label={language === 'zh' ? '活跃项目' : 'Active Projects'} value={stats.totalProjects} />
+          <StatCard icon={Play} label={language === 'zh' ? '对抗进行中' : 'In Progress'} value={stats.inProgress} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={ShieldAlert} label={language === 'zh' ? '待解决问题' : 'Open Issues'} value={stats.openIssues} iconColor="text-red-500" iconBg="bg-red-500/10" />
+          <StatCard icon={ShieldCheck} label={language === 'zh' ? '今日解决' : 'Resolved Today'} value={stats.resolvedToday} iconColor="text-green-500" iconBg="bg-green-500/10" />
         </div>
 
         {currentProject && (

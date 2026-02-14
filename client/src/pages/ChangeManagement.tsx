@@ -5,6 +5,7 @@
 
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -165,23 +166,18 @@ export default function ChangeManagement() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <GitBranch className="w-8 h-8 text-primary" />
-              变更治理中心
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              CR→CAB→Release→Ack 全闭环管理
-            </p>
-          </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                新建变更请求
-              </Button>
-            </DialogTrigger>
+        <PageHeader
+          icon={GitBranch}
+          title="变更治理中心"
+          description="CR→CAB→Release→Ack 全闭环管理"
+          actions={
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  新建变更请求
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>新建变更请求 (CR)</DialogTitle>
@@ -279,8 +275,9 @@ export default function ChangeManagement() {
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
-        </div>
+            </Dialog>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

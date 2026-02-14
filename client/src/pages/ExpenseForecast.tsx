@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -178,26 +179,22 @@ export default function ExpenseForecast() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <Brain className="w-6 h-6 text-primary" />
-              出差费用预测
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              基于历史数据和AI模型预测未来出差费用
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing || isLoading}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            刷新
-          </Button>
-        </div>
+        <PageHeader
+          icon={Brain}
+          title="出差费用预测"
+          description="基于历史数据和AI模型预测未来出差费用"
+          actions={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing || isLoading}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              刷新
+            </Button>
+          }
+        />
 
         {/* 筛选条件 */}
         <Card className="bg-card/50 border-border">
@@ -261,66 +258,10 @@ export default function ExpenseForecast() {
           </div>
         ) : currentForecast && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-card/50 border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-sm bg-primary/10">
-                    <DollarSign className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">预测总额</p>
-                    <p className="text-2xl font-bold font-heading">
-                      ¥{currentForecast.totalPredicted?.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card/50 border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-sm bg-green-500/10">
-                    <Target className="w-5 h-5 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">平均置信度</p>
-                    <p className="text-2xl font-bold font-heading">
-                      {(currentForecast.averageConfidence * 100).toFixed(1)}%
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card/50 border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-sm bg-blue-500/10">
-                    <Calendar className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">预测期数</p>
-                    <p className="text-2xl font-bold font-heading">
-                      {currentForecast.forecasts?.length || 0}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card/50 border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-sm bg-purple-500/10">
-                    <Activity className="w-5 h-5 text-purple-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">生成时间</p>
-                    <p className="text-sm font-medium">
-                      {currentForecast.generatedAt ? new Date(currentForecast.generatedAt).toLocaleString() : '-'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <StatCard icon={DollarSign} label="预测总额" value={`¥${currentForecast.totalPredicted?.toLocaleString()}`} iconColor="text-primary" iconBg="bg-primary/10" />
+            <StatCard icon={Target} label="平均置信度" value={`${(currentForecast.averageConfidence * 100).toFixed(1)}%`} iconColor="text-green-500" iconBg="bg-green-500/10" />
+            <StatCard icon={Calendar} label="预测期数" value={currentForecast.forecasts?.length || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+            <StatCard icon={Activity} label="生成时间" value={currentForecast.generatedAt ? new Date(currentForecast.generatedAt).toLocaleString() : '-'} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
           </div>
         )}
 

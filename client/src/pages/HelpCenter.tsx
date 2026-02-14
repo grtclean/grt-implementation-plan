@@ -11,6 +11,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -276,11 +277,12 @@ export default function HelpCenter() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题和搜索 */}
+        <PageHeader
+          icon={HelpCircle}
+          title="帮助中心"
+          description="搜索帮助文档，快速找到您需要的答案"
+        />
         <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold tracking-tight">帮助中心</h1>
-          <p className="text-muted-foreground">
-            搜索帮助文档，快速找到您需要的答案
-          </p>
           <div className="max-w-2xl mx-auto">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />

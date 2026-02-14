@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -618,90 +619,45 @@ export default function NotificationChannelSettings() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Bell className="w-6 h-6 text-primary" />
-              通知渠道配置
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              配置企业微信、钉钉、邮件、短信等通知渠道，管理消息模板
-            </p>
-          </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2" onClick={resetForm}>
-                <Plus className="w-4 h-4" />
-                添加渠道
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>添加通知渠道</DialogTitle>
-                <DialogDescription>
-                  配置新的通知渠道，支持企业微信、钉钉、邮件、短信等
-                </DialogDescription>
-              </DialogHeader>
-              <ChannelForm 
-                formData={formData}
-                setFormData={setFormData}
-                showSecrets={showSecrets}
-                setShowSecrets={setShowSecrets}
-                getChannelConfigForm={getChannelConfigForm}
-                onSubmit={handleAddChannel}
-                submitLabel="添加渠道"
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+        <PageHeader
+          icon={Bell}
+          title="通知渠道配置"
+          description="配置企业微信、钉钉、邮件、短信等通知渠道，管理消息模板"
+          actions={
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2" onClick={resetForm}>
+                  <Plus className="w-4 h-4" />
+                  添加渠道
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>添加通知渠道</DialogTitle>
+                  <DialogDescription>
+                    配置新的通知渠道，支持企业微信、钉钉、邮件、短信等
+                  </DialogDescription>
+                </DialogHeader>
+                <ChannelForm
+                  formData={formData}
+                  setFormData={setFormData}
+                  showSecrets={showSecrets}
+                  setShowSecrets={setShowSecrets}
+                  getChannelConfigForm={getChannelConfigForm}
+                  onSubmit={handleAddChannel}
+                  submitLabel="添加渠道"
+                />
+              </DialogContent>
+            </Dialog>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Webhook className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">渠道总数</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/10">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">正常</p>
-                <p className="text-2xl font-bold text-emerald-500">{stats.active}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Zap className="w-5 h-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">已启用</p>
-                <p className="text-2xl font-bold text-blue-500">{stats.enabled}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-rose-500/10">
-                <AlertCircle className="w-5 h-5 text-rose-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">错误</p>
-                <p className="text-2xl font-bold text-rose-500">{stats.error}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Webhook} label="渠道总数" value={stats.total} iconColor="text-primary" iconBg="bg-primary/10" />
+          <StatCard icon={CheckCircle2} label="正常" value={stats.active} iconColor="text-emerald-500" iconBg="bg-emerald-500/10" />
+          <StatCard icon={Zap} label="已启用" value={stats.enabled} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={AlertCircle} label="错误" value={stats.error} iconColor="text-rose-500" iconBg="bg-rose-500/10" />
         </div>
 
         {/* 主内容区 */}

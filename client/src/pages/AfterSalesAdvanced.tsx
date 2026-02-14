@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -1105,13 +1106,7 @@ export default function AfterSalesAdvanced() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">售后服务高级功能</h1>
-          <p className="text-muted-foreground mt-1">
-            Webhook通知配置、Tier1数据导入、AI报告生成
-          </p>
-        </div>
+        <PageHeader icon={Wrench} title="售后服务高级功能" description="Webhook通知配置、Tier1数据导入、AI报告生成" />
         
         {/* 标签页 */}
         <Tabs defaultValue="webhook" className="space-y-4">

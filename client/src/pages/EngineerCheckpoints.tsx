@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -348,76 +349,24 @@ export default function EngineerCheckpoints() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <ClipboardCheck className="w-7 h-7 text-primary" />
-              工程师确认检查点
-            </h1>
-            <p className="text-muted-foreground mt-1">M0-M12项目生命周期工程师确认检查点管理</p>
-          </div>
-          <Badge variant="outline" className="text-lg px-4 py-2">
-            进度: {stats.approved}/{stats.total}
-          </Badge>
-        </div>
+        <PageHeader
+          icon={ClipboardCheck}
+          title="工程师确认检查点"
+          description="M0-M12项目生命周期工程师确认检查点管理"
+          actions={
+            <Badge variant="outline" className="text-lg px-4 py-2">
+              进度: {stats.approved}/{stats.total}
+            </Badge>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <FileText className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">总检查点</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-green-500">{stats.approved}</p>
-                <p className="text-xs text-muted-foreground">已通过</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Settings className="w-5 h-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-500">{stats.inProgress}</p>
-                <p className="text-xs text-muted-foreground">进行中</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gray-500/10">
-                <Clock className="w-5 h-5 text-gray-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-500">{stats.pending}</p>
-                <p className="text-xs text-muted-foreground">待处理</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-500/10">
-                <XCircle className="w-5 h-5 text-red-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-red-500">{stats.rejected}</p>
-                <p className="text-xs text-muted-foreground">已拒绝</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={FileText} label="总检查点" value={stats.total} iconColor="text-muted-foreground" iconBg="bg-muted" />
+          <StatCard icon={CheckCircle2} label="已通过" value={stats.approved} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Settings} label="进行中" value={stats.inProgress} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Clock} label="待处理" value={stats.pending} iconColor="text-gray-500" iconBg="bg-gray-500/10" />
+          <StatCard icon={XCircle} label="已拒绝" value={stats.rejected} iconColor="text-red-500" iconBg="bg-red-500/10" />
         </div>
 
         {/* 过滤器 */}

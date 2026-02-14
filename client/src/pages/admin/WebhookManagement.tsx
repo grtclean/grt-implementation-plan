@@ -3,6 +3,8 @@
  * 配置社群Bridge、告警通知、ERP回调等Webhook端点
  */
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -153,117 +155,93 @@ export default function WebhookManagement() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Webhook className="w-6 h-6 text-primary" />
-            Webhook管理
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            配置社群Bridge、告警通知、ERP回调等Webhook端点
-          </p>
-        </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              添加Webhook
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>添加Webhook</DialogTitle>
-              <DialogDescription>配置新的Webhook端点</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>名称</Label>
-                <Input
-                  placeholder="例如：企业微信通知"
-                  value={newWebhook.name}
-                  onChange={(e) => setNewWebhook({ ...newWebhook, name: e.target.value })}
-                />
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Webhook}
+        title="Webhook管理"
+        description="配置社群Bridge、告警通知、ERP回调等Webhook端点"
+        actions={
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                添加Webhook
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>添加Webhook</DialogTitle>
+                <DialogDescription>配置新的Webhook端点</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>名称</Label>
+                  <Input
+                    placeholder="例如：企业微信通知"
+                    value={newWebhook.name}
+                    onChange={(e) => setNewWebhook({ ...newWebhook, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>类型</Label>
+                  <Select
+                    value={newWebhook.type}
+                    onValueChange={(value: any) => setNewWebhook({ ...newWebhook, type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="social_bridge">社群Bridge</SelectItem>
+                      <SelectItem value="alert">告警通知</SelectItem>
+                      <SelectItem value="erp_callback">ERP回调</SelectItem>
+                      <SelectItem value="custom">自定义</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Webhook URL</Label>
+                  <Input
+                    placeholder="https://..."
+                    value={newWebhook.url}
+                    onChange={(e) => setNewWebhook({ ...newWebhook, url: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>密钥 (可选)</Label>
+                  <Input
+                    type="password"
+                    placeholder="用于签名验证"
+                    value={newWebhook.secret}
+                    onChange={(e) => setNewWebhook({ ...newWebhook, secret: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>自定义Headers (JSON格式，可选)</Label>
+                  <Textarea
+                    placeholder='{"Authorization": "Bearer xxx"}'
+                    value={newWebhook.headers}
+                    onChange={(e) => setNewWebhook({ ...newWebhook, headers: e.target.value })}
+                    rows={3}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>类型</Label>
-                <Select
-                  value={newWebhook.type}
-                  onValueChange={(value: any) => setNewWebhook({ ...newWebhook, type: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="social_bridge">社群Bridge</SelectItem>
-                    <SelectItem value="alert">告警通知</SelectItem>
-                    <SelectItem value="erp_callback">ERP回调</SelectItem>
-                    <SelectItem value="custom">自定义</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Webhook URL</Label>
-                <Input
-                  placeholder="https://..."
-                  value={newWebhook.url}
-                  onChange={(e) => setNewWebhook({ ...newWebhook, url: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>密钥 (可选)</Label>
-                <Input
-                  type="password"
-                  placeholder="用于签名验证"
-                  value={newWebhook.secret}
-                  onChange={(e) => setNewWebhook({ ...newWebhook, secret: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>自定义Headers (JSON格式，可选)</Label>
-                <Textarea
-                  placeholder='{"Authorization": "Bearer xxx"}'
-                  value={newWebhook.headers}
-                  onChange={(e) => setNewWebhook({ ...newWebhook, headers: e.target.value })}
-                  rows={3}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>取消</Button>
-              <Button onClick={handleCreateWebhook}>创建</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>取消</Button>
+                <Button onClick={handleCreateWebhook}>创建</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{webhooks.length}</div>
-            <p className="text-sm text-muted-foreground">总Webhook数</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">{webhooks.filter(w => w.isActive).length}</div>
-            <p className="text-sm text-muted-foreground">已启用</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">{webhooks.reduce((sum, w) => sum + w.triggerCount, 0)}</div>
-            <p className="text-sm text-muted-foreground">总触发次数</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-red-600">{webhooks.filter(w => w.lastStatus === "failed").length}</div>
-            <p className="text-sm text-muted-foreground">最近失败</p>
-          </CardContent>
-        </Card>
+        <StatCard icon={Webhook} label="总Webhook数" value={webhooks.length} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={CheckCircle} label="已启用" value={webhooks.filter(w => w.isActive).length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={RefreshCw} label="总触发次数" value={webhooks.reduce((sum, w) => sum + w.triggerCount, 0)} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={XCircle} label="最近失败" value={webhooks.filter(w => w.lastStatus === "failed").length} iconColor="text-red-500" iconBg="bg-red-500/10" />
       </div>
 
       {/* Webhook列表 */}
@@ -420,5 +398,6 @@ export default function WebhookManagement() {
         </Dialog>
       )}
     </div>
+    </Layout>
   );
 }

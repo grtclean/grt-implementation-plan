@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -110,15 +111,11 @@ export default function LiveDocumentManager() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">活文档管理</h1>
-            <p className="text-muted-foreground">
-              基于Nocobase架构的技术文档与图形规范管理系统
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+        <PageHeader
+          icon={FileText}
+          title="活文档管理"
+          description="基于Nocobase架构的技术文档与图形规范管理系统"
+          actions={
             <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -168,8 +165,8 @@ export default function LiveDocumentManager() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
+          }
+        />
 
         {/* 搜索和筛选 */}
         <Card>

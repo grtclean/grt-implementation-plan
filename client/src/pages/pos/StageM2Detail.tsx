@@ -1,4 +1,6 @@
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -91,17 +93,20 @@ export default function StageM2Detail() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* 返回按钮 */}
       <div className="flex items-center gap-4">
         <Link href={`/pos/projects/${projectId}`}>
           <Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-2" />返回项目</Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold">M2 - 方案设计</h1>
-          <p className="text-muted-foreground">技术方案与报价准备</p>
-        </div>
       </div>
+
+      <PageHeader
+        icon={Sparkles}
+        title="M2 - 方案设计"
+        description="技术方案与报价准备"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 左侧：阶段内容 */}
@@ -353,5 +358,6 @@ export default function StageM2Detail() {
         </div>
       </div>
     </div>
+    </Layout>
   );
 }

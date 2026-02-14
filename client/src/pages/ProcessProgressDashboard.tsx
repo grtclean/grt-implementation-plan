@@ -23,6 +23,8 @@ import {
   TrendingUp, TrendingDown, Minus, Target, Loader2,
   ChevronRight, Activity, Timer, Zap
 } from "lucide-react";
+import { PageHeader } from "@/components/grt";
+import Layout from "@/components/Layout";
 import { useState, useMemo } from "react";
 
 export default function ProcessProgressDashboard() {
@@ -38,29 +40,26 @@ export default function ProcessProgressDashboard() {
   const data = progressQuery.data as any;
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <BarChart3 className="w-7 h-7 text-primary" />
-            工序进度看板
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            T1-T15工序完成进度 · 工时对比分析 · 项目整体概览
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Label className="text-sm whitespace-nowrap">项目ID:</Label>
-          <Input
-            type="number"
-            placeholder="输入项目ID"
-            className="w-32"
-            value={projectId || ""}
-            onChange={(e) => setProjectId(e.target.value ? parseInt(e.target.value) : null)}
-          />
-        </div>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title="工序进度看板"
+        description="T1-T15工序完成进度 · 工时对比分析 · 项目整体概览"
+        actions={
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">项目ID:</Label>
+            <Input
+              type="number"
+              placeholder="输入项目ID"
+              className="w-32"
+              value={projectId || ""}
+              onChange={(e) => setProjectId(e.target.value ? parseInt(e.target.value) : null)}
+            />
+          </div>
+        }
+      />
 
       {!projectId ? (
         <Card className="border-dashed">
@@ -150,6 +149,7 @@ export default function ProcessProgressDashboard() {
         </Card>
       )}
     </div>
+    </Layout>
   );
 }
 

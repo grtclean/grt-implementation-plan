@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -117,90 +119,37 @@ export default function BomImport() {
   };
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-heading font-bold flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-500/20">
-              <Database className="w-6 h-6 text-emerald-400" />
-            </div>
-            BOM数据批量导入
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            从ERP/简道云/CSV批量导入BOM清单 · 自动关联BOM校验模块
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => importHistoryQuery.refetch()}>
-            <RefreshCw className="w-4 h-4 mr-2" /> 刷新
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => downloadTemplateMutation.mutate({ processCode: importForm.processCode })}
-          >
-            <Download className="w-4 h-4 mr-2" /> 下载模板
-          </Button>
-          <Button onClick={() => setShowImportDialog(true)} className="bg-emerald-600 hover:bg-emerald-700">
-            <Upload className="w-4 h-4 mr-2" /> 批量导入
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Database}
+        title="BOM数据批量导入"
+        description="从ERP/简道云/CSV批量导入BOM清单 · 自动关联BOM校验模块"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => importHistoryQuery.refetch()}>
+              <RefreshCw className="w-4 h-4 mr-2" /> 刷新
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => downloadTemplateMutation.mutate({ processCode: importForm.processCode })}
+            >
+              <Download className="w-4 h-4 mr-2" /> 下载模板
+            </Button>
+            <Button onClick={() => setShowImportDialog(true)} className="bg-emerald-600 hover:bg-emerald-700">
+              <Upload className="w-4 h-4 mr-2" /> 批量导入
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/20">
-                <History className="w-5 h-5 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">总导入次数</p>
-                <p className="text-xl font-bold">{stats.totalImports ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/20">
-                <CheckCircle2 className="w-5 h-5 text-green-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">成功导入项</p>
-                <p className="text-xl font-bold">{stats.totalSuccess ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-500/20">
-                <XCircle className="w-5 h-5 text-red-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">失败项</p>
-                <p className="text-xl font-bold">{stats.totalFailed ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/20">
-                <Package className="w-5 h-5 text-blue-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-mono">覆盖工序数</p>
-                <p className="text-xl font-bold">{stats.processCount ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={History} label="总导入次数" value={stats.totalImports ?? 0} iconColor="text-emerald-400" iconBg="bg-emerald-500/20" />
+        <StatCard icon={CheckCircle2} label="成功导入项" value={stats.totalSuccess ?? 0} iconColor="text-green-400" iconBg="bg-green-500/20" />
+        <StatCard icon={XCircle} label="失败项" value={stats.totalFailed ?? 0} iconColor="text-red-400" iconBg="bg-red-500/20" />
+        <StatCard icon={Package} label="覆盖工序数" value={stats.processCount ?? 0} iconColor="text-blue-400" iconBg="bg-blue-500/20" />
       </div>
 
       {/* Tabs */}
@@ -399,5 +348,6 @@ export default function BomImport() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -199,76 +200,24 @@ export default function ExpenseReportScheduler() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <Clock className="w-6 h-6 text-primary" />
-              报表定时发送
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              配置费用对比报表的定时自动发送
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            刷新
-          </Button>
-        </div>
+        <PageHeader
+          icon={Clock}
+          title="报表定时发送"
+          description="配置费用对比报表的定时自动发送"
+          actions={
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              刷新
+            </Button>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
-                  <Calendar className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">任务总数</p>
-                  <p className="text-2xl font-bold">{stats?.totalSchedules || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">已启用</p>
-                  <p className="text-2xl font-bold">{stats?.enabledSchedules || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">接收人数</p>
-                  <p className="text-2xl font-bold">{stats?.totalRecipients || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500">
-                  <Send className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">发送成功率</p>
-                  <p className="text-2xl font-bold">{stats?.successRate || 0}%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Calendar} label="任务总数" value={stats?.totalSchedules || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={CheckCircle2} label="已启用" value={stats?.enabledSchedules || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Users} label="接收人数" value={stats?.totalRecipients || 0} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+          <StatCard icon={Send} label="发送成功率" value={`${stats?.successRate || 0}%`} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
         </div>
 
         {/* 主要内容 */}

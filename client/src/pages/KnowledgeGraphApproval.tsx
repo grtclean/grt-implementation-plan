@@ -4,6 +4,8 @@
  */
 
 import { useState } from 'react';
+import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from '@/components/grt';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -125,12 +127,12 @@ function SuggestionCard({ suggestion, selected, onSelect, onAction }: { suggesti
 function StatsCard({ stats }: { stats: { total: number; pending: number; approved: number; rejected: number; applied: number; approvalRate: number } }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-      <Card><CardContent className="p-4 text-center"><div className="text-2xl font-bold">{stats.total}</div><div className="text-xs text-muted-foreground">总建议</div></CardContent></Card>
-      <Card><CardContent className="p-4 text-center"><div className="text-2xl font-bold text-yellow-600">{stats.pending}</div><div className="text-xs text-muted-foreground">待审批</div></CardContent></Card>
-      <Card><CardContent className="p-4 text-center"><div className="text-2xl font-bold text-blue-600">{stats.approved}</div><div className="text-xs text-muted-foreground">已批准</div></CardContent></Card>
-      <Card><CardContent className="p-4 text-center"><div className="text-2xl font-bold text-red-600">{stats.rejected}</div><div className="text-xs text-muted-foreground">已拒绝</div></CardContent></Card>
-      <Card><CardContent className="p-4 text-center"><div className="text-2xl font-bold text-green-600">{stats.applied}</div><div className="text-xs text-muted-foreground">已应用</div></CardContent></Card>
-      <Card><CardContent className="p-4 text-center"><div className="text-2xl font-bold">{(stats.approvalRate * 100).toFixed(0)}%</div><div className="text-xs text-muted-foreground">批准率</div></CardContent></Card>
+      <StatCard icon={Network} label="总建议" value={stats.total} />
+      <StatCard icon={Clock} label="待审批" value={stats.pending} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+      <StatCard icon={CheckCircle2} label="已批准" value={stats.approved} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+      <StatCard icon={XCircle} label="已拒绝" value={stats.rejected} iconColor="text-red-500" iconBg="bg-red-500/10" />
+      <StatCard icon={Play} label="已应用" value={stats.applied} iconColor="text-green-500" iconBg="bg-green-500/10" />
+      <StatCard icon={GitBranch} label="批准率" value={`${(stats.approvalRate * 100).toFixed(0)}%`} />
     </div>
   );
 }
@@ -192,11 +194,16 @@ export default function KnowledgeGraphApproval() {
   };
 
   return (
+    <Layout>
     <div className="container py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-3xl font-bold flex items-center gap-3"><GitBranch className="w-8 h-8" />知识图谱扩展审批</h1><p className="text-muted-foreground mt-1">审批和管理知识图谱的自动扩展建议</p></div>
-        <Button variant="outline" onClick={() => toast.info('刷新建议列表')}><RefreshCw className="w-4 h-4 mr-2" />刷新</Button>
-      </div>
+      <PageHeader
+        icon={GitBranch}
+        title="知识图谱扩展审批"
+        description="审批和管理知识图谱的自动扩展建议"
+        actions={
+          <Button variant="outline" onClick={() => toast.info('刷新建议列表')}><RefreshCw className="w-4 h-4 mr-2" />刷新</Button>
+        }
+      />
 
       <StatsCard stats={stats} />
 
@@ -238,5 +245,6 @@ export default function KnowledgeGraphApproval() {
         <DialogContent><DialogHeader><DialogTitle>确认操作</DialogTitle><DialogDescription>{dialogAction?.action === 'approve' && '确定要批准此建议吗？批准后可以应用到知识图谱。'}{dialogAction?.action === 'reject' && '确定要拒绝此建议吗？请填写拒绝原因。'}{dialogAction?.action === 'apply' && '确定要应用此建议吗？这将修改知识图谱数据。'}{dialogAction?.action === 'revert' && '确定要撤销此建议吗？这将回滚知识图谱的变更。'}</DialogDescription></DialogHeader>{(dialogAction?.action === 'approve' || dialogAction?.action === 'reject') && <Textarea placeholder="请输入审批意见（可选）" value={comment} onChange={e => setComment(e.target.value)} />}<DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>取消</Button><Button onClick={confirmAction} variant={dialogAction?.action === 'reject' ? 'destructive' : 'default'}>确认</Button></DialogFooter></DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

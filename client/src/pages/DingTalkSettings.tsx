@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 
 // 通知类型
 const notificationTypes = [
@@ -278,25 +279,21 @@ export default function DingTalkSettings() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Bell className="w-6 h-6 text-primary" />
-              钉钉通知管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              配置钉钉群机器人Webhook，管理系统通知推送
-            </p>
-          </div>
-          <Button onClick={handleSaveConfig} disabled={isSaving}>
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Settings className="w-4 h-4 mr-2" />
-            )}
-            保存配置
-          </Button>
-        </div>
+        <PageHeader
+          icon={Bell}
+          title="钉钉通知管理"
+          description="配置钉钉群机器人Webhook，管理系统通知推送"
+          actions={
+            <Button onClick={handleSaveConfig} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Settings className="w-4 h-4 mr-2" />
+              )}
+              保存配置
+            </Button>
+          }
+        />
 
         <Tabs defaultValue="config" className="space-y-4">
           <TabsList>

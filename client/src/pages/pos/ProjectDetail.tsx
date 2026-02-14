@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -159,6 +161,7 @@ export default function POSProjectDetail() {
   ];
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* 面包屑导航 */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -174,17 +177,19 @@ export default function POSProjectDetail() {
         <span className="text-foreground font-medium">{project?.projectName || '项目详情'}</span>
       </nav>
 
-      {/* 返回按钮和标题 */}
+      {/* 返回按钮 */}
       <div className="flex items-center gap-4">
         <Link href="/pos/projects">
           <Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-2" />返回列表</Button>
         </Link>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{project?.projectName || '项目详情'}</h1>
-          <p className="text-muted-foreground font-mono">{project?.projectCode || 'GRT-XXX'}</p>
-        </div>
-        <Button variant="outline"><Settings className="w-4 h-4 mr-2" />项目设置</Button>
       </div>
+
+      <PageHeader
+        icon={FileText}
+        title={project?.projectName || '项目详情'}
+        description={project?.projectCode || 'GRT-XXX'}
+        actions={<Button variant="outline"><Settings className="w-4 h-4 mr-2" />项目设置</Button>}
+      />
 
       {/* 项目摘要卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -736,5 +741,6 @@ export default function POSProjectDetail() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

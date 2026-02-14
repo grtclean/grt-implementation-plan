@@ -54,6 +54,8 @@ import {
 } from 'lucide-react';
 import NotificationConfig from '@/components/sync/NotificationConfig';
 import { useToast } from '@/hooks/use-toast';
+import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from '@/components/grt';
 
 // 类型定义
 type CloudProvider = 'aliyun-oss' | 'tencent-cos' | 'aws-s3';
@@ -299,70 +301,27 @@ export default function CloudBackupSyncManager() {
   };
 
   return (
+    <Layout>
     <div className="container mx-auto py-6 space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Cloud className="w-6 h-6" />
-            备份云端同步
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            将本地备份自动同步到云存储，实现异地容灾
-          </p>
-        </div>
-        <Button onClick={() => setShowAddDialog(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          添加云存储
-        </Button>
-      </div>
+      <PageHeader
+        icon={Cloud}
+        title="备份云端同步"
+        description="将本地备份自动同步到云存储，实现异地容灾"
+        actions={
+          <Button onClick={() => setShowAddDialog(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            添加云存储
+          </Button>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">云存储配置</p>
-                <p className="text-2xl font-bold">{stats.enabledConfigs}/{stats.totalConfigs}</p>
-              </div>
-              <Cloud className="w-8 h-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">同步任务</p>
-                <p className="text-2xl font-bold">{stats.completedTasks}/{stats.totalTasks}</p>
-              </div>
-              <Upload className="w-8 h-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">云端存储</p>
-                <p className="text-2xl font-bold">{formatSize(stats.totalSize)}</p>
-              </div>
-              <HardDrive className="w-8 h-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">云端文件</p>
-                <p className="text-2xl font-bold">{remoteFiles.length}</p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Cloud} label="云存储配置" value={`${stats.enabledConfigs}/${stats.totalConfigs}`} iconColor="text-blue-500" iconBg="bg-blue-50" />
+        <StatCard icon={Upload} label="同步任务" value={`${stats.completedTasks}/${stats.totalTasks}`} iconColor="text-green-500" iconBg="bg-green-50" />
+        <StatCard icon={HardDrive} label="云端存储" value={formatSize(stats.totalSize)} iconColor="text-purple-500" iconBg="bg-purple-50" />
+        <StatCard icon={CheckCircle} label="云端文件" value={remoteFiles.length} iconColor="text-emerald-500" iconBg="bg-emerald-50" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -667,5 +626,6 @@ export default function CloudBackupSyncManager() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }

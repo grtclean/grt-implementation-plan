@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -433,31 +434,25 @@ export default function GeminiSpecification() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-heading font-bold flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <BookOpen className="w-8 h-8 text-primary" />
-              </div>
-              {language === "zh" ? "Gemini规范文档" : "Gemini Specification"}
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              {language === "zh" 
-                ? "GRT智能系统完整技术规范，供Gemini深度分析与整合使用" 
-                : "Complete technical specification for Gemini deep analysis and integration"}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="gap-2">
-              <Download className="w-4 h-4" />
-              {language === "zh" ? "下载MD" : "Download MD"}
-            </Button>
-            <Button variant="outline" className="gap-2">
-              <ExternalLink className="w-4 h-4" />
-              {language === "zh" ? "在新窗口打开" : "Open in New Tab"}
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={BookOpen}
+          title={language === "zh" ? "Gemini规范文档" : "Gemini Specification"}
+          description={language === "zh"
+            ? "GRT智能系统完整技术规范，供Gemini深度分析与整合使用"
+            : "Complete technical specification for Gemini deep analysis and integration"}
+          actions={
+            <>
+              <Button variant="outline" className="gap-2">
+                <Download className="w-4 h-4" />
+                {language === "zh" ? "下载MD" : "Download MD"}
+              </Button>
+              <Button variant="outline" className="gap-2">
+                <ExternalLink className="w-4 h-4" />
+                {language === "zh" ? "在新窗口打开" : "Open in New Tab"}
+              </Button>
+            </>
+          }
+        />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">

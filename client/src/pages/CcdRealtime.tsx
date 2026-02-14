@@ -10,6 +10,8 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -170,81 +172,32 @@ export default function CcdRealtime() {
   const diagnostics = diagnosticsQuery.data;
 
   return (
-    <div className="space-y-6 p-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-heading font-bold flex items-center gap-3">
-            <Radio className="w-7 h-7 text-primary" />
-            CCD检测实时推送
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            WebSocket实时推送CCD检测结果，替代轮询查询模式
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className={wsConnected ? "border-green-500/50 text-green-400" : "border-red-500/50 text-red-400"}>
-            {wsConnected ? <Wifi className="w-3 h-3 mr-1" /> : <WifiOff className="w-3 h-3 mr-1" />}
-            {wsConnected ? "已连接" : "未连接"}
-          </Badge>
-          <Button variant="outline" size="sm" onClick={handleTestPush} disabled={pushTestMutation.isPending}>
-            <Zap className="w-4 h-4 mr-1" />
-            测试推送
-          </Button>
-        </div>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Radio}
+        title="CCD检测实时推送"
+        description="WebSocket实时推送CCD检测结果，替代轮询查询模式"
+        actions={
+          <>
+            <Badge variant="outline" className={wsConnected ? "border-green-500/50 text-green-400" : "border-red-500/50 text-red-400"}>
+              {wsConnected ? <Wifi className="w-3 h-3 mr-1" /> : <WifiOff className="w-3 h-3 mr-1" />}
+              {wsConnected ? "已连接" : "未连接"}
+            </Badge>
+            <Button variant="outline" size="sm" onClick={handleTestPush} disabled={pushTestMutation.isPending}>
+              <Zap className="w-4 h-4 mr-1" />
+              测试推送
+            </Button>
+          </>
+        }
+      />
 
       {/* 连接状态卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className={`p-2 rounded-md ${wsConnected ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
-              {wsConnected ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5" />}
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-mono uppercase">连接状态</p>
-              <p className="text-lg font-bold">{wsConnected ? "在线" : "离线"}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-md bg-primary/10 text-primary">
-              <Activity className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-mono uppercase">消息总数</p>
-              <p className="text-lg font-bold">{(stats as any)?.totalPushCount ?? messages.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-md bg-orange-500/10 text-orange-400">
-              <Bell className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-mono uppercase">订阅频道</p>
-              <p className="text-lg font-bold">{subscribedChannels.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-border">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-md bg-blue-500/10 text-blue-400">
-              <Clock className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-mono uppercase">在线时长</p>
-              <p className="text-lg font-bold">
-                {diagnostics?.uptime ? `${Math.floor(diagnostics.uptime / 60)}m` : "0m"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={wsConnected ? Wifi : WifiOff} label="连接状态" value={wsConnected ? "在线" : "离线"} iconColor={wsConnected ? "text-green-400" : "text-red-400"} iconBg={wsConnected ? "bg-green-500/10" : "bg-red-500/10"} />
+        <StatCard icon={Activity} label="消息总数" value={(stats as any)?.totalPushCount ?? messages.length} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Bell} label="订阅频道" value={subscribedChannels.length} iconColor="text-orange-400" iconBg="bg-orange-500/10" />
+        <StatCard icon={Clock} label="在线时长" value={diagnostics?.uptime ? `${Math.floor(diagnostics.uptime / 60)}m` : "0m"} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -433,5 +386,6 @@ export default function CcdRealtime() {
         </div>
       </div>
     </div>
+    </Layout>
   );
 }

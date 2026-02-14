@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -94,15 +95,11 @@ export default function CertificateVerify() {
         </Link>
 
         {/* 页面标题 */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-            <Shield className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-3xl font-heading font-bold">能力证书验证</h1>
-          <p className="text-muted-foreground">
-            输入证书编号或扫描证书上的二维码，验证证书真伪
-          </p>
-        </div>
+        <PageHeader
+          icon={Shield}
+          title="能力证书验证"
+          description="输入证书编号或扫描证书上的二维码，验证证书真伪"
+        />
 
         {/* 搜索框 */}
         <Card>

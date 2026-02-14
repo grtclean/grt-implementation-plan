@@ -3,13 +3,15 @@
  */
 
 import { useState } from 'react';
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Download, Search, Eye, Edit2 } from 'lucide-react';
+import { Plus, Download, Search, Eye, Edit2, ShoppingCart } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 
 export default function ProcurementManagement() {
@@ -40,24 +42,26 @@ export default function ProcurementManagement() {
   const { data: statsData } = trpc.procurement.getProcurementStats.useQuery();
 
   return (
+    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">采购管理</h1>
-          <p className="text-muted-foreground mt-2">管理采购申请、订单和供应商</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            导出
-          </Button>
-          <Button size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            新建采购
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={ShoppingCart}
+        title="采购管理"
+        description="管理采购申请、订单和供应商"
+        actions={
+          <>
+            <Button variant="outline" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              导出
+            </Button>
+            <Button size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              新建采购
+            </Button>
+          </>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -262,6 +266,6 @@ export default function ProcurementManagement() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }
-

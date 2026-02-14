@@ -3,6 +3,7 @@
  */
 
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -92,41 +93,22 @@ export default function NotificationAggregationPreview() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <Bell className="w-6 h-6 text-primary" />
-              消息聚合预览
-            </h1>
-            <p className="text-muted-foreground mt-1">查看待发送的聚合通知队列</p>
-          </div>
-          <div className="flex items-center gap-2">
+        <PageHeader
+          icon={Bell}
+          title="消息聚合预览"
+          description="查看待发送的聚合通知队列"
+          actions={
             <Button variant="outline" size="sm" onClick={loadNotifications} disabled={isRefreshing}>
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               刷新
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-primary/10 text-primary"><Clock className="w-6 h-6" /></div>
-              <div><p className="text-sm text-muted-foreground">待发送批次</p><p className="text-2xl font-bold">{stats.totalPending}</p></div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500"><MessageSquare className="w-6 h-6" /></div>
-              <div><p className="text-sm text-muted-foreground">聚合消息数</p><p className="text-2xl font-bold">{stats.totalMessages}</p></div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-green-500/10 text-green-500"><Users className="w-6 h-6" /></div>
-              <div><p className="text-sm text-muted-foreground">接收人数</p><p className="text-2xl font-bold">{notifications.length}</p></div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Clock} label="待发送批次" value={stats.totalPending} iconColor="text-primary" iconBg="bg-primary/10" />
+          <StatCard icon={MessageSquare} label="聚合消息数" value={stats.totalMessages} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Users} label="接收人数" value={notifications.length} iconColor="text-green-500" iconBg="bg-green-500/10" />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>

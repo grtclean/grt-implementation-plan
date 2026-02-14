@@ -11,6 +11,8 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -246,34 +248,31 @@ export default function BomExcelImport() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <Layout>
+    <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-heading font-bold flex items-center gap-3">
-            <FileSpreadsheet className="w-7 h-7 text-primary" />
-            BOM Excel导入
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            支持 .xlsx / .xls / .csv 格式的BOM清单批量导入
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => downloadTemplateMutation.mutate({ format: "xlsx" })}
-            disabled={downloadTemplateMutation.isPending}
-          >
-            <Download className="w-4 h-4 mr-1" />
-            下载模板
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleReset}>
-            <RefreshCw className="w-4 h-4 mr-1" />
-            重置
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={FileSpreadsheet}
+        title="BOM Excel导入"
+        description="支持 .xlsx / .xls / .csv 格式的BOM清单批量导入"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => downloadTemplateMutation.mutate({ format: "xlsx" })}
+              disabled={downloadTemplateMutation.isPending}
+            >
+              <Download className="w-4 h-4 mr-1" />
+              下载模板
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleReset}>
+              <RefreshCw className="w-4 h-4 mr-1" />
+              重置
+            </Button>
+          </>
+        }
+      />
 
       {/* 步骤指示器 */}
       <div className="flex items-center gap-2">
@@ -635,5 +634,6 @@ export default function BomExcelImport() {
         </div>
       </div>
     </div>
+    </Layout>
   );
 }

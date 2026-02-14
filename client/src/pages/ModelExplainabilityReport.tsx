@@ -4,6 +4,8 @@
  */
 
 import { useState, useEffect } from 'react';
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -303,22 +305,27 @@ export default function ModelExplainabilityReport() {
   if (!report) return <div className="container py-8"><div className="flex items-center justify-center h-96"><div className="text-center space-y-4"><AlertCircle className="w-12 h-12 mx-auto text-destructive" /><p className="text-muted-foreground">无法加载报告数据</p><Button onClick={handleRefresh}>重试</Button></div></div></div>;
 
   return (
-    <div className="container py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-3xl font-bold">模型解释性报告</h1><p className="text-muted-foreground mt-1">生成时间: {new Date(report.generatedAt).toLocaleString('zh-CN')}</p></div>
-        <div className="flex items-center gap-4">
-          <Select value={selectedProject} onValueChange={setSelectedProject}>
-            <SelectTrigger className="w-48"><SelectValue placeholder="选择项目" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="project-a">项目A - 成本预测</SelectItem>
-              <SelectItem value="project-b">项目B - 销售预测</SelectItem>
-              <SelectItem value="project-c">项目C - 库存预测</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={handleRefresh}><RefreshCw className="w-4 h-4 mr-2" />刷新</Button>
-          <Button onClick={handleExport}><Download className="w-4 h-4 mr-2" />导出报告</Button>
-        </div>
-      </div>
+    <Layout>
+    <div className="space-y-6">
+      <PageHeader
+        icon={BarChart3}
+        title="模型解释性报告"
+        description={`生成时间: ${new Date(report.generatedAt).toLocaleString('zh-CN')}`}
+        actions={
+          <>
+            <Select value={selectedProject} onValueChange={setSelectedProject}>
+              <SelectTrigger className="w-48"><SelectValue placeholder="选择项目" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="project-a">项目A - 成本预测</SelectItem>
+                <SelectItem value="project-b">项目B - 销售预测</SelectItem>
+                <SelectItem value="project-c">项目C - 库存预测</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={handleRefresh}><RefreshCw className="w-4 h-4 mr-2" />刷新</Button>
+            <Button onClick={handleExport}><Download className="w-4 h-4 mr-2" />导出报告</Button>
+          </>
+        }
+      />
 
       <Card className="border-primary/50 bg-primary/5">
         <CardHeader>
@@ -357,5 +364,6 @@ export default function ModelExplainabilityReport() {
 
       <Card><CardHeader><CardTitle className="flex items-center gap-2"><Zap className="w-5 h-5 text-yellow-500" />优化建议</CardTitle></CardHeader><CardContent><ul className="space-y-3">{report.recommendations.map((rec, index) => (<li key={index} className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium flex-shrink-0 mt-0.5">{index + 1}</div><span className="text-muted-foreground">{rec}</span></li>))}</ul></CardContent></Card>
     </div>
+    </Layout>
   );
 }

@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -242,40 +243,35 @@ export default function WebhookSettings() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <Webhook className="w-6 h-6 text-primary" />
-              Webhook通知配置
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              配置Gate检查结果和AI诊断通知推送到企业微信、钉钉等平台
-            </p>
-          </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                新增Webhook
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>新增Webhook配置</DialogTitle>
-                <DialogDescription>
-                  配置Webhook接收Gate检查结果和AI诊断通知
-                </DialogDescription>
-              </DialogHeader>
-              <WebhookForm 
-                formData={formData} 
-                setFormData={setFormData}
-                onSubmit={handleCreate}
-                isLoading={createMutation.isPending}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+        <PageHeader
+          icon={Webhook}
+          title="Webhook通知配置"
+          description="配置Gate检查结果和AI诊断通知推送到企业微信、钉钉等平台"
+          actions={
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  新增Webhook
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>新增Webhook配置</DialogTitle>
+                  <DialogDescription>
+                    配置Webhook接收Gate检查结果和AI诊断通知
+                  </DialogDescription>
+                </DialogHeader>
+                <WebhookForm
+                  formData={formData}
+                  setFormData={setFormData}
+                  onSubmit={handleCreate}
+                  isLoading={createMutation.isPending}
+                />
+              </DialogContent>
+            </Dialog>
+          }
+        />
 
         {/* 标签页 */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>

@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -152,29 +153,25 @@ export default function MigrationTasks() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold flex items-center gap-3">
-              <Database className="w-8 h-8 text-primary" />
-              {language === "zh" ? "迁移任务管理" : "Migration Task Management"}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {language === "zh" 
-                ? "管理和追踪简道云数据迁移进度" 
-                : "Manage and track Jiandaoyun data migration progress"}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => refetch()} className="gap-2">
-              <RefreshCw className="w-4 h-4" />
-              {language === "zh" ? "刷新" : "Refresh"}
-            </Button>
-            <Button className="bg-primary hover:bg-primary/90 gap-2">
-              <Download className="w-4 h-4" />
-              {language === "zh" ? "导出报告" : "Export Report"}
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Database}
+          title={language === "zh" ? "迁移任务管理" : "Migration Task Management"}
+          description={language === "zh"
+            ? "管理和追踪简道云数据迁移进度"
+            : "Manage and track Jiandaoyun data migration progress"}
+          actions={
+            <>
+              <Button variant="outline" onClick={() => refetch()} className="gap-2">
+                <RefreshCw className="w-4 h-4" />
+                {language === "zh" ? "刷新" : "Refresh"}
+              </Button>
+              <Button className="bg-primary hover:bg-primary/90 gap-2">
+                <Download className="w-4 h-4" />
+                {language === "zh" ? "导出报告" : "Export Report"}
+              </Button>
+            </>
+          }
+        />
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

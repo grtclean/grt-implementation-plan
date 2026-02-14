@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -70,33 +71,17 @@ export default function TranslationContribute() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Languages className="w-6 h-6 text-primary" />
-            {t("translation.title") || "翻译贡献"}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {t("translation.subtitle") || "帮助完善多语言翻译，让系统更好地服务全球用户"}
-          </p>
-        </div>
+        <PageHeader
+          icon={Languages}
+          title={t("translation.title") || "翻译贡献"}
+          description={t("translation.subtitle") || "帮助完善多语言翻译，让系统更好地服务全球用户"}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50"><CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-primary/10 text-primary"><FileText className="w-5 h-5" /></div>
-            <div><p className="text-sm text-muted-foreground">总提交</p><p className="text-2xl font-bold">{stats.total}</p></div>
-          </CardContent></Card>
-          <Card className="bg-card/50"><CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-yellow-500/10 text-yellow-500"><Clock className="w-5 h-5" /></div>
-            <div><p className="text-sm text-muted-foreground">待审核</p><p className="text-2xl font-bold">{stats.pending}</p></div>
-          </CardContent></Card>
-          <Card className="bg-card/50"><CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-green-500/10 text-green-500"><CheckCircle2 className="w-5 h-5" /></div>
-            <div><p className="text-sm text-muted-foreground">已采纳</p><p className="text-2xl font-bold">{stats.approved}</p></div>
-          </CardContent></Card>
-          <Card className="bg-card/50"><CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500"><Globe className="w-5 h-5" /></div>
-            <div><p className="text-sm text-muted-foreground">支持语言</p><p className="text-2xl font-bold">4</p></div>
-          </CardContent></Card>
+          <StatCard icon={FileText} label="总提交" value={stats.total} />
+          <StatCard icon={Clock} label="待审核" value={stats.pending} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+          <StatCard icon={CheckCircle2} label="已采纳" value={stats.approved} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Globe} label="支持语言" value={4} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>

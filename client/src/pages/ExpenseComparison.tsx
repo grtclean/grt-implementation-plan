@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -179,32 +180,28 @@ export default function ExpenseComparison() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-              <BarChart3 className="w-6 h-6 text-primary" />
-              费用对比分析
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              分析出差费用的同比、环比变化趋势
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              刷新
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setIsExportDialogOpen(true)}>
-              <Download className="w-4 h-4 mr-2" />
-              导出
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={BarChart3}
+          title="费用对比分析"
+          description="分析出差费用的同比、环比变化趋势"
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                刷新
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setIsExportDialogOpen(true)}>
+                <Download className="w-4 h-4 mr-2" />
+                导出
+              </Button>
+            </>
+          }
+        />
 
         {/* 筛选条件 */}
         <Card className="bg-card/50 border-border">

@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -164,20 +165,13 @@ export default function Docs() {
   return (
     <Layout>
       <div className="space-y-8">
-        {/* Header */}
-        <div className="border-b border-border pb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <Book className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-heading font-bold tracking-tight text-foreground">
-              {language === 'zh' ? '文档中心' : 'Documentation Center'}
-            </h1>
-          </div>
-          <p className="text-muted-foreground">
-            {language === 'zh' 
-              ? '完整的开发文档、实施指南和技术规范' 
-              : 'Complete development documentation, implementation guides, and technical specifications'}
-          </p>
-        </div>
+        <PageHeader
+          icon={Book}
+          title={language === 'zh' ? '文档中心' : 'Documentation Center'}
+          description={language === 'zh'
+            ? '完整的开发文档、实施指南和技术规范'
+            : 'Complete development documentation, implementation guides, and technical specifications'}
+        />
 
         {/* Featured: Development Guide */}
         <Card className="bg-gradient-to-br from-primary/5 via-background to-background border-primary/30 overflow-hidden">

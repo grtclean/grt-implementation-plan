@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -575,18 +576,13 @@ export default function AnnualAgenda() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-heading flex items-center gap-3">
-              <Calendar className="w-8 h-8 text-primary" />
-              {isZh ? '年度企业日程' : 'Annual Corporate Agenda'}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {isZh 
-                ? '基于战略2026-2030的年度日程规划与全球假期协调' 
-                : 'Annual agenda planning based on Strategy 2026-2030 with global holiday coordination'}
-            </p>
-          </div>
+        <PageHeader
+          icon={Calendar}
+          title={isZh ? '年度企业日程' : 'Annual Corporate Agenda'}
+          description={isZh
+            ? '基于战略2026-2030的年度日程规划与全球假期协调'
+            : 'Annual agenda planning based on Strategy 2026-2030 with global holiday coordination'}
+          actions={<>
           <div className="flex gap-2">
             {/* 导出按钮 */}
             <DropdownMenu>
@@ -784,7 +780,8 @@ export default function AnnualAgenda() {
               </DialogContent>
             </Dialog>
           </div>
-        </div>
+        </>}
+        />
 
         {/* 调整日程对话框 */}
         <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>

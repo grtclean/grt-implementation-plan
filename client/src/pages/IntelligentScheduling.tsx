@@ -4,6 +4,7 @@
 
 import { useState, useMemo } from 'react';
 import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from "@/components/grt";
 import { GanttChart, type GanttTask, type GanttResource } from '@/components/GanttChart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -378,17 +379,11 @@ export default function IntelligentScheduling() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Cpu className="w-6 h-6 text-primary" />
-              智能排程中心
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              基于约束规划的生产排程优化系统
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+        <PageHeader
+          icon={Cpu}
+          title="智能排程中心"
+          description="基于约束规划的生产排程优化系统"
+          actions={<>
             <Button variant="outline" onClick={() => setShowNewTaskDialog(true)}>
               <Plus className="w-4 h-4 mr-1" />
               新建任务
@@ -410,77 +405,15 @@ export default function IntelligentScheduling() {
                 </>
               )}
             </Button>
-          </div>
-        </div>
+          </>}
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">待排程任务</p>
-                  <p className="text-2xl font-bold">{statistics.tasks.pending}</p>
-                </div>
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Clock className="w-5 h-5 text-orange-600" />
-                </div>
-              </div>
-              <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                <span>共 {statistics.tasks.total} 个任务</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">可用资源</p>
-                  <p className="text-2xl font-bold">{statistics.resources.available}</p>
-                </div>
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users className="w-5 h-5 text-blue-600" />
-                </div>
-              </div>
-              <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                <span>{statistics.resources.employees} 人员 / {statistics.resources.equipment} 设备</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">进行中</p>
-                  <p className="text-2xl font-bold">{statistics.tasks.in_progress}</p>
-                </div>
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Activity className="w-5 h-5 text-green-600" />
-                </div>
-              </div>
-              <Progress value={60} className="mt-2 h-1" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">已完成</p>
-                  <p className="text-2xl font-bold">{statistics.tasks.completed}</p>
-                </div>
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <CheckCircle2 className="w-5 h-5 text-purple-600" />
-                </div>
-              </div>
-              <div className="mt-2 flex items-center text-xs text-green-600">
-                <TrendingUp className="w-3 h-3 mr-1" />
-                <span>本周完成率 85%</span>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Clock} label="待排程任务" value={statistics.tasks.pending} subtitle={`共 ${statistics.tasks.total} 个任务`} iconColor="text-orange-600" iconBg="bg-orange-100" />
+          <StatCard icon={Users} label="可用资源" value={statistics.resources.available} subtitle={`${statistics.resources.employees} 人员 / ${statistics.resources.equipment} 设备`} iconColor="text-blue-600" iconBg="bg-blue-100" />
+          <StatCard icon={Activity} label="进行中" value={statistics.tasks.in_progress} iconColor="text-green-600" iconBg="bg-green-100" />
+          <StatCard icon={CheckCircle2} label="已完成" value={statistics.tasks.completed} iconColor="text-purple-600" iconBg="bg-purple-100" trend={{ value: 85, label: "本周完成率" }} />
         </div>
 
         {/* 主内容区 */}

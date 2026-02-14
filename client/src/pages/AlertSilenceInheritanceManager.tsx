@@ -14,16 +14,19 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  FileText, 
-  Plus, 
-  Copy, 
-  GitBranch, 
-  Settings, 
-  Trash2, 
+import Layout from '@/components/Layout';
+import { PageHeader, StatCard } from '@/components/grt';
+import {
+  FileText,
+  Plus,
+  Copy,
+  GitBranch,
+  Settings,
+  Trash2,
   ChevronRight,
   Clock,
-  Filter
+  Filter,
+  BellOff
 } from 'lucide-react';
 
 // 类型定义
@@ -311,70 +314,22 @@ export default function AlertSilenceInheritanceManager() {
   };
 
   return (
+    <Layout>
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">告警静默规则继承管理</h1>
-          <p className="text-muted-foreground">管理静默规则模板和继承关系</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={BellOff}
+        title="告警静默规则继承管理"
+        description="管理静默规则模板和继承关系"
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">模板总数</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.totalTemplates}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Settings className="h-4 w-4 text-blue-500" />
-              <span className="text-sm text-muted-foreground">内置模板</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.builtInTemplates}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Plus className="h-4 w-4 text-green-500" />
-              <span className="text-sm text-muted-foreground">自定义模板</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.customTemplates}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">规则总数</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.totalRules}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-green-500" />
-              <span className="text-sm text-muted-foreground">已启用</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.enabledRules}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <GitBranch className="h-4 w-4 text-purple-500" />
-              <span className="text-sm text-muted-foreground">继承规则</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.rulesWithInheritance}</p>
-          </CardContent>
-        </Card>
+        <StatCard icon={FileText} label="模板总数" value={stats.totalTemplates} />
+        <StatCard icon={Settings} label="内置模板" value={stats.builtInTemplates} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Plus} label="自定义模板" value={stats.customTemplates} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Filter} label="规则总数" value={stats.totalRules} />
+        <StatCard icon={Clock} label="已启用" value={stats.enabledRules} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={GitBranch} label="继承规则" value={stats.rulesWithInheritance} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       <Tabs defaultValue="templates" className="space-y-4">
@@ -625,5 +580,6 @@ export default function AlertSilenceInheritanceManager() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

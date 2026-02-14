@@ -4,6 +4,7 @@
  */
 
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -247,80 +248,28 @@ export default function ComplianceRulesConfig() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
+        <PageHeader
+          icon={Settings}
+          title="合规规则配置"
+          description="管理工时阈值、预警规则和邮件通知模板"
+          actions={
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setLocation("/compliance-dashboard")}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               返回
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Settings className="w-6 h-6 text-primary" />
-                合规规则配置
-              </h1>
-              <p className="text-muted-foreground">管理工时阈值、预警规则和邮件通知模板</p>
-            </div>
-          </div>
-        </div>
+          }
+        />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/20">
-                  <Shield className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">总规则数</p>
-                  <p className="text-2xl font-bold">{(ruleStats as any)?.totalRules || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/20">
-                  <Clock className="w-5 h-5 text-green-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">启用规则</p>
-                  <p className="text-2xl font-bold">{(ruleStats as any)?.enabledRules || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/20">
-                  <Mail className="w-5 h-5 text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">总模板数</p>
-                  <p className="text-2xl font-bold">{(templateStats as any)?.totalTemplates || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/20">
-                  <FileText className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">启用模板</p>
-                  <p className="text-2xl font-bold">{(templateStats as any)?.enabledTemplates || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Shield} label="总规则数" value={(ruleStats as any)?.totalRules || 0} iconColor="text-primary" iconBg="bg-primary/20" />
+          <StatCard icon={Clock} label="启用规则" value={(ruleStats as any)?.enabledRules || 0} iconColor="text-green-400" iconBg="bg-green-500/20" />
+          <StatCard icon={Mail} label="总模板数" value={(templateStats as any)?.totalTemplates || 0} iconColor="text-blue-400" iconBg="bg-blue-500/20" />
+          <StatCard icon={FileText} label="启用模板" value={(templateStats as any)?.enabledTemplates || 0} iconColor="text-purple-400" iconBg="bg-purple-500/20" />
         </div>
 
         {/* 主内容标签页 */}

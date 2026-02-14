@@ -4,6 +4,7 @@
  * Designed for one-handed phone use with large touch targets.
  */
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -147,20 +148,18 @@ export default function FieldEngineerDashboard() {
     <Layout>
       <div className="max-w-md mx-auto pb-8">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-background z-10">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Wrench className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="font-bold text-base">现场工程师工作台</h1>
-              <p className="text-xs text-muted-foreground">Field Engineer Dashboard</p>
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" className="gap-1">
-            <span className="text-sm">{user?.name || "陈工"}</span>
-            <ChevronDown className="w-4 h-4" />
-          </Button>
+        <div className="p-4 border-b sticky top-0 bg-background z-10">
+          <PageHeader
+            icon={Wrench}
+            title="现场工程师工作台"
+            description="Field Engineer Dashboard"
+            actions={
+              <Button variant="ghost" size="sm" className="gap-1">
+                <span className="text-sm">{user?.name || "陈工"}</span>
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+            }
+          />
         </div>
 
         {/* Today tasks */}

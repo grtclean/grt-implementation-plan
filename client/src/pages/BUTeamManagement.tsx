@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -213,15 +214,14 @@ export default function BUTeamManagement() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">BU事业部人员管理</h1>
-            <p className="text-muted-foreground">管理各事业部的团队结构和人员配置</p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+        <PageHeader
+          icon={Building2}
+          title="BU事业部人员管理"
+          description="管理各事业部的团队结构和人员配置"
+          actions={
+          <>
+            <Button
+              variant="outline"
               onClick={() => {
                 refetchStats();
                 refetchMappings();
@@ -231,7 +231,7 @@ export default function BUTeamManagement() {
               <RefreshCw className="h-4 w-4 mr-2" />
               刷新数据
             </Button>
-            <Button 
+            <Button
               variant="outline"
               onClick={() => autoMatchMutation.mutate()}
               disabled={autoMatchMutation.isPending}
@@ -317,8 +317,9 @@ export default function BUTeamManagement() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
+          </>
+          }
+        />
 
         {/* BU统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

@@ -3,6 +3,7 @@
  */
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -91,15 +92,14 @@ export default function QuotationCreate() {
   return (
     <Layout>
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Calculator className="h-6 w-6 text-primary" />报价生成
-            </h1>
-            <p className="text-muted-foreground mt-1">多步骤智能报价向导</p>
-          </div>
-          <Badge variant="outline" className="gap-1"><Sparkles className="h-3 w-3" />AI辅助定价</Badge>
-        </div>
+        <PageHeader
+          icon={Calculator}
+          title="报价生成"
+          description="多步骤智能报价向导"
+          actions={
+            <Badge variant="outline" className="gap-1"><Sparkles className="h-3 w-3" />AI辅助定价</Badge>
+          }
+        />
 
         {/* Step indicator */}
         <div className="flex items-center gap-2">

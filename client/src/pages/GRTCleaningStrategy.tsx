@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -100,46 +101,43 @@ export default function GRTCleaningStrategy() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/capability-os">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-                <Droplets className="w-6 h-6 text-primary" />
-                GRT清洗策略动作库
-              </h1>
-              <p className="text-muted-foreground text-sm mt-1">
-                托盘精确定位通过式清洗机 - 清洗策略与工程师确认检查点
-              </p>
-            </div>
-          </div>
-          {/* 快速入口按钮 */}
-          <div className="flex flex-wrap gap-2">
-            <Link href="/toothpaste-test">
-              <Button variant="outline" size="sm" className="gap-2">
-                <TestTube className="w-4 h-4" />
-                牙膏试验录入
-              </Button>
-            </Link>
-            <Link href="/cleaning-trajectory-3d">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Box className="w-4 h-4" />
-                3D轨迹可视化
-              </Button>
-            </Link>
-            <Link href="/toothpaste-test-history">
-              <Button variant="outline" size="sm" className="gap-2">
-                <History className="w-4 h-4" />
-                试验历史记录
-              </Button>
-            </Link>
-          </div>
+        {/* 返回按钮 */}
+        <div className="flex items-center gap-4">
+          <Link href="/capability-os">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
         </div>
+
+        {/* 页面标题 */}
+        <PageHeader
+          icon={Droplets}
+          title="GRT清洗策略动作库"
+          description="托盘精确定位通过式清洗机 - 清洗策略与工程师确认检查点"
+          actions={
+            <>
+              <Link href="/toothpaste-test">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <TestTube className="w-4 h-4" />
+                  牙膏试验录入
+                </Button>
+              </Link>
+              <Link href="/cleaning-trajectory-3d">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Box className="w-4 h-4" />
+                  3D轨迹可视化
+                </Button>
+              </Link>
+              <Link href="/toothpaste-test-history">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <History className="w-4 h-4" />
+                  试验历史记录
+                </Button>
+              </Link>
+            </>
+          }
+        />
 
         {/* 主要内容区域 */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

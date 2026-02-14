@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -451,17 +452,11 @@ export default function AnnualPlanning() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold flex items-center gap-3">
-              <CalendarDays className="w-8 h-8 text-primary" />
-              年度规划管理
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              管理企业年度规划、培训计划、会议安排和文化活动
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
+        <PageHeader
+          icon={CalendarDays}
+          title="年度规划管理"
+          description="管理企业年度规划、培训计划、会议安排和文化活动"
+          actions={<>
             <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
               <SelectTrigger className="w-32">
                 <SelectValue />
@@ -536,8 +531,8 @@ export default function AnnualPlanning() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
+          </>}
+        />
 
         {/* Config Selector */}
         {configs && configs.length > 0 && (
@@ -649,58 +644,10 @@ export default function AnnualPlanning() {
           <TabsContent value="overview" className="space-y-6">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="bg-card/50 border-border">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-primary/10">
-                      <FileText className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">总项目数</p>
-                      <p className="text-2xl font-bold">{stats.total}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card/50 border-border">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-yellow-500/10">
-                      <Clock className="w-6 h-6 text-yellow-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">待开始</p>
-                      <p className="text-2xl font-bold">{stats.pending}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card/50 border-border">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-blue-500/10">
-                      <RefreshCw className="w-6 h-6 text-blue-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">进行中</p>
-                      <p className="text-2xl font-bold">{stats.inProgress}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card/50 border-border">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-green-500/10">
-                      <CheckCircle2 className="w-6 h-6 text-green-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">已完成</p>
-                      <p className="text-2xl font-bold">{stats.completed}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <StatCard icon={FileText} label="总项目数" value={stats.total} iconColor="text-primary" iconBg="bg-primary/10" />
+              <StatCard icon={Clock} label="待开始" value={stats.pending} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+              <StatCard icon={RefreshCw} label="进行中" value={stats.inProgress} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+              <StatCard icon={CheckCircle2} label="已完成" value={stats.completed} iconColor="text-green-500" iconBg="bg-green-500/10" />
             </div>
 
             {/* Category Distribution */}

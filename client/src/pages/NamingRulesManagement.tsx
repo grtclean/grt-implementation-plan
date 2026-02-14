@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,8 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { 
-  Plus, FileText, Users, History, CheckCircle, Clock, 
-  Search, RefreshCw, ChevronRight, Loader2, Package, Hash
+  Plus, FileText, Users, History, CheckCircle, Clock,
+  Search, RefreshCw, ChevronRight, Loader2, Package, Hash, Tags
 } from "lucide-react";
 
 // Status badge component
@@ -967,12 +968,11 @@ export default function NamingRulesManagement() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">命名规则管理</h1>
-          <p className="text-muted-foreground">
-            管理设备型号、项目编号和物料编号的命名规则及变更流程
-          </p>
-        </div>
+        <PageHeader
+          icon={Tags}
+          title="命名规则管理"
+          description="管理设备型号、项目编号和物料编号的命名规则及变更流程"
+        />
         
         <Tabs defaultValue="requests" className="space-y-4">
           <TabsList className="grid w-full grid-cols-5">

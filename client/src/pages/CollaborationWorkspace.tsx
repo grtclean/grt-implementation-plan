@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -298,37 +299,35 @@ export default function CollaborationWorkspace() {
     <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">实时协作工作台</h1>
-            <p className="text-muted-foreground">
-              团队协作空间，支持多人同时编辑和实时沟通
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* 认证状态提示 */}
-            {!isFullyAuthenticated && user && (
-              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-400 px-3 py-1.5 rounded-md">
-                <AlertCircle className="h-4 w-4" />
-                <span>演示模式</span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 px-2 text-amber-700 hover:text-amber-900 hover:bg-amber-100"
-                  onClick={() => window.location.href = getLoginUrl('/collaboration')}
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  刷新认证
-                </Button>
-              </div>
-            )}
-            <Dialog open={isNewWorkspaceOpen} onOpenChange={setIsNewWorkspaceOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  新建工作区
-                </Button>
-              </DialogTrigger>
+        <PageHeader
+          icon={Users}
+          title="实时协作工作台"
+          description="团队协作空间，支持多人同时编辑和实时沟通"
+          actions={
+            <>
+              {/* 认证状态提示 */}
+              {!isFullyAuthenticated && user && (
+                <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-400 px-3 py-1.5 rounded-md">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>演示模式</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-amber-700 hover:text-amber-900 hover:bg-amber-100"
+                    onClick={() => window.location.href = getLoginUrl('/collaboration')}
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    刷新认证
+                  </Button>
+                </div>
+              )}
+              <Dialog open={isNewWorkspaceOpen} onOpenChange={setIsNewWorkspaceOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    新建工作区
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>新建协作工作区</DialogTitle>
@@ -369,8 +368,9 @@ export default function CollaborationWorkspace() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* 工作区列表 */}

@@ -4,6 +4,8 @@
  */
 
 import { useState } from "react";
+import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,21 +107,19 @@ export default function BusinessUnits() {
   ] : [];
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* 页面标题 */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">事业部管理</h1>
-            <p className="text-muted-foreground mt-2">
-              管理事业部、绩效指标和关键业绩指标
-            </p>
-          </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
-            <Plus className="w-4 h-4" />
-            创建事业部
-          </Button>
-        </div>
+    <Layout>
+      <div className="space-y-6">
+        <PageHeader
+          icon={TrendingUp}
+          title="事业部管理"
+          description="管理事业部、绩效指标和关键业绩指标"
+          actions={
+            <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
+              <Plus className="w-4 h-4" />
+              创建事业部
+            </Button>
+          }
+        />
 
         {/* 事业部列表 */}
         <Card>
@@ -482,6 +482,6 @@ export default function BusinessUnits() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </Layout>
   );
 }

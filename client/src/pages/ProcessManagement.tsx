@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Wrench, Plus, Clock, CheckCircle2, ArrowRight, Settings, Users } from "lucide-react";
+import { PageHeader, StatCard } from "@/components/grt";
+import Layout from "@/components/Layout";
 
 const MOCK_PROCESSES = [
   { id: "WP-001", name: "钢结构焊接", category: "结构", avgTime: "4.5h", workers: 3, status: "进行中", quality: 98 },
@@ -18,20 +20,20 @@ const MOCK_PROCESSES = [
 
 export default function ProcessManagement() {
   return (
+    <Layout>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Wrench className="h-6 w-6 text-primary" />工序管理</h1>
-          <p className="text-muted-foreground mt-1">生产工序定义与工时统计</p>
-        </div>
-        <Button><Plus className="h-4 w-4 mr-2" />新建工序</Button>
-      </div>
+      <PageHeader
+        icon={Wrench}
+        title="工序管理"
+        description="生产工序定义与工时统计"
+        actions={<Button><Plus className="h-4 w-4 mr-2" />新建工序</Button>}
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold">48</p><p className="text-sm text-muted-foreground">工序总数</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-blue-600">12</p><p className="text-sm text-muted-foreground">进行中</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-green-600">98.5%</p><p className="text-sm text-muted-foreground">质量合格率</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-3xl font-bold text-primary">4.2h</p><p className="text-sm text-muted-foreground">平均工时</p></CardContent></Card>
+        <StatCard icon={Settings} label="工序总数" value={48} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Clock} label="进行中" value={12} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label="质量合格率" value="98.5%" iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Wrench} label="平均工时" value="4.2h" iconColor="text-primary" iconBg="bg-primary/10" />
       </div>
 
       <Card>
@@ -60,5 +62,6 @@ export default function ProcessManagement() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }
