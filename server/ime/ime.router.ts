@@ -574,4 +574,52 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       return imeService.getPredictionDashboard(input ?? {});
     }),
+
+  // ========================================================================
+  // Phase 6: Report Exports
+  // ========================================================================
+
+  generateMeetingReport: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.generateMeetingReport(input.meetingId);
+    }),
+
+  generateDashboardExcel: protectedProcedure
+    .input(z.object({
+      channelId: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .mutation(async ({ input }) => {
+      return imeService.generateExecutiveDashboardExcel(input ?? {});
+    }),
+
+  generateBenchmarkReport: protectedProcedure
+    .input(z.object({
+      scope: z.string(),
+      scopeId: z.string().optional(),
+      period: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.generateBenchmarkReport(input.scope, input.scopeId, input.period);
+    }),
+
+  reportExportHistory: protectedProcedure
+    .input(z.object({
+      reportType: z.string().optional(),
+      limit: z.number().min(1).max(100).optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const filters = input ?? {};
+      const whereParts: string[] = [];
+      if (filters.reportType) whereParts.push(`report_type = '${filters.reportType.replace(/'/g, "''")}'`);
+      const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+      const limitVal = filters.limit || 50;
+      const result = await db.execute(sql.raw(`
+        SELECT * FROM ime_report_exports ${whereClause} ORDER BY generated_at DESC LIMIT ${limitVal}
+      `));
+      return result.rows;
+    }),
 });

@@ -4010,3 +4010,738 @@ export async function getPredictionDashboard(filters: { scope?: string; period?:
     riskFactorRankings,
   };
 }
+
+// ============================================================================
+// Phase 6: Report Exports — Excel Dashboard
+// ============================================================================
+
+export async function generateExecutiveDashboardExcel(filters?: {
+  channelId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const db = await requireDb();
+  const ExcelJS = await import("exceljs");
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "GRT智能会议分析系统";
+  workbook.created = new Date();
+
+  // Build WHERE clause fragments
+  const whereParts: string[] = [];
+  if (filters?.channelId) whereParts.push(`mr.channel_id = '${filters.channelId.replace(/'/g, "''")}'`);
+  if (filters?.dateFrom) whereParts.push(`mr.meeting_date >= '${filters.dateFrom.replace(/'/g, "''")}'`);
+  if (filters?.dateTo) whereParts.push(`mr.meeting_date <= '${filters.dateTo.replace(/'/g, "''")}'`);
+  const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+  const andClause = whereParts.length > 0 ? `AND ${whereParts.join(" AND ")}` : "";
+
+  const headerStyle: Partial<ExcelJS.Style> = {
+    font: { bold: true, color: { argb: "FFFFFFFF" } },
+    fill: { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FF4472C4" } },
+  };
+
+  // --- Sheet 1: 概览 ---
+  const overviewSheet = workbook.addWorksheet("概览");
+  overviewSheet.columns = [
+    { header: "指标", key: "metric", width: 30 },
+    { header: "值", key: "value", width: 25 },
+  ];
+
+  const meetingCountRes = await db.execute(sql.raw(
+    `SELECT COUNT(*) as cnt, AVG(mes.overall_score) as avg_eff
+     FROM meeting_records mr
+     LEFT JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id
+     ${whereClause}`
+  ));
+  const overview = (meetingCountRes.rows as any[])[0] || {};
+
+  const topContribRes = await db.execute(sql.raw(
+    `SELECT mc.employee_name, AVG(mc.contribution_score) as avg_score, COUNT(*) as meetings
+     FROM meeting_contributions mc
+     JOIN meeting_records mr ON mc.meeting_id = mr.id
+     ${whereClause}
+     GROUP BY mc.employee_name ORDER BY avg_score DESC LIMIT 10`
+  ));
+
+  overviewSheet.addRows([
+    { metric: "会议总数", value: Number(overview.cnt) || 0 },
+    { metric: "平均效能评分", value: Math.round(Number(overview.avg_eff) || 0) },
+    { metric: "报告生成时间", value: new Date().toLocaleString("zh-CN") },
+  ]);
+  overviewSheet.addRow({});
+  overviewSheet.addRow({ metric: "Top 贡献者", value: "平均分 / 参会次数" });
+  for (const r of topContribRes.rows as any[]) {
+    overviewSheet.addRow({ metric: r.employee_name, value: `${Math.round(Number(r.avg_score))} / ${r.meetings}次` });
+  }
+  overviewSheet.getRow(1).eachCell((cell) => { Object.assign(cell, { style: headerStyle }); });
+
+  // --- Sheet 2: ROI汇总 ---
+  const roiSheet = workbook.addWorksheet("ROI汇总");
+  roiSheet.columns = [
+    { header: "会议", key: "meeting", width: 30 },
+    { header: "评级", key: "grade", width: 10 },
+    { header: "成本", key: "cost", width: 15 },
+    { header: "ROI分数", key: "score", width: 12 },
+    { header: "结果数", key: "outcomes", width: 10 },
+    { header: "计算日期", key: "date", width: 18 },
+  ];
+  const roiRes = await db.execute(sql.raw(
+    `SELECT mr.title, roi.roi_grade, roi.total_cost, roi.roi_score, roi.tangible_outcome_count, roi.computed_at
+     FROM ime_meeting_roi roi
+     JOIN meeting_records mr ON roi.meeting_id = mr.id
+     ${whereClause.replace(/\bmr\./g, "mr.")}
+     ORDER BY roi.computed_at DESC`
+  ));
+  for (const r of roiRes.rows as any[]) {
+    const row = roiSheet.addRow({
+      meeting: r.title, grade: r.roi_grade, cost: Number(r.total_cost || 0).toFixed(2),
+      score: Math.round(Number(r.roi_score) || 0), outcomes: Number(r.tangible_outcome_count) || 0,
+      date: r.computed_at ? new Date(r.computed_at).toLocaleDateString("zh-CN") : "",
+    });
+    const gradeCell = row.getCell("grade");
+    const grade = String(r.roi_grade || "");
+    if (grade === "A" || grade === "A+") gradeCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF92D050" } };
+    else if (grade === "B") gradeCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC000" } };
+    else if (grade === "D" || grade === "F") gradeCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF0000" } };
+  }
+  roiSheet.getRow(1).eachCell((cell) => { Object.assign(cell, { style: headerStyle }); });
+
+  // --- Sheet 3: 情感趋势 ---
+  const sentimentSheet = workbook.addWorksheet("情感趋势");
+  sentimentSheet.columns = [
+    { header: "会议", key: "meeting", width: 30 },
+    { header: "整体情感", key: "sentiment", width: 12 },
+    { header: "紧张度", key: "tension", width: 10 },
+    { header: "协作度", key: "collaboration", width: 10 },
+    { header: "分析日期", key: "date", width: 18 },
+  ];
+  const sentRes = await db.execute(sql.raw(
+    `SELECT mr.title, s.overall_sentiment, s.tension_level, s.collaboration_score, s.analyzed_at
+     FROM ime_meeting_sentiment s
+     JOIN meeting_records mr ON s.meeting_id = mr.id
+     ${whereClause.replace(/\bmr\./g, "mr.")}
+     ORDER BY s.analyzed_at DESC`
+  ));
+  for (const r of sentRes.rows as any[]) {
+    sentimentSheet.addRow({
+      meeting: r.title, sentiment: r.overall_sentiment,
+      tension: Number(r.tension_level || 0).toFixed(2), collaboration: Number(r.collaboration_score || 0).toFixed(2),
+      date: r.analyzed_at ? new Date(r.analyzed_at).toLocaleDateString("zh-CN") : "",
+    });
+  }
+  sentimentSheet.getRow(1).eachCell((cell) => { Object.assign(cell, { style: headerStyle }); });
+
+  // --- Sheet 4: 部门对比 ---
+  const deptSheet = workbook.addWorksheet("部门对比");
+  deptSheet.columns = [
+    { header: "部门", key: "dept", width: 20 },
+    { header: "会议数", key: "count", width: 10 },
+    { header: "平均效能", key: "avgEff", width: 12 },
+    { header: "平均成本", key: "avgCost", width: 12 },
+    { header: "行动项完成率", key: "aiRate", width: 14 },
+    { header: "期间", key: "period", width: 15 },
+  ];
+  const deptRes = await db.execute(sql.raw(
+    `SELECT department, meeting_count, avg_effectiveness_score, avg_cost_per_meeting, action_item_completion_rate, period
+     FROM ime_department_rollups ORDER BY avg_effectiveness_score DESC`
+  ));
+  for (const r of deptRes.rows as any[]) {
+    deptSheet.addRow({
+      dept: r.department, count: Number(r.meeting_count) || 0,
+      avgEff: Math.round(Number(r.avg_effectiveness_score) || 0),
+      avgCost: Number(r.avg_cost_per_meeting || 0).toFixed(2),
+      aiRate: `${Math.round(Number(r.action_item_completion_rate || 0) * 100)}%`,
+      period: r.period,
+    });
+  }
+  deptSheet.getRow(1).eachCell((cell) => { Object.assign(cell, { style: headerStyle }); });
+
+  // --- Sheet 5: 行动项 ---
+  const actionSheet = workbook.addWorksheet("行动项");
+  actionSheet.columns = [
+    { header: "内容", key: "content", width: 40 },
+    { header: "负责人", key: "owner", width: 15 },
+    { header: "状态", key: "status", width: 12 },
+    { header: "优先级", key: "priority", width: 10 },
+    { header: "截止日期", key: "dueDate", width: 15 },
+    { header: "来源会议", key: "meeting", width: 25 },
+  ];
+  const actionRes = await db.execute(sql.raw(
+    `SELECT ai.content, ai.assigned_to, ai.status, ai.priority, ai.due_date, mr.title
+     FROM ime_action_items ai
+     JOIN meeting_records mr ON ai.meeting_id = mr.id
+     ${whereClause.replace(/\bmr\./g, "mr.")}
+     ORDER BY ai.created_at DESC`
+  ));
+  for (const r of actionRes.rows as any[]) {
+    const row = actionSheet.addRow({
+      content: r.content, owner: r.assigned_to, status: r.status,
+      priority: r.priority, dueDate: r.due_date ? new Date(r.due_date).toLocaleDateString("zh-CN") : "",
+      meeting: r.title,
+    });
+    const statusCell = row.getCell("status");
+    if (r.status === "completed") statusCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF92D050" } };
+    else if (r.status === "overdue") statusCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF0000" } };
+    else if (r.status === "in_progress") statusCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC000" } };
+  }
+  actionSheet.getRow(1).eachCell((cell) => { Object.assign(cell, { style: headerStyle }); });
+
+  // --- Sheet 6: 预测与风险 ---
+  const predSheet = workbook.addWorksheet("预测与风险");
+  predSheet.columns = [
+    { header: "会议", key: "meeting", width: 30 },
+    { header: "预测类型", key: "type", width: 15 },
+    { header: "预测分数", key: "score", width: 12 },
+    { header: "置信度", key: "confidence", width: 10 },
+    { header: "风险等级", key: "risk", width: 10 },
+    { header: "疲劳指数", key: "fatigue", width: 10 },
+  ];
+  const predRes = await db.execute(sql.raw(
+    `SELECT mr.title, p.prediction_type, p.predicted_score, p.confidence_level, p.risk_level, p.fatigue_index
+     FROM ime_meeting_predictions p
+     JOIN meeting_records mr ON p.meeting_id = mr.id
+     ORDER BY p.predicted_at DESC`
+  ));
+  for (const r of predRes.rows as any[]) {
+    const row = predSheet.addRow({
+      meeting: r.title, type: r.prediction_type,
+      score: Math.round(Number(r.predicted_score) || 0),
+      confidence: Number(Number(r.confidence_level || 0).toFixed(2)),
+      risk: r.risk_level, fatigue: Number(Number(r.fatigue_index || 0).toFixed(2)),
+    });
+    const riskCell = row.getCell("risk");
+    if (r.risk_level === "high") riskCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF0000" } };
+    else if (r.risk_level === "medium") riskCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC000" } };
+    else if (r.risk_level === "low") riskCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF92D050" } };
+  }
+  predSheet.getRow(1).eachCell((cell) => { Object.assign(cell, { style: headerStyle }); });
+
+  // --- Sheet 7: 参会优化 ---
+  const optSheet = workbook.addWorksheet("参会优化");
+  optSheet.columns = [
+    { header: "会议", key: "meeting", width: 30 },
+    { header: "当前人数", key: "current", width: 12 },
+    { header: "最佳人数", key: "optimal", width: 12 },
+    { header: "过多邀请", key: "overInvited", width: 12 },
+    { header: "预估节省", key: "saving", width: 15 },
+  ];
+  const optRes = await db.execute(sql.raw(
+    `SELECT mr.title, o.current_count, o.optimal_count, o.over_invited_count, o.estimated_cost_saving
+     FROM ime_attendee_optimization o
+     JOIN meeting_records mr ON o.meeting_id = mr.id
+     ORDER BY o.estimated_cost_saving DESC`
+  ));
+  for (const r of optRes.rows as any[]) {
+    optSheet.addRow({
+      meeting: r.title, current: Number(r.current_count) || 0,
+      optimal: Number(r.optimal_count) || 0, overInvited: Number(r.over_invited_count) || 0,
+      saving: `¥${Number(r.estimated_cost_saving || 0).toFixed(2)}`,
+    });
+  }
+  optSheet.getRow(1).eachCell((cell) => { Object.assign(cell, { style: headerStyle }); });
+
+  // Generate buffer
+  const buffer = await workbook.xlsx.writeBuffer();
+  const base64 = Buffer.from(buffer).toString("base64");
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const filename = `IME-仪表盘导出-${dateStr}.xlsx`;
+
+  // Record export history
+  await db.execute(sql.raw(`
+    INSERT INTO ime_report_exports (report_type, scope, filters, format, filename, file_size, generated_by, generated_at, created_at)
+    VALUES ('dashboard', 'all', '${JSON.stringify(filters || {}).replace(/'/g, "''")}', 'xlsx', '${filename.replace(/'/g, "''")}', ${Buffer.from(buffer).length}, 'system', NOW(), NOW())
+  `));
+
+  return { base64, filename };
+}
+
+// ============================================================================
+// Phase 6: Report Exports — Single Meeting PDF Report
+// ============================================================================
+
+function drawTable(doc: any, headers: string[], rows: string[][], colWidths: number[], startX: number, startY: number): number {
+  const rowHeight = 22;
+  const padding = 6;
+  let y = startY;
+
+  // Header row
+  doc.fillColor("#4472C4").rect(startX, y, colWidths.reduce((a: number, b: number) => a + b, 0), rowHeight).fill();
+  doc.fillColor("#FFFFFF").fontSize(9);
+  let x = startX;
+  for (let i = 0; i < headers.length; i++) {
+    doc.text(headers[i], x + padding, y + 5, { width: colWidths[i] - padding * 2, height: rowHeight, ellipsis: true });
+    x += colWidths[i];
+  }
+  y += rowHeight;
+
+  // Data rows
+  doc.fillColor("#333333").fontSize(8);
+  for (const row of rows) {
+    if (y > 750) {
+      doc.addPage();
+      y = 50;
+    }
+    // Zebra stripe
+    if (rows.indexOf(row) % 2 === 1) {
+      doc.fillColor("#F2F2F2").rect(startX, y, colWidths.reduce((a: number, b: number) => a + b, 0), rowHeight).fill();
+    }
+    doc.fillColor("#333333");
+    x = startX;
+    for (let i = 0; i < row.length; i++) {
+      doc.text(String(row[i] ?? ""), x + padding, y + 5, { width: colWidths[i] - padding * 2, height: rowHeight, ellipsis: true });
+      x += colWidths[i];
+    }
+    y += rowHeight;
+  }
+  return y;
+}
+
+function addSectionTitle(doc: any, title: string, y: number): number {
+  if (y > 700) { doc.addPage(); y = 50; }
+  doc.fillColor("#2E5090").fontSize(14).text(title, 50, y);
+  y += 25;
+  doc.moveTo(50, y).lineTo(545, y).strokeColor("#4472C4").lineWidth(1).stroke();
+  return y + 10;
+}
+
+export async function generateMeetingReport(meetingId: string) {
+  const db = await requireDb();
+  const PDFDocument = (await import("pdfkit")).default;
+
+  const safeId = meetingId.replace(/'/g, "''");
+
+  // Fetch data from 8 tables
+  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meeting = (meetingRes.rows as any[])[0];
+  if (!meeting) throw new Error("Meeting not found");
+
+  const contribRes = await db.execute(sql.raw(`SELECT * FROM meeting_contributions WHERE meeting_id = '${safeId}' ORDER BY contribution_score DESC`));
+  const effRes = await db.execute(sql.raw(`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = '${safeId}' LIMIT 1`));
+  const sentimentRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_sentiment WHERE meeting_id = '${safeId}' LIMIT 1`));
+  const roiRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_roi WHERE meeting_id = '${safeId}' LIMIT 1`));
+  const actionRes = await db.execute(sql.raw(`SELECT * FROM ime_action_items WHERE meeting_id = '${safeId}' ORDER BY priority DESC`));
+  const topicRes = await db.execute(sql.raw(`SELECT * FROM ime_topic_continuity WHERE meeting_id = '${safeId}'`));
+  const optRes = await db.execute(sql.raw(`SELECT * FROM ime_attendee_optimization WHERE meeting_id = '${safeId}' LIMIT 1`));
+
+  const contributions = contribRes.rows as any[];
+  const effectiveness = (effRes.rows as any[])[0];
+  const sentiment = (sentimentRes.rows as any[])[0];
+  const roi = (roiRes.rows as any[])[0];
+  const actionItems = actionRes.rows as any[];
+  const topics = topicRes.rows as any[];
+  const optimization = (optRes.rows as any[])[0];
+
+  // Create PDF
+  const doc = new PDFDocument({ size: "A4", margin: 50 });
+  const chunks: Buffer[] = [];
+  doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+
+  // Register Chinese font
+  doc.registerFont("Chinese", "C:/Windows/Fonts/msyh.ttc");
+  doc.font("Chinese");
+
+  // --- Cover Page ---
+  doc.fillColor("#2E5090").fontSize(28).text("GRT智能会议分析报告", 50, 200, { align: "center" });
+  doc.fontSize(16).fillColor("#555555").text(meeting.title || "未命名会议", 50, 260, { align: "center" });
+  doc.fontSize(12).text(`会议日期: ${meeting.meeting_date ? new Date(meeting.meeting_date).toLocaleDateString("zh-CN") : "N/A"}`, 50, 300, { align: "center" });
+  doc.text(`生成时间: ${new Date().toLocaleString("zh-CN")}`, 50, 320, { align: "center" });
+  doc.text(`报告ID: IME-${meetingId.slice(0, 8)}`, 50, 340, { align: "center" });
+
+  // --- Section 1: 参会者贡献分析 ---
+  doc.addPage();
+  let y = 50;
+  y = addSectionTitle(doc, "1. 参会者贡献分析", y);
+  if (contributions.length > 0) {
+    // Bar visualization
+    const maxScore = Math.max(...contributions.map((c: any) => Number(c.contribution_score) || 0), 1);
+    for (const c of contributions.slice(0, 10)) {
+      if (y > 700) { doc.addPage(); y = 50; }
+      const score = Number(c.contribution_score) || 0;
+      const barWidth = (score / maxScore) * 300;
+      doc.fillColor("#333333").fontSize(9).text(c.employee_name || "匿名", 50, y + 2, { width: 100 });
+      doc.fillColor("#4472C4").rect(160, y, barWidth, 14).fill();
+      doc.fillColor("#333333").fontSize(8).text(String(Math.round(score)), 165 + barWidth, y + 2);
+      y += 22;
+    }
+    y += 10;
+    y = drawTable(doc,
+      ["姓名", "发言次数", "贡献分数", "角色"],
+      contributions.map((c: any) => [c.employee_name || "匿名", String(Number(c.speaking_count) || 0), String(Math.round(Number(c.contribution_score) || 0)), c.role_in_meeting || ""]),
+      [140, 80, 80, 195], 50, y
+    );
+  } else {
+    doc.fillColor("#999999").fontSize(10).text("暂无数据", 50, y);
+    y += 20;
+  }
+
+  // --- Section 2: 会议效能评分 ---
+  y = addSectionTitle(doc, "2. 会议效能评分", y + 15);
+  if (effectiveness) {
+    const dims = [
+      ["综合评分", effectiveness.overall_score],
+      ["目标达成", effectiveness.goal_achievement],
+      ["时间效率", effectiveness.time_efficiency],
+      ["参与均衡", effectiveness.participation_balance],
+      ["决策质量", effectiveness.decision_quality],
+    ];
+    for (const [label, val] of dims) {
+      if (y > 750) { doc.addPage(); y = 50; }
+      const score = Math.round(Number(val) || 0);
+      doc.fillColor("#333333").fontSize(10).text(String(label), 50, y + 2, { width: 100 });
+      doc.fillColor("#E0E0E0").rect(160, y, 300, 16).fill();
+      const color = score >= 80 ? "#4CAF50" : score >= 60 ? "#FFC107" : "#F44336";
+      doc.fillColor(color).rect(160, y, score * 3, 16).fill();
+      doc.fillColor("#333333").fontSize(9).text(`${score}分`, 470, y + 2);
+      y += 24;
+    }
+  } else {
+    doc.fillColor("#999999").fontSize(10).text("暂无数据", 50, y);
+    y += 20;
+  }
+
+  // --- Section 3: 情感分析 ---
+  y = addSectionTitle(doc, "3. 情感分析", y + 15);
+  if (sentiment) {
+    y = drawTable(doc,
+      ["维度", "值"],
+      [
+        ["整体情感", sentiment.overall_sentiment || "N/A"],
+        ["紧张度", String(Number(sentiment.tension_level || 0).toFixed(2))],
+        ["协作度", String(Number(sentiment.collaboration_score || 0).toFixed(2))],
+        ["能量水平", sentiment.energy_level || "N/A"],
+      ],
+      [200, 295], 50, y
+    );
+  } else {
+    doc.fillColor("#999999").fontSize(10).text("暂无数据", 50, y);
+    y += 20;
+  }
+
+  // --- Section 4: ROI分析 ---
+  y = addSectionTitle(doc, "4. ROI分析", y + 15);
+  if (roi) {
+    y = drawTable(doc,
+      ["维度", "值"],
+      [
+        ["ROI评级", roi.roi_grade || "N/A"],
+        ["ROI分数", String(Math.round(Number(roi.roi_score) || 0))],
+        ["总成本", `¥${Number(roi.total_cost || 0).toFixed(2)}`],
+        ["有形成果数", String(Number(roi.tangible_outcome_count) || 0)],
+        ["价值评估", roi.value_assessment || "N/A"],
+      ],
+      [200, 295], 50, y
+    );
+  } else {
+    doc.fillColor("#999999").fontSize(10).text("暂无数据", 50, y);
+    y += 20;
+  }
+
+  // --- Section 5: 行动项 ---
+  y = addSectionTitle(doc, "5. 行动项", y + 15);
+  if (actionItems.length > 0) {
+    y = drawTable(doc,
+      ["内容", "负责人", "状态", "优先级"],
+      actionItems.map((a: any) => [a.content || "", a.assigned_to || "", a.status || "", a.priority || ""]),
+      [220, 90, 80, 105], 50, y
+    );
+  } else {
+    doc.fillColor("#999999").fontSize(10).text("暂无数据", 50, y);
+    y += 20;
+  }
+
+  // --- Section 6: 议题追踪 ---
+  y = addSectionTitle(doc, "6. 议题追踪", y + 15);
+  if (topics.length > 0) {
+    y = drawTable(doc,
+      ["议题", "状态", "出现次数"],
+      topics.map((t: any) => [t.topic_name || "", t.status || "", String(Number(t.meeting_appearances) || 0)]),
+      [250, 120, 125], 50, y
+    );
+  } else {
+    doc.fillColor("#999999").fontSize(10).text("暂无数据", 50, y);
+    y += 20;
+  }
+
+  // --- Section 7: 参会优化 ---
+  y = addSectionTitle(doc, "7. 参会优化建议", y + 15);
+  if (optimization) {
+    y = drawTable(doc,
+      ["维度", "值"],
+      [
+        ["当前参会人数", String(Number(optimization.current_count) || 0)],
+        ["最佳参会人数", String(Number(optimization.optimal_count) || 0)],
+        ["过多邀请人数", String(Number(optimization.over_invited_count) || 0)],
+        ["预估节省", `¥${Number(optimization.estimated_cost_saving || 0).toFixed(2)}`],
+      ],
+      [200, 295], 50, y
+    );
+    if (optimization.composition_advice) {
+      y += 10;
+      doc.fillColor("#333333").fontSize(9).text(optimization.composition_advice, 50, y, { width: 495 });
+      y += doc.heightOfString(optimization.composition_advice, { width: 495 }) + 5;
+    }
+  } else {
+    doc.fillColor("#999999").fontSize(10).text("暂无数据", 50, y);
+    y += 20;
+  }
+
+  // --- Section 8: AI综合分析 ---
+  y = addSectionTitle(doc, "8. AI综合分析", y + 15);
+  const narratives = [
+    effectiveness?.ai_narrative,
+    sentiment?.ai_narrative,
+    roi?.ai_narrative,
+    optimization?.ai_narrative,
+  ].filter(Boolean);
+  if (narratives.length > 0) {
+    for (const narrative of narratives) {
+      if (y > 700) { doc.addPage(); y = 50; }
+      doc.fillColor("#333333").fontSize(9).text(narrative, 50, y, { width: 495 });
+      y += doc.heightOfString(narrative, { width: 495 }) + 10;
+    }
+  } else {
+    doc.fillColor("#999999").fontSize(10).text("暂无数据", 50, y);
+  }
+
+  // Finalize
+  doc.end();
+  await new Promise<void>((resolve) => doc.on("end", resolve));
+  const pdfBuffer = Buffer.concat(chunks);
+  const base64 = pdfBuffer.toString("base64");
+  const titleSlug = (meeting.title || "meeting").slice(0, 30).replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, "-");
+  const dateStr = meeting.meeting_date ? new Date(meeting.meeting_date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+  const filename = `IME-会议报告-${titleSlug}-${dateStr}.pdf`;
+
+  // Record export
+  await db.execute(sql.raw(`
+    INSERT INTO ime_report_exports (report_type, scope, scope_id, format, filename, file_size, generated_by, generated_at, created_at)
+    VALUES ('meeting', 'meeting', '${safeId}', 'pdf', '${filename.replace(/'/g, "''")}', ${pdfBuffer.length}, 'system', NOW(), NOW())
+  `));
+
+  return { base64, filename };
+}
+
+// ============================================================================
+// Phase 6: Report Exports — Benchmark Report (PDF)
+// ============================================================================
+
+export async function generateBenchmarkReport(
+  scope: string,
+  scopeId?: string,
+  period?: string,
+) {
+  const db = await requireDb();
+  const PDFDocument = (await import("pdfkit")).default;
+
+  const periodDays = period === "quarterly" ? 90 : 30;
+  const periodLabel = period === "quarterly" ? "季度" : "月度";
+  const now = new Date();
+  const currentEnd = now.toISOString().slice(0, 10);
+  const currentStart = new Date(now.getTime() - periodDays * 86400000).toISOString().slice(0, 10);
+  const prevEnd = currentStart;
+  const prevStart = new Date(now.getTime() - periodDays * 2 * 86400000).toISOString().slice(0, 10);
+
+  // Build scope filter
+  let scopeFilter = "";
+  if (scope === "channel" && scopeId) {
+    scopeFilter = `AND mr.channel_id = '${scopeId.replace(/'/g, "''")}'`;
+  } else if (scope === "department" && scopeId) {
+    scopeFilter = `AND mr.channel_id IN (SELECT id FROM meeting_records WHERE summary LIKE '%${scopeId.replace(/'/g, "''")}%')`;
+  }
+
+  // Query metrics for a given date range
+  async function queryPeriodMetrics(dateFrom: string, dateTo: string) {
+    const meetingStats = await db.execute(sql.raw(`
+      SELECT COUNT(*) as cnt, AVG(mes.overall_score) as avg_eff
+      FROM meeting_records mr
+      LEFT JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id
+      WHERE mr.meeting_date >= '${dateFrom}' AND mr.meeting_date <= '${dateTo}' ${scopeFilter}
+    `));
+    const costStats = await db.execute(sql.raw(`
+      SELECT AVG(mc.total_cost) as avg_cost
+      FROM ime_meeting_costs mc
+      JOIN meeting_records mr ON mc.meeting_id = mr.id
+      WHERE mr.meeting_date >= '${dateFrom}' AND mr.meeting_date <= '${dateTo}' ${scopeFilter}
+    `));
+    const actionStats = await db.execute(sql.raw(`
+      SELECT COUNT(*) as total, SUM(CASE WHEN ai.status = 'completed' THEN 1 ELSE 0 END) as completed
+      FROM ime_action_items ai
+      JOIN meeting_records mr ON ai.meeting_id = mr.id
+      WHERE mr.meeting_date >= '${dateFrom}' AND mr.meeting_date <= '${dateTo}' ${scopeFilter}
+    `));
+    const roiStats = await db.execute(sql.raw(`
+      SELECT AVG(roi.roi_score) as avg_roi
+      FROM ime_meeting_roi roi
+      JOIN meeting_records mr ON roi.meeting_id = mr.id
+      WHERE mr.meeting_date >= '${dateFrom}' AND mr.meeting_date <= '${dateTo}' ${scopeFilter}
+    `));
+    const fatigueStats = await db.execute(sql.raw(`
+      SELECT AVG(p.fatigue_index) as avg_fatigue
+      FROM ime_meeting_predictions p
+      JOIN meeting_records mr ON p.meeting_id = mr.id
+      WHERE mr.meeting_date >= '${dateFrom}' AND mr.meeting_date <= '${dateTo}' ${scopeFilter}
+      AND p.fatigue_index IS NOT NULL
+    `));
+
+    const ms = (meetingStats.rows as any[])[0] || {};
+    const cs = (costStats.rows as any[])[0] || {};
+    const as_ = (actionStats.rows as any[])[0] || {};
+    const rs = (roiStats.rows as any[])[0] || {};
+    const fs = (fatigueStats.rows as any[])[0] || {};
+    const total = Number(as_.total) || 0;
+    const completed = Number(as_.completed) || 0;
+
+    return {
+      meetingCount: Number(ms.cnt) || 0,
+      avgEffectiveness: Math.round(Number(ms.avg_eff) || 0),
+      avgCost: Number(Number(cs.avg_cost || 0).toFixed(2)),
+      actionCompletionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+      avgRoi: Math.round(Number(rs.avg_roi) || 0),
+      avgFatigue: Number(Number(fs.avg_fatigue || 0).toFixed(2)),
+    };
+  }
+
+  const current = await queryPeriodMetrics(currentStart, currentEnd);
+  const previous = await queryPeriodMetrics(prevStart, prevEnd);
+
+  // Compute deltas
+  function computeDelta(cur: number, prev: number): string {
+    if (prev === 0) return cur > 0 ? "▲ 新增" : "—";
+    const pct = ((cur - prev) / Math.abs(prev)) * 100;
+    if (pct > 0) return `▲ +${pct.toFixed(1)}%`;
+    if (pct < 0) return `▼ ${pct.toFixed(1)}%`;
+    return "— 持平";
+  }
+
+  // Top 3 best + worst meetings in current period
+  const bestRes = await db.execute(sql.raw(`
+    SELECT mr.title, mes.overall_score FROM meeting_records mr
+    JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id
+    WHERE mr.meeting_date >= '${currentStart}' AND mr.meeting_date <= '${currentEnd}' ${scopeFilter}
+    ORDER BY mes.overall_score DESC LIMIT 3
+  `));
+  const worstRes = await db.execute(sql.raw(`
+    SELECT mr.title, mes.overall_score FROM meeting_records mr
+    JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id
+    WHERE mr.meeting_date >= '${currentStart}' AND mr.meeting_date <= '${currentEnd}' ${scopeFilter}
+    ORDER BY mes.overall_score ASC LIMIT 3
+  `));
+
+  // Recommendations from predictions
+  const recsRes = await db.execute(sql.raw(`
+    SELECT recommendations FROM ime_meeting_predictions p
+    JOIN meeting_records mr ON p.meeting_id = mr.id
+    WHERE mr.meeting_date >= '${currentStart}' AND mr.meeting_date <= '${currentEnd}' ${scopeFilter}
+    AND p.recommendations IS NOT NULL
+    ORDER BY p.predicted_at DESC LIMIT 5
+  `));
+
+  // Build PDF
+  const doc = new PDFDocument({ size: "A4", margin: 50 });
+  const chunks: Buffer[] = [];
+  doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+
+  doc.registerFont("Chinese", "C:/Windows/Fonts/msyh.ttc");
+  doc.font("Chinese");
+
+  // --- Cover ---
+  doc.fillColor("#2E5090").fontSize(28).text("会议智能基准报告", 50, 180, { align: "center" });
+  doc.fontSize(14).fillColor("#555555").text(`范围: ${scope}${scopeId ? ` — ${scopeId}` : ""}`, 50, 240, { align: "center" });
+  doc.text(`对比周期: ${periodLabel} (${currentStart} ~ ${currentEnd})`, 50, 270, { align: "center" });
+  doc.text(`对比基准: ${prevStart} ~ ${prevEnd}`, 50, 295, { align: "center" });
+  doc.text(`生成时间: ${new Date().toLocaleString("zh-CN")}`, 50, 325, { align: "center" });
+
+  // --- Metrics Comparison ---
+  doc.addPage();
+  let y = 50;
+  y = addSectionTitle(doc, "1. 核心指标对比", y);
+
+  const metrics = [
+    { name: "会议数量", cur: current.meetingCount, prev: previous.meetingCount, unit: "次" },
+    { name: "平均效能", cur: current.avgEffectiveness, prev: previous.avgEffectiveness, unit: "分" },
+    { name: "平均成本", cur: current.avgCost, prev: previous.avgCost, unit: "¥" },
+    { name: "行动项完成率", cur: current.actionCompletionRate, prev: previous.actionCompletionRate, unit: "%" },
+    { name: "平均ROI", cur: current.avgRoi, prev: previous.avgRoi, unit: "分" },
+    { name: "疲劳指数", cur: current.avgFatigue, prev: previous.avgFatigue, unit: "" },
+  ];
+
+  y = drawTable(doc,
+    ["指标", "当前期间", "上一期间", "变化"],
+    metrics.map(m => [m.name, `${m.cur}${m.unit}`, `${m.prev}${m.unit}`, computeDelta(m.cur, m.prev)]),
+    [130, 110, 110, 145], 50, y
+  );
+
+  // --- Sparklines (simple trend visualization) ---
+  y += 20;
+  y = addSectionTitle(doc, "2. 趋势概览", y);
+  for (const m of metrics.slice(0, 4)) {
+    if (y > 720) { doc.addPage(); y = 50; }
+    doc.fillColor("#333333").fontSize(9).text(m.name, 50, y + 5, { width: 100 });
+    // Simple two-point sparkline
+    const x1 = 170, x2 = 370;
+    const maxVal = Math.max(m.prev, m.cur, 1);
+    const y1 = y + 20 - (m.prev / maxVal) * 15;
+    const y2 = y + 20 - (m.cur / maxVal) * 15;
+    doc.strokeColor(m.cur >= m.prev ? "#4CAF50" : "#F44336").lineWidth(2);
+    doc.moveTo(x1, y1).lineTo(x2, y2).stroke();
+    doc.fillColor("#4472C4").circle(x1, y1, 3).fill();
+    doc.fillColor("#4472C4").circle(x2, y2, 3).fill();
+    doc.fillColor("#999999").fontSize(7).text("上期", x1 - 10, y + 22).text("当期", x2 - 10, y + 22);
+    y += 40;
+  }
+
+  // --- Best / Worst Meetings ---
+  y += 10;
+  y = addSectionTitle(doc, "3. 最佳 / 最差会议", y);
+  const best = bestRes.rows as any[];
+  const worst = worstRes.rows as any[];
+  if (best.length > 0) {
+    doc.fillColor("#4CAF50").fontSize(11).text("Top 3 最佳", 50, y);
+    y += 18;
+    for (const m of best) {
+      doc.fillColor("#333333").fontSize(9).text(`• ${m.title} — ${Math.round(Number(m.overall_score))}分`, 60, y);
+      y += 16;
+    }
+  }
+  y += 8;
+  if (worst.length > 0) {
+    doc.fillColor("#F44336").fontSize(11).text("Bottom 3 待改进", 50, y);
+    y += 18;
+    for (const m of worst) {
+      doc.fillColor("#333333").fontSize(9).text(`• ${m.title} — ${Math.round(Number(m.overall_score))}分`, 60, y);
+      y += 16;
+    }
+  }
+
+  // --- Recommendations ---
+  y += 15;
+  y = addSectionTitle(doc, "4. AI建议汇总", y);
+  const recs = recsRes.rows as any[];
+  if (recs.length > 0) {
+    for (const r of recs) {
+      if (y > 720) { doc.addPage(); y = 50; }
+      const text = String(r.recommendations || "").slice(0, 300);
+      doc.fillColor("#333333").fontSize(9).text(`• ${text}`, 50, y, { width: 495 });
+      y += doc.heightOfString(`• ${text}`, { width: 495 }) + 6;
+    }
+  } else {
+    doc.fillColor("#999999").fontSize(10).text("暂无建议数据", 50, y);
+  }
+
+  // Finalize
+  doc.end();
+  await new Promise<void>((resolve) => doc.on("end", resolve));
+  const pdfBuffer = Buffer.concat(chunks);
+  const base64 = pdfBuffer.toString("base64");
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const filename = `IME-基准报告-${scope}-${periodLabel}-${dateStr}.pdf`;
+
+  // Record export
+  const safeScope = scope.replace(/'/g, "''");
+  const safeScopeId = (scopeId || "").replace(/'/g, "''");
+  await db.execute(sql.raw(`
+    INSERT INTO ime_report_exports (report_type, scope, scope_id, format, filename, file_size, generated_by, generated_at, created_at)
+    VALUES ('benchmark', '${safeScope}', '${safeScopeId}', 'pdf', '${filename.replace(/'/g, "''")}', ${pdfBuffer.length}, 'system', NOW(), NOW())
+  `));
+
+  return { base64, filename };
+}

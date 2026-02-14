@@ -38,6 +38,7 @@ import {
   MeetingRoiTab,
   AttendeeOptimizationTab,
   PredictiveAnalyticsTab,
+  ReportsTab,
 } from "./meeting-executive";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -871,6 +872,7 @@ export default function MeetingExecutive() {
           <TabsTrigger value="roi">ROI分析</TabsTrigger>
           <TabsTrigger value="attendee-opt">参会优化</TabsTrigger>
           <TabsTrigger value="predictions">预测分析</TabsTrigger>
+          <TabsTrigger value="reports">报告导出</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -939,6 +941,10 @@ export default function MeetingExecutive() {
 
         <TabsContent value="predictions">
           <PredictiveAnalyticsTab />
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <ReportsTab />
         </TabsContent>
       </Tabs>
     </div>
