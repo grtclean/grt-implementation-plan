@@ -1107,4 +1107,89 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       return imeService.getGamificationDashboard(input?.userId);
     }),
+
+  // Phase 12: Feedback & Continuous Improvement
+
+  submitFeedback: protectedProcedure
+    .input(z.object({
+      meetingId: z.string(),
+      overallRating: z.number().min(1).max(5),
+      contentRelevance: z.number().min(1).max(5).optional(),
+      timeEfficiency: z.number().min(1).max(5).optional(),
+      facilitation: z.number().min(1).max(5).optional(),
+      actionClarity: z.number().min(1).max(5).optional(),
+      wouldRecommend: z.number().optional(),
+      highlights: z.string().optional(),
+      improvements: z.string().optional(),
+      suggestions: z.string().optional(),
+      anonymous: z.boolean().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx as any).user?.openId || "unknown";
+      return imeService.submitMeetingFeedback(input.meetingId, userId, input);
+    }),
+
+  meetingFeedback: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .query(async ({ input }) => {
+      return imeService.getMeetingFeedbackSummary(input.meetingId);
+    }),
+
+  feedbackTrends: protectedProcedure
+    .input(z.object({ period: z.string().optional(), scope: z.string().optional(), scopeId: z.string().optional() }).optional())
+    .mutation(async ({ input }) => {
+      return imeService.analyzeFeedbackTrends(input || undefined);
+    }),
+
+  generateImprovement: protectedProcedure
+    .input(z.object({ scope: z.string(), scopeId: z.string().optional() }))
+    .mutation(async ({ input }) => {
+      return imeService.generateImprovementInitiative(input.scope, input.scopeId);
+    }),
+
+  listImprovements: protectedProcedure
+    .input(z.object({ status: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const where = input?.status ? `WHERE status = '${input.status}'` : "";
+      const result = await db.execute(sql.raw(`SELECT * FROM ime_improvement_initiatives ${where} ORDER BY created_at DESC`));
+      return result.rows;
+    }),
+
+  updateImprovement: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      status: z.string().optional(),
+      owner: z.string().optional(),
+      currentValue: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const sets: string[] = [];
+      if (input.status) sets.push(`status = '${input.status}'`);
+      if (input.owner) sets.push(`owner = '${input.owner.replace(/'/g, "''")}'`);
+      if (input.currentValue !== undefined) sets.push(`current_value = ${input.currentValue}`);
+      sets.push("updated_at = NOW()");
+      await db.execute(sql.raw(`UPDATE ime_improvement_initiatives SET ${sets.join(", ")} WHERE id = ${input.id}`));
+      return { success: true };
+    }),
+
+  feedbackDashboard: protectedProcedure
+    .input(z.object({ period: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getFeedbackDashboard(input || undefined);
+    }),
+
+  feedbackStats: protectedProcedure
+    .input(z.object({ meetingId: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      if (input?.meetingId) {
+        return imeService.getMeetingFeedbackSummary(input.meetingId);
+      }
+      const result = await db.execute(sql.raw(
+        `SELECT meeting_id, COUNT(*) as responses, AVG(overall_rating) as avg_rating FROM ime_meeting_feedback GROUP BY meeting_id ORDER BY MAX(submitted_at) DESC LIMIT 20`
+      ));
+      return result.rows;
+    }),
 });

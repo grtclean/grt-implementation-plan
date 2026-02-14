@@ -17,3 +17,4 @@ export { MeetingAssistantTab } from "./MeetingAssistantTab";
 export { WorkflowCoachingTab } from "./WorkflowCoachingTab";
 export { IntegrationSettingsTab } from "./IntegrationSettingsTab";
 export { GamificationTab } from "./GamificationTab";
+export { FeedbackTab } from "./FeedbackTab";

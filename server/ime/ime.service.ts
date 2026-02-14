@@ -6319,3 +6319,238 @@ export async function getGamificationDashboard(userId?: string) {
     recentCompletions: recentRes.rows,
   };
 }
+
+// ============================================================================
+// Phase 12: Meeting Feedback & Continuous Improvement
+// ============================================================================
+
+// Phase 12 — Feature 1: Submit Meeting Feedback
+export async function submitMeetingFeedback(meetingId: string, userId: string, feedback: {
+  overallRating: number;
+  contentRelevance?: number;
+  timeEfficiency?: number;
+  facilitation?: number;
+  actionClarity?: number;
+  wouldRecommend?: number;
+  highlights?: string;
+  improvements?: string;
+  suggestions?: string;
+  anonymous?: boolean;
+}) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+  const safeUser = userId.replace(/'/g, "''");
+  const safeHighlights = (feedback.highlights || "").replace(/'/g, "''");
+  const safeImprovements = (feedback.improvements || "").replace(/'/g, "''");
+  const safeSuggestions = (feedback.suggestions || "").replace(/'/g, "''");
+
+  await db.execute(sql.raw(`
+    INSERT INTO ime_meeting_feedback (meeting_id, user_id, overall_rating, content_relevance, time_efficiency, facilitation, action_clarity, would_recommend, highlights, improvements, suggestions, anonymous, submitted_at)
+    VALUES ('${safeId}', '${safeUser}', ${feedback.overallRating}, ${feedback.contentRelevance ?? "NULL"}, ${feedback.timeEfficiency ?? "NULL"}, ${feedback.facilitation ?? "NULL"}, ${feedback.actionClarity ?? "NULL"}, ${feedback.wouldRecommend ?? "NULL"}, '${safeHighlights}', '${safeImprovements}', '${safeSuggestions}', ${feedback.anonymous ? 1 : 0}, NOW())
+  `));
+
+  return { success: true, meetingId, userId: feedback.anonymous ? "anonymous" : userId };
+}
+
+// Phase 12 — Feature 2: Analyze Feedback Trends
+export async function analyzeFeedbackTrends(filters?: { period?: string; scope?: string; scopeId?: string }) {
+  const db = await requireDb();
+  const periodDays = filters?.period === "quarterly" ? 90 : filters?.period === "weekly" ? 7 : 30;
+
+  const avgRes = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total_responses,
+           AVG(overall_rating) as avg_overall,
+           AVG(content_relevance) as avg_content,
+           AVG(time_efficiency) as avg_time,
+           AVG(facilitation) as avg_facilitation,
+           AVG(action_clarity) as avg_action,
+           SUM(CASE WHEN would_recommend = 1 THEN 1 ELSE 0 END) as promoters,
+           SUM(CASE WHEN would_recommend = 0 THEN 1 ELSE 0 END) as detractors
+    FROM ime_meeting_feedback
+    WHERE submitted_at >= NOW() - INTERVAL '${periodDays} days'
+  `));
+
+  const avg = (avgRes.rows as any[])[0] || {};
+  const total = Number(avg.total_responses || 0);
+  const nps = total > 0
+    ? Math.round(((Number(avg.promoters || 0) - Number(avg.detractors || 0)) / total) * 100)
+    : 0;
+
+  // Get previous period for trend
+  const prevRes = await db.execute(sql.raw(`
+    SELECT AVG(overall_rating) as prev_avg
+    FROM ime_meeting_feedback
+    WHERE submitted_at >= NOW() - INTERVAL '${periodDays * 2} days' AND submitted_at < NOW() - INTERVAL '${periodDays} days'
+  `));
+  const prevAvg = Number((prevRes.rows as any[])[0]?.prev_avg || 0);
+  const currentAvg = Number(avg.avg_overall || 0);
+  const trend = currentAvg > prevAvg + 0.1 ? "up" : currentAvg < prevAvg - 0.1 ? "down" : "stable";
+
+  // Common feedback themes (top highlights and improvements)
+  const highlightsRes = await db.execute(sql.raw(
+    `SELECT highlights FROM ime_meeting_feedback WHERE highlights != '' AND submitted_at >= NOW() - INTERVAL '${periodDays} days' ORDER BY submitted_at DESC LIMIT 20`
+  ));
+  const improvementsRes = await db.execute(sql.raw(
+    `SELECT improvements FROM ime_meeting_feedback WHERE improvements != '' AND submitted_at >= NOW() - INTERVAL '${periodDays} days' ORDER BY submitted_at DESC LIMIT 20`
+  ));
+
+  // Save analytics snapshot
+  await db.execute(sql.raw(`
+    INSERT INTO ime_feedback_analytics (scope, scope_id, period, total_responses, avg_overall_rating, avg_content_relevance, avg_time_efficiency, avg_facilitation, avg_action_clarity, nps_score, top_highlights, top_improvements, trend_direction, analyzed_at)
+    VALUES ('${filters?.scope || "organization"}', ${filters?.scopeId ? `'${filters.scopeId.replace(/'/g, "''")}'` : "NULL"}, '${filters?.period || "monthly"}', ${total}, ${currentAvg.toFixed(2)}, ${Number(avg.avg_content || 0).toFixed(2)}, ${Number(avg.avg_time || 0).toFixed(2)}, ${Number(avg.avg_facilitation || 0).toFixed(2)}, ${Number(avg.avg_action || 0).toFixed(2)}, ${nps}, '${JSON.stringify((highlightsRes.rows as any[]).map((r: any) => r.highlights).slice(0, 5)).replace(/'/g, "''")}', '${JSON.stringify((improvementsRes.rows as any[]).map((r: any) => r.improvements).slice(0, 5)).replace(/'/g, "''")}', '${trend}', NOW())
+  `));
+
+  return {
+    totalResponses: total,
+    avgOverall: Number(currentAvg.toFixed(2)),
+    avgContent: Number(Number(avg.avg_content || 0).toFixed(2)),
+    avgTime: Number(Number(avg.avg_time || 0).toFixed(2)),
+    avgFacilitation: Number(Number(avg.avg_facilitation || 0).toFixed(2)),
+    avgAction: Number(Number(avg.avg_action || 0).toFixed(2)),
+    npsScore: nps,
+    trend,
+    topHighlights: (highlightsRes.rows as any[]).map((r: any) => r.highlights).slice(0, 5),
+    topImprovements: (improvementsRes.rows as any[]).map((r: any) => r.improvements).slice(0, 5),
+  };
+}
+
+// Phase 12 — Feature 3: Generate Improvement Initiative (AI-powered)
+export async function generateImprovementInitiative(scope: string, scopeId?: string) {
+  const db = await requireDb();
+
+  // Gather recent feedback data
+  const fbRes = await db.execute(sql.raw(
+    `SELECT AVG(overall_rating) as avg_rating, AVG(content_relevance) as avg_content, AVG(time_efficiency) as avg_time, AVG(facilitation) as avg_fac, AVG(action_clarity) as avg_action, COUNT(*) as cnt FROM ime_meeting_feedback WHERE submitted_at >= NOW() - INTERVAL '30 days'`
+  ));
+  const improvRes = await db.execute(sql.raw(
+    `SELECT improvements FROM ime_meeting_feedback WHERE improvements != '' AND submitted_at >= NOW() - INTERVAL '30 days' ORDER BY submitted_at DESC LIMIT 15`
+  ));
+  const healthRes = await db.execute(sql.raw(
+    `SELECT AVG(health_score) as avg_health FROM ime_meeting_health WHERE assessed_at >= NOW() - INTERVAL '30 days'`
+  ));
+
+  const fb = (fbRes.rows as any[])[0] || {};
+  const health = (healthRes.rows as any[])[0] || {};
+  const improvementTexts = (improvRes.rows as any[]).map((r: any) => r.improvements);
+
+  const context = [
+    `范围: ${scope}${scopeId ? ` (${scopeId})` : ""}`,
+    `平均评分: ${Number(fb.avg_rating || 0).toFixed(1)}/5 (${fb.cnt || 0}条反馈)`,
+    `内容相关性: ${Number(fb.avg_content || 0).toFixed(1)}, 时间效率: ${Number(fb.avg_time || 0).toFixed(1)}, 主持质量: ${Number(fb.avg_fac || 0).toFixed(1)}, 行动清晰度: ${Number(fb.avg_action || 0).toFixed(1)}`,
+    `会议健康度: ${Number(health.avg_health || 0).toFixed(0)}分`,
+    `改进反馈: ${improvementTexts.join("; ")}`,
+  ].join("\n");
+
+  const llmResult = await invokeLLM({
+    system: "你是会议改进顾问。基于反馈数据生成具体可执行的改进计划。",
+    prompt: `请基于以下反馈数据生成改进建议:\n${context}`,
+    schema: {
+      type: "object",
+      properties: {
+        initiatives: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              description: { type: "string" },
+              category: { type: "string" },
+              priority: { type: "string" },
+              target_metric: { type: "string" },
+              target_improvement: { type: "string" },
+              owner_suggestion: { type: "string" },
+            },
+            required: ["title", "description", "category"],
+          },
+        },
+        narrative: { type: "string" },
+      },
+      required: ["initiatives"],
+    },
+  });
+
+  const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
+  const safeScopeId = (scopeId || "").replace(/'/g, "''");
+
+  for (const init of (parsed.initiatives || [])) {
+    await db.execute(sql.raw(`
+      INSERT INTO ime_improvement_initiatives (title, description, category, priority, source, scope, scope_id, target_metric, status, ai_narrative, created_by, created_at, updated_at)
+      VALUES ('${(init.title || "").replace(/'/g, "''")}', '${(init.description || "").replace(/'/g, "''")}', '${init.category || "general"}', '${init.priority || "P2"}', 'ai_analysis', '${scope}', ${scopeId ? `'${safeScopeId}'` : "NULL"}, ${init.target_metric ? `'${init.target_metric}'` : "NULL"}, 'proposed', '${(parsed.narrative || "").replace(/'/g, "''")}', 'ai', NOW(), NOW())
+    `));
+  }
+
+  return {
+    initiatives: parsed.initiatives || [],
+    narrative: parsed.narrative || "",
+    count: (parsed.initiatives || []).length,
+  };
+}
+
+// Phase 12 — Feature 4: Meeting Feedback Summary
+export async function getMeetingFeedbackSummary(meetingId: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+
+  const fbRes = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total, AVG(overall_rating) as avg_overall, AVG(content_relevance) as avg_content,
+           AVG(time_efficiency) as avg_time, AVG(facilitation) as avg_fac, AVG(action_clarity) as avg_action,
+           SUM(CASE WHEN would_recommend = 1 THEN 1 ELSE 0 END) as promoters,
+           SUM(CASE WHEN would_recommend = 0 THEN 1 ELSE 0 END) as detractors
+    FROM ime_meeting_feedback WHERE meeting_id = '${safeId}'
+  `));
+  const commentsRes = await db.execute(sql.raw(
+    `SELECT highlights, improvements, suggestions, overall_rating FROM ime_meeting_feedback WHERE meeting_id = '${safeId}' ORDER BY submitted_at DESC`
+  ));
+
+  const stats = (fbRes.rows as any[])[0] || {};
+  const total = Number(stats.total || 0);
+  const nps = total > 0 ? Math.round(((Number(stats.promoters || 0) - Number(stats.detractors || 0)) / total) * 100) : 0;
+
+  return {
+    meetingId,
+    totalResponses: total,
+    avgOverall: Number(Number(stats.avg_overall || 0).toFixed(2)),
+    avgContent: Number(Number(stats.avg_content || 0).toFixed(2)),
+    avgTime: Number(Number(stats.avg_time || 0).toFixed(2)),
+    avgFacilitation: Number(Number(stats.avg_fac || 0).toFixed(2)),
+    avgAction: Number(Number(stats.avg_action || 0).toFixed(2)),
+    npsScore: nps,
+    comments: commentsRes.rows,
+  };
+}
+
+// Phase 12 — Feature 5: Feedback Dashboard
+export async function getFeedbackDashboard(filters?: { period?: string }) {
+  const db = await requireDb();
+  const periodDays = filters?.period === "quarterly" ? 90 : filters?.period === "weekly" ? 7 : 30;
+
+  const statsRes = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total, AVG(overall_rating) as avg_rating,
+           SUM(CASE WHEN would_recommend = 1 THEN 1 ELSE 0 END) as promoters,
+           SUM(CASE WHEN would_recommend = 0 THEN 1 ELSE 0 END) as detractors
+    FROM ime_meeting_feedback WHERE submitted_at >= NOW() - INTERVAL '${periodDays} days'
+  `));
+
+  const analyticsRes = await db.execute(sql.raw(
+    `SELECT * FROM ime_feedback_analytics ORDER BY analyzed_at DESC LIMIT 10`
+  ));
+
+  const initiativesRes = await db.execute(sql.raw(
+    `SELECT * FROM ime_improvement_initiatives ORDER BY created_at DESC LIMIT 20`
+  ));
+
+  const recentFbRes = await db.execute(sql.raw(
+    `SELECT mf.*, mr.title as meeting_title FROM ime_meeting_feedback mf LEFT JOIN meeting_records mr ON mf.meeting_id = mr.id ORDER BY mf.submitted_at DESC LIMIT 10`
+  ));
+
+  const stats = (statsRes.rows as any[])[0] || {};
+  const total = Number(stats.total || 0);
+  const nps = total > 0 ? Math.round(((Number(stats.promoters || 0) - Number(stats.detractors || 0)) / total) * 100) : 0;
+
+  return {
+    stats: { totalResponses: total, avgRating: Number(Number(stats.avg_rating || 0).toFixed(2)), npsScore: nps },
+    analyticsHistory: analyticsRes.rows,
+    initiatives: initiativesRes.rows,
+    recentFeedback: recentFbRes.rows,
+  };
+}
