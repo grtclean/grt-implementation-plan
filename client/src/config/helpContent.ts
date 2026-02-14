@@ -493,6 +493,79 @@ export const helpContentMap: Record<string, PageHelpContent> = {
     ],
   },
 
+  // ========== Gemini 模块 ==========
+  "/social-community": {
+    title: "社群管理",
+    description: "微信群消息监听、AI智能回复、人工审核发布",
+    overview: "社群管理模块对接微信/钉钉/飞书等社群平台，自动监听群消息并识别客户问题。AI引擎根据知识库生成回复草稿，经人工审核后安全发布到群聊，实现7×24小时客户服务响应。",
+    steps: [
+      { title: "添加群组", description: "点击「添加群组」配置需要监听的社群群组，填写群组名称、平台和群组ID" },
+      { title: "查看消息", description: "在消息列表Tab浏览群内消息，可按群组筛选和搜索内容" },
+      { title: "生成AI回复", description: "对标记为问题的消息点击「生成回复」，AI将根据知识库自动生成回复草稿" },
+      { title: "审核草稿", description: "在AI草稿审核Tab查看待审核回复，可编辑内容后批准或拒绝" },
+      { title: "发布消息", description: "已审核通过的消息进入发布队列，可立即发布或定时发布" },
+    ],
+    faq: [
+      { question: "AI回复的准确率如何保证？", answer: "AI基于企业知识库生成回复，每条回复都附带置信度评分，低置信度回复会优先推送审核。" },
+      { question: "支持哪些社群平台？", answer: "目前支持微信、钉钉、飞书和Telegram四个平台。" },
+      { question: "消息监听会影响群组性能吗？", answer: "不会，消息监听采用被动接收机制，不会对群组产生额外负担。" },
+    ],
+  },
+
+  "/liquid-workforce": {
+    title: "液态用工",
+    description: "技能胶囊管理、任务竞标、智能合约支付",
+    overview: "液态用工平台将员工专业技能原子化为「技能胶囊」，通过AI匹配和市场竞标机制实现跨部门技能共享。智能合约自动管理任务交付和报酬支付，构建组织内部的技能流通市场。",
+    steps: [
+      { title: "创建技能胶囊", description: "点击「创建技能胶囊」将您的专业能力原子化，设置技能等级和版税率" },
+      { title: "浏览任务", description: "在任务竞标Tab查看开放任务，筛选适合自己技能的项目" },
+      { title: "提交竞标", description: "点击「竞标」按钮，填写报价、交付承诺后提交" },
+      { title: "查看竞标结果", description: "在我的竞标Tab跟踪竞标状态，查看AI评分和中标结果" },
+      { title: "管理合约", description: "中标后在智能合约Tab查看合约状态和资金流转" },
+    ],
+    faq: [
+      { question: "版税率是什么意思？", answer: "当您的技能胶囊被其他员工调用时，您将按设定的版税率获得报酬分成。" },
+      { question: "竞标评审标准是什么？", answer: "AI综合考虑报价、信誉分、历史交付质量和技能匹配度进行评分排名。" },
+      { question: "智能合约如何保障权益？", answer: "合约采用资金锁定机制，任务完成并验收后自动释放资金，争议由平台仲裁。" },
+    ],
+  },
+
+  "/ai-sales": {
+    title: "AI销售",
+    description: "AI-to-AI谈判、ZOPA区间计算、ZKP证明",
+    overview: "AI销售模块实现了AI-to-AI自动谈判能力，我方销售AI与客户采购AI进行多轮自动报价还价。系统自动计算ZOPA（可能成交区间），通过零知识证明（ZKP）向客户证明产能和合规资质而不泄露敏感信息。",
+    steps: [
+      { title: "新建谈判", description: "点击「新建谈判」配置客户Agent、产品、底价和目标价，启动AI自动谈判" },
+      { title: "推进谈判", description: "在谈判会话中点击「继续谈判」推进下一轮，查看双方报价和ZOPA进度" },
+      { title: "生成ZKP", description: "点击「生成ZKP」创建产能证明或合规证明，向客户展示资质" },
+      { title: "配置策略", description: "在谈判策略Tab设置默认让步策略、情绪响应模式和终止阈值" },
+      { title: "查看结果", description: "谈判结束后查看成交价格、轮次统计和情绪分析" },
+    ],
+    faq: [
+      { question: "ZOPA是什么？", answer: "ZOPA（Zone of Possible Agreement）是双方可能达成协议的价格区间，即我方底价和客户预期价格的重叠区域。" },
+      { question: "ZKP证明如何保护隐私？", answer: "零知识证明允许向客户证明我们满足某项标准（如产能>1000件/月）而不泄露具体数值。" },
+      { question: "谈判失败后可以重启吗？", answer: "可以，创建新的谈判会话即可重新开始，系统会参考历史谈判数据优化策略。" },
+    ],
+  },
+
+  "/personal-agent": {
+    title: "个人智能体",
+    description: "行为探针、过程笔记、技能推断与知识提取",
+    overview: "个人智能体基于YDW（Your Digital Worker）数据映射，通过行为探针自动采集您在IDE、CAD、文档编辑等工具中的操作行为，结合过程笔记和AI分析，自动推断技能等级并构建个人知识图谱。",
+    steps: [
+      { title: "查看能力画像", description: "能力画像Tab展示您的T/S/D/C/K/L六维技能等级和最近成长记录" },
+      { title: "查看行为日志", description: "行为探针Tab显示系统自动采集的操作行为，可点击「推断技能」提取隐含能力" },
+      { title: "记录过程笔记", description: "在过程笔记Tab点击「新建笔记」记录项目中的问题和解决方案" },
+      { title: "AI知识提取", description: "对笔记点击「AI提取知识」，系统将自动提取结构化知识" },
+      { title: "查看知识图谱", description: "知识图谱Tab展示从行为和笔记中积累的知识网络" },
+    ],
+    faq: [
+      { question: "行为数据如何采集？", answer: "通过IDE插件、CAD插件等工具自动采集操作事件，仅记录行为模式不记录具体内容。" },
+      { question: "技能等级如何计算？", answer: "基于行为频率、复杂度和项目成果综合分析，分为L1-L5五个等级。" },
+      { question: "过程笔记和普通笔记有什么区别？", answer: "过程笔记强调问题-解决方案结构，AI可以从中提取可复用的结构化知识。" },
+    ],
+  },
+
   // ========== 门径管理 ==========
   "/stage-gate": {
     title: "门径管理",

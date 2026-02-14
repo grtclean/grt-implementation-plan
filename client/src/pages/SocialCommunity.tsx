@@ -3,7 +3,6 @@
  * 功能：微信群消息监听、AI回复草拟、人工审核发布
  */
 
-import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,15 +15,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useState } from "react";
-import { 
-  MessageSquare, Users, Bot, CheckCircle, Clock, Send, 
+import {
+  MessageSquare, Users, Bot, CheckCircle, Clock, Send,
   AlertTriangle, RefreshCw, Search, Filter, Eye, Edit, Trash2,
   Plus, Settings, Activity
 } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
+
+const statusColorMap = createStatusColorMap({
+  pending: "yellow",
+  approved: "green",
+  rejected: "red",
+  published: "blue",
+  failed: "red",
+});
+
+const statusLabels: Record<string, string> = {
+  pending: "待审核",
+  approved: "已批准",
+  rejected: "已拒绝",
+  published: "已发布",
+  failed: "发布失败",
+};
 
 export default function SocialCommunity() {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("messages");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
@@ -103,172 +118,99 @@ export default function SocialCommunity() {
     },
   });
 
-  // 状态徽章颜色
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-      approved: "bg-green-500/20 text-green-400 border-green-500/30",
-      rejected: "bg-red-500/20 text-red-400 border-red-500/30",
-      published: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-      failed: "bg-red-500/20 text-red-400 border-red-500/30",
-    };
-    const labels: Record<string, string> = {
-      pending: "待审核",
-      approved: "已批准",
-      rejected: "已拒绝",
-      published: "已发布",
-      failed: "发布失败",
-    };
-    return (
-      <Badge variant="outline" className={styles[status] || ""}>
-        {labels[status] || status}
-      </Badge>
-    );
-  };
-
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">社群管理</h1>
-            <p className="text-muted-foreground">
-              微信群消息监听、AI智能回复、人工审核发布
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => refetchMessages()}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              刷新
-            </Button>
-            <Dialog open={showCreateGroupDialog} onOpenChange={setShowCreateGroupDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  添加群组
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>添加社群群组</DialogTitle>
-                  <DialogDescription>
-                    配置需要监听的社群群组信息
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>群组名称</Label>
-                    <Input
-                      value={newGroup.groupName}
-                      onChange={(e) => setNewGroup({ ...newGroup, groupName: e.target.value })}
-                      placeholder="如：GRT技术交流群"
-                    />
+        <PageHeader
+          icon={MessageSquare}
+          title="社群管理"
+          description="微信群消息监听、AI智能回复、人工审核发布"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => refetchMessages()}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                刷新
+              </Button>
+              <Dialog open={showCreateGroupDialog} onOpenChange={setShowCreateGroupDialog}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    添加群组
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>添加社群群组</DialogTitle>
+                    <DialogDescription>
+                      配置需要监听的社群群组信息
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>群组名称</Label>
+                      <Input
+                        value={newGroup.groupName}
+                        onChange={(e) => setNewGroup({ ...newGroup, groupName: e.target.value })}
+                        placeholder="如：GRT技术交流群"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>平台</Label>
+                      <Select
+                        value={newGroup.platform}
+                        onValueChange={(v) => setNewGroup({ ...newGroup, platform: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="wechat">微信</SelectItem>
+                          <SelectItem value="dingtalk">钉钉</SelectItem>
+                          <SelectItem value="feishu">飞书</SelectItem>
+                          <SelectItem value="telegram">Telegram</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>群组ID</Label>
+                      <Input
+                        value={newGroup.groupId}
+                        onChange={(e) => setNewGroup({ ...newGroup, groupId: e.target.value })}
+                        placeholder="平台群组唯一标识"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>描述</Label>
+                      <Textarea
+                        value={newGroup.description}
+                        onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
+                        placeholder="群组用途描述"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>平台</Label>
-                    <Select
-                      value={newGroup.platform}
-                      onValueChange={(v) => setNewGroup({ ...newGroup, platform: v })}
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowCreateGroupDialog(false)}>
+                      取消
+                    </Button>
+                    <Button
+                      onClick={() => createGroupMutation.mutate({ groupWxId: newGroup.groupId, name: newGroup.groupName, description: newGroup.description } as any)}
+                      disabled={createGroupMutation.isPending}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="wechat">微信</SelectItem>
-                        <SelectItem value="dingtalk">钉钉</SelectItem>
-                        <SelectItem value="feishu">飞书</SelectItem>
-                        <SelectItem value="telegram">Telegram</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>群组ID</Label>
-                    <Input
-                      value={newGroup.groupId}
-                      onChange={(e) => setNewGroup({ ...newGroup, groupId: e.target.value })}
-                      placeholder="平台群组唯一标识"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>描述</Label>
-                    <Textarea
-                      value={newGroup.description}
-                      onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
-                      placeholder="群组用途描述"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowCreateGroupDialog(false)}>
-                    取消
-                  </Button>
-                  <Button
-                    onClick={() => createGroupMutation.mutate({ groupWxId: newGroup.groupId, name: newGroup.groupName, description: newGroup.description } as any)}
-                    disabled={createGroupMutation.isPending}
-                  >
-                    {createGroupMutation.isPending ? "创建中..." : "创建"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+                      {createGroupMutation.isPending ? "创建中..." : "创建"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          }
+        />
 
         {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10 text-blue-400">
-                  <Users className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">活跃群组</p>
-                  <p className="text-2xl font-bold">{stats?.activeGroups || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-500/10 text-green-400">
-                  <MessageSquare className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">今日消息</p>
-                  <p className="text-2xl font-bold">{stats?.todayMessages || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-yellow-500/10 text-yellow-400">
-                  <Clock className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">待审核</p>
-                  <p className="text-2xl font-bold">{stats?.pendingDrafts || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-purple-500/10 text-purple-400">
-                  <Bot className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">AI回复率</p>
-                  <p className="text-2xl font-bold">{stats?.aiReplyRate || 0}%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard icon={Users} label="活跃群组" value={stats?.activeGroups || 0} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          <StatCard icon={MessageSquare} label="今日消息" value={stats?.todayMessages || 0} iconColor="text-green-400" iconBg="bg-green-500/10" />
+          <StatCard icon={Clock} label="待审核" value={stats?.pendingDrafts || 0} iconColor="text-yellow-400" iconBg="bg-yellow-500/10" />
+          <StatCard icon={Bot} label="AI回复率" value={`${stats?.aiReplyRate || 0}%`} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
         </div>
 
         {/* 主要内容区 */}
@@ -405,7 +347,9 @@ export default function SocialCommunity() {
                                 <p className="text-sm text-muted-foreground">原始问题：</p>
                                 <p className="text-sm">{draft.original_message}</p>
                               </div>
-                              {getStatusBadge(draft.status)}
+                              <StatusBadge color={statusColorMap[draft.status as keyof typeof statusColorMap] ?? "gray"}>
+                                {statusLabels[draft.status] || draft.status}
+                              </StatusBadge>
                             </div>
                             <div className="border-l-2 border-primary pl-4">
                               <p className="text-sm text-muted-foreground">AI回复草稿：</p>
@@ -468,7 +412,9 @@ export default function SocialCommunity() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
                                 <Badge variant="outline">{item.group_name}</Badge>
-                                {getStatusBadge(item.status)}
+                                <StatusBadge color={statusColorMap[item.status as keyof typeof statusColorMap] ?? "gray"}>
+                                  {statusLabels[item.status] || item.status}
+                                </StatusBadge>
                               </div>
                               <p className="text-sm whitespace-pre-wrap">{item.content}</p>
                               <p className="text-xs text-muted-foreground mt-2">
@@ -617,6 +563,6 @@ export default function SocialCommunity() {
           </DialogContent>
         </Dialog>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }

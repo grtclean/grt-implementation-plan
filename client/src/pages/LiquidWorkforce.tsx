@@ -3,7 +3,6 @@
  * 功能：技能胶囊管理、任务竞标、智能合约支付
  */
 
-import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,15 +16,39 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useState } from "react";
-import { 
+import {
   Briefcase, Award, FileText, Coins, Users, TrendingUp,
   Plus, Search, Filter, Eye, CheckCircle, XCircle, Clock,
   Zap, Shield, DollarSign, BarChart3
 } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
+
+const bidStatusColorMap = createStatusColorMap({
+  pending: "yellow",
+  accepted: "green",
+  rejected: "red",
+});
+
+const bidStatusLabels: Record<string, string> = {
+  pending: "待评审",
+  accepted: "已中标",
+  rejected: "未中标",
+};
+
+const contractStatusColorMap = createStatusColorMap({
+  locked: "blue",
+  released: "green",
+  disputed: "red",
+});
+
+const contractStatusLabels: Record<string, string> = {
+  locked: "资金锁定",
+  released: "已释放",
+  disputed: "争议中",
+};
 
 export default function LiquidWorkforce() {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("skills");
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateSkillDialog, setShowCreateSkillDialog] = useState(false);
@@ -93,193 +116,106 @@ export default function LiquidWorkforce() {
     },
   });
 
-  // 状态徽章
-  const getBidStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-      accepted: "bg-green-500/20 text-green-400 border-green-500/30",
-      rejected: "bg-red-500/20 text-red-400 border-red-500/30",
-    };
-    const labels: Record<string, string> = {
-      pending: "待评审",
-      accepted: "已中标",
-      rejected: "未中标",
-    };
-    return (
-      <Badge variant="outline" className={styles[status] || ""}>
-        {labels[status] || status}
-      </Badge>
-    );
-  };
-
-  const getContractStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      locked: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-      released: "bg-green-500/20 text-green-400 border-green-500/30",
-      disputed: "bg-red-500/20 text-red-400 border-red-500/30",
-    };
-    const labels: Record<string, string> = {
-      locked: "资金锁定",
-      released: "已释放",
-      disputed: "争议中",
-    };
-    return (
-      <Badge variant="outline" className={styles[status] || ""}>
-        {labels[status] || status}
-      </Badge>
-    );
-  };
-
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">液态用工</h1>
-            <p className="text-muted-foreground">
-              技能原子化、任务竞标、智能合约支付
-            </p>
-          </div>
-          <Dialog open={showCreateSkillDialog} onOpenChange={setShowCreateSkillDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                创建技能胶囊
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>创建技能胶囊</DialogTitle>
-                <DialogDescription>
-                  将您的专业技能原子化，参与任务竞标
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>技能名称</Label>
-                  <Input
-                    value={newSkill.name}
-                    onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
-                    placeholder="如：高压喷嘴流体仿真"
-                  />
+        <PageHeader
+          icon={Briefcase}
+          title="液态用工"
+          description="技能原子化、任务竞标、智能合约支付"
+          actions={
+            <Dialog open={showCreateSkillDialog} onOpenChange={setShowCreateSkillDialog}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  创建技能胶囊
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>创建技能胶囊</DialogTitle>
+                  <DialogDescription>
+                    将您的专业技能原子化，参与任务竞标
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>技能名称</Label>
+                    <Input
+                      value={newSkill.name}
+                      onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
+                      placeholder="如：高压喷嘴流体仿真"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>技能等级 (L1-L5)</Label>
+                    <Select
+                      value={newSkill.level}
+                      onValueChange={(v) => setNewSkill({ ...newSkill, level: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">L1 - 入门级</SelectItem>
+                        <SelectItem value="2">L2 - 基础级</SelectItem>
+                        <SelectItem value="3">L3 - 熟练级</SelectItem>
+                        <SelectItem value="4">L4 - 专家级</SelectItem>
+                        <SelectItem value="5">L5 - 大师级</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>版税率 (%)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="30"
+                      value={newSkill.royaltyRate}
+                      onChange={(e) => setNewSkill({ ...newSkill, royaltyRate: e.target.value })}
+                      placeholder="5"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      当您的技能被他人调用时，您将获得的版税比例
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>技能描述</Label>
+                    <Textarea
+                      value={newSkill.description}
+                      onChange={(e) => setNewSkill({ ...newSkill, description: e.target.value })}
+                      placeholder="详细描述您的技能能力和应用场景"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>技能等级 (L1-L5)</Label>
-                  <Select
-                    value={newSkill.level}
-                    onValueChange={(v) => setNewSkill({ ...newSkill, level: v })}
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowCreateSkillDialog(false)}>
+                    取消
+                  </Button>
+                  <Button
+                    onClick={() => createSkillMutation.mutate({
+                      name: newSkill.name,
+                      ownerDid: '',
+                      level: parseInt(newSkill.level),
+                      royaltyRate: parseFloat(newSkill.royaltyRate),
+                      description: newSkill.description,
+                    } as any)}
+                    disabled={createSkillMutation.isPending}
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">L1 - 入门级</SelectItem>
-                      <SelectItem value="2">L2 - 基础级</SelectItem>
-                      <SelectItem value="3">L3 - 熟练级</SelectItem>
-                      <SelectItem value="4">L4 - 专家级</SelectItem>
-                      <SelectItem value="5">L5 - 大师级</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>版税率 (%)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="30"
-                    value={newSkill.royaltyRate}
-                    onChange={(e) => setNewSkill({ ...newSkill, royaltyRate: e.target.value })}
-                    placeholder="5"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    当您的技能被他人调用时，您将获得的版税比例
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label>技能描述</Label>
-                  <Textarea
-                    value={newSkill.description}
-                    onChange={(e) => setNewSkill({ ...newSkill, description: e.target.value })}
-                    placeholder="详细描述您的技能能力和应用场景"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowCreateSkillDialog(false)}>
-                  取消
-                </Button>
-                <Button
-                  onClick={() => createSkillMutation.mutate({
-                    name: newSkill.name,
-                    ownerDid: '',
-                    level: parseInt(newSkill.level),
-                    royaltyRate: parseFloat(newSkill.royaltyRate),
-                    description: newSkill.description,
-                  } as any)}
-                  disabled={createSkillMutation.isPending}
-                >
-                  {createSkillMutation.isPending ? "创建中..." : "创建"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+                    {createSkillMutation.isPending ? "创建中..." : "创建"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          }
+        />
 
         {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-purple-500/10 text-purple-400">
-                  <Award className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">我的技能</p>
-                  <p className="text-2xl font-bold">{(stats as any)?.mySkillCount || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10 text-blue-400">
-                  <Briefcase className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">可竞标任务</p>
-                  <p className="text-2xl font-bold">{(stats as any)?.openTasks || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-500/10 text-green-400">
-                  <Coins className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">累计收益</p>
-                  <p className="text-2xl font-bold">¥{(stats as any)?.totalEarnings?.toLocaleString() || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-orange-500/10 text-orange-400">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">信誉分</p>
-                  <p className="text-2xl font-bold">{(stats as any)?.creditScore?.toFixed(1) || "N/A"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard icon={Award} label="我的技能" value={(stats as any)?.mySkillCount || 0} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+          <StatCard icon={Briefcase} label="可竞标任务" value={(stats as any)?.openTasks || 0} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          <StatCard icon={Coins} label="累计收益" value={`¥${(stats as any)?.totalEarnings?.toLocaleString() || 0}`} iconColor="text-green-400" iconBg="bg-green-500/10" />
+          <StatCard icon={TrendingUp} label="信誉分" value={(stats as any)?.creditScore?.toFixed(1) || "N/A"} iconColor="text-orange-400" iconBg="bg-orange-500/10" />
         </div>
 
         {/* 主要内容区 */}
@@ -453,7 +389,9 @@ export default function LiquidWorkforce() {
                                 提交时间: {new Date(bid.created_at).toLocaleString()}
                               </p>
                             </div>
-                            {getBidStatusBadge(bid.status)}
+                            <StatusBadge color={bidStatusColorMap[bid.status as keyof typeof bidStatusColorMap] ?? "gray"}>
+                              {bidStatusLabels[bid.status] || bid.status}
+                            </StatusBadge>
                           </div>
                         </CardContent>
                       </Card>
@@ -490,7 +428,9 @@ export default function LiquidWorkforce() {
                                 <h4 className="font-medium font-mono text-sm">
                                   {contract.contract_address?.slice(0, 20)}...
                                 </h4>
-                                {getContractStatusBadge(contract.execution_status)}
+                                <StatusBadge color={contractStatusColorMap[contract.execution_status as keyof typeof contractStatusColorMap] ?? "gray"}>
+                                  {contractStatusLabels[contract.execution_status] || contract.execution_status}
+                                </StatusBadge>
                               </div>
                               <div className="flex items-center gap-4 mt-2 text-sm">
                                 <span className="flex items-center gap-1">
@@ -574,6 +514,6 @@ export default function LiquidWorkforce() {
           </DialogContent>
         </Dialog>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }

@@ -3,7 +3,6 @@
  * 功能：AI-to-AI谈判会话、零知识证明验证、谈判策略配置
  */
 
-import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,15 +16,39 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useState } from "react";
-import { 
+import {
   Bot, MessageSquare, Shield, CheckCircle, XCircle, Clock,
   TrendingUp, DollarSign, Handshake, AlertTriangle, RefreshCw,
   Plus, Eye, Activity, Target, Zap
 } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
+
+const sessionStatusColorMap = createStatusColorMap({
+  negotiating: "blue",
+  deal_reached: "green",
+  walk_away: "red",
+});
+
+const sessionStatusLabels: Record<string, string> = {
+  negotiating: "谈判中",
+  deal_reached: "已成交",
+  walk_away: "已终止",
+};
+
+const zkpTypeColorMap = createStatusColorMap({
+  capacity: "purple",
+  compliance: "blue",
+  green_energy: "green",
+});
+
+const zkpTypeLabels: Record<string, string> = {
+  capacity: "产能证明",
+  compliance: "合规证明",
+  green_energy: "绿色能源",
+};
 
 export default function AISales() {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("sessions");
   const [showNewSessionDialog, setShowNewSessionDialog] = useState(false);
   const [showZkpDialog, setShowZkpDialog] = useState(false);
@@ -91,43 +114,6 @@ export default function AISales() {
     },
   });
 
-  // 状态徽章
-  const getSessionStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      negotiating: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-      deal_reached: "bg-green-500/20 text-green-400 border-green-500/30",
-      walk_away: "bg-red-500/20 text-red-400 border-red-500/30",
-    };
-    const labels: Record<string, string> = {
-      negotiating: "谈判中",
-      deal_reached: "已成交",
-      walk_away: "已终止",
-    };
-    return (
-      <Badge variant="outline" className={styles[status] || ""}>
-        {labels[status] || status}
-      </Badge>
-    );
-  };
-
-  const getZkpTypeBadge = (type: string) => {
-    const styles: Record<string, string> = {
-      capacity: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-      compliance: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-      green_energy: "bg-green-500/20 text-green-400 border-green-500/30",
-    };
-    const labels: Record<string, string> = {
-      capacity: "产能证明",
-      compliance: "合规证明",
-      green_energy: "绿色能源",
-    };
-    return (
-      <Badge variant="outline" className={styles[type] || ""}>
-        {labels[type] || type}
-      </Badge>
-    );
-  };
-
   // 计算ZOPA进度
   const calculateZopaProgress = (session: any) => {
     if (!session.zopa_range) return 0;
@@ -137,200 +123,150 @@ export default function AISales() {
   };
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">AI销售</h1>
-            <p className="text-muted-foreground">
-              AI-to-AI智能谈判、零知识证明验证
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Dialog open={showZkpDialog} onOpenChange={setShowZkpDialog}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Shield className="w-4 h-4 mr-2" />
-                  生成ZKP
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>生成零知识证明</DialogTitle>
-                  <DialogDescription>
-                    向客户证明能力而不泄露敏感信息
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>证明类型</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="选择证明类型" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="capacity">产能证明</SelectItem>
-                        <SelectItem value="compliance">合规证明 (VDA/IATF)</SelectItem>
-                        <SelectItem value="green_energy">绿色能源证明</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>公开输入参数</Label>
-                    <Textarea placeholder='如: {"standard": "VDA6.3", "score_range": [90, 100]}' />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowZkpDialog(false)}>
-                    取消
+        <PageHeader
+          icon={Bot}
+          title="AI销售"
+          description="AI-to-AI智能谈判、零知识证明验证"
+          actions={
+            <>
+              <Dialog open={showZkpDialog} onOpenChange={setShowZkpDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Shield className="w-4 h-4 mr-2" />
+                    生成ZKP
                   </Button>
-                  <Button onClick={() => generateZkpMutation.mutate({
-                    proofType: "capacity",
-                    publicInputs: {},
-                  })}>
-                    生成证明
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            <Dialog open={showNewSessionDialog} onOpenChange={setShowNewSessionDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  新建谈判
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>创建AI谈判会话</DialogTitle>
-                  <DialogDescription>
-                    配置谈判参数，启动AI-to-AI自动谈判
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>客户Agent ID</Label>
-                    <Input
-                      value={newSession.clientAgentId}
-                      onChange={(e) => setNewSession({ ...newSession, clientAgentId: e.target.value })}
-                      placeholder="客户采购AI的标识"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>产品/项目</Label>
-                    <Input
-                      value={newSession.productId}
-                      onChange={(e) => setNewSession({ ...newSession, productId: e.target.value })}
-                      placeholder="谈判的产品或项目"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>生成零知识证明</DialogTitle>
+                    <DialogDescription>
+                      向客户证明能力而不泄露敏感信息
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <Label>底价 (元)</Label>
+                      <Label>证明类型</Label>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择证明类型" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="capacity">产能证明</SelectItem>
+                          <SelectItem value="compliance">合规证明 (VDA/IATF)</SelectItem>
+                          <SelectItem value="green_energy">绿色能源证明</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>公开输入参数</Label>
+                      <Textarea placeholder='如: {"standard": "VDA6.3", "score_range": [90, 100]}' />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowZkpDialog(false)}>
+                      取消
+                    </Button>
+                    <Button onClick={() => generateZkpMutation.mutate({
+                      proofType: "capacity",
+                      publicInputs: {},
+                    })}>
+                      生成证明
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <Dialog open={showNewSessionDialog} onOpenChange={setShowNewSessionDialog}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    新建谈判
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>创建AI谈判会话</DialogTitle>
+                    <DialogDescription>
+                      配置谈判参数，启动AI-to-AI自动谈判
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>客户Agent ID</Label>
                       <Input
-                        type="number"
-                        value={newSession.floorPrice}
-                        onChange={(e) => setNewSession({ ...newSession, floorPrice: e.target.value })}
-                        placeholder="最低可接受价格"
+                        value={newSession.clientAgentId}
+                        onChange={(e) => setNewSession({ ...newSession, clientAgentId: e.target.value })}
+                        placeholder="客户采购AI的标识"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>目标价 (元)</Label>
+                      <Label>产品/项目</Label>
+                      <Input
+                        value={newSession.productId}
+                        onChange={(e) => setNewSession({ ...newSession, productId: e.target.value })}
+                        placeholder="谈判的产品或项目"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>底价 (元)</Label>
+                        <Input
+                          type="number"
+                          value={newSession.floorPrice}
+                          onChange={(e) => setNewSession({ ...newSession, floorPrice: e.target.value })}
+                          placeholder="最低可接受价格"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>目标价 (元)</Label>
+                        <Input
+                          type="number"
+                          value={newSession.targetPrice}
+                          onChange={(e) => setNewSession({ ...newSession, targetPrice: e.target.value })}
+                          placeholder="期望成交价格"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>最大谈判轮次</Label>
                       <Input
                         type="number"
-                        value={newSession.targetPrice}
-                        onChange={(e) => setNewSession({ ...newSession, targetPrice: e.target.value })}
-                        placeholder="期望成交价格"
+                        value={newSession.maxRounds}
+                        onChange={(e) => setNewSession({ ...newSession, maxRounds: e.target.value })}
+                        placeholder="10"
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>最大谈判轮次</Label>
-                    <Input
-                      type="number"
-                      value={newSession.maxRounds}
-                      onChange={(e) => setNewSession({ ...newSession, maxRounds: e.target.value })}
-                      placeholder="10"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowNewSessionDialog(false)}>
-                    取消
-                  </Button>
-                  <Button
-                    onClick={() => createSessionMutation.mutate({
-                      clientAgentId: newSession.clientAgentId,
-                      productId: parseInt(newSession.productId) || 0,
-                      ourBottomPrice: parseFloat(newSession.floorPrice),
-                      ourTargetPrice: parseFloat(newSession.targetPrice),
-                      maxRounds: parseInt(newSession.maxRounds),
-                    } as any)}
-                    disabled={createSessionMutation.isPending}
-                  >
-                    {createSessionMutation.isPending ? "创建中..." : "开始谈判"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowNewSessionDialog(false)}>
+                      取消
+                    </Button>
+                    <Button
+                      onClick={() => createSessionMutation.mutate({
+                        clientAgentId: newSession.clientAgentId,
+                        productId: parseInt(newSession.productId) || 0,
+                        ourBottomPrice: parseFloat(newSession.floorPrice),
+                        ourTargetPrice: parseFloat(newSession.targetPrice),
+                        maxRounds: parseInt(newSession.maxRounds),
+                      } as any)}
+                      disabled={createSessionMutation.isPending}
+                    >
+                      {createSessionMutation.isPending ? "创建中..." : "开始谈判"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          }
+        />
 
         {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10 text-blue-400">
-                  <MessageSquare className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">进行中谈判</p>
-                  <p className="text-2xl font-bold">{(stats as any)?.activeNegotiations || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-500/10 text-green-400">
-                  <Handshake className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">成交率</p>
-                  <p className="text-2xl font-bold">{(stats as any)?.dealRate?.toFixed(1) || 0}%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-purple-500/10 text-purple-400">
-                  <Shield className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">ZKP证明</p>
-                  <p className="text-2xl font-bold">{(stats as any)?.zkpCount || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-orange-500/10 text-orange-400">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">平均轮次</p>
-                  <p className="text-2xl font-bold">{(stats as any)?.avgRounds?.toFixed(1) || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard icon={MessageSquare} label="进行中谈判" value={(stats as any)?.activeNegotiations || 0} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          <StatCard icon={Handshake} label="成交率" value={`${(stats as any)?.dealRate?.toFixed(1) || 0}%`} iconColor="text-green-400" iconBg="bg-green-500/10" />
+          <StatCard icon={Shield} label="ZKP证明" value={(stats as any)?.zkpCount || 0} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+          <StatCard icon={TrendingUp} label="平均轮次" value={(stats as any)?.avgRounds?.toFixed(1) || 0} iconColor="text-orange-400" iconBg="bg-orange-500/10" />
         </div>
 
         {/* 主要内容区 */}
@@ -370,7 +306,9 @@ export default function AISales() {
                           <CardTitle className="text-lg flex items-center gap-2">
                             <Bot className="w-5 h-5" />
                             会话 #{session.id}
-                            {getSessionStatusBadge(session.status)}
+                            <StatusBadge color={sessionStatusColorMap[session.status as keyof typeof sessionStatusColorMap] ?? "gray"}>
+                              {sessionStatusLabels[session.status] || session.status}
+                            </StatusBadge>
                           </CardTitle>
                           <CardDescription>
                             客户Agent: {session.client_agent_id}
@@ -478,7 +416,9 @@ export default function AISales() {
                           <div className="flex items-start justify-between">
                             <div>
                               <div className="flex items-center gap-2 mb-2">
-                                {getZkpTypeBadge(zkp.proof_type)}
+                                <StatusBadge color={zkpTypeColorMap[zkp.proof_type as keyof typeof zkpTypeColorMap] ?? "gray"}>
+                                  {zkpTypeLabels[zkp.proof_type] || zkp.proof_type}
+                                </StatusBadge>
                                 {zkp.verified_by_client ? (
                                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
                                     <CheckCircle className="w-3 h-3 mr-1" />
@@ -570,6 +510,6 @@ export default function AISales() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }

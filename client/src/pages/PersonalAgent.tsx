@@ -17,12 +17,13 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useState } from "react";
-import { 
+import {
   Brain, Activity, FileText, Plus, Eye, RefreshCw,
   Code, Cpu, Lightbulb, TrendingUp, Clock, User,
   BookOpen, Target, Zap, GitBranch, Search, Sparkles
 } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 
 // 行为上下文类型
 const BEHAVIOR_CONTEXTS = [
@@ -33,6 +34,15 @@ const BEHAVIOR_CONTEXTS = [
   { id: "Training_Complete", name: "培训完成", icon: BookOpen },
   { id: "Project_Milestone", name: "项目里程碑", icon: Target },
 ];
+
+const skillLevelColorMap = createStatusColorMap({
+  "4": "green",
+  "5": "green",
+  "3": "blue",
+  "2": "yellow",
+  "1": "gray",
+  "0": "gray",
+});
 
 export default function PersonalAgent() {
   const { user } = useAuth();
@@ -112,78 +122,26 @@ export default function PersonalAgent() {
   };
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">个人智能体</h1>
-            <p className="text-muted-foreground">
-              YDW数据映射、行为探针、技能画像
-            </p>
-          </div>
-          <div className="flex gap-2">
+        <PageHeader
+          icon={Brain}
+          title="个人智能体"
+          description="行为探针、过程笔记、技能推断与知识提取"
+          actions={
             <Button variant="outline" onClick={() => { refetchLogs(); refetchNotes(); }}>
               <RefreshCw className="w-4 h-4 mr-2" />
               刷新
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10 text-blue-400">
-                  <Activity className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">行为记录</p>
-                  <p className="text-2xl font-bold">{stats?.totalBehaviors || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-500/10 text-green-400">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">过程笔记</p>
-                  <p className="text-2xl font-bold">{stats?.totalNotes || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-purple-500/10 text-purple-400">
-                  <Lightbulb className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">推断技能</p>
-                  <p className="text-2xl font-bold">{stats?.inferredSkills || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-orange-500/10 text-orange-400">
-                  <Brain className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">知识提取</p>
-                  <p className="text-2xl font-bold">{stats?.extractedKnowledge || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard icon={Activity} label="行为记录" value={stats?.totalBehaviors || 0} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          <StatCard icon={FileText} label="过程笔记" value={stats?.totalNotes || 0} iconColor="text-green-400" iconBg="bg-green-500/10" />
+          <StatCard icon={Lightbulb} label="推断技能" value={stats?.inferredSkills || 0} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+          <StatCard icon={Brain} label="知识提取" value={stats?.extractedKnowledge || 0} iconColor="text-orange-400" iconBg="bg-orange-500/10" />
         </div>
 
         {/* 主要内容区 */}
@@ -564,6 +522,6 @@ export default function PersonalAgent() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }
