@@ -10154,3 +10154,65 @@ export const imeLiveSessions = pgTable("ime_live_sessions", {
   totalSegmentsProcessed: integer("total_segments_processed").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// ============================================
+// G-IME Phase 3: Meeting Cost Analysis - 会议成本分析
+// ============================================
+
+export const imeMeetingCosts = pgTable("ime_meeting_costs", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  durationMinutes: real("duration_minutes"),
+  participantCount: integer("participant_count"),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }),
+  costPerDecision: decimal("cost_per_decision", { precision: 12, scale: 2 }),
+  costPerActionItem: decimal("cost_per_action_item", { precision: 12, scale: 2 }),
+  roiScore: real("roi_score"),
+  participantBreakdown: text("participant_breakdown"),
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================
+// G-IME Phase 3: Action Item Tracker - 行动项追踪
+// ============================================
+
+export const imeActionItems = pgTable("ime_action_items", {
+  id: serial("id").primaryKey(),
+  content: text("content").notNull(),
+  owner: varchar("owner", { length: 200 }),
+  originMeetingId: varchar("origin_meeting_id", { length: 36 }).notNull(),
+  originBlockId: integer("origin_block_id"),
+  status: varchar("status", { length: 20 }).default("open"),
+  meetingAppearances: text("meeting_appearances"),
+  appearanceCount: integer("appearance_count").default(1),
+  firstSeenDate: timestamp("first_seen_date").defaultNow(),
+  lastSeenDate: timestamp("last_seen_date").defaultNow(),
+  resolvedDate: timestamp("resolved_date"),
+  aiMatchConfidence: real("ai_match_confidence"),
+  aiSummary: text("ai_summary"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ============================================
+// G-IME Phase 3: Topic Continuity - 跨会议议题追踪
+// ============================================
+
+export const imeTopicContinuity = pgTable("ime_topic_continuity", {
+  id: serial("id").primaryKey(),
+  topicName: varchar("topic_name", { length: 300 }).notNull(),
+  topicDescription: text("topic_description"),
+  status: varchar("status", { length: 20 }).default("introduced"),
+  meetingAppearances: text("meeting_appearances"),
+  appearanceCount: integer("appearance_count").default(1),
+  firstSeenMeetingId: varchar("first_seen_meeting_id", { length: 36 }),
+  firstSeenDate: timestamp("first_seen_date").defaultNow(),
+  lastSeenDate: timestamp("last_seen_date").defaultNow(),
+  resolvedMeetingId: varchar("resolved_meeting_id", { length: 36 }),
+  resolvedDate: timestamp("resolved_date"),
+  aiMatchConfidence: real("ai_match_confidence"),
+  relatedTopicIds: text("related_topic_ids"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
