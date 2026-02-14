@@ -10628,3 +10628,62 @@ export const imeTeamChallenges = pgTable("ime_team_challenges", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Phase 12: Meeting Feedback & Continuous Improvement
+
+export const imeMeetingFeedback = pgTable("ime_meeting_feedback", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  userId: varchar("user_id", { length: 100 }).notNull(),
+  overallRating: integer("overall_rating").notNull(), // 1-5
+  contentRelevance: integer("content_relevance"), // 1-5
+  timeEfficiency: integer("time_efficiency"), // 1-5
+  facilitation: integer("facilitation"), // 1-5
+  actionClarity: integer("action_clarity"), // 1-5
+  wouldRecommend: integer("would_recommend"), // 1 = yes, 0 = no (NPS-style)
+  highlights: text("highlights"), // what went well
+  improvements: text("improvements"), // what could be better
+  suggestions: text("suggestions"), // specific suggestions
+  anonymous: integer("anonymous").default(0),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+});
+
+export const imeFeedbackAnalytics = pgTable("ime_feedback_analytics", {
+  id: serial("id").primaryKey(),
+  scope: varchar("scope", { length: 50 }).notNull(), // meeting | department | organization
+  scopeId: varchar("scope_id", { length: 100 }),
+  period: varchar("period", { length: 20 }), // weekly | monthly | quarterly
+  totalResponses: integer("total_responses").default(0),
+  avgOverallRating: real("avg_overall_rating"),
+  avgContentRelevance: real("avg_content_relevance"),
+  avgTimeEfficiency: real("avg_time_efficiency"),
+  avgFacilitation: real("avg_facilitation"),
+  avgActionClarity: real("avg_action_clarity"),
+  npsScore: real("nps_score"), // -100 to +100
+  topHighlights: text("top_highlights"), // JSON array — most common positives
+  topImprovements: text("top_improvements"), // JSON array — most common issues
+  trendDirection: varchar("trend_direction", { length: 10 }), // up | down | stable
+  analyzedAt: timestamp("analyzed_at").defaultNow(),
+});
+
+export const imeImprovementInitiatives = pgTable("ime_improvement_initiatives", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 300 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 50 }), // time_management | facilitation | content | engagement | follow_up
+  priority: varchar("priority", { length: 10 }).default("P2"), // P0 | P1 | P2 | P3
+  source: varchar("source", { length: 50 }).default("feedback"), // feedback | ai_analysis | manual
+  scope: varchar("scope", { length: 50 }).default("organization"),
+  scopeId: varchar("scope_id", { length: 100 }),
+  targetMetric: varchar("target_metric", { length: 50 }),
+  baselineValue: real("baseline_value"),
+  targetValue: real("target_value"),
+  currentValue: real("current_value"),
+  status: varchar("status", { length: 20 }).default("proposed"), // proposed | approved | in_progress | completed | dismissed
+  owner: varchar("owner", { length: 100 }),
+  dueDate: timestamp("due_date"),
+  aiNarrative: text("ai_narrative"),
+  createdBy: varchar("created_by", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
