@@ -20,6 +20,9 @@ import {
   Search,
   UserCheck,
   Radio,
+  Heart,
+  Activity,
+  Bell,
 } from "lucide-react";
 import {
   DepartmentRollupTab,
@@ -29,6 +32,9 @@ import {
   MeetingCostTab,
   ActionItemTrackerTab,
   TopicContinuityTab,
+  SentimentAnalysisTab,
+  MeetingHealthTab,
+  DigestAlertsTab,
 } from "./meeting-executive";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -856,6 +862,9 @@ export default function MeetingExecutive() {
           <TabsTrigger value="cost">会议成本</TabsTrigger>
           <TabsTrigger value="action-items">行动项追踪</TabsTrigger>
           <TabsTrigger value="topics">议题追踪</TabsTrigger>
+          <TabsTrigger value="sentiment">情感分析</TabsTrigger>
+          <TabsTrigger value="health">健康度</TabsTrigger>
+          <TabsTrigger value="digest">摘要警报</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -900,6 +909,18 @@ export default function MeetingExecutive() {
 
         <TabsContent value="topics">
           <TopicContinuityTab />
+        </TabsContent>
+
+        <TabsContent value="sentiment">
+          <SentimentAnalysisTab />
+        </TabsContent>
+
+        <TabsContent value="health">
+          <MeetingHealthTab />
+        </TabsContent>
+
+        <TabsContent value="digest">
+          <DigestAlertsTab />
         </TabsContent>
       </Tabs>
     </div>

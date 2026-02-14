@@ -2211,3 +2211,893 @@ export async function updateTopicStatus(topicId: number, status: string) {
   `));
   return { success: true, topicId, status };
 }
+
+// ============================================================================
+// Phase 4 — Feature 1: Meeting Sentiment & Conflict Detection
+// ============================================================================
+
+export async function analyzeMeetingSentiment(meetingId: string) {
+  const db = await requireDb();
+
+  // 1. Get meeting record
+  const meetingResult = await db.execute(sql`
+    SELECT id, title, objective, summary FROM meeting_records WHERE id = ${meetingId}
+  `);
+  const meeting = (meetingResult.rows as any[])[0];
+  if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
+
+  // 2. Get content blocks ordered by sort_order
+  const blocksResult = await db.execute(sql`
+    SELECT speaker, block_type, content, sort_order
+    FROM meeting_content_blocks
+    WHERE meeting_id = ${meetingId}
+    ORDER BY sort_order ASC
+    LIMIT 80
+  `);
+  const blocks = blocksResult.rows as any[];
+
+  // 3. Build conversation flow text
+  const conversationFlow = blocks
+    .map((b: any) => `[${b.speaker || "unknown"}] ${b.content}`)
+    .join("\n");
+
+  // 4. LLM analysis
+  let sentimentData: any = null;
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "你是一个会议情感分析专家。分析会议的整体情感、紧张程度、协作氛围，以及各参会者的情感状态。请用中文回答。Return JSON only.",
+        },
+        {
+          role: "user",
+          content: `会议标题: "${meeting.title}"\n目标: ${meeting.objective || "N/A"}\n摘要: ${meeting.summary || "N/A"}\n\n对话记录:\n${conversationFlow}\n\n请分析并返回以下结构:\n- overallSentiment (positive/neutral/negative/mixed)\n- sentimentScore (-1到+1)\n- tensionLevel (0-10)\n- collaborationTone (0-10)\n- frustrationIndicators (负面指标计数)\n- consensusReached (是否达成共识)\n- speakerSentiments: 每位发言者的 [{speaker, sentiment, tensionLevel, keyEmotionalMoments}]\n- emotionalArc: 3-5个阶段 [{phase, sentiment, description}]\n- conflictTopics: 有分歧的议题列表\n- narrative: 2-3句中文情感总结`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "meeting_sentiment",
+          schema: {
+            type: "object",
+            properties: {
+              overallSentiment: { type: "string" },
+              sentimentScore: { type: "number" },
+              tensionLevel: { type: "number" },
+              collaborationTone: { type: "number" },
+              frustrationIndicators: { type: "number" },
+              consensusReached: { type: "boolean" },
+              speakerSentiments: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    speaker: { type: "string" },
+                    sentiment: { type: "string" },
+                    tensionLevel: { type: "number" },
+                    keyEmotionalMoments: { type: "string" },
+                  },
+                  required: ["speaker", "sentiment", "tensionLevel", "keyEmotionalMoments"],
+                  additionalProperties: false,
+                },
+              },
+              emotionalArc: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    phase: { type: "string" },
+                    sentiment: { type: "string" },
+                    description: { type: "string" },
+                  },
+                  required: ["phase", "sentiment", "description"],
+                  additionalProperties: false,
+                },
+              },
+              conflictTopics: { type: "array", items: { type: "string" } },
+              narrative: { type: "string" },
+            },
+            required: [
+              "overallSentiment", "sentimentScore", "tensionLevel", "collaborationTone",
+              "frustrationIndicators", "consensusReached", "speakerSentiments",
+              "emotionalArc", "conflictTopics", "narrative",
+            ],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+    sentimentData = JSON.parse(llmResult.content);
+  } catch {
+    // Heuristic fallback
+    const text = conversationFlow;
+    const negWords = ["反对", "不同意", "问题", "困难", "不行", "不可以", "失败", "担心"];
+    const posWords = ["同意", "支持", "好的", "可以", "赞成", "不错", "完成", "成功"];
+    let negCount = 0, posCount = 0;
+    for (const w of negWords) negCount += (text.match(new RegExp(w, "g")) || []).length;
+    for (const w of posWords) posCount += (text.match(new RegExp(w, "g")) || []).length;
+    const total = negCount + posCount || 1;
+    const ratio = (posCount - negCount) / total;
+    sentimentData = {
+      overallSentiment: ratio > 0.2 ? "positive" : ratio < -0.2 ? "negative" : "neutral",
+      sentimentScore: Math.max(-1, Math.min(1, ratio)),
+      tensionLevel: Math.min(10, negCount * 1.5),
+      collaborationTone: Math.min(10, posCount * 1.5),
+      frustrationIndicators: negCount,
+      consensusReached: ratio > 0,
+      speakerSentiments: [],
+      emotionalArc: [{ phase: "overall", sentiment: ratio > 0 ? "positive" : "neutral", description: "启发式分析" }],
+      conflictTopics: [],
+      narrative: `基于关键词分析: 正面指标${posCount}个，负面指标${negCount}个。`,
+    };
+  }
+
+  // 5. Delete+insert
+  await db.execute(sql`DELETE FROM ime_meeting_sentiment WHERE meeting_id = ${meetingId}`);
+  await db.execute(sql`
+    INSERT INTO ime_meeting_sentiment (
+      meeting_id, overall_sentiment, sentiment_score, tension_level, collaboration_tone,
+      frustration_indicators, consensus_reached, speaker_sentiments, emotional_arc,
+      conflict_topics, ai_narrative, analyzed_at
+    ) VALUES (
+      ${meetingId}, ${sentimentData.overallSentiment},
+      ${sentimentData.sentimentScore}, ${sentimentData.tensionLevel},
+      ${sentimentData.collaborationTone}, ${sentimentData.frustrationIndicators},
+      ${sentimentData.consensusReached},
+      ${JSON.stringify(sentimentData.speakerSentiments)},
+      ${JSON.stringify(sentimentData.emotionalArc)},
+      ${JSON.stringify(sentimentData.conflictTopics)},
+      ${sentimentData.narrative}, NOW()
+    )
+  `);
+
+  return { meetingId, ...sentimentData };
+}
+
+export async function getSentimentDashboard(filters: { channelId?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  const conditions: string[] = ["1=1"];
+  if (filters.channelId) conditions.push(`mr.channel_id = '${filters.channelId}'`);
+  if (filters.dateFrom) conditions.push(`ms.analyzed_at >= '${filters.dateFrom}'`);
+  if (filters.dateTo) conditions.push(`ms.analyzed_at <= '${filters.dateTo}'`);
+  const where = conditions.join(" AND ");
+
+  // Aggregates
+  const aggResult = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as total_analyzed,
+      AVG(ms.sentiment_score) as avg_sentiment,
+      AVG(ms.tension_level) as avg_tension,
+      AVG(ms.collaboration_tone) as avg_collaboration
+    FROM ime_meeting_sentiment ms
+    LEFT JOIN meeting_records mr ON ms.meeting_id = mr.id
+    WHERE ${where}
+  `));
+  const agg = (aggResult.rows as any[])[0] || {};
+
+  // Sentiment distribution
+  const distResult = await db.execute(sql.raw(`
+    SELECT ms.overall_sentiment, COUNT(*) as cnt
+    FROM ime_meeting_sentiment ms
+    LEFT JOIN meeting_records mr ON ms.meeting_id = mr.id
+    WHERE ${where}
+    GROUP BY ms.overall_sentiment
+  `));
+  const distribution: Record<string, number> = {};
+  for (const row of distResult.rows as any[]) {
+    distribution[row.overall_sentiment] = Number(row.cnt);
+  }
+
+  // Tension trend (last 30 meetings)
+  const trendResult = await db.execute(sql.raw(`
+    SELECT ms.meeting_id, mr.title, ms.tension_level, ms.sentiment_score, ms.analyzed_at
+    FROM ime_meeting_sentiment ms
+    LEFT JOIN meeting_records mr ON ms.meeting_id = mr.id
+    WHERE ${where}
+    ORDER BY ms.analyzed_at DESC
+    LIMIT 30
+  `));
+
+  // Highest tension meetings
+  const highTensionResult = await db.execute(sql.raw(`
+    SELECT ms.meeting_id, mr.title, mr.meeting_date, ms.tension_level,
+           ms.overall_sentiment, ms.conflict_topics
+    FROM ime_meeting_sentiment ms
+    LEFT JOIN meeting_records mr ON ms.meeting_id = mr.id
+    WHERE ${where}
+    ORDER BY ms.tension_level DESC
+    LIMIT 5
+  `));
+
+  // Speaker sentiment rankings
+  const speakerResult = await db.execute(sql.raw(`
+    SELECT ms.speaker_sentiments
+    FROM ime_meeting_sentiment ms
+    LEFT JOIN meeting_records mr ON ms.meeting_id = mr.id
+    WHERE ${where} AND ms.speaker_sentiments IS NOT NULL
+    ORDER BY ms.analyzed_at DESC
+    LIMIT 50
+  `));
+  const speakerMap = new Map<string, { totalSentiment: number; count: number }>();
+  for (const row of speakerResult.rows as any[]) {
+    try {
+      const speakers = JSON.parse(row.speaker_sentiments);
+      for (const s of speakers) {
+        const entry = speakerMap.get(s.speaker) || { totalSentiment: 0, count: 0 };
+        const sentVal = s.sentiment === "positive" ? 1 : s.sentiment === "negative" ? -1 : 0;
+        entry.totalSentiment += sentVal;
+        entry.count++;
+        speakerMap.set(s.speaker, entry);
+      }
+    } catch { /* skip */ }
+  }
+  const speakerRankings = Array.from(speakerMap.entries())
+    .map(([speaker, data]) => ({ speaker, avgSentiment: data.totalSentiment / data.count, meetings: data.count }))
+    .sort((a, b) => b.avgSentiment - a.avgSentiment)
+    .slice(0, 10);
+
+  return {
+    stats: {
+      totalAnalyzed: Number(agg.total_analyzed) || 0,
+      avgSentiment: Number(Number(agg.avg_sentiment).toFixed(2)) || 0,
+      avgTension: Number(Number(agg.avg_tension).toFixed(1)) || 0,
+      avgCollaboration: Number(Number(agg.avg_collaboration).toFixed(1)) || 0,
+    },
+    distribution,
+    tensionTrend: (trendResult.rows as any[]).reverse(),
+    highTensionMeetings: highTensionResult.rows,
+    speakerRankings,
+  };
+}
+
+export async function batchAnalyzeSentiment(meetingIds: string[]) {
+  const results: { meetingId: string; success: boolean; error?: string }[] = [];
+  for (const meetingId of meetingIds) {
+    try {
+      await analyzeMeetingSentiment(meetingId);
+      results.push({ meetingId, success: true });
+    } catch (e: any) {
+      results.push({ meetingId, success: false, error: e.message });
+    }
+  }
+  return results;
+}
+
+// ============================================================================
+// Phase 4 — Feature 2: Meeting Health Score & Optimization
+// ============================================================================
+
+export async function computeMeetingHealth(scope: string, scopeId?: string, period?: string) {
+  const db = await requireDb();
+
+  const dateCondition = period ? `AND mr.meeting_date >= NOW() - INTERVAL '${period}'` : "";
+  const scopeCondition = scope === "meeting" && scopeId
+    ? `AND mr.id = '${scopeId}'`
+    : scope === "department" && scopeId
+    ? `AND mr.channel_id = '${scopeId}'`
+    : "";
+
+  // 1. Effectiveness scores
+  const effResult = await db.execute(sql.raw(`
+    SELECT AVG(mes.overall_score) as avg_effectiveness
+    FROM meeting_effectiveness_scores mes
+    JOIN meeting_records mr ON mes.meeting_id = mr.id
+    WHERE 1=1 ${scopeCondition} ${dateCondition}
+  `));
+  const avgEffectiveness = Number((effResult.rows as any[])[0]?.avg_effectiveness) || 0;
+
+  // 2. Cost data
+  const costResult = await db.execute(sql.raw(`
+    SELECT AVG(mc.total_cost) as avg_cost, MAX(mc.total_cost) as max_cost
+    FROM ime_meeting_costs mc
+    JOIN meeting_records mr ON mc.meeting_id = mr.id
+    WHERE 1=1 ${scopeCondition} ${dateCondition}
+  `));
+  const avgCost = Number((costResult.rows as any[])[0]?.avg_cost) || 0;
+  const maxCost = Number((costResult.rows as any[])[0]?.max_cost) || 1;
+
+  // 3. Sentiment data
+  const sentResult = await db.execute(sql.raw(`
+    SELECT AVG(ms.sentiment_score) as avg_sentiment
+    FROM ime_meeting_sentiment ms
+    JOIN meeting_records mr ON ms.meeting_id = mr.id
+    WHERE 1=1 ${scopeCondition} ${dateCondition}
+  `));
+  const avgSentiment = Number((sentResult.rows as any[])[0]?.avg_sentiment) || 0;
+
+  // 4. Action item completion rate
+  const actionResult = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
+    FROM ime_action_items
+  `));
+  const actionTotal = Number((actionResult.rows as any[])[0]?.total) || 1;
+  const actionCompleted = Number((actionResult.rows as any[])[0]?.completed) || 0;
+
+  // 5. Topic resolution rate
+  const topicResult = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as total,
+      SUM(CASE WHEN status IN ('decided', 'closed') THEN 1 ELSE 0 END) as resolved
+    FROM ime_topic_continuity
+  `));
+  const topicTotal = Number((topicResult.rows as any[])[0]?.total) || 1;
+  const topicResolved = Number((topicResult.rows as any[])[0]?.resolved) || 0;
+
+  // 6. Participation balance
+  const partResult = await db.execute(sql.raw(`
+    SELECT AVG(mes.participation_balance) as avg_balance
+    FROM meeting_effectiveness_scores mes
+    JOIN meeting_records mr ON mes.meeting_id = mr.id
+    WHERE 1=1 ${scopeCondition} ${dateCondition}
+  `));
+  const avgBalance = Number((partResult.rows as any[])[0]?.avg_balance) || 0;
+
+  // Compute 6 dimension scores (0-100)
+  const dimensions = {
+    effectiveness: Math.min(100, avgEffectiveness),
+    costEfficiency: Math.min(100, Math.max(0, 100 - (avgCost / Math.max(maxCost, 1)) * 100)),
+    sentiment: Math.min(100, Math.max(0, (avgSentiment + 1) * 50)),
+    actionCompletion: Math.min(100, (actionCompleted / actionTotal) * 100),
+    topicResolution: Math.min(100, (topicResolved / topicTotal) * 100),
+    participationBalance: Math.min(100, avgBalance),
+  };
+
+  // Weighted average
+  const healthScore = Math.round(
+    dimensions.effectiveness * 0.25 +
+    dimensions.costEfficiency * 0.15 +
+    dimensions.sentiment * 0.20 +
+    dimensions.actionCompletion * 0.15 +
+    dimensions.topicResolution * 0.10 +
+    dimensions.participationBalance * 0.15
+  );
+
+  const grade = healthScore >= 85 ? "A" : healthScore >= 70 ? "B" : healthScore >= 55 ? "C" : healthScore >= 40 ? "D" : "F";
+
+  // LLM recommendations
+  let recommendations: any[] = [];
+  try {
+    const weakDims = Object.entries(dimensions)
+      .sort(([, a], [, b]) => a - b)
+      .slice(0, 3)
+      .map(([k, v]) => `${k}: ${Math.round(v)}/100`);
+
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "你是一个会议优化顾问。根据会议健康度分析，给出3-5条可操作的改进建议。请用中文回答。Return JSON only.",
+        },
+        {
+          role: "user",
+          content: `会议健康度: ${healthScore}/100 (${grade})\n维度得分: ${JSON.stringify(dimensions)}\n最弱维度: ${weakDims.join(", ")}\n\n请给出3-5条优先级排序的改进建议:\n- type: reduce_frequency/shorten_duration/change_participants/improve_agenda/address_conflict/follow_up_actions/escalate_topics\n- priority: high/medium/low\n- title: 简短标题\n- description: 具体建议\n- expectedImpact: 预期效果`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "health_recommendations",
+          schema: {
+            type: "object",
+            properties: {
+              recommendations: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    type: { type: "string" },
+                    priority: { type: "string" },
+                    title: { type: "string" },
+                    description: { type: "string" },
+                    expectedImpact: { type: "string" },
+                  },
+                  required: ["type", "priority", "title", "description", "expectedImpact"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["recommendations"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+    recommendations = JSON.parse(llmResult.content).recommendations;
+  } catch {
+    recommendations = [
+      { type: "improve_agenda", priority: "medium", title: "优化会议议程", description: "确保每次会议有明确目标和议程", expectedImpact: "提升效能5-10分" },
+    ];
+  }
+
+  // Delete+insert
+  const scopeIdVal = scopeId || scope;
+  await db.execute(sql.raw(`
+    DELETE FROM ime_meeting_health WHERE scope = '${scope}' AND scope_id = '${scopeIdVal}'
+  `));
+  await db.execute(sql`
+    INSERT INTO ime_meeting_health (
+      scope, scope_id, period, health_score, dimensions, grade,
+      recommendations, computed_at
+    ) VALUES (
+      ${scope}, ${scopeIdVal}, ${period || "all"},
+      ${healthScore}, ${JSON.stringify(dimensions)}, ${grade},
+      ${JSON.stringify(recommendations)}, NOW()
+    )
+  `);
+
+  return { scope, scopeId: scopeIdVal, period, healthScore, grade, dimensions, recommendations };
+}
+
+export async function getHealthDashboard(filters: { scope?: string; period?: string }) {
+  const db = await requireDb();
+
+  const conditions: string[] = ["1=1"];
+  if (filters.scope) conditions.push(`scope = '${filters.scope}'`);
+  const where = conditions.join(" AND ");
+
+  // Current health records
+  const currentResult = await db.execute(sql.raw(`
+    SELECT * FROM ime_meeting_health
+    WHERE ${where}
+    ORDER BY computed_at DESC
+    LIMIT 1
+  `));
+  const current = (currentResult.rows as any[])[0];
+
+  // Health trend (last 6 records)
+  const trendResult = await db.execute(sql.raw(`
+    SELECT health_score, grade, dimensions, computed_at
+    FROM ime_meeting_health
+    WHERE ${where}
+    ORDER BY computed_at DESC
+    LIMIT 6
+  `));
+
+  // Department comparison (all scopes)
+  const deptResult = await db.execute(sql.raw(`
+    SELECT DISTINCT ON (scope_id) scope_id, health_score, grade, dimensions, computed_at
+    FROM ime_meeting_health
+    WHERE scope = 'department'
+    ORDER BY scope_id, computed_at DESC
+  `));
+
+  return {
+    current: current ? {
+      healthScore: Number(current.health_score),
+      grade: current.grade,
+      dimensions: JSON.parse(current.dimensions || "{}"),
+      recommendations: JSON.parse(current.recommendations || "[]"),
+      computedAt: current.computed_at,
+    } : null,
+    trend: (trendResult.rows as any[]).reverse().map((r: any) => ({
+      healthScore: Number(r.health_score),
+      grade: r.grade,
+      dimensions: JSON.parse(r.dimensions || "{}"),
+      computedAt: r.computed_at,
+    })),
+    departmentComparison: (deptResult.rows as any[]).map((r: any) => ({
+      department: r.scope_id,
+      healthScore: Number(r.health_score),
+      grade: r.grade,
+    })),
+  };
+}
+
+export async function getOptimizationRecommendations(scope: string, scopeId?: string) {
+  const db = await requireDb();
+
+  // Get latest health
+  const scopeIdVal = scopeId || scope;
+  const healthResult = await db.execute(sql.raw(`
+    SELECT * FROM ime_meeting_health
+    WHERE scope = '${scope}' AND scope_id = '${scopeIdVal}'
+    ORDER BY computed_at DESC LIMIT 1
+  `));
+  const health = (healthResult.rows as any[])[0];
+
+  // Get patterns
+  const patternsResult = await db.execute(sql.raw(`
+    SELECT pattern_type, pattern_data, ai_insight FROM ime_meeting_patterns
+    ORDER BY created_at DESC LIMIT 10
+  `));
+
+  // Get stale action items count
+  const staleResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as cnt FROM ime_action_items WHERE status = 'stale'
+  `));
+  const staleCount = Number((staleResult.rows as any[])[0]?.cnt) || 0;
+
+  // Get stalled topics count
+  const stalledResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as cnt FROM ime_topic_continuity WHERE status = 'stalled'
+  `));
+  const stalledCount = Number((stalledResult.rows as any[])[0]?.cnt) || 0;
+
+  // Get high tension meetings count
+  const tensionResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as cnt FROM ime_meeting_sentiment WHERE tension_level >= 7
+  `));
+  const highTensionCount = Number((tensionResult.rows as any[])[0]?.cnt) || 0;
+
+  const healthDims = health ? JSON.parse(health.dimensions || "{}") : {};
+  const patterns = (patternsResult.rows as any[]).map((p: any) => ({
+    type: p.pattern_type,
+    insight: p.ai_insight,
+  }));
+
+  let recommendations: any[] = [];
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "你是一个组织效能优化顾问。综合分析会议数据，给出5-7条可操作的优化建议。请用中文回答。Return JSON only.",
+        },
+        {
+          role: "user",
+          content: `健康度: ${health ? Number(health.health_score) : "N/A"}/100\n维度: ${JSON.stringify(healthDims)}\n逾期行动项: ${staleCount}\n停滞议题: ${stalledCount}\n高紧张度会议: ${highTensionCount}\n会议模式: ${JSON.stringify(patterns)}\n\n请给出5-7条优化建议:\n- type: reduce_frequency/shorten_duration/change_participants/improve_agenda/address_conflict/follow_up_actions/escalate_topics\n- priority: high/medium/low\n- title, description, expectedImpact (中文)`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "optimization_recommendations",
+          schema: {
+            type: "object",
+            properties: {
+              recommendations: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    type: { type: "string" },
+                    priority: { type: "string" },
+                    title: { type: "string" },
+                    description: { type: "string" },
+                    expectedImpact: { type: "string" },
+                  },
+                  required: ["type", "priority", "title", "description", "expectedImpact"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["recommendations"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+    recommendations = JSON.parse(llmResult.content).recommendations;
+  } catch {
+    recommendations = [
+      { type: "follow_up_actions", priority: "high", title: "跟进逾期行动项", description: `当前有${staleCount}个逾期行动项需要跟进`, expectedImpact: "提升行动完成率" },
+      { type: "escalate_topics", priority: "medium", title: "推进停滞议题", description: `当前有${stalledCount}个停滞议题需要升级处理`, expectedImpact: "提升议题解决率" },
+    ];
+  }
+
+  return {
+    scope,
+    scopeId: scopeIdVal,
+    healthScore: health ? Number(health.health_score) : null,
+    grade: health?.grade || null,
+    staleActionItems: staleCount,
+    stalledTopics: stalledCount,
+    highTensionMeetings: highTensionCount,
+    recommendations,
+  };
+}
+
+// ============================================================================
+// Phase 4 — Feature 3: Digest & Alert System
+// ============================================================================
+
+export async function generateDigest(digestType: string, scope: string, scopeId?: string, period?: string) {
+  const db = await requireDb();
+
+  // Determine date range
+  const days = digestType === "weekly" ? 7 : digestType === "monthly" ? 30 : 7;
+  const dateRange = period || `${days} days`;
+
+  // Aggregate metrics
+  const meetingResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as cnt FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL '${dateRange}'
+  `));
+  const meetingCount = Number((meetingResult.rows as any[])[0]?.cnt) || 0;
+
+  const costResult = await db.execute(sql.raw(`
+    SELECT SUM(total_cost) as total, AVG(total_cost) as avg_cost
+    FROM ime_meeting_costs mc
+    JOIN meeting_records mr ON mc.meeting_id = mr.id
+    WHERE mr.meeting_date >= NOW() - INTERVAL '${dateRange}'
+  `));
+  const totalCost = Number((costResult.rows as any[])[0]?.total) || 0;
+
+  const effResult = await db.execute(sql.raw(`
+    SELECT AVG(overall_score) as avg_eff
+    FROM meeting_effectiveness_scores mes
+    JOIN meeting_records mr ON mes.meeting_id = mr.id
+    WHERE mr.meeting_date >= NOW() - INTERVAL '${dateRange}'
+  `));
+  const avgEffectiveness = Number((effResult.rows as any[])[0]?.avg_eff) || 0;
+
+  const sentResult = await db.execute(sql.raw(`
+    SELECT AVG(sentiment_score) as avg_sent
+    FROM ime_meeting_sentiment ms
+    JOIN meeting_records mr ON ms.meeting_id = mr.id
+    WHERE mr.meeting_date >= NOW() - INTERVAL '${dateRange}'
+  `));
+  const avgSentiment = Number((sentResult.rows as any[])[0]?.avg_sent) || 0;
+
+  // Action items
+  const actionResult = await db.execute(sql.raw(`
+    SELECT
+      SUM(CASE WHEN created_at >= NOW() - INTERVAL '${dateRange}' THEN 1 ELSE 0 END) as new_items,
+      SUM(CASE WHEN status = 'completed' AND updated_at >= NOW() - INTERVAL '${dateRange}' THEN 1 ELSE 0 END) as completed,
+      SUM(CASE WHEN status = 'stale' THEN 1 ELSE 0 END) as stale_count
+    FROM ime_action_items
+  `));
+  const actionStats = (actionResult.rows as any[])[0] || {};
+
+  // Topics
+  const topicResult = await db.execute(sql.raw(`
+    SELECT
+      SUM(CASE WHEN first_seen_date >= NOW() - INTERVAL '${dateRange}' THEN 1 ELSE 0 END) as introduced,
+      SUM(CASE WHEN status IN ('decided', 'closed') AND resolved_date >= NOW() - INTERVAL '${dateRange}' THEN 1 ELSE 0 END) as decided,
+      SUM(CASE WHEN status = 'stalled' THEN 1 ELSE 0 END) as stalled
+    FROM ime_topic_continuity
+  `));
+  const topicStats = (topicResult.rows as any[])[0] || {};
+
+  // HR signals
+  const hrResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as cnt FROM ime_hr_signals WHERE created_at >= NOW() - INTERVAL '${dateRange}'
+  `));
+  const hrSignalCount = Number((hrResult.rows as any[])[0]?.cnt) || 0;
+
+  // Patterns
+  const patternResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as cnt FROM ime_meeting_patterns WHERE created_at >= NOW() - INTERVAL '${dateRange}'
+  `));
+  const patternCount = Number((patternResult.rows as any[])[0]?.cnt) || 0;
+
+  // Highlights
+  const highlights: any[] = [];
+
+  // Most expensive meeting
+  const expensiveResult = await db.execute(sql.raw(`
+    SELECT mc.meeting_id, mr.title, mc.total_cost
+    FROM ime_meeting_costs mc
+    JOIN meeting_records mr ON mc.meeting_id = mr.id
+    WHERE mr.meeting_date >= NOW() - INTERVAL '${dateRange}'
+    ORDER BY mc.total_cost DESC LIMIT 1
+  `));
+  if ((expensiveResult.rows as any[])[0]) {
+    const m = (expensiveResult.rows as any[])[0];
+    highlights.push({ type: "cost", title: "最高成本会议", description: `${m.title}: ¥${Number(m.total_cost).toFixed(0)}`, severity: "info" });
+  }
+
+  // Highest tension
+  const tensionHighResult = await db.execute(sql.raw(`
+    SELECT ms.meeting_id, mr.title, ms.tension_level
+    FROM ime_meeting_sentiment ms
+    JOIN meeting_records mr ON ms.meeting_id = mr.id
+    WHERE mr.meeting_date >= NOW() - INTERVAL '${dateRange}'
+    ORDER BY ms.tension_level DESC LIMIT 1
+  `));
+  if ((tensionHighResult.rows as any[])[0]) {
+    const m = (tensionHighResult.rows as any[])[0];
+    highlights.push({ type: "tension", title: "最高紧张度会议", description: `${m.title}: 紧张度${Number(m.tension_level).toFixed(1)}/10`, severity: Number(m.tension_level) >= 7 ? "warning" : "info" });
+  }
+
+  // Stale action items highlight
+  const staleCount = Number(actionStats.stale_count) || 0;
+  if (staleCount > 0) {
+    highlights.push({ type: "action_stale", title: "逾期行动项", description: `${staleCount}个行动项已逾期`, severity: staleCount >= 5 ? "critical" : "warning" });
+  }
+
+  // Stalled topics
+  const stalledCount = Number(topicStats.stalled) || 0;
+  if (stalledCount > 0) {
+    highlights.push({ type: "topic_stalled", title: "停滞议题", description: `${stalledCount}个议题处于停滞状态`, severity: stalledCount >= 5 ? "critical" : "warning" });
+  }
+
+  // HR signals
+  if (hrSignalCount > 0) {
+    highlights.push({ type: "hr_signal", title: "HR信号", description: `本期检测到${hrSignalCount}个HR信号`, severity: "info" });
+  }
+
+  // Generate alerts
+  const alerts: any[] = [];
+
+  // Health grade check
+  const healthResult = await db.execute(sql.raw(`
+    SELECT health_score, grade FROM ime_meeting_health ORDER BY computed_at DESC LIMIT 1
+  `));
+  const latestHealth = (healthResult.rows as any[])[0];
+  if (latestHealth && (latestHealth.grade === "D" || latestHealth.grade === "F")) {
+    alerts.push({ alertType: "low_health", message: `会议健康度为${latestHealth.grade}级 (${Number(latestHealth.health_score).toFixed(0)}分)，需要关注`, severity: "critical" });
+  }
+
+  if (staleCount >= 5) {
+    alerts.push({ alertType: "stale_actions", message: `${staleCount}个行动项已逾期5次以上出现`, severity: "critical" });
+  } else if (staleCount >= 3) {
+    alerts.push({ alertType: "stale_actions", message: `${staleCount}个行动项已逾期`, severity: "warning" });
+  }
+
+  if (stalledCount >= 5) {
+    alerts.push({ alertType: "stalled_topics", message: `${stalledCount}个议题停滞超过5次出现`, severity: "critical" });
+  } else if (stalledCount >= 3) {
+    alerts.push({ alertType: "stalled_topics", message: `${stalledCount}个议题处于停滞状态`, severity: "warning" });
+  }
+
+  if (patternCount > 0) {
+    alerts.push({ alertType: "new_patterns", message: `本期检测到${patternCount}个新会议模式`, severity: "info" });
+  }
+
+  const metrics = {
+    meetingCount,
+    totalCost: Math.round(totalCost),
+    avgEffectiveness: Math.round(avgEffectiveness),
+    avgSentiment: Number(avgSentiment.toFixed(2)),
+    newActionItems: Number(actionStats.new_items) || 0,
+    completedActionItems: Number(actionStats.completed) || 0,
+    staleActionItems: staleCount,
+    topicsIntroduced: Number(topicStats.introduced) || 0,
+    topicsDecided: Number(topicStats.decided) || 0,
+    stalledTopics: stalledCount,
+    hrSignals: hrSignalCount,
+    patterns: patternCount,
+  };
+
+  // LLM narrative
+  let narrativeSummary = "";
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "你是一个会议运营分析师。根据数据生成3-5句中文摘要。Return JSON only.",
+        },
+        {
+          role: "user",
+          content: `报告类型: ${digestType}\n指标: ${JSON.stringify(metrics)}\n重点事项: ${JSON.stringify(highlights)}\n警报: ${JSON.stringify(alerts)}\n\n请生成简洁的中文摘要(3-5句)。`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "digest_narrative",
+          schema: {
+            type: "object",
+            properties: { narrative: { type: "string" } },
+            required: ["narrative"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+    narrativeSummary = JSON.parse(llmResult.content).narrative;
+  } catch {
+    narrativeSummary = `本期共${meetingCount}次会议，平均效能${Math.round(avgEffectiveness)}分，总花费¥${Math.round(totalCost)}。${staleCount > 0 ? `有${staleCount}个逾期行动项需关注。` : ""}`;
+  }
+
+  // Insert
+  await db.execute(sql`
+    INSERT INTO ime_digest_alerts (
+      digest_type, scope, scope_id, period, summary, highlights, alerts, metrics, generated_at
+    ) VALUES (
+      ${digestType}, ${scope}, ${scopeId || scope}, ${dateRange},
+      ${JSON.stringify({ narrative: narrativeSummary })},
+      ${JSON.stringify(highlights)},
+      ${JSON.stringify(alerts)},
+      ${JSON.stringify(metrics)},
+      NOW()
+    )
+  `);
+
+  return { digestType, scope, period: dateRange, summary: narrativeSummary, highlights, alerts, metrics };
+}
+
+export async function getDigestHistory(filters: { digestType?: string; scope?: string; limit?: number }) {
+  const db = await requireDb();
+
+  const conditions: string[] = ["1=1"];
+  if (filters.digestType) conditions.push(`digest_type = '${filters.digestType}'`);
+  if (filters.scope) conditions.push(`scope = '${filters.scope}'`);
+  const where = conditions.join(" AND ");
+  const limit = filters.limit || 10;
+
+  const result = await db.execute(sql.raw(`
+    SELECT * FROM ime_digest_alerts
+    WHERE ${where}
+    ORDER BY generated_at DESC
+    LIMIT ${limit}
+  `));
+
+  return (result.rows as any[]).map((row: any) => ({
+    id: row.id,
+    digestType: row.digest_type,
+    scope: row.scope,
+    scopeId: row.scope_id,
+    period: row.period,
+    summary: JSON.parse(row.summary || "{}"),
+    highlights: JSON.parse(row.highlights || "[]"),
+    alerts: JSON.parse(row.alerts || "[]"),
+    metrics: JSON.parse(row.metrics || "{}"),
+    generatedAt: row.generated_at,
+  }));
+}
+
+export async function getActiveAlerts(scope?: string, scopeId?: string) {
+  const db = await requireDb();
+
+  // Get latest digest alerts
+  const conditions: string[] = ["1=1"];
+  if (scope) conditions.push(`scope = '${scope}'`);
+  if (scopeId) conditions.push(`scope_id = '${scopeId}'`);
+  const where = conditions.join(" AND ");
+
+  const digestResult = await db.execute(sql.raw(`
+    SELECT alerts FROM ime_digest_alerts
+    WHERE ${where}
+    ORDER BY generated_at DESC LIMIT 1
+  `));
+  let digestAlerts: any[] = [];
+  if ((digestResult.rows as any[])[0]) {
+    digestAlerts = JSON.parse((digestResult.rows as any[])[0].alerts || "[]")
+      .filter((a: any) => a.severity === "critical" || a.severity === "warning");
+  }
+
+  // Real-time: stale action items
+  const staleResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as cnt FROM ime_action_items WHERE status = 'stale' AND appearance_count >= 3
+  `));
+  const staleCount = Number((staleResult.rows as any[])[0]?.cnt) || 0;
+
+  // Real-time: stalled topics
+  const stalledResult = await db.execute(sql.raw(`
+    SELECT COUNT(*) as cnt FROM ime_topic_continuity WHERE status = 'stalled' AND appearance_count >= 3
+  `));
+  const stalledCount = Number((stalledResult.rows as any[])[0]?.cnt) || 0;
+
+  // Real-time: health grade
+  const healthResult = await db.execute(sql.raw(`
+    SELECT health_score, grade FROM ime_meeting_health ORDER BY computed_at DESC LIMIT 1
+  `));
+  const latestHealth = (healthResult.rows as any[])[0];
+
+  const realTimeAlerts: any[] = [];
+  if (staleCount >= 3) {
+    realTimeAlerts.push({ alertType: "stale_actions_realtime", message: `${staleCount}个行动项已逾期(≥3次出现)`, severity: staleCount >= 5 ? "critical" : "warning" });
+  }
+  if (stalledCount >= 3) {
+    realTimeAlerts.push({ alertType: "stalled_topics_realtime", message: `${stalledCount}个议题停滞(≥3次出现)`, severity: stalledCount >= 5 ? "critical" : "warning" });
+  }
+  if (latestHealth && latestHealth.grade !== "A" && latestHealth.grade !== "B" && latestHealth.grade !== "C") {
+    realTimeAlerts.push({ alertType: "low_health_realtime", message: `会议健康度${latestHealth.grade}级 (${Number(latestHealth.health_score).toFixed(0)}分)`, severity: "critical" });
+  }
+
+  // Merge and deduplicate
+  const allAlerts = [...digestAlerts, ...realTimeAlerts];
+  const seen = new Set<string>();
+  const unique = allAlerts.filter((a) => {
+    const key = `${a.alertType}-${a.severity}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  // Sort: critical first
+  const severityOrder: Record<string, number> = { critical: 0, warning: 1, info: 2 };
+  unique.sort((a, b) => (severityOrder[a.severity] ?? 9) - (severityOrder[b.severity] ?? 9));
+
+  return { alerts: unique, totalCritical: unique.filter((a) => a.severity === "critical").length, totalWarning: unique.filter((a) => a.severity === "warning").length };
+}
