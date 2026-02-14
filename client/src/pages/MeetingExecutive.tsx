@@ -41,6 +41,7 @@ import {
   ReportsTab,
   KnowledgeGraphTab,
   MeetingAssistantTab,
+  WorkflowCoachingTab,
 } from "./meeting-executive";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -877,6 +878,7 @@ export default function MeetingExecutive() {
           <TabsTrigger value="reports">报告导出</TabsTrigger>
           <TabsTrigger value="knowledge">知识图谱</TabsTrigger>
           <TabsTrigger value="ai-assistant">AI助手</TabsTrigger>
+          <TabsTrigger value="workflow">自动化教练</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -957,6 +959,10 @@ export default function MeetingExecutive() {
 
         <TabsContent value="ai-assistant">
           <MeetingAssistantTab />
+        </TabsContent>
+
+        <TabsContent value="workflow">
+          <WorkflowCoachingTab />
         </TabsContent>
       </Tabs>
     </div>

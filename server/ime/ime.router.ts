@@ -840,4 +840,106 @@ export const imeRouter = router({
       ));
       return result.rows;
     }),
+
+  // Phase 9: Workflow Automation & Coaching
+
+  createRule: protectedProcedure
+    .input(z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      triggerEvent: z.string(),
+      conditionField: z.string().optional(),
+      conditionOperator: z.string().optional(),
+      conditionValue: z.string().optional(),
+      actionType: z.string(),
+      actionConfig: z.any().optional(),
+      scope: z.string().optional(),
+      scopeId: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      return imeService.createWorkflowRule({ ...input, createdBy: (ctx as any).user?.openId || "unknown" });
+    }),
+
+  listRules: protectedProcedure
+    .input(z.object({ activeOnly: z.boolean().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const where = input?.activeOnly !== false ? "WHERE is_active = 1" : "";
+      const result = await db.execute(sql.raw(`SELECT * FROM ime_workflow_rules ${where} ORDER BY created_at DESC`));
+      return result.rows;
+    }),
+
+  updateRule: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      triggerEvent: z.string().optional(),
+      conditionField: z.string().optional(),
+      conditionOperator: z.string().optional(),
+      conditionValue: z.string().optional(),
+      actionType: z.string().optional(),
+      actionConfig: z.any().optional(),
+      isActive: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const sets: string[] = [];
+      if (input.name) sets.push(`name = '${input.name.replace(/'/g, "''")}'`);
+      if (input.description !== undefined) sets.push(`description = '${(input.description || "").replace(/'/g, "''")}'`);
+      if (input.triggerEvent) sets.push(`trigger_event = '${input.triggerEvent}'`);
+      if (input.conditionField !== undefined) sets.push(`condition_field = ${input.conditionField ? `'${input.conditionField}'` : "NULL"}`);
+      if (input.conditionOperator !== undefined) sets.push(`condition_operator = ${input.conditionOperator ? `'${input.conditionOperator}'` : "NULL"}`);
+      if (input.conditionValue !== undefined) sets.push(`condition_value = ${input.conditionValue ? `'${input.conditionValue}'` : "NULL"}`);
+      if (input.actionType) sets.push(`action_type = '${input.actionType}'`);
+      if (input.actionConfig !== undefined) sets.push(`action_config = '${JSON.stringify(input.actionConfig).replace(/'/g, "''")}'`);
+      if (input.isActive !== undefined) sets.push(`is_active = ${input.isActive}`);
+      sets.push("updated_at = NOW()");
+      await db.execute(sql.raw(`UPDATE ime_workflow_rules SET ${sets.join(", ")} WHERE id = ${input.id}`));
+      return { success: true };
+    }),
+
+  deleteRule: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.execute(sql.raw(`DELETE FROM ime_workflow_rules WHERE id = ${input.id}`));
+      return { success: true };
+    }),
+
+  evaluateRules: protectedProcedure
+    .input(z.object({ meetingId: z.string(), event: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.evaluateWorkflowRules(input.meetingId, input.event);
+    }),
+
+  workflowExecutions: protectedProcedure
+    .input(z.object({ limit: z.number().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const limit = input?.limit || 50;
+      const result = await db.execute(sql.raw(
+        `SELECT * FROM ime_workflow_executions ORDER BY executed_at DESC LIMIT ${limit}`
+      ));
+      return result.rows;
+    }),
+
+  generateCoaching: protectedProcedure
+    .input(z.object({
+      scope: z.string(),
+      scopeId: z.string().optional(),
+      period: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.generateCoachingPlan(input.scope, input.scopeId, input.period);
+    }),
+
+  meetingCultureScore: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      period: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getMeetingCultureScore(input?.department, input?.period);
+    }),
 });

@@ -5520,3 +5520,331 @@ export async function askMeetingAssistant(
     suggestions: parsed.suggestions || [],
   };
 }
+
+// ============================================================================
+// Phase 9: Meeting Workflow Automation & Coaching
+// ============================================================================
+
+// Phase 9 — Feature 1: Create Workflow Rule
+export async function createWorkflowRule(rule: {
+  name: string;
+  description?: string;
+  triggerEvent: string;
+  conditionField?: string;
+  conditionOperator?: string;
+  conditionValue?: string;
+  actionType: string;
+  actionConfig?: any;
+  scope?: string;
+  scopeId?: string;
+  createdBy?: string;
+}) {
+  const db = await requireDb();
+  const safeName = rule.name.replace(/'/g, "''");
+  const safeDesc = (rule.description || "").replace(/'/g, "''");
+  const safeConfig = JSON.stringify(rule.actionConfig || {}).replace(/'/g, "''");
+  const safeCreatedBy = (rule.createdBy || "system").replace(/'/g, "''");
+
+  await db.execute(sql.raw(`
+    INSERT INTO ime_workflow_rules (name, description, trigger_event, condition_field, condition_operator, condition_value, action_type, action_config, scope, scope_id, is_active, created_by, created_at, updated_at)
+    VALUES ('${safeName}', '${safeDesc}', '${rule.triggerEvent}', ${rule.conditionField ? `'${rule.conditionField}'` : "NULL"}, ${rule.conditionOperator ? `'${rule.conditionOperator}'` : "NULL"}, ${rule.conditionValue ? `'${rule.conditionValue}'` : "NULL"}, '${rule.actionType}', '${safeConfig}', '${rule.scope || "global"}', ${rule.scopeId ? `'${rule.scopeId}'` : "NULL"}, 1, '${safeCreatedBy}', NOW(), NOW())
+  `));
+
+  return { success: true, name: rule.name };
+}
+
+// Phase 9 — Feature 2: Evaluate Workflow Rules for a Meeting Event
+export async function evaluateWorkflowRules(meetingId: string, event: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+  const safeEvent = event.replace(/'/g, "''");
+
+  // Get active rules matching this event
+  const rulesRes = await db.execute(sql.raw(
+    `SELECT * FROM ime_workflow_rules WHERE trigger_event = '${safeEvent}' AND is_active = 1`
+  ));
+  const rules = rulesRes.rows as any[];
+  if (rules.length === 0) return { executed: 0, results: [] };
+
+  // Gather meeting metrics for condition evaluation
+  const healthRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_health WHERE meeting_id = '${safeId}' ORDER BY assessed_at DESC LIMIT 1`));
+  const roiRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_roi WHERE meeting_id = '${safeId}' ORDER BY calculated_at DESC LIMIT 1`));
+  const sentimentRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_sentiment WHERE meeting_id = '${safeId}' ORDER BY analyzed_at DESC LIMIT 1`));
+  const effRes = await db.execute(sql.raw(`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = '${safeId}' LIMIT 1`));
+
+  const metrics: Record<string, number | string> = {};
+  const health = (healthRes.rows as any[])[0];
+  const roi = (roiRes.rows as any[])[0];
+  const sentiment = (sentimentRes.rows as any[])[0];
+  const eff = (effRes.rows as any[])[0];
+
+  if (health) { metrics.health_score = Number(health.health_score); metrics.fatigue_index = Number(health.fatigue_index); }
+  if (roi) { metrics.roi_score = Number(roi.roi_score); metrics.roi_grade = roi.roi_grade; }
+  if (sentiment) { metrics.overall_sentiment = Number(sentiment.overall_sentiment); metrics.tension_level = Number(sentiment.tension_level); }
+  if (eff) { metrics.overall_score = Number(eff.overall_score); }
+
+  const results: any[] = [];
+  for (const rule of rules) {
+    let conditionMet = true;
+
+    if (rule.condition_field && rule.condition_operator && rule.condition_value !== null) {
+      const actual = metrics[rule.condition_field];
+      const threshold = Number(rule.condition_value);
+      if (actual !== undefined) {
+        const numActual = Number(actual);
+        switch (rule.condition_operator) {
+          case "<": conditionMet = numActual < threshold; break;
+          case ">": conditionMet = numActual > threshold; break;
+          case "<=": conditionMet = numActual <= threshold; break;
+          case ">=": conditionMet = numActual >= threshold; break;
+          case "==": conditionMet = String(actual) === rule.condition_value; break;
+          case "!=": conditionMet = String(actual) !== rule.condition_value; break;
+        }
+      } else {
+        conditionMet = false;
+      }
+    }
+
+    const status = conditionMet ? "success" : "skipped";
+    const actionResult = conditionMet
+      ? { triggered: true, actionType: rule.action_type, config: JSON.parse(rule.action_config || "{}"), metricsAtTrigger: metrics }
+      : { triggered: false, reason: "condition_not_met" };
+
+    await db.execute(sql.raw(`
+      INSERT INTO ime_workflow_executions (rule_id, rule_name, trigger_event, trigger_meeting_id, condition_snapshot, action_type, action_result, status, executed_at)
+      VALUES (${rule.id}, '${(rule.name || "").replace(/'/g, "''")}', '${safeEvent}', '${safeId}', '${JSON.stringify(metrics).replace(/'/g, "''")}', '${rule.action_type}', '${JSON.stringify(actionResult).replace(/'/g, "''")}', '${status}', NOW())
+    `));
+
+    results.push({ ruleId: rule.id, ruleName: rule.name, status, actionResult });
+  }
+
+  return { executed: results.filter(r => r.status === "success").length, total: rules.length, results };
+}
+
+// Phase 9 — Feature 3: Generate Coaching Plan (AI-powered)
+export async function generateCoachingPlan(scope: string, scopeId?: string, period?: string) {
+  const db = await requireDb();
+  const safeScopeId = (scopeId || "all").replace(/'/g, "''");
+  const periodDays = period === "quarterly" ? 90 : 30;
+
+  // Gather aggregate meeting data for the scope
+  let whereClause = `mr.meeting_date >= NOW() - INTERVAL '${periodDays} days'`;
+  if (scope === "department" && scopeId) {
+    whereClause += ` AND mr.channel_id IN (SELECT id FROM meeting_channels WHERE name LIKE '%${safeScopeId}%')`;
+  }
+
+  const meetingStatsRes = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total_meetings,
+           AVG(mes.overall_score) as avg_effectiveness,
+           AVG(mh.health_score) as avg_health,
+           AVG(mh.fatigue_index) as avg_fatigue,
+           AVG(mr2.roi_score) as avg_roi
+    FROM meeting_records mr
+    LEFT JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id
+    LEFT JOIN ime_meeting_health mh ON mr.id = mh.meeting_id
+    LEFT JOIN ime_meeting_roi mr2 ON mr.id = mr2.meeting_id
+    WHERE ${whereClause}
+  `));
+
+  const actionRes = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total,
+           SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
+    FROM ime_action_items
+    WHERE created_at >= NOW() - INTERVAL '${periodDays} days'
+  `));
+
+  const sentimentRes = await db.execute(sql.raw(`
+    SELECT AVG(overall_sentiment) as avg_sentiment,
+           AVG(collaboration_score) as avg_collaboration,
+           AVG(tension_level) as avg_tension
+    FROM ime_meeting_sentiment
+    WHERE analyzed_at >= NOW() - INTERVAL '${periodDays} days'
+  `));
+
+  const stats = (meetingStatsRes.rows as any[])[0] || {};
+  const actions = (actionRes.rows as any[])[0] || {};
+  const sentiments = (sentimentRes.rows as any[])[0] || {};
+
+  const context = [
+    `范围: ${scope}${scopeId ? ` (${scopeId})` : ""}, 周期: ${period || "monthly"} (${periodDays}天)`,
+    `会议统计: ${stats.total_meetings || 0}次会议`,
+    `平均效能: ${Math.round(Number(stats.avg_effectiveness) || 0)}分`,
+    `平均健康度: ${Math.round(Number(stats.avg_health) || 0)}分`,
+    `平均疲劳指数: ${Number(stats.avg_fatigue || 0).toFixed(1)}`,
+    `平均ROI: ${Number(stats.avg_roi || 0).toFixed(1)}分`,
+    `行动项完成率: ${actions.total ? Math.round((Number(actions.completed) / Number(actions.total)) * 100) : 0}%`,
+    `平均情感: ${Number(sentiments.avg_sentiment || 0).toFixed(2)}, 协作: ${Number(sentiments.avg_collaboration || 0).toFixed(2)}, 紧张度: ${Number(sentiments.avg_tension || 0).toFixed(2)}`,
+  ].join("\n");
+
+  const llmResult = await invokeLLM({
+    system: "你是会议文化教练。基于会议数据分析团队会议文化，提供改进建议和具体行动计划。",
+    prompt: `请为以下团队生成会议教练计划:\n${context}`,
+    schema: {
+      type: "object",
+      properties: {
+        culture_score: { type: "number" },
+        dimensions: {
+          type: "object",
+          properties: {
+            punctuality: { type: "number" },
+            engagement: { type: "number" },
+            follow_through: { type: "number" },
+            inclusivity: { type: "number" },
+            efficiency: { type: "number" },
+          },
+        },
+        strengths: { type: "array", items: { type: "string" } },
+        improvements: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { area: { type: "string" }, recommendation: { type: "string" }, priority: { type: "string" }, expected_impact: { type: "string" } },
+            required: ["area", "recommendation"],
+          },
+        },
+        action_plan: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { step: { type: "string" }, owner: { type: "string" }, timeline: { type: "string" }, metric: { type: "string" } },
+            required: ["step"],
+          },
+        },
+        narrative: { type: "string" },
+      },
+      required: ["culture_score", "strengths", "improvements"],
+    },
+  });
+
+  const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
+
+  // Save coaching plan
+  await db.execute(sql.raw(`
+    INSERT INTO ime_coaching_plans (scope, scope_id, period, culture_score, dimensions, strengths, improvements, action_plan, ai_narrative, generated_at, created_at)
+    VALUES ('${scope}', ${scopeId ? `'${safeScopeId}'` : "NULL"}, '${period || "monthly"}', ${parsed.culture_score || 0}, '${JSON.stringify(parsed.dimensions || {}).replace(/'/g, "''")}', '${JSON.stringify(parsed.strengths || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.improvements || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.action_plan || []).replace(/'/g, "''")}', '${(parsed.narrative || "").replace(/'/g, "''")}', NOW(), NOW())
+  `));
+
+  return {
+    scope,
+    scopeId,
+    period: period || "monthly",
+    cultureScore: parsed.culture_score || 0,
+    dimensions: parsed.dimensions || {},
+    strengths: parsed.strengths || [],
+    improvements: parsed.improvements || [],
+    actionPlan: parsed.action_plan || [],
+    narrative: parsed.narrative || "",
+  };
+}
+
+// Phase 9 — Feature 4: Meeting Culture Score
+export async function getMeetingCultureScore(department?: string, period?: string) {
+  const db = await requireDb();
+  const periodDays = period === "quarterly" ? 90 : period === "yearly" ? 365 : 30;
+
+  const dateFilter = `>= NOW() - INTERVAL '${periodDays} days'`;
+
+  // Effectiveness dimension
+  const effRes = await db.execute(sql.raw(
+    `SELECT AVG(overall_score) as avg, COUNT(*) as cnt FROM meeting_effectiveness_scores WHERE created_at ${dateFilter}`
+  ));
+  // Health dimension
+  const healthRes = await db.execute(sql.raw(
+    `SELECT AVG(health_score) as avg_health, AVG(fatigue_index) as avg_fatigue FROM ime_meeting_health WHERE assessed_at ${dateFilter}`
+  ));
+  // Action item follow-through
+  const actionRes = await db.execute(sql.raw(
+    `SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed FROM ime_action_items WHERE created_at ${dateFilter}`
+  ));
+  // Sentiment
+  const sentRes = await db.execute(sql.raw(
+    `SELECT AVG(overall_sentiment) as avg_sent, AVG(collaboration_score) as avg_collab FROM ime_meeting_sentiment WHERE analyzed_at ${dateFilter}`
+  ));
+  // ROI
+  const roiRes = await db.execute(sql.raw(
+    `SELECT AVG(roi_score) as avg_roi FROM ime_meeting_roi WHERE calculated_at ${dateFilter}`
+  ));
+  // Meeting volume
+  const volRes = await db.execute(sql.raw(
+    `SELECT COUNT(*) as cnt, AVG(duration_minutes) as avg_duration FROM meeting_records WHERE meeting_date ${dateFilter}`
+  ));
+
+  const eff = (effRes.rows as any[])[0] || {};
+  const hlth = (healthRes.rows as any[])[0] || {};
+  const act = (actionRes.rows as any[])[0] || {};
+  const sent = (sentRes.rows as any[])[0] || {};
+  const roiData = (roiRes.rows as any[])[0] || {};
+  const vol = (volRes.rows as any[])[0] || {};
+
+  const effectiveness = Math.min(Number(eff.avg || 0), 100);
+  const healthScore = Math.min(Number(hlth.avg_health || 0), 100);
+  const followThrough = act.total > 0 ? Math.round((Number(act.completed) / Number(act.total)) * 100) : 50;
+  const sentiment = Math.round(((Number(sent.avg_sent || 0) + 1) / 2) * 100); // normalize -1..1 to 0..100
+  const collaboration = Math.round(Number(sent.avg_collab || 50));
+  const roi = Math.min(Number(roiData.avg_roi || 0), 100);
+
+  const cultureScore = Math.round((effectiveness * 0.25 + healthScore * 0.2 + followThrough * 0.2 + sentiment * 0.15 + collaboration * 0.1 + roi * 0.1) * 100) / 100;
+
+  return {
+    cultureScore,
+    period: period || "monthly",
+    dimensions: {
+      effectiveness: Math.round(effectiveness),
+      healthScore: Math.round(healthScore),
+      followThrough,
+      sentiment,
+      collaboration,
+      roi: Math.round(roi),
+    },
+    volume: {
+      totalMeetings: Number(vol.cnt || 0),
+      avgDuration: Math.round(Number(vol.avg_duration || 0)),
+    },
+    fatigueIndex: Number(hlth.avg_fatigue || 0).toFixed(1),
+  };
+}
+
+// Phase 9 — Feature 5: Workflow Automation Dashboard
+export async function getWorkflowDashboard(filters?: { limit?: number }) {
+  const db = await requireDb();
+  const limit = filters?.limit || 50;
+
+  // Active rules
+  const rulesRes = await db.execute(sql.raw(
+    `SELECT * FROM ime_workflow_rules WHERE is_active = 1 ORDER BY created_at DESC`
+  ));
+
+  // Recent executions
+  const execRes = await db.execute(sql.raw(
+    `SELECT * FROM ime_workflow_executions ORDER BY executed_at DESC LIMIT ${limit}`
+  ));
+
+  // Execution stats
+  const statsRes = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total,
+           SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as succeeded,
+           SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) as skipped,
+           SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+    FROM ime_workflow_executions
+    WHERE executed_at >= NOW() - INTERVAL '30 days'
+  `));
+
+  // Recent coaching plans
+  const coachingRes = await db.execute(sql.raw(
+    `SELECT * FROM ime_coaching_plans ORDER BY generated_at DESC LIMIT 5`
+  ));
+
+  const stats = (statsRes.rows as any[])[0] || {};
+
+  return {
+    activeRules: rulesRes.rows,
+    recentExecutions: execRes.rows,
+    stats: {
+      total: Number(stats.total || 0),
+      succeeded: Number(stats.succeeded || 0),
+      skipped: Number(stats.skipped || 0),
+      failed: Number(stats.failed || 0),
+    },
+    recentCoachingPlans: coachingRes.rows,
+  };
+}

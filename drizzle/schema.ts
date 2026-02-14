@@ -10475,3 +10475,53 @@ export const imeAiConversations = pgTable("ime_ai_conversations", {
   context: text("context"), // JSON — meeting IDs or scope used
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Phase 9: Meeting Workflow Automation & Coaching
+
+export const imeWorkflowRules = pgTable("ime_workflow_rules", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  triggerEvent: varchar("trigger_event", { length: 50 }).notNull(), // meeting_ended | health_below | action_overdue | roi_low | sentiment_negative
+  conditionField: varchar("condition_field", { length: 100 }), // e.g. "overall_score", "roi_grade"
+  conditionOperator: varchar("condition_operator", { length: 10 }), // <, >, <=, >=, ==, !=
+  conditionValue: varchar("condition_value", { length: 100 }), // threshold value
+  actionType: varchar("action_type", { length: 50 }).notNull(), // notify | generate_report | create_action_item | escalate | coaching
+  actionConfig: text("action_config"), // JSON — action-specific params (recipients, template, etc.)
+  scope: varchar("scope", { length: 50 }).default("global"), // global | department | channel
+  scopeId: varchar("scope_id", { length: 100 }),
+  isActive: integer("is_active").default(1),
+  createdBy: varchar("created_by", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const imeWorkflowExecutions = pgTable("ime_workflow_executions", {
+  id: serial("id").primaryKey(),
+  ruleId: integer("rule_id").notNull(),
+  ruleName: varchar("rule_name", { length: 200 }),
+  triggerEvent: varchar("trigger_event", { length: 50 }).notNull(),
+  triggerMeetingId: varchar("trigger_meeting_id", { length: 36 }),
+  conditionSnapshot: text("condition_snapshot"), // JSON — values at trigger time
+  actionType: varchar("action_type", { length: 50 }).notNull(),
+  actionResult: text("action_result"), // JSON — what was done
+  status: varchar("status", { length: 20 }).default("success"), // success | failed | skipped
+  errorMessage: text("error_message"),
+  executedAt: timestamp("executed_at").defaultNow(),
+});
+
+export const imeCoachingPlans = pgTable("ime_coaching_plans", {
+  id: serial("id").primaryKey(),
+  scope: varchar("scope", { length: 50 }).notNull(), // individual | department | organization
+  scopeId: varchar("scope_id", { length: 100 }),
+  period: varchar("period", { length: 20 }), // monthly | quarterly
+  cultureScore: real("culture_score"), // 0-100
+  dimensions: text("dimensions"), // JSON — {punctuality, engagement, followThrough, inclusivity, efficiency}
+  strengths: text("strengths"), // JSON array
+  improvements: text("improvements"), // JSON array of {area, recommendation, priority, expectedImpact}
+  actionPlan: text("action_plan"), // JSON array of {step, owner, timeline, metric}
+  benchmarkComparison: text("benchmark_comparison"), // JSON — vs industry/company averages
+  aiNarrative: text("ai_narrative"),
+  generatedAt: timestamp("generated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
