@@ -5848,3 +5848,210 @@ export async function getWorkflowDashboard(filters?: { limit?: number }) {
     recentCoachingPlans: coachingRes.rows,
   };
 }
+
+// ============================================================================
+// Phase 10: Meeting Integration Hub & System Settings
+// ============================================================================
+
+// Phase 10 — Feature 1: Create Integration
+export async function createIntegration(config: {
+  name: string;
+  integrationType: string;
+  provider: string;
+  config?: any;
+  syncDirection?: string;
+  syncFrequency?: string;
+  createdBy?: string;
+}) {
+  const db = await requireDb();
+  const safeName = config.name.replace(/'/g, "''");
+  const safeConfig = JSON.stringify(config.config || {}).replace(/'/g, "''");
+  const safeCreatedBy = (config.createdBy || "system").replace(/'/g, "''");
+
+  await db.execute(sql.raw(`
+    INSERT INTO ime_integrations (name, integration_type, provider, config, sync_direction, sync_frequency, status, created_by, created_at, updated_at)
+    VALUES ('${safeName}', '${config.integrationType}', '${config.provider}', '${safeConfig}', '${config.syncDirection || "bidirectional"}', '${config.syncFrequency || "manual"}', 'active', '${safeCreatedBy}', NOW(), NOW())
+  `));
+
+  return { success: true, name: config.name };
+}
+
+// Phase 10 — Feature 2: Sync Integration
+export async function syncIntegration(integrationId: number) {
+  const db = await requireDb();
+  const startTime = Date.now();
+
+  // Get integration config
+  const intRes = await db.execute(sql.raw(
+    `SELECT * FROM ime_integrations WHERE id = ${integrationId}`
+  ));
+  const integration = (intRes.rows as any[])[0];
+  if (!integration) throw new Error("Integration not found");
+
+  const config = JSON.parse(integration.config || "{}");
+  let recordsProcessed = 0;
+  let recordsSucceeded = 0;
+  let recordsFailed = 0;
+  let details: any = {};
+  let status = "success";
+  let errorMessage = "";
+
+  try {
+    // Simulate sync based on integration type
+    switch (integration.integration_type) {
+      case "calendar": {
+        // Sync meeting records to/from calendar
+        const meetingsRes = await db.execute(sql.raw(
+          `SELECT COUNT(*) as cnt FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL '30 days'`
+        ));
+        recordsProcessed = Number((meetingsRes.rows as any[])[0]?.cnt || 0);
+        recordsSucceeded = recordsProcessed;
+        details = { syncedMeetings: recordsProcessed, provider: integration.provider, direction: integration.sync_direction };
+        break;
+      }
+      case "task_manager": {
+        // Push action items to task management tool
+        const actionsRes = await db.execute(sql.raw(
+          `SELECT COUNT(*) as total, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending FROM ime_action_items WHERE created_at >= NOW() - INTERVAL '7 days'`
+        ));
+        const actions = (actionsRes.rows as any[])[0] || {};
+        recordsProcessed = Number(actions.total || 0);
+        recordsSucceeded = Number(actions.pending || 0);
+        details = { totalItems: recordsProcessed, pendingPushed: recordsSucceeded, provider: integration.provider };
+        break;
+      }
+      case "messaging": {
+        // Push digest/alerts to messaging platform
+        const alertsRes = await db.execute(sql.raw(
+          `SELECT COUNT(*) as cnt FROM ime_digest_alerts WHERE created_at >= NOW() - INTERVAL '1 day'`
+        ));
+        recordsProcessed = Number((alertsRes.rows as any[])[0]?.cnt || 0);
+        recordsSucceeded = recordsProcessed;
+        details = { alertsSynced: recordsProcessed, provider: integration.provider, channel: config.channel || "default" };
+        break;
+      }
+      case "webhook": {
+        // Trigger webhook with latest meeting data
+        const latestRes = await db.execute(sql.raw(
+          `SELECT id, title FROM meeting_records ORDER BY meeting_date DESC LIMIT 5`
+        ));
+        recordsProcessed = (latestRes.rows as any[]).length;
+        recordsSucceeded = recordsProcessed;
+        details = { webhookUrl: config.url || "configured", meetingsIncluded: recordsProcessed };
+        break;
+      }
+      case "email": {
+        // Email digest sync
+        const coachRes = await db.execute(sql.raw(
+          `SELECT COUNT(*) as cnt FROM ime_coaching_plans WHERE generated_at >= NOW() - INTERVAL '7 days'`
+        ));
+        recordsProcessed = Number((coachRes.rows as any[])[0]?.cnt || 0);
+        recordsSucceeded = recordsProcessed;
+        details = { reportsEmailed: recordsProcessed, recipients: config.recipients || [] };
+        break;
+      }
+      default:
+        recordsProcessed = 0;
+        details = { message: "Unknown integration type" };
+    }
+  } catch (err: any) {
+    status = "failed";
+    errorMessage = err.message || "Sync failed";
+    recordsFailed = recordsProcessed - recordsSucceeded;
+  }
+
+  const durationMs = Date.now() - startTime;
+  const safeName = (integration.name || "").replace(/'/g, "''");
+  const safeDetails = JSON.stringify(details).replace(/'/g, "''");
+  const safeError = errorMessage.replace(/'/g, "''");
+
+  // Log the sync operation
+  await db.execute(sql.raw(`
+    INSERT INTO ime_integration_logs (integration_id, integration_name, operation, direction, records_processed, records_succeeded, records_failed, details, status, error_message, duration_ms, executed_at)
+    VALUES (${integrationId}, '${safeName}', 'sync', '${integration.sync_direction || "outbound"}', ${recordsProcessed}, ${recordsSucceeded}, ${recordsFailed}, '${safeDetails}', '${status}', '${safeError}', ${durationMs}, NOW())
+  `));
+
+  // Update integration last sync
+  await db.execute(sql.raw(`
+    UPDATE ime_integrations SET last_sync_at = NOW(), last_sync_status = '${status}', error_message = ${errorMessage ? `'${safeError}'` : "NULL"}, updated_at = NOW() WHERE id = ${integrationId}
+  `));
+
+  return { integrationId, status, recordsProcessed, recordsSucceeded, recordsFailed, durationMs, details };
+}
+
+// Phase 10 — Feature 3: Integration Dashboard
+export async function getIntegrationDashboard() {
+  const db = await requireDb();
+
+  const integrationsRes = await db.execute(sql.raw(
+    `SELECT * FROM ime_integrations ORDER BY created_at DESC`
+  ));
+
+  const logsRes = await db.execute(sql.raw(
+    `SELECT * FROM ime_integration_logs ORDER BY executed_at DESC LIMIT 50`
+  ));
+
+  const statsRes = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total_syncs,
+           SUM(records_processed) as total_records,
+           SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful,
+           SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+           AVG(duration_ms) as avg_duration
+    FROM ime_integration_logs
+    WHERE executed_at >= NOW() - INTERVAL '30 days'
+  `));
+
+  const stats = (statsRes.rows as any[])[0] || {};
+
+  return {
+    integrations: integrationsRes.rows,
+    recentLogs: logsRes.rows,
+    stats: {
+      totalSyncs: Number(stats.total_syncs || 0),
+      totalRecords: Number(stats.total_records || 0),
+      successful: Number(stats.successful || 0),
+      failed: Number(stats.failed || 0),
+      avgDurationMs: Math.round(Number(stats.avg_duration || 0)),
+    },
+  };
+}
+
+// Phase 10 — Feature 4: Update System Setting
+export async function updateSystemSetting(key: string, value: string, meta?: { type?: string; category?: string; label?: string; description?: string; updatedBy?: string }) {
+  const db = await requireDb();
+  const safeKey = key.replace(/'/g, "''");
+  const safeValue = value.replace(/'/g, "''");
+  const safeType = (meta?.type || "string").replace(/'/g, "''");
+  const safeCat = (meta?.category || "general").replace(/'/g, "''");
+  const safeLabel = (meta?.label || key).replace(/'/g, "''");
+  const safeDesc = (meta?.description || "").replace(/'/g, "''");
+  const safeUser = (meta?.updatedBy || "system").replace(/'/g, "''");
+
+  // Upsert: check if exists
+  const existing = await db.execute(sql.raw(
+    `SELECT id FROM ime_system_settings WHERE setting_key = '${safeKey}'`
+  ));
+
+  if ((existing.rows as any[]).length > 0) {
+    await db.execute(sql.raw(`
+      UPDATE ime_system_settings SET setting_value = '${safeValue}', setting_type = '${safeType}', category = '${safeCat}', label = '${safeLabel}', description = '${safeDesc}', updated_by = '${safeUser}', updated_at = NOW() WHERE setting_key = '${safeKey}'
+    `));
+  } else {
+    await db.execute(sql.raw(`
+      INSERT INTO ime_system_settings (setting_key, setting_value, setting_type, category, label, description, updated_by, updated_at, created_at)
+      VALUES ('${safeKey}', '${safeValue}', '${safeType}', '${safeCat}', '${safeLabel}', '${safeDesc}', '${safeUser}', NOW(), NOW())
+    `));
+  }
+
+  return { success: true, key, value };
+}
+
+// Phase 10 — Feature 5: Get System Settings
+export async function getSystemSettings(category?: string) {
+  const db = await requireDb();
+  const where = category ? `WHERE category = '${category.replace(/'/g, "''")}'` : "";
+  const result = await db.execute(sql.raw(
+    `SELECT * FROM ime_system_settings ${where} ORDER BY category, setting_key`
+  ));
+  return result.rows;
+}

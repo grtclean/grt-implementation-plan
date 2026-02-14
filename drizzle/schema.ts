@@ -10525,3 +10525,51 @@ export const imeCoachingPlans = pgTable("ime_coaching_plans", {
   generatedAt: timestamp("generated_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Phase 10: Meeting Integration Hub & System Settings
+
+export const imeIntegrations = pgTable("ime_integrations", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  integrationType: varchar("integration_type", { length: 50 }).notNull(), // calendar | task_manager | messaging | webhook | email
+  provider: varchar("provider", { length: 50 }).notNull(), // outlook | google | slack | teams | jira | feishu | dingtalk | custom
+  config: text("config"), // JSON — provider-specific settings (endpoint, token, channel, etc.)
+  syncDirection: varchar("sync_direction", { length: 20 }).default("bidirectional"), // inbound | outbound | bidirectional
+  syncFrequency: varchar("sync_frequency", { length: 20 }).default("manual"), // manual | hourly | daily | realtime
+  status: varchar("status", { length: 20 }).default("active"), // active | paused | error | disconnected
+  lastSyncAt: timestamp("last_sync_at"),
+  lastSyncStatus: varchar("last_sync_status", { length: 20 }),
+  errorMessage: text("error_message"),
+  createdBy: varchar("created_by", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const imeIntegrationLogs = pgTable("ime_integration_logs", {
+  id: serial("id").primaryKey(),
+  integrationId: integer("integration_id").notNull(),
+  integrationName: varchar("integration_name", { length: 200 }),
+  operation: varchar("operation", { length: 50 }).notNull(), // sync | push_action_items | push_calendar | push_notification | webhook_trigger
+  direction: varchar("direction", { length: 20 }), // inbound | outbound
+  recordsProcessed: integer("records_processed").default(0),
+  recordsSucceeded: integer("records_succeeded").default(0),
+  recordsFailed: integer("records_failed").default(0),
+  details: text("details"), // JSON — operation-specific details
+  status: varchar("status", { length: 20 }).default("success"), // success | partial | failed
+  errorMessage: text("error_message"),
+  durationMs: integer("duration_ms"),
+  executedAt: timestamp("executed_at").defaultNow(),
+});
+
+export const imeSystemSettings = pgTable("ime_system_settings", {
+  id: serial("id").primaryKey(),
+  settingKey: varchar("setting_key", { length: 100 }).notNull(),
+  settingValue: text("setting_value"),
+  settingType: varchar("setting_type", { length: 20 }).default("string"), // string | number | boolean | json
+  category: varchar("category", { length: 50 }).default("general"), // general | analysis | notification | threshold | display
+  label: varchar("label", { length: 200 }),
+  description: text("description"),
+  updatedBy: varchar("updated_by", { length: 100 }),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
