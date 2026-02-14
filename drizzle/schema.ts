@@ -10434,3 +10434,44 @@ export const imeMeetingTemplates = pgTable("ime_meeting_templates", {
   avgRating: real("avg_rating"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Phase 8: Meeting AI Assistant
+
+export const imeMeetingBriefs = pgTable("ime_meeting_briefs", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  participantSummary: text("participant_summary"), // JSON — key participants + their history
+  pendingActionItems: text("pending_action_items"), // JSON — unresolved items from prior meetings
+  relevantDecisions: text("relevant_decisions"), // JSON — recent decisions related to this meeting
+  topicHistory: text("topic_history"), // JSON — topics discussed in prior meetings
+  suggestedQuestions: text("suggested_questions"), // JSON array
+  riskAlerts: text("risk_alerts"), // JSON array
+  aiNarrative: text("ai_narrative"),
+  generatedAt: timestamp("generated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeMeetingMinutes = pgTable("ime_meeting_minutes", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  attendees: text("attendees"), // JSON array
+  agendaItems: text("agenda_items"), // JSON array of {topic, discussion, outcome}
+  decisionsRecorded: text("decisions_recorded"), // JSON array
+  actionItemsSummary: text("action_items_summary"), // JSON array of {item, owner, due}
+  keyDiscussionPoints: text("key_discussion_points"), // JSON array
+  nextSteps: text("next_steps"), // JSON array
+  followUpDate: timestamp("follow_up_date"),
+  aiNarrative: text("ai_narrative"),
+  generatedAt: timestamp("generated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeAiConversations = pgTable("ime_ai_conversations", {
+  id: serial("id").primaryKey(),
+  sessionId: varchar("session_id", { length: 50 }).notNull(),
+  userId: varchar("user_id", { length: 100 }),
+  role: varchar("role", { length: 20 }).notNull(), // user | assistant
+  content: text("content").notNull(),
+  context: text("context"), // JSON — meeting IDs or scope used
+  createdAt: timestamp("created_at").defaultNow(),
+});
