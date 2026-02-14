@@ -10081,3 +10081,76 @@ export const meetingEffectivenessScores = pgTable("meeting_effectiveness_scores"
   aiNarrative: text("ai_narrative"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// ============================================
+// G-IME Phase 2: Department Rollups - 部门汇总分析
+// ============================================
+
+export const imeDepartmentRollups = pgTable("ime_department_rollups", {
+  id: serial("id").primaryKey(),
+  department: varchar("department", { length: 100 }).notNull(),
+  period: varchar("period", { length: 20 }).notNull(),
+  meetingCount: integer("meeting_count").default(0),
+  avgEffectiveness: real("avg_effectiveness"),
+  avgContributionScore: real("avg_contribution_score"),
+  totalDecisions: integer("total_decisions").default(0),
+  totalActionItems: integer("total_action_items").default(0),
+  activeParticipants: integer("active_participants").default(0),
+  participationBalance: real("participation_balance"),
+  topContributors: text("top_contributors"),
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================
+// G-IME Phase 2: Meeting Patterns - 会议模式检测
+// ============================================
+
+export const imeMeetingPatterns = pgTable("ime_meeting_patterns", {
+  id: serial("id").primaryKey(),
+  patternType: varchar("pattern_type", { length: 50 }).notNull(),
+  scope: varchar("scope", { length: 50 }).notNull(),
+  scopeId: varchar("scope_id", { length: 100 }),
+  title: varchar("title", { length: 300 }).notNull(),
+  description: text("description").notNull(),
+  severity: varchar("severity", { length: 20 }),
+  metrics: text("metrics"),
+  meetingIds: text("meeting_ids"),
+  recommendation: text("recommendation"),
+  detectedAt: timestamp("detected_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================
+// G-IME Phase 2: HR Signals - HR智能信号
+// ============================================
+
+export const imeHrSignals = pgTable("ime_hr_signals", {
+  id: serial("id").primaryKey(),
+  employeeId: varchar("employee_id", { length: 36 }).notNull(),
+  employeeName: varchar("employee_name", { length: 200 }),
+  signalType: varchar("signal_type", { length: 50 }).notNull(),
+  confidence: real("confidence"),
+  evidence: text("evidence"),
+  suggestedAction: text("suggested_action"),
+  status: varchar("status", { length: 20 }).default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ============================================
+// G-IME Phase 2: Live Sessions - 实时会议会话
+// ============================================
+
+export const imeLiveSessions = pgTable("ime_live_sessions", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  sessionStatus: varchar("session_status", { length: 20 }).default("active"),
+  startedAt: timestamp("started_at").defaultNow(),
+  endedAt: timestamp("ended_at"),
+  startedBy: varchar("started_by", { length: 36 }).notNull(),
+  liveSuggestions: text("live_suggestions"),
+  liveContributionSnapshot: text("live_contribution_snapshot"),
+  totalSegmentsProcessed: integer("total_segments_processed").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});

@@ -16,7 +16,17 @@ import {
   CheckCircle2,
   HelpCircle,
   Link2,
+  Building2,
+  Search,
+  UserCheck,
+  Radio,
 } from "lucide-react";
+import {
+  DepartmentRollupTab,
+  MeetingPatternsTab,
+  HrSignalsTab,
+  LiveAssistantTab,
+} from "./meeting-executive";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -647,11 +657,15 @@ export default function MeetingExecutive() {
       />
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="overview">概览</TabsTrigger>
           <TabsTrigger value="participants">参会者分析</TabsTrigger>
           <TabsTrigger value="scores">会议效能</TabsTrigger>
           <TabsTrigger value="performance">绩效关联</TabsTrigger>
+          <TabsTrigger value="department">部门分析</TabsTrigger>
+          <TabsTrigger value="patterns">会议模式</TabsTrigger>
+          <TabsTrigger value="hr-signals">HR信号</TabsTrigger>
+          <TabsTrigger value="live">实时助手</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -668,6 +682,22 @@ export default function MeetingExecutive() {
 
         <TabsContent value="performance">
           <PerformanceLinkTab />
+        </TabsContent>
+
+        <TabsContent value="department">
+          <DepartmentRollupTab />
+        </TabsContent>
+
+        <TabsContent value="patterns">
+          <MeetingPatternsTab />
+        </TabsContent>
+
+        <TabsContent value="hr-signals">
+          <HrSignalsTab />
+        </TabsContent>
+
+        <TabsContent value="live">
+          <LiveAssistantTab />
         </TabsContent>
       </Tabs>
     </div>

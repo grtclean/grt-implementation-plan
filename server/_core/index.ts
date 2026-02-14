@@ -11,6 +11,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { initWebSocketServer, getWebSocketStats } from "../services/websocket.service";
+import { initIMEWebSocket, getIMEWebSocketStats } from "../ime/ime-websocket.service";
 import { initScheduler } from "../services/scheduler.service";
 
 const isLocalAuth = process.env.LOCAL_AUTH === "true" || process.env.VITE_LOCAL_AUTH === "true";
@@ -115,14 +116,19 @@ async function startServer() {
   }
 
   const wss = initWebSocketServer(server);
+  const imeWss = initIMEWebSocket(server);
 
   app.get('/api/ws/stats', (req, res) => {
-    res.json(getWebSocketStats());
+    res.json({
+      collaboration: getWebSocketStats(),
+      imeLive: getIMEWebSocketStats(),
+    });
   });
 
   server.listen(port, "127.0.0.1", () => {
     console.log(`Server running on http://localhost:${port}/`);
     console.log(`WebSocket collaboration available at ws://localhost:${port}/ws/collaboration`);
+    console.log(`WebSocket IME live available at ws://localhost:${port}/ws/ime-live`);
     initScheduler();
   });
 

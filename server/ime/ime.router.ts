@@ -112,4 +112,167 @@ export const imeRouter = router({
       }
       return results;
     }),
+
+  // ========================================================================
+  // Phase 2: Department Rollup
+  // ========================================================================
+
+  departmentRollup: protectedProcedure
+    .input(z.object({ department: z.string(), period: z.string() }))
+    .query(async ({ input }) => {
+      return imeService.computeDepartmentRollup(input.department, input.period);
+    }),
+
+  departmentComparison: protectedProcedure
+    .input(z.object({ departments: z.array(z.string()).min(1).max(20), period: z.string() }))
+    .query(async ({ input }) => {
+      return imeService.getDepartmentComparison(input.departments, input.period);
+    }),
+
+  managementDashboard: protectedProcedure
+    .input(z.object({
+      scope: z.string(),
+      scopeId: z.string().optional(),
+      period: z.string().optional(),
+    }))
+    .query(async ({ input }) => {
+      return imeService.getManagementDashboard(input.scope, input.scopeId, input.period);
+    }),
+
+  refreshDepartmentRollup: protectedProcedure
+    .input(z.object({ department: z.string(), period: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.computeDepartmentRollup(input.department, input.period);
+    }),
+
+  // ========================================================================
+  // Phase 2: Meeting Patterns
+  // ========================================================================
+
+  detectPatterns: protectedProcedure
+    .input(z.object({
+      scope: z.string(),
+      scopeId: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.detectMeetingPatterns(input.scope, input.scopeId, input.dateFrom, input.dateTo);
+    }),
+
+  patternInsights: protectedProcedure
+    .input(z.object({
+      scope: z.string().optional(),
+      scopeId: z.string().optional(),
+      patternType: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getPatternInsights(input?.scope, input?.scopeId, input?.patternType);
+    }),
+
+  meetingCultureReport: protectedProcedure
+    .input(z.object({ department: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getMeetingCultureReport(input?.department);
+    }),
+
+  // ========================================================================
+  // Phase 2: HR Signals
+  // ========================================================================
+
+  generateHrSignals: protectedProcedure
+    .input(z.object({ employeeId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.generateHrSignals(input.employeeId);
+    }),
+
+  hrSignalsList: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      signalType: z.string().optional(),
+      minConfidence: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const conditions: string[] = ["1=1"];
+      if (input?.signalType) conditions.push(`hs.signal_type = '${input.signalType}'`);
+      if (input?.minConfidence) conditions.push(`hs.confidence >= ${input.minConfidence}`);
+      const deptJoin = input?.department
+        ? `JOIN hrm_employees he ON hs.employee_id = he."employeeCode" AND he.department = '${input.department}'`
+        : `LEFT JOIN hrm_employees he ON hs.employee_id = he."employeeCode"`;
+      const where = conditions.join(" AND ");
+
+      const result = await db.execute(sql.raw(`
+        SELECT hs.*, he.department, he.position
+        FROM ime_hr_signals hs
+        ${deptJoin}
+        WHERE ${where}
+        ORDER BY hs.created_at DESC
+        LIMIT 100
+      `));
+      return result.rows;
+    }),
+
+  promotionCandidates: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      minConfidence: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getPromotionCandidates(input?.department, input?.minConfidence);
+    }),
+
+  trainingRecommendation: protectedProcedure
+    .input(z.object({ employeeId: z.string() }))
+    .query(async ({ input }) => {
+      return imeService.recommendTraining(input.employeeId);
+    }),
+
+  updateSignalStatus: protectedProcedure
+    .input(z.object({
+      signalId: z.number(),
+      status: z.enum(["pending", "acknowledged", "acted_on", "dismissed"]),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.execute(sql`
+        UPDATE ime_hr_signals
+        SET status = ${input.status}, updated_at = NOW()
+        WHERE id = ${input.signalId}
+      `);
+      return { success: true };
+    }),
+
+  // ========================================================================
+  // Phase 2: Real-time Assistant
+  // ========================================================================
+
+  startLiveSession: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx as any).user?.openId || "unknown";
+      return imeService.startLiveSession(input.meetingId, userId);
+    }),
+
+  endLiveSession: protectedProcedure
+    .input(z.object({ sessionId: z.number() }))
+    .mutation(async ({ input }) => {
+      return imeService.endLiveSession(input.sessionId);
+    }),
+
+  getLiveSession: protectedProcedure
+    .input(z.object({ sessionId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const result = await db.execute(sql`
+        SELECT * FROM ime_live_sessions WHERE id = ${input.sessionId}
+      `);
+      const session = (result.rows as any[])[0];
+      if (!session) return null;
+      return {
+        ...session,
+        liveSuggestions: JSON.parse(session.live_suggestions || "[]"),
+        liveContributionSnapshot: JSON.parse(session.live_contribution_snapshot || "{}"),
+      };
+    }),
 });
