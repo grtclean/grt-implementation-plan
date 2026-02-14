@@ -10348,3 +10348,89 @@ export const imeReportExports = pgTable("ime_report_exports", {
   generatedAt: timestamp("generated_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Phase 7: Meeting Intelligence & Organizational Learning
+
+export const imeKnowledgeEntities = pgTable("ime_knowledge_entities", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  entityType: varchar("entity_type", { length: 50 }).notNull(), // decision | risk | opportunity | dependency | insight
+  entityValue: text("entity_value").notNull(),
+  confidence: real("confidence"),
+  relatedSpeaker: varchar("related_speaker", { length: 100 }),
+  context: text("context"),
+  aiNarrative: text("ai_narrative"),
+  extractedAt: timestamp("extracted_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeEntityRelationships = pgTable("ime_entity_relationships", {
+  id: serial("id").primaryKey(),
+  entityFromId: integer("entity_from_id").notNull(),
+  entityToId: integer("entity_to_id").notNull(),
+  relationshipType: varchar("relationship_type", { length: 50 }).notNull(), // depends_on | follows_up | contradicts | supports | evolves_from
+  strength: real("strength"),
+  context: text("context"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeDecisionOutcomes = pgTable("ime_decision_outcomes", {
+  id: serial("id").primaryKey(),
+  entityId: integer("entity_id").notNull(), // FK to ime_knowledge_entities (decision type)
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  decisionText: text("decision_text").notNull(),
+  decisionDate: timestamp("decision_date"),
+  outcomeStatus: varchar("outcome_status", { length: 30 }), // pending | implemented | reversed | modified | abandoned
+  outcomeNotes: text("outcome_notes"),
+  impactScore: real("impact_score"),
+  lessonsLearned: text("lessons_learned"),
+  trackedBy: varchar("tracked_by", { length: 100 }),
+  outcomeDate: timestamp("outcome_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeMeetingRetrospectives = pgTable("ime_meeting_retrospectives", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  aiSummary: text("ai_summary"),
+  keyLearnings: text("key_learnings"), // JSON array
+  improvementAreas: text("improvement_areas"), // JSON array
+  whatWentWell: text("what_went_well"), // JSON array
+  actionableInsights: text("actionable_insights"), // JSON array
+  overallGrade: varchar("overall_grade", { length: 5 }),
+  aiNarrative: text("ai_narrative"),
+  generatedAt: timestamp("generated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeExpertProfiles = pgTable("ime_expert_profiles", {
+  id: serial("id").primaryKey(),
+  employeeId: varchar("employee_id", { length: 50 }).notNull(),
+  employeeName: varchar("employee_name", { length: 100 }),
+  department: varchar("department", { length: 100 }),
+  expertiseAreas: text("expertise_areas"), // JSON array
+  credibilityScore: real("credibility_score"),
+  meetingCount: integer("meeting_count"),
+  avgContributionScore: real("avg_contribution_score"),
+  decisionInfluenceRate: real("decision_influence_rate"),
+  topTopics: text("top_topics"), // JSON array
+  aiNarrative: text("ai_narrative"),
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeMeetingTemplates = pgTable("ime_meeting_templates", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 50 }), // standup | review | brainstorm | planning | retrospective | decision
+  agendaTemplate: text("agenda_template"), // JSON structure
+  successCriteria: text("success_criteria"), // JSON array
+  recommendedDuration: integer("recommended_duration"), // minutes
+  recommendedParticipants: text("recommended_participants"), // JSON
+  sourceMeetingId: varchar("source_meeting_id", { length: 36 }),
+  createdBy: varchar("created_by", { length: 100 }),
+  usageCount: integer("usage_count").default(0),
+  avgRating: real("avg_rating"),
+  createdAt: timestamp("created_at").defaultNow(),
+});

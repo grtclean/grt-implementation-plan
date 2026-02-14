@@ -4745,3 +4745,417 @@ export async function generateBenchmarkReport(
 
   return { base64, filename };
 }
+
+// ============================================================================
+// Phase 7: Knowledge Entity Extraction
+// ============================================================================
+
+export async function extractKnowledgeEntities(meetingId: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+
+  // Fetch meeting + content blocks
+  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meeting = (meetingRes.rows as any[])[0];
+  if (!meeting) throw new Error("Meeting not found");
+
+  const blocksRes = await db.execute(sql.raw(
+    `SELECT speaker, content, block_type FROM meeting_content_blocks WHERE meeting_id = '${safeId}' ORDER BY timestamp_start`
+  ));
+  const blocks = blocksRes.rows as any[];
+
+  const transcript = blocks.map((b: any) => `[${b.speaker}] ${b.content}`).join("\n").slice(0, 6000);
+
+  // Use LLM to extract entities
+  const llmResult = await invokeLLM({
+    system: "你是会议知识提取专家。从会议记录中提取关键实体：决策(decision)、风险(risk)、机会(opportunity)、依赖(dependency)、洞察(insight)。",
+    prompt: `会议标题: ${meeting.title || ""}\n会议摘要: ${meeting.summary || ""}\n\n会议内容:\n${transcript}\n\n请提取所有关键实体，返回JSON数组格式。`,
+    schema: {
+      type: "object",
+      properties: {
+        entities: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              entity_type: { type: "string", enum: ["decision", "risk", "opportunity", "dependency", "insight"] },
+              entity_value: { type: "string" },
+              confidence: { type: "number" },
+              related_speaker: { type: "string" },
+              context: { type: "string" },
+            },
+            required: ["entity_type", "entity_value"],
+          },
+        },
+        narrative: { type: "string" },
+      },
+      required: ["entities"],
+    },
+  });
+
+  const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
+  const entities = parsed.entities || [];
+
+  // Delete old extractions for this meeting
+  await db.execute(sql.raw(`DELETE FROM ime_knowledge_entities WHERE meeting_id = '${safeId}'`));
+
+  // Insert new entities
+  const insertedIds: number[] = [];
+  for (const e of entities) {
+    const res = await db.execute(sql.raw(`
+      INSERT INTO ime_knowledge_entities (meeting_id, entity_type, entity_value, confidence, related_speaker, context, ai_narrative, extracted_at, created_at)
+      VALUES ('${safeId}', '${(e.entity_type || "insight").replace(/'/g, "''")}', '${String(e.entity_value || "").replace(/'/g, "''")}', ${Number(e.confidence) || 0.8}, '${String(e.related_speaker || "").replace(/'/g, "''")}', '${String(e.context || "").replace(/'/g, "''")}', '${String(parsed.narrative || "").replace(/'/g, "''")}', NOW(), NOW())
+      RETURNING id
+    `));
+    const row = (res.rows as any[])[0];
+    if (row) insertedIds.push(Number(row.id));
+  }
+
+  return { meetingId, entitiesExtracted: entities.length, entityIds: insertedIds, narrative: parsed.narrative || "" };
+}
+
+// ============================================================================
+// Phase 7: Build Entity Relationships (cross-meeting linking)
+// ============================================================================
+
+export async function buildEntityRelationships(meetingId: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+
+  // Get entities from this meeting
+  const currentRes = await db.execute(sql.raw(
+    `SELECT id, entity_type, entity_value, meeting_id FROM ime_knowledge_entities WHERE meeting_id = '${safeId}'`
+  ));
+  const currentEntities = currentRes.rows as any[];
+  if (currentEntities.length === 0) return { relationships: 0 };
+
+  // Get entities from other meetings for linking
+  const otherRes = await db.execute(sql.raw(
+    `SELECT id, entity_type, entity_value, meeting_id FROM ime_knowledge_entities WHERE meeting_id != '${safeId}' ORDER BY extracted_at DESC LIMIT 200`
+  ));
+  const otherEntities = otherRes.rows as any[];
+
+  if (otherEntities.length === 0) return { relationships: 0 };
+
+  // Use LLM to find relationships
+  const currentSummary = currentEntities.map((e: any) => `[${e.id}] ${e.entity_type}: ${e.entity_value}`).join("\n");
+  const otherSummary = otherEntities.slice(0, 50).map((e: any) => `[${e.id}] ${e.entity_type}: ${e.entity_value}`).join("\n");
+
+  const llmResult = await invokeLLM({
+    system: "你是知识图谱关系分析专家。分析两组实体之间的关系。",
+    prompt: `当前会议实体:\n${currentSummary}\n\n历史实体:\n${otherSummary}\n\n找出实体间的关系(depends_on/follows_up/contradicts/supports/evolves_from)，返回JSON数组。`,
+    schema: {
+      type: "object",
+      properties: {
+        relationships: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              entity_from_id: { type: "number" },
+              entity_to_id: { type: "number" },
+              relationship_type: { type: "string", enum: ["depends_on", "follows_up", "contradicts", "supports", "evolves_from"] },
+              strength: { type: "number" },
+              context: { type: "string" },
+            },
+            required: ["entity_from_id", "entity_to_id", "relationship_type"],
+          },
+        },
+      },
+      required: ["relationships"],
+    },
+  });
+
+  const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
+  const relationships = parsed.relationships || [];
+
+  // Validate entity IDs and insert
+  const validFromIds = new Set(currentEntities.map((e: any) => Number(e.id)));
+  const validToIds = new Set(otherEntities.map((e: any) => Number(e.id)));
+  let inserted = 0;
+
+  for (const rel of relationships) {
+    if (!validFromIds.has(rel.entity_from_id) || !validToIds.has(rel.entity_to_id)) continue;
+    await db.execute(sql.raw(`
+      INSERT INTO ime_entity_relationships (entity_from_id, entity_to_id, relationship_type, strength, context, created_at)
+      VALUES (${rel.entity_from_id}, ${rel.entity_to_id}, '${String(rel.relationship_type).replace(/'/g, "''")}', ${Number(rel.strength) || 0.7}, '${String(rel.context || "").replace(/'/g, "''")}', NOW())
+    `));
+    inserted++;
+  }
+
+  return { meetingId, relationshipsCreated: inserted };
+}
+
+// ============================================================================
+// Phase 7: Track Decision Outcome
+// ============================================================================
+
+export async function trackDecisionOutcome(
+  entityId: number,
+  outcomeStatus: string,
+  outcomeNotes?: string,
+  impactScore?: number,
+  lessonsLearned?: string,
+) {
+  const db = await requireDb();
+
+  // Verify entity exists and is a decision
+  const entityRes = await db.execute(sql.raw(
+    `SELECT id, meeting_id, entity_value FROM ime_knowledge_entities WHERE id = ${entityId} AND entity_type = 'decision'`
+  ));
+  const entity = (entityRes.rows as any[])[0];
+  if (!entity) throw new Error("Decision entity not found");
+
+  // Upsert decision outcome
+  await db.execute(sql.raw(`DELETE FROM ime_decision_outcomes WHERE entity_id = ${entityId}`));
+  await db.execute(sql.raw(`
+    INSERT INTO ime_decision_outcomes (entity_id, meeting_id, decision_text, decision_date, outcome_status, outcome_notes, impact_score, lessons_learned, outcome_date, created_at)
+    VALUES (${entityId}, '${entity.meeting_id}', '${String(entity.entity_value).replace(/'/g, "''")}', NOW(), '${outcomeStatus.replace(/'/g, "''")}', '${String(outcomeNotes || "").replace(/'/g, "''")}', ${impactScore ?? 0}, '${String(lessonsLearned || "").replace(/'/g, "''")}', NOW(), NOW())
+  `));
+
+  return { entityId, outcomeStatus, tracked: true };
+}
+
+// ============================================================================
+// Phase 7: Generate Meeting Retrospective
+// ============================================================================
+
+export async function generateRetrospective(meetingId: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+
+  // Gather data from multiple tables
+  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meeting = (meetingRes.rows as any[])[0];
+  if (!meeting) throw new Error("Meeting not found");
+
+  const effRes = await db.execute(sql.raw(`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = '${safeId}' LIMIT 1`));
+  const sentRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_sentiment WHERE meeting_id = '${safeId}' LIMIT 1`));
+  const actionRes = await db.execute(sql.raw(`SELECT content, status, assigned_to FROM ime_action_items WHERE meeting_id = '${safeId}'`));
+  const entityRes = await db.execute(sql.raw(`SELECT entity_type, entity_value FROM ime_knowledge_entities WHERE meeting_id = '${safeId}'`));
+
+  const effectiveness = (effRes.rows as any[])[0];
+  const sentiment = (sentRes.rows as any[])[0];
+  const actionItems = actionRes.rows as any[];
+  const entities = entityRes.rows as any[];
+
+  const contextSummary = [
+    `会议: ${meeting.title || "未命名"}`,
+    `摘要: ${meeting.summary || "无"}`,
+    effectiveness ? `效能评分: ${effectiveness.overall_score}` : "",
+    sentiment ? `情感: ${sentiment.overall_sentiment}, 紧张度: ${sentiment.tension_level}` : "",
+    actionItems.length > 0 ? `行动项(${actionItems.length}): ${actionItems.map((a: any) => a.content).join("; ")}` : "",
+    entities.length > 0 ? `知识实体(${entities.length}): ${entities.map((e: any) => `${e.entity_type}:${e.entity_value}`).join("; ")}` : "",
+  ].filter(Boolean).join("\n");
+
+  const llmResult = await invokeLLM({
+    system: "你是会议回顾分析专家。基于会议数据生成结构化的会议回顾。",
+    prompt: `请为以下会议生成详细回顾:\n${contextSummary}`,
+    schema: {
+      type: "object",
+      properties: {
+        summary: { type: "string" },
+        key_learnings: { type: "array", items: { type: "string" } },
+        improvement_areas: { type: "array", items: { type: "string" } },
+        what_went_well: { type: "array", items: { type: "string" } },
+        actionable_insights: { type: "array", items: { type: "string" } },
+        overall_grade: { type: "string" },
+        narrative: { type: "string" },
+      },
+      required: ["summary", "key_learnings", "overall_grade"],
+    },
+  });
+
+  const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
+
+  // Upsert retrospective
+  await db.execute(sql.raw(`DELETE FROM ime_meeting_retrospectives WHERE meeting_id = '${safeId}'`));
+  await db.execute(sql.raw(`
+    INSERT INTO ime_meeting_retrospectives (meeting_id, ai_summary, key_learnings, improvement_areas, what_went_well, actionable_insights, overall_grade, ai_narrative, generated_at, created_at)
+    VALUES ('${safeId}', '${String(parsed.summary || "").replace(/'/g, "''")}', '${JSON.stringify(parsed.key_learnings || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.improvement_areas || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.what_went_well || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.actionable_insights || []).replace(/'/g, "''")}', '${String(parsed.overall_grade || "B").replace(/'/g, "''")}', '${String(parsed.narrative || "").replace(/'/g, "''")}', NOW(), NOW())
+  `));
+
+  return {
+    meetingId,
+    summary: parsed.summary,
+    keyLearnings: parsed.key_learnings,
+    improvementAreas: parsed.improvement_areas || [],
+    whatWentWell: parsed.what_went_well || [],
+    actionableInsights: parsed.actionable_insights || [],
+    overallGrade: parsed.overall_grade,
+    narrative: parsed.narrative || "",
+  };
+}
+
+// ============================================================================
+// Phase 7: Compute Expert Profiles
+// ============================================================================
+
+export async function computeExpertProfiles(department?: string) {
+  const db = await requireDb();
+
+  const deptFilter = department ? `WHERE mc.employee_name IN (SELECT employee_name FROM meeting_contributions mc2 JOIN meeting_records mr ON mc2.meeting_id = mr.id WHERE mr.channel_id LIKE '%${department.replace(/'/g, "''")}%')` : "";
+
+  // Aggregate contribution data per employee
+  const contribRes = await db.execute(sql.raw(`
+    SELECT mc.employee_id, mc.employee_name,
+           COUNT(DISTINCT mc.meeting_id) as meeting_count,
+           AVG(mc.contribution_score) as avg_score,
+           COUNT(CASE WHEN mc.role_in_meeting = 'facilitator' OR mc.role_in_meeting = 'presenter' THEN 1 END) as leadership_count
+    FROM meeting_contributions mc
+    ${deptFilter}
+    GROUP BY mc.employee_id, mc.employee_name
+    HAVING COUNT(DISTINCT mc.meeting_id) >= 3
+    ORDER BY avg_score DESC
+    LIMIT 50
+  `));
+  const contributors = contribRes.rows as any[];
+
+  // For each contributor, check decision influence
+  const profiles: any[] = [];
+  for (const c of contributors) {
+    const safeEmpId = String(c.employee_id || "").replace(/'/g, "''");
+    const safeEmpName = String(c.employee_name || "").replace(/'/g, "''");
+
+    // Count decisions they're associated with
+    const decisionRes = await db.execute(sql.raw(`
+      SELECT COUNT(*) as cnt FROM ime_knowledge_entities
+      WHERE entity_type = 'decision' AND related_speaker = '${safeEmpName}'
+    `));
+    const decisionCount = Number((decisionRes.rows as any[])[0]?.cnt) || 0;
+
+    // Get top topics from their meetings
+    const topicRes = await db.execute(sql.raw(`
+      SELECT tc.topic_name, COUNT(*) as cnt
+      FROM ime_topic_continuity tc
+      WHERE tc.meeting_id IN (SELECT meeting_id FROM meeting_contributions WHERE employee_id = '${safeEmpId}')
+      GROUP BY tc.topic_name ORDER BY cnt DESC LIMIT 5
+    `));
+    const topTopics = (topicRes.rows as any[]).map((t: any) => t.topic_name);
+
+    const meetingCount = Number(c.meeting_count) || 0;
+    const avgScore = Number(c.avg_score) || 0;
+    const leadershipRate = meetingCount > 0 ? Number(c.leadership_count) / meetingCount : 0;
+    const credibility = Math.min(100, avgScore * 0.5 + meetingCount * 2 + leadershipRate * 20 + decisionCount * 3);
+
+    const expertiseAreas: string[] = [];
+    if (leadershipRate > 0.3) expertiseAreas.push("会议引导");
+    if (decisionCount > 5) expertiseAreas.push("决策推动");
+    if (avgScore > 80) expertiseAreas.push("高贡献度");
+    if (topTopics.length > 0) expertiseAreas.push(...topTopics.slice(0, 3));
+
+    // Upsert
+    await db.execute(sql.raw(`DELETE FROM ime_expert_profiles WHERE employee_id = '${safeEmpId}'`));
+    await db.execute(sql.raw(`
+      INSERT INTO ime_expert_profiles (employee_id, employee_name, department, expertise_areas, credibility_score, meeting_count, avg_contribution_score, decision_influence_rate, top_topics, computed_at, created_at)
+      VALUES ('${safeEmpId}', '${safeEmpName}', '${(department || "").replace(/'/g, "''")}', '${JSON.stringify(expertiseAreas).replace(/'/g, "''")}', ${Math.round(credibility)}, ${meetingCount}, ${Math.round(avgScore)}, ${Number(decisionCount / Math.max(meetingCount, 1)).toFixed(2)}, '${JSON.stringify(topTopics).replace(/'/g, "''")}', NOW(), NOW())
+    `));
+
+    profiles.push({
+      employeeId: c.employee_id,
+      employeeName: c.employee_name,
+      credibilityScore: Math.round(credibility),
+      meetingCount,
+      avgContributionScore: Math.round(avgScore),
+      expertiseAreas,
+      topTopics,
+    });
+  }
+
+  return { profilesComputed: profiles.length, profiles };
+}
+
+// ============================================================================
+// Phase 7: Knowledge Dashboard
+// ============================================================================
+
+export async function getKnowledgeDashboard(filters?: {
+  entityType?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const db = await requireDb();
+
+  const whereParts: string[] = [];
+  if (filters?.entityType) whereParts.push(`ke.entity_type = '${filters.entityType.replace(/'/g, "''")}'`);
+  if (filters?.dateFrom) whereParts.push(`ke.extracted_at >= '${filters.dateFrom.replace(/'/g, "''")}'`);
+  if (filters?.dateTo) whereParts.push(`ke.extracted_at <= '${filters.dateTo.replace(/'/g, "''")}'`);
+  const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+
+  // Entity type distribution
+  const typeStatsRes = await db.execute(sql.raw(`
+    SELECT entity_type, COUNT(*) as cnt, AVG(confidence) as avg_confidence
+    FROM ime_knowledge_entities ke ${whereClause}
+    GROUP BY entity_type ORDER BY cnt DESC
+  `));
+
+  // Recent entities
+  const recentRes = await db.execute(sql.raw(`
+    SELECT ke.*, mr.title as meeting_title
+    FROM ime_knowledge_entities ke
+    JOIN meeting_records mr ON ke.meeting_id = mr.id
+    ${whereClause}
+    ORDER BY ke.extracted_at DESC LIMIT 20
+  `));
+
+  // Relationship stats
+  const relStatsRes = await db.execute(sql.raw(`
+    SELECT relationship_type, COUNT(*) as cnt, AVG(strength) as avg_strength
+    FROM ime_entity_relationships
+    GROUP BY relationship_type ORDER BY cnt DESC
+  `));
+
+  // Decision outcomes summary
+  const decisionRes = await db.execute(sql.raw(`
+    SELECT outcome_status, COUNT(*) as cnt, AVG(impact_score) as avg_impact
+    FROM ime_decision_outcomes
+    GROUP BY outcome_status ORDER BY cnt DESC
+  `));
+
+  // Recent retrospectives
+  const retroRes = await db.execute(sql.raw(`
+    SELECT r.meeting_id, r.overall_grade, r.ai_summary, mr.title, r.generated_at
+    FROM ime_meeting_retrospectives r
+    JOIN meeting_records mr ON r.meeting_id = mr.id
+    ORDER BY r.generated_at DESC LIMIT 10
+  `));
+
+  // Top experts
+  const expertRes = await db.execute(sql.raw(`
+    SELECT employee_name, credibility_score, meeting_count, expertise_areas, top_topics
+    FROM ime_expert_profiles
+    ORDER BY credibility_score DESC LIMIT 10
+  `));
+
+  // Total counts
+  const totalEntities = (typeStatsRes.rows as any[]).reduce((sum: number, r: any) => sum + Number(r.cnt), 0);
+  const totalRelationships = (relStatsRes.rows as any[]).reduce((sum: number, r: any) => sum + Number(r.cnt), 0);
+
+  return {
+    summary: {
+      totalEntities,
+      totalRelationships,
+      totalDecisions: (decisionRes.rows as any[]).reduce((sum: number, r: any) => sum + Number(r.cnt), 0),
+      totalRetrospectives: retroRes.rows.length,
+      totalExperts: (await db.execute(sql.raw(`SELECT COUNT(*) as cnt FROM ime_expert_profiles`))).rows[0] as any,
+    },
+    entityTypeStats: (typeStatsRes.rows as any[]).map((r: any) => ({
+      type: r.entity_type,
+      count: Number(r.cnt),
+      avgConfidence: Number(Number(r.avg_confidence || 0).toFixed(2)),
+    })),
+    recentEntities: recentRes.rows,
+    relationshipStats: (relStatsRes.rows as any[]).map((r: any) => ({
+      type: r.relationship_type,
+      count: Number(r.cnt),
+      avgStrength: Number(Number(r.avg_strength || 0).toFixed(2)),
+    })),
+    decisionOutcomes: decisionRes.rows,
+    recentRetrospectives: retroRes.rows,
+    topExperts: (expertRes.rows as any[]).map((r: any) => ({
+      ...r,
+      expertiseAreas: (() => { try { return JSON.parse(r.expertise_areas || "[]"); } catch { return []; } })(),
+      topTopics: (() => { try { return JSON.parse(r.top_topics || "[]"); } catch { return []; } })(),
+    })),
+  };
+}
