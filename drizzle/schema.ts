@@ -10573,3 +10573,58 @@ export const imeSystemSettings = pgTable("ime_system_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Phase 11: Meeting Gamification & Engagement
+
+export const imeAchievements = pgTable("ime_achievements", {
+  id: serial("id").primaryKey(),
+  achievementKey: varchar("achievement_key", { length: 100 }).notNull(), // e.g. "first_meeting", "action_hero_10", "streak_5"
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  icon: varchar("icon", { length: 50 }), // lucide icon name
+  category: varchar("category", { length: 50 }).default("general"), // general | contribution | efficiency | collaboration | streak
+  tier: varchar("tier", { length: 20 }).default("bronze"), // bronze | silver | gold | platinum
+  criteria: text("criteria"), // JSON — {metric, operator, value} for auto-evaluation
+  points: integer("points").default(10),
+  isGlobal: integer("is_global").default(1), // 1 = definition row, 0 = user award
+  userId: varchar("user_id", { length: 100 }), // NULL for definitions, set for awards
+  awardedAt: timestamp("awarded_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeLeaderboards = pgTable("ime_leaderboards", {
+  id: serial("id").primaryKey(),
+  period: varchar("period", { length: 20 }).notNull(), // weekly | monthly | quarterly
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+  metric: varchar("metric", { length: 50 }).notNull(), // contribution_score | effectiveness | action_completion | meetings_led | culture_score
+  userId: varchar("user_id", { length: 100 }).notNull(),
+  userName: varchar("user_name", { length: 200 }),
+  department: varchar("department", { length: 100 }),
+  rank: integer("rank").notNull(),
+  score: real("score").notNull(),
+  trend: varchar("trend", { length: 10 }), // up | down | stable
+  previousRank: integer("previous_rank"),
+  snapshotAt: timestamp("snapshot_at").defaultNow(),
+});
+
+export const imeTeamChallenges = pgTable("ime_team_challenges", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 300 }).notNull(),
+  description: text("description"),
+  challengeType: varchar("challenge_type", { length: 50 }).notNull(), // reduce_duration | improve_effectiveness | action_completion | reduce_cost | boost_engagement
+  targetMetric: varchar("target_metric", { length: 50 }).notNull(),
+  targetValue: real("target_value").notNull(),
+  currentValue: real("current_value").default(0),
+  baselineValue: real("baseline_value"), // starting value when challenge began
+  scope: varchar("scope", { length: 50 }).default("organization"), // organization | department | team
+  scopeId: varchar("scope_id", { length: 100 }),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  status: varchar("status", { length: 20 }).default("active"), // active | completed | failed | cancelled
+  rewardDescription: text("reward_description"),
+  participants: text("participants"), // JSON array of user IDs
+  createdBy: varchar("created_by", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
