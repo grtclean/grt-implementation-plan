@@ -111,6 +111,7 @@ import { architectureRouter } from "./services/architecture.router";
 import { aiEarlyWarningRouter } from "./services/ai-early-warning.router";
 import { sopRouter } from "./services/sop.router";
 import { costStandardsRouter } from "./services/cost-standards.router";
+import { imeRouter } from "./ime/ime.router";
 
 // AI Assistant modules (Purchase, Quality, Service)
 import { purchaseAssistantRouter } from "./ai-assistants/purchaseRoutes";
@@ -267,6 +268,9 @@ export const appRouter = router({
   productionExecution: productionExecutionRouter,
   meeting: meetingRouter,
   meetingTaskLoop: meetingTaskLoopRouter,
+
+  // G-IME: 参会者贡献分析与会议效能 (Intelligent Meeting Executive)
+  ime: imeRouter,
   customerSolutionMeeting: customerSolutionMeetingRouter,
   taskNotification: webhookConfigRouter,
   caseLibrary: caseLibraryRouter,

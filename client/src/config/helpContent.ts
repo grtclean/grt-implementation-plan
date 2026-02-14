@@ -2550,6 +2550,25 @@ export const helpContentMap: Record<string, PageHelpContent> = {
       { question: "翻译被采纳有奖励吗？", answer: "有，每条被采纳的翻译可获得积分奖励。" },
     ],
   },
+
+  // ========== G-IME: 会议效能分析 ==========
+  "/meeting-executive": {
+    title: "会议效能分析",
+    description: "G-IME智能会议执行官 — 参会者贡献分析与会议效能看板",
+    overview: "G-IME (GRT Intelligent Meeting Executive) 是一个AI驱动的会议效能分析平台。通过分析会议内容块（决策、行动项、发言）自动评估每位参会者的贡献度，并计算会议整体效能评分。分析结果自动关联到员工绩效追踪系统，形成「会议贡献→绩效指标」的完整链路。",
+    steps: [
+      { title: "查看概览", description: "在「概览」标签查看已分析会议统计、效能趋势和贡献排行榜" },
+      { title: "分析参会者", description: "在「参会者分析」标签输入员工ID，查看能力雷达图、贡献明细和AI分析" },
+      { title: "查看会议效能", description: "在「会议效能」标签浏览所有已评分会议，点击展开查看维度分布和AI叙述" },
+      { title: "关联绩效", description: "在「绩效关联」标签执行批量分析，将会议贡献分数写入绩效追踪系统" },
+    ],
+    faq: [
+      { question: "如何触发AI分析？", answer: "在智慧会议页面选择会议后点击「分析」按钮，或在「绩效关联」标签批量输入会议ID进行分析。" },
+      { question: "贡献分是如何计算的？", answer: "综合考虑发言时长、决策次数、行动项、提问和洞见等指标，由AI模型计算0-100的综合得分。" },
+      { question: "分析结果如何影响绩效？", answer: "分析完成后会自动创建绩效追踪记录(sourceType: meeting_contribution)，纳入员工绩效评估体系。" },
+      { question: "会议效能评分的四个维度是什么？", answer: "目标达成度、参与均衡度(基于基尼系数)、决策清晰度、可执行成果。各维度加权计算总分。" },
+    ],
+  },
 };
 
 /**

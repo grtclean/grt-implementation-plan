@@ -145,6 +145,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "我的看板", nameEn: "My Dashboard", path: "/", icon: Home },
       { name: "通知中心", nameEn: "Notifications", path: "/notifications", icon: BellRing },
       { name: "智慧会议", nameEn: "Smart Meeting", path: "/smart-meeting", icon: Video },
+      { name: "会议效能分析", nameEn: "Meeting Executive", path: "/meeting-executive", icon: BarChart3, isNew: true },
       { name: "实施路线图", nameEn: "Roadmap", path: "/roadmap", icon: Calendar },
       { name: "工具箱", nameEn: "Tools", path: "/tools", icon: Layers },
     ],
