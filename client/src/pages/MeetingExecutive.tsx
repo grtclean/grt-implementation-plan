@@ -204,6 +204,8 @@ function OverviewTab() {
 function ParticipantsTab() {
   const [employeeId, setEmployeeId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [engagementMeetingId, setEngagementMeetingId] = useState("");
+  const [engagementSearchId, setEngagementSearchId] = useState("");
 
   const trendQuery = trpc.ime.employeeTrend.useQuery(
     { employeeId },
@@ -211,25 +213,58 @@ function ParticipantsTab() {
   );
   const trendData = (trendQuery.data ?? []) as any[];
 
-  // Compute radar data from trend
+  // Engagement analysis
+  const engagementMutation = trpc.ime.analyzeEngagement.useMutation();
+  const engagementQuery = trpc.ime.meetingEngagement.useQuery(
+    { meetingId: engagementSearchId },
+    { enabled: !!engagementSearchId }
+  );
+  const engagementData = engagementMutation.data ?? engagementQuery.data;
+  const engagementParticipants = (engagementData?.participants ?? []) as any[];
+
+  const handleAnalyzeEngagement = () => {
+    if (!engagementMeetingId.trim()) return;
+    setEngagementSearchId(engagementMeetingId.trim());
+    engagementMutation.mutate({ meetingId: engagementMeetingId.trim() });
+  };
+
+  // Compute radar data from trend — include engagement dimensions when available
   const radarData = (() => {
     if (trendData.length === 0) return [];
     const totals = { speaking: 0, decisions: 0, actions: 0, interventions: 0, score: 0 };
+    let engTotals = { cv: 0, lc: 0, co: 0, count: 0 };
     for (const d of trendData) {
       totals.speaking += Number(d.speaking_time) || 0;
       totals.decisions += Number(d.decision_count) || 0;
       totals.actions += Number(d.action_item_count) || 0;
       totals.interventions += Number(d.intervention_count) || 0;
       totals.score += Number(d.contribution_score) || 0;
+      try {
+        const analysis = JSON.parse(d.ai_analysis || "{}");
+        if (analysis.engagement) {
+          engTotals.cv += Number(analysis.engagement.contribution_value) || 0;
+          engTotals.lc += Number(analysis.engagement.logic_conciseness) || 0;
+          engTotals.co += Number(analysis.engagement.constructiveness) || 0;
+          engTotals.count++;
+        }
+      } catch { /* skip */ }
     }
     const n = trendData.length;
-    return [
+    const base = [
       { dimension: "发言时长", value: Math.min(100, (totals.speaking / n) / 3) },
       { dimension: "决策力", value: Math.min(100, (totals.decisions / n) * 25) },
       { dimension: "行动力", value: Math.min(100, (totals.actions / n) * 20) },
       { dimension: "参与度", value: Math.min(100, (totals.interventions / n) * 10) },
       { dimension: "综合得分", value: totals.score / n },
     ];
+    if (engTotals.count > 0) {
+      base.push(
+        { dimension: "贡献价值", value: (engTotals.cv / engTotals.count) * 10 },
+        { dimension: "逻辑简洁", value: (engTotals.lc / engTotals.count) * 10 },
+        { dimension: "建设性", value: (engTotals.co / engTotals.count) * 10 },
+      );
+    }
+    return base;
   })();
 
   // Parse latest AI analysis
@@ -243,8 +278,115 @@ function ParticipantsTab() {
     return null;
   })();
 
+  const tagColorMap: Record<string, string> = {
+    Strategic: "bg-purple-100 text-purple-700",
+    "Risk-Aware": "bg-red-100 text-red-700",
+    "Solution-Oriented": "bg-green-100 text-green-700",
+    "Detail-Focused": "bg-blue-100 text-blue-700",
+    Collaborative: "bg-cyan-100 text-cyan-700",
+    "Off-Topic": "bg-orange-100 text-orange-700",
+    Passive: "bg-gray-100 text-gray-600",
+    Constructive: "bg-emerald-100 text-emerald-700",
+    Analytical: "bg-indigo-100 text-indigo-700",
+  };
+
+  const scoreColor = (score: number) =>
+    score >= 7 ? "text-green-600" : score >= 4 ? "text-amber-600" : "text-red-600";
+
   return (
     <div className="space-y-6">
+      {/* Engagement Analysis Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Zap className="h-4 w-4 text-amber-500" />
+            参与度分析
+          </CardTitle>
+          <CardDescription>输入会议ID分析参会者的贡献价值、逻辑简洁度和建设性</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-3">
+            <Input
+              placeholder="输入会议ID..."
+              value={engagementMeetingId}
+              onChange={(e) => setEngagementMeetingId(e.target.value)}
+              className="max-w-sm"
+            />
+            <Button
+              onClick={handleAnalyzeEngagement}
+              disabled={engagementMutation.isPending || !engagementMeetingId.trim()}
+            >
+              {engagementMutation.isPending ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Target className="h-4 w-4 mr-2" />
+              )}
+              分析参与度
+            </Button>
+          </div>
+
+          {engagementParticipants.length > 0 && (
+            <div className="space-y-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>姓名</TableHead>
+                    <TableHead className="text-center">角色</TableHead>
+                    <TableHead className="text-center">参与度</TableHead>
+                    <TableHead className="text-center">贡献值</TableHead>
+                    <TableHead className="text-center">逻辑简洁</TableHead>
+                    <TableHead className="text-center">建设性</TableHead>
+                    <TableHead>关键贡献</TableHead>
+                    <TableHead>行为标签</TableHead>
+                    <TableHead>辅导建议</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {engagementParticipants.map((p: any) => (
+                    <TableRow key={p.speaker}>
+                      <TableCell className="font-medium">{p.speaker}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline">{p.role}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className={`font-semibold ${scoreColor(p.engagement_score)}`}>
+                          {Number(p.engagement_score).toFixed(1)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">{Number(p.contribution_value).toFixed(1)}</TableCell>
+                      <TableCell className="text-center">{Number(p.logic_conciseness).toFixed(1)}</TableCell>
+                      <TableCell className="text-center">{Number(p.constructiveness).toFixed(1)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                        {p.key_contribution}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {(p.behavior_tags ?? []).map((tag: string) => (
+                            <span
+                              key={tag}
+                              className={`text-xs px-1.5 py-0.5 rounded-full ${tagColorMap[tag] || "bg-gray-100 text-gray-600"}`}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[200px]">
+                        {p.coaching_suggestion}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {engagementMutation.isError && (
+            <p className="text-sm text-red-500">分析失败: {engagementMutation.error.message}</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Employee Search */}
       <Card>
         <CardContent className="pt-6">
@@ -368,6 +510,48 @@ function ParticipantsTab() {
                         "{q}"
                       </blockquote>
                     ))}
+                  </div>
+                )}
+                {latestAnalysis.engagement && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
+                      <Target className="h-3.5 w-3.5 text-indigo-500" /> 参与度评估
+                    </h4>
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div className="text-center p-2 rounded bg-muted/50">
+                        <div className="text-xs text-muted-foreground">贡献价值</div>
+                        <div className={`font-semibold ${scoreColor(latestAnalysis.engagement.contribution_value)}`}>
+                          {Number(latestAnalysis.engagement.contribution_value).toFixed(1)}
+                        </div>
+                      </div>
+                      <div className="text-center p-2 rounded bg-muted/50">
+                        <div className="text-xs text-muted-foreground">逻辑简洁</div>
+                        <div className={`font-semibold ${scoreColor(latestAnalysis.engagement.logic_conciseness)}`}>
+                          {Number(latestAnalysis.engagement.logic_conciseness).toFixed(1)}
+                        </div>
+                      </div>
+                      <div className="text-center p-2 rounded bg-muted/50">
+                        <div className="text-xs text-muted-foreground">建设性</div>
+                        <div className={`font-semibold ${scoreColor(latestAnalysis.engagement.constructiveness)}`}>
+                          {Number(latestAnalysis.engagement.constructiveness).toFixed(1)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {(latestAnalysis.engagement.behavior_tags ?? []).map((tag: string) => (
+                        <span
+                          key={tag}
+                          className={`text-xs px-1.5 py-0.5 rounded-full ${tagColorMap[tag] || "bg-gray-100 text-gray-600"}`}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    {latestAnalysis.engagement.coaching_suggestion && (
+                      <p className="text-sm text-muted-foreground mt-2 italic">
+                        {latestAnalysis.engagement.coaching_suggestion}
+                      </p>
+                    )}
                   </div>
                 )}
               </CardContent>

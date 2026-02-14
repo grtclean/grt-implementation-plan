@@ -405,6 +405,297 @@ export async function linkToPerformanceTrace(meetingId: string) {
 }
 
 // ============================================================================
+// Participant Engagement Analysis
+// ============================================================================
+
+export interface EngagementOptions {
+  excludeSpeakers?: string[];
+  includeExternal?: boolean;
+}
+
+interface SpeakerEngagement {
+  speaker: string;
+  contribution_value: number;
+  logic_conciseness: number;
+  constructiveness: number;
+  engagement_score: number;
+  role: string;
+  behavior_tags: string[];
+  key_contribution: string;
+  coaching_suggestion: string;
+}
+
+const VALID_BEHAVIOR_TAGS = [
+  "Strategic", "Risk-Aware", "Solution-Oriented", "Detail-Focused",
+  "Collaborative", "Off-Topic", "Passive", "Constructive", "Analytical",
+];
+
+const VALID_ROLES = ["Technical", "Strategic", "Process", "Supportive", "Observer"];
+
+export async function analyzeParticipantEngagement(
+  meetingId: string,
+  options?: EngagementOptions
+) {
+  const db = await requireDb();
+
+  // 1. Get meeting info
+  const meetingResult = await db.execute(sql`
+    SELECT id, title, objective, summary FROM meeting_records WHERE id = ${meetingId}
+  `);
+  const meeting = (meetingResult.rows as any[])[0];
+  if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
+
+  // 2. Get content blocks grouped by speaker
+  const blocksResult = await db.execute(sql`
+    SELECT speaker, block_type, content,
+           timestamp_start, timestamp_end
+    FROM meeting_content_blocks
+    WHERE meeting_id = ${meetingId}
+    ORDER BY sort_order ASC, created_at ASC
+  `);
+  const blocks = blocksResult.rows as any[];
+
+  // 3. Group by speaker
+  const speakerMap = new Map<string, {
+    blocks: any[];
+    speakingTime: number;
+    decisions: number;
+    actionItems: number;
+    questions: number;
+    insights: number;
+    interventions: number;
+  }>();
+
+  for (const block of blocks) {
+    const speaker = block.speaker || "unknown";
+    if (!speakerMap.has(speaker)) {
+      speakerMap.set(speaker, {
+        blocks: [],
+        speakingTime: 0,
+        decisions: 0,
+        actionItems: 0,
+        questions: 0,
+        insights: 0,
+        interventions: 0,
+      });
+    }
+    const entry = speakerMap.get(speaker)!;
+    entry.blocks.push(block);
+    entry.interventions++;
+
+    if (block.timestamp_start != null && block.timestamp_end != null) {
+      entry.speakingTime += Math.max(0, block.timestamp_end - block.timestamp_start);
+    }
+
+    switch (block.block_type) {
+      case "decision": entry.decisions++; break;
+      case "action_item": entry.actionItems++; break;
+      case "question": entry.questions++; break;
+      case "insight": entry.insights++; break;
+    }
+  }
+
+  // 4. Auto-exclude external speakers (not found in hrm_employees)
+  const excludeSet = new Set(options?.excludeSpeakers?.map(s => s.toLowerCase()) ?? []);
+  const speakersToAnalyze: string[] = [];
+
+  for (const speaker of speakerMap.keys()) {
+    if (speaker === "unknown") continue;
+    if (excludeSet.has(speaker.toLowerCase())) continue;
+
+    if (!options?.includeExternal) {
+      const empResult = await db.execute(sql.raw(`
+        SELECT id FROM hrm_employees
+        WHERE name = '${speaker.replace(/'/g, "''")}' OR "employeeCode" = '${speaker.replace(/'/g, "''")}'
+        LIMIT 1
+      `));
+      if ((empResult.rows as any[]).length === 0) continue;
+    }
+    speakersToAnalyze.push(speaker);
+  }
+
+  if (speakersToAnalyze.length === 0) {
+    return { meetingId, participants: [], message: "No internal speakers found" };
+  }
+
+  // 5. Prepare speaker summaries for LLM
+  const speakerSummaries = speakersToAnalyze.map(speaker => {
+    const data = speakerMap.get(speaker)!;
+    return {
+      speaker,
+      interventionCount: data.interventions,
+      speakingTime: data.speakingTime,
+      decisions: data.decisions,
+      actionItems: data.actionItems,
+      questions: data.questions,
+      insights: data.insights,
+      sampleContent: data.blocks.slice(0, 8).map((b: any) => `[${b.block_type}] ${b.content.substring(0, 300)}`),
+    };
+  });
+
+  // 6. Call LLM for engagement scoring
+  let engagementResults: SpeakerEngagement[] = [];
+
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: `You are a meeting participant engagement analyst. Evaluate each participant on three dimensions (0-10 scale):
+1. Contribution Value: substance and impact of their input
+2. Logic & Conciseness: clarity, structure, and efficiency of communication
+3. Constructiveness: positive attitude, building on others' ideas, solution orientation
+
+Compute engagement_score as weighted average: 0.4×contribution_value + 0.3×logic_conciseness + 0.3×constructiveness
+
+Assign a role: Technical, Strategic, Process, Supportive, or Observer
+Assign 1-3 behavior_tags from: Strategic, Risk-Aware, Solution-Oriented, Detail-Focused, Collaborative, Off-Topic, Passive, Constructive, Analytical
+Provide a key_contribution (1 sentence) and coaching_suggestion (1 sentence).
+
+Return strict JSON only.`,
+        },
+        {
+          role: "user",
+          content: `Meeting: "${meeting.title}"\nObjective: ${meeting.objective || "N/A"}\nSummary: ${(meeting.summary || "").substring(0, 500)}\n\nParticipant data:\n${JSON.stringify(speakerSummaries, null, 2)}`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "engagement_analysis",
+          schema: {
+            type: "object",
+            properties: {
+              participants: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    speaker: { type: "string" },
+                    contribution_value: { type: "number" },
+                    logic_conciseness: { type: "number" },
+                    constructiveness: { type: "number" },
+                    engagement_score: { type: "number" },
+                    role: { type: "string" },
+                    behavior_tags: { type: "array", items: { type: "string" } },
+                    key_contribution: { type: "string" },
+                    coaching_suggestion: { type: "string" },
+                  },
+                  required: [
+                    "speaker", "contribution_value", "logic_conciseness", "constructiveness",
+                    "engagement_score", "role", "behavior_tags", "key_contribution", "coaching_suggestion",
+                  ],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["participants"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+
+    const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+    if (parsed.participants) {
+      engagementResults = parsed.participants.map((p: any) => ({
+        speaker: p.speaker,
+        contribution_value: Math.max(0, Math.min(10, Number(p.contribution_value) || 0)),
+        logic_conciseness: Math.max(0, Math.min(10, Number(p.logic_conciseness) || 0)),
+        constructiveness: Math.max(0, Math.min(10, Number(p.constructiveness) || 0)),
+        engagement_score: Math.max(0, Math.min(10, Number(p.engagement_score) || 0)),
+        role: VALID_ROLES.includes(p.role) ? p.role : "Observer",
+        behavior_tags: (p.behavior_tags || []).filter((t: string) => VALID_BEHAVIOR_TAGS.includes(t)),
+        key_contribution: p.key_contribution || "",
+        coaching_suggestion: p.coaching_suggestion || "",
+      }));
+    }
+  } catch (e) {
+    console.error("[IME] Engagement LLM scoring failed, using heuristic:", e);
+  }
+
+  // 7. Heuristic fallback for speakers not scored by LLM
+  const scoredSpeakers = new Set(engagementResults.map(r => r.speaker));
+  for (const speaker of speakersToAnalyze) {
+    if (scoredSpeakers.has(speaker)) continue;
+    const data = speakerMap.get(speaker)!;
+
+    const cv = Math.min(10, (data.decisions * 2) + (data.insights * 1.5) + (data.actionItems * 1) + (data.interventions * 0.3));
+    const lc = Math.min(10, data.interventions > 0 ? 5 + (data.insights / data.interventions) * 3 : 3);
+    const co = Math.min(10, (data.actionItems * 2) + (data.questions * 1) + 3);
+    const score = Math.round((cv * 0.4 + lc * 0.3 + co * 0.3) * 10) / 10;
+
+    engagementResults.push({
+      speaker,
+      contribution_value: Math.round(cv * 10) / 10,
+      logic_conciseness: Math.round(lc * 10) / 10,
+      constructiveness: Math.round(co * 10) / 10,
+      engagement_score: score,
+      role: data.decisions >= 2 ? "Strategic" : data.insights >= 2 ? "Technical" : "Supportive",
+      behavior_tags: [
+        ...(data.decisions >= 2 ? ["Strategic"] : []),
+        ...(data.insights >= 2 ? ["Analytical"] : []),
+        ...(data.actionItems >= 2 ? ["Solution-Oriented"] : []),
+        ...(data.interventions <= 1 ? ["Passive"] : ["Collaborative"]),
+      ].slice(0, 3),
+      key_contribution: data.blocks[0]?.content?.substring(0, 100) || "N/A",
+      coaching_suggestion: score < 5 ? "建议更积极参与讨论并提出建设性意见" : "保持当前参与度，可尝试引导更多决策讨论",
+    });
+  }
+
+  // 8. Merge engagement into existing ai_analysis JSON via UPDATE
+  for (const result of engagementResults) {
+    // Read existing ai_analysis
+    const contribResult = await db.execute(sql.raw(`
+      SELECT id, ai_analysis FROM meeting_contributions
+      WHERE meeting_id = '${meetingId.replace(/'/g, "''")}'
+        AND (employee_name = '${result.speaker.replace(/'/g, "''")}' OR employee_id = '${result.speaker.replace(/'/g, "''")}')
+      LIMIT 1
+    `));
+    const existing = (contribResult.rows as any[])[0];
+    if (!existing) continue;
+
+    let analysis: any = {};
+    try { analysis = JSON.parse(existing.ai_analysis || "{}"); } catch { /* use empty */ }
+
+    analysis.engagement = {
+      contribution_value: result.contribution_value,
+      logic_conciseness: result.logic_conciseness,
+      constructiveness: result.constructiveness,
+      engagement_score: result.engagement_score,
+      role: result.role,
+      behavior_tags: result.behavior_tags,
+      key_contribution: result.key_contribution,
+      coaching_suggestion: result.coaching_suggestion,
+    };
+
+    const updatedJson = JSON.stringify(analysis).replace(/'/g, "''");
+    await db.execute(sql.raw(`
+      UPDATE meeting_contributions
+      SET ai_analysis = '${updatedJson}'
+      WHERE id = ${existing.id}
+    `));
+  }
+
+  // 9. Return structured output
+  return {
+    meetingId,
+    participants: engagementResults.map(r => ({
+      speaker: r.speaker,
+      contribution_value: r.contribution_value,
+      logic_conciseness: r.logic_conciseness,
+      constructiveness: r.constructiveness,
+      engagement_score: r.engagement_score,
+      role: r.role,
+      behavior_tags: r.behavior_tags,
+      key_contribution: r.key_contribution,
+      coaching_suggestion: r.coaching_suggestion,
+    })),
+  };
+}
+
+// ============================================================================
 // Phase 2 — Sprint 1: Department Rollup
 // ============================================================================
 

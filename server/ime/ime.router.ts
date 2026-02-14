@@ -36,14 +36,15 @@ export const imeRouter = router({
       return result.rows;
     }),
 
-  // Trigger AI analysis for a meeting
+  // Trigger AI analysis for a meeting (includes engagement)
   analyzeMeeting: protectedProcedure
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       const contributions = await imeService.analyzeContributions(input.meetingId);
       const effectiveness = await imeService.scoreMeetingEffectiveness(input.meetingId);
       const traces = await imeService.linkToPerformanceTrace(input.meetingId);
-      return { contributions, effectiveness, tracesCreated: traces.length };
+      const engagement = await imeService.analyzeParticipantEngagement(input.meetingId);
+      return { contributions, effectiveness, tracesCreated: traces.length, engagement };
     }),
 
   // Employee trend over time
@@ -111,6 +112,47 @@ export const imeRouter = router({
         }
       }
       return results;
+    }),
+
+  // ========================================================================
+  // Participant Engagement Analysis
+  // ========================================================================
+
+  analyzeEngagement: protectedProcedure
+    .input(z.object({
+      meetingId: z.string(),
+      excludeSpeakers: z.array(z.string()).optional(),
+      includeExternal: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.analyzeParticipantEngagement(input.meetingId, {
+        excludeSpeakers: input.excludeSpeakers,
+        includeExternal: input.includeExternal,
+      });
+    }),
+
+  meetingEngagement: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const result = await db.execute(sql`
+        SELECT employee_name, ai_analysis FROM meeting_contributions
+        WHERE meeting_id = ${input.meetingId}
+        ORDER BY contribution_score DESC
+      `);
+      const participants: any[] = [];
+      for (const row of result.rows as any[]) {
+        try {
+          const analysis = JSON.parse(row.ai_analysis || "{}");
+          if (analysis.engagement) {
+            participants.push({
+              speaker: row.employee_name,
+              ...analysis.engagement,
+            });
+          }
+        } catch { /* skip */ }
+      }
+      return { meetingId: input.meetingId, participants };
     }),
 
   // ========================================================================
