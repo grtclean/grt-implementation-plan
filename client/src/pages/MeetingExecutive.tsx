@@ -43,6 +43,7 @@ import {
   MeetingAssistantTab,
   WorkflowCoachingTab,
   IntegrationSettingsTab,
+  GamificationTab,
 } from "./meeting-executive";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -881,6 +882,7 @@ export default function MeetingExecutive() {
           <TabsTrigger value="ai-assistant">AI助手</TabsTrigger>
           <TabsTrigger value="workflow">自动化教练</TabsTrigger>
           <TabsTrigger value="integrations">集成设置</TabsTrigger>
+          <TabsTrigger value="gamification">游戏化</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -969,6 +971,10 @@ export default function MeetingExecutive() {
 
         <TabsContent value="integrations">
           <IntegrationSettingsTab />
+        </TabsContent>
+
+        <TabsContent value="gamification">
+          <GamificationTab />
         </TabsContent>
       </Tabs>
     </div>

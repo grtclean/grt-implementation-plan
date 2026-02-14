@@ -1037,4 +1037,74 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       return imeService.getSystemSettings(input?.category);
     }),
+
+  // Phase 11: Gamification & Engagement
+
+  evaluateAchievements: protectedProcedure
+    .input(z.object({ userId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.evaluateAchievements(input.userId);
+    }),
+
+  userAchievements: protectedProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const safeUser = input.userId.replace(/'/g, "''");
+      const result = await db.execute(sql.raw(
+        `SELECT * FROM ime_achievements WHERE user_id = '${safeUser}' AND is_global = 0 ORDER BY awarded_at DESC`
+      ));
+      return result.rows;
+    }),
+
+  achievementDefinitions: protectedProcedure
+    .query(async () => {
+      const db = await requireDb();
+      const result = await db.execute(sql.raw(`SELECT * FROM ime_achievements WHERE is_global = 1 ORDER BY points ASC`));
+      return result.rows;
+    }),
+
+  leaderboard: protectedProcedure
+    .input(z.object({ period: z.string().optional(), metric: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getLeaderboard(input?.period, input?.metric);
+    }),
+
+  createChallenge: protectedProcedure
+    .input(z.object({
+      title: z.string(),
+      description: z.string().optional(),
+      challengeType: z.string(),
+      targetMetric: z.string(),
+      targetValue: z.number(),
+      scope: z.string().optional(),
+      scopeId: z.string().optional(),
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      rewardDescription: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      return imeService.createTeamChallenge({ ...input, createdBy: (ctx as any).user?.openId || "unknown" });
+    }),
+
+  listChallenges: protectedProcedure
+    .input(z.object({ status: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const where = input?.status ? `WHERE status = '${input.status}'` : "";
+      const result = await db.execute(sql.raw(`SELECT * FROM ime_team_challenges ${where} ORDER BY created_at DESC`));
+      return result.rows;
+    }),
+
+  updateChallengeProgress: protectedProcedure
+    .input(z.object({ challengeId: z.number() }))
+    .mutation(async ({ input }) => {
+      return imeService.updateChallengeProgress(input.challengeId);
+    }),
+
+  gamificationDashboard: protectedProcedure
+    .input(z.object({ userId: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getGamificationDashboard(input?.userId);
+    }),
 });

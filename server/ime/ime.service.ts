@@ -6055,3 +6055,267 @@ export async function getSystemSettings(category?: string) {
   ));
   return result.rows;
 }
+
+// ============================================================================
+// Phase 11: Meeting Gamification & Engagement
+// ============================================================================
+
+// Phase 11 — Feature 1: Evaluate Achievements for a User
+export async function evaluateAchievements(userId: string) {
+  const db = await requireDb();
+  const safeUser = userId.replace(/'/g, "''");
+
+  // Ensure default achievement definitions exist
+  const defsRes = await db.execute(sql.raw(
+    `SELECT COUNT(*) as cnt FROM ime_achievements WHERE is_global = 1`
+  ));
+  if (Number((defsRes.rows as any[])[0]?.cnt || 0) === 0) {
+    const defaults = [
+      { key: "first_meeting", name: "初次亮相", desc: "参加第一次被分析的会议", icon: "Star", cat: "general", tier: "bronze", criteria: { metric: "meetings_attended", operator: ">=", value: 1 }, points: 10 },
+      { key: "contributor_10", name: "活跃贡献者", desc: "在10次会议中贡献度超过70分", icon: "TrendingUp", cat: "contribution", tier: "silver", criteria: { metric: "high_contribution_count", operator: ">=", value: 10 }, points: 30 },
+      { key: "action_hero_5", name: "行动达人", desc: "完成5个行动项", icon: "CheckCircle", cat: "efficiency", tier: "bronze", criteria: { metric: "actions_completed", operator: ">=", value: 5 }, points: 15 },
+      { key: "action_hero_20", name: "执行大师", desc: "完成20个行动项", icon: "Award", cat: "efficiency", tier: "gold", criteria: { metric: "actions_completed", operator: ">=", value: 20 }, points: 50 },
+      { key: "team_player", name: "协作之星", desc: "协作评分平均超过80", icon: "Users", cat: "collaboration", tier: "silver", criteria: { metric: "avg_collaboration", operator: ">=", value: 80 }, points: 25 },
+      { key: "streak_5", name: "连续参会", desc: "连续5次会议效能评分超过70", icon: "Flame", cat: "streak", tier: "silver", criteria: { metric: "effectiveness_streak", operator: ">=", value: 5 }, points: 35 },
+      { key: "meeting_lead_10", name: "会议领袖", desc: "主持10次会议", icon: "Crown", cat: "general", tier: "gold", criteria: { metric: "meetings_led", operator: ">=", value: 10 }, points: 40 },
+      { key: "roi_champion", name: "ROI冠军", desc: "参与的会议平均ROI评分超过80", icon: "Trophy", cat: "efficiency", tier: "platinum", criteria: { metric: "avg_roi", operator: ">=", value: 80 }, points: 60 },
+    ];
+    for (const d of defaults) {
+      await db.execute(sql.raw(`
+        INSERT INTO ime_achievements (achievement_key, name, description, icon, category, tier, criteria, points, is_global, created_at)
+        VALUES ('${d.key}', '${d.name}', '${d.desc}', '${d.icon}', '${d.cat}', '${d.tier}', '${JSON.stringify(d.criteria)}', ${d.points}, 1, NOW())
+      `));
+    }
+  }
+
+  // Get all definitions
+  const allDefs = await db.execute(sql.raw(`SELECT * FROM ime_achievements WHERE is_global = 1`));
+  const definitions = allDefs.rows as any[];
+
+  // Get already awarded
+  const awardedRes = await db.execute(sql.raw(
+    `SELECT achievement_key FROM ime_achievements WHERE user_id = '${safeUser}' AND is_global = 0`
+  ));
+  const awardedKeys = new Set((awardedRes.rows as any[]).map((a: any) => a.achievement_key));
+
+  // Compute user metrics
+  const contribRes = await db.execute(sql.raw(
+    `SELECT COUNT(*) as meetings_attended, SUM(CASE WHEN contribution_score >= 70 THEN 1 ELSE 0 END) as high_contribution_count FROM meeting_contributions WHERE speaker_name = '${safeUser}' OR speaker_id = '${safeUser}'`
+  ));
+  const actionsRes = await db.execute(sql.raw(
+    `SELECT COUNT(*) as completed FROM ime_action_items WHERE assigned_to = '${safeUser}' AND status = 'completed'`
+  ));
+  const effRes = await db.execute(sql.raw(
+    `SELECT AVG(mes.overall_score) as avg_eff FROM meeting_effectiveness_scores mes JOIN meeting_records mr ON mes.meeting_id = mr.id`
+  ));
+  const roiRes = await db.execute(sql.raw(
+    `SELECT AVG(roi_score) as avg_roi FROM ime_meeting_roi`
+  ));
+
+  const contribs = (contribRes.rows as any[])[0] || {};
+  const actions = (actionsRes.rows as any[])[0] || {};
+  const effData = (effRes.rows as any[])[0] || {};
+  const roiData = (roiRes.rows as any[])[0] || {};
+
+  const metrics: Record<string, number> = {
+    meetings_attended: Number(contribs.meetings_attended || 0),
+    high_contribution_count: Number(contribs.high_contribution_count || 0),
+    actions_completed: Number(actions.completed || 0),
+    avg_collaboration: 65, // placeholder — would come from sentiment data
+    effectiveness_streak: Math.min(Number(contribs.meetings_attended || 0), 5),
+    meetings_led: Math.floor(Number(contribs.meetings_attended || 0) / 3),
+    avg_roi: Number(roiData.avg_roi || 0),
+  };
+
+  // Evaluate and award
+  const newAwards: any[] = [];
+  for (const def of definitions) {
+    if (awardedKeys.has(def.achievement_key)) continue;
+    const criteria = JSON.parse(def.criteria || "{}");
+    const actual = metrics[criteria.metric] ?? 0;
+    let met = false;
+    switch (criteria.operator) {
+      case ">=": met = actual >= criteria.value; break;
+      case ">": met = actual > criteria.value; break;
+      case "==": met = actual === criteria.value; break;
+    }
+    if (met) {
+      await db.execute(sql.raw(`
+        INSERT INTO ime_achievements (achievement_key, name, description, icon, category, tier, criteria, points, is_global, user_id, awarded_at, created_at)
+        VALUES ('${def.achievement_key}', '${(def.name || "").replace(/'/g, "''")}', '${(def.description || "").replace(/'/g, "''")}', '${def.icon || ""}', '${def.category}', '${def.tier}', '${(def.criteria || "{}").replace(/'/g, "''")}', ${def.points}, 0, '${safeUser}', NOW(), NOW())
+      `));
+      newAwards.push({ key: def.achievement_key, name: def.name, tier: def.tier, points: def.points });
+    }
+  }
+
+  return { userId, newAwards, totalEvaluated: definitions.length, metrics };
+}
+
+// Phase 11 — Feature 2: Get Leaderboard
+export async function getLeaderboard(period?: string, metric?: string) {
+  const db = await requireDb();
+  const targetMetric = metric || "contribution_score";
+  const periodDays = period === "quarterly" ? 90 : period === "weekly" ? 7 : 30;
+
+  let query = "";
+  switch (targetMetric) {
+    case "contribution_score":
+      query = `SELECT speaker_name as user_id, speaker_name as user_name, AVG(contribution_score) as score, COUNT(*) as meeting_count FROM meeting_contributions WHERE created_at >= NOW() - INTERVAL '${periodDays} days' GROUP BY speaker_name ORDER BY score DESC LIMIT 20`;
+      break;
+    case "action_completion":
+      query = `SELECT assigned_to as user_id, assigned_to as user_name, COUNT(*) as score FROM ime_action_items WHERE status = 'completed' AND created_at >= NOW() - INTERVAL '${periodDays} days' GROUP BY assigned_to ORDER BY score DESC LIMIT 20`;
+      break;
+    case "effectiveness":
+      query = `SELECT 'team' as user_id, 'Team Average' as user_name, AVG(overall_score) as score FROM meeting_effectiveness_scores WHERE created_at >= NOW() - INTERVAL '${periodDays} days'`;
+      break;
+    default:
+      query = `SELECT speaker_name as user_id, speaker_name as user_name, AVG(contribution_score) as score FROM meeting_contributions WHERE created_at >= NOW() - INTERVAL '${periodDays} days' GROUP BY speaker_name ORDER BY score DESC LIMIT 20`;
+  }
+
+  const result = await db.execute(sql.raw(query));
+  const rows = result.rows as any[];
+
+  return rows.map((r: any, i: number) => ({
+    rank: i + 1,
+    userId: r.user_id,
+    userName: r.user_name,
+    score: Math.round(Number(r.score || 0) * 100) / 100,
+    trend: "stable" as const,
+  }));
+}
+
+// Phase 11 — Feature 3: Create Team Challenge
+export async function createTeamChallenge(challenge: {
+  title: string;
+  description?: string;
+  challengeType: string;
+  targetMetric: string;
+  targetValue: number;
+  scope?: string;
+  scopeId?: string;
+  startDate?: string;
+  endDate?: string;
+  rewardDescription?: string;
+  createdBy?: string;
+}) {
+  const db = await requireDb();
+  const safeTitle = challenge.title.replace(/'/g, "''");
+  const safeDesc = (challenge.description || "").replace(/'/g, "''");
+  const safeReward = (challenge.rewardDescription || "").replace(/'/g, "''");
+  const safeCreatedBy = (challenge.createdBy || "system").replace(/'/g, "''");
+
+  // Get baseline value
+  let baseline = 0;
+  switch (challenge.targetMetric) {
+    case "avg_effectiveness": {
+      const r = await db.execute(sql.raw(`SELECT AVG(overall_score) as v FROM meeting_effectiveness_scores WHERE created_at >= NOW() - INTERVAL '30 days'`));
+      baseline = Number((r.rows as any[])[0]?.v || 0);
+      break;
+    }
+    case "avg_duration": {
+      const r = await db.execute(sql.raw(`SELECT AVG(duration_minutes) as v FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL '30 days'`));
+      baseline = Number((r.rows as any[])[0]?.v || 0);
+      break;
+    }
+    case "action_completion_rate": {
+      const r = await db.execute(sql.raw(`SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as done FROM ime_action_items WHERE created_at >= NOW() - INTERVAL '30 days'`));
+      const row = (r.rows as any[])[0] || {};
+      baseline = row.total > 0 ? Math.round((Number(row.done) / Number(row.total)) * 100) : 0;
+      break;
+    }
+    case "avg_cost": {
+      const r = await db.execute(sql.raw(`SELECT AVG(total_cost) as v FROM ime_meeting_costs WHERE calculated_at >= NOW() - INTERVAL '30 days'`));
+      baseline = Number((r.rows as any[])[0]?.v || 0);
+      break;
+    }
+  }
+
+  await db.execute(sql.raw(`
+    INSERT INTO ime_team_challenges (title, description, challenge_type, target_metric, target_value, current_value, baseline_value, scope, scope_id, start_date, end_date, status, reward_description, created_by, created_at, updated_at)
+    VALUES ('${safeTitle}', '${safeDesc}', '${challenge.challengeType}', '${challenge.targetMetric}', ${challenge.targetValue}, ${baseline}, ${baseline}, '${challenge.scope || "organization"}', ${challenge.scopeId ? `'${challenge.scopeId}'` : "NULL"}, ${challenge.startDate ? `'${challenge.startDate}'` : "NOW()"}, ${challenge.endDate ? `'${challenge.endDate}'` : "NOW() + INTERVAL '30 days'"}, 'active', '${safeReward}', '${safeCreatedBy}', NOW(), NOW())
+  `));
+
+  return { success: true, title: challenge.title, baseline };
+}
+
+// Phase 11 — Feature 4: Update Challenge Progress
+export async function updateChallengeProgress(challengeId: number) {
+  const db = await requireDb();
+  const chalRes = await db.execute(sql.raw(`SELECT * FROM ime_team_challenges WHERE id = ${challengeId}`));
+  const challenge = (chalRes.rows as any[])[0];
+  if (!challenge) throw new Error("Challenge not found");
+
+  let currentValue = 0;
+  switch (challenge.target_metric) {
+    case "avg_effectiveness": {
+      const r = await db.execute(sql.raw(`SELECT AVG(overall_score) as v FROM meeting_effectiveness_scores WHERE created_at >= '${challenge.start_date}'`));
+      currentValue = Number((r.rows as any[])[0]?.v || 0);
+      break;
+    }
+    case "avg_duration": {
+      const r = await db.execute(sql.raw(`SELECT AVG(duration_minutes) as v FROM meeting_records WHERE meeting_date >= '${challenge.start_date}'`));
+      currentValue = Number((r.rows as any[])[0]?.v || 0);
+      break;
+    }
+    case "action_completion_rate": {
+      const r = await db.execute(sql.raw(`SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as done FROM ime_action_items WHERE created_at >= '${challenge.start_date}'`));
+      const row = (r.rows as any[])[0] || {};
+      currentValue = row.total > 0 ? Math.round((Number(row.done) / Number(row.total)) * 100) : 0;
+      break;
+    }
+    case "avg_cost": {
+      const r = await db.execute(sql.raw(`SELECT AVG(total_cost) as v FROM ime_meeting_costs WHERE calculated_at >= '${challenge.start_date}'`));
+      currentValue = Number((r.rows as any[])[0]?.v || 0);
+      break;
+    }
+  }
+
+  // Determine if challenge is met
+  const isImprove = challenge.challenge_type === "improve_effectiveness" || challenge.challenge_type === "action_completion" || challenge.challenge_type === "boost_engagement";
+  const met = isImprove ? currentValue >= challenge.target_value : currentValue <= challenge.target_value;
+  const newStatus = met ? "completed" : (challenge.end_date && new Date(challenge.end_date) < new Date() ? "failed" : "active");
+
+  await db.execute(sql.raw(`
+    UPDATE ime_team_challenges SET current_value = ${currentValue}, status = '${newStatus}', updated_at = NOW() WHERE id = ${challengeId}
+  `));
+
+  const progress = Math.min(100, Math.round(
+    isImprove
+      ? ((currentValue - Number(challenge.baseline_value)) / (Number(challenge.target_value) - Number(challenge.baseline_value))) * 100
+      : ((Number(challenge.baseline_value) - currentValue) / (Number(challenge.baseline_value) - Number(challenge.target_value))) * 100
+  ));
+
+  return { challengeId, currentValue, targetValue: Number(challenge.target_value), baseline: Number(challenge.baseline_value), progress: Math.max(0, progress), status: newStatus };
+}
+
+// Phase 11 — Feature 5: Gamification Dashboard
+export async function getGamificationDashboard(userId?: string) {
+  const db = await requireDb();
+  const safeUser = (userId || "").replace(/'/g, "''");
+
+  // Achievement definitions
+  const defsRes = await db.execute(sql.raw(`SELECT * FROM ime_achievements WHERE is_global = 1 ORDER BY points ASC`));
+
+  // User awards
+  const awardsWhere = safeUser ? `WHERE user_id = '${safeUser}' AND is_global = 0` : "WHERE is_global = 0";
+  const awardsRes = await db.execute(sql.raw(`SELECT * FROM ime_achievements ${awardsWhere} ORDER BY awarded_at DESC`));
+
+  // Total points
+  const pointsRes = await db.execute(sql.raw(
+    `SELECT ${safeUser ? `user_id,` : ""} SUM(points) as total_points, COUNT(*) as badge_count FROM ime_achievements WHERE is_global = 0 ${safeUser ? `AND user_id = '${safeUser}'` : ""} ${safeUser ? "" : "GROUP BY user_id ORDER BY total_points DESC LIMIT 10"}`
+  ));
+
+  // Active challenges
+  const challengesRes = await db.execute(sql.raw(`SELECT * FROM ime_team_challenges WHERE status = 'active' ORDER BY created_at DESC`));
+
+  // Recent completions
+  const recentRes = await db.execute(sql.raw(`SELECT * FROM ime_team_challenges WHERE status = 'completed' ORDER BY updated_at DESC LIMIT 5`));
+
+  return {
+    definitions: defsRes.rows,
+    awards: awardsRes.rows,
+    pointsSummary: pointsRes.rows,
+    activeChallenges: challengesRes.rows,
+    recentCompletions: recentRes.rows,
+  };
+}
