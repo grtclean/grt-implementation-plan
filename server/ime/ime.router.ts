@@ -622,4 +622,147 @@ export const imeRouter = router({
       `));
       return result.rows;
     }),
+
+  // ========================================================================
+  // Phase 7: Knowledge Graph & Organizational Learning
+  // ========================================================================
+
+  extractEntities: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.extractKnowledgeEntities(input.meetingId);
+    }),
+
+  buildRelationships: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.buildEntityRelationships(input.meetingId);
+    }),
+
+  knowledgeGraph: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const safeId = input.meetingId.replace(/'/g, "''");
+      const entities = await db.execute(sql.raw(
+        `SELECT * FROM ime_knowledge_entities WHERE meeting_id = '${safeId}' ORDER BY confidence DESC`
+      ));
+      const entityIds = (entities.rows as any[]).map((e: any) => e.id);
+      let relationships: any[] = [];
+      if (entityIds.length > 0) {
+        const relRes = await db.execute(sql.raw(
+          `SELECT * FROM ime_entity_relationships WHERE entity_from_id IN (${entityIds.join(",")}) OR entity_to_id IN (${entityIds.join(",")})`
+        ));
+        relationships = relRes.rows as any[];
+      }
+      return { entities: entities.rows, relationships };
+    }),
+
+  searchKnowledge: protectedProcedure
+    .input(z.object({
+      query: z.string(),
+      entityType: z.string().optional(),
+      limit: z.number().min(1).max(100).optional(),
+    }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const safeQuery = input.query.replace(/'/g, "''");
+      const typeFilter = input.entityType ? `AND ke.entity_type = '${input.entityType.replace(/'/g, "''")}'` : "";
+      const limitVal = input.limit || 20;
+      const result = await db.execute(sql.raw(`
+        SELECT ke.*, mr.title as meeting_title
+        FROM ime_knowledge_entities ke
+        JOIN meeting_records mr ON ke.meeting_id = mr.id
+        WHERE (ke.entity_value LIKE '%${safeQuery}%' OR ke.context LIKE '%${safeQuery}%') ${typeFilter}
+        ORDER BY ke.confidence DESC LIMIT ${limitVal}
+      `));
+      return result.rows;
+    }),
+
+  trackDecision: protectedProcedure
+    .input(z.object({
+      entityId: z.number(),
+      outcomeStatus: z.enum(["pending", "implemented", "reversed", "modified", "abandoned"]),
+      outcomeNotes: z.string().optional(),
+      impactScore: z.number().optional(),
+      lessonsLearned: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.trackDecisionOutcome(input.entityId, input.outcomeStatus, input.outcomeNotes, input.impactScore, input.lessonsLearned);
+    }),
+
+  decisionHistory: protectedProcedure
+    .input(z.object({
+      status: z.string().optional(),
+      limit: z.number().min(1).max(100).optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const filters = input ?? {};
+      const whereParts: string[] = [];
+      if (filters.status) whereParts.push(`d.outcome_status = '${filters.status.replace(/'/g, "''")}'`);
+      const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+      const limitVal = filters.limit || 50;
+      const result = await db.execute(sql.raw(`
+        SELECT d.*, mr.title as meeting_title
+        FROM ime_decision_outcomes d
+        JOIN meeting_records mr ON d.meeting_id = mr.id
+        ${whereClause} ORDER BY d.created_at DESC LIMIT ${limitVal}
+      `));
+      return result.rows;
+    }),
+
+  generateRetrospective: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.generateRetrospective(input.meetingId);
+    }),
+
+  retrospectiveHistory: protectedProcedure
+    .input(z.object({ limit: z.number().min(1).max(50).optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const limitVal = input?.limit || 20;
+      const result = await db.execute(sql.raw(`
+        SELECT r.*, mr.title as meeting_title
+        FROM ime_meeting_retrospectives r
+        JOIN meeting_records mr ON r.meeting_id = mr.id
+        ORDER BY r.generated_at DESC LIMIT ${limitVal}
+      `));
+      return result.rows;
+    }),
+
+  computeExpertProfiles: protectedProcedure
+    .input(z.object({ department: z.string().optional() }).optional())
+    .mutation(async ({ input }) => {
+      return imeService.computeExpertProfiles(input?.department);
+    }),
+
+  expertProfiles: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      limit: z.number().min(1).max(100).optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const filters = input ?? {};
+      const whereParts: string[] = [];
+      if (filters.department) whereParts.push(`department = '${filters.department.replace(/'/g, "''")}'`);
+      const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+      const limitVal = filters.limit || 30;
+      const result = await db.execute(sql.raw(`
+        SELECT * FROM ime_expert_profiles ${whereClause} ORDER BY credibility_score DESC LIMIT ${limitVal}
+      `));
+      return result.rows;
+    }),
+
+  knowledgeDashboard: protectedProcedure
+    .input(z.object({
+      entityType: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getKnowledgeDashboard(input ?? {});
+    }),
 });
