@@ -11,3 +11,4 @@ export { DigestAlertsTab } from "./DigestAlertsTab";
 export { MeetingRoiTab } from "./MeetingRoiTab";
 export { AttendeeOptimizationTab } from "./AttendeeOptimizationTab";
 export { PredictiveAnalyticsTab } from "./PredictiveAnalyticsTab";
+export { ReportsTab } from "./ReportsTab";

@@ -10334,3 +10334,17 @@ export const imeMeetingPredictions = pgTable("ime_meeting_predictions", {
   predictedAt: timestamp("predicted_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const imeReportExports = pgTable("ime_report_exports", {
+  id: serial("id").primaryKey(),
+  reportType: varchar("report_type", { length: 30 }).notNull(), // meeting | dashboard | benchmark
+  scope: varchar("scope", { length: 50 }),
+  scopeId: varchar("scope_id", { length: 100 }),
+  filters: text("filters"), // JSON string
+  format: varchar("format", { length: 10 }).notNull(), // pdf | xlsx
+  filename: varchar("filename", { length: 300 }),
+  fileSize: integer("file_size"),
+  generatedBy: varchar("generated_by", { length: 100 }),
+  generatedAt: timestamp("generated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
