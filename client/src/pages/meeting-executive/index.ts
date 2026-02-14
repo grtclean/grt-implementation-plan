@@ -8,3 +8,6 @@ export { TopicContinuityTab } from "./TopicContinuityTab";
 export { SentimentAnalysisTab } from "./SentimentAnalysisTab";
 export { MeetingHealthTab } from "./MeetingHealthTab";
 export { DigestAlertsTab } from "./DigestAlertsTab";
+export { MeetingRoiTab } from "./MeetingRoiTab";
+export { AttendeeOptimizationTab } from "./AttendeeOptimizationTab";
+export { PredictiveAnalyticsTab } from "./PredictiveAnalyticsTab";

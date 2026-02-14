@@ -10273,3 +10273,64 @@ export const imeDigestAlerts = pgTable("ime_digest_alerts", {
   generatedAt: timestamp("generated_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// ============================================================================
+// G-IME Phase 5: Meeting ROI, Attendee Optimization & Predictive Analytics
+// ============================================================================
+
+export const imeMeetingRoi = pgTable("ime_meeting_roi", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }),
+  decisionCount: integer("decision_count"),
+  actionItemCount: integer("action_item_count"),
+  completedActionCount: integer("completed_action_count"),
+  costPerDecision: decimal("cost_per_decision", { precision: 12, scale: 2 }),
+  costPerActionItem: decimal("cost_per_action_item", { precision: 12, scale: 2 }),
+  outcomeScore: real("outcome_score"),
+  roiGrade: varchar("roi_grade", { length: 2 }),
+  outcomes: text("outcomes"),
+  departmentId: varchar("department_id", { length: 100 }),
+  aiNarrative: text("ai_narrative"),
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeAttendeeOptimization = pgTable("ime_attendee_optimization", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  scope: varchar("scope", { length: 50 }),
+  meetingTitle: varchar("meeting_title", { length: 300 }),
+  meetingTopic: text("meeting_topic"),
+  currentParticipants: text("current_participants"),
+  recommendedParticipants: text("recommended_participants"),
+  overInvitedParticipants: text("over_invited_participants"),
+  optimalSize: integer("optimal_size"),
+  currentSize: integer("current_size"),
+  estimatedCostSaving: decimal("estimated_cost_saving", { precision: 12, scale: 2 }),
+  compositionAdvice: text("composition_advice"),
+  aiNarrative: text("ai_narrative"),
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeMeetingPredictions = pgTable("ime_meeting_predictions", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  scope: varchar("scope", { length: 50 }),
+  scopeId: varchar("scope_id", { length: 100 }),
+  predictionType: varchar("prediction_type", { length: 50 }),
+  predictedScore: real("predicted_score"),
+  confidenceLevel: real("confidence_level"),
+  riskLevel: varchar("risk_level", { length: 20 }),
+  riskFactors: text("risk_factors"),
+  features: text("features"),
+  fatigueIndex: real("fatigue_index"),
+  trendForecast: text("trend_forecast"),
+  recommendations: text("recommendations"),
+  aiNarrative: text("ai_narrative"),
+  actualScore: real("actual_score"),
+  predictionAccuracy: real("prediction_accuracy"),
+  predictedAt: timestamp("predicted_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
