@@ -10,7 +10,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -219,16 +219,16 @@ export default function AIDiagnostic() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <Layout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      </DashboardLayout>
+      </Layout>
     );
   }
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <div className="flex items-center justify-between">
@@ -612,6 +612,6 @@ export default function AIDiagnostic() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }

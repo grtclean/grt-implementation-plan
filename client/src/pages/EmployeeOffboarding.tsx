@@ -12,7 +12,7 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -114,7 +114,7 @@ export default function EmployeeOffboarding() {
   });
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="flex-1 space-y-6 p-6">
         {/* 页面标题 */}
         <div className="flex items-center justify-between">
@@ -232,7 +232,7 @@ export default function EmployeeOffboarding() {
           />
         )}
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }
 

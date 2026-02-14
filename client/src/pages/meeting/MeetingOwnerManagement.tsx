@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
-import DashboardLayout from '@/components/DashboardLayout';
+import Layout from '@/components/Layout';
 
 // 会议类型配置
 const MEETING_TYPES = [
@@ -153,7 +153,7 @@ export default function MeetingOwnerManagement() {
   };
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <div className="flex items-center justify-between">
@@ -502,7 +502,7 @@ export default function MeetingOwnerManagement() {
         rule={editingRule}
         onSave={(data) => saveRuleMutation.mutate(data)}
       />
-    </DashboardLayout>
+    </Layout>
   );
 }
 

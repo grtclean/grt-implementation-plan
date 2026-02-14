@@ -5,7 +5,7 @@
 
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -198,7 +198,7 @@ export default function BUPerformanceDashboard() {
   }, [statsData, selectedBU]);
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <div className="flex items-center justify-between">
@@ -473,6 +473,6 @@ export default function BUPerformanceDashboard() {
           </>
         )}
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }

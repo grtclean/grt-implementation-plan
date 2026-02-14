@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +46,7 @@ export default function SocialCommunityAnalytics() {
   const trendChange = calculateTrendChange();
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <div className="flex items-center justify-between">
@@ -301,6 +301,6 @@ export default function SocialCommunityAnalytics() {
           </Card>
         </div>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }

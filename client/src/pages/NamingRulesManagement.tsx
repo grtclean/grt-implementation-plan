@@ -1,5 +1,5 @@
 import { useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -965,7 +965,7 @@ function VersionsTab() {
 // Main Component
 export default function NamingRulesManagement() {
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">命名规则管理</h1>
@@ -1069,6 +1069,6 @@ export default function NamingRulesManagement() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }

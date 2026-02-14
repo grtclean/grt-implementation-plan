@@ -2,7 +2,7 @@
  * AI Early Warning Center - 3-Layer Dashboard
  */
 
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -79,7 +79,7 @@ export default function AIEarlyWarning() {
   const unreadCount = notifications.filter((n) => n.isRead === false).length;
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6 p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -342,6 +342,6 @@ export default function AIEarlyWarning() {
             </Card>
           </TabsContent>        </Tabs>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }

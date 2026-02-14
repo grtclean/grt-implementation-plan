@@ -5,7 +5,7 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -285,7 +285,7 @@ export default function SystemDeployment() {
   };
   
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <div className="flex items-center justify-between">
@@ -896,6 +896,6 @@ export default function SystemDeployment() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }

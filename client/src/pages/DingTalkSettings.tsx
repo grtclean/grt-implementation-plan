@@ -55,7 +55,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
 
 // 通知类型
 const notificationTypes = [
@@ -275,7 +275,7 @@ export default function DingTalkSettings() {
   };
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <div className="flex items-center justify-between">
@@ -845,6 +845,6 @@ export default function DingTalkSettings() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }

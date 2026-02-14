@@ -35,7 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import DashboardLayout from "@/components/DashboardLayout";
+import Layout from "@/components/Layout";
 
 // 通知渠道类型
 type ChannelType = "dingtalk" | "wecom" | "feishu";
@@ -233,11 +233,11 @@ export default function NotificationSettings() {
 
   if (authLoading) {
     return (
-      <DashboardLayout>
+      <Layout>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </DashboardLayout>
+      </Layout>
     );
   }
 
@@ -245,7 +245,7 @@ export default function NotificationSettings() {
   const currentConfig = channelConfigs.find(c => c.id === activeChannel)!;
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <div className="flex items-center justify-between">
@@ -594,6 +594,6 @@ export default function NotificationSettings() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }
