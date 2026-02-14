@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { 
@@ -303,6 +304,12 @@ export default function CapabilityOS() {
   return (
     <Layout>
       <div className="relative z-10 space-y-10">
+        <PageHeader
+          icon={Brain}
+          title={language === 'zh' ? "GRT 能力操作系统" : "GRT Capability OS"}
+          description={language === 'zh' ? "能力驱动型系统架构 · TSDCKL六大能力域 · L1-L5证据驱动升级" : "Capability-Driven Architecture · TSDCKL Domains · L1-L5 Evidence-Driven Upgrades"}
+        />
+
         {/* Hero Section */}
         <section className="relative rounded-lg overflow-hidden border border-border shadow-2xl">
           <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 via-background to-purple-500/20"></div>

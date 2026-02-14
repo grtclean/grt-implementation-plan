@@ -566,6 +566,164 @@ export const helpContentMap: Record<string, PageHelpContent> = {
     ],
   },
 
+  // ========== 能力体系 ==========
+  "/capability-os": {
+    title: "GRT 能力操作系统",
+    description: "TSDCKL六大能力域与L1-L5等级体系",
+    overview: "GRT能力操作系统是组织能力管理的核心平台，围绕TSDCKL六大能力域（技术、系统、交付、客户、知识、领导力），采用L1-L5等级体系，通过证据驱动自动升级机制，实现组织能力的系统化管理。",
+    steps: [
+      { title: "了解能力域", description: "浏览TSDCKL六大能力域的定义和能力要求" },
+      { title: "查看等级体系", description: "了解L1-L5各等级的标准和升级条件" },
+      { title: "提交能力证据", description: "点击「提交能力证据」进入证据提交页面" },
+      { title: "查看红蓝对抗", description: "了解Tier1客户红蓝对抗交付机制" },
+    ],
+    faq: [
+      { question: "能力等级如何升级？", answer: "能力等级完全由系统根据证据自动计算，达到阈值后自动触发升级，不允许人工主观升级。" },
+      { question: "TSDCKL是什么意思？", answer: "T=技术能力、S=系统理解、D=交付能力、C=客户价值、K=知识沉淀、L=领导与影响，是GRT的六大核心能力域。" },
+    ],
+  },
+
+  "/capability-dashboard": {
+    title: "能力仪表盘",
+    description: "TSDCKL六大能力域数据可视化",
+    overview: "能力仪表盘提供个人和组织在TSDCKL六大能力域的数据可视化展示，包括能力雷达图、等级分布、升级动态和能力标杆。基于证据积分自动计算。",
+    steps: [
+      { title: "查看雷达图", description: "能力域Tab展示个人TSDCKL六维雷达图" },
+      { title: "分析等级分布", description: "等级Tab查看L1-L5各等级在不同能力域的人数分布" },
+      { title: "关注动态", description: "动态Tab查看最近能力升级记录和能力标杆" },
+    ],
+    faq: [
+      { question: "雷达图数据如何更新？", answer: "雷达图基于您的证据积分实时计算，提交证据并审核通过后自动更新。" },
+      { question: "如何成为能力标杆？", answer: "综合六大能力域的平均等级排名靠前的工程师会被展示为能力标杆。" },
+    ],
+  },
+
+  "/evidence-submission": {
+    title: "能力证据提交",
+    description: "提交项目、服务、知识等能力证据",
+    overview: "能力证据提交页面用于提交您完成的工作作为能力证据。系统根据证据类型和质量自动计算积分，积分达到阈值后自动触发能力等级升级。",
+    steps: [
+      { title: "选择证据类型", description: "从项目完成、服务报告、问题解决等类型中选择" },
+      { title: "填写详情", description: "填写证据标题、描述和关联项目" },
+      { title: "选择能力域", description: "选择该证据主要对应的TSDCKL能力域" },
+      { title: "提交审核", description: "确认信息后提交，等待审核通过自动计分" },
+    ],
+    faq: [
+      { question: "提交后多久审核？", answer: "一般在1-3个工作日内完成审核，紧急项目证据优先处理。" },
+      { question: "积分如何计算？", answer: "基础积分由证据类型决定，最终积分由审核人根据证据质量确定。" },
+    ],
+  },
+
+  "/capability-certificates": {
+    title: "能力证书中心",
+    description: "申请、管理和验证能力证书",
+    overview: "能力证书中心用于管理您的能力证书。当能力等级达到L3及以上时，可以申请对应能力域的官方证书。证书支持在线验证和分享。",
+    steps: [
+      { title: "查看我的证书", description: "在「我的证书」Tab查看已获得的能力证书" },
+      { title: "申请新证书", description: "在「申请证书」Tab查看可申请的证书并提交申请" },
+      { title: "验证证书", description: "在「验证证书」Tab输入证书编号验证真伪" },
+    ],
+    faq: [
+      { question: "证书有效期多长？", answer: "证书有效期为1年，到期后需要重新评估能力等级。" },
+      { question: "证书可以对外展示吗？", answer: "可以，证书附带唯一编号和验证链接，可用于对外展示和验证。" },
+    ],
+  },
+
+  "/capability-badges": {
+    title: "能力徽章",
+    description: "TSDCKL成就徽章收集与展示",
+    overview: "能力徽章系统记录您在TSDCKL六大能力域获得的成就。徽章分为普通、优秀、稀有、史诗和传说五个稀有度等级，通过证据积累自动授予。",
+    steps: [
+      { title: "查看我的徽章", description: "在「我的徽章」Tab查看已获得的徽章和展示状态" },
+      { title: "浏览全部徽章", description: "在「全部徽章」Tab查看所有可获得的徽章和收集进度" },
+      { title: "查看排行榜", description: "在「排行榜」Tab查看徽章综合得分排名" },
+    ],
+    faq: [
+      { question: "如何获得传说级徽章？", answer: "传说级徽章需要在某个能力域达到L5等级并完成特定的高难度成就。" },
+      { question: "徽章展示有什么用？", answer: "展示的徽章会出现在您的个人主页，其他同事可以看到您的能力成就。" },
+    ],
+  },
+
+  "/capability-path": {
+    title: "能力发展路径",
+    description: "AI智能推荐能力提升路径",
+    overview: "能力发展路径页面由AI分析您的当前能力数据，识别短板和优势，推荐个性化的能力提升路径，包括短期、中期和长期行动计划。",
+    steps: [
+      { title: "查看AI分析", description: "顶部卡片展示AI对您能力状况的综合分析" },
+      { title: "关注短板", description: "查看需要提升的能力域和差距" },
+      { title: "制定计划", description: "参考推荐的短期/中期/长期行动计划" },
+      { title: "寻找机会", description: "浏览推荐的项目机会和培训资源" },
+    ],
+    faq: [
+      { question: "推荐路径多久更新？", answer: "每次提交新证据或能力等级变化后，AI会自动重新分析并更新推荐路径。" },
+      { question: "可以自定义发展目标吗？", answer: "目前由AI自动推荐，未来将支持自定义目标设置。" },
+    ],
+  },
+
+  "/team-capability-analysis": {
+    title: "团队能力对比分析",
+    description: "多成员TSDCKL能力对比与差距分析",
+    overview: "团队能力对比分析页面支持选择多个团队成员，通过雷达图、差距分析和详细数据表格进行能力对比，帮助管理者识别团队能力短板和培养方向。",
+    steps: [
+      { title: "选择成员", description: "点击团队成员按钮选择要对比的人员" },
+      { title: "雷达图对比", description: "在「雷达图对比」Tab查看可视化能力对比" },
+      { title: "差距分析", description: "在「差距分析」Tab查看各能力域的差距和改进建议" },
+      { title: "导出报告", description: "点击「导出报告」下载JSON格式的分析报告" },
+    ],
+    faq: [
+      { question: "最多可以对比多少人？", answer: "建议同时对比不超过5人，以保证雷达图的可读性。" },
+      { question: "数据是实时的吗？", answer: "是的，数据基于最新的能力积分和等级实时计算。" },
+    ],
+  },
+
+  "/capability-leaderboard": {
+    title: "能力排行榜",
+    description: "综合能力、能力域、进步和徽章排行",
+    overview: "能力排行榜展示团队成员在不同维度的能力排名，包括综合排行、能力域排行、进步排行和徽章排行，激励团队持续提升能力。",
+    steps: [
+      { title: "查看综合排行", description: "综合排行Tab展示基于所有能力域的综合得分排名" },
+      { title: "筛选能力域", description: "能力域排行Tab可按TSDCKL各域筛选查看" },
+      { title: "关注进步", description: "进步排行Tab展示积分增长最快的成员" },
+      { title: "设置时间范围", description: "右上角选择器可切换查看不同时间段的排行" },
+    ],
+    faq: [
+      { question: "排名多久更新？", answer: "排名实时计算，每次有新的证据审核通过后即时更新。" },
+      { question: "综合得分如何计算？", answer: "综合得分基于六大能力域的积分加权计算，同时考虑等级和域覆盖度。" },
+    ],
+  },
+
+  "/evidence-review": {
+    title: "证据审核管理",
+    description: "审核能力证据、管理积分发放",
+    overview: "证据审核管理页面供审核人员审核提交的能力证据，决定是否通过并分配相应积分。支持按能力域筛选和搜索，确保能力评估的公正性。",
+    steps: [
+      { title: "查看待审核", description: "「待审核」Tab列出所有待处理的证据" },
+      { title: "审核证据", description: "点击「审核」按钮查看详情，填写意见和积分" },
+      { title: "批准或拒绝", description: "根据证据质量选择批准（并分配积分）或拒绝" },
+      { title: "查看历史", description: "切换Tab查看已通过和已拒绝的历史记录" },
+    ],
+    faq: [
+      { question: "谁有审核权限？", answer: "团队主管（minLevel 2及以上）具有证据审核权限。" },
+      { question: "审核积分可以调整吗？", answer: "可以，审核人可以在申请积分基础上调整实际授予积分。" },
+    ],
+  },
+
+  "/capability/evidence-upload": {
+    title: "能力证据上传",
+    description: "上传项目交付物、证书等证据文件",
+    overview: "能力证据上传页面用于上传项目交付物、培训证书、荣誉奖项等文件作为能力升级依据。支持PDF、DOC、图片等格式，提交后进入审核流程。",
+    steps: [
+      { title: "选择类型", description: "选择证据类型：项目交付物、资格证书、培训记录或荣誉奖项" },
+      { title: "填写信息", description: "填写证据标题、描述和所属能力领域" },
+      { title: "上传文件", description: "选择或拖拽文件到上传区域（最大10MB）" },
+      { title: "提交审核", description: "确认信息后提交，等待审核通过自动计分" },
+    ],
+    faq: [
+      { question: "支持哪些文件格式？", answer: "支持PDF、DOC、DOCX、JPG、PNG格式，单个文件最大10MB。" },
+      { question: "上传后可以删除吗？", answer: "待审核状态下可以删除，已审核通过的证据不可删除。" },
+    ],
+  },
+
   // ========== 门径管理 ==========
   "/stage-gate": {
     title: "门径管理",

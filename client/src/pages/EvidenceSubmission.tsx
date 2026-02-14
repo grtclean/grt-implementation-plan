@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
-import { 
-  Award, BookOpen, Briefcase, Camera, CheckCircle2, Clock, FileText, 
-  Lightbulb, Loader2, Mic, Plus, RefreshCw, Send, Settings, Shield, Target, TrendingUp, 
+import {
+  Award, BookOpen, Briefcase, Camera, CheckCircle2, Clock, FileText,
+  Lightbulb, Loader2, Mic, Plus, RefreshCw, Send, Settings, Shield, Target, TrendingUp,
   Upload, Users, Wrench, XCircle, AlertCircle, History
 } from "lucide-react";
 import { useState } from "react";
@@ -143,23 +144,17 @@ export default function EvidenceSubmission() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-heading font-bold flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <TrendingUp className="w-6 h-6 text-primary" />
-              </div>
-              {language === 'zh' ? '能力证据提交' : 'Evidence Submission'}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {language === 'zh' ? '提交您的能力证据，系统将自动计算积分并更新能力等级' : 'Submit your capability evidence, the system will automatically calculate scores and update levels'}
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => { refetchCapabilities(); refetchEvidences(); }}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            {language === 'zh' ? '刷新' : 'Refresh'}
-          </Button>
-        </div>
+        <PageHeader
+          icon={TrendingUp}
+          title={language === 'zh' ? '能力证据提交' : 'Evidence Submission'}
+          description={language === 'zh' ? '提交您的能力证据，系统将自动计算积分并更新能力等级' : 'Submit your capability evidence, the system will automatically calculate scores and update levels'}
+          actions={
+            <Button variant="outline" size="sm" onClick={() => { refetchCapabilities(); refetchEvidences(); }}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              {language === 'zh' ? '刷新' : 'Refresh'}
+            </Button>
+          }
+        />
 
         {/* 能力概览 */}
         <Card className="bg-card/50 border-border">

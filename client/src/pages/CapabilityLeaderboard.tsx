@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,27 +9,25 @@ import { Progress } from "@/components/ui/progress";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
-import { 
-  Trophy, 
-  Medal, 
-  Crown, 
-  Star, 
-  TrendingUp, 
+import {
+  Trophy,
+  Medal,
+  Crown,
+  Star,
+  TrendingUp,
   TrendingDown,
   Minus,
-  Cpu, 
-  Layers, 
-  Truck, 
-  Heart, 
+  Cpu,
+  Layers,
+  Truck,
+  Heart,
   BookOpen,
-  ArrowLeft,
   Users,
   Target,
   Award,
   Flame,
   Zap
 } from "lucide-react";
-import { Link } from "wouter";
 
 // 能力域图标映射
 const DOMAIN_ICONS: Record<string, React.ComponentType<any>> = {
@@ -236,99 +235,32 @@ export default function CapabilityLeaderboard() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 返回按钮 */}
-        <Link href="/capability-os">
-          <Button variant="ghost" size="sm" className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            返回能力操作系统
-          </Button>
-        </Link>
+        <PageHeader
+          icon={Trophy}
+          title="能力排行榜"
+          description="查看团队成员在TSDCKL六大能力域的排名和进步情况"
+          actions={
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="选择时间范围" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部时间</SelectItem>
+                <SelectItem value="week">本周</SelectItem>
+                <SelectItem value="month">本月</SelectItem>
+                <SelectItem value="quarter">本季度</SelectItem>
+                <SelectItem value="year">本年度</SelectItem>
+              </SelectContent>
+            </Select>
+          }
+        />
 
-        {/* 页面标题 */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-heading font-bold flex items-center gap-3">
-              <Trophy className="w-8 h-8 text-yellow-500" />
-              能力排行榜
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              查看团队成员在TSDCKL六大能力域的排名和进步情况
-            </p>
-          </div>
-
-          {/* 时间范围筛选 */}
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="选择时间范围" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部时间</SelectItem>
-              <SelectItem value="week">本周</SelectItem>
-              <SelectItem value="month">本月</SelectItem>
-              <SelectItem value="quarter">本季度</SelectItem>
-              <SelectItem value="year">本年度</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* 统计卡片 */}
         {leaderboardStats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{(leaderboardStats as any).totalParticipants || 0}</p>
-                    <p className="text-sm text-muted-foreground">参与人数</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{(leaderboardStats as any).avgPointsGrowth || 0}</p>
-                    <p className="text-sm text-muted-foreground">平均积分增长</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
-                    <Flame className="w-6 h-6 text-yellow-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{(leaderboardStats as any).topPerformer || "-"}</p>
-                    <p className="text-sm text-muted-foreground">本月之星</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                    <Zap className="w-6 h-6 text-purple-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{(leaderboardStats as any).levelUpsThisMonth || 0}</p>
-                    <p className="text-sm text-muted-foreground">本月升级人次</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <StatCard icon={Users} label="参与人数" value={(leaderboardStats as any).totalParticipants || 0} />
+            <StatCard icon={TrendingUp} label="平均积分增长" value={(leaderboardStats as any).avgPointsGrowth || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+            <StatCard icon={Flame} label="本月之星" value={(leaderboardStats as any).topPerformer || "-"} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+            <StatCard icon={Zap} label="本月升级人次" value={(leaderboardStats as any).levelUpsThisMonth || 0} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
           </div>
         )}
 

@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -6,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
-import { 
-  Users, 
-  TrendingUp, 
-  Award, 
+import {
+  Users,
+  TrendingUp,
+  Award,
   Target,
   Zap,
   Brain,
@@ -249,88 +250,17 @@ export default function CapabilityDashboard() {
   return (
     <Layout>
       <div className="space-y-4 sm:space-y-6">
-        {/* 页面标题 - 移动端优化 */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div>
-            <h1 className="text-xl sm:text-3xl font-heading font-bold flex items-center gap-2 sm:gap-3">
-              <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-              {language === "zh" ? "能力仪表盘" : "Capability Dashboard"}
-            </h1>
-            <p className="text-xs sm:text-base text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-none">
-              {language === "zh" 
-                ? "TSDCKL六大能力域 · L1-L5等级分布" 
-                : "TSDCKL Domains · L1-L5 Distribution"}
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={BarChart3}
+          title={language === "zh" ? "能力仪表盘" : "Capability Dashboard"}
+          description={language === "zh" ? "TSDCKL六大能力域 · L1-L5等级分布" : "TSDCKL Domains · L1-L5 Distribution"}
+        />
 
-        {/* 核心指标卡片 - 移动端2列2布局 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-          <Card className="bg-card/50 border-primary/20">
-            <CardContent className="p-3 sm:p-6">
-              <div className="flex items-center gap-2 sm:gap-4">
-                <div className="p-2 sm:p-3 rounded-lg bg-primary/10 text-primary">
-                  <Users className="w-4 h-4 sm:w-6 sm:h-6" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {language === "zh" ? "工程师" : "Engineers"}
-                  </p>
-                  <p className="text-lg sm:text-2xl font-bold">{organizationCapabilityData.totalEngineers}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-green-500/20">
-            <CardContent className="p-3 sm:p-6">
-              <div className="flex items-center gap-2 sm:gap-4">
-                <div className="p-2 sm:p-3 rounded-lg bg-green-500/10 text-green-500">
-                  <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {language === "zh" ? "本月升级" : "Upgrades"}
-                  </p>
-                  <p className="text-lg sm:text-2xl font-bold">{organizationCapabilityData.recentUpgrades.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-amber-500/20">
-            <CardContent className="p-3 sm:p-6">
-              <div className="flex items-center gap-2 sm:gap-4">
-                <div className="p-2 sm:p-3 rounded-lg bg-amber-500/10 text-amber-500">
-                  <Award className="w-4 h-4 sm:w-6 sm:h-6" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {language === "zh" ? "L4+专家" : "Experts"}
-                  </p>
-                  <p className="text-lg sm:text-2xl font-bold">
-                    {Math.round(organizationCapabilityData.domainDistribution.reduce((sum, d) => sum + d.L4 + d.L5, 0) / 6)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-purple-500/20">
-            <CardContent className="p-3 sm:p-6">
-              <div className="flex items-center gap-2 sm:gap-4">
-                <div className="p-2 sm:p-3 rounded-lg bg-purple-500/10 text-purple-500">
-                  <Target className="w-4 h-4 sm:w-6 sm:h-6" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {language === "zh" ? "平均等级" : "Avg Level"}
-                  </p>
-                  <p className="text-lg sm:text-2xl font-bold">L2.8</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Users} label={language === "zh" ? "工程师" : "Engineers"} value={organizationCapabilityData.totalEngineers} />
+          <StatCard icon={TrendingUp} label={language === "zh" ? "本月升级" : "Upgrades"} value={organizationCapabilityData.recentUpgrades.length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Award} label={language === "zh" ? "L4+专家" : "Experts"} value={Math.round(organizationCapabilityData.domainDistribution.reduce((sum, d) => sum + d.L4 + d.L5, 0) / 6)} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
+          <StatCard icon={Target} label={language === "zh" ? "平均等级" : "Avg Level"} value="L2.8" iconColor="text-purple-500" iconBg="bg-purple-500/10" />
         </div>
 
         {/* 主要内容区域 */}

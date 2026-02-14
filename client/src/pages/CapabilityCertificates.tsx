@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -7,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import {
-  ArrowLeft,
   Award,
   CheckCircle2,
   Copy,
@@ -157,18 +157,11 @@ export default function CapabilityCertificates() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center gap-4">
-          <Link href="/capability-os">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold font-heading">能力证书中心</h1>
-            <p className="text-muted-foreground">Capability Certificate Center</p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Award}
+          title="能力证书中心"
+          description="Capability Certificate Center"
+        />
 
         <Tabs defaultValue="my-certificates" className="space-y-4">
           <TabsList>

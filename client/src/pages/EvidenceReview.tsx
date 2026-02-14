@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -130,79 +131,23 @@ export default function EvidenceReview() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-heading font-bold flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Shield className="w-6 h-6 text-primary" />
-              </div>
-              {language === 'zh' ? '证据审核管理' : 'Evidence Review Management'}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {language === 'zh' ? '审核能力证据，管理积分发放，确保能力评估的公正性' : 'Review capability evidence, manage points, ensure fair assessment'}
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            {language === 'zh' ? '刷新' : 'Refresh'}
-          </Button>
-        </div>
+        <PageHeader
+          icon={Shield}
+          title={language === 'zh' ? '证据审核管理' : 'Evidence Review Management'}
+          description={language === 'zh' ? '审核能力证据，管理积分发放，确保能力评估的公正性' : 'Review capability evidence, manage points, ensure fair assessment'}
+          actions={
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              {language === 'zh' ? '刷新' : 'Refresh'}
+            </Button>
+          }
+        />
 
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-yellow-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-yellow-500/10">
-                  <Clock className="w-5 h-5 text-yellow-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{language === 'zh' ? '待审核' : 'Pending'}</p>
-                  <p className="text-2xl font-bold">{stats.pending}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-green-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{language === 'zh' ? '已通过' : 'Approved'}</p>
-                  <p className="text-2xl font-bold">{stats.approved}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-red-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-red-500/10">
-                  <XCircle className="w-5 h-5 text-red-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{language === 'zh' ? '已拒绝' : 'Rejected'}</p>
-                  <p className="text-2xl font-bold">{stats.rejected}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <FileText className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{language === 'zh' ? '总计' : 'Total'}</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Clock} label={language === 'zh' ? '待审核' : 'Pending'} value={stats.pending} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+          <StatCard icon={CheckCircle2} label={language === 'zh' ? '已通过' : 'Approved'} value={stats.approved} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={XCircle} label={language === 'zh' ? '已拒绝' : 'Rejected'} value={stats.rejected} iconColor="text-red-500" iconBg="bg-red-500/10" />
+          <StatCard icon={FileText} label={language === 'zh' ? '总计' : 'Total'} value={stats.total} />
         </div>
 
         {/* Filters */}

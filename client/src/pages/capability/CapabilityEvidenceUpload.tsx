@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import { trpc } from '@/lib/trpc';
+import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,11 +14,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Upload, 
-  FileText, 
+import {
+  Upload,
+  FileText,
   Award,
-  Loader2, 
+  Loader2,
   CheckCircle2,
   Clock,
   XCircle,
@@ -215,50 +217,18 @@ export default function CapabilityEvidenceUpload() {
   const pendingCount = evidenceList.filter(e => e.status === 'pending').length;
 
   return (
+    <Layout>
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Upload className="w-6 h-6 text-primary" />
-          {t('title')}
-        </h1>
-        <p className="text-muted-foreground mt-1">{t('description')}</p>
-      </div>
+      <PageHeader
+        icon={Upload}
+        title={t('title')}
+        description={t('description')}
+      />
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="py-4 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-primary/20">
-              <Star className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{totalPoints}</p>
-              <p className="text-sm text-muted-foreground">{t('totalPoints')}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-4 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-green-500/20">
-              <CheckCircle2 className="w-6 h-6 text-green-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{approvedCount}</p>
-              <p className="text-sm text-muted-foreground">{t('approvedCount')}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-4 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-yellow-500/20">
-              <Clock className="w-6 h-6 text-yellow-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{pendingCount}</p>
-              <p className="text-sm text-muted-foreground">{t('pendingCount')}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Star} label={t('totalPoints')} value={totalPoints} />
+        <StatCard icon={CheckCircle2} label={t('approvedCount')} value={approvedCount} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Clock} label={t('pendingCount')} value={pendingCount} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
       </div>
 
       <Tabs defaultValue="upload" className="space-y-4">
@@ -467,5 +437,6 @@ export default function CapabilityEvidenceUpload() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

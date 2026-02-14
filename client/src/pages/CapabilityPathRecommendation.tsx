@@ -1,10 +1,10 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import {
-  ArrowLeft,
   ArrowRight,
   BookOpen,
   Brain,
@@ -18,7 +18,6 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-import { Link } from "wouter";
 
 // 能力域配置
 const DOMAINS: Record<string, { name: string; fullName: string; color: string }> = {
@@ -163,18 +162,11 @@ export default function CapabilityPathRecommendation() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center gap-4">
-          <Link href="/capability-os">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold font-heading">能力发展路径推荐</h1>
-            <p className="text-muted-foreground">AI-Powered Capability Development Path</p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Sparkles}
+          title="能力发展路径推荐"
+          description="AI-Powered Capability Development Path"
+        />
 
         {/* AI分析卡片 */}
         <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-transparent">

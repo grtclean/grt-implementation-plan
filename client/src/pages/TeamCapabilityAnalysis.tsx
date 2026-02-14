@@ -1,11 +1,12 @@
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, BarChart3, Download, Radar, TrendingUp, Users } from "lucide-react";
+import { BarChart3, Download, Radar, TrendingUp, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   Legend,
@@ -17,8 +18,6 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { Link } from "wouter";
-
 // 能力域配置
 const DOMAINS = [
   { code: "T", name: "技术能力", fullName: "Technology", color: "#f97316" },
@@ -183,24 +182,17 @@ export default function TeamCapabilityAnalysis() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/capability-os">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold font-heading">团队能力对比分析</h1>
-              <p className="text-muted-foreground">Team Capability Comparison Analysis</p>
-            </div>
-          </div>
-          <Button onClick={exportReport} className="gap-2">
-            <Download className="h-4 w-4" />
-            导出报告
-          </Button>
-        </div>
+        <PageHeader
+          icon={Users}
+          title="团队能力对比分析"
+          description="Team Capability Comparison Analysis"
+          actions={
+            <Button onClick={exportReport} className="gap-2">
+              <Download className="h-4 w-4" />
+              导出报告
+            </Button>
+          }
+        />
 
         {/* 成员选择 */}
         <Card>

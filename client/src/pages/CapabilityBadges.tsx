@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,18 +8,17 @@ import { Progress } from "@/components/ui/progress";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
-import { 
-  Award, 
-  Star, 
-  Crown, 
-  Cpu, 
-  Layers, 
-  Truck, 
-  Heart, 
+import {
+  Award,
+  Star,
+  Crown,
+  Cpu,
+  Layers,
+  Truck,
+  Heart,
   BookOpen,
   Sparkles,
   Trophy,
-  ArrowLeft,
   Eye,
   EyeOff,
   GripVertical
@@ -204,87 +204,18 @@ export default function CapabilityBadges() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* 返回按钮 */}
-        <Link href="/capability-os">
-          <Button variant="ghost" size="sm" className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            返回能力操作系统
-          </Button>
-        </Link>
+        <PageHeader
+          icon={Award}
+          title="能力徽章"
+          description="展示您在TSDCKL六大能力域获得的成就徽章"
+        />
 
-        {/* 页面标题 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold flex items-center gap-3">
-              <Award className="w-8 h-8 text-primary" />
-              能力徽章
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              展示您在TSDCKL六大能力域获得的成就徽章
-            </p>
-          </div>
-        </div>
-
-        {/* 统计卡片 */}
         {badgeStats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Trophy className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{(badgeStats as any).total}</p>
-                    <p className="text-sm text-muted-foreground">已获得徽章</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-yellow-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{(badgeStats as any).rarityStats?.legendary || 0}</p>
-                    <p className="text-sm text-muted-foreground">传说徽章</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                    <Star className="w-6 h-6 text-purple-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{(badgeStats as any).rarityStats?.epic || 0}</p>
-                    <p className="text-sm text-muted-foreground">史诗徽章</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-                    <Award className="w-6 h-6 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">
-                      {(badgeStats as any).highestBadge ? `L${(badgeStats as any).highestBadge.level}` : "-"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">最高等级</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <StatCard icon={Trophy} label="已获得徽章" value={(badgeStats as any).total} />
+            <StatCard icon={Sparkles} label="传说徽章" value={(badgeStats as any).rarityStats?.legendary || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+            <StatCard icon={Star} label="史诗徽章" value={(badgeStats as any).rarityStats?.epic || 0} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+            <StatCard icon={Award} label="最高等级" value={(badgeStats as any).highestBadge ? `L${(badgeStats as any).highestBadge.level}` : "-"} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
           </div>
         )}
 
