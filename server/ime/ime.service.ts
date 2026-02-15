@@ -8615,3 +8615,596 @@ export async function getTeamLoadSummary(options?: { periodType?: string }) {
       : 0,
   }));
 }
+
+// ============================================================================
+// Phase 18: Recurring Meeting Value Assessment & Optimization
+// ============================================================================
+
+/**
+ * Normalize a meeting title for series grouping.
+ * Lowercases, trims, removes trailing dates/numbers.
+ */
+function normalizeMeetingTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/\s*\d{4}[-/]\d{1,2}[-/]\d{1,2}\s*$/g, "")
+    .replace(/\s*#?\d+\s*$/g, "")
+    .replace(/\s*\(\d+\)\s*$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Compute frequency label from average interval in days.
+ */
+function frequencyFromInterval(avgDays: number): string {
+  if (avgDays <= 1.5) return "daily";
+  if (avgDays <= 9) return "weekly";
+  if (avgDays <= 18) return "biweekly";
+  if (avgDays <= 45) return "monthly";
+  return "irregular";
+}
+
+/**
+ * Detect recurring meeting series from meeting_records.
+ */
+export async function detectRecurringSeries(options?: { dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  let dateFilter = "";
+  if (options?.dateFrom) dateFilter += ` AND mr.meeting_date >= '${options.dateFrom}'`;
+  if (options?.dateTo) dateFilter += ` AND mr.meeting_date <= '${options.dateTo}'`;
+
+  // 1. Get all meetings with their titles, dates, participants
+  const meetingsResult = await db.execute(sql.raw(`
+    SELECT mr.id, mr.title, mr.meeting_date, mr.duration_minutes, mr.channel_id,
+           COALESCE(mes.overall_score, 0) as effectiveness_score
+    FROM meeting_records mr
+    LEFT JOIN meeting_effectiveness_scores mes ON mes.meeting_id = mr.id
+    WHERE mr.title IS NOT NULL AND mr.title != '' ${dateFilter}
+    ORDER BY mr.meeting_date ASC
+  `));
+  const meetings = meetingsResult.rows as any[];
+
+  // 2. Group by normalized title
+  const groups = new Map<string, any[]>();
+  for (const m of meetings) {
+    const key = normalizeMeetingTitle(m.title || "");
+    if (!key) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(m);
+  }
+
+  // 3. Filter to groups with ≥3 occurrences (recurring)
+  const seriesRecords: any[] = [];
+
+  for (const [normalizedTitle, groupMeetings] of Array.from(groups.entries())) {
+    if (groupMeetings.length < 3) continue;
+
+    const seriesKey = crypto.createHash("md5").update(normalizedTitle).digest("hex").slice(0, 16);
+    const seriesTitle = groupMeetings[0].title; // representative title
+
+    // Compute interval between meetings
+    const dates = groupMeetings.map((m: any) => new Date(m.meeting_date).getTime()).sort((a: number, b: number) => a - b);
+    const intervals: number[] = [];
+    for (let i = 1; i < dates.length; i++) {
+      intervals.push((dates[i] - dates[i - 1]) / (1000 * 60 * 60 * 24));
+    }
+    const avgInterval = intervals.length > 0
+      ? Math.round(intervals.reduce((s: number, v: number) => s + v, 0) / intervals.length)
+      : 0;
+    const frequency = frequencyFromInterval(avgInterval);
+
+    // Participants — get core participants present in >50% of meetings
+    const meetingIds = groupMeetings.map((m: any) => `'${m.id}'`).join(",");
+    const participantsResult = await db.execute(sql.raw(`
+      SELECT employee_id, COUNT(*) as attend_count
+      FROM meeting_contributions
+      WHERE meeting_id IN (${meetingIds})
+      GROUP BY employee_id
+    `));
+    const participantRows = participantsResult.rows as any[];
+    const threshold = groupMeetings.length * 0.5;
+    const coreParticipants = participantRows
+      .filter((p: any) => Number(p.attend_count) >= threshold)
+      .map((p: any) => p.employee_id);
+    const avgParticipantCount = participantRows.length > 0
+      ? Math.round(participantRows.reduce((s: number, p: any) => s + Number(p.attend_count), 0) / groupMeetings.length)
+      : 0;
+
+    // Effectiveness
+    const scores = groupMeetings.map((m: any) => Number(m.effectiveness_score) || 0);
+    const avgEffectiveness = scores.length > 0
+      ? Math.round(scores.reduce((s: number, v: number) => s + v, 0) / scores.length)
+      : 0;
+
+    // Trend slope: first-half vs second-half effectiveness
+    const midpoint = Math.floor(scores.length / 2);
+    const firstHalf = scores.slice(0, midpoint);
+    const secondHalf = scores.slice(midpoint);
+    const avgFirst = firstHalf.length > 0
+      ? firstHalf.reduce((s: number, v: number) => s + v, 0) / firstHalf.length
+      : 0;
+    const avgSecond = secondHalf.length > 0
+      ? secondHalf.reduce((s: number, v: number) => s + v, 0) / secondHalf.length
+      : 0;
+    const trendSlope = Math.round(avgSecond - avgFirst);
+    let effectivenessTrend: string;
+    if (trendSlope > 10) effectivenessTrend = "improving";
+    else if (trendSlope < -10) effectivenessTrend = "declining";
+    else effectivenessTrend = "stable";
+
+    // Participant consistency (0-100)
+    const consistencyRatio = coreParticipants.length > 0 && participantRows.length > 0
+      ? Math.round((coreParticipants.length / participantRows.length) * 100)
+      : 50;
+
+    // Action item completion — simplified from available data
+    const actionItemCompletion = 50; // default baseline
+
+    // Value score = weighted composite
+    const valueScore = Math.round(
+      avgEffectiveness * 0.4 +
+      Math.max(0, Math.min(100, 50 + trendSlope)) * 0.2 +
+      consistencyRatio * 0.2 +
+      actionItemCompletion * 0.2
+    );
+
+    // Grade
+    let valueGrade: string;
+    if (valueScore >= 80) valueGrade = "A";
+    else if (valueScore >= 60) valueGrade = "B";
+    else if (valueScore >= 40) valueGrade = "C";
+    else if (valueScore >= 20) valueGrade = "D";
+    else valueGrade = "F";
+
+    // Recommendation heuristic
+    let recommendation: string;
+    if (valueGrade === "F") recommendation = "cancel";
+    else if (valueGrade === "D") recommendation = "reduce_frequency";
+    else if (valueGrade === "C") recommendation = "shorten";
+    else recommendation = "continue";
+
+    // ROI grade (average from meeting ROI if available)
+    const roiResult = await db.execute(sql.raw(`
+      SELECT COALESCE(roi_grade, 'C') as roi_grade FROM ime_meeting_roi
+      WHERE meeting_id IN (${meetingIds})
+    `));
+    const roiGrades = (roiResult.rows as any[]).map((r: any) => r.roi_grade);
+    const avgRoiGrade = roiGrades.length > 0 ? roiGrades[0] : "C";
+
+    // Cumulative cost & minutes
+    const totalMinutes = groupMeetings.reduce((s: number, m: any) => s + (Number(m.duration_minutes) || 0), 0);
+    const costResult = await db.execute(sql.raw(`
+      SELECT COALESCE(SUM(total_cost), 0) as total_cost FROM ime_meeting_costs
+      WHERE meeting_id IN (${meetingIds})
+    `));
+    const totalCost = Number((costResult.rows as any[])[0]?.total_cost) || 0;
+
+    seriesRecords.push({
+      seriesKey,
+      seriesTitle,
+      channelId: groupMeetings[0].channel_id || null,
+      frequency,
+      detectedInterval: avgInterval,
+      firstOccurrence: new Date(dates[0]),
+      lastOccurrence: new Date(dates[dates.length - 1]),
+      occurrenceCount: groupMeetings.length,
+      avgParticipantCount,
+      coreParticipants: JSON.stringify(coreParticipants),
+      avgEffectivenessScore: avgEffectiveness,
+      effectivenessTrend,
+      trendSlope,
+      avgRoiGrade,
+      totalCumulativeCost: Math.round(totalCost),
+      totalCumulativeMinutes: totalMinutes,
+      valueScore,
+      valueGrade,
+      recommendation,
+      recommendationRationale: `Value score ${valueScore}/100 (${valueGrade}). Trend: ${effectivenessTrend} (slope: ${trendSlope}). ${groupMeetings.length} occurrences over ${avgInterval}-day intervals.`,
+      aiNarrative: null,
+      meetingIds: JSON.stringify(groupMeetings.map((m: any) => m.id)),
+      status: "active",
+    });
+  }
+
+  // 4. Clear old records and bulk insert
+  await db.execute(sql`DELETE FROM ime_recurring_series`);
+  for (const rec of seriesRecords) {
+    await db.execute(sql`
+      INSERT INTO ime_recurring_series
+        (series_key, series_title, channel_id, frequency, detected_interval,
+         first_occurrence, last_occurrence, occurrence_count, avg_participant_count,
+         core_participants, avg_effectiveness_score, effectiveness_trend, trend_slope,
+         avg_roi_grade, total_cumulative_cost, total_cumulative_minutes,
+         value_score, value_grade, recommendation, recommendation_rationale,
+         ai_narrative, meeting_ids, status)
+      VALUES
+        (${rec.seriesKey}, ${rec.seriesTitle}, ${rec.channelId}, ${rec.frequency}, ${rec.detectedInterval},
+         ${rec.firstOccurrence}, ${rec.lastOccurrence}, ${rec.occurrenceCount}, ${rec.avgParticipantCount},
+         ${rec.coreParticipants}, ${rec.avgEffectivenessScore}, ${rec.effectivenessTrend}, ${rec.trendSlope},
+         ${rec.avgRoiGrade}, ${rec.totalCumulativeCost}, ${rec.totalCumulativeMinutes},
+         ${rec.valueScore}, ${rec.valueGrade}, ${rec.recommendation}, ${rec.recommendationRationale},
+         ${rec.aiNarrative}, ${rec.meetingIds}, ${rec.status})
+    `);
+  }
+
+  return { detected: seriesRecords.length };
+}
+
+/**
+ * Dashboard for recurring series — aggregate stats.
+ */
+export async function getRecurringSeriesDashboard(filters?: { frequency?: string; status?: string }) {
+  const db = await requireDb();
+
+  let where = "1=1";
+  if (filters?.frequency) where += ` AND frequency = '${filters.frequency}'`;
+  if (filters?.status) where += ` AND status = '${filters.status}'`;
+
+  const result = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as total_series,
+      ROUND(AVG(value_score), 0) as avg_value_score,
+      COUNT(CASE WHEN effectiveness_trend = 'declining' THEN 1 END) as declining_count,
+      COALESCE(SUM(total_cumulative_cost), 0) as total_cumulative_cost,
+      COALESCE(SUM(total_cumulative_minutes), 0) as total_cumulative_minutes
+    FROM ime_recurring_series
+    WHERE ${where}
+  `));
+  const stats = (result.rows as any[])[0] || {};
+
+  // Potential savings from optimized/cancelled series
+  const savingsResult = await db.execute(sql.raw(`
+    SELECT COALESCE(SUM(minutes_saved_per_week), 0) as total_weekly_minutes_saved
+    FROM ime_series_optimization_outcomes
+    WHERE action_taken != 'no_change'
+  `));
+  const savings = (savingsResult.rows as any[])[0] || {};
+
+  return {
+    totalSeries: Number(stats.total_series) || 0,
+    avgValueScore: Number(stats.avg_value_score) || 0,
+    decliningCount: Number(stats.declining_count) || 0,
+    totalWeeklyMinutesSaved: Number(savings.total_weekly_minutes_saved) || 0,
+    totalCumulativeCost: Number(stats.total_cumulative_cost) || 0,
+  };
+}
+
+/**
+ * Paginated list of recurring series — sorted by value score ascending (worst first).
+ */
+export async function getRecurringSeriesList(options?: {
+  frequency?: string;
+  valueGrade?: string;
+  status?: string;
+  effectivenessTrend?: string;
+  limit?: number;
+}) {
+  const db = await requireDb();
+  const limit = options?.limit ?? 50;
+
+  let where = "1=1";
+  if (options?.frequency) where += ` AND frequency = '${options.frequency}'`;
+  if (options?.valueGrade) where += ` AND value_grade = '${options.valueGrade}'`;
+  if (options?.status) where += ` AND status = '${options.status}'`;
+  if (options?.effectivenessTrend) where += ` AND effectiveness_trend = '${options.effectivenessTrend}'`;
+
+  const result = await db.execute(sql.raw(`
+    SELECT *
+    FROM ime_recurring_series
+    WHERE ${where}
+    ORDER BY value_score ASC
+    LIMIT ${limit}
+  `));
+
+  return result.rows;
+}
+
+/**
+ * Value trend for a specific series — list all meetings chronologically
+ * with effectiveness scores for a line chart.
+ */
+export async function getSeriesValueTrend(seriesId: number) {
+  const db = await requireDb();
+
+  // Get the series to get meeting IDs
+  const seriesResult = await db.execute(sql`
+    SELECT meeting_ids, series_title FROM ime_recurring_series WHERE id = ${seriesId}
+  `);
+  const series = (seriesResult.rows as any[])[0];
+  if (!series) throw new Error(`Series ${seriesId} not found`);
+
+  let meetingIds: string[] = [];
+  try {
+    meetingIds = JSON.parse(series.meeting_ids || "[]");
+  } catch { meetingIds = []; }
+
+  if (meetingIds.length === 0) return { seriesTitle: series.series_title, meetings: [] };
+
+  const idList = meetingIds.map((id: string) => `'${id}'`).join(",");
+
+  const result = await db.execute(sql.raw(`
+    SELECT mr.id, mr.title, mr.meeting_date, mr.duration_minutes,
+           COALESCE(mes.overall_score, 0) as effectiveness_score,
+           COALESCE(mes.participant_count, 0) as participant_count,
+           iroi.roi_grade
+    FROM meeting_records mr
+    LEFT JOIN meeting_effectiveness_scores mes ON mes.meeting_id = mr.id
+    LEFT JOIN ime_meeting_roi iroi ON iroi.meeting_id = mr.id
+    WHERE mr.id IN (${idList})
+    ORDER BY mr.meeting_date ASC
+  `));
+
+  return { seriesTitle: series.series_title, meetings: result.rows };
+}
+
+/**
+ * Compare multiple series side-by-side — value score, frequency, avg effectiveness, cost.
+ */
+export async function getSeriesComparison(options?: { limit?: number }) {
+  const db = await requireDb();
+  const limit = options?.limit ?? 20;
+
+  const result = await db.execute(sql.raw(`
+    SELECT id, series_title, frequency, value_score, value_grade,
+           avg_effectiveness_score, total_cumulative_cost,
+           occurrence_count, avg_participant_count
+    FROM ime_recurring_series
+    ORDER BY value_score ASC
+    LIMIT ${limit}
+  `));
+
+  return result.rows;
+}
+
+/**
+ * Generate AI-powered optimization recommendation for a specific series.
+ */
+export async function generateSeriesOptimization(seriesId: number) {
+  const db = await requireDb();
+
+  const seriesResult = await db.execute(sql`
+    SELECT * FROM ime_recurring_series WHERE id = ${seriesId}
+  `);
+  const series = (seriesResult.rows as any[])[0];
+  if (!series) throw new Error(`Series ${seriesId} not found`);
+
+  const prompt = `Analyze this recurring meeting series and provide optimization recommendations.
+
+Series: "${series.series_title}"
+Frequency: ${series.frequency} (every ~${series.detected_interval} days)
+Occurrences: ${series.occurrence_count}
+Average Effectiveness: ${series.avg_effectiveness_score}/100
+Effectiveness Trend: ${series.effectiveness_trend} (slope: ${series.trend_slope})
+Value Score: ${series.value_score}/100 (Grade: ${series.value_grade})
+Average Participants: ${series.avg_participant_count}
+Cumulative Cost: ${series.total_cumulative_cost}
+Cumulative Minutes: ${series.total_cumulative_minutes}
+
+Provide a recommendation: continue, shorten, reduce_frequency, merge, or cancel.
+Include rationale, specific actions to take, and estimated weekly time savings in minutes.`;
+
+  try {
+    const result = await invokeLLM({
+      messages: [
+        { role: "user", content: prompt },
+      ],
+      responseFormat: {
+        type: "json_schema" as const,
+        json_schema: {
+          name: "series_optimization",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              recommendation: { type: "string", enum: ["continue", "shorten", "reduce_frequency", "merge", "cancel"] },
+              rationale: { type: "string" },
+              specific_actions: { type: "array", items: { type: "string" } },
+              estimated_weekly_savings_minutes: { type: "number" },
+              narrative: { type: "string" },
+            },
+            required: ["recommendation", "rationale", "specific_actions", "estimated_weekly_savings_minutes", "narrative"],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
+
+    const parsed = JSON.parse((result as any).content);
+
+    // Update series record
+    await db.execute(sql`
+      UPDATE ime_recurring_series
+      SET recommendation = ${parsed.recommendation},
+          recommendation_rationale = ${parsed.rationale},
+          ai_narrative = ${parsed.narrative}
+      WHERE id = ${seriesId}
+    `);
+
+    return parsed;
+  } catch (err: any) {
+    // Fallback heuristic
+    const fallback = {
+      recommendation: series.recommendation || "continue",
+      rationale: series.recommendation_rationale || `Heuristic: value score ${series.value_score}/100.`,
+      specific_actions: ["Review meeting agenda and objectives", "Survey participants for feedback"],
+      estimated_weekly_savings_minutes: series.value_grade === "F" ? 60 : series.value_grade === "D" ? 30 : 0,
+      narrative: `Fallback analysis for "${series.series_title}". LLM unavailable: ${err.message}`,
+    };
+
+    await db.execute(sql`
+      UPDATE ime_recurring_series
+      SET ai_narrative = ${fallback.narrative}
+      WHERE id = ${seriesId}
+    `);
+
+    return fallback;
+  }
+}
+
+/**
+ * Batch generate optimization recommendations for multiple series.
+ */
+export async function batchGenerateOptimizations(seriesIds: number[]) {
+  const results: any[] = [];
+  const errors: any[] = [];
+
+  for (const id of seriesIds) {
+    try {
+      const result = await generateSeriesOptimization(id);
+      results.push({ seriesId: id, ...result });
+    } catch (err: any) {
+      errors.push({ seriesId: id, error: err.message });
+    }
+  }
+
+  return { optimized: results.length, errors: errors.length, results, errorDetails: errors };
+}
+
+/**
+ * Record an optimization action taken on a recurring series.
+ */
+export async function recordOptimizationAction(seriesId: number, actionTaken: string) {
+  const db = await requireDb();
+
+  // Get pre-action metrics from the series
+  const seriesResult = await db.execute(sql`
+    SELECT * FROM ime_recurring_series WHERE id = ${seriesId}
+  `);
+  const series = (seriesResult.rows as any[])[0];
+  if (!series) throw new Error(`Series ${seriesId} not found`);
+
+  const preValueScore = Number(series.value_score) || 0;
+  const preEffectiveness = Number(series.avg_effectiveness_score) || 0;
+  const totalMinutes = Number(series.total_cumulative_minutes) || 0;
+  const occurrenceCount = Number(series.occurrence_count) || 1;
+  const detectedInterval = Number(series.detected_interval) || 7;
+
+  // Estimate weekly minutes
+  const weeksSpan = Math.max(1, (detectedInterval * occurrenceCount) / 7);
+  const preWeeklyMinutes = Math.round(totalMinutes / weeksSpan);
+
+  // Estimate post-action weekly minutes based on action
+  let postWeeklyMinutes = preWeeklyMinutes;
+  if (actionTaken === "cancelled") postWeeklyMinutes = 0;
+  else if (actionTaken === "reduced_frequency") postWeeklyMinutes = Math.round(preWeeklyMinutes * 0.5);
+  else if (actionTaken === "shortened") postWeeklyMinutes = Math.round(preWeeklyMinutes * 0.7);
+  else if (actionTaken === "merged") postWeeklyMinutes = Math.round(preWeeklyMinutes * 0.6);
+
+  const minutesSaved = preWeeklyMinutes - postWeeklyMinutes;
+  // Rough cost estimation: ~$1/minute average
+  const costSaved = minutesSaved;
+
+  // Insert outcome
+  await db.execute(sql`
+    INSERT INTO ime_series_optimization_outcomes
+      (series_id, series_title, action_taken, action_date,
+       pre_action_value_score, pre_action_effectiveness,
+       pre_action_weekly_minutes, post_action_weekly_minutes,
+       minutes_saved_per_week, cost_saved_per_week,
+       team_satisfaction_delta, productivity_impact, ai_assessment)
+    VALUES
+      (${seriesId}, ${series.series_title}, ${actionTaken}, NOW(),
+       ${preValueScore}, ${preEffectiveness},
+       ${preWeeklyMinutes}, ${postWeeklyMinutes},
+       ${minutesSaved}, ${costSaved},
+       ${0}, ${"neutral"}, ${`Action "${actionTaken}" recorded for series "${series.series_title}".`})
+  `);
+
+  // Update series status
+  const newStatus = actionTaken === "cancelled" ? "cancelled" : "optimized";
+  await db.execute(sql`
+    UPDATE ime_recurring_series SET status = ${newStatus} WHERE id = ${seriesId}
+  `);
+
+  return { seriesId, actionTaken, minutesSaved, costSaved, newStatus };
+}
+
+/**
+ * List optimization outcomes with calculated savings.
+ */
+export async function getOptimizationOutcomes(options?: {
+  actionTaken?: string;
+  productivityImpact?: string;
+  limit?: number;
+}) {
+  const db = await requireDb();
+  const limit = options?.limit ?? 50;
+
+  let where = "1=1";
+  if (options?.actionTaken) where += ` AND action_taken = '${options.actionTaken}'`;
+  if (options?.productivityImpact) where += ` AND productivity_impact = '${options.productivityImpact}'`;
+
+  const result = await db.execute(sql.raw(`
+    SELECT *
+    FROM ime_series_optimization_outcomes
+    WHERE ${where}
+    ORDER BY assessed_at DESC
+    LIMIT ${limit}
+  `));
+
+  return result.rows;
+}
+
+/**
+ * Org-wide summary of recurring meeting series.
+ */
+export async function getRecurringMeetingSummary(options?: { status?: string }) {
+  const db = await requireDb();
+
+  let where = "1=1";
+  if (options?.status) where += ` AND status = '${options.status}'`;
+
+  // Series by frequency distribution
+  const freqResult = await db.execute(sql.raw(`
+    SELECT frequency, COUNT(*) as count
+    FROM ime_recurring_series
+    WHERE ${where}
+    GROUP BY frequency
+    ORDER BY count DESC
+  `));
+
+  // Series by value grade distribution
+  const gradeResult = await db.execute(sql.raw(`
+    SELECT value_grade, COUNT(*) as count
+    FROM ime_recurring_series
+    WHERE ${where}
+    GROUP BY value_grade
+    ORDER BY value_grade ASC
+  `));
+
+  // Top 10 worst-value series
+  const worstResult = await db.execute(sql.raw(`
+    SELECT id, series_title, frequency, value_score, value_grade,
+           avg_effectiveness_score, total_cumulative_minutes, recommendation
+    FROM ime_recurring_series
+    WHERE ${where}
+    ORDER BY value_score ASC
+    LIMIT 10
+  `));
+
+  // Potential savings if all D/F series optimized
+  const savingsResult = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as df_count,
+      COALESCE(SUM(total_cumulative_minutes), 0) as total_minutes,
+      COALESCE(SUM(total_cumulative_cost), 0) as total_cost
+    FROM ime_recurring_series
+    WHERE value_grade IN ('D', 'F') AND status = 'active'
+  `));
+  const savingsStats = (savingsResult.rows as any[])[0] || {};
+
+  return {
+    frequencyDistribution: freqResult.rows,
+    gradeDistribution: gradeResult.rows,
+    worstSeries: worstResult.rows,
+    potentialSavings: {
+      dfSeriesCount: Number(savingsStats.df_count) || 0,
+      totalMinutes: Number(savingsStats.total_minutes) || 0,
+      totalCost: Number(savingsStats.total_cost) || 0,
+      estimatedWeeklySavings: Math.round((Number(savingsStats.total_minutes) || 0) * 0.3),
+    },
+  };
+}
