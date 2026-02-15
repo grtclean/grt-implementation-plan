@@ -1192,4 +1192,188 @@ export const imeRouter = router({
       ));
       return result.rows;
     }),
+
+  // Phase 13: Compliance & Governance
+
+  createPolicy: protectedProcedure
+    .input(z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      policyType: z.string(),
+      checkField: z.string().optional(),
+      operator: z.string().optional(),
+      threshold: z.string().optional(),
+      severity: z.string().optional(),
+      scope: z.string().optional(),
+      scopeId: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      return imeService.createCompliancePolicy({ ...input, createdBy: (ctx as any).user?.openId || "unknown" });
+    }),
+
+  listPolicies: protectedProcedure
+    .input(z.object({ activeOnly: z.boolean().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const where = input?.activeOnly !== false ? "WHERE is_active = 1" : "";
+      const result = await db.execute(sql.raw(`SELECT * FROM ime_compliance_policies ${where} ORDER BY created_at DESC`));
+      return result.rows;
+    }),
+
+  updatePolicy: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      threshold: z.string().optional(),
+      severity: z.string().optional(),
+      isActive: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const sets: string[] = [];
+      if (input.name) sets.push(`name = '${input.name.replace(/'/g, "''")}'`);
+      if (input.description !== undefined) sets.push(`description = '${(input.description || "").replace(/'/g, "''")}'`);
+      if (input.threshold) sets.push(`threshold = '${input.threshold}'`);
+      if (input.severity) sets.push(`severity = '${input.severity}'`);
+      if (input.isActive !== undefined) sets.push(`is_active = ${input.isActive}`);
+      sets.push("updated_at = NOW()");
+      await db.execute(sql.raw(`UPDATE ime_compliance_policies SET ${sets.join(", ")} WHERE id = ${input.id}`));
+      return { success: true };
+    }),
+
+  deletePolicy: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.execute(sql.raw(`DELETE FROM ime_compliance_policies WHERE id = ${input.id}`));
+      return { success: true };
+    }),
+
+  auditMeeting: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.auditMeetingCompliance(input.meetingId);
+    }),
+
+  complianceOverview: protectedProcedure
+    .input(z.object({ period: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getComplianceOverview(input || undefined);
+    }),
+
+  generateGovernanceReport: protectedProcedure
+    .input(z.object({ period: z.string().optional() }).optional())
+    .mutation(async ({ input }) => {
+      return imeService.generateGovernanceReport(input?.period);
+    }),
+
+  complianceHistory: protectedProcedure
+    .input(z.object({ meetingId: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getComplianceHistory(input?.meetingId);
+    }),
+
+  // ========================================================================
+  // Phase 14: HR & Performance Linkage
+  // ========================================================================
+
+  createLinkageRule: protectedProcedure
+    .input(z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      conditionType: z.string(),
+      conditionField: z.string().optional(),
+      conditionOperator: z.string(),
+      conditionThreshold: z.string(),
+      actionType: z.string(),
+      actionTarget: z.string().optional(),
+      actionValue: z.string().optional(),
+      actionDescription: z.string().optional(),
+      scope: z.string().optional(),
+      scopeId: z.string().optional(),
+      impactDimension: z.string().optional(),
+      priority: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.createLinkageRule(input);
+    }),
+
+  listLinkageRules: protectedProcedure
+    .input(z.object({ activeOnly: z.boolean().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.listLinkageRules(input?.activeOnly);
+    }),
+
+  updateLinkageRule: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      conditionType: z.string().optional(),
+      conditionField: z.string().optional(),
+      conditionOperator: z.string().optional(),
+      conditionThreshold: z.string().optional(),
+      actionType: z.string().optional(),
+      actionTarget: z.string().optional(),
+      actionValue: z.string().optional(),
+      actionDescription: z.string().optional(),
+      scope: z.string().optional(),
+      impactDimension: z.string().optional(),
+      priority: z.number().optional(),
+      isActive: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...updates } = input;
+      return imeService.updateLinkageRule(id, updates);
+    }),
+
+  deleteLinkageRule: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      return imeService.deleteLinkageRule(input.id);
+    }),
+
+  evaluateLinkage: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.evaluateLinkage(input.meetingId);
+    }),
+
+  hrActionLog: protectedProcedure
+    .input(z.object({
+      status: z.string().optional(),
+      employeeId: z.string().optional(),
+      actionType: z.string().optional(),
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getHrActionLog(input || undefined);
+    }),
+
+  approveHrAction: protectedProcedure
+    .input(z.object({ id: z.number(), reviewedBy: z.string(), notes: z.string().optional() }))
+    .mutation(async ({ input }) => {
+      return imeService.approveHrAction(input.id, input.reviewedBy, input.notes);
+    }),
+
+  rejectHrAction: protectedProcedure
+    .input(z.object({ id: z.number(), reviewedBy: z.string(), notes: z.string().optional() }))
+    .mutation(async ({ input }) => {
+      return imeService.rejectHrAction(input.id, input.reviewedBy, input.notes);
+    }),
+
+  executeHrActions: protectedProcedure
+    .input(z.object({ actionIds: z.array(z.number()) }))
+    .mutation(async ({ input }) => {
+      return imeService.executeHrActions(input.actionIds);
+    }),
+
+  linkageDashboard: protectedProcedure
+    .input(z.object({ period: z.string().optional(), department: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getLinkageDashboard(input?.period, input?.department);
+    }),
 });
