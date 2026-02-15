@@ -7538,3 +7538,515 @@ export async function getApiUsageLogs(limit: number = 50) {
   ));
   return result.rows;
 }
+
+// ============================================================================
+// Phase 16: Collaboration Network Intelligence
+// ============================================================================
+
+/**
+ * Build collaboration network from meeting contributions.
+ * Scans meeting_contributions + meeting_records, creates pairwise edges.
+ * Formula: meetingCount × (totalMinutes/60) × intimacyFactor
+ * where intimacy = smaller meetings score higher.
+ */
+export async function buildCollaborationNetwork(options?: {
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const db = await requireDb();
+
+  // Clear old edges
+  await db.execute(sql.raw(`DELETE FROM ime_collaboration_edges`));
+
+  // Build date filter
+  let dateFilter = "";
+  if (options?.dateFrom) dateFilter += ` AND mr.meeting_date >= '${options.dateFrom}'`;
+  if (options?.dateTo) dateFilter += ` AND mr.meeting_date <= '${options.dateTo}'`;
+
+  // Get all meetings with their participants
+  const meetingsResult = await db.execute(sql.raw(`
+    SELECT mc.meeting_id, mc.employee_name, mc.employee_id, mc.department,
+           mr.duration_minutes, mr.meeting_date,
+           (SELECT COUNT(DISTINCT mc2.employee_name) FROM meeting_contributions mc2 WHERE mc2.meeting_id = mc.meeting_id) as participant_count
+    FROM meeting_contributions mc
+    JOIN meeting_records mr ON mr.id = mc.meeting_id
+    WHERE 1=1 ${dateFilter}
+    ORDER BY mc.meeting_id, mc.employee_name
+  `));
+
+  const rows = meetingsResult.rows as any[];
+
+  // Group by meeting_id
+  const meetingMap = new Map<string, any[]>();
+  for (const row of rows) {
+    const mid = String(row.meeting_id);
+    if (!meetingMap.has(mid)) meetingMap.set(mid, []);
+    meetingMap.get(mid)!.push(row);
+  }
+
+  // Build pairwise edges
+  const edgeMap = new Map<string, {
+    participantA: string; participantB: string;
+    employeeIdA: string; employeeIdB: string;
+    departmentA: string; departmentB: string;
+    meetingCount: number; totalMinutes: number;
+    meetingSizes: number[]; meetingIds: string[];
+    firstDate: string; lastDate: string;
+  }>();
+
+  for (const [meetingId, participants] of Array.from(meetingMap.entries())) {
+    for (let i = 0; i < participants.length; i++) {
+      for (let j = i + 1; j < participants.length; j++) {
+        const a = participants[i];
+        const b = participants[j];
+        // Alphabetical ordering
+        const [pA, pB] = a.employee_name < b.employee_name ? [a, b] : [b, a];
+        const key = `${pA.employee_name}||${pB.employee_name}`;
+
+        if (!edgeMap.has(key)) {
+          edgeMap.set(key, {
+            participantA: pA.employee_name,
+            participantB: pB.employee_name,
+            employeeIdA: pA.employee_id || "",
+            employeeIdB: pB.employee_id || "",
+            departmentA: pA.department || "",
+            departmentB: pB.department || "",
+            meetingCount: 0,
+            totalMinutes: 0,
+            meetingSizes: [],
+            meetingIds: [],
+            firstDate: a.meeting_date || "",
+            lastDate: a.meeting_date || "",
+          });
+        }
+
+        const edge = edgeMap.get(key)!;
+        edge.meetingCount++;
+        edge.totalMinutes += Number(a.duration_minutes || 0);
+        edge.meetingSizes.push(Number(a.participant_count || 2));
+        edge.meetingIds.push(meetingId);
+        const dateStr = String(a.meeting_date || "");
+        if (dateStr && (!edge.firstDate || dateStr < edge.firstDate)) edge.firstDate = dateStr;
+        if (dateStr && (!edge.lastDate || dateStr > edge.lastDate)) edge.lastDate = dateStr;
+      }
+    }
+  }
+
+  // Insert edges
+  let insertedCount = 0;
+  for (const edge of Array.from(edgeMap.values())) {
+    const avgSize = Math.round(edge.meetingSizes.reduce((a, b) => a + b, 0) / edge.meetingSizes.length);
+    // Intimacy factor: smaller meetings = higher score (2-person = 5x, 10+ = 1x)
+    const intimacyFactor = Math.max(1, 6 - Math.floor(avgSize / 2));
+    const score = Math.round(edge.meetingCount * (edge.totalMinutes / 60) * intimacyFactor);
+    const relType = edge.departmentA && edge.departmentB && edge.departmentA !== edge.departmentB ? "cross_dept" : "same_dept";
+
+    await db.execute(sql`
+      INSERT INTO ime_collaboration_edges
+        (participant_a, participant_b, employee_id_a, employee_id_b,
+         department_a, department_b, meeting_count, total_co_meeting_minutes,
+         avg_meeting_size, collaboration_score, relationship_type,
+         shared_meeting_ids, first_collaboration, last_collaboration, computed_at)
+      VALUES
+        (${edge.participantA}, ${edge.participantB}, ${edge.employeeIdA}, ${edge.employeeIdB},
+         ${edge.departmentA}, ${edge.departmentB}, ${edge.meetingCount}, ${edge.totalMinutes},
+         ${avgSize}, ${score}, ${relType},
+         ${JSON.stringify(edge.meetingIds)},
+         ${edge.firstDate ? new Date(edge.firstDate) : null},
+         ${edge.lastDate ? new Date(edge.lastDate) : null},
+         NOW())
+    `);
+    insertedCount++;
+  }
+
+  return { edgesCreated: insertedCount, meetingsScanned: meetingMap.size };
+}
+
+/**
+ * Dashboard stats for collaboration network.
+ */
+export async function getCollaborationDashboard(filters?: { department?: string }) {
+  const db = await requireDb();
+
+  let deptFilter = "";
+  if (filters?.department) {
+    deptFilter = ` WHERE department_a = '${filters.department}' OR department_b = '${filters.department}'`;
+  }
+
+  const result = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as total_edges,
+      COALESCE(AVG(collaboration_score), 0) as avg_score,
+      COALESCE(SUM(CASE WHEN relationship_type = 'cross_dept' THEN 1 ELSE 0 END), 0) as cross_dept_edges,
+      COALESCE(SUM(CASE WHEN relationship_type = 'same_dept' THEN 1 ELSE 0 END), 0) as same_dept_edges
+    FROM ime_collaboration_edges ${deptFilter}
+  `));
+
+  const row = result.rows[0] as any;
+  const total = Number(row?.total_edges || 0);
+  const crossDept = Number(row?.cross_dept_edges || 0);
+
+  return {
+    totalEdges: total,
+    avgScore: Math.round(Number(row?.avg_score || 0)),
+    crossDeptPercentage: total > 0 ? Math.round((crossDept / total) * 100) : 0,
+    crossDeptEdges: crossDept,
+    sameDeptEdges: Number(row?.same_dept_edges || 0),
+  };
+}
+
+/**
+ * Comprehensive network stats: unique participants, edge counts, averages.
+ */
+export async function getCollaborationNetworkStats(options?: { department?: string }) {
+  const db = await requireDb();
+
+  let deptFilter = "";
+  if (options?.department) {
+    deptFilter = ` WHERE department_a = '${options.department}' OR department_b = '${options.department}'`;
+  }
+
+  const edgeStats = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as total_edges,
+      COALESCE(AVG(meeting_count), 0) as avg_meetings_per_edge,
+      COALESCE(AVG(collaboration_score), 0) as avg_score,
+      COALESCE(MAX(collaboration_score), 0) as max_score,
+      COALESCE(SUM(CASE WHEN relationship_type = 'cross_dept' THEN 1 ELSE 0 END), 0) as cross_dept_edges,
+      COALESCE(SUM(CASE WHEN relationship_type = 'same_dept' THEN 1 ELSE 0 END), 0) as same_dept_edges
+    FROM ime_collaboration_edges ${deptFilter}
+  `));
+
+  const participantsResult = await db.execute(sql.raw(`
+    SELECT COUNT(DISTINCT p) as cnt FROM (
+      SELECT participant_a as p FROM ime_collaboration_edges ${deptFilter}
+      UNION
+      SELECT participant_b as p FROM ime_collaboration_edges ${deptFilter}
+    ) sub
+  `));
+
+  const es = edgeStats.rows[0] as any;
+  const totalEdges = Number(es?.total_edges || 0);
+
+  return {
+    totalEdges,
+    uniqueParticipants: Number((participantsResult.rows[0] as any)?.cnt || 0),
+    crossDeptEdges: Number(es?.cross_dept_edges || 0),
+    sameDeptEdges: Number(es?.same_dept_edges || 0),
+    avgMeetingsPerEdge: Math.round(Number(es?.avg_meetings_per_edge || 0) * 10) / 10,
+    avgScore: Math.round(Number(es?.avg_score || 0)),
+    maxScore: Number(es?.max_score || 0),
+    crossDeptPercentage: totalEdges > 0
+      ? Math.round((Number(es?.cross_dept_edges || 0) / totalEdges) * 100)
+      : 0,
+  };
+}
+
+/**
+ * Collaboration matrix for heatmap display (department-level).
+ */
+export async function getCollaborationMatrix(options?: { level?: string }) {
+  const db = await requireDb();
+
+  const result = await db.execute(sql.raw(`
+    SELECT department_a, department_b,
+           COUNT(*) as edge_count,
+           SUM(collaboration_score) as total_score,
+           SUM(meeting_count) as total_meetings
+    FROM ime_collaboration_edges
+    WHERE department_a IS NOT NULL AND department_b IS NOT NULL
+      AND department_a != '' AND department_b != ''
+    GROUP BY department_a, department_b
+    ORDER BY total_score DESC
+  `));
+
+  return result.rows;
+}
+
+/**
+ * Top collaborator pairs ranked by collaboration score.
+ */
+export async function getTopCollaboratorPairs(options?: {
+  limit?: number;
+  relationshipType?: string;
+  department?: string;
+}) {
+  const db = await requireDb();
+
+  const limit = options?.limit || 20;
+  let whereClause = "WHERE 1=1";
+  if (options?.relationshipType) {
+    whereClause += ` AND relationship_type = '${options.relationshipType}'`;
+  }
+  if (options?.department) {
+    whereClause += ` AND (department_a = '${options.department}' OR department_b = '${options.department}')`;
+  }
+
+  const result = await db.execute(sql.raw(`
+    SELECT participant_a, participant_b,
+           department_a, department_b,
+           meeting_count, total_co_meeting_minutes,
+           avg_meeting_size, collaboration_score,
+           relationship_type,
+           first_collaboration, last_collaboration
+    FROM ime_collaboration_edges
+    ${whereClause}
+    ORDER BY collaboration_score DESC
+    LIMIT ${limit}
+  `));
+
+  return result.rows;
+}
+
+/**
+ * Cross-department metrics: per-department breakdown of internal vs external edges.
+ */
+export async function getCrossDepartmentMetrics(departments?: string[]) {
+  const db = await requireDb();
+
+  let deptFilter = "";
+  if (departments && departments.length > 0) {
+    const deptList = departments.map(d => `'${d}'`).join(",");
+    deptFilter = ` AND dept IN (${deptList})`;
+  }
+
+  const result = await db.execute(sql.raw(`
+    SELECT dept,
+           SUM(CASE WHEN is_internal = 1 THEN 1 ELSE 0 END) as internal_edges,
+           SUM(CASE WHEN is_internal = 0 THEN 1 ELSE 0 END) as cross_dept_edges,
+           COUNT(*) as total_edges
+    FROM (
+      SELECT department_a as dept,
+             CASE WHEN department_a = department_b THEN 1 ELSE 0 END as is_internal
+      FROM ime_collaboration_edges
+      WHERE department_a IS NOT NULL AND department_a != ''
+      UNION ALL
+      SELECT department_b as dept,
+             CASE WHEN department_a = department_b THEN 1 ELSE 0 END as is_internal
+      FROM ime_collaboration_edges
+      WHERE department_b IS NOT NULL AND department_b != ''
+    ) sub
+    WHERE 1=1 ${deptFilter}
+    GROUP BY dept
+    ORDER BY total_edges DESC
+  `));
+
+  return result.rows;
+}
+
+/**
+ * Detect collaboration silos: departments with <20% cross-dept collaboration.
+ */
+export async function detectCollaborationSilos(options?: { threshold?: number }) {
+  const db = await requireDb();
+  const threshold = options?.threshold || 20;
+
+  const result = await db.execute(sql.raw(`
+    SELECT dept,
+           SUM(CASE WHEN is_internal = 1 THEN 1 ELSE 0 END) as internal_edges,
+           SUM(CASE WHEN is_internal = 0 THEN 1 ELSE 0 END) as cross_dept_edges,
+           COUNT(*) as total_edges
+    FROM (
+      SELECT department_a as dept,
+             CASE WHEN department_a = department_b THEN 1 ELSE 0 END as is_internal
+      FROM ime_collaboration_edges
+      WHERE department_a IS NOT NULL AND department_a != ''
+      UNION ALL
+      SELECT department_b as dept,
+             CASE WHEN department_a = department_b THEN 1 ELSE 0 END as is_internal
+      FROM ime_collaboration_edges
+      WHERE department_b IS NOT NULL AND department_b != ''
+    ) sub
+    GROUP BY dept
+    HAVING COUNT(*) >= 3
+    ORDER BY total_edges DESC
+  `));
+
+  return (result.rows as any[]).map((row: any) => {
+    const total = Number(row.total_edges || 0);
+    const crossDept = Number(row.cross_dept_edges || 0);
+    const crossPct = total > 0 ? Math.round((crossDept / total) * 100) : 0;
+
+    let riskLevel = "low";
+    if (crossPct < threshold / 2) riskLevel = "high";
+    else if (crossPct < threshold) riskLevel = "medium";
+
+    return {
+      department: row.dept,
+      internalEdges: Number(row.internal_edges || 0),
+      crossDeptEdges: crossDept,
+      totalEdges: total,
+      crossCollabPercent: crossPct,
+      riskLevel,
+    };
+  });
+}
+
+/**
+ * Analyze meeting necessity using LLM.
+ * Scores 6 dimensions, determines grade (A–F) and alternative viability.
+ */
+export async function analyzeMeetingNecessity(meetingId: string) {
+  const db = await requireDb();
+
+  // Get meeting info
+  const meetingResult = await db.execute(sql`
+    SELECT id, title, objective, summary, duration_minutes, meeting_date
+    FROM meeting_records WHERE id = ${meetingId}
+  `);
+  const meeting = (meetingResult.rows as any[])[0];
+  if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
+
+  // Get participants
+  const participantsResult = await db.execute(sql`
+    SELECT DISTINCT employee_name, department
+    FROM meeting_contributions WHERE meeting_id = ${meetingId}
+  `);
+  const participants = participantsResult.rows as any[];
+
+  // Get action items count
+  const actionsResult = await db.execute(sql`
+    SELECT COUNT(*) as cnt FROM meeting_action_items WHERE meeting_id = ${meetingId}
+  `);
+  const actionCount = Number((actionsResult.rows[0] as any)?.cnt || 0);
+
+  let scores: any;
+
+  try {
+    const prompt = `You are evaluating whether a meeting was necessary or could have been handled asynchronously.
+
+Meeting Title: ${meeting.title || "Untitled"}
+Objective: ${meeting.objective || "Not specified"}
+Summary: ${meeting.summary || "Not available"}
+Duration: ${meeting.duration_minutes || 0} minutes
+Participants: ${participants.length} people (${participants.map((p: any) => `${p.employee_name}/${p.department}`).join(", ")})
+Action Items Generated: ${actionCount}
+
+Score each dimension 0-10, provide an overall necessity score 0-100, a grade (A=essential, B=valuable, C=acceptable, D=questionable, F=unnecessary), and suggest if an alternative communication method would have sufficed.`;
+
+    const result = await invokeLLM({
+      messages: [{ role: "user", content: prompt }],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "meeting_necessity",
+          schema: {
+            type: "object",
+            properties: {
+              necessityScore: { type: "number" },
+              necessityGrade: { type: "string" },
+              decisionComplexity: { type: "number" },
+              collaborationRequirement: { type: "number" },
+              informationRichness: { type: "number" },
+              outcomeImpact: { type: "number" },
+              participantAlignment: { type: "number" },
+              timeEfficiency: { type: "number" },
+              alternativeViability: { type: "string" },
+              alternativeRationale: { type: "string" },
+              aiNarrative: { type: "string" },
+              recommendations: { type: "array", items: { type: "string" } },
+            },
+            required: [
+              "necessityScore", "necessityGrade", "decisionComplexity",
+              "collaborationRequirement", "informationRichness", "outcomeImpact",
+              "participantAlignment", "timeEfficiency", "alternativeViability",
+              "alternativeRationale", "aiNarrative", "recommendations",
+            ],
+          },
+          strict: true,
+        },
+      },
+    });
+
+    scores = JSON.parse((result as any).content);
+  } catch (err) {
+    // Fallback heuristic if LLM fails
+    const durationScore = Math.min(10, Math.round((meeting.duration_minutes || 30) / 12));
+    const participantScore = Math.min(10, participants.length);
+    const actionScore = Math.min(10, actionCount * 2);
+
+    scores = {
+      necessityScore: Math.round((durationScore + participantScore + actionScore) * 100 / 30),
+      necessityGrade: actionCount >= 3 ? "B" : participants.length > 5 ? "C" : "D",
+      decisionComplexity: Math.min(10, actionCount),
+      collaborationRequirement: Math.min(10, participants.length),
+      informationRichness: Math.round(durationScore * 0.7),
+      outcomeImpact: actionScore,
+      participantAlignment: Math.min(10, Math.round(participants.length * 0.8)),
+      timeEfficiency: 10 - durationScore,
+      alternativeViability: actionCount < 2 && participants.length <= 3 ? "email" : "none",
+      alternativeRationale: "Heuristic fallback: LLM analysis unavailable",
+      aiNarrative: `Heuristic analysis: ${participants.length} participants, ${meeting.duration_minutes || 0} minutes, ${actionCount} action items.`,
+      recommendations: ["Consider shorter meetings", "Define clear objectives beforehand"],
+    };
+  }
+
+  // Upsert into database
+  await db.execute(sql`
+    DELETE FROM ime_meeting_necessity_scores WHERE meeting_id = ${meetingId}
+  `);
+
+  await db.execute(sql`
+    INSERT INTO ime_meeting_necessity_scores
+      (meeting_id, necessity_score, necessity_grade,
+       decision_complexity, collaboration_requirement, information_richness,
+       outcome_impact, participant_alignment, time_efficiency,
+       alternative_viability, alternative_rationale, ai_narrative,
+       recommendations, analyzed_at)
+    VALUES
+      (${meetingId}, ${scores.necessityScore}, ${scores.necessityGrade},
+       ${scores.decisionComplexity}, ${scores.collaborationRequirement}, ${scores.informationRichness},
+       ${scores.outcomeImpact}, ${scores.participantAlignment}, ${scores.timeEfficiency},
+       ${scores.alternativeViability}, ${scores.alternativeRationale}, ${scores.aiNarrative},
+       ${JSON.stringify(scores.recommendations)}, NOW())
+  `);
+
+  return {
+    meetingId,
+    title: meeting.title,
+    ...scores,
+  };
+}
+
+/**
+ * List meeting necessity scores with meeting info.
+ */
+export async function getMeetingNecessityScores(options?: { limit?: number; grade?: string }) {
+  const db = await requireDb();
+
+  let whereClause = "";
+  if (options?.grade) {
+    whereClause = ` AND mns.necessity_grade = '${options.grade}'`;
+  }
+  const limit = options?.limit || 50;
+
+  const result = await db.execute(sql.raw(`
+    SELECT mns.*, mr.title as meeting_title, mr.meeting_date, mr.duration_minutes
+    FROM ime_meeting_necessity_scores mns
+    LEFT JOIN meeting_records mr ON mr.id = mns.meeting_id
+    WHERE 1=1 ${whereClause}
+    ORDER BY mns.analyzed_at DESC
+    LIMIT ${limit}
+  `));
+
+  return result.rows;
+}
+
+/**
+ * Batch analyze meeting necessity for multiple meetings.
+ */
+export async function batchAnalyzeMeetingNecessity(meetingIds: string[]) {
+  const results: any[] = [];
+  const errors: any[] = [];
+
+  for (const id of meetingIds) {
+    try {
+      const result = await analyzeMeetingNecessity(id);
+      results.push(result);
+    } catch (err: any) {
+      errors.push({ meetingId: id, error: err.message });
+    }
+  }
+
+  return { analyzed: results.length, errors: errors.length, results, errorDetails: errors };
+}

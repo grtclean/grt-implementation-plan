@@ -21,3 +21,4 @@ export { FeedbackTab } from "./FeedbackTab";
 export { ComplianceTab } from "./ComplianceTab";
 export { HrPerformanceLinkageTab } from "./HrPerformanceLinkageTab";
 export { MeetingIntelligenceApiTab } from "./MeetingIntelligenceApiTab";
+export { CollaborationNetworkTab } from "./CollaborationNetworkTab";
