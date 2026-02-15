@@ -1376,4 +1376,56 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       return imeService.getLinkageDashboard(input?.period, input?.department);
     }),
+
+  // ==========================================================================
+  // Phase 15: Meeting Intelligence API — Key Management
+  // ==========================================================================
+
+  createApiKey: protectedProcedure
+    .input(z.object({
+      keyName: z.string().min(1),
+      scopes: z.array(z.string()),
+      rateLimit: z.number().optional(),
+      rateLimitWindow: z.string().optional(),
+      description: z.string().optional(),
+      createdBy: z.string().optional(),
+      expiresAt: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.createApiKey(input);
+    }),
+
+  listApiKeys: protectedProcedure
+    .query(async () => {
+      return imeService.listApiKeys();
+    }),
+
+  revokeApiKey: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      return imeService.revokeApiKey(input.id);
+    }),
+
+  regenerateApiKey: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      return imeService.regenerateApiKey(input.id);
+    }),
+
+  apiKeyUsageStats: protectedProcedure
+    .input(z.object({ apiKeyId: z.number(), days: z.number().optional() }))
+    .query(async ({ input }) => {
+      return imeService.getApiKeyUsageStats(input.apiKeyId, input.days);
+    }),
+
+  apiDashboard: protectedProcedure
+    .query(async () => {
+      return imeService.getApiDashboard();
+    }),
+
+  apiUsageLogs: protectedProcedure
+    .input(z.object({ limit: z.number().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getApiUsageLogs(input?.limit);
+    }),
 });

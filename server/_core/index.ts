@@ -13,6 +13,7 @@ import { serveStatic, setupVite } from "./vite";
 import { initWebSocketServer, getWebSocketStats } from "../services/websocket.service";
 import { initIMEWebSocket, getIMEWebSocketStats } from "../ime/ime-websocket.service";
 import { initScheduler } from "../services/scheduler.service";
+import imeRestApi from "../ime/ime-rest-api";
 
 const isLocalAuth = process.env.LOCAL_AUTH === "true" || process.env.VITE_LOCAL_AUTH === "true";
 
@@ -102,6 +103,7 @@ async function startServer() {
       createContext,
     })
   );
+  app.use("/api/v1/ime", imeRestApi);
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {

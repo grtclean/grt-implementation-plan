@@ -10793,3 +10793,45 @@ export type ImeLinkageRule = typeof imeLinkageRules.$inferSelect;
 export type InsertImeLinkageRule = typeof imeLinkageRules.$inferInsert;
 export type ImeHrAction = typeof imeHrActions.$inferSelect;
 export type InsertImeHrAction = typeof imeHrActions.$inferInsert;
+
+// ============================================================================
+// Phase 15: Meeting Intelligence API — API Key Management & Usage Logging
+// ============================================================================
+
+export const imeApiKeys = pgTable("ime_api_keys", {
+  id: serial("id").primaryKey(),
+  keyName: varchar("key_name", { length: 200 }).notNull(),
+  keyHash: varchar("key_hash", { length: 64 }).notNull(), // SHA-256 hex
+  keyPrefix: varchar("key_prefix", { length: 12 }).notNull(), // first 12 chars for display
+  scopes: text("scopes").notNull(), // JSON array: read_analytics | read_contributions | read_signals | write_webhooks
+  rateLimit: integer("rate_limit").default(1000),
+  rateLimitWindow: varchar("rate_limit_window", { length: 20 }).default("hourly"), // hourly | daily
+  requestCount: integer("request_count").default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  errorCount: integer("error_count").default(0),
+  isActive: integer("is_active").default(1),
+  description: text("description"),
+  createdBy: varchar("created_by", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+});
+
+export const imeApiUsageLogs = pgTable("ime_api_usage_logs", {
+  id: serial("id").primaryKey(),
+  apiKeyId: integer("api_key_id"),
+  keyName: varchar("key_name", { length: 200 }), // denormalized
+  endpoint: varchar("endpoint", { length: 500 }).notNull(),
+  method: varchar("method", { length: 10 }).notNull(), // GET | POST
+  statusCode: integer("status_code"),
+  responseTimeMs: integer("response_time_ms"),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: varchar("user_agent", { length: 500 }),
+  errorMessage: text("error_message"),
+  requestedAt: timestamp("requested_at").defaultNow(),
+});
+
+export type ImeApiKey = typeof imeApiKeys.$inferSelect;
+export type InsertImeApiKey = typeof imeApiKeys.$inferInsert;
+export type ImeApiUsageLog = typeof imeApiUsageLogs.$inferSelect;
+export type InsertImeApiUsageLog = typeof imeApiUsageLogs.$inferInsert;
