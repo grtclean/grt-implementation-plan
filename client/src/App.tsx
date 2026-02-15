@@ -281,6 +281,12 @@ const ProjectKnowledgeQA = React.lazy(() => import("./pages/ProjectKnowledgeQA")
 const ChangeImpactAnalysis = React.lazy(() => import("./pages/ChangeImpactAnalysis"));
 const ProjectRiskPrediction = React.lazy(() => import("./pages/ProjectRiskPrediction"));
 
+// Phase E: 供应链与质量智能 (供应商评估/库存优化/质量预测/生产效率)
+const SupplierAssessment = React.lazy(() => import("./pages/SupplierAssessment"));
+const InventoryOptimization = React.lazy(() => import("./pages/InventoryOptimization"));
+const QualityPrediction = React.lazy(() => import("./pages/QualityPrediction"));
+const ProductionEfficiency = React.lazy(() => import("./pages/ProductionEfficiency"));
+
 // Protected route wrapper component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -1119,6 +1125,20 @@ function Router() {
       </Route>
       <Route path="/ai-risk-prediction">
         <ProtectedRoute component={ProjectRiskPrediction} />
+      </Route>
+
+      {/* Phase E: 供应链与质量智能 */}
+      <Route path="/supplier-assessment">
+        <ProtectedRoute component={SupplierAssessment} />
+      </Route>
+      <Route path="/inventory-optimization">
+        <ProtectedRoute component={InventoryOptimization} />
+      </Route>
+      <Route path="/quality-prediction">
+        <ProtectedRoute component={QualityPrediction} />
+      </Route>
+      <Route path="/production-efficiency">
+        <ProtectedRoute component={ProductionEfficiency} />
       </Route>
 
       {/* Phase B: 代理职能 + 绩效薪资查询 */}
