@@ -6554,3 +6554,713 @@ export async function getFeedbackDashboard(filters?: { period?: string }) {
     recentFeedback: recentFbRes.rows,
   };
 }
+
+// ============================================================================
+// Phase 13: Meeting Compliance & Governance
+// ============================================================================
+
+// Phase 13 — Feature 1: Create Compliance Policy
+export async function createCompliancePolicy(policy: {
+  name: string;
+  description?: string;
+  policyType: string;
+  checkField?: string;
+  operator?: string;
+  threshold?: string;
+  severity?: string;
+  scope?: string;
+  scopeId?: string;
+  createdBy?: string;
+}) {
+  const db = await requireDb();
+  const safeName = policy.name.replace(/'/g, "''");
+  const safeDesc = (policy.description || "").replace(/'/g, "''");
+  const safeCreatedBy = (policy.createdBy || "system").replace(/'/g, "''");
+
+  await db.execute(sql.raw(`
+    INSERT INTO ime_compliance_policies (name, description, policy_type, check_field, operator, threshold, severity, scope, scope_id, is_active, created_by, created_at, updated_at)
+    VALUES ('${safeName}', '${safeDesc}', '${policy.policyType}', ${policy.checkField ? `'${policy.checkField}'` : "NULL"}, ${policy.operator ? `'${policy.operator}'` : "NULL"}, ${policy.threshold ? `'${policy.threshold}'` : "NULL"}, '${policy.severity || "warning"}', '${policy.scope || "global"}', ${policy.scopeId ? `'${policy.scopeId}'` : "NULL"}, 1, '${safeCreatedBy}', NOW(), NOW())
+  `));
+
+  return { success: true, name: policy.name };
+}
+
+// Phase 13 — Feature 2: Audit Meeting Compliance
+export async function auditMeetingCompliance(meetingId: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+
+  // Get meeting data
+  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meeting = (meetingRes.rows as any[])[0];
+  if (!meeting) throw new Error("Meeting not found");
+
+  // Get related data
+  const effRes = await db.execute(sql.raw(`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = '${safeId}' LIMIT 1`));
+  const actionRes = await db.execute(sql.raw(`SELECT COUNT(*) as cnt FROM ime_action_items WHERE meeting_id = '${safeId}'`));
+  const contribRes = await db.execute(sql.raw(`SELECT COUNT(DISTINCT speaker_name) as participants FROM meeting_contributions WHERE meeting_id = '${safeId}'`));
+
+  const eff = (effRes.rows as any[])[0];
+  const actionCount = Number((actionRes.rows as any[])[0]?.cnt || 0);
+  const participantCount = Number((contribRes.rows as any[])[0]?.participants || 0);
+
+  const meetingData: Record<string, any> = {
+    duration_minutes: Number(meeting.duration_minutes || 0),
+    participant_count: participantCount,
+    has_agenda: meeting.agenda ? 1 : 0,
+    has_summary: meeting.summary ? 1 : 0,
+    action_item_count: actionCount,
+    effectiveness_score: eff ? Number(eff.overall_score || 0) : null,
+  };
+
+  // Get active policies
+  const policiesRes = await db.execute(sql.raw(`SELECT * FROM ime_compliance_policies WHERE is_active = 1`));
+  const policies = policiesRes.rows as any[];
+
+  const results: any[] = [];
+  const safeTitle = (meeting.title || "").replace(/'/g, "''");
+
+  for (const policy of policies) {
+    const field = policy.check_field;
+    const actual = field ? meetingData[field] : null;
+    let result = "na";
+    let actualStr = String(actual ?? "N/A");
+
+    if (actual !== null && actual !== undefined && policy.operator && policy.threshold) {
+      const threshold = Number(policy.threshold);
+      const numActual = Number(actual);
+
+      switch (policy.operator) {
+        case "<": result = numActual < threshold ? "pass" : "fail"; break;
+        case ">": result = numActual > threshold ? "pass" : "fail"; break;
+        case "<=": result = numActual <= threshold ? "pass" : "fail"; break;
+        case ">=": result = numActual >= threshold ? "pass" : "fail"; break;
+        case "==": result = numActual === threshold ? "pass" : "fail"; break;
+        case "!=": result = numActual !== threshold ? "pass" : "fail"; break;
+        case "exists": result = actual ? "pass" : "fail"; break;
+      }
+    } else if (policy.operator === "exists") {
+      result = actual ? "pass" : "fail";
+    }
+
+    const severity = result === "fail" ? (policy.severity || "warning") : "info";
+
+    await db.execute(sql.raw(`
+      INSERT INTO ime_compliance_audits (meeting_id, meeting_title, policy_id, policy_name, policy_type, result, severity, actual_value, expected_value, details, audited_at)
+      VALUES ('${safeId}', '${safeTitle}', ${policy.id}, '${(policy.name || "").replace(/'/g, "''")}', '${policy.policy_type}', '${result}', '${severity}', '${actualStr}', '${policy.operator || ""} ${policy.threshold || ""}', '${result === "fail" ? "不合规" : result === "pass" ? "合规" : "不适用"}', NOW())
+    `));
+
+    results.push({ policyId: policy.id, policyName: policy.name, policyType: policy.policy_type, result, severity, actual: actualStr, expected: `${policy.operator || ""} ${policy.threshold || ""}` });
+  }
+
+  const passed = results.filter(r => r.result === "pass").length;
+  const failed = results.filter(r => r.result === "fail").length;
+
+  return { meetingId, meetingTitle: meeting.title, totalPolicies: results.length, passed, failed, complianceRate: results.length > 0 ? Math.round((passed / (passed + failed || 1)) * 100) : 100, results };
+}
+
+// Phase 13 — Feature 3: Compliance Overview
+export async function getComplianceOverview(filters?: { period?: string }) {
+  const db = await requireDb();
+  const periodDays = filters?.period === "quarterly" ? 90 : filters?.period === "weekly" ? 7 : 30;
+
+  const policiesRes = await db.execute(sql.raw(`SELECT * FROM ime_compliance_policies WHERE is_active = 1 ORDER BY created_at DESC`));
+
+  const statsRes = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total, SUM(CASE WHEN result = 'pass' THEN 1 ELSE 0 END) as passed,
+           SUM(CASE WHEN result = 'fail' THEN 1 ELSE 0 END) as failed,
+           SUM(CASE WHEN result = 'fail' AND severity = 'critical' THEN 1 ELSE 0 END) as critical,
+           SUM(CASE WHEN result = 'fail' AND severity = 'violation' THEN 1 ELSE 0 END) as violations,
+           COUNT(DISTINCT meeting_id) as meetings_audited
+    FROM ime_compliance_audits WHERE audited_at >= NOW() - INTERVAL '${periodDays} days'
+  `));
+
+  const topViolationsRes = await db.execute(sql.raw(`
+    SELECT policy_name, policy_type, severity, COUNT(*) as cnt
+    FROM ime_compliance_audits
+    WHERE result = 'fail' AND audited_at >= NOW() - INTERVAL '${periodDays} days'
+    GROUP BY policy_name, policy_type, severity ORDER BY cnt DESC LIMIT 10
+  `));
+
+  const recentAuditsRes = await db.execute(sql.raw(
+    `SELECT * FROM ime_compliance_audits WHERE result = 'fail' ORDER BY audited_at DESC LIMIT 20`
+  ));
+
+  const stats = (statsRes.rows as any[])[0] || {};
+  const total = Number(stats.total || 0);
+  const passed = Number(stats.passed || 0);
+  const failed = Number(stats.failed || 0);
+
+  return {
+    policies: policiesRes.rows,
+    stats: {
+      totalChecks: total,
+      passed,
+      failed,
+      critical: Number(stats.critical || 0),
+      violations: Number(stats.violations || 0),
+      meetingsAudited: Number(stats.meetings_audited || 0),
+      complianceRate: (passed + failed) > 0 ? Math.round((passed / (passed + failed)) * 100) : 100,
+    },
+    topViolations: topViolationsRes.rows,
+    recentFailures: recentAuditsRes.rows,
+  };
+}
+
+// Phase 13 — Feature 4: Generate Governance Report (AI-powered)
+export async function generateGovernanceReport(period?: string) {
+  const db = await requireDb();
+  const periodDays = period === "quarterly" ? 90 : period === "weekly" ? 7 : 30;
+
+  const statsRes = await db.execute(sql.raw(`
+    SELECT COUNT(DISTINCT meeting_id) as meetings, COUNT(*) as checks,
+           SUM(CASE WHEN result = 'pass' THEN 1 ELSE 0 END) as passed,
+           SUM(CASE WHEN result = 'fail' THEN 1 ELSE 0 END) as failed
+    FROM ime_compliance_audits WHERE audited_at >= NOW() - INTERVAL '${periodDays} days'
+  `));
+  const violationsRes = await db.execute(sql.raw(`
+    SELECT policy_name, policy_type, severity, COUNT(*) as cnt
+    FROM ime_compliance_audits WHERE result = 'fail' AND audited_at >= NOW() - INTERVAL '${periodDays} days'
+    GROUP BY policy_name, policy_type, severity ORDER BY cnt DESC LIMIT 5
+  `));
+
+  const stats = (statsRes.rows as any[])[0] || {};
+  const violations = violationsRes.rows as any[];
+  const passed = Number(stats.passed || 0);
+  const failed = Number(stats.failed || 0);
+  const complianceRate = (passed + failed) > 0 ? Math.round((passed / (passed + failed)) * 100) : 100;
+
+  const context = [
+    `周期: ${period || "monthly"} (${periodDays}天)`,
+    `审计会议数: ${stats.meetings || 0}`,
+    `总检查项: ${stats.checks || 0}, 通过: ${passed}, 不合规: ${failed}`,
+    `合规率: ${complianceRate}%`,
+    `主要违规: ${violations.map((v: any) => `${v.policy_name}(${v.cnt}次,${v.severity})`).join("; ")}`,
+  ].join("\n");
+
+  const llmResult = await invokeLLM({
+    system: "你是企业会议治理顾问。基于合规审计数据生成治理报告，包括风险区域和改进建议。",
+    prompt: `请生成会议治理报告:\n${context}`,
+    schema: {
+      type: "object",
+      properties: {
+        risk_areas: { type: "array", items: { type: "string" } },
+        recommendations: { type: "array", items: { type: "string" } },
+        narrative: { type: "string" },
+      },
+      required: ["risk_areas", "recommendations"],
+    },
+  });
+
+  const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
+
+  await db.execute(sql.raw(`
+    INSERT INTO ime_governance_reports (period, period_start, period_end, total_meetings_audited, compliance_rate, total_violations, total_warnings, top_violations, risk_areas, recommendations, ai_narrative, generated_at)
+    VALUES ('${period || "monthly"}', NOW() - INTERVAL '${periodDays} days', NOW(), ${stats.meetings || 0}, ${complianceRate}, ${failed}, 0, '${JSON.stringify(violations.map((v: any) => ({ policyName: v.policy_name, count: v.cnt, severity: v.severity }))).replace(/'/g, "''")}', '${JSON.stringify(parsed.risk_areas || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.recommendations || []).replace(/'/g, "''")}', '${(parsed.narrative || "").replace(/'/g, "''")}', NOW())
+  `));
+
+  return {
+    period: period || "monthly",
+    meetingsAudited: Number(stats.meetings || 0),
+    complianceRate,
+    totalViolations: failed,
+    topViolations: violations,
+    riskAreas: parsed.risk_areas || [],
+    recommendations: parsed.recommendations || [],
+    narrative: parsed.narrative || "",
+  };
+}
+
+// Phase 13 — Feature 5: Compliance History
+export async function getComplianceHistory(meetingId?: string) {
+  const db = await requireDb();
+  if (meetingId) {
+    const safeId = meetingId.replace(/'/g, "''");
+    const result = await db.execute(sql.raw(
+      `SELECT * FROM ime_compliance_audits WHERE meeting_id = '${safeId}' ORDER BY audited_at DESC`
+    ));
+    return result.rows;
+  }
+  // Governance reports
+  const reports = await db.execute(sql.raw(
+    `SELECT * FROM ime_governance_reports ORDER BY generated_at DESC LIMIT 10`
+  ));
+  return reports.rows;
+}
+
+// ============================================================================
+// Phase 14: HR & Performance Linkage — CRUD
+// ============================================================================
+
+export async function createLinkageRule(input: {
+  name: string;
+  description?: string;
+  conditionType: string;
+  conditionField?: string;
+  conditionOperator: string;
+  conditionThreshold: string;
+  actionType: string;
+  actionTarget?: string;
+  actionValue?: string;
+  actionDescription?: string;
+  scope?: string;
+  scopeId?: string;
+  impactDimension?: string;
+  priority?: number;
+  createdBy?: string;
+}) {
+  const db = await requireDb();
+  const safeName = input.name.replace(/'/g, "''");
+  const safeDesc = (input.description || "").replace(/'/g, "''");
+  const safeField = (input.conditionField || "").replace(/'/g, "''");
+  const safeTarget = (input.actionTarget || "").replace(/'/g, "''");
+  const safeValue = (input.actionValue || "").replace(/'/g, "''");
+  const safeActDesc = (input.actionDescription || "").replace(/'/g, "''");
+  const safeScopeId = (input.scopeId || "").replace(/'/g, "''");
+  const safeDim = (input.impactDimension || "").replace(/'/g, "''");
+  const safeCreatedBy = (input.createdBy || "system").replace(/'/g, "''");
+
+  const result = await db.execute(sql.raw(`
+    INSERT INTO ime_linkage_rules (name, description, condition_type, condition_field, condition_operator, condition_threshold, action_type, action_target, action_value, action_description, scope, scope_id, impact_dimension, priority, is_active, created_by, created_at, updated_at)
+    VALUES ('${safeName}', '${safeDesc}', '${input.conditionType}', '${safeField}', '${input.conditionOperator}', '${input.conditionThreshold}', '${input.actionType}', '${safeTarget}', '${safeValue}', '${safeActDesc}', '${input.scope || "individual"}', '${safeScopeId}', '${safeDim}', ${input.priority || 0}, 1, '${safeCreatedBy}', NOW(), NOW())
+    RETURNING *
+  `));
+  return result.rows[0];
+}
+
+export async function listLinkageRules(activeOnly?: boolean) {
+  const db = await requireDb();
+  const where = activeOnly ? "WHERE is_active = 1" : "";
+  const result = await db.execute(sql.raw(
+    `SELECT * FROM ime_linkage_rules ${where} ORDER BY priority DESC, created_at DESC`
+  ));
+  return result.rows;
+}
+
+export async function updateLinkageRule(id: number, updates: Record<string, any>) {
+  const db = await requireDb();
+  const sets: string[] = [];
+  if (updates.name !== undefined) sets.push(`name = '${String(updates.name).replace(/'/g, "''")}'`);
+  if (updates.description !== undefined) sets.push(`description = '${String(updates.description).replace(/'/g, "''")}'`);
+  if (updates.conditionType !== undefined) sets.push(`condition_type = '${updates.conditionType}'`);
+  if (updates.conditionField !== undefined) sets.push(`condition_field = '${String(updates.conditionField).replace(/'/g, "''")}'`);
+  if (updates.conditionOperator !== undefined) sets.push(`condition_operator = '${updates.conditionOperator}'`);
+  if (updates.conditionThreshold !== undefined) sets.push(`condition_threshold = '${String(updates.conditionThreshold).replace(/'/g, "''")}'`);
+  if (updates.actionType !== undefined) sets.push(`action_type = '${updates.actionType}'`);
+  if (updates.actionTarget !== undefined) sets.push(`action_target = '${String(updates.actionTarget).replace(/'/g, "''")}'`);
+  if (updates.actionValue !== undefined) sets.push(`action_value = '${String(updates.actionValue).replace(/'/g, "''")}'`);
+  if (updates.actionDescription !== undefined) sets.push(`action_description = '${String(updates.actionDescription).replace(/'/g, "''")}'`);
+  if (updates.scope !== undefined) sets.push(`scope = '${updates.scope}'`);
+  if (updates.impactDimension !== undefined) sets.push(`impact_dimension = '${String(updates.impactDimension).replace(/'/g, "''")}'`);
+  if (updates.priority !== undefined) sets.push(`priority = ${Number(updates.priority)}`);
+  if (updates.isActive !== undefined) sets.push(`is_active = ${updates.isActive ? 1 : 0}`);
+  if (sets.length === 0) return { success: true };
+  sets.push("updated_at = NOW()");
+  await db.execute(sql.raw(`UPDATE ime_linkage_rules SET ${sets.join(", ")} WHERE id = ${id}`));
+  return { success: true };
+}
+
+export async function deleteLinkageRule(id: number) {
+  const db = await requireDb();
+  await db.execute(sql.raw(`DELETE FROM ime_linkage_rules WHERE id = ${id}`));
+  return { success: true };
+}
+
+// ============================================================================
+// Phase 14: HR & Performance Linkage — Core Engine
+// ============================================================================
+
+export async function evaluateLinkage(meetingId: string) {
+    const db = await requireDb();
+    const safeId = meetingId.replace(/'/g, "''");
+
+    // 1. Get meeting contributions
+    const contribs = await db.execute(sql.raw(
+      `SELECT * FROM meeting_contributions WHERE meeting_id = '${safeId}'`
+    ));
+    const contributions = contribs.rows as any[];
+
+    // 2. Get AI analysis
+    const analysis = await db.execute(sql.raw(
+      `SELECT * FROM ime_ai_analysis WHERE meeting_id = '${safeId}'`
+    ));
+    const analyses = analysis.rows as any[];
+
+    // 3. Get HR signals for participants
+    const signals = await db.execute(sql.raw(
+      `SELECT * FROM ime_hr_signals WHERE meeting_id = '${safeId}'`
+    ));
+    const hrSignals = signals.rows as any[];
+
+    // 4. Load active rules ordered by priority
+    const rulesResult = await db.execute(sql.raw(
+      `SELECT * FROM ime_linkage_rules WHERE is_active = 1 ORDER BY priority DESC`
+    ));
+    const rules = rulesResult.rows as any[];
+
+    if (rules.length === 0) {
+      return { meetingId, actionsGenerated: 0, byEmployee: [], message: "No active linkage rules found" };
+    }
+
+    // 5. Build participant data map
+    const participantMap = new Map<string, any>();
+    for (const c of contributions) {
+      const key = c.participant_id || c.speaker_name || c.employee_id;
+      if (!key) continue;
+      if (!participantMap.has(key)) {
+        participantMap.set(key, {
+          employeeId: c.employee_id || key,
+          employeeName: c.speaker_name || c.participant_name || key,
+          department: c.department || "",
+          contributionScore: 0,
+          engagementScore: 0,
+          behaviorTags: [] as string[],
+          questionCount: 0,
+          insightCount: 0,
+          decisionCount: 0,
+          actionItemAccepted: 0,
+          signalTypes: [] as string[],
+        });
+      }
+      const p = participantMap.get(key)!;
+      p.contributionScore = Math.max(p.contributionScore, Number(c.contribution_score || c.overall_score || 0));
+      p.engagementScore = Math.max(p.engagementScore, Number(c.engagement_score || c.participation_score || 0));
+      p.questionCount += Number(c.questions_asked || 0);
+      p.insightCount += Number(c.insights_provided || 0);
+      p.decisionCount += Number(c.decisions_made || 0);
+      p.actionItemAccepted += Number(c.action_items_accepted || 0);
+      if (c.behavior_tags) {
+        const tags = typeof c.behavior_tags === "string" ? JSON.parse(c.behavior_tags) : c.behavior_tags;
+        if (Array.isArray(tags)) p.behaviorTags.push(...tags);
+      }
+    }
+
+    // Enrich with HR signals
+    for (const s of hrSignals) {
+      const key = s.employee_id || s.employee_name;
+      if (!key || !participantMap.has(key)) continue;
+      participantMap.get(key)!.signalTypes.push(s.signal_type || s.type || "");
+    }
+
+    // Enrich from AI analysis
+    for (const a of analyses) {
+      const key = a.employee_id || a.participant_id;
+      if (!key || !participantMap.has(key)) continue;
+      const p = participantMap.get(key)!;
+      if (a.tags) {
+        const tags = typeof a.tags === "string" ? JSON.parse(a.tags) : a.tags;
+        if (Array.isArray(tags)) p.behaviorTags.push(...tags);
+      }
+    }
+
+    // 6. Evaluate rules against each participant
+    const actionsToInsert: any[] = [];
+    const participantKeys = Array.from(participantMap.keys());
+    for (const key of participantKeys) {
+      const participant = participantMap.get(key)!;
+      for (const rule of rules) {
+        const matched = evaluateCondition(participant, rule);
+        if (!matched) continue;
+        actionsToInsert.push({ participant, rule });
+      }
+    }
+
+    // 7. Generate actions with LLM-enhanced descriptions
+    const meetingResult = await db.execute(sql.raw(
+      `SELECT title FROM meeting_records WHERE id = '${safeId}' LIMIT 1`
+    ));
+    const meetingTitle = (meetingResult.rows[0] as any)?.title || meetingId;
+
+    const byEmployee: any[] = [];
+    for (const { participant, rule } of actionsToInsert) {
+      let reason = `Rule "${rule.name}": ${rule.condition_type} ${rule.condition_operator} ${rule.condition_threshold}`;
+      let actionDesc = rule.action_description || `${rule.action_type} for ${participant.employeeName}`;
+
+      try {
+        const llmResult = await invokeLLM({
+          system: "你是HR绩效联动分析师。基于会议数据和规则匹配结果，生成简洁的中文HR操作理由和描述。",
+          prompt: `员工: ${participant.employeeName}\n规则: ${rule.name}\n条件: ${rule.condition_type} ${rule.condition_operator} ${rule.condition_threshold}\n实际值: ${getConditionValue(participant, rule)}\n操作类型: ${rule.action_type}\n请生成reason和actionDescription。`,
+          schema: {
+            type: "object",
+            properties: {
+              reason: { type: "string" },
+              actionDescription: { type: "string" },
+            },
+            required: ["reason", "actionDescription"],
+          },
+        });
+        const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
+        reason = parsed.reason || reason;
+        actionDesc = parsed.actionDescription || actionDesc;
+      } catch {
+        // fallback to default reason/description
+      }
+
+      const safeEmpId = participant.employeeId.replace(/'/g, "''");
+      const safeEmpName = participant.employeeName.replace(/'/g, "''");
+      const safeDept = participant.department.replace(/'/g, "''");
+      const safeRuleName = (rule.name || "").replace(/'/g, "''");
+      const safeReason = reason.replace(/'/g, "''");
+      const safeActDesc = actionDesc.replace(/'/g, "''");
+      const sourceData = JSON.stringify({
+        contributionScore: participant.contributionScore,
+        engagementScore: participant.engagementScore,
+        behaviorTags: participant.behaviorTags,
+        questionCount: participant.questionCount,
+        signalTypes: participant.signalTypes,
+      }).replace(/'/g, "''");
+
+      await db.execute(sql.raw(`
+        INSERT INTO ime_hr_actions (employee_id, employee_name, department, rule_id, rule_name, meeting_id, meeting_title, action_type, action_description, reason, impact_dimension, impact_value, source_data, status, created_at, updated_at)
+        VALUES ('${safeEmpId}', '${safeEmpName}', '${safeDept}', ${rule.id}, '${safeRuleName}', '${safeId}', '${meetingTitle.replace(/'/g, "''")}', '${rule.action_type}', '${safeActDesc}', '${safeReason}', '${(rule.impact_dimension || "").replace(/'/g, "''")}', '${(rule.action_value || "").replace(/'/g, "''")}', '${sourceData}', 'pending', NOW(), NOW())
+      `));
+
+      const existing = byEmployee.find(e => e.employeeId === participant.employeeId);
+      if (existing) {
+        existing.actions.push({ ruleName: rule.name, actionType: rule.action_type, reason });
+      } else {
+        byEmployee.push({
+          employeeId: participant.employeeId,
+          employeeName: participant.employeeName,
+          actions: [{ ruleName: rule.name, actionType: rule.action_type, reason }],
+        });
+      }
+    }
+
+    return { meetingId, actionsGenerated: actionsToInsert.length, byEmployee };
+}
+
+function getConditionValue(participant: any, rule: any): any {
+  switch (rule.condition_type) {
+    case "engagement_score": return participant.engagementScore;
+    case "contribution_score": return participant.contributionScore;
+    case "behavior_tag": return participant.behaviorTags.join(", ");
+    case "action_item_accepted": return participant.actionItemAccepted;
+    case "decision_count": return participant.decisionCount;
+    case "signal_type": return participant.signalTypes.join(", ");
+    case "question_count": return participant.questionCount;
+    case "insight_count": return participant.insightCount;
+    default: return null;
+  }
+}
+
+function evaluateCondition(participant: any, rule: any): boolean {
+  const value = getConditionValue(participant, rule);
+  const threshold = rule.condition_threshold;
+
+  if (rule.condition_operator === "contains") {
+    if (Array.isArray(value)) return value.some((v: string) => v.toLowerCase().includes(threshold.toLowerCase()));
+    return String(value).toLowerCase().includes(threshold.toLowerCase());
+  }
+
+  const numValue = Number(value);
+  const numThreshold = Number(threshold);
+  if (isNaN(numValue) || isNaN(numThreshold)) {
+    if (rule.condition_operator === "==") return String(value) === threshold;
+    if (rule.condition_operator === "!=") return String(value) !== threshold;
+    return false;
+  }
+
+  switch (rule.condition_operator) {
+    case ">=": return numValue >= numThreshold;
+    case "<=": return numValue <= numThreshold;
+    case ">": return numValue > numThreshold;
+    case "<": return numValue < numThreshold;
+    case "==": return numValue === numThreshold;
+    case "!=": return numValue !== numThreshold;
+    default: return false;
+  }
+}
+
+// ============================================================================
+// Phase 14: HR & Performance Linkage — Approval Workflow
+// ============================================================================
+
+export async function getHrActionLog(filters?: {
+  status?: string;
+  employeeId?: string;
+  actionType?: string;
+  department?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const db = await requireDb();
+  const conditions: string[] = [];
+  if (filters?.status) conditions.push(`status = '${filters.status.replace(/'/g, "''")}'`);
+  if (filters?.employeeId) conditions.push(`employee_id = '${filters.employeeId.replace(/'/g, "''")}'`);
+  if (filters?.actionType) conditions.push(`action_type = '${filters.actionType.replace(/'/g, "''")}'`);
+  if (filters?.department) conditions.push(`department LIKE '%${filters.department.replace(/'/g, "''")}%'`);
+  if (filters?.dateFrom) conditions.push(`created_at >= '${filters.dateFrom}'`);
+  if (filters?.dateTo) conditions.push(`created_at <= '${filters.dateTo}'`);
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const result = await db.execute(sql.raw(
+    `SELECT * FROM ime_hr_actions ${where} ORDER BY created_at DESC LIMIT 200`
+  ));
+  return result.rows;
+}
+
+export async function approveHrAction(id: number, reviewedBy: string, notes?: string) {
+  const db = await requireDb();
+  const safeReviewer = reviewedBy.replace(/'/g, "''");
+  const safeNotes = (notes || "").replace(/'/g, "''");
+  await db.execute(sql.raw(`
+    UPDATE ime_hr_actions SET status = 'approved', reviewed_by = '${safeReviewer}', reviewed_at = NOW(), review_notes = '${safeNotes}', updated_at = NOW()
+    WHERE id = ${id} AND status = 'pending'
+  `));
+  return { success: true };
+}
+
+export async function rejectHrAction(id: number, reviewedBy: string, notes?: string) {
+  const db = await requireDb();
+  const safeReviewer = reviewedBy.replace(/'/g, "''");
+  const safeNotes = (notes || "").replace(/'/g, "''");
+  await db.execute(sql.raw(`
+    UPDATE ime_hr_actions SET status = 'rejected', reviewed_by = '${safeReviewer}', reviewed_at = NOW(), review_notes = '${safeNotes}', updated_at = NOW()
+    WHERE id = ${id} AND status = 'pending'
+  `));
+  return { success: true };
+}
+
+// ============================================================================
+// Phase 14: HR & Performance Linkage — Execution
+// ============================================================================
+
+export async function executeHrActions(actionIds: number[]) {
+  const db = await requireDb();
+  const results: any[] = [];
+
+  for (const actionId of actionIds) {
+    const actionResult = await db.execute(sql.raw(
+      `SELECT * FROM ime_hr_actions WHERE id = ${actionId} AND status = 'approved'`
+    ));
+    const action = actionResult.rows[0] as any;
+    if (!action) {
+      results.push({ id: actionId, success: false, error: "Action not found or not approved" });
+      continue;
+    }
+
+    let executionResult: any = { executed: true };
+    try {
+      switch (action.action_type) {
+        case "update_kpi": {
+          await db.execute(sql.raw(`
+            INSERT INTO kpi_score_records (employee_id, dimension, score, source, notes, created_at)
+            VALUES ('${action.employee_id}', '${(action.impact_dimension || "meeting_contribution").replace(/'/g, "''")}', ${Number(action.impact_value) || 0}, 'ime_linkage', '${(action.reason || "").replace(/'/g, "''")}', NOW())
+          `));
+          executionResult = { type: "update_kpi", dimension: action.impact_dimension, value: action.impact_value };
+          break;
+        }
+        case "flag_training": {
+          await db.execute(sql.raw(`
+            INSERT INTO hrm_training_plans (employee_id, training_type, title, reason, status, created_at)
+            VALUES ('${action.employee_id}', 'skills', '${(action.action_description || "Training Required").replace(/'/g, "''")}', '${(action.reason || "").replace(/'/g, "''")}', 'planned', NOW())
+          `));
+          executionResult = { type: "flag_training", description: action.action_description };
+          break;
+        }
+        case "add_achievement": {
+          await db.execute(sql.raw(`
+            INSERT INTO performance_traces (employee_id, metric, value, source, notes, traced_at)
+            VALUES ('${action.employee_id}', 'achievement_tag', '${(action.action_value || "meeting_excellence").replace(/'/g, "''")}', 'ime_linkage', '${(action.reason || "").replace(/'/g, "''")}', NOW())
+          `));
+          executionResult = { type: "add_achievement", tag: action.action_value };
+          break;
+        }
+        case "adjust_score": {
+          await db.execute(sql.raw(`
+            INSERT INTO kpi_score_records (employee_id, dimension, score, source, notes, created_at)
+            VALUES ('${action.employee_id}', '${(action.impact_dimension || "performance_adjustment").replace(/'/g, "''")}', ${Number(action.impact_value) || 0}, 'ime_linkage_adjust', '${(action.reason || "").replace(/'/g, "''")}', NOW())
+          `));
+          executionResult = { type: "adjust_score", dimension: action.impact_dimension, value: action.impact_value };
+          break;
+        }
+        case "create_key_result": {
+          await db.execute(sql.raw(`
+            INSERT INTO performance_traces (employee_id, metric, value, source, notes, traced_at)
+            VALUES ('${action.employee_id}', 'key_result_in_progress', '${(action.action_value || "").replace(/'/g, "''")}', 'ime_linkage', '${(action.reason || "").replace(/'/g, "''")}', NOW())
+          `));
+          executionResult = { type: "create_key_result", value: action.action_value };
+          break;
+        }
+        case "coaching_suggestion": {
+          await db.execute(sql.raw(`
+            INSERT INTO kpi_communication_suggestions (employee_id, suggestion_type, content, source, created_at)
+            VALUES ('${action.employee_id}', 'coaching', '${(action.action_description || "").replace(/'/g, "''")}', 'ime_linkage', NOW())
+          `));
+          executionResult = { type: "coaching_suggestion", content: action.action_description };
+          break;
+        }
+        default:
+          executionResult = { type: action.action_type, note: "No specific handler, marked as executed" };
+      }
+
+      await db.execute(sql.raw(`
+        UPDATE ime_hr_actions SET status = 'executed', executed_at = NOW(), execution_result = '${JSON.stringify(executionResult).replace(/'/g, "''")}', updated_at = NOW()
+        WHERE id = ${actionId}
+      `));
+      results.push({ id: actionId, success: true, result: executionResult });
+    } catch (err: any) {
+      results.push({ id: actionId, success: false, error: err.message });
+    }
+  }
+
+  return { executed: results.filter(r => r.success).length, failed: results.filter(r => !r.success).length, results };
+}
+
+// ============================================================================
+// Phase 14: HR & Performance Linkage — Dashboard
+// ============================================================================
+
+export async function getLinkageDashboard(period?: string, department?: string) {
+  const db = await requireDb();
+  const deptFilter = department ? `AND department LIKE '%${department.replace(/'/g, "''")}%'` : "";
+
+  // Active rules count
+  const rulesCount = await db.execute(sql.raw(
+    `SELECT COUNT(*) as cnt FROM ime_linkage_rules WHERE is_active = 1`
+  ));
+  const activeRules = Number((rulesCount.rows[0] as any)?.cnt || 0);
+
+  // Actions by status
+  const statusCounts = await db.execute(sql.raw(
+    `SELECT status, COUNT(*) as cnt FROM ime_hr_actions WHERE 1=1 ${deptFilter} GROUP BY status`
+  ));
+  const statusMap: Record<string, number> = {};
+  for (const row of statusCounts.rows as any[]) {
+    statusMap[row.status] = Number(row.cnt);
+  }
+
+  const pendingActions = statusMap["pending"] || 0;
+  const approvedActions = statusMap["approved"] || 0;
+  const rejectedActions = statusMap["rejected"] || 0;
+  const executedActions = statusMap["executed"] || 0;
+  const totalReviewed = approvedActions + rejectedActions + executedActions;
+  const approvalRate = totalReviewed > 0 ? Math.round(((approvedActions + executedActions) / totalReviewed) * 100) : 0;
+
+  // By action type distribution
+  const byType = await db.execute(sql.raw(
+    `SELECT action_type, COUNT(*) as cnt FROM ime_hr_actions WHERE 1=1 ${deptFilter} GROUP BY action_type ORDER BY cnt DESC`
+  ));
+
+  // Recent actions
+  const recent = await db.execute(sql.raw(
+    `SELECT * FROM ime_hr_actions WHERE 1=1 ${deptFilter} ORDER BY created_at DESC LIMIT 10`
+  ));
+
+  // Top impacted employees
+  const topImpacted = await db.execute(sql.raw(
+    `SELECT employee_id, employee_name, department, COUNT(*) as action_count FROM ime_hr_actions WHERE 1=1 ${deptFilter} GROUP BY employee_id, employee_name, department ORDER BY action_count DESC LIMIT 10`
+  ));
+
+  return {
+    activeRules,
+    pendingActions,
+    approvedActions,
+    rejectedActions,
+    executedActions,
+    approvalRate,
+    byActionType: byType.rows,
+    recentActions: recent.rows,
+    topImpacted: topImpacted.rows,
+  };
+}

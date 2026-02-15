@@ -10687,3 +10687,109 @@ export const imeImprovementInitiatives = pgTable("ime_improvement_initiatives", 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Phase 13: Meeting Compliance & Governance
+
+export const imeCompliancePolicies = pgTable("ime_compliance_policies", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  policyType: varchar("policy_type", { length: 50 }).notNull(), // max_duration | min_participants | require_agenda | require_action_items | max_frequency | require_follow_up | min_effectiveness
+  checkField: varchar("check_field", { length: 100 }), // field to check against
+  operator: varchar("operator", { length: 10 }), // <, >, <=, >=, ==, !=, exists
+  threshold: varchar("threshold", { length: 100 }), // threshold value
+  severity: varchar("severity", { length: 20 }).default("warning"), // info | warning | violation | critical
+  scope: varchar("scope", { length: 50 }).default("global"), // global | department | channel
+  scopeId: varchar("scope_id", { length: 100 }),
+  isActive: integer("is_active").default(1),
+  createdBy: varchar("created_by", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const imeComplianceAudits = pgTable("ime_compliance_audits", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }).notNull(),
+  meetingTitle: varchar("meeting_title", { length: 500 }),
+  policyId: integer("policy_id").notNull(),
+  policyName: varchar("policy_name", { length: 200 }),
+  policyType: varchar("policy_type", { length: 50 }),
+  result: varchar("result", { length: 20 }).notNull(), // pass | fail | warning | na
+  severity: varchar("severity", { length: 20 }),
+  actualValue: varchar("actual_value", { length: 200 }),
+  expectedValue: varchar("expected_value", { length: 200 }),
+  details: text("details"),
+  auditedAt: timestamp("audited_at").defaultNow(),
+});
+
+export const imeGovernanceReports = pgTable("ime_governance_reports", {
+  id: serial("id").primaryKey(),
+  period: varchar("period", { length: 20 }).notNull(), // weekly | monthly | quarterly
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+  totalMeetingsAudited: integer("total_meetings_audited").default(0),
+  complianceRate: real("compliance_rate"), // 0-100%
+  totalViolations: integer("total_violations").default(0),
+  totalWarnings: integer("total_warnings").default(0),
+  topViolations: text("top_violations"), // JSON array of {policyName, count, severity}
+  riskAreas: text("risk_areas"), // JSON array
+  recommendations: text("recommendations"), // JSON array
+  aiNarrative: text("ai_narrative"),
+  generatedAt: timestamp("generated_at").defaultNow(),
+});
+
+// ============================================================================
+// Phase 14: HR & Performance Linkage
+// ============================================================================
+
+export const imeLinkageRules = pgTable("ime_linkage_rules", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  conditionType: varchar("condition_type", { length: 50 }).notNull(), // engagement_score | contribution_score | behavior_tag | action_item_accepted | decision_count | signal_type | question_count | insight_count
+  conditionField: varchar("condition_field", { length: 100 }),
+  conditionOperator: varchar("condition_operator", { length: 20 }).notNull(), // >= | <= | > | < | == | != | contains
+  conditionThreshold: varchar("condition_threshold", { length: 100 }).notNull(),
+  actionType: varchar("action_type", { length: 50 }).notNull(), // update_kpi | flag_training | add_achievement | adjust_score | create_key_result | coaching_suggestion
+  actionTarget: varchar("action_target", { length: 200 }),
+  actionValue: varchar("action_value", { length: 200 }),
+  actionDescription: text("action_description"),
+  scope: varchar("scope", { length: 20 }).default("individual"), // individual | team | department
+  scopeId: varchar("scope_id", { length: 100 }),
+  impactDimension: varchar("impact_dimension", { length: 100 }),
+  priority: integer("priority").default(0),
+  isActive: integer("is_active").default(1),
+  createdBy: varchar("created_by", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const imeHrActions = pgTable("ime_hr_actions", {
+  id: serial("id").primaryKey(),
+  employeeId: varchar("employee_id", { length: 100 }).notNull(),
+  employeeName: varchar("employee_name", { length: 200 }),
+  department: varchar("department", { length: 200 }),
+  ruleId: integer("rule_id"), // FK → ime_linkage_rules
+  ruleName: varchar("rule_name", { length: 200 }),
+  meetingId: varchar("meeting_id", { length: 36 }),
+  meetingTitle: varchar("meeting_title", { length: 500 }),
+  actionType: varchar("action_type", { length: 50 }).notNull(),
+  actionDescription: text("action_description"),
+  reason: text("reason"),
+  impactDimension: varchar("impact_dimension", { length: 100 }),
+  impactValue: varchar("impact_value", { length: 50 }),
+  sourceData: text("source_data"), // JSON: engagement scores, tags that triggered
+  status: varchar("status", { length: 20 }).default("pending"), // pending | approved | rejected | executed
+  reviewedBy: varchar("reviewed_by", { length: 100 }),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
+  executedAt: timestamp("executed_at"),
+  executionResult: text("execution_result"), // JSON
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type ImeLinkageRule = typeof imeLinkageRules.$inferSelect;
+export type InsertImeLinkageRule = typeof imeLinkageRules.$inferInsert;
+export type ImeHrAction = typeof imeHrActions.$inferSelect;
+export type InsertImeHrAction = typeof imeHrActions.$inferInsert;

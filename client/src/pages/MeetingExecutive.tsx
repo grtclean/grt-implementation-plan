@@ -45,6 +45,8 @@ import {
   IntegrationSettingsTab,
   GamificationTab,
   FeedbackTab,
+  ComplianceTab,
+  HrPerformanceLinkageTab,
 } from "./meeting-executive";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -885,6 +887,8 @@ export default function MeetingExecutive() {
           <TabsTrigger value="integrations">集成设置</TabsTrigger>
           <TabsTrigger value="gamification">游戏化</TabsTrigger>
           <TabsTrigger value="feedback">反馈改进</TabsTrigger>
+          <TabsTrigger value="compliance">合规治理</TabsTrigger>
+          <TabsTrigger value="hr-linkage">HR绩效联动</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -981,6 +985,14 @@ export default function MeetingExecutive() {
 
         <TabsContent value="feedback">
           <FeedbackTab />
+        </TabsContent>
+
+        <TabsContent value="compliance">
+          <ComplianceTab />
+        </TabsContent>
+
+        <TabsContent value="hr-linkage">
+          <HrPerformanceLinkageTab />
         </TabsContent>
       </Tabs>
     </div>

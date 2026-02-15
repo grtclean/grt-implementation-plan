@@ -18,3 +18,5 @@ export { WorkflowCoachingTab } from "./WorkflowCoachingTab";
 export { IntegrationSettingsTab } from "./IntegrationSettingsTab";
 export { GamificationTab } from "./GamificationTab";
 export { FeedbackTab } from "./FeedbackTab";
+export { ComplianceTab } from "./ComplianceTab";
+export { HrPerformanceLinkageTab } from "./HrPerformanceLinkageTab";
