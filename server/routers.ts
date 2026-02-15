@@ -132,6 +132,9 @@ import { operationsIntelligenceRouter } from "./operations-intelligence/operatio
 // Phase F: HR与人才智能 (人才评估/培训推荐/薪酬分析/人力规划)
 import { hrIntelligenceRouter } from "./hr-intelligence/hrIntelligence.router";
 
+// Phase G: 销售与财务智能 (销售预测/客户流失/预算异常/成本优化)
+import { salesFinanceIntelligenceRouter } from "./sales-finance-intelligence/salesFinanceIntelligence.router";
+
 /**
  * This is the primary router for the tRPC API.
  * All application routes are registered here.
@@ -391,6 +394,9 @@ export const appRouter = router({
 
   // Phase F: HR与人才智能 (人才评估/培训推荐/薪酬分析/人力规划)
   hrIntelligence: hrIntelligenceRouter,
+
+  // Phase G: 销售与财务智能 (销售预测/客户流失/预算异常/成本优化)
+  salesFinanceIntelligence: salesFinanceIntelligenceRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {
