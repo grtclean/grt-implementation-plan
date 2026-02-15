@@ -299,6 +299,49 @@ const AICustomerChurn = React.lazy(() => import("./pages/AICustomerChurn"));
 const AIBudgetAnalysis = React.lazy(() => import("./pages/AIBudgetAnalysis"));
 const AICostOptimization = React.lazy(() => import("./pages/AICostOptimization"));
 
+// Phase H: 研发与客服智能 (需求分析/设计审查/故障诊断/预防维护)
+const AIRequirementsAnalysis = React.lazy(() => import("./pages/AIRequirementsAnalysis"));
+const AIDesignReview = React.lazy(() => import("./pages/AIDesignReview"));
+const AIFaultDiagnosis = React.lazy(() => import("./pages/AIFaultDiagnosis"));
+const AIMaintenancePlan = React.lazy(() => import("./pages/AIMaintenancePlan"));
+
+// Phase I: 区域合规与本地化 (CN劳动法/五险一金/认证/工作日/VAT/内容本地化)
+const CNLaborCompliance = React.lazy(() => import("./pages/CNLaborCompliance"));
+const AISocialInsurance = React.lazy(() => import("./pages/AISocialInsurance"));
+const RegionalCertificationTracker = React.lazy(() => import("./pages/RegionalCertificationTracker"));
+const WorkingDaysCalculator = React.lazy(() => import("./pages/WorkingDaysCalculator"));
+const AIVATCalculator = React.lazy(() => import("./pages/AIVATCalculator"));
+const AIContentLocalizer = React.lazy(() => import("./pages/AIContentLocalizer"));
+
+// Phase 21 P0: 清洁度质检/交接班/SOP工艺卡/客户报修
+const CleanlinessInspection = React.lazy(() => import("./pages/CleanlinessInspection"));
+const ShiftHandover = React.lazy(() => import("./pages/ShiftHandover"));
+const SOPProcessCardEditor = React.lazy(() => import("./pages/SOPProcessCardEditor"));
+const CustomerRepairPortal = React.lazy(() => import("./pages/CustomerRepairPortal"));
+
+// Phase 21 P1: 质量高级/生产高级/服务销售高级/工时对账
+const ProductCertificate = React.lazy(() => import("./pages/ProductCertificate"));
+const SPCControlCharts = React.lazy(() => import("./pages/SPCControlCharts"));
+const NCRWorkflow = React.lazy(() => import("./pages/NCRWorkflow"));
+const MaterialShortageAlert = React.lazy(() => import("./pages/MaterialShortageAlert"));
+const WorkstationRequisition = React.lazy(() => import("./pages/WorkstationRequisition"));
+const ProductionExceptionReport = React.lazy(() => import("./pages/ProductionExceptionReport"));
+const ProductionDailyReport = React.lazy(() => import("./pages/ProductionDailyReport"));
+const RemoteAssistance = React.lazy(() => import("./pages/RemoteAssistance"));
+const ServiceSLADashboard = React.lazy(() => import("./pages/ServiceSLADashboard"));
+const OpportunityConversion = React.lazy(() => import("./pages/OpportunityConversion"));
+const AfterSalesDesignFeedback = React.lazy(() => import("./pages/AfterSalesDesignFeedback"));
+const TimeReconciliationDashboard = React.lazy(() => import("./pages/TimeReconciliationDashboard"));
+
+// Phase 21 P2: 3D模型/工单→KB/NPS/评审→报价/质量月报/BOM冻结/QC验收
+const ModelViewer3D = React.lazy(() => import("./pages/ModelViewer3D"));
+const TicketToKnowledgeBase = React.lazy(() => import("./pages/TicketToKnowledgeBase"));
+const NPSSurveyAutomation = React.lazy(() => import("./pages/NPSSurveyAutomation"));
+const ReviewToQuotation = React.lazy(() => import("./pages/ReviewToQuotation"));
+const QualityMonthlyReport = React.lazy(() => import("./pages/QualityMonthlyReport"));
+const BOMFreezeAutomation = React.lazy(() => import("./pages/BOMFreezeAutomation"));
+const QCPassNotification = React.lazy(() => import("./pages/QCPassNotification"));
+
 // Protected route wrapper component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -1179,6 +1222,115 @@ function Router() {
       </Route>
       <Route path="/ai-cost-optimization">
         <ProtectedRoute component={AICostOptimization} />
+      </Route>
+
+      {/* Phase H: 研发与客服智能 */}
+      <Route path="/ai-requirements-analysis">
+        <ProtectedRoute component={AIRequirementsAnalysis} />
+      </Route>
+      <Route path="/ai-design-review">
+        <ProtectedRoute component={AIDesignReview} />
+      </Route>
+      <Route path="/ai-fault-diagnosis">
+        <ProtectedRoute component={AIFaultDiagnosis} />
+      </Route>
+      <Route path="/ai-maintenance-plan">
+        <ProtectedRoute component={AIMaintenancePlan} />
+      </Route>
+
+      {/* Phase 21 P0: 清洁度质检/交接班/SOP工艺卡/客户报修 */}
+      <Route path="/cleanliness-inspection">
+        <ProtectedRoute component={CleanlinessInspection} />
+      </Route>
+      <Route path="/shift-handover">
+        <ProtectedRoute component={ShiftHandover} />
+      </Route>
+      <Route path="/sop-process-card">
+        <ProtectedRoute component={SOPProcessCardEditor} />
+      </Route>
+      <Route path="/customer-repair">
+        <ProtectedRoute component={CustomerRepairPortal} />
+      </Route>
+
+      {/* Phase 21 P1: 质量高级/生产高级/服务销售高级/工时对账 */}
+      <Route path="/product-certificate">
+        <ProtectedRoute component={ProductCertificate} />
+      </Route>
+      <Route path="/spc-charts">
+        <ProtectedRoute component={SPCControlCharts} />
+      </Route>
+      <Route path="/ncr-workflow">
+        <ProtectedRoute component={NCRWorkflow} />
+      </Route>
+      <Route path="/material-shortage-alert">
+        <ProtectedRoute component={MaterialShortageAlert} />
+      </Route>
+      <Route path="/workstation-requisition">
+        <ProtectedRoute component={WorkstationRequisition} />
+      </Route>
+      <Route path="/production-exception-report">
+        <ProtectedRoute component={ProductionExceptionReport} />
+      </Route>
+      <Route path="/production-daily-report">
+        <ProtectedRoute component={ProductionDailyReport} />
+      </Route>
+      <Route path="/remote-assistance">
+        <ProtectedRoute component={RemoteAssistance} />
+      </Route>
+      <Route path="/service-sla">
+        <ProtectedRoute component={ServiceSLADashboard} />
+      </Route>
+      <Route path="/opportunity-conversion">
+        <ProtectedRoute component={OpportunityConversion} />
+      </Route>
+      <Route path="/aftersales-design-feedback">
+        <ProtectedRoute component={AfterSalesDesignFeedback} />
+      </Route>
+      <Route path="/time-reconciliation">
+        <ProtectedRoute component={TimeReconciliationDashboard} />
+      </Route>
+
+      {/* Phase 21 P2: 3D模型/工单→KB/NPS/评审→报价/质量月报/BOM冻结/QC验收 */}
+      <Route path="/model-viewer-3d">
+        <ProtectedRoute component={ModelViewer3D} />
+      </Route>
+      <Route path="/ticket-to-kb">
+        <ProtectedRoute component={TicketToKnowledgeBase} />
+      </Route>
+      <Route path="/nps-survey">
+        <ProtectedRoute component={NPSSurveyAutomation} />
+      </Route>
+      <Route path="/review-to-quotation">
+        <ProtectedRoute component={ReviewToQuotation} />
+      </Route>
+      <Route path="/quality-monthly-report">
+        <ProtectedRoute component={QualityMonthlyReport} />
+      </Route>
+      <Route path="/bom-freeze-automation">
+        <ProtectedRoute component={BOMFreezeAutomation} />
+      </Route>
+      <Route path="/qc-pass-notification">
+        <ProtectedRoute component={QCPassNotification} />
+      </Route>
+
+      {/* Phase I: 区域合规与本地化 */}
+      <Route path="/cn-labor-compliance">
+        <ProtectedRoute component={CNLaborCompliance} />
+      </Route>
+      <Route path="/ai-social-insurance">
+        <ProtectedRoute component={AISocialInsurance} />
+      </Route>
+      <Route path="/regional-certification">
+        <ProtectedRoute component={RegionalCertificationTracker} />
+      </Route>
+      <Route path="/working-days-calculator">
+        <ProtectedRoute component={WorkingDaysCalculator} />
+      </Route>
+      <Route path="/ai-vat-calculator">
+        <ProtectedRoute component={AIVATCalculator} />
+      </Route>
+      <Route path="/ai-content-localizer">
+        <ProtectedRoute component={AIContentLocalizer} />
       </Route>
 
       {/* Phase B: 代理职能 + 绩效薪资查询 */}

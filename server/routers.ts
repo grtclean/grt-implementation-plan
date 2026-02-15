@@ -135,6 +135,26 @@ import { hrIntelligenceRouter } from "./hr-intelligence/hrIntelligence.router";
 // Phase G: 销售与财务智能 (销售预测/客户流失/预算异常/成本优化)
 import { salesFinanceIntelligenceRouter } from "./sales-finance-intelligence/salesFinanceIntelligence.router";
 
+// Phase H: 研发与客服智能 (需求分析/设计审查/故障诊断/预防维护)
+import { rdServiceIntelligenceRouter } from "./rd-service-intelligence/rdServiceIntelligence.router";
+
+// Phase 21 P0: 清洁度质检/交接班/SOP工艺卡/客户报修
+import { cleanlinessQcRouter } from "./cleanliness-qc/cleanlinessQc.router";
+import { shiftHandoverRouter } from "./shift-handover/shiftHandover.router";
+import { sopEditorRouter } from "./sop-editor/sopEditor.router";
+import { customerRepairRouter } from "./customer-repair/customerRepair.router";
+
+// Phase 21 P1: 质量高级/生产高级/服务销售高级
+import { qualityAdvancedRouter } from "./quality-advanced/qualityAdvanced.router";
+import { productionAdvancedRouter } from "./production-advanced/productionAdvanced.router";
+import { serviceSalesAdvancedRouter } from "./service-sales-advanced/serviceSalesAdvanced.router";
+
+// Phase 21 P2: 工单→知识库/NPS/评审→报价/质量月报/BOM冻结/验收通知
+import { p2AutomationRouter } from "./p2-automation/p2Automation.router";
+
+// Phase I: 区域合规与本地化 (CN劳动法/五险一金/认证/工作日/VAT/本地化)
+import { regionalComplianceRouter } from "./regional-compliance/regionalCompliance.router";
+
 /**
  * This is the primary router for the tRPC API.
  * All application routes are registered here.
@@ -397,6 +417,26 @@ export const appRouter = router({
 
   // Phase G: 销售与财务智能 (销售预测/客户流失/预算异常/成本优化)
   salesFinanceIntelligence: salesFinanceIntelligenceRouter,
+
+  // Phase H: 研发与客服智能 (需求分析/设计审查/故障诊断/预防维护)
+  rdServiceIntelligence: rdServiceIntelligenceRouter,
+
+  // Phase 21 P0: 清洁度质检/交接班/SOP工艺卡/客户报修
+  cleanlinessQc: cleanlinessQcRouter,
+  shiftHandover: shiftHandoverRouter,
+  sopEditor: sopEditorRouter,
+  customerRepair: customerRepairRouter,
+
+  // Phase 21 P1: 质量高级/生产高级/服务销售高级
+  qualityAdvanced: qualityAdvancedRouter,
+  productionAdvanced: productionAdvancedRouter,
+  serviceSalesAdvanced: serviceSalesAdvancedRouter,
+
+  // Phase 21 P2: 工单→知识库/NPS/评审→报价/质量月报/BOM冻结/验收通知
+  p2Automation: p2AutomationRouter,
+
+  // Phase I: 区域合规与本地化
+  regionalCompliance: regionalComplianceRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {

@@ -9,7 +9,7 @@
  */
 
 // 支持的语言列表
-export const SUPPORTED_LANGUAGES = ['zh-CN', 'en-US', 'de-DE'] as const;
+export const SUPPORTED_LANGUAGES = ['zh-CN', 'en-US', 'de-DE', 'fr-FR'] as const;
 
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 
@@ -44,6 +44,13 @@ export const LANGUAGE_INFO: Record<SupportedLanguage, LanguageInfo> = {
     nativeName: 'Deutsch',
     direction: 'ltr',
     region: 'europe'
+  },
+  'fr-FR': {
+    code: 'fr-FR',
+    name: 'French',
+    nativeName: 'Français',
+    direction: 'ltr',
+    region: 'europe'
   }
 };
 
@@ -58,7 +65,10 @@ export const REGION_LANGUAGE_MAP: Record<string, SupportedLanguage> = {
   'CA': 'en-US',
   'DE': 'de-DE',
   'AT': 'de-DE',
-  'CH': 'de-DE'
+  'CH': 'de-DE',
+  'FR': 'fr-FR',
+  'BE': 'fr-FR',
+  'LU': 'fr-FR'
 };
 
 // 语言检测优先级
@@ -83,7 +93,7 @@ export interface AILanguageConfig {
 // 默认AI语言配置
 export const DEFAULT_AI_LANGUAGE_CONFIG: AILanguageConfig = {
   defaultLanguage: 'zh-CN',
-  supportedLanguages: ['zh-CN', 'en-US', 'de-DE'],
+  supportedLanguages: ['zh-CN', 'en-US', 'de-DE', 'fr-FR'],
   autoDetect: true,
   translationEnabled: true,
   translationEngine: 'built-in'
@@ -114,17 +124,26 @@ export function getLanguageDisplayName(
     'zh-CN': {
       'zh-CN': '简体中文',
       'en-US': '英语',
-      'de-DE': '德语'
+      'de-DE': '德语',
+      'fr-FR': '法语'
     },
     'en-US': {
       'zh-CN': 'Chinese',
       'en-US': 'English',
-      'de-DE': 'German'
+      'de-DE': 'German',
+      'fr-FR': 'French'
     },
     'de-DE': {
       'zh-CN': 'Chinesisch',
       'en-US': 'Englisch',
-      'de-DE': 'Deutsch'
+      'de-DE': 'Deutsch',
+      'fr-FR': 'Französisch'
+    },
+    'fr-FR': {
+      'zh-CN': 'Chinois',
+      'en-US': 'Anglais',
+      'de-DE': 'Allemand',
+      'fr-FR': 'Français'
     }
   };
   
@@ -146,7 +165,13 @@ export function detectLanguage(text: string): SupportedLanguage {
   if (germanRegex.test(text)) {
     return 'de-DE';
   }
-  
+
+  // 检测法语特殊字符
+  const frenchRegex = /[àâçéèêëïîôùûüÿœæÀÂÇÉÈÊËÏÎÔÙÛÜŸŒÆ]/;
+  if (frenchRegex.test(text)) {
+    return 'fr-FR';
+  }
+
   // 默认英语
   return 'en-US';
 }
@@ -177,6 +202,7 @@ export function selectAIResponseLanguage(
     const normalizedLocale = browserLocale.split('-')[0];
     if (normalizedLocale === 'zh') return 'zh-CN';
     if (normalizedLocale === 'de') return 'de-DE';
+    if (normalizedLocale === 'fr') return 'fr-FR';
     if (normalizedLocale === 'en') return 'en-US';
   }
   
@@ -212,6 +238,7 @@ export interface MultilingualText {
   'zh-CN': string;
   'en-US': string;
   'de-DE': string;
+  'fr-FR'?: string;
 }
 
 /**
@@ -230,12 +257,14 @@ export function getLocalizedText(
 export function createMultilingualText(
   zhCN: string,
   enUS: string,
-  deDE: string
+  deDE: string,
+  frFR?: string
 ): MultilingualText {
   return {
     'zh-CN': zhCN,
     'en-US': enUS,
-    'de-DE': deDE
+    'de-DE': deDE,
+    ...(frFR ? { 'fr-FR': frFR } : {}),
   };
 }
 
@@ -244,31 +273,37 @@ export const SYSTEM_MESSAGES = {
   welcome: createMultilingualText(
     '欢迎使用GRT智能系统',
     'Welcome to GRT Intelligent System',
-    'Willkommen beim GRT Intelligenten System'
+    'Willkommen beim GRT Intelligenten System',
+    'Bienvenue dans le système intelligent GRT'
   ),
   loginRequired: createMultilingualText(
     '请先登录以继续操作',
     'Please log in to continue',
-    'Bitte melden Sie sich an, um fortzufahren'
+    'Bitte melden Sie sich an, um fortzufahren',
+    'Veuillez vous connecter pour continuer'
   ),
   operationSuccess: createMultilingualText(
     '操作成功',
     'Operation successful',
-    'Vorgang erfolgreich'
+    'Vorgang erfolgreich',
+    'Opération réussie'
   ),
   operationFailed: createMultilingualText(
     '操作失败，请重试',
     'Operation failed, please try again',
-    'Vorgang fehlgeschlagen, bitte erneut versuchen'
+    'Vorgang fehlgeschlagen, bitte erneut versuchen',
+    'Opération échouée, veuillez réessayer'
   ),
   authenticationRequired: createMultilingualText(
     '需要认证才能访问此内容',
     'Authentication required to access this content',
-    'Authentifizierung erforderlich für diesen Inhalt'
+    'Authentifizierung erforderlich für diesen Inhalt',
+    'Authentification requise pour accéder à ce contenu'
   ),
   noPermission: createMultilingualText(
     '您没有权限执行此操作',
     'You do not have permission to perform this action',
-    'Sie haben keine Berechtigung für diese Aktion'
+    'Sie haben keine Berechtigung für diese Aktion',
+    'Vous n\'avez pas la permission d\'effectuer cette action'
   )
 };
