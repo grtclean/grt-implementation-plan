@@ -9,6 +9,7 @@ interface StatCardProps {
   trend?: { value: number; label: string };
   iconColor?: string;
   iconBg?: string;
+  loading?: boolean;
 }
 
 export function StatCard({

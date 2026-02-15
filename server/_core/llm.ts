@@ -56,7 +56,7 @@ export type ToolChoice =
   | ToolChoiceExplicit;
 
 export type InvokeParams = {
-  messages: Message[];
+  messages?: Message[];
   tools?: Tool[];
   toolChoice?: ToolChoice;
   tool_choice?: ToolChoice;
@@ -64,6 +64,12 @@ export type InvokeParams = {
   output_schema?: JsonSchema;
   responseFormat?: ResponseFormat;
   response_format?: ResponseFormat;
+  /** Convenience: system prompt (prepended as system message) */
+  system?: string;
+  /** Convenience: user prompt (appended as user message) */
+  prompt?: string;
+  /** Convenience: output JSON schema */
+  schema?: Record<string, unknown>;
 };
 
 export type JsonSchema = {
@@ -79,6 +85,8 @@ export type ResponseFormat =
 
 export type InvokeResult = {
   id?: string;
+  /** Shortcut: parsed content from first choice */
+  content?: string | null;
   choices: {
     message: {
       role: string;
@@ -235,6 +243,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   const {
     messages,
+    system,
+    prompt,
     tools,
     toolChoice,
     tool_choice,
@@ -246,9 +256,14 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   const provider = env.AI_PROVIDER?.toLowerCase() || "openai";
 
+  // Build messages array: support both explicit messages and system/prompt shorthand
+  const resolvedMessages: Message[] = messages ? [...messages] : [];
+  if (system) resolvedMessages.unshift({ role: "system", content: system });
+  if (prompt) resolvedMessages.push({ role: "user", content: prompt });
+
   const payload: Record<string, unknown> = {
     model: resolveModel(),
-    messages: messages.map(normalizeMessage),
+    messages: resolvedMessages.map(normalizeMessage),
   };
 
   if (tools && tools.length > 0) {
@@ -272,10 +287,15 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     };
   }
 
+  // Support schema shorthand from ime.service.ts callers
+  const resolvedSchema = params.schema
+    ? { name: "response", schema: params.schema, strict: true }
+    : undefined;
+
   const normalizedResponseFormat = normalizeResponseFormat({
     responseFormat,
     response_format,
-    outputSchema,
+    outputSchema: outputSchema || resolvedSchema,
     output_schema,
   });
 
@@ -306,5 +326,12 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     );
   }
 
-  return (await response.json()) as InvokeResult;
+  const result = (await response.json()) as InvokeResult;
+
+  // Populate content shortcut from first choice
+  if (!result.content && result.choices?.[0]?.message?.content) {
+    result.content = result.choices[0].message.content;
+  }
+
+  return result;
 }

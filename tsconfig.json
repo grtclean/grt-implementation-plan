@@ -4,6 +4,7 @@
   "compilerOptions": {
     "incremental": false,
     "noEmit": true,
+    "target": "ESNext",
     "module": "ESNext",
     "strict": false,
     "lib": ["esnext", "dom", "dom.iterable"],
