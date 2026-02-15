@@ -10883,3 +10883,60 @@ export type ImeCollaborationEdge = typeof imeCollaborationEdges.$inferSelect;
 export type InsertImeCollaborationEdge = typeof imeCollaborationEdges.$inferInsert;
 export type ImeMeetingNecessityScore = typeof imeMeetingNecessityScores.$inferSelect;
 export type InsertImeMeetingNecessityScore = typeof imeMeetingNecessityScores.$inferInsert;
+
+// ============================================================================
+// Phase 17: Meeting Load & Participant Well-being Intelligence
+// ============================================================================
+
+export const imeParticipantWorkload = pgTable("ime_participant_workload", {
+  id: serial("id").primaryKey(),
+  employeeId: varchar("employee_id", { length: 100 }).notNull(),
+  employeeName: varchar("employee_name", { length: 200 }).notNull(),
+  department: varchar("department", { length: 200 }),
+  periodType: varchar("period_type", { length: 20 }).notNull(), // daily | weekly | monthly
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  meetingCount: integer("meeting_count").default(0),
+  totalMeetingMinutes: integer("total_meeting_minutes").default(0),
+  avgMeetingDuration: integer("avg_meeting_duration").default(0),
+  maxMeetingDuration: integer("max_meeting_duration").default(0),
+  backToBackCount: integer("back_to_back_count").default(0),
+  backToBackRatio: integer("back_to_back_ratio").default(0), // 0-100
+  focusTimeMinutes: integer("focus_time_minutes").default(0),
+  meetingDensity: integer("meeting_density").default(0), // 0-100
+  longestFocusBlock: integer("longest_focus_block").default(0), // minutes
+  meetingsBeforeNoon: integer("meetings_before_noon").default(0),
+  meetingsAfterNoon: integer("meetings_after_noon").default(0),
+  uniqueCollaborators: integer("unique_collaborators").default(0),
+  loadScore: integer("load_score").default(0), // 0-100
+  riskLevel: varchar("risk_level", { length: 20 }).default("low"), // low | medium | high | critical
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeWellbeingAssessments = pgTable("ime_wellbeing_assessments", {
+  id: serial("id").primaryKey(),
+  employeeId: varchar("employee_id", { length: 100 }).notNull(),
+  employeeName: varchar("employee_name", { length: 200 }).notNull(),
+  department: varchar("department", { length: 200 }),
+  wellbeingScore: integer("wellbeing_score").default(0), // 0-100
+  wellbeingGrade: varchar("wellbeing_grade", { length: 2 }).default("C"), // A/B/C/D/F
+  meetingLoadDimension: integer("meeting_load_dimension").default(0), // 0-10
+  scheduleBalanceDimension: integer("schedule_balance_dimension").default(0), // 0-10
+  collaborationDiversityDimension: integer("collaboration_diversity_dimension").default(0), // 0-10
+  focusTimeDimension: integer("focus_time_dimension").default(0), // 0-10
+  meetingEfficiencyDimension: integer("meeting_efficiency_dimension").default(0), // 0-10
+  workloadTrendDimension: integer("workload_trend_dimension").default(0), // 0-10
+  riskFactors: text("risk_factors"), // JSON array
+  recommendations: text("recommendations"), // JSON array
+  aiNarrative: text("ai_narrative"),
+  assessedPeriodStart: timestamp("assessed_period_start"),
+  assessedPeriodEnd: timestamp("assessed_period_end"),
+  assessedAt: timestamp("assessed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type ImeParticipantWorkload = typeof imeParticipantWorkload.$inferSelect;
+export type InsertImeParticipantWorkload = typeof imeParticipantWorkload.$inferInsert;
+export type ImeWellbeingAssessment = typeof imeWellbeingAssessments.$inferSelect;
+export type InsertImeWellbeingAssessment = typeof imeWellbeingAssessments.$inferInsert;
