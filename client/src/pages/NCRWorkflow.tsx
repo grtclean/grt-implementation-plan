@@ -76,7 +76,7 @@ export default function NCRWorkflow() {
 
   // Mutation
   const mutation = trpc.qualityAdvanced.analyzeNCR.useMutation({
-    onSuccess: (data) => setResult(data as NCRResult),
+    onSuccess: (data) => setResult(data as unknown as NCRResult),
   });
 
   const handleSubmit = () => {

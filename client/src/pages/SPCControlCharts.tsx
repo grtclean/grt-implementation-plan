@@ -71,7 +71,7 @@ export default function SPCControlCharts() {
 
   // Mutation
   const mutation = trpc.qualityAdvanced.analyzeSPC.useMutation({
-    onSuccess: (data) => setResult(data as SPCResult),
+    onSuccess: (data) => setResult(data as unknown as SPCResult),
   });
 
   const handleSubmit = () => {
