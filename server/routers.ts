@@ -115,6 +115,8 @@ import { imeRouter } from "./ime/ime.router";
 import { dailyPlanRouter } from "./daily-plan/daily-plan.router";
 import { delegationRouter } from "./delegation/delegation.router";
 import { perfSalaryRouter } from "./perf-salary/perfSalary.router";
+import { customerTicketRouter } from "./customer-ticket/customerTicket.router";
+import { customerCommRouter } from "./customer-ticket/customerComm.router";
 
 // AI Assistant modules (Purchase, Quality, Service)
 import { purchaseAssistantRouter } from "./ai-assistants/purchaseRoutes";
@@ -284,6 +286,10 @@ export const appRouter = router({
   customerSolutionMeeting: customerSolutionMeetingRouter,
   taskNotification: webhookConfigRouter,
   caseLibrary: caseLibraryRouter,
+
+  // Phase C: 客户需求工单系统 + 沟通记录归档
+  customerTicket: customerTicketRouter,
+  customerComm: customerCommRouter,
 
   // M0-M12项目生命周期状态机
   lifecycle: lifecycleRouter,
