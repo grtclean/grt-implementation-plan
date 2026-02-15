@@ -10997,3 +10997,79 @@ export type ImeRecurringSeries = typeof imeRecurringSeries.$inferSelect;
 export type InsertImeRecurringSeries = typeof imeRecurringSeries.$inferInsert;
 export type ImeSeriesOptimizationOutcome = typeof imeSeriesOptimizationOutcomes.$inferSelect;
 export type InsertImeSeriesOptimizationOutcome = typeof imeSeriesOptimizationOutcomes.$inferInsert;
+
+// ============================================================================
+// Phase 19: Decision Effectiveness & Outcome Intelligence
+// ============================================================================
+
+export const imeDecisionTracking = pgTable("ime_decision_tracking", {
+  id: serial("id").primaryKey(),
+  decisionId: integer("decision_id"), // optional FK to ime_decision_outcomes.id
+  meetingId: varchar("meeting_id", { length: 36 }),
+  decisionText: text("decision_text"),
+  decisionMaker: varchar("decision_maker", { length: 200 }),
+  stakeholders: text("stakeholders"), // JSON array
+  department: varchar("department", { length: 200 }),
+  decisionDate: timestamp("decision_date"),
+  followThroughStatus: varchar("follow_through_status", { length: 20 }).default("pending"), // pending|in_progress|implemented|abandoned|reversed
+  implementationStartDate: timestamp("implementation_start_date"),
+  implementationEndDate: timestamp("implementation_end_date"),
+  decisionToStartDays: integer("decision_to_start_days"),
+  startToCompletionDays: integer("start_to_completion_days"),
+  totalVelocityDays: integer("total_velocity_days"),
+  velocityGrade: varchar("velocity_grade", { length: 2 }), // A/B/C/D/F
+  isReversed: integer("is_reversed").default(0), // 0 or 1
+  reversalMeetingId: varchar("reversal_meeting_id", { length: 36 }),
+  reversalDate: timestamp("reversal_date"),
+  reversalReason: text("reversal_reason"),
+  impactScore: integer("impact_score"), // -100 to +100
+  impactCategory: varchar("impact_category", { length: 20 }).default("neutral"), // positive|neutral|negative
+  businessOutcome: text("business_outcome"),
+  aiQualityScore: integer("ai_quality_score"), // 0-100
+  aiClarityScore: integer("ai_clarity_score"), // 0-100
+  aiAlignmentScore: integer("ai_alignment_score"), // 0-100
+  aiNarrative: text("ai_narrative"),
+  aiRecommendations: text("ai_recommendations"), // JSON array
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeDecisionIntelligenceSnapshots = pgTable("ime_decision_intelligence_snapshots", {
+  id: serial("id").primaryKey(),
+  scope: varchar("scope", { length: 20 }), // org|department|team|individual
+  scopeId: varchar("scope_id", { length: 200 }),
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+  totalDecisions: integer("total_decisions"),
+  implementedCount: integer("implemented_count"),
+  abandonedCount: integer("abandoned_count"),
+  reversedCount: integer("reversed_count"),
+  pendingCount: integer("pending_count"),
+  followThroughRate: integer("follow_through_rate"), // 0-100
+  reversalRate: integer("reversal_rate"), // 0-100
+  avgVelocityDays: integer("avg_velocity_days"),
+  medianVelocityDays: integer("median_velocity_days"),
+  fastestVelocityDays: integer("fastest_velocity_days"),
+  slowestVelocityDays: integer("slowest_velocity_days"),
+  velocityGrade: varchar("velocity_grade", { length: 2 }),
+  avgImpactScore: integer("avg_impact_score"), // -100 to +100
+  positiveImpactCount: integer("positive_impact_count"),
+  negativeImpactCount: integer("negative_impact_count"),
+  avgQualityScore: integer("avg_quality_score"), // 0-100
+  avgClarityScore: integer("avg_clarity_score"), // 0-100
+  avgAlignmentScore: integer("avg_alignment_score"), // 0-100
+  overallDecisionGrade: varchar("overall_decision_grade", { length: 2 }),
+  topBottlenecks: text("top_bottlenecks"), // JSON array
+  topReversalReasons: text("top_reversal_reasons"), // JSON array
+  aiNarrative: text("ai_narrative"),
+  trendVsPrevious: varchar("trend_vs_previous", { length: 20 }), // improving|stable|declining
+  trendSlope: integer("trend_slope"), // -100 to +100
+  recommendations: text("recommendations"), // JSON array
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type ImeDecisionTracking = typeof imeDecisionTracking.$inferSelect;
+export type InsertImeDecisionTracking = typeof imeDecisionTracking.$inferInsert;
+export type ImeDecisionIntelligenceSnapshot = typeof imeDecisionIntelligenceSnapshots.$inferSelect;
+export type InsertImeDecisionIntelligenceSnapshot = typeof imeDecisionIntelligenceSnapshots.$inferInsert;
