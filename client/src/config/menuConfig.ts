@@ -256,6 +256,10 @@ export const menuConfig: MenuGroup[] = [
       { name: "库存看板", nameEn: "Inventory Dashboard", path: "/inventory-dashboard", icon: Boxes, isNew: true },
       { name: "M8 FAT协调", nameEn: "M8 FAT Coordination", path: "/fat-coordination", icon: ClipboardCheck, isNew: true,
         allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "cs_engineer"] },
+      { name: "供应商评估", nameEn: "Supplier Assessment", path: "/supplier-assessment", icon: Truck, isNew: true },
+      { name: "库存优化", nameEn: "Inventory Optimization", path: "/inventory-optimization", icon: Package, isNew: true },
+      { name: "质量预测", nameEn: "Quality Prediction", path: "/quality-prediction", icon: Shield, isNew: true },
+      { name: "生产效率分析", nameEn: "Production Efficiency", path: "/production-efficiency", icon: TrendingUp, isNew: true },
     ],
   },
 

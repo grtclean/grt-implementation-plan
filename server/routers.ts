@@ -126,6 +126,9 @@ import { serviceAssistantRouter } from "./ai-assistants/serviceRoutes";
 // Phase D: AI项目智能 (知识问答/相似项目/变更影响/风险预测)
 import { projectIntelligenceRouter } from "./project-intelligence/projectIntelligence.router";
 
+// Phase E: 供应链与质量智能 (供应商评估/库存优化/质量预测/生产效率)
+import { operationsIntelligenceRouter } from "./operations-intelligence/operationsIntelligence.router";
+
 /**
  * This is the primary router for the tRPC API.
  * All application routes are registered here.
@@ -379,6 +382,9 @@ export const appRouter = router({
 
   // Phase D: AI项目智能 (知识问答/相似项目/变更影响/风险预测)
   projectIntelligence: projectIntelligenceRouter,
+
+  // Phase E: 供应链与质量智能 (供应商评估/库存优化/质量预测/生产效率)
+  operationsIntelligence: operationsIntelligenceRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {
