@@ -10940,3 +10940,60 @@ export type ImeParticipantWorkload = typeof imeParticipantWorkload.$inferSelect;
 export type InsertImeParticipantWorkload = typeof imeParticipantWorkload.$inferInsert;
 export type ImeWellbeingAssessment = typeof imeWellbeingAssessments.$inferSelect;
 export type InsertImeWellbeingAssessment = typeof imeWellbeingAssessments.$inferInsert;
+
+// ============================================================================
+// Phase 18: Recurring Meeting Value Assessment & Optimization
+// ============================================================================
+
+export const imeRecurringSeries = pgTable("ime_recurring_series", {
+  id: serial("id").primaryKey(),
+  seriesKey: varchar("series_key", { length: 200 }),
+  seriesTitle: varchar("series_title", { length: 300 }),
+  channelId: varchar("channel_id", { length: 100 }),
+  frequency: varchar("frequency", { length: 20 }), // daily|weekly|biweekly|monthly|irregular
+  detectedInterval: integer("detected_interval"),
+  firstOccurrence: timestamp("first_occurrence"),
+  lastOccurrence: timestamp("last_occurrence"),
+  occurrenceCount: integer("occurrence_count").default(0),
+  avgParticipantCount: integer("avg_participant_count").default(0),
+  coreParticipants: text("core_participants"), // JSON array of employee IDs present in >50% of meetings
+  avgEffectivenessScore: integer("avg_effectiveness_score").default(0), // 0-100
+  effectivenessTrend: varchar("effectiveness_trend", { length: 20 }), // improving|stable|declining|volatile
+  trendSlope: integer("trend_slope").default(0), // -100 to +100
+  avgRoiGrade: varchar("avg_roi_grade", { length: 2 }),
+  totalCumulativeCost: integer("total_cumulative_cost").default(0),
+  totalCumulativeMinutes: integer("total_cumulative_minutes").default(0),
+  valueScore: integer("value_score").default(0), // 0-100
+  valueGrade: varchar("value_grade", { length: 2 }), // A/B/C/D/F
+  recommendation: varchar("recommendation", { length: 30 }), // continue|shorten|reduce_frequency|merge|cancel
+  recommendationRationale: text("recommendation_rationale"),
+  aiNarrative: text("ai_narrative"),
+  meetingIds: text("meeting_ids"), // JSON array of all meeting IDs in series
+  status: varchar("status", { length: 20 }).default("active"), // active|optimized|cancelled
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeSeriesOptimizationOutcomes = pgTable("ime_series_optimization_outcomes", {
+  id: serial("id").primaryKey(),
+  seriesId: integer("series_id"),
+  seriesTitle: varchar("series_title", { length: 300 }),
+  actionTaken: varchar("action_taken", { length: 30 }), // cancelled|reduced_frequency|shortened|merged|no_change
+  actionDate: timestamp("action_date"),
+  preActionValueScore: integer("pre_action_value_score").default(0),
+  preActionEffectiveness: integer("pre_action_effectiveness").default(0),
+  preActionWeeklyMinutes: integer("pre_action_weekly_minutes").default(0),
+  postActionWeeklyMinutes: integer("post_action_weekly_minutes").default(0),
+  minutesSavedPerWeek: integer("minutes_saved_per_week").default(0),
+  costSavedPerWeek: integer("cost_saved_per_week").default(0),
+  teamSatisfactionDelta: integer("team_satisfaction_delta").default(0), // -100 to +100
+  productivityImpact: varchar("productivity_impact", { length: 20 }), // positive|neutral|negative
+  aiAssessment: text("ai_assessment"),
+  assessedAt: timestamp("assessed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type ImeRecurringSeries = typeof imeRecurringSeries.$inferSelect;
+export type InsertImeRecurringSeries = typeof imeRecurringSeries.$inferInsert;
+export type ImeSeriesOptimizationOutcome = typeof imeSeriesOptimizationOutcomes.$inferSelect;
+export type InsertImeSeriesOptimizationOutcome = typeof imeSeriesOptimizationOutcomes.$inferInsert;

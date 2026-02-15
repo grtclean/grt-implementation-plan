@@ -1598,4 +1598,89 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       return imeService.getTeamLoadSummary(input ?? {});
     }),
+
+  // ====== Phase 18: Recurring Meeting Value Assessment & Optimization ======
+
+  detectRecurringSeries: protectedProcedure
+    .input(z.object({
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .mutation(async ({ input }) => {
+      return imeService.detectRecurringSeries(input ?? {});
+    }),
+
+  recurringSeriesDashboard: protectedProcedure
+    .input(z.object({
+      frequency: z.string().optional(),
+      status: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getRecurringSeriesDashboard(input ?? {});
+    }),
+
+  recurringSeriesList: protectedProcedure
+    .input(z.object({
+      frequency: z.string().optional(),
+      valueGrade: z.string().optional(),
+      status: z.string().optional(),
+      effectivenessTrend: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getRecurringSeriesList(input ?? {});
+    }),
+
+  seriesValueTrend: protectedProcedure
+    .input(z.object({ seriesId: z.number() }))
+    .query(async ({ input }) => {
+      return imeService.getSeriesValueTrend(input.seriesId);
+    }),
+
+  seriesComparison: protectedProcedure
+    .input(z.object({
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getSeriesComparison(input ?? {});
+    }),
+
+  generateSeriesOptimization: protectedProcedure
+    .input(z.object({ seriesId: z.number() }))
+    .mutation(async ({ input }) => {
+      return imeService.generateSeriesOptimization(input.seriesId);
+    }),
+
+  batchGenerateOptimizations: protectedProcedure
+    .input(z.object({ seriesIds: z.array(z.number()) }))
+    .mutation(async ({ input }) => {
+      return imeService.batchGenerateOptimizations(input.seriesIds);
+    }),
+
+  recordOptimizationAction: protectedProcedure
+    .input(z.object({
+      seriesId: z.number(),
+      actionTaken: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.recordOptimizationAction(input.seriesId, input.actionTaken);
+    }),
+
+  optimizationOutcomes: protectedProcedure
+    .input(z.object({
+      actionTaken: z.string().optional(),
+      productivityImpact: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getOptimizationOutcomes(input ?? {});
+    }),
+
+  recurringMeetingSummary: protectedProcedure
+    .input(z.object({
+      status: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getRecurringMeetingSummary(input ?? {});
+    }),
 });
