@@ -10329,3 +10329,973 @@ export async function updateDecisionFollowThrough(
 
   return { success: true, id };
 }
+
+// ============================================================================
+// Phase 20: Analyze Meeting Agenda Structure
+// ============================================================================
+
+/**
+ * Analyze a meeting's agenda structure: extract items, map content blocks,
+ * compute time efficiency, engagement, and productivity per agenda item.
+ */
+export async function analyzeMeetingAgendaStructure(meetingId: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+
+  // Load meeting info + schedule agenda
+  const meetingRes = await db.execute(sql.raw(
+    `SELECT mr.id, mr.title, mr.objective, mr.summary, mr.meeting_date, ms.id as schedule_id, ms.agenda FROM meeting_records mr LEFT JOIN meeting_schedules ms ON (ms.title = mr.title AND DATE(ms.scheduled_date) = DATE(mr.meeting_date)) WHERE mr.id = '${safeId}' LIMIT 1`
+  ));
+  const meeting = (meetingRes.rows as any[])[0];
+  if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
+
+  // Load content blocks
+  const blocksRes = await db.execute(sql.raw(
+    `SELECT id, meeting_id, speaker, block_type, content, timestamp_start, timestamp_end, sort_order FROM meeting_content_blocks WHERE meeting_id = '${safeId}' ORDER BY sort_order ASC, timestamp_start ASC`
+  ));
+  const blocks = blocksRes.rows as any[];
+
+  const agendaText = meeting.agenda || "";
+  const blocksSummary = blocks.map((b: any) => ({
+    id: b.id,
+    speaker: b.speaker,
+    blockType: b.block_type,
+    content: String(b.content || "").substring(0, 200),
+    timestampStart: b.timestamp_start,
+    timestampEnd: b.timestamp_end,
+    sortOrder: b.sort_order,
+  }));
+
+  // Use LLM to analyze agenda structure
+  const llmResult = await invokeLLM({
+    messages: [
+      {
+        role: "system",
+        content: "You are a meeting agenda structure analyst. Analyze the agenda text, extract agenda items with planned durations, map content blocks to agenda items by timestamps and content similarity, and compute actual duration, overrun, engagement, and productivity per item. Return JSON only.",
+      },
+      {
+        role: "user",
+        content: `Meeting: "${meeting.title}"\nObjective: ${meeting.objective || "N/A"}\nSummary: ${(meeting.summary || "").substring(0, 500)}\n\nAgenda text:\n${agendaText || "(No formal agenda found)"}\n\nContent blocks (${blocks.length} total):\n${JSON.stringify(blocksSummary, null, 2)}\n\nExtract agenda items with planned durations from the agenda text. Map each content block to the most appropriate agenda item. Compute actual duration per item, overrun, engagement score (0-100), productivity score (0-100). If no formal agenda, infer items from content blocks.`,
+      },
+    ],
+    responseFormat: {
+      type: "json_schema",
+      json_schema: {
+        name: "agenda_structure_analysis",
+        schema: {
+          type: "object",
+          properties: {
+            agendaItems: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  index: { type: "number" },
+                  title: { type: "string" },
+                  category: { type: "string" },
+                  plannedDurationMinutes: { type: "number" },
+                  actualDurationMinutes: { type: "number" },
+                  overrunMinutes: { type: "number" },
+                  speakerCount: { type: "number" },
+                  dominantSpeaker: { type: "string" },
+                  dominantSpeakerPercent: { type: "number" },
+                  contentBlockIds: { type: "array", items: { type: "number" } },
+                  decisionsCount: { type: "number" },
+                  actionItemsCount: { type: "number" },
+                  engagementScore: { type: "number" },
+                  productivityScore: { type: "number" },
+                  aiSummary: { type: "string" },
+                  aiRecommendation: { type: "string" },
+                  wasSkipped: { type: "boolean" },
+                },
+                required: ["index", "title", "category", "plannedDurationMinutes", "actualDurationMinutes", "overrunMinutes", "speakerCount", "dominantSpeaker", "dominantSpeakerPercent", "contentBlockIds", "decisionsCount", "actionItemsCount", "engagementScore", "productivityScore", "aiSummary", "aiRecommendation", "wasSkipped"],
+                additionalProperties: false,
+              },
+            },
+            totalPlannedMinutes: { type: "number" },
+            totalActualMinutes: { type: "number" },
+            unplannedTimeMinutes: { type: "number" },
+          },
+          required: ["agendaItems", "totalPlannedMinutes", "totalActualMinutes", "unplannedTimeMinutes"],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    },
+  });
+
+  const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+  const agendaItems = parsed.agendaItems || [];
+  const totalPlanned = parsed.totalPlannedMinutes || 0;
+  const totalActual = parsed.totalActualMinutes || 0;
+
+  // Compute meeting-level efficiency
+  const meetingEfficiency = totalPlanned > 0
+    ? Math.min(100, Math.max(0, Math.round((1 - Math.abs(totalActual - totalPlanned) / totalPlanned) * 100)))
+    : 50;
+
+  // Delete existing analysis rows for this meeting
+  await db.execute(sql.raw(`DELETE FROM ime_meeting_structure_analysis WHERE meeting_id = '${safeId}'`));
+
+  // Insert each agenda item
+  for (const item of agendaItems) {
+    const planned = Number(item.plannedDurationMinutes) || 0;
+    const actual = Number(item.actualDurationMinutes) || 0;
+    const overrun = Number(item.overrunMinutes) || 0;
+    const overrunPercent = planned > 0 ? Math.round(((actual - planned) / planned) * 100) : 0;
+    const absOverrunPercent = Math.abs(overrunPercent);
+
+    let grade = "F";
+    if (absOverrunPercent < 5) grade = "A";
+    else if (absOverrunPercent < 15) grade = "B";
+    else if (absOverrunPercent < 30) grade = "C";
+    else if (absOverrunPercent < 50) grade = "D";
+
+    const safeTitle = String(item.title || "").replace(/'/g, "''");
+    const safeCategory = String(item.category || "other").replace(/'/g, "''");
+    const safeDominantSpeaker = String(item.dominantSpeaker || "").replace(/'/g, "''");
+    const safeBlockIds = JSON.stringify(item.contentBlockIds || []).replace(/'/g, "''");
+    const safeSummary = String(item.aiSummary || "").replace(/'/g, "''");
+    const safeRecommendation = String(item.aiRecommendation || "").replace(/'/g, "''");
+
+    await db.execute(sql.raw(`
+      INSERT INTO ime_meeting_structure_analysis (
+        meeting_id, agenda_item_index, agenda_item_title, agenda_item_category,
+        planned_duration_minutes, actual_duration_minutes, overrun_minutes, overrun_percent,
+        time_efficiency_grade, speaker_count, dominant_speaker, dominant_speaker_percent,
+        content_block_ids, decisions_count, action_items_count,
+        engagement_score, productivity_score, meeting_time_efficiency_score,
+        ai_summary, ai_recommendation, was_skipped, created_at
+      ) VALUES (
+        '${safeId}', ${Number(item.index) || 0}, '${safeTitle}', '${safeCategory}',
+        ${planned}, ${actual}, ${overrun}, ${overrunPercent},
+        '${grade}', ${Number(item.speakerCount) || 0}, '${safeDominantSpeaker}', ${Number(item.dominantSpeakerPercent) || 0},
+        '${safeBlockIds}', ${Number(item.decisionsCount) || 0}, ${Number(item.actionItemsCount) || 0},
+        ${Number(item.engagementScore) || 0}, ${Number(item.productivityScore) || 0}, ${meetingEfficiency},
+        '${safeSummary}', '${safeRecommendation}', ${item.wasSkipped ? 1 : 0}, NOW()
+      )
+    `));
+  }
+
+  return {
+    meetingId,
+    agendaItemsFound: agendaItems.length,
+    totalPlanned,
+    totalActual,
+    overallEfficiency: meetingEfficiency,
+  };
+}
+
+// ============================================================================
+// Phase 20: Batch Analyze Meeting Agenda
+// ============================================================================
+
+/**
+ * Batch analyze agenda structure for multiple meetings.
+ */
+export async function batchAnalyzeMeetingAgenda(meetingIds: string[]) {
+  const results: any[] = [];
+
+  for (const meetingId of meetingIds) {
+    try {
+      const result = await analyzeMeetingAgendaStructure(meetingId);
+      results.push({ meetingId, success: true, ...result });
+    } catch (e: any) {
+      results.push({ meetingId, success: false, error: e.message || String(e) });
+    }
+  }
+
+  return { results };
+}
+
+// ============================================================================
+// Phase 20: Get Time Allocation Breakdown
+// ============================================================================
+
+/**
+ * Get agenda time allocation breakdown for a single meeting.
+ */
+export async function getTimeAllocationBreakdown(meetingId: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+
+  const res = await db.execute(sql.raw(
+    `SELECT * FROM ime_meeting_structure_analysis WHERE meeting_id = '${safeId}' ORDER BY agenda_item_index ASC`
+  ));
+  const rows = res.rows as any[];
+
+  const items = rows.map((r: any) => ({
+    id: r.id,
+    meetingId: r.meeting_id,
+    agendaItemIndex: Number(r.agenda_item_index),
+    agendaItemTitle: r.agenda_item_title,
+    agendaItemCategory: r.agenda_item_category,
+    plannedDurationMinutes: Number(r.planned_duration_minutes) || 0,
+    actualDurationMinutes: Number(r.actual_duration_minutes) || 0,
+    overrunMinutes: Number(r.overrun_minutes) || 0,
+    overrunPercent: Number(r.overrun_percent) || 0,
+    timeEfficiencyGrade: r.time_efficiency_grade,
+    speakerCount: Number(r.speaker_count) || 0,
+    dominantSpeaker: r.dominant_speaker,
+    dominantSpeakerPercent: Number(r.dominant_speaker_percent) || 0,
+    contentBlockIds: r.content_block_ids,
+    decisionsCount: Number(r.decisions_count) || 0,
+    actionItemsCount: Number(r.action_items_count) || 0,
+    engagementScore: Number(r.engagement_score) || 0,
+    productivityScore: Number(r.productivity_score) || 0,
+    meetingTimeEfficiencyScore: Number(r.meeting_time_efficiency_score) || 0,
+    aiSummary: r.ai_summary,
+    aiRecommendation: r.ai_recommendation,
+    wasSkipped: !!r.was_skipped,
+  }));
+
+  // Compute summary
+  const totalPlanned = items.reduce((sum, i) => sum + i.plannedDurationMinutes, 0);
+  const totalActual = items.reduce((sum, i) => sum + i.actualDurationMinutes, 0);
+  const overrunMinutes = totalActual - totalPlanned;
+  const efficiency = totalPlanned > 0
+    ? Math.min(100, Math.max(0, Math.round((1 - Math.abs(totalActual - totalPlanned) / totalPlanned) * 100)))
+    : 50;
+
+  const absOverrunPercent = totalPlanned > 0 ? Math.abs(Math.round(((totalActual - totalPlanned) / totalPlanned) * 100)) : 0;
+  let grade = "F";
+  if (absOverrunPercent < 5) grade = "A";
+  else if (absOverrunPercent < 15) grade = "B";
+  else if (absOverrunPercent < 30) grade = "C";
+  else if (absOverrunPercent < 50) grade = "D";
+
+  return {
+    items,
+    summary: {
+      totalPlanned,
+      totalActual,
+      overrunMinutes,
+      efficiency,
+      grade,
+    },
+  };
+}
+
+// ============================================================================
+// Phase 20: Get Time Allocation Comparison
+// ============================================================================
+
+/**
+ * Compare time allocation efficiency across meetings.
+ */
+export async function getTimeAllocationComparison(options?: { department?: string; dateFrom?: string; dateTo?: string; limit?: number }) {
+  const db = await requireDb();
+
+  const department = options?.department ? options.department.replace(/'/g, "''") : "";
+  const dateFrom = options?.dateFrom || "";
+  const dateTo = options?.dateTo || "";
+  const limit = options?.limit || 50;
+
+  const res = await db.execute(sql.raw(`
+    SELECT msa.meeting_id, mr.title,
+      AVG(msa.meeting_time_efficiency_score) as efficiency,
+      AVG(msa.overrun_percent) as avg_overrun_percent,
+      COUNT(DISTINCT msa.id) as item_count
+    FROM ime_meeting_structure_analysis msa
+    JOIN meeting_records mr ON mr.id = msa.meeting_id
+    WHERE 1=1
+      ${department ? `AND mr.department = '${department}'` : ""}
+      ${dateFrom ? `AND mr.meeting_date >= '${dateFrom}'` : ""}
+      ${dateTo ? `AND mr.meeting_date <= '${dateTo}'` : ""}
+    GROUP BY msa.meeting_id, mr.title
+    ORDER BY efficiency DESC
+    LIMIT ${limit}
+  `));
+  const rows = res.rows as any[];
+
+  const meetings = rows.map((r: any) => ({
+    meetingId: r.meeting_id,
+    title: r.title,
+    efficiency: Math.round(Number(r.efficiency) || 0),
+    avgOverrunPercent: Math.round(Number(r.avg_overrun_percent) || 0),
+    itemCount: Number(r.item_count) || 0,
+  }));
+
+  const avgEfficiency = meetings.length > 0
+    ? Math.round(meetings.reduce((s, m) => s + m.efficiency, 0) / meetings.length)
+    : 0;
+  const bestMeeting = meetings.length > 0 ? meetings[0] : null;
+  const worstMeeting = meetings.length > 0 ? meetings[meetings.length - 1] : null;
+
+  return {
+    meetings,
+    avgEfficiency,
+    bestMeeting,
+    worstMeeting,
+  };
+}
+
+// ============================================================================
+// Phase 20: Detect Agenda Overrun Patterns
+// ============================================================================
+
+/**
+ * Detect recurring agenda item overrun patterns using LLM fuzzy-grouping.
+ */
+export async function detectAgendaOverrunPatterns(options?: { department?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  const department = options?.department ? options.department.replace(/'/g, "''") : "";
+  const dateFrom = options?.dateFrom || "";
+  const dateTo = options?.dateTo || "";
+
+  const res = await db.execute(sql.raw(`
+    SELECT agenda_item_title, agenda_item_category,
+      planned_duration_minutes, actual_duration_minutes, overrun_minutes, overrun_percent
+    FROM ime_meeting_structure_analysis msa
+    JOIN meeting_records mr ON mr.id = msa.meeting_id
+    WHERE was_skipped = 0
+      ${department ? `AND mr.department = '${department}'` : ""}
+      ${dateFrom ? `AND mr.meeting_date >= '${dateFrom}'` : ""}
+      ${dateTo ? `AND mr.meeting_date <= '${dateTo}'` : ""}
+    ORDER BY overrun_percent DESC
+  `));
+  const rows = res.rows as any[];
+
+  if (rows.length === 0) {
+    return { patterns: [], topOverrunners: [], recommendations: [] };
+  }
+
+  const rowsSummary = rows.map((r: any) => ({
+    title: r.agenda_item_title,
+    category: r.agenda_item_category,
+    planned: Number(r.planned_duration_minutes) || 0,
+    actual: Number(r.actual_duration_minutes) || 0,
+    overrunPercent: Number(r.overrun_percent) || 0,
+  }));
+
+  const llmResult = await invokeLLM({
+    messages: [
+      {
+        role: "system",
+        content: "You are a meeting time management analyst. Group similar agenda items by topic (fuzzy matching on titles), compute aggregate statistics, identify patterns, and provide recommendations. Return JSON only.",
+      },
+      {
+        role: "user",
+        content: `Agenda item overrun data (${rows.length} items):\n${JSON.stringify(rowsSummary, null, 2)}\n\nGroup similar agenda items by topic. For each group compute: occurrences, avgPlannedMinutes, avgActualMinutes, avgOverrunPercent, trend (improving/stable/worsening). Identify top overrunners and provide recommendations.`,
+      },
+    ],
+    responseFormat: {
+      type: "json_schema",
+      json_schema: {
+        name: "overrun_patterns",
+        schema: {
+          type: "object",
+          properties: {
+            patterns: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  topic: { type: "string" },
+                  occurrences: { type: "number" },
+                  avgPlannedMinutes: { type: "number" },
+                  avgActualMinutes: { type: "number" },
+                  avgOverrunPercent: { type: "number" },
+                  trend: { type: "string" },
+                },
+                required: ["topic", "occurrences", "avgPlannedMinutes", "avgActualMinutes", "avgOverrunPercent", "trend"],
+                additionalProperties: false,
+              },
+            },
+            topOverrunners: { type: "array", items: { type: "string" } },
+            recommendations: { type: "array", items: { type: "string" } },
+          },
+          required: ["patterns", "topOverrunners", "recommendations"],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    },
+  });
+
+  const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+
+  return {
+    patterns: parsed.patterns || [],
+    topOverrunners: parsed.topOverrunners || [],
+    recommendations: parsed.recommendations || [],
+  };
+}
+
+// ============================================================================
+// Phase 20: Detect Category Time Distribution
+// ============================================================================
+
+/**
+ * Get time distribution breakdown by agenda item category.
+ */
+export async function detectCategoryTimeDistribution(options?: { department?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  const department = options?.department ? options.department.replace(/'/g, "''") : "";
+  const dateFrom = options?.dateFrom || "";
+  const dateTo = options?.dateTo || "";
+
+  const res = await db.execute(sql.raw(`
+    SELECT agenda_item_category as category,
+      COUNT(*) as count,
+      AVG(actual_duration_minutes) as avg_duration,
+      AVG(CASE WHEN overrun_minutes > 0 THEN 1 ELSE 0 END) * 100 as overrun_rate,
+      AVG(productivity_score) as productivity_score
+    FROM ime_meeting_structure_analysis msa
+    JOIN meeting_records mr ON mr.id = msa.meeting_id
+    WHERE was_skipped = 0
+      ${department ? `AND mr.department = '${department}'` : ""}
+      ${dateFrom ? `AND mr.meeting_date >= '${dateFrom}'` : ""}
+      ${dateTo ? `AND mr.meeting_date <= '${dateTo}'` : ""}
+    GROUP BY agenda_item_category
+    ORDER BY count DESC
+  `));
+  const rows = res.rows as any[];
+
+  const categories = rows.map((r: any) => ({
+    category: r.category,
+    count: Number(r.count) || 0,
+    avgDuration: Math.round(Number(r.avg_duration) || 0),
+    overrunRate: Math.round(Number(r.overrun_rate) || 0),
+    productivityScore: Math.round(Number(r.productivity_score) || 0),
+  }));
+
+  return { categories };
+}
+
+// ============================================================================
+// Phase 20: Generate Agenda Optimization Recommendations
+// ============================================================================
+
+/**
+ * Use LLM to generate agenda optimization recommendations for a specific meeting.
+ */
+export async function generateAgendaOptimization(meetingId: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+
+  // Get analysis rows
+  const res = await db.execute(sql.raw(
+    `SELECT * FROM ime_meeting_structure_analysis WHERE meeting_id = '${safeId}' ORDER BY agenda_item_index ASC`
+  ));
+  const rows = res.rows as any[];
+
+  if (rows.length === 0) {
+    return { recommendations: [], optimalOrder: [], asyncCandidates: [], aiNarrative: "No agenda analysis data found for this meeting." };
+  }
+
+  const itemsSummary = rows.map((r: any) => ({
+    index: r.agenda_item_index,
+    title: r.agenda_item_title,
+    category: r.agenda_item_category,
+    planned: Number(r.planned_duration_minutes) || 0,
+    actual: Number(r.actual_duration_minutes) || 0,
+    overrunPercent: Number(r.overrun_percent) || 0,
+    engagement: Number(r.engagement_score) || 0,
+    productivity: Number(r.productivity_score) || 0,
+    decisions: Number(r.decisions_count) || 0,
+    actionItems: Number(r.action_items_count) || 0,
+    wasSkipped: !!r.was_skipped,
+  }));
+
+  const llmResult = await invokeLLM({
+    messages: [
+      {
+        role: "system",
+        content: "You are a meeting agenda optimization expert. Analyze agenda item performance data and recommend optimal ordering, time allocation adjustments, items to split or merge, and candidates for async handling. Return JSON only.",
+      },
+      {
+        role: "user",
+        content: `Meeting agenda items analysis:\n${JSON.stringify(itemsSummary, null, 2)}\n\nProvide:\n1. Recommendations for each item (suggested duration, rationale, priority high/medium/low)\n2. Optimal ordering of items\n3. Items that could be handled asynchronously\n4. A narrative summary of optimization advice`,
+      },
+    ],
+    responseFormat: {
+      type: "json_schema",
+      json_schema: {
+        name: "agenda_optimization",
+        schema: {
+          type: "object",
+          properties: {
+            recommendations: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  itemTitle: { type: "string" },
+                  suggestedDuration: { type: "number" },
+                  currentDuration: { type: "number" },
+                  rationale: { type: "string" },
+                  priority: { type: "string" },
+                },
+                required: ["itemTitle", "suggestedDuration", "currentDuration", "rationale", "priority"],
+                additionalProperties: false,
+              },
+            },
+            optimalOrder: { type: "array", items: { type: "string" } },
+            asyncCandidates: { type: "array", items: { type: "string" } },
+            aiNarrative: { type: "string" },
+          },
+          required: ["recommendations", "optimalOrder", "asyncCandidates", "aiNarrative"],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    },
+  });
+
+  const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+
+  return {
+    recommendations: parsed.recommendations || [],
+    optimalOrder: parsed.optimalOrder || [],
+    asyncCandidates: parsed.asyncCandidates || [],
+    aiNarrative: parsed.aiNarrative || "",
+  };
+}
+
+// ============================================================================
+// Phase 20: Compute Agenda Intelligence Snapshot
+// ============================================================================
+
+/**
+ * Aggregate agenda structure analysis into a snapshot for a given scope/period.
+ */
+export async function computeAgendaIntelligenceSnapshot(
+  scope: string,
+  scopeId?: string,
+  dateFrom?: string,
+  dateTo?: string,
+) {
+  const db = await requireDb();
+
+  let where = "1=1";
+  if (scope === "department" && scopeId) {
+    where += ` AND mr.department = '${scopeId.replace(/'/g, "''")}'`;
+  } else if ((scope === "team" || scope === "individual") && scopeId) {
+    where += ` AND mr.organizer = '${scopeId.replace(/'/g, "''")}'`;
+  }
+  if (dateFrom) where += ` AND mr.meeting_date >= '${dateFrom}'`;
+  if (dateTo) where += ` AND mr.meeting_date <= '${dateTo}'`;
+
+  // Aggregate
+  const aggRes = await db.execute(sql.raw(`
+    SELECT COUNT(DISTINCT msa.meeting_id) as total_meetings,
+      COUNT(*) as total_items,
+      AVG(msa.planned_duration_minutes) as avg_planned,
+      AVG(msa.actual_duration_minutes) as avg_actual,
+      AVG(msa.overrun_minutes) as avg_overrun,
+      AVG(msa.overrun_percent) as avg_overrun_pct,
+      AVG(CASE WHEN msa.overrun_minutes > 0 THEN 1 ELSE 0 END) * 100 as overrun_rate,
+      AVG(CASE WHEN msa.overrun_minutes < 0 THEN 1 ELSE 0 END) * 100 as underrun_rate,
+      AVG(CASE WHEN msa.was_skipped = 1 THEN 1 ELSE 0 END) * 100 as skipped_rate,
+      AVG(msa.engagement_score) as avg_engagement,
+      AVG(msa.productivity_score) as avg_productivity,
+      AVG(msa.meeting_time_efficiency_score) as avg_efficiency
+    FROM ime_meeting_structure_analysis msa
+    JOIN meeting_records mr ON mr.id = msa.meeting_id
+    WHERE ${where}
+  `));
+  const stats = (aggRes.rows as any[])[0] || {};
+
+  const totalMeetings = Number(stats.total_meetings) || 0;
+  const totalItems = Number(stats.total_items) || 0;
+  const avgPlanned = Math.round(Number(stats.avg_planned) || 0);
+  const avgActual = Math.round(Number(stats.avg_actual) || 0);
+  const avgOverrun = Math.round(Number(stats.avg_overrun) || 0);
+  const avgOverrunPct = Math.round(Number(stats.avg_overrun_pct) || 0);
+  const overrunRate = Math.round(Number(stats.overrun_rate) || 0);
+  const underrunRate = Math.round(Number(stats.underrun_rate) || 0);
+  const skippedRate = Math.round(Number(stats.skipped_rate) || 0);
+  const avgEngagement = Math.round(Number(stats.avg_engagement) || 0);
+  const avgProductivity = Math.round(Number(stats.avg_productivity) || 0);
+  const avgEfficiency = Math.round(Number(stats.avg_efficiency) || 0);
+
+  // Overall grade
+  const absOverrunPct = Math.abs(avgOverrunPct);
+  let overallGrade = "F";
+  if (absOverrunPct < 5) overallGrade = "A";
+  else if (absOverrunPct < 15) overallGrade = "B";
+  else if (absOverrunPct < 30) overallGrade = "C";
+  else if (absOverrunPct < 50) overallGrade = "D";
+
+  // Previous snapshot for trend comparison
+  const safeScopeId = (scopeId || "").replace(/'/g, "''");
+  const prevRes = await db.execute(sql.raw(`
+    SELECT avg_efficiency, avg_overrun_pct, overall_grade
+    FROM ime_agenda_intelligence_snapshots
+    WHERE scope = '${scope.replace(/'/g, "''")}'
+      AND (scope_id = '${safeScopeId}' OR (scope_id IS NULL AND '${safeScopeId}' = ''))
+    ORDER BY computed_at DESC
+    LIMIT 1
+  `));
+  const prevSnapshot = (prevRes.rows as any[])[0];
+  let trendVsPrevious = "stable";
+  let trendSlope = 0;
+  if (prevSnapshot) {
+    const prevEfficiency = Number(prevSnapshot.avg_efficiency) || 0;
+    trendSlope = avgEfficiency - prevEfficiency;
+    if (trendSlope > 5) trendVsPrevious = "improving";
+    else if (trendSlope < -5) trendVsPrevious = "declining";
+  }
+
+  // LLM narrative + recommendations
+  let aiNarrative = "";
+  let recommendations = "[]";
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "You are an agenda intelligence analyst. Generate a concise narrative summarizing agenda time management performance and provide actionable recommendations for improvement.",
+        },
+        {
+          role: "user",
+          content: `Scope: ${scope}${scopeId ? ` (${scopeId})` : ""}\nTotal meetings: ${totalMeetings}\nTotal agenda items: ${totalItems}\nAvg planned: ${avgPlanned} min, Avg actual: ${avgActual} min\nAvg overrun: ${avgOverrun} min (${avgOverrunPct}%)\nOverrun rate: ${overrunRate}%, Underrun rate: ${underrunRate}%, Skipped rate: ${skippedRate}%\nAvg engagement: ${avgEngagement}, Avg productivity: ${avgProductivity}\nAvg efficiency: ${avgEfficiency}\nOverall grade: ${overallGrade}\nTrend: ${trendVsPrevious}`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "agenda_snapshot_narrative",
+          schema: {
+            type: "object",
+            properties: {
+              narrative: { type: "string" },
+              recommendations: { type: "array", items: { type: "string" } },
+            },
+            required: ["narrative", "recommendations"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+    const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+    aiNarrative = parsed.narrative || "";
+    recommendations = JSON.stringify(parsed.recommendations || []);
+  } catch (e) {
+    aiNarrative = "Narrative generation unavailable.";
+    recommendations = "[]";
+  }
+
+  const periodStart = dateFrom || new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+  const periodEnd = dateTo || new Date().toISOString().split("T")[0];
+
+  // Delete existing snapshot for same scope/period
+  await db.execute(sql.raw(`
+    DELETE FROM ime_agenda_intelligence_snapshots
+    WHERE scope = '${scope.replace(/'/g, "''")}'
+      AND (scope_id = '${safeScopeId}' OR (scope_id IS NULL AND '${safeScopeId}' = ''))
+      AND period_start = '${periodStart}'
+      AND period_end = '${periodEnd}'
+  `));
+
+  // Insert new snapshot
+  await db.execute(sql.raw(`
+    INSERT INTO ime_agenda_intelligence_snapshots (
+      scope, scope_id, period_start, period_end,
+      total_meetings, total_items,
+      avg_planned, avg_actual, avg_overrun, avg_overrun_pct,
+      overrun_rate, underrun_rate, skipped_rate,
+      avg_engagement, avg_productivity, avg_efficiency,
+      overall_grade, ai_narrative, trend_vs_previous, trend_slope, recommendations,
+      computed_at, created_at
+    ) VALUES (
+      '${scope.replace(/'/g, "''")}', ${safeScopeId ? `'${safeScopeId}'` : "NULL"}, '${periodStart}', '${periodEnd}',
+      ${totalMeetings}, ${totalItems},
+      ${avgPlanned}, ${avgActual}, ${avgOverrun}, ${avgOverrunPct},
+      ${overrunRate}, ${underrunRate}, ${skippedRate},
+      ${avgEngagement}, ${avgProductivity}, ${avgEfficiency},
+      '${overallGrade}', '${aiNarrative.replace(/'/g, "''")}', '${trendVsPrevious}', ${trendSlope}, '${recommendations.replace(/'/g, "''")}',
+      NOW(), NOW()
+    )
+  `));
+
+  return {
+    success: true,
+    scope,
+    scopeId: scopeId || null,
+    snapshot: {
+      periodStart,
+      periodEnd,
+      totalMeetings,
+      totalItems,
+      avgPlanned,
+      avgActual,
+      avgOverrun,
+      avgOverrunPct,
+      overrunRate,
+      underrunRate,
+      skippedRate,
+      avgEngagement,
+      avgProductivity,
+      avgEfficiency,
+      overallGrade,
+      aiNarrative,
+      trendVsPrevious,
+      trendSlope,
+      recommendations: JSON.parse(recommendations),
+    },
+  };
+}
+
+// ============================================================================
+// Phase 20: Agenda Dashboard (Simple Aggregate)
+// ============================================================================
+
+/**
+ * Get a simple aggregate dashboard for agenda time management.
+ */
+export async function getAgendaDashboard(filters?: { department?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  const department = filters?.department ? filters.department.replace(/'/g, "''") : "";
+  const dateFrom = filters?.dateFrom || "";
+  const dateTo = filters?.dateTo || "";
+
+  const res = await db.execute(sql.raw(`
+    SELECT COUNT(DISTINCT msa.meeting_id) as total_meetings,
+      AVG(msa.meeting_time_efficiency_score) as avg_efficiency,
+      AVG(msa.overrun_percent) as avg_overrun,
+      COUNT(*) / NULLIF(COUNT(DISTINCT msa.meeting_id), 0) as avg_items,
+      AVG(CASE WHEN msa.was_skipped = 1 THEN 1 ELSE 0 END) * 100 as skipped_rate
+    FROM ime_meeting_structure_analysis msa
+    JOIN meeting_records mr ON mr.id = msa.meeting_id
+    WHERE 1=1
+      ${department ? `AND mr.department = '${department}'` : ""}
+      ${dateFrom ? `AND mr.meeting_date >= '${dateFrom}'` : ""}
+      ${dateTo ? `AND mr.meeting_date <= '${dateTo}'` : ""}
+  `));
+  const stats = (res.rows as any[])[0] || {};
+
+  // Top overrun category
+  const catRes = await db.execute(sql.raw(`
+    SELECT agenda_item_category, AVG(overrun_percent) as avg_overrun
+    FROM ime_meeting_structure_analysis msa
+    JOIN meeting_records mr ON mr.id = msa.meeting_id
+    WHERE msa.was_skipped = 0 AND msa.overrun_percent > 0
+      ${department ? `AND mr.department = '${department}'` : ""}
+      ${dateFrom ? `AND mr.meeting_date >= '${dateFrom}'` : ""}
+      ${dateTo ? `AND mr.meeting_date <= '${dateTo}'` : ""}
+    GROUP BY agenda_item_category
+    ORDER BY avg_overrun DESC
+    LIMIT 1
+  `));
+  const topCat = (catRes.rows as any[])[0];
+
+  return {
+    totalMeetingsAnalyzed: Number(stats.total_meetings) || 0,
+    avgEfficiencyScore: Math.round(Number(stats.avg_efficiency) || 0),
+    avgOverrunPercent: Math.round(Number(stats.avg_overrun) || 0),
+    topOverrunCategory: topCat ? topCat.agenda_item_category : null,
+    avgAgendaItems: Math.round(Number(stats.avg_items) || 0),
+    skippedRate: Math.round(Number(stats.skipped_rate) || 0),
+  };
+}
+
+// ============================================================================
+// Phase 20: Agenda Analysis List (Paginated)
+// ============================================================================
+
+/**
+ * Get a paginated list of meeting agenda analyses (grouped by meeting).
+ */
+export async function getAgendaAnalysisList(options?: {
+  limit?: number;
+  offset?: number;
+  grade?: string;
+  department?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const db = await requireDb();
+
+  const limit = options?.limit || 20;
+  const offset = options?.offset || 0;
+  const grade = options?.grade ? options.grade.replace(/'/g, "''") : "";
+  const department = options?.department ? options.department.replace(/'/g, "''") : "";
+  const dateFrom = options?.dateFrom || "";
+  const dateTo = options?.dateTo || "";
+
+  let where = "1=1";
+  if (grade) where += ` AND MIN(msa.time_efficiency_grade) = '${grade}'`;
+  if (department) where += ` AND mr.department = '${department}'`;
+  if (dateFrom) where += ` AND mr.meeting_date >= '${dateFrom}'`;
+  if (dateTo) where += ` AND mr.meeting_date <= '${dateTo}'`;
+
+  // Build pre-group filters (WHERE) and post-group filters (HAVING)
+  let preWhere = "1=1";
+  let having = "";
+  if (department) preWhere += ` AND mr.department = '${department}'`;
+  if (dateFrom) preWhere += ` AND mr.meeting_date >= '${dateFrom}'`;
+  if (dateTo) preWhere += ` AND mr.meeting_date <= '${dateTo}'`;
+  if (grade) having = `HAVING MIN(msa.time_efficiency_grade) = '${grade}'`;
+
+  const res = await db.execute(sql.raw(`
+    SELECT msa.meeting_id, mr.title as meeting_title, mr.meeting_date,
+      COUNT(*) as agenda_items_count,
+      SUM(msa.planned_duration_minutes) as total_planned,
+      SUM(msa.actual_duration_minutes) as total_actual,
+      AVG(msa.overrun_percent) as avg_overrun_percent,
+      AVG(msa.meeting_time_efficiency_score) as efficiency_score,
+      MIN(msa.time_efficiency_grade) as grade
+    FROM ime_meeting_structure_analysis msa
+    JOIN meeting_records mr ON mr.id = msa.meeting_id
+    WHERE ${preWhere}
+    GROUP BY msa.meeting_id, mr.title, mr.meeting_date
+    ${having}
+    ORDER BY msa.meeting_id DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `));
+  const rows = res.rows as any[];
+
+  // Total count
+  const countRes = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total FROM (
+      SELECT msa.meeting_id
+      FROM ime_meeting_structure_analysis msa
+      JOIN meeting_records mr ON mr.id = msa.meeting_id
+      WHERE ${preWhere}
+      GROUP BY msa.meeting_id
+      ${having}
+    ) sub
+  `));
+  const total = Number((countRes.rows as any[])[0]?.total) || 0;
+
+  const mappedRows = rows.map((r: any) => ({
+    meetingId: r.meeting_id,
+    meetingTitle: r.meeting_title,
+    meetingDate: r.meeting_date,
+    agendaItemsCount: Number(r.agenda_items_count) || 0,
+    totalPlanned: Number(r.total_planned) || 0,
+    totalActual: Number(r.total_actual) || 0,
+    avgOverrunPercent: Math.round(Number(r.avg_overrun_percent) || 0),
+    efficiencyScore: Math.round(Number(r.efficiency_score) || 0),
+    grade: r.grade,
+  }));
+
+  return { rows: mappedRows, total, limit, offset };
+}
+
+// ============================================================================
+// Phase 20: Agenda Trend Data
+// ============================================================================
+
+/**
+ * Get trend data from agenda intelligence snapshots.
+ */
+export async function getAgendaTrendData(options?: { scope?: string; scopeId?: string; limit?: number }) {
+  const db = await requireDb();
+
+  const scope = options?.scope ? options.scope.replace(/'/g, "''") : "";
+  const scopeId = options?.scopeId ? options.scopeId.replace(/'/g, "''") : "";
+  const limit = options?.limit || 20;
+
+  const res = await db.execute(sql.raw(`
+    SELECT * FROM ime_agenda_intelligence_snapshots
+    WHERE 1=1
+      ${scope ? `AND scope = '${scope}'` : ""}
+      ${scopeId ? `AND scope_id = '${scopeId}'` : ""}
+    ORDER BY period_end DESC
+    LIMIT ${limit}
+  `));
+  const rows = res.rows as any[];
+
+  const mapped = rows.map((r: any) => ({
+    id: r.id,
+    scope: r.scope,
+    scopeId: r.scope_id,
+    periodStart: r.period_start,
+    periodEnd: r.period_end,
+    totalMeetings: Number(r.total_meetings) || 0,
+    totalItems: Number(r.total_items) || 0,
+    avgPlanned: Number(r.avg_planned) || 0,
+    avgActual: Number(r.avg_actual) || 0,
+    avgOverrun: Number(r.avg_overrun) || 0,
+    avgOverrunPct: Number(r.avg_overrun_pct) || 0,
+    overrunRate: Number(r.overrun_rate) || 0,
+    underrunRate: Number(r.underrun_rate) || 0,
+    skippedRate: Number(r.skipped_rate) || 0,
+    avgEngagement: Number(r.avg_engagement) || 0,
+    avgProductivity: Number(r.avg_productivity) || 0,
+    avgEfficiency: Number(r.avg_efficiency) || 0,
+    overallGrade: r.overall_grade,
+    aiNarrative: r.ai_narrative,
+    trendVsPrevious: r.trend_vs_previous,
+    trendSlope: Number(r.trend_slope) || 0,
+    recommendations: r.recommendations,
+    computedAt: r.computed_at,
+  }));
+
+  return mapped;
+}
+
+// ============================================================================
+// Phase 20: Update Agenda Item Analysis
+// ============================================================================
+
+/**
+ * Manually update fields on an agenda item analysis row. Recomputes overrun/grade if durations change.
+ */
+export async function updateAgendaItemAnalysis(
+  id: number,
+  updates: { plannedDurationMinutes?: number; actualDurationMinutes?: number; agendaItemCategory?: string; agendaItemTitle?: string },
+) {
+  const db = await requireDb();
+
+  const setClauses: string[] = [];
+
+  if (updates.agendaItemTitle !== undefined) {
+    setClauses.push(`agenda_item_title = '${String(updates.agendaItemTitle).replace(/'/g, "''")}'`);
+  }
+  if (updates.agendaItemCategory !== undefined) {
+    setClauses.push(`agenda_item_category = '${String(updates.agendaItemCategory).replace(/'/g, "''")}'`);
+  }
+
+  if (updates.plannedDurationMinutes !== undefined) {
+    setClauses.push(`planned_duration_minutes = ${Number(updates.plannedDurationMinutes) || 0}`);
+  }
+  if (updates.actualDurationMinutes !== undefined) {
+    setClauses.push(`actual_duration_minutes = ${Number(updates.actualDurationMinutes) || 0}`);
+  }
+
+  // Recompute overrun/grade if both durations are being set, or either is set
+  if (updates.plannedDurationMinutes !== undefined || updates.actualDurationMinutes !== undefined) {
+    // Need current values for the field not being updated
+    const currentRes = await db.execute(sql.raw(
+      `SELECT planned_duration_minutes, actual_duration_minutes FROM ime_meeting_structure_analysis WHERE id = ${id} LIMIT 1`
+    ));
+    const current = (currentRes.rows as any[])[0];
+    if (!current) throw new Error(`Agenda item analysis ${id} not found`);
+
+    const planned = updates.plannedDurationMinutes !== undefined ? Number(updates.plannedDurationMinutes) : Number(current.planned_duration_minutes) || 0;
+    const actual = updates.actualDurationMinutes !== undefined ? Number(updates.actualDurationMinutes) : Number(current.actual_duration_minutes) || 0;
+    const overrun = actual - planned;
+    const overrunPercent = planned > 0 ? Math.round(((actual - planned) / planned) * 100) : 0;
+    const absOverrunPercent = Math.abs(overrunPercent);
+
+    let grade = "F";
+    if (absOverrunPercent < 5) grade = "A";
+    else if (absOverrunPercent < 15) grade = "B";
+    else if (absOverrunPercent < 30) grade = "C";
+    else if (absOverrunPercent < 50) grade = "D";
+
+    setClauses.push(`overrun_minutes = ${overrun}`);
+    setClauses.push(`overrun_percent = ${overrunPercent}`);
+    setClauses.push(`time_efficiency_grade = '${grade}'`);
+  }
+
+  if (setClauses.length === 0) {
+    return { success: true, id, message: "No updates provided" };
+  }
+
+  await db.execute(sql.raw(`
+    UPDATE ime_meeting_structure_analysis
+    SET ${setClauses.join(", ")}
+    WHERE id = ${id}
+  `));
+
+  return { success: true, id };
+}
