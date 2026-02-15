@@ -1904,4 +1904,122 @@ export const imeRouter = router({
     .mutation(async ({ input }) => {
       return imeService.updateAgendaItemAnalysis(input.id, input);
     }),
+
+  // ===========================================================================
+  // Phase 21: Facilitator Effectiveness Intelligence
+  // ===========================================================================
+
+  analyzeMeetingFacilitator: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.analyzeMeetingFacilitator(input.meetingId);
+    }),
+
+  batchAnalyzeFacilitators: protectedProcedure
+    .input(z.object({ meetingIds: z.array(z.string()) }))
+    .mutation(async ({ input }) => {
+      return imeService.batchAnalyzeFacilitators(input.meetingIds);
+    }),
+
+  facilitatorProfile: protectedProcedure
+    .input(z.object({ facilitatorId: z.string() }))
+    .query(async ({ input }) => {
+      return imeService.getFacilitatorProfile(input.facilitatorId);
+    }),
+
+  facilitatorComparison: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getFacilitatorComparison(input ?? {});
+    }),
+
+  facilitationPatterns: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.detectFacilitationPatterns(input ?? {});
+    }),
+
+  facilitatorStyles: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.classifyFacilitatorStyles(input ?? {});
+    }),
+
+  generateFacilitatorCoaching: protectedProcedure
+    .input(z.object({ facilitatorId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.generateFacilitatorCoaching(input.facilitatorId);
+    }),
+
+  computeFacilitatorSnapshot: protectedProcedure
+    .input(z.object({
+      scope: z.string(),
+      scopeId: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.computeFacilitatorSnapshot(input.scope, input.scopeId, input.dateFrom, input.dateTo);
+    }),
+
+  facilitatorDashboard: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getFacilitatorDashboard(input ?? {});
+    }),
+
+  facilitatorAnalysisList: protectedProcedure
+    .input(z.object({
+      limit: z.number().optional(),
+      offset: z.number().optional(),
+      grade: z.string().optional(),
+      department: z.string().optional(),
+      facilitatorId: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getFacilitatorAnalysisList(input ?? {});
+    }),
+
+  facilitatorTrendData: protectedProcedure
+    .input(z.object({
+      scope: z.string().optional(),
+      scopeId: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getFacilitatorTrendData(input ?? {});
+    }),
+
+  updateFacilitatorAnalysis: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      facilitatorName: z.string().optional(),
+      facilitationStyle: z.string().optional(),
+      engagementImpactScore: z.number().optional(),
+      decisionFacilitationScore: z.number().optional(),
+      timeManagementScore: z.number().optional(),
+      inclusivityScore: z.number().optional(),
+      clarityScore: z.number().optional(),
+      conflictResolutionScore: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.updateFacilitatorAnalysis(input.id, input);
+    }),
 });

@@ -26,3 +26,4 @@ export { MeetingLoadWellbeingTab } from "./MeetingLoadWellbeingTab";
 export { RecurringMeetingValueTab } from "./RecurringMeetingValueTab";
 export { DecisionEffectivenessTab } from "./DecisionEffectivenessTab";
 export { AgendaTimeAllocationTab } from "./AgendaTimeAllocationTab";
+export { FacilitatorEffectivenessTab } from "./FacilitatorEffectivenessTab";

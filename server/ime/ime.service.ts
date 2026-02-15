@@ -11299,3 +11299,920 @@ export async function updateAgendaItemAnalysis(
 
   return { success: true, id };
 }
+
+// ============================================================================
+// Phase 21: Facilitator Effectiveness Intelligence
+// ============================================================================
+
+/**
+ * Analyze who facilitated a meeting and score their effectiveness.
+ */
+export async function analyzeMeetingFacilitator(meetingId: string) {
+  const db = await requireDb();
+
+  // 1. Get meeting info
+  const meetingResult = await db.execute(sql.raw(
+    `SELECT id, title, objective, summary FROM meeting_records WHERE id = '${meetingId.replace(/'/g, "''")}'`
+  ));
+  const meeting = (meetingResult.rows as any[])[0];
+  if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
+
+  // 2. Get content blocks
+  const blocksResult = await db.execute(sql.raw(
+    `SELECT speaker, block_type, content, timestamp_start, timestamp_end FROM meeting_content_blocks WHERE meeting_id = '${meetingId.replace(/'/g, "''")}' ORDER BY timestamp_start ASC`
+  ));
+  const blocks = blocksResult.rows as any[];
+  if (blocks.length === 0) throw new Error(`No content blocks for meeting ${meetingId}`);
+
+  // 3. Compute speaker distribution
+  const speakerMap: Record<string, number> = {};
+  for (const b of blocks) {
+    const speaker = b.speaker || "Unknown";
+    speakerMap[speaker] = (speakerMap[speaker] || 0) + 1;
+  }
+  const totalBlocks = blocks.length;
+  const totalSpeakers = Object.keys(speakerMap).length;
+  const speakerDistribution = Object.entries(speakerMap).map(([name, count]) => ({
+    name,
+    count,
+    percent: Math.round((count / totalBlocks) * 100),
+  }));
+
+  // Compute speaker balance index (100 = perfectly balanced, 0 = one person speaks all)
+  const idealPercent = 100 / totalSpeakers;
+  const deviations = speakerDistribution.map(s => Math.abs(s.percent - idealPercent));
+  const avgDeviation = deviations.reduce((a, b) => a + b, 0) / deviations.length;
+  const speakerBalanceIndex = Math.max(0, Math.round(100 - avgDeviation * 2));
+
+  const dominantSpeaker = speakerDistribution.sort((a, b) => b.percent - a.percent)[0];
+  const dominantSpeakerPercent = dominantSpeaker?.percent || 0;
+
+  // 4. LLM: identify facilitator, classify style, score 6 dimensions
+  const contentSummary = blocks.slice(0, 80).map(b => `[${b.speaker}] (${b.block_type}): ${(b.content || "").substring(0, 200)}`).join("\n");
+
+  const llmResult = await invokeLLM({
+    messages: [
+      {
+        role: "system",
+        content: `You are a meeting facilitation expert. Analyze the meeting content to identify who facilitated/led the meeting and evaluate their effectiveness. The facilitator is typically the person who opens/closes the meeting, moderates discussions, calls on speakers, summarizes points, and manages transitions.
+
+Facilitation styles:
+- directive: Controls flow tightly, makes decisions, tells people what to do
+- collaborative: Encourages group input, builds consensus
+- laissez_faire: Minimal intervention, lets discussion flow freely
+- structured: Follows strict agenda, time-boxes topics
+- coaching: Asks questions to draw out ideas, develops participants
+- democratic: Puts decisions to vote, ensures equal voice
+
+Score each dimension 0-100:
+- engagementImpact: How well the facilitator kept participants engaged
+- decisionFacilitation: How effectively the facilitator guided decision-making
+- timeManagement: How well the facilitator managed time and transitions
+- inclusivity: How well the facilitator ensured all voices were heard
+- clarity: How clearly the facilitator communicated and summarized
+- conflictResolution: How well the facilitator handled disagreements or tensions`
+      },
+      {
+        role: "user",
+        content: `Meeting: ${meeting.title || "Untitled"}
+Objective: ${meeting.objective || "N/A"}
+Summary: ${meeting.summary || "N/A"}
+Total speakers: ${totalSpeakers}
+Speaker distribution: ${JSON.stringify(speakerDistribution)}
+
+Content blocks:
+${contentSummary}
+
+Identify the facilitator, classify their style, and score their effectiveness across 6 dimensions. Also provide strengths, weaknesses, and coaching points.`
+      }
+    ],
+    responseFormat: {
+      type: "json_schema",
+      json_schema: {
+        name: "facilitator_analysis",
+        schema: {
+          type: "object",
+          properties: {
+            facilitatorName: { type: "string" },
+            facilitatorId: { type: "string" },
+            department: { type: "string" },
+            facilitationStyle: { type: "string", enum: ["directive", "collaborative", "laissez_faire", "structured", "coaching", "democratic", "unknown"] },
+            styleConfidence: { type: "number" },
+            engagementImpactScore: { type: "number" },
+            decisionFacilitationScore: { type: "number" },
+            timeManagementScore: { type: "number" },
+            inclusivityScore: { type: "number" },
+            clarityScore: { type: "number" },
+            conflictResolutionScore: { type: "number" },
+            meetingEffectivenessScore: { type: "number" },
+            strengths: { type: "array", items: { type: "string" } },
+            weaknesses: { type: "array", items: { type: "string" } },
+            coachingPoints: { type: "array", items: { type: "string" } },
+            narrative: { type: "string" },
+          },
+          required: ["facilitatorName", "facilitationStyle", "engagementImpactScore", "decisionFacilitationScore", "timeManagementScore", "inclusivityScore", "clarityScore", "conflictResolutionScore", "strengths", "weaknesses", "coachingPoints", "narrative"]
+        }
+      }
+    }
+  });
+
+  const llm = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+  const facilitatorName = llm.facilitatorName || "Unknown";
+  const facilitatorId = llm.facilitatorId || facilitatorName;
+  const department = llm.department || "";
+  const facilitationStyle = llm.facilitationStyle || "unknown";
+  const styleConfidence = Math.min(100, Math.max(0, Number(llm.styleConfidence) || 50));
+
+  const engagementImpactScore = Math.min(100, Math.max(0, Number(llm.engagementImpactScore) || 0));
+  const decisionFacilitationScore = Math.min(100, Math.max(0, Number(llm.decisionFacilitationScore) || 0));
+  const timeManagementScore = Math.min(100, Math.max(0, Number(llm.timeManagementScore) || 0));
+  const inclusivityScore = Math.min(100, Math.max(0, Number(llm.inclusivityScore) || 0));
+  const clarityScore = Math.min(100, Math.max(0, Number(llm.clarityScore) || 0));
+  const conflictResolutionScore = Math.min(100, Math.max(0, Number(llm.conflictResolutionScore) || 0));
+  const meetingEffectivenessScore = Math.min(100, Math.max(0, Number(llm.meetingEffectivenessScore) || 0));
+
+  const overallEffectivenessScore = Math.round(
+    (engagementImpactScore + decisionFacilitationScore + timeManagementScore + inclusivityScore + clarityScore + conflictResolutionScore) / 6
+  );
+
+  let effectivenessGrade = "F";
+  if (overallEffectivenessScore >= 85) effectivenessGrade = "A";
+  else if (overallEffectivenessScore >= 70) effectivenessGrade = "B";
+  else if (overallEffectivenessScore >= 55) effectivenessGrade = "C";
+  else if (overallEffectivenessScore >= 40) effectivenessGrade = "D";
+
+  // Get decisions + action items count
+  const decisionsRes = await db.execute(sql.raw(
+    `SELECT COUNT(*) as cnt FROM meeting_content_blocks WHERE meeting_id = '${meetingId.replace(/'/g, "''")}' AND block_type = 'decision'`
+  ));
+  const decisionsCount = Number((decisionsRes.rows as any[])[0]?.cnt) || 0;
+
+  const actionsRes = await db.execute(sql.raw(
+    `SELECT COUNT(*) as cnt FROM meeting_content_blocks WHERE meeting_id = '${meetingId.replace(/'/g, "''")}' AND block_type = 'action_item'`
+  ));
+  const actionItemsCount = Number((actionsRes.rows as any[])[0]?.cnt) || 0;
+
+  const facilitatorSpeakingPercent = speakerMap[facilitatorName] ? Math.round((speakerMap[facilitatorName] / totalBlocks) * 100) : 0;
+
+  const strengths = JSON.stringify(llm.strengths || []);
+  const weaknesses = JSON.stringify(llm.weaknesses || []);
+  const coachingPoints = JSON.stringify(llm.coachingPoints || []);
+  const narrative = llm.narrative || "";
+
+  // Delete existing analysis for this meeting
+  await db.execute(sql.raw(
+    `DELETE FROM ime_facilitator_analysis WHERE meeting_id = '${meetingId.replace(/'/g, "''")}'`
+  ));
+
+  // Insert new analysis
+  await db.execute(sql.raw(`
+    INSERT INTO ime_facilitator_analysis (
+      meeting_id, facilitator_name, facilitator_id, department,
+      facilitation_style, style_confidence, overall_effectiveness_score,
+      engagement_impact_score, decision_facilitation_score, time_management_score,
+      inclusivity_score, clarity_score, conflict_resolution_score,
+      meeting_effectiveness_score, speaker_balance_index,
+      dominant_speaker_percent, total_speakers, facilitator_speaking_percent,
+      decisions_count, action_items_count, effectiveness_grade,
+      ai_strengths, ai_weaknesses, ai_coaching_points, ai_narrative,
+      computed_at, created_at
+    ) VALUES (
+      '${meetingId.replace(/'/g, "''")}', '${facilitatorName.replace(/'/g, "''")}', '${facilitatorId.replace(/'/g, "''")}', '${department.replace(/'/g, "''")}',
+      '${facilitationStyle}', ${styleConfidence}, ${overallEffectivenessScore},
+      ${engagementImpactScore}, ${decisionFacilitationScore}, ${timeManagementScore},
+      ${inclusivityScore}, ${clarityScore}, ${conflictResolutionScore},
+      ${meetingEffectivenessScore}, ${speakerBalanceIndex},
+      ${dominantSpeakerPercent}, ${totalSpeakers}, ${facilitatorSpeakingPercent},
+      ${decisionsCount}, ${actionItemsCount}, '${effectivenessGrade}',
+      '${strengths.replace(/'/g, "''")}', '${weaknesses.replace(/'/g, "''")}', '${coachingPoints.replace(/'/g, "''")}', '${narrative.replace(/'/g, "''")}',
+      NOW(), NOW()
+    )
+  `));
+
+  return {
+    meetingId,
+    facilitatorName,
+    facilitationStyle,
+    overallEffectivenessScore,
+    grade: effectivenessGrade,
+    totalSpeakers,
+  };
+}
+
+/**
+ * Batch analyze facilitators for multiple meetings.
+ */
+export async function batchAnalyzeFacilitators(meetingIds: string[]) {
+  const results: any[] = [];
+  for (const meetingId of meetingIds) {
+    try {
+      const result = await analyzeMeetingFacilitator(meetingId);
+      results.push({ meetingId, success: true, ...result });
+    } catch (err: any) {
+      results.push({ meetingId, success: false, error: err.message });
+    }
+  }
+  return { results };
+}
+
+// ============================================================================
+// Phase 21: Facilitator Profile & Comparison
+// ============================================================================
+
+/**
+ * Get aggregated facilitator profile with radar data and style distribution.
+ */
+export async function getFacilitatorProfile(facilitatorId: string) {
+  const db = await requireDb();
+
+  const res = await db.execute(sql.raw(
+    `SELECT * FROM ime_facilitator_analysis WHERE facilitator_id = '${facilitatorId.replace(/'/g, "''")}' ORDER BY computed_at DESC`
+  ));
+  const rows = res.rows as any[];
+  if (rows.length === 0) return { facilitatorId, facilitatorName: facilitatorId, meetingsFacilitated: 0, avgEffectiveness: 0, radarData: [], styleDistribution: [], trend: [] };
+
+  const facilitatorName = rows[0].facilitator_name || facilitatorId;
+  const meetingsFacilitated = rows.length;
+
+  const avg = (field: string) => Math.round(rows.reduce((s, r) => s + (Number(r[field]) || 0), 0) / rows.length);
+
+  const avgEffectiveness = avg("overall_effectiveness_score");
+  const radarData = [
+    { dimension: "参与引导", score: avg("engagement_impact_score") },
+    { dimension: "决策推动", score: avg("decision_facilitation_score") },
+    { dimension: "时间管理", score: avg("time_management_score") },
+    { dimension: "包容性", score: avg("inclusivity_score") },
+    { dimension: "清晰度", score: avg("clarity_score") },
+    { dimension: "冲突化解", score: avg("conflict_resolution_score") },
+  ];
+
+  // Style distribution
+  const styleCounts: Record<string, number> = {};
+  for (const r of rows) {
+    const s = r.facilitation_style || "unknown";
+    styleCounts[s] = (styleCounts[s] || 0) + 1;
+  }
+  const styleDistribution = Object.entries(styleCounts).map(([style, count]) => ({ style, count, percent: Math.round((count / rows.length) * 100) }));
+
+  // Trend (last 10 meetings chronologically)
+  const trend = rows.slice(0, 10).reverse().map(r => ({
+    meetingId: r.meeting_id,
+    score: Number(r.overall_effectiveness_score) || 0,
+    date: r.computed_at,
+  }));
+
+  return { facilitatorId, facilitatorName, meetingsFacilitated, avgEffectiveness, radarData, styleDistribution, trend };
+}
+
+/**
+ * Compare facilitators by aggregated effectiveness.
+ */
+export async function getFacilitatorComparison(options?: { department?: string; limit?: number }) {
+  const db = await requireDb();
+
+  let where = "";
+  if (options?.department) {
+    where = ` WHERE department = '${options.department.replace(/'/g, "''")}'`;
+  }
+
+  const res = await db.execute(sql.raw(`
+    SELECT facilitator_id, facilitator_name, department,
+      COUNT(*) as meetings_count,
+      ROUND(AVG(overall_effectiveness_score)) as avg_effectiveness,
+      ROUND(AVG(engagement_impact_score)) as avg_engagement,
+      ROUND(AVG(decision_facilitation_score)) as avg_decision,
+      ROUND(AVG(time_management_score)) as avg_time,
+      ROUND(AVG(inclusivity_score)) as avg_inclusivity,
+      ROUND(AVG(clarity_score)) as avg_clarity,
+      ROUND(AVG(conflict_resolution_score)) as avg_conflict
+    FROM ime_facilitator_analysis${where}
+    GROUP BY facilitator_id, facilitator_name, department
+    ORDER BY avg_effectiveness DESC
+    LIMIT ${options?.limit || 50}
+  `));
+  const facilitators = (res.rows as any[]).map(r => ({
+    facilitatorId: r.facilitator_id,
+    facilitatorName: r.facilitator_name,
+    department: r.department,
+    meetingsCount: Number(r.meetings_count) || 0,
+    avgEffectiveness: Number(r.avg_effectiveness) || 0,
+    avgEngagement: Number(r.avg_engagement) || 0,
+    avgDecision: Number(r.avg_decision) || 0,
+    avgTime: Number(r.avg_time) || 0,
+    avgInclusivity: Number(r.avg_inclusivity) || 0,
+    avgClarity: Number(r.avg_clarity) || 0,
+    avgConflict: Number(r.avg_conflict) || 0,
+  }));
+
+  const overallAvg = facilitators.length > 0
+    ? Math.round(facilitators.reduce((s, f) => s + f.avgEffectiveness, 0) / facilitators.length)
+    : 0;
+
+  return {
+    facilitators,
+    avgEffectiveness: overallAvg,
+    bestFacilitator: facilitators[0] || null,
+    worstFacilitator: facilitators[facilitators.length - 1] || null,
+  };
+}
+
+// ============================================================================
+// Phase 21: Facilitation Pattern Detection
+// ============================================================================
+
+/**
+ * Detect recurring facilitation patterns and correlations.
+ */
+export async function detectFacilitationPatterns(options?: { department?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  const conditions: string[] = [];
+  if (options?.department) conditions.push(`department = '${options.department.replace(/'/g, "''")}'`);
+  if (options?.dateFrom) conditions.push(`computed_at >= '${options.dateFrom}'`);
+  if (options?.dateTo) conditions.push(`computed_at <= '${options.dateTo}'`);
+  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+
+  const res = await db.execute(sql.raw(
+    `SELECT facilitation_style, overall_effectiveness_score, engagement_impact_score, decision_facilitation_score, time_management_score, inclusivity_score, clarity_score, conflict_resolution_score, meeting_effectiveness_score, speaker_balance_index, facilitator_speaking_percent, decisions_count, action_items_count, effectiveness_grade FROM ime_facilitator_analysis${where} ORDER BY computed_at DESC LIMIT 200`
+  ));
+  const rows = res.rows as any[];
+  if (rows.length === 0) return { patterns: [], correlations: [], recommendations: [] };
+
+  const dataSummary = JSON.stringify(rows.slice(0, 50).map(r => ({
+    style: r.facilitation_style,
+    effectiveness: r.overall_effectiveness_score,
+    engagement: r.engagement_impact_score,
+    decision: r.decision_facilitation_score,
+    time: r.time_management_score,
+    inclusivity: r.inclusivity_score,
+    clarity: r.clarity_score,
+    conflict: r.conflict_resolution_score,
+    speakerBalance: r.speaker_balance_index,
+    facilitatorSpeaking: r.facilitator_speaking_percent,
+    grade: r.effectiveness_grade,
+  })));
+
+  const llmResult = await invokeLLM({
+    messages: [
+      { role: "system", content: "You are a meeting facilitation analytics expert. Analyze the facilitation data to detect recurring patterns, style-outcome correlations, and provide actionable recommendations. Respond in Chinese." },
+      { role: "user", content: `Analyze ${rows.length} facilitator analysis records:\n${dataSummary}\n\nDetect patterns, correlations between facilitation style and outcomes, and provide recommendations.` }
+    ],
+    responseFormat: {
+      type: "json_schema",
+      json_schema: {
+        name: "facilitation_patterns",
+        schema: {
+          type: "object",
+          properties: {
+            patterns: { type: "array", items: { type: "object", properties: { pattern: { type: "string" }, frequency: { type: "string" }, impact: { type: "string" } }, required: ["pattern", "frequency", "impact"] } },
+            correlations: { type: "array", items: { type: "object", properties: { factor1: { type: "string" }, factor2: { type: "string" }, relationship: { type: "string" }, strength: { type: "string" } }, required: ["factor1", "factor2", "relationship", "strength"] } },
+            recommendations: { type: "array", items: { type: "string" } },
+          },
+          required: ["patterns", "correlations", "recommendations"]
+        }
+      }
+    }
+  });
+
+  const llm = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+  return {
+    patterns: llm.patterns || [],
+    correlations: llm.correlations || [],
+    recommendations: llm.recommendations || [],
+  };
+}
+
+/**
+ * Classify and aggregate facilitator styles with effectiveness.
+ */
+export async function classifyFacilitatorStyles(options?: { department?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  const conditions: string[] = [];
+  if (options?.department) conditions.push(`department = '${options.department.replace(/'/g, "''")}'`);
+  if (options?.dateFrom) conditions.push(`computed_at >= '${options.dateFrom}'`);
+  if (options?.dateTo) conditions.push(`computed_at <= '${options.dateTo}'`);
+  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+
+  const res = await db.execute(sql.raw(`
+    SELECT facilitation_style,
+      COUNT(*) as cnt,
+      ROUND(AVG(overall_effectiveness_score)) as avg_effectiveness,
+      ROUND(AVG(meeting_effectiveness_score)) as avg_meeting_outcome
+    FROM ime_facilitator_analysis${where}
+    GROUP BY facilitation_style
+    ORDER BY avg_effectiveness DESC
+  `));
+
+  const styles = (res.rows as any[]).map(r => ({
+    style: r.facilitation_style || "unknown",
+    count: Number(r.cnt) || 0,
+    avgEffectiveness: Number(r.avg_effectiveness) || 0,
+    avgMeetingOutcome: Number(r.avg_meeting_outcome) || 0,
+  }));
+
+  return { styles };
+}
+
+// ============================================================================
+// Phase 21: AI Facilitator Coaching
+// ============================================================================
+
+/**
+ * Generate personalized coaching plan for a facilitator.
+ */
+export async function generateFacilitatorCoaching(facilitatorId: string) {
+  const db = await requireDb();
+
+  const res = await db.execute(sql.raw(
+    `SELECT * FROM ime_facilitator_analysis WHERE facilitator_id = '${facilitatorId.replace(/'/g, "''")}' ORDER BY computed_at DESC LIMIT 20`
+  ));
+  const rows = res.rows as any[];
+  if (rows.length === 0) throw new Error(`No facilitator analysis found for ${facilitatorId}`);
+
+  const facilitatorName = rows[0].facilitator_name || facilitatorId;
+
+  const avg = (field: string) => Math.round(rows.reduce((s, r) => s + (Number(r[field]) || 0), 0) / rows.length);
+  const scores = {
+    engagement: avg("engagement_impact_score"),
+    decision: avg("decision_facilitation_score"),
+    time: avg("time_management_score"),
+    inclusivity: avg("inclusivity_score"),
+    clarity: avg("clarity_score"),
+    conflict: avg("conflict_resolution_score"),
+    overall: avg("overall_effectiveness_score"),
+  };
+
+  const recentStrengths = rows.slice(0, 5).map(r => r.ai_strengths).filter(Boolean);
+  const recentWeaknesses = rows.slice(0, 5).map(r => r.ai_weaknesses).filter(Boolean);
+
+  const llmResult = await invokeLLM({
+    messages: [
+      { role: "system", content: "You are a professional meeting facilitation coach. Generate a personalized coaching plan based on the facilitator's historical performance data. Respond in Chinese." },
+      { role: "user", content: `Facilitator: ${facilitatorName}
+Meetings facilitated: ${rows.length}
+Average scores: ${JSON.stringify(scores)}
+Recent strengths: ${recentStrengths.join("; ")}
+Recent weaknesses: ${recentWeaknesses.join("; ")}
+
+Generate a personalized coaching plan with specific improvement areas, target scores, actions, timeline, quick wins, and a narrative summary.` }
+    ],
+    responseFormat: {
+      type: "json_schema",
+      json_schema: {
+        name: "facilitator_coaching",
+        schema: {
+          type: "object",
+          properties: {
+            personalizedPlan: { type: "array", items: { type: "object", properties: { area: { type: "string" }, currentScore: { type: "number" }, targetScore: { type: "number" }, actions: { type: "array", items: { type: "string" } }, timeline: { type: "string" } }, required: ["area", "currentScore", "targetScore", "actions", "timeline"] } },
+            topStrength: { type: "string" },
+            topWeakness: { type: "string" },
+            quickWins: { type: "array", items: { type: "string" } },
+            aiNarrative: { type: "string" },
+          },
+          required: ["personalizedPlan", "topStrength", "topWeakness", "quickWins", "aiNarrative"]
+        }
+      }
+    }
+  });
+
+  const llm = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+  return {
+    facilitatorId,
+    facilitatorName,
+    personalizedPlan: llm.personalizedPlan || [],
+    topStrength: llm.topStrength || "",
+    topWeakness: llm.topWeakness || "",
+    quickWins: llm.quickWins || [],
+    aiNarrative: llm.aiNarrative || "",
+  };
+}
+
+// ============================================================================
+// Phase 21: Facilitator Intelligence Snapshot
+// ============================================================================
+
+/**
+ * Compute aggregated facilitator intelligence snapshot for a scope/period.
+ */
+export async function computeFacilitatorSnapshot(scope: string, scopeId?: string, dateFrom?: string, dateTo?: string) {
+  const db = await requireDb();
+
+  const safeScope = scope.replace(/'/g, "''");
+  const safeScopeId = (scopeId || "").replace(/'/g, "''");
+  const periodStart = dateFrom || new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+  const periodEnd = dateTo || new Date().toISOString().split("T")[0];
+
+  // Build WHERE
+  const conditions: string[] = [`computed_at >= '${periodStart}'`, `computed_at <= '${periodEnd}'`];
+  if (scope === "department" && safeScopeId) conditions.push(`department = '${safeScopeId}'`);
+  if (scope === "individual" && safeScopeId) conditions.push(`facilitator_id = '${safeScopeId}'`);
+  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+
+  const res = await db.execute(sql.raw(
+    `SELECT * FROM ime_facilitator_analysis${where} ORDER BY computed_at DESC`
+  ));
+  const rows = res.rows as any[];
+  const totalMeetingsAnalyzed = rows.length;
+
+  const facilitatorSet = new Set(rows.map(r => r.facilitator_id));
+  const totalFacilitators = facilitatorSet.size;
+
+  const avg = (field: string) => rows.length > 0 ? Math.round(rows.reduce((s, r) => s + (Number(r[field]) || 0), 0) / rows.length) : 0;
+
+  const avgEffectivenessScore = avg("overall_effectiveness_score");
+  const avgEngagementImpact = avg("engagement_impact_score");
+  const avgDecisionFacilitation = avg("decision_facilitation_score");
+  const avgTimeManagement = avg("time_management_score");
+  const avgInclusivity = avg("inclusivity_score");
+  const avgClarity = avg("clarity_score");
+  const avgConflictResolution = avg("conflict_resolution_score");
+  const avgSpeakerBalance = avg("speaker_balance_index");
+  const avgFacilitatorSpeakingPercent = avg("facilitator_speaking_percent");
+
+  // Style distribution
+  const styleCounts: Record<string, number> = {};
+  for (const r of rows) { const s = r.facilitation_style || "unknown"; styleCounts[s] = (styleCounts[s] || 0) + 1; }
+  const styleDistribution = JSON.stringify(styleCounts);
+
+  // Top/bottom facilitators
+  const facMap: Record<string, { name: string; scores: number[] }> = {};
+  for (const r of rows) {
+    const fid = r.facilitator_id || r.facilitator_name;
+    if (!facMap[fid]) facMap[fid] = { name: r.facilitator_name, scores: [] };
+    facMap[fid].scores.push(Number(r.overall_effectiveness_score) || 0);
+  }
+  const facRanked = Object.entries(facMap).map(([id, d]) => ({
+    facilitatorId: id,
+    facilitatorName: d.name,
+    avgScore: Math.round(d.scores.reduce((a, b) => a + b, 0) / d.scores.length),
+    meetings: d.scores.length,
+  })).sort((a, b) => b.avgScore - a.avgScore);
+
+  const topFacilitators = JSON.stringify(facRanked.slice(0, 5));
+  const bottomFacilitators = JSON.stringify(facRanked.slice(-5).reverse());
+
+  // Grade distribution
+  const gradeCounts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+  for (const r of rows) { const g = r.effectiveness_grade || "F"; gradeCounts[g] = (gradeCounts[g] || 0) + 1; }
+  const gradeDistribution = JSON.stringify(gradeCounts);
+
+  let overallGrade = "F";
+  if (avgEffectivenessScore >= 85) overallGrade = "A";
+  else if (avgEffectivenessScore >= 70) overallGrade = "B";
+  else if (avgEffectivenessScore >= 55) overallGrade = "C";
+  else if (avgEffectivenessScore >= 40) overallGrade = "D";
+
+  // Compare with previous period
+  const periodDuration = new Date(periodEnd).getTime() - new Date(periodStart).getTime();
+  const prevStart = new Date(new Date(periodStart).getTime() - periodDuration).toISOString().split("T")[0];
+  const prevEnd = periodStart;
+
+  const prevConditions = [`computed_at >= '${prevStart}'`, `computed_at <= '${prevEnd}'`];
+  if (scope === "department" && safeScopeId) prevConditions.push(`department = '${safeScopeId}'`);
+  if (scope === "individual" && safeScopeId) prevConditions.push(`facilitator_id = '${safeScopeId}'`);
+  const prevWhere = ` WHERE ${prevConditions.join(" AND ")}`;
+
+  const prevRes = await db.execute(sql.raw(
+    `SELECT ROUND(AVG(overall_effectiveness_score)) as prev_avg FROM ime_facilitator_analysis${prevWhere}`
+  ));
+  const prevAvg = Number((prevRes.rows as any[])[0]?.prev_avg) || 0;
+
+  let trendVsPrevious = "stable";
+  let trendSlope = 0;
+  if (prevAvg > 0) {
+    trendSlope = avgEffectivenessScore - prevAvg;
+    if (trendSlope > 3) trendVsPrevious = "improving";
+    else if (trendSlope < -3) trendVsPrevious = "declining";
+  }
+
+  // LLM narrative
+  const llmResult = await invokeLLM({
+    messages: [
+      { role: "system", content: "You are a facilitator intelligence analyst. Generate a narrative summary, best practices, and recommendations based on aggregated facilitator data. Respond in Chinese." },
+      { role: "user", content: `Scope: ${scope} (${scopeId || "all"})
+Period: ${periodStart} to ${periodEnd}
+Meetings: ${totalMeetingsAnalyzed}, Facilitators: ${totalFacilitators}
+Avg effectiveness: ${avgEffectivenessScore}, Grade: ${overallGrade}
+Style distribution: ${styleDistribution}
+Top facilitators: ${topFacilitators}
+Grade distribution: ${gradeDistribution}
+Trend: ${trendVsPrevious} (slope: ${trendSlope})
+
+Generate narrative, best practices, and recommendations.` }
+    ],
+    responseFormat: {
+      type: "json_schema",
+      json_schema: {
+        name: "facilitator_snapshot",
+        schema: {
+          type: "object",
+          properties: {
+            aiNarrative: { type: "string" },
+            bestPractices: { type: "array", items: { type: "string" } },
+            recommendations: { type: "array", items: { type: "string" } },
+          },
+          required: ["aiNarrative", "bestPractices", "recommendations"]
+        }
+      }
+    }
+  });
+
+  const llm = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+  const aiNarrative = llm.aiNarrative || "";
+  const bestPractices = JSON.stringify(llm.bestPractices || []);
+  const recommendations = JSON.stringify(llm.recommendations || []);
+
+  // Delete existing snapshot
+  await db.execute(sql.raw(`
+    DELETE FROM ime_facilitator_intelligence_snapshots
+    WHERE scope = '${safeScope}'
+      AND (scope_id = '${safeScopeId}' OR (scope_id IS NULL AND '${safeScopeId}' = ''))
+      AND period_start = '${periodStart}'
+      AND period_end = '${periodEnd}'
+  `));
+
+  // Insert new snapshot
+  await db.execute(sql.raw(`
+    INSERT INTO ime_facilitator_intelligence_snapshots (
+      scope, scope_id, period_start, period_end,
+      total_meetings_analyzed, total_facilitators,
+      avg_effectiveness_score, avg_engagement_impact, avg_decision_facilitation,
+      avg_time_management, avg_inclusivity, avg_clarity, avg_conflict_resolution,
+      avg_speaker_balance, avg_facilitator_speaking_percent,
+      style_distribution, top_facilitators, bottom_facilitators,
+      grade_distribution, overall_grade, ai_narrative,
+      best_practices, trend_vs_previous, trend_slope, recommendations,
+      computed_at, created_at
+    ) VALUES (
+      '${safeScope}', ${safeScopeId ? `'${safeScopeId}'` : "NULL"}, '${periodStart}', '${periodEnd}',
+      ${totalMeetingsAnalyzed}, ${totalFacilitators},
+      ${avgEffectivenessScore}, ${avgEngagementImpact}, ${avgDecisionFacilitation},
+      ${avgTimeManagement}, ${avgInclusivity}, ${avgClarity}, ${avgConflictResolution},
+      ${avgSpeakerBalance}, ${avgFacilitatorSpeakingPercent},
+      '${styleDistribution.replace(/'/g, "''")}', '${topFacilitators.replace(/'/g, "''")}', '${bottomFacilitators.replace(/'/g, "''")}',
+      '${gradeDistribution.replace(/'/g, "''")}', '${overallGrade}', '${aiNarrative.replace(/'/g, "''")}',
+      '${bestPractices.replace(/'/g, "''")}', '${trendVsPrevious}', ${trendSlope}, '${recommendations.replace(/'/g, "''")}',
+      NOW(), NOW()
+    )
+  `));
+
+  return {
+    success: true,
+    scope,
+    scopeId: scopeId || null,
+    snapshot: {
+      periodStart, periodEnd, totalMeetingsAnalyzed, totalFacilitators,
+      avgEffectivenessScore, avgEngagementImpact, avgDecisionFacilitation,
+      avgTimeManagement, avgInclusivity, avgClarity, avgConflictResolution,
+      avgSpeakerBalance, avgFacilitatorSpeakingPercent,
+      styleDistribution: JSON.parse(styleDistribution),
+      topFacilitators: JSON.parse(topFacilitators),
+      bottomFacilitators: JSON.parse(bottomFacilitators),
+      gradeDistribution: JSON.parse(gradeDistribution),
+      overallGrade, aiNarrative,
+      bestPractices: JSON.parse(bestPractices),
+      trendVsPrevious, trendSlope,
+      recommendations: JSON.parse(recommendations),
+    },
+  };
+}
+
+// ============================================================================
+// Phase 21: Facilitator Dashboard & Queries
+// ============================================================================
+
+/**
+ * Get facilitator dashboard aggregate stats.
+ */
+export async function getFacilitatorDashboard(filters?: { department?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  const conditions: string[] = [];
+  if (filters?.department) conditions.push(`department = '${filters.department.replace(/'/g, "''")}'`);
+  if (filters?.dateFrom) conditions.push(`computed_at >= '${filters.dateFrom}'`);
+  if (filters?.dateTo) conditions.push(`computed_at <= '${filters.dateTo}'`);
+  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+
+  const res = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as total_meetings,
+      ROUND(AVG(overall_effectiveness_score)) as avg_effectiveness,
+      COUNT(DISTINCT facilitator_id) as total_facilitators
+    FROM ime_facilitator_analysis${where}
+  `));
+  const row = (res.rows as any[])[0] || {};
+
+  // Dominant style
+  const styleRes = await db.execute(sql.raw(`
+    SELECT facilitation_style, COUNT(*) as cnt
+    FROM ime_facilitator_analysis${where}
+    GROUP BY facilitation_style
+    ORDER BY cnt DESC
+    LIMIT 1
+  `));
+  const dominantStyle = (styleRes.rows as any[])[0]?.facilitation_style || "unknown";
+
+  const STYLE_LABELS: Record<string, string> = {
+    directive: "指令型", collaborative: "协作型", laissez_faire: "放任型",
+    structured: "结构型", coaching: "教练型", democratic: "民主型", unknown: "未知",
+  };
+
+  return {
+    totalMeetingsAnalyzed: Number(row.total_meetings) || 0,
+    avgEffectivenessScore: Number(row.avg_effectiveness) || 0,
+    totalFacilitators: Number(row.total_facilitators) || 0,
+    dominantStyle: STYLE_LABELS[dominantStyle] || dominantStyle,
+  };
+}
+
+/**
+ * Get paginated list of facilitator analyses.
+ */
+export async function getFacilitatorAnalysisList(options?: { limit?: number; offset?: number; grade?: string; department?: string; facilitatorId?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  const limit = options?.limit || 20;
+  const offset = options?.offset || 0;
+
+  const conditions: string[] = [];
+  if (options?.grade) conditions.push(`fa.effectiveness_grade = '${options.grade.replace(/'/g, "''")}'`);
+  if (options?.department) conditions.push(`fa.department = '${options.department.replace(/'/g, "''")}'`);
+  if (options?.facilitatorId) conditions.push(`fa.facilitator_id = '${options.facilitatorId.replace(/'/g, "''")}'`);
+  if (options?.dateFrom) conditions.push(`fa.computed_at >= '${options.dateFrom}'`);
+  if (options?.dateTo) conditions.push(`fa.computed_at <= '${options.dateTo}'`);
+  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+
+  const countRes = await db.execute(sql.raw(
+    `SELECT COUNT(*) as cnt FROM ime_facilitator_analysis fa${where}`
+  ));
+  const total = Number((countRes.rows as any[])[0]?.cnt) || 0;
+
+  const res = await db.execute(sql.raw(`
+    SELECT fa.*, mr.title as meeting_title
+    FROM ime_facilitator_analysis fa
+    LEFT JOIN meeting_records mr ON fa.meeting_id = mr.id
+    ${where}
+    ORDER BY fa.computed_at DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `));
+
+  const rows = (res.rows as any[]).map(r => ({
+    id: r.id,
+    meetingId: r.meeting_id,
+    meetingTitle: r.meeting_title || "",
+    facilitatorName: r.facilitator_name,
+    facilitatorId: r.facilitator_id,
+    department: r.department,
+    facilitationStyle: r.facilitation_style,
+    styleConfidence: Number(r.style_confidence) || 0,
+    overallEffectivenessScore: Number(r.overall_effectiveness_score) || 0,
+    engagementImpactScore: Number(r.engagement_impact_score) || 0,
+    decisionFacilitationScore: Number(r.decision_facilitation_score) || 0,
+    timeManagementScore: Number(r.time_management_score) || 0,
+    inclusivityScore: Number(r.inclusivity_score) || 0,
+    clarityScore: Number(r.clarity_score) || 0,
+    conflictResolutionScore: Number(r.conflict_resolution_score) || 0,
+    meetingEffectivenessScore: Number(r.meeting_effectiveness_score) || 0,
+    speakerBalanceIndex: Number(r.speaker_balance_index) || 0,
+    totalSpeakers: Number(r.total_speakers) || 0,
+    facilitatorSpeakingPercent: Number(r.facilitator_speaking_percent) || 0,
+    decisionsCount: Number(r.decisions_count) || 0,
+    actionItemsCount: Number(r.action_items_count) || 0,
+    effectivenessGrade: r.effectiveness_grade || "F",
+    aiStrengths: r.ai_strengths,
+    aiWeaknesses: r.ai_weaknesses,
+    aiCoachingPoints: r.ai_coaching_points,
+    aiNarrative: r.ai_narrative,
+    computedAt: r.computed_at,
+  }));
+
+  return { rows, total, limit, offset };
+}
+
+/**
+ * Get facilitator intelligence snapshot trend data.
+ */
+export async function getFacilitatorTrendData(options?: { scope?: string; scopeId?: string; limit?: number }) {
+  const db = await requireDb();
+
+  const conditions: string[] = [];
+  if (options?.scope) conditions.push(`scope = '${options.scope.replace(/'/g, "''")}'`);
+  if (options?.scopeId) conditions.push(`scope_id = '${options.scopeId.replace(/'/g, "''")}'`);
+  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+
+  const res = await db.execute(sql.raw(`
+    SELECT * FROM ime_facilitator_intelligence_snapshots${where}
+    ORDER BY period_end DESC
+    LIMIT ${options?.limit || 20}
+  `));
+
+  const rows = (res.rows as any[]).map(r => ({
+    id: r.id,
+    scope: r.scope,
+    scopeId: r.scope_id,
+    periodStart: r.period_start,
+    periodEnd: r.period_end,
+    totalMeetingsAnalyzed: Number(r.total_meetings_analyzed) || 0,
+    totalFacilitators: Number(r.total_facilitators) || 0,
+    avgEffectivenessScore: Number(r.avg_effectiveness_score) || 0,
+    avgEngagementImpact: Number(r.avg_engagement_impact) || 0,
+    avgDecisionFacilitation: Number(r.avg_decision_facilitation) || 0,
+    avgTimeManagement: Number(r.avg_time_management) || 0,
+    avgInclusivity: Number(r.avg_inclusivity) || 0,
+    avgClarity: Number(r.avg_clarity) || 0,
+    avgConflictResolution: Number(r.avg_conflict_resolution) || 0,
+    avgSpeakerBalance: Number(r.avg_speaker_balance) || 0,
+    avgFacilitatorSpeakingPercent: Number(r.avg_facilitator_speaking_percent) || 0,
+    overallGrade: r.overall_grade,
+    trendVsPrevious: r.trend_vs_previous,
+    trendSlope: Number(r.trend_slope) || 0,
+    computedAt: r.computed_at,
+  }));
+
+  return rows;
+}
+
+/**
+ * Manually update a facilitator analysis record.
+ */
+export async function updateFacilitatorAnalysis(id: number, updates: {
+  facilitatorName?: string;
+  facilitationStyle?: string;
+  engagementImpactScore?: number;
+  decisionFacilitationScore?: number;
+  timeManagementScore?: number;
+  inclusivityScore?: number;
+  clarityScore?: number;
+  conflictResolutionScore?: number;
+}) {
+  const db = await requireDb();
+
+  const setClauses: string[] = [];
+
+  if (updates.facilitatorName !== undefined) {
+    setClauses.push(`facilitator_name = '${String(updates.facilitatorName).replace(/'/g, "''")}'`);
+  }
+  if (updates.facilitationStyle !== undefined) {
+    setClauses.push(`facilitation_style = '${String(updates.facilitationStyle).replace(/'/g, "''")}'`);
+  }
+  if (updates.engagementImpactScore !== undefined) {
+    setClauses.push(`engagement_impact_score = ${Number(updates.engagementImpactScore) || 0}`);
+  }
+  if (updates.decisionFacilitationScore !== undefined) {
+    setClauses.push(`decision_facilitation_score = ${Number(updates.decisionFacilitationScore) || 0}`);
+  }
+  if (updates.timeManagementScore !== undefined) {
+    setClauses.push(`time_management_score = ${Number(updates.timeManagementScore) || 0}`);
+  }
+  if (updates.inclusivityScore !== undefined) {
+    setClauses.push(`inclusivity_score = ${Number(updates.inclusivityScore) || 0}`);
+  }
+  if (updates.clarityScore !== undefined) {
+    setClauses.push(`clarity_score = ${Number(updates.clarityScore) || 0}`);
+  }
+  if (updates.conflictResolutionScore !== undefined) {
+    setClauses.push(`conflict_resolution_score = ${Number(updates.conflictResolutionScore) || 0}`);
+  }
+
+  // Recompute overall + grade if any score changed
+  const scoreFields = ["engagementImpactScore", "decisionFacilitationScore", "timeManagementScore", "inclusivityScore", "clarityScore", "conflictResolutionScore"];
+  const anyScoreChanged = scoreFields.some(f => (updates as any)[f] !== undefined);
+
+  if (anyScoreChanged) {
+    const currentRes = await db.execute(sql.raw(
+      `SELECT engagement_impact_score, decision_facilitation_score, time_management_score, inclusivity_score, clarity_score, conflict_resolution_score FROM ime_facilitator_analysis WHERE id = ${id} LIMIT 1`
+    ));
+    const current = (currentRes.rows as any[])[0];
+    if (!current) throw new Error(`Facilitator analysis ${id} not found`);
+
+    const eng = updates.engagementImpactScore !== undefined ? Number(updates.engagementImpactScore) : Number(current.engagement_impact_score) || 0;
+    const dec = updates.decisionFacilitationScore !== undefined ? Number(updates.decisionFacilitationScore) : Number(current.decision_facilitation_score) || 0;
+    const tim = updates.timeManagementScore !== undefined ? Number(updates.timeManagementScore) : Number(current.time_management_score) || 0;
+    const inc = updates.inclusivityScore !== undefined ? Number(updates.inclusivityScore) : Number(current.inclusivity_score) || 0;
+    const cla = updates.clarityScore !== undefined ? Number(updates.clarityScore) : Number(current.clarity_score) || 0;
+    const con = updates.conflictResolutionScore !== undefined ? Number(updates.conflictResolutionScore) : Number(current.conflict_resolution_score) || 0;
+
+    const overall = Math.round((eng + dec + tim + inc + cla + con) / 6);
+    let grade = "F";
+    if (overall >= 85) grade = "A";
+    else if (overall >= 70) grade = "B";
+    else if (overall >= 55) grade = "C";
+    else if (overall >= 40) grade = "D";
+
+    setClauses.push(`overall_effectiveness_score = ${overall}`);
+    setClauses.push(`effectiveness_grade = '${grade}'`);
+  }
+
+  if (setClauses.length === 0) {
+    return { success: true, id, message: "No updates provided" };
+  }
+
+  await db.execute(sql.raw(`
+    UPDATE ime_facilitator_analysis
+    SET ${setClauses.join(", ")}
+    WHERE id = ${id}
+  `));
+
+  return { success: true, id };
+}

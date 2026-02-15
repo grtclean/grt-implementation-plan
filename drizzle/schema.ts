@@ -11145,3 +11145,74 @@ export type ImeMeetingStructureAnalysis = typeof imeMeetingStructureAnalysis.$in
 export type InsertImeMeetingStructureAnalysis = typeof imeMeetingStructureAnalysis.$inferInsert;
 export type ImeAgendaIntelligenceSnapshot = typeof imeAgendaIntelligenceSnapshots.$inferSelect;
 export type InsertImeAgendaIntelligenceSnapshot = typeof imeAgendaIntelligenceSnapshots.$inferInsert;
+
+// ============================================================================
+// Phase 21: Facilitator Effectiveness Intelligence
+// ============================================================================
+
+export const imeFacilitatorAnalysis = pgTable("ime_facilitator_analysis", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }),
+  facilitatorName: varchar("facilitator_name", { length: 200 }),
+  facilitatorId: varchar("facilitator_id", { length: 200 }),
+  department: varchar("department", { length: 200 }),
+  facilitationStyle: varchar("facilitation_style", { length: 30 }).default("unknown"),
+  styleConfidence: integer("style_confidence"),
+  overallEffectivenessScore: integer("overall_effectiveness_score"),
+  engagementImpactScore: integer("engagement_impact_score"),
+  decisionFacilitationScore: integer("decision_facilitation_score"),
+  timeManagementScore: integer("time_management_score"),
+  inclusivityScore: integer("inclusivity_score"),
+  clarityScore: integer("clarity_score"),
+  conflictResolutionScore: integer("conflict_resolution_score"),
+  meetingEffectivenessScore: integer("meeting_effectiveness_score"),
+  speakerBalanceIndex: integer("speaker_balance_index"),
+  dominantSpeakerPercent: integer("dominant_speaker_percent"),
+  totalSpeakers: integer("total_speakers"),
+  facilitatorSpeakingPercent: integer("facilitator_speaking_percent"),
+  decisionsCount: integer("decisions_count"),
+  actionItemsCount: integer("action_items_count"),
+  effectivenessGrade: varchar("effectiveness_grade", { length: 2 }),
+  aiStrengths: text("ai_strengths"),
+  aiWeaknesses: text("ai_weaknesses"),
+  aiCoachingPoints: text("ai_coaching_points"),
+  aiNarrative: text("ai_narrative"),
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeFacilitatorIntelligenceSnapshots = pgTable("ime_facilitator_intelligence_snapshots", {
+  id: serial("id").primaryKey(),
+  scope: varchar("scope", { length: 20 }),
+  scopeId: varchar("scope_id", { length: 200 }),
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+  totalMeetingsAnalyzed: integer("total_meetings_analyzed"),
+  totalFacilitators: integer("total_facilitators"),
+  avgEffectivenessScore: integer("avg_effectiveness_score"),
+  avgEngagementImpact: integer("avg_engagement_impact"),
+  avgDecisionFacilitation: integer("avg_decision_facilitation"),
+  avgTimeManagement: integer("avg_time_management"),
+  avgInclusivity: integer("avg_inclusivity"),
+  avgClarity: integer("avg_clarity"),
+  avgConflictResolution: integer("avg_conflict_resolution"),
+  avgSpeakerBalance: integer("avg_speaker_balance"),
+  avgFacilitatorSpeakingPercent: integer("avg_facilitator_speaking_percent"),
+  styleDistribution: text("style_distribution"),
+  topFacilitators: text("top_facilitators"),
+  bottomFacilitators: text("bottom_facilitators"),
+  gradeDistribution: text("grade_distribution"),
+  overallGrade: varchar("overall_grade", { length: 2 }),
+  aiNarrative: text("ai_narrative"),
+  bestPractices: text("best_practices"),
+  trendVsPrevious: varchar("trend_vs_previous", { length: 20 }),
+  trendSlope: integer("trend_slope"),
+  recommendations: text("recommendations"),
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type ImeFacilitatorAnalysis = typeof imeFacilitatorAnalysis.$inferSelect;
+export type InsertImeFacilitatorAnalysis = typeof imeFacilitatorAnalysis.$inferInsert;
+export type ImeFacilitatorIntelligenceSnapshot = typeof imeFacilitatorIntelligenceSnapshots.$inferSelect;
+export type InsertImeFacilitatorIntelligenceSnapshot = typeof imeFacilitatorIntelligenceSnapshots.$inferInsert;

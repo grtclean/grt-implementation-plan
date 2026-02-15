@@ -53,6 +53,7 @@ import {
   RecurringMeetingValueTab,
   DecisionEffectivenessTab,
   AgendaTimeAllocationTab,
+  FacilitatorEffectivenessTab,
 } from "./meeting-executive";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -901,6 +902,7 @@ export default function MeetingExecutive() {
           <TabsTrigger value="recurring-value">周期会议</TabsTrigger>
           <TabsTrigger value="decision-effectiveness">决策效能</TabsTrigger>
           <TabsTrigger value="agenda-time">议程时间</TabsTrigger>
+          <TabsTrigger value="facilitator">引导效能</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -1029,6 +1031,10 @@ export default function MeetingExecutive() {
 
         <TabsContent value="agenda-time">
           <AgendaTimeAllocationTab />
+        </TabsContent>
+
+        <TabsContent value="facilitator">
+          <FacilitatorEffectivenessTab />
         </TabsContent>
       </Tabs>
     </div>
