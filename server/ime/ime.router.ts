@@ -1502,4 +1502,100 @@ export const imeRouter = router({
     .mutation(async ({ input }) => {
       return imeService.batchAnalyzeMeetingNecessity(input.meetingIds);
     }),
+
+  // ==========================================================================
+  // Phase 17: Meeting Load & Participant Well-being Intelligence
+  // ==========================================================================
+
+  computeParticipantLoad: protectedProcedure
+    .input(z.object({
+      periodType: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .mutation(async ({ input }) => {
+      return imeService.computeParticipantLoad(input ?? {});
+    }),
+
+  loadDashboard: protectedProcedure
+    .input(z.object({
+      periodType: z.string().optional(),
+      department: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getLoadDashboard(input ?? {});
+    }),
+
+  participantLoadDetails: protectedProcedure
+    .input(z.object({
+      periodType: z.string().optional(),
+      department: z.string().optional(),
+      riskLevel: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getParticipantLoadDetails(input ?? {});
+    }),
+
+  loadTrends: protectedProcedure
+    .input(z.object({
+      periodType: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getLoadTrends(input ?? {});
+    }),
+
+  detectBurnoutRisk: protectedProcedure
+    .input(z.object({
+      threshold: z.number().optional(),
+      periodType: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.detectBurnoutRisk(input ?? {});
+    }),
+
+  meetingFreeTime: protectedProcedure
+    .input(z.object({
+      periodType: z.string().optional(),
+      department: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getMeetingFreeTimeAnalysis(input ?? {});
+    }),
+
+  assessWellbeing: protectedProcedure
+    .input(z.object({
+      employeeId: z.string(),
+      periodType: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.assessWellbeing(input.employeeId, { periodType: input.periodType });
+    }),
+
+  wellbeingScores: protectedProcedure
+    .input(z.object({
+      grade: z.string().optional(),
+      department: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getWellbeingScores(input ?? {});
+    }),
+
+  batchAssessWellbeing: protectedProcedure
+    .input(z.object({ employeeIds: z.array(z.string()) }))
+    .mutation(async ({ input }) => {
+      return imeService.batchAssessWellbeing(input.employeeIds);
+    }),
+
+  teamLoadSummary: protectedProcedure
+    .input(z.object({
+      periodType: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getTeamLoadSummary(input ?? {});
+    }),
 });

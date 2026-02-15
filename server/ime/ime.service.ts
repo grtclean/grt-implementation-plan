@@ -8050,3 +8050,568 @@ export async function batchAnalyzeMeetingNecessity(meetingIds: string[]) {
 
   return { analyzed: results.length, errors: errors.length, results, errorDetails: errors };
 }
+
+// ============================================================================
+// Phase 17: Meeting Load & Participant Well-being Intelligence
+// ============================================================================
+
+/**
+ * Compute participant workload from meeting data.
+ * Scans meeting_contributions + meeting_records, groups by employee per period.
+ */
+export async function computeParticipantLoad(options?: {
+  periodType?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const db = await requireDb();
+  const periodType = options?.periodType || "weekly";
+
+  // Default date range: last 30 days
+  const dateFrom = options?.dateFrom || new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+  const dateTo = options?.dateTo || new Date().toISOString().split("T")[0];
+
+  // Gather per-employee meeting data within date range
+  const result = await db.execute(sql.raw(`
+    SELECT
+      mc.employee_id,
+      mc.employee_name,
+      mc.department,
+      mr.id as meeting_id,
+      mr.meeting_date,
+      mr.duration_minutes,
+      mr.start_time,
+      mr.end_time
+    FROM meeting_contributions mc
+    JOIN meeting_records mr ON mr.id = mc.meeting_id
+    WHERE mr.meeting_date >= '${dateFrom}'
+      AND mr.meeting_date <= '${dateTo}'
+    ORDER BY mc.employee_id, mr.meeting_date, mr.start_time
+  `));
+
+  const rows = result.rows as any[];
+  if (rows.length === 0) return { computed: 0, periodType };
+
+  // Group by employee
+  const byEmployee: Record<string, any[]> = {};
+  for (const r of rows) {
+    const key = r.employee_id || r.employee_name;
+    if (!byEmployee[key]) byEmployee[key] = [];
+    byEmployee[key].push(r);
+  }
+
+  // Expected max meeting minutes per period
+  const expectedMax = periodType === "daily" ? 240 : periodType === "weekly" ? 1200 : 4800;
+  const workdayMinutes = 480;
+
+  // Determine period boundaries
+  const periodStart = new Date(dateFrom);
+  const periodEnd = new Date(dateTo);
+
+  // Clear old records for this period
+  await db.execute(sql.raw(`
+    DELETE FROM ime_participant_workload
+    WHERE period_type = '${periodType}'
+      AND period_start = '${periodStart.toISOString()}'
+      AND period_end = '${periodEnd.toISOString()}'
+  `));
+
+  const insertRows: any[] = [];
+
+  for (const [empKey, meetings] of Object.entries(byEmployee)) {
+    const first = meetings[0];
+    const meetingCount = meetings.length;
+    const durations = meetings.map((m) => Number(m.duration_minutes) || 30);
+    const totalMinutes = durations.reduce((a, b) => a + b, 0);
+    const avgDuration = Math.round(totalMinutes / meetingCount);
+    const maxDuration = Math.max(...durations);
+
+    // Back-to-back detection: meetings within 15-minute gap
+    let backToBackCount = 0;
+    for (let i = 1; i < meetings.length; i++) {
+      const prevEnd = meetings[i - 1].end_time || meetings[i - 1].meeting_date;
+      const currStart = meetings[i].start_time || meetings[i].meeting_date;
+      if (prevEnd && currStart) {
+        const gap = (new Date(currStart).getTime() - new Date(prevEnd).getTime()) / 60000;
+        if (gap >= 0 && gap <= 15) backToBackCount++;
+      }
+    }
+    const backToBackRatio = meetingCount > 1 ? Math.round((backToBackCount / (meetingCount - 1)) * 100) : 0;
+
+    // Focus time: workday minus meetings (approximate per day count)
+    const uniqueDays = new Set(meetings.map((m) => String(m.meeting_date).split("T")[0])).size;
+    const avgDailyMeetingMin = uniqueDays > 0 ? totalMinutes / uniqueDays : totalMinutes;
+    const focusTimeMinutes = Math.max(0, Math.round(workdayMinutes - avgDailyMeetingMin));
+    const longestFocusBlock = Math.max(0, focusTimeMinutes - 30); // rough estimate
+
+    // Meeting density: percent of workday in meetings
+    const meetingDensity = Math.min(100, Math.round((avgDailyMeetingMin / workdayMinutes) * 100));
+
+    // Morning / afternoon split (rough: before/after 12:00)
+    let meetingsBeforeNoon = 0;
+    let meetingsAfterNoon = 0;
+    for (const m of meetings) {
+      const hour = m.start_time ? new Date(m.start_time).getHours() : 10;
+      if (hour < 12) meetingsBeforeNoon++;
+      else meetingsAfterNoon++;
+    }
+
+    // Unique collaborators
+    const collaboratorSet = new Set<string>();
+    // Count unique meeting IDs as proxy for collaborator diversity
+    for (const m of meetings) {
+      collaboratorSet.add(m.meeting_id);
+    }
+
+    // Load score
+    const loadScore = Math.min(100, Math.round((totalMinutes / expectedMax) * 100));
+
+    // Risk level
+    let riskLevel = "low";
+    if (loadScore > 80) riskLevel = "critical";
+    else if (loadScore > 60) riskLevel = "high";
+    else if (loadScore > 40) riskLevel = "medium";
+
+    insertRows.push({
+      employeeId: first.employee_id || empKey,
+      employeeName: first.employee_name,
+      department: first.department || null,
+      periodType,
+      periodStart: periodStart.toISOString(),
+      periodEnd: periodEnd.toISOString(),
+      meetingCount,
+      totalMinutes,
+      avgDuration,
+      maxDuration,
+      backToBackCount,
+      backToBackRatio,
+      focusTimeMinutes,
+      meetingDensity,
+      longestFocusBlock,
+      meetingsBeforeNoon,
+      meetingsAfterNoon,
+      uniqueCollaborators: collaboratorSet.size,
+      loadScore,
+      riskLevel,
+    });
+  }
+
+  // Bulk insert
+  for (const r of insertRows) {
+    await db.execute(sql.raw(`
+      INSERT INTO ime_participant_workload
+        (employee_id, employee_name, department, period_type, period_start, period_end,
+         meeting_count, total_meeting_minutes, avg_meeting_duration, max_meeting_duration,
+         back_to_back_count, back_to_back_ratio, focus_time_minutes, meeting_density,
+         longest_focus_block, meetings_before_noon, meetings_after_noon, unique_collaborators,
+         load_score, risk_level, computed_at)
+      VALUES
+        ('${r.employeeId}', '${r.employeeName}', ${r.department ? `'${r.department}'` : "NULL"},
+         '${r.periodType}', '${r.periodStart}', '${r.periodEnd}',
+         ${r.meetingCount}, ${r.totalMinutes}, ${r.avgDuration}, ${r.maxDuration},
+         ${r.backToBackCount}, ${r.backToBackRatio}, ${r.focusTimeMinutes}, ${r.meetingDensity},
+         ${r.longestFocusBlock}, ${r.meetingsBeforeNoon}, ${r.meetingsAfterNoon}, ${r.uniqueCollaborators},
+         ${r.loadScore}, '${r.riskLevel}', NOW())
+    `));
+  }
+
+  return { computed: insertRows.length, periodType, dateFrom, dateTo };
+}
+
+/**
+ * Load dashboard — aggregated stats.
+ */
+export async function getLoadDashboard(filters?: { periodType?: string; department?: string }) {
+  const db = await requireDb();
+  const periodType = filters?.periodType || "weekly";
+
+  let deptFilter = "";
+  if (filters?.department) {
+    deptFilter = ` AND department = '${filters.department}'`;
+  }
+
+  const result = await db.execute(sql.raw(`
+    SELECT
+      ROUND(AVG(total_meeting_minutes) / 60.0, 1) as avg_weekly_hours,
+      COUNT(CASE WHEN load_score > 60 THEN 1 END) as overloaded_count,
+      ROUND(AVG(focus_time_minutes), 0) as avg_focus_time_minutes,
+      ROUND(AVG(load_score), 0) as avg_load_score,
+      COUNT(*) as total_employees
+    FROM ime_participant_workload
+    WHERE period_type = '${periodType}' ${deptFilter}
+  `));
+
+  const stats = (result.rows as any[])[0] || {};
+  return {
+    avgWeeklyHours: Number(stats.avg_weekly_hours) || 0,
+    overloadedCount: Number(stats.overloaded_count) || 0,
+    avgFocusTimeMinutes: Number(stats.avg_focus_time_minutes) || 0,
+    avgLoadScore: Number(stats.avg_load_score) || 0,
+    totalEmployees: Number(stats.total_employees) || 0,
+  };
+}
+
+/**
+ * Participant load details — ranked list by loadScore.
+ */
+export async function getParticipantLoadDetails(options?: {
+  periodType?: string;
+  department?: string;
+  riskLevel?: string;
+  limit?: number;
+}) {
+  const db = await requireDb();
+  const periodType = options?.periodType || "weekly";
+  const limit = options?.limit || 50;
+
+  let whereExtra = "";
+  if (options?.department) {
+    whereExtra += ` AND department = '${options.department}'`;
+  }
+  if (options?.riskLevel) {
+    whereExtra += ` AND risk_level = '${options.riskLevel}'`;
+  }
+
+  const result = await db.execute(sql.raw(`
+    SELECT *
+    FROM ime_participant_workload
+    WHERE period_type = '${periodType}' ${whereExtra}
+    ORDER BY load_score DESC
+    LIMIT ${limit}
+  `));
+
+  return result.rows;
+}
+
+/**
+ * Load trends — time-series avg load score grouped by period.
+ */
+export async function getLoadTrends(options?: { periodType?: string; limit?: number }) {
+  const db = await requireDb();
+  const periodType = options?.periodType || "weekly";
+  const limit = options?.limit || 20;
+
+  const result = await db.execute(sql.raw(`
+    SELECT
+      period_start,
+      ROUND(AVG(load_score), 1) as avg_load_score,
+      ROUND(AVG(total_meeting_minutes), 0) as avg_meeting_minutes,
+      COUNT(*) as employee_count
+    FROM ime_participant_workload
+    WHERE period_type = '${periodType}'
+    GROUP BY period_start
+    ORDER BY period_start DESC
+    LIMIT ${limit}
+  `));
+
+  return (result.rows as any[]).reverse();
+}
+
+/**
+ * Detect burnout risk — employees with loadScore above threshold.
+ */
+export async function detectBurnoutRisk(options?: {
+  threshold?: number;
+  periodType?: string;
+  limit?: number;
+}) {
+  const db = await requireDb();
+  const threshold = options?.threshold || 60;
+  const periodType = options?.periodType || "weekly";
+  const limit = options?.limit || 100;
+
+  const result = await db.execute(sql.raw(`
+    SELECT *
+    FROM ime_participant_workload
+    WHERE period_type = '${periodType}'
+      AND load_score >= ${threshold}
+    ORDER BY load_score DESC
+    LIMIT ${limit}
+  `));
+
+  const atRisk = result.rows as any[];
+
+  // Risk distribution
+  const distribution = { critical: 0, high: 0, medium: 0, low: 0 };
+  // Also count all employees for low
+  const allResult = await db.execute(sql.raw(`
+    SELECT risk_level, COUNT(*) as cnt
+    FROM ime_participant_workload
+    WHERE period_type = '${periodType}'
+    GROUP BY risk_level
+  `));
+  for (const r of allResult.rows as any[]) {
+    const level = r.risk_level as keyof typeof distribution;
+    if (distribution[level] !== undefined) {
+      distribution[level] = Number(r.cnt);
+    }
+  }
+
+  return { atRisk, distribution, threshold };
+}
+
+/**
+ * Meeting-free time analysis per employee.
+ */
+export async function getMeetingFreeTimeAnalysis(options?: {
+  periodType?: string;
+  department?: string;
+  limit?: number;
+}) {
+  const db = await requireDb();
+  const periodType = options?.periodType || "weekly";
+  const limit = options?.limit || 50;
+
+  let deptFilter = "";
+  if (options?.department) {
+    deptFilter = ` AND department = '${options.department}'`;
+  }
+
+  const result = await db.execute(sql.raw(`
+    SELECT
+      employee_id, employee_name, department,
+      focus_time_minutes, longest_focus_block,
+      meetings_before_noon, meetings_after_noon,
+      back_to_back_ratio, meeting_density, load_score
+    FROM ime_participant_workload
+    WHERE period_type = '${periodType}' ${deptFilter}
+    ORDER BY focus_time_minutes ASC
+    LIMIT ${limit}
+  `));
+
+  return result.rows;
+}
+
+/**
+ * Assess well-being for a single employee using AI.
+ */
+export async function assessWellbeing(employeeId: string, options?: {
+  periodType?: string;
+}) {
+  const db = await requireDb();
+  const periodType = options?.periodType || "weekly";
+
+  // Get recent load data for this employee
+  const loadResult = await db.execute(sql.raw(`
+    SELECT *
+    FROM ime_participant_workload
+    WHERE employee_id = '${employeeId}'
+      AND period_type = '${periodType}'
+    ORDER BY computed_at DESC
+    LIMIT 5
+  `));
+
+  const loadRecords = loadResult.rows as any[];
+  if (loadRecords.length === 0) {
+    throw new Error(`No workload data found for employee ${employeeId}. Run "计算工作负荷" first.`);
+  }
+
+  const latest = loadRecords[0];
+  const employeeName = latest.employee_name;
+  const department = latest.department;
+
+  // Compute averages from recent periods
+  const avgLoad = Math.round(loadRecords.reduce((s: number, r: any) => s + Number(r.load_score || 0), 0) / loadRecords.length);
+  const avgFocus = Math.round(loadRecords.reduce((s: number, r: any) => s + Number(r.focus_time_minutes || 0), 0) / loadRecords.length);
+  const avgDensity = Math.round(loadRecords.reduce((s: number, r: any) => s + Number(r.meeting_density || 0), 0) / loadRecords.length);
+  const avgB2B = Math.round(loadRecords.reduce((s: number, r: any) => s + Number(r.back_to_back_ratio || 0), 0) / loadRecords.length);
+  const avgCollaborators = Math.round(loadRecords.reduce((s: number, r: any) => s + Number(r.unique_collaborators || 0), 0) / loadRecords.length);
+
+  let assessment: any;
+
+  try {
+    const prompt = `You are an employee well-being analyst evaluating meeting workload impact.
+
+Employee: ${employeeName}
+Department: ${department || "Unknown"}
+Recent Workload Data (last ${loadRecords.length} periods):
+- Average Load Score: ${avgLoad}/100
+- Average Focus Time: ${avgFocus} minutes/day
+- Average Meeting Density: ${avgDensity}%
+- Average Back-to-Back Ratio: ${avgB2B}%
+- Average Unique Collaborators: ${avgCollaborators}
+- Latest Risk Level: ${latest.risk_level}
+- Latest Total Meeting Minutes: ${latest.total_meeting_minutes}
+- Latest Meeting Count: ${latest.meeting_count}
+
+Score each dimension 0-10, provide an overall well-being score 0-100, a grade (A=excellent, B=good, C=fair, D=poor, F=critical), list risk factors and recommendations. Write the AI narrative in Chinese.`;
+
+    const result = await invokeLLM({
+      messages: [{ role: "user", content: prompt }],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "wellbeing_assessment",
+          schema: {
+            type: "object",
+            properties: {
+              wellbeingScore: { type: "number" },
+              wellbeingGrade: { type: "string" },
+              meetingLoadDimension: { type: "number" },
+              scheduleBalanceDimension: { type: "number" },
+              collaborationDiversityDimension: { type: "number" },
+              focusTimeDimension: { type: "number" },
+              meetingEfficiencyDimension: { type: "number" },
+              workloadTrendDimension: { type: "number" },
+              riskFactors: { type: "array", items: { type: "string" } },
+              recommendations: { type: "array", items: { type: "string" } },
+              aiNarrative: { type: "string" },
+            },
+            required: [
+              "wellbeingScore", "wellbeingGrade", "meetingLoadDimension",
+              "scheduleBalanceDimension", "collaborationDiversityDimension",
+              "focusTimeDimension", "meetingEfficiencyDimension",
+              "workloadTrendDimension", "riskFactors", "recommendations", "aiNarrative",
+            ],
+          },
+          strict: true,
+        },
+      },
+    });
+
+    assessment = JSON.parse((result as any).content);
+  } catch (err) {
+    // Fallback heuristic if LLM fails
+    const loadDim = Math.max(0, 10 - Math.round(avgLoad / 10));
+    const balanceDim = Math.max(0, Math.min(10, Math.round(avgFocus / 48)));
+    const collabDim = Math.min(10, avgCollaborators);
+    const focusDim = Math.max(0, Math.min(10, Math.round(avgFocus / 48)));
+    const effDim = Math.max(0, 10 - Math.round(avgDensity / 10));
+    const trendDim = avgLoad <= 40 ? 8 : avgLoad <= 60 ? 5 : 3;
+
+    const score = Math.round((loadDim + balanceDim + collabDim + focusDim + effDim + trendDim) / 6 * 10);
+    const grade = score >= 80 ? "A" : score >= 60 ? "B" : score >= 40 ? "C" : score >= 20 ? "D" : "F";
+
+    const riskFactors: string[] = [];
+    if (avgLoad > 60) riskFactors.push("会议负荷过高");
+    if (avgB2B > 50) riskFactors.push("背靠背会议频繁");
+    if (avgFocus < 120) riskFactors.push("专注时间不足");
+
+    assessment = {
+      wellbeingScore: score,
+      wellbeingGrade: grade,
+      meetingLoadDimension: loadDim,
+      scheduleBalanceDimension: balanceDim,
+      collaborationDiversityDimension: collabDim,
+      focusTimeDimension: focusDim,
+      meetingEfficiencyDimension: effDim,
+      workloadTrendDimension: trendDim,
+      riskFactors,
+      recommendations: ["减少不必要的会议", "增加专注时间段"],
+      aiNarrative: `该员工平均负荷分${avgLoad}，专注时间${avgFocus}分钟，整体健康状态${grade}级。`,
+    };
+  }
+
+  // Delete old assessment for this employee
+  await db.execute(sql.raw(`
+    DELETE FROM ime_wellbeing_assessments WHERE employee_id = '${employeeId}'
+  `));
+
+  // Insert new assessment
+  await db.execute(sql.raw(`
+    INSERT INTO ime_wellbeing_assessments
+      (employee_id, employee_name, department,
+       wellbeing_score, wellbeing_grade,
+       meeting_load_dimension, schedule_balance_dimension,
+       collaboration_diversity_dimension, focus_time_dimension,
+       meeting_efficiency_dimension, workload_trend_dimension,
+       risk_factors, recommendations, ai_narrative,
+       assessed_period_start, assessed_period_end, assessed_at)
+    VALUES
+      ('${employeeId}', '${employeeName}', ${department ? `'${department}'` : "NULL"},
+       ${assessment.wellbeingScore}, '${assessment.wellbeingGrade}',
+       ${assessment.meetingLoadDimension}, ${assessment.scheduleBalanceDimension},
+       ${assessment.collaborationDiversityDimension}, ${assessment.focusTimeDimension},
+       ${assessment.meetingEfficiencyDimension}, ${assessment.workloadTrendDimension},
+       '${JSON.stringify(assessment.riskFactors)}', '${JSON.stringify(assessment.recommendations)}',
+       '${(assessment.aiNarrative || "").replace(/'/g, "''")}',
+       '${latest.period_start}', '${latest.period_end}', NOW())
+  `));
+
+  return {
+    employeeId,
+    employeeName,
+    department,
+    ...assessment,
+  };
+}
+
+/**
+ * List well-being scores with optional filters.
+ */
+export async function getWellbeingScores(options?: {
+  grade?: string;
+  department?: string;
+  limit?: number;
+}) {
+  const db = await requireDb();
+  const limit = options?.limit || 50;
+
+  let whereExtra = "";
+  if (options?.grade) {
+    whereExtra += ` AND wellbeing_grade = '${options.grade}'`;
+  }
+  if (options?.department) {
+    whereExtra += ` AND department = '${options.department}'`;
+  }
+
+  const result = await db.execute(sql.raw(`
+    SELECT *
+    FROM ime_wellbeing_assessments
+    WHERE 1=1 ${whereExtra}
+    ORDER BY assessed_at DESC
+    LIMIT ${limit}
+  `));
+
+  return result.rows;
+}
+
+/**
+ * Batch assess well-being for multiple employees.
+ */
+export async function batchAssessWellbeing(employeeIds: string[]) {
+  const results: any[] = [];
+  const errors: any[] = [];
+
+  for (const id of employeeIds) {
+    try {
+      const result = await assessWellbeing(id);
+      results.push(result);
+    } catch (err: any) {
+      errors.push({ employeeId: id, error: err.message });
+    }
+  }
+
+  return { assessed: results.length, errors: errors.length, results, errorDetails: errors };
+}
+
+/**
+ * Team load summary — per-department aggregation.
+ */
+export async function getTeamLoadSummary(options?: { periodType?: string }) {
+  const db = await requireDb();
+  const periodType = options?.periodType || "weekly";
+
+  const result = await db.execute(sql.raw(`
+    SELECT
+      department,
+      COUNT(*) as headcount,
+      ROUND(AVG(load_score), 1) as avg_load_score,
+      COUNT(CASE WHEN load_score > 60 THEN 1 END) as overloaded_count,
+      ROUND(AVG(focus_time_minutes), 0) as avg_focus_time,
+      ROUND(AVG(total_meeting_minutes), 0) as avg_meeting_minutes,
+      ROUND(AVG(back_to_back_ratio), 0) as avg_b2b_ratio
+    FROM ime_participant_workload
+    WHERE period_type = '${periodType}'
+      AND department IS NOT NULL
+    GROUP BY department
+    ORDER BY avg_load_score DESC
+  `));
+
+  return (result.rows as any[]).map((r: any) => ({
+    ...r,
+    overloadedPercent: Number(r.headcount) > 0
+      ? Math.round((Number(r.overloaded_count) / Number(r.headcount)) * 100)
+      : 0,
+  }));
+}

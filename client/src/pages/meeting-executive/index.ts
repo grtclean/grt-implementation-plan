@@ -22,3 +22,4 @@ export { ComplianceTab } from "./ComplianceTab";
 export { HrPerformanceLinkageTab } from "./HrPerformanceLinkageTab";
 export { MeetingIntelligenceApiTab } from "./MeetingIntelligenceApiTab";
 export { CollaborationNetworkTab } from "./CollaborationNetworkTab";
+export { MeetingLoadWellbeingTab } from "./MeetingLoadWellbeingTab";
