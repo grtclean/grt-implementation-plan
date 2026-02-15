@@ -255,6 +255,8 @@ import RoleDashboard from "./pages/RoleDashboard";
 import Gamification from "./pages/Gamification";
 import IoTDashboard from "./pages/IoTDashboard";
 import RAGTrainingCenter from "./pages/RAGTrainingCenter";
+import DelegationManagement from "./pages/DelegationManagement";
+import PerformanceSalaryQuery from "./pages/PerformanceSalaryQuery";
 
 // v2.6.0 新增页面
 const QuotationCreate = React.lazy(() => import("./pages/QuotationCreate"));
@@ -1101,6 +1103,14 @@ function Router() {
       </Route>
       <Route path="/ai-service">
         <ProtectedRoute component={AIServiceAssistant} />
+      </Route>
+
+      {/* Phase B: 代理职能 + 绩效薪资查询 */}
+      <Route path="/delegation">
+        <ProtectedRoute component={DelegationManagement} />
+      </Route>
+      <Route path="/perf-salary">
+        <ProtectedRoute component={PerformanceSalaryQuery} />
       </Route>
 
       <Route path={"/404"} component={NotFound} />
