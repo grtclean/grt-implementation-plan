@@ -123,6 +123,9 @@ import { purchaseAssistantRouter } from "./ai-assistants/purchaseRoutes";
 import { qualityAssistantRouter } from "./ai-assistants/qualityRoutes";
 import { serviceAssistantRouter } from "./ai-assistants/serviceRoutes";
 
+// Phase D: AI项目智能 (知识问答/相似项目/变更影响/风险预测)
+import { projectIntelligenceRouter } from "./project-intelligence/projectIntelligence.router";
+
 /**
  * This is the primary router for the tRPC API.
  * All application routes are registered here.
@@ -373,6 +376,9 @@ export const appRouter = router({
   purchaseAssistant: purchaseAssistantRouter,
   qualityAssistant: qualityAssistantRouter,
   serviceAssistant: serviceAssistantRouter,
+
+  // Phase D: AI项目智能 (知识问答/相似项目/变更影响/风险预测)
+  projectIntelligence: projectIntelligenceRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {

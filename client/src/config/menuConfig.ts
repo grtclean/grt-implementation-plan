@@ -394,6 +394,9 @@ export const menuConfig: MenuGroup[] = [
       { name: "AI采购助手", nameEn: "AI Purchase", path: "/ai-purchase", icon: ShoppingCart, isNew: true },
       { name: "AI质量助手", nameEn: "AI Quality", path: "/ai-quality", icon: Shield, isNew: true },
       { name: "AI服务助手", nameEn: "AI Service", path: "/ai-service", icon: Headphones, isNew: true },
+      { name: "知识库问答", nameEn: "Knowledge Q&A", path: "/knowledge-qa", icon: MessageSquare, isNew: true },
+      { name: "变更影响分析", nameEn: "Change Impact", path: "/change-impact", icon: GitBranch, isNew: true },
+      { name: "AI风险预测", nameEn: "AI Risk Prediction", path: "/ai-risk-prediction", icon: ShieldAlert, isNew: true },
     ],
   },
 

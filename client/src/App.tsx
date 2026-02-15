@@ -276,6 +276,11 @@ const AIPurchaseAssistant = React.lazy(() => import("./pages/ai/AIPurchaseAssist
 const AIQualityAssistant = React.lazy(() => import("./pages/ai/AIQualityAssistant"));
 const AIServiceAssistant = React.lazy(() => import("./pages/ai/AIServiceAssistant"));
 
+// Phase D: AI项目智能 (知识问答/变更影响/风险预测)
+const ProjectKnowledgeQA = React.lazy(() => import("./pages/ProjectKnowledgeQA"));
+const ChangeImpactAnalysis = React.lazy(() => import("./pages/ChangeImpactAnalysis"));
+const ProjectRiskPrediction = React.lazy(() => import("./pages/ProjectRiskPrediction"));
+
 // Protected route wrapper component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -1103,6 +1108,17 @@ function Router() {
       </Route>
       <Route path="/ai-service">
         <ProtectedRoute component={AIServiceAssistant} />
+      </Route>
+
+      {/* Phase D: AI项目智能 */}
+      <Route path="/knowledge-qa">
+        <ProtectedRoute component={ProjectKnowledgeQA} />
+      </Route>
+      <Route path="/change-impact">
+        <ProtectedRoute component={ChangeImpactAnalysis} />
+      </Route>
+      <Route path="/ai-risk-prediction">
+        <ProtectedRoute component={ProjectRiskPrediction} />
       </Route>
 
       {/* Phase B: 代理职能 + 绩效薪资查询 */}
