@@ -112,6 +112,7 @@ import { aiEarlyWarningRouter } from "./services/ai-early-warning.router";
 import { sopRouter } from "./services/sop.router";
 import { costStandardsRouter } from "./services/cost-standards.router";
 import { imeRouter } from "./ime/ime.router";
+import { dailyPlanRouter } from "./daily-plan/daily-plan.router";
 
 // AI Assistant modules (Purchase, Quality, Service)
 import { purchaseAssistantRouter } from "./ai-assistants/purchaseRoutes";
@@ -271,6 +272,9 @@ export const appRouter = router({
 
   // G-IME: 参会者贡献分析与会议效能 (Intelligent Meeting Executive)
   ime: imeRouter,
+
+  // 每日工作计划推送 (AI-driven daily work plan)
+  dailyPlan: dailyPlanRouter,
   customerSolutionMeeting: customerSolutionMeetingRouter,
   taskNotification: webhookConfigRouter,
   caseLibrary: caseLibraryRouter,
