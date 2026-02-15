@@ -287,6 +287,12 @@ const InventoryOptimization = React.lazy(() => import("./pages/InventoryOptimiza
 const QualityPrediction = React.lazy(() => import("./pages/QualityPrediction"));
 const ProductionEfficiency = React.lazy(() => import("./pages/ProductionEfficiency"));
 
+// Phase F: HR与人才智能 (人才评估/培训推荐/薪酬分析/人力规划)
+const AITalentAssessment = React.lazy(() => import("./pages/AITalentAssessment"));
+const AITrainingRecommender = React.lazy(() => import("./pages/AITrainingRecommender"));
+const AICompensationAnalysis = React.lazy(() => import("./pages/AICompensationAnalysis"));
+const AIWorkforcePlanning = React.lazy(() => import("./pages/AIWorkforcePlanning"));
+
 // Protected route wrapper component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -1139,6 +1145,20 @@ function Router() {
       </Route>
       <Route path="/production-efficiency">
         <ProtectedRoute component={ProductionEfficiency} />
+      </Route>
+
+      {/* Phase F: HR与人才智能 */}
+      <Route path="/ai-talent-assessment">
+        <ProtectedRoute component={AITalentAssessment} />
+      </Route>
+      <Route path="/ai-training-recommender">
+        <ProtectedRoute component={AITrainingRecommender} />
+      </Route>
+      <Route path="/ai-compensation-analysis">
+        <ProtectedRoute component={AICompensationAnalysis} />
+      </Route>
+      <Route path="/ai-workforce-planning">
+        <ProtectedRoute component={AIWorkforcePlanning} />
       </Route>
 
       {/* Phase B: 代理职能 + 绩效薪资查询 */}
