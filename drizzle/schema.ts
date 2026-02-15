@@ -11073,3 +11073,75 @@ export type ImeDecisionTracking = typeof imeDecisionTracking.$inferSelect;
 export type InsertImeDecisionTracking = typeof imeDecisionTracking.$inferInsert;
 export type ImeDecisionIntelligenceSnapshot = typeof imeDecisionIntelligenceSnapshots.$inferSelect;
 export type InsertImeDecisionIntelligenceSnapshot = typeof imeDecisionIntelligenceSnapshots.$inferInsert;
+
+// ============================================================================
+// Phase 20: Meeting Agenda & Time Allocation Intelligence
+// ============================================================================
+
+export const imeMeetingStructureAnalysis = pgTable("ime_meeting_structure_analysis", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 36 }),
+  scheduleId: integer("schedule_id"),
+  agendaItemIndex: integer("agenda_item_index"),
+  agendaItemTitle: varchar("agenda_item_title", { length: 500 }),
+  agendaItemCategory: varchar("agenda_item_category", { length: 50 }).default("other"), // discussion|decision|update|brainstorm|review|other
+  plannedDurationMinutes: integer("planned_duration_minutes"),
+  actualDurationMinutes: integer("actual_duration_minutes"),
+  overrunMinutes: integer("overrun_minutes"),
+  overrunPercent: integer("overrun_percent"),
+  speakerCount: integer("speaker_count"),
+  dominantSpeaker: varchar("dominant_speaker", { length: 200 }),
+  dominantSpeakerPercent: integer("dominant_speaker_percent"),
+  contentBlockCount: integer("content_block_count"),
+  decisionsCount: integer("decisions_count"),
+  actionItemsCount: integer("action_items_count"),
+  engagementScore: integer("engagement_score"),
+  productivityScore: integer("productivity_score"),
+  timeEfficiencyGrade: varchar("time_efficiency_grade", { length: 2 }),
+  aiSummary: text("ai_summary"),
+  aiRecommendation: text("ai_recommendation"),
+  wasSkipped: integer("was_skipped").default(0),
+  totalMeetingDurationMinutes: integer("total_meeting_duration_minutes"),
+  totalPlannedDurationMinutes: integer("total_planned_duration_minutes"),
+  totalActualDurationMinutes: integer("total_actual_duration_minutes"),
+  unplannedTimeMinutes: integer("unplanned_time_minutes"),
+  meetingTimeEfficiencyScore: integer("meeting_time_efficiency_score"),
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeAgendaIntelligenceSnapshots = pgTable("ime_agenda_intelligence_snapshots", {
+  id: serial("id").primaryKey(),
+  scope: varchar("scope", { length: 20 }), // org|department|team|individual
+  scopeId: varchar("scope_id", { length: 200 }),
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+  totalMeetingsAnalyzed: integer("total_meetings_analyzed"),
+  totalAgendaItems: integer("total_agenda_items"),
+  avgAgendaItemsPerMeeting: integer("avg_agenda_items_per_meeting"),
+  avgPlannedDuration: integer("avg_planned_duration"),
+  avgActualDuration: integer("avg_actual_duration"),
+  avgOverrunMinutes: integer("avg_overrun_minutes"),
+  avgOverrunPercent: integer("avg_overrun_percent"),
+  overrunRate: integer("overrun_rate"),
+  underrunRate: integer("underrun_rate"),
+  skippedRate: integer("skipped_rate"),
+  avgEngagementScore: integer("avg_engagement_score"),
+  avgProductivityScore: integer("avg_productivity_score"),
+  avgTimeEfficiencyScore: integer("avg_time_efficiency_score"),
+  overallGrade: varchar("overall_grade", { length: 2 }),
+  topOverrunCategories: text("top_overrun_categories"), // JSON array
+  topOverrunTopics: text("top_overrun_topics"), // JSON array
+  optimalOrderRecommendation: text("optimal_order_recommendation"), // JSON array
+  aiNarrative: text("ai_narrative"),
+  trendVsPrevious: varchar("trend_vs_previous", { length: 20 }),
+  trendSlope: integer("trend_slope"),
+  recommendations: text("recommendations"), // JSON array
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type ImeMeetingStructureAnalysis = typeof imeMeetingStructureAnalysis.$inferSelect;
+export type InsertImeMeetingStructureAnalysis = typeof imeMeetingStructureAnalysis.$inferInsert;
+export type ImeAgendaIntelligenceSnapshot = typeof imeAgendaIntelligenceSnapshots.$inferSelect;
+export type InsertImeAgendaIntelligenceSnapshot = typeof imeAgendaIntelligenceSnapshots.$inferInsert;

@@ -1791,4 +1791,117 @@ export const imeRouter = router({
     .mutation(async ({ input }) => {
       return imeService.updateDecisionFollowThrough(input.id, input);
     }),
+
+  // Phase 20: Meeting Agenda & Time Allocation Intelligence
+
+  analyzeMeetingAgendaStructure: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.analyzeMeetingAgendaStructure(input.meetingId);
+    }),
+
+  batchAnalyzeMeetingAgenda: protectedProcedure
+    .input(z.object({ meetingIds: z.array(z.string()) }))
+    .mutation(async ({ input }) => {
+      return imeService.batchAnalyzeMeetingAgenda(input.meetingIds);
+    }),
+
+  timeAllocationBreakdown: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .query(async ({ input }) => {
+      return imeService.getTimeAllocationBreakdown(input.meetingId);
+    }),
+
+  timeAllocationComparison: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getTimeAllocationComparison(input ?? {});
+    }),
+
+  agendaOverrunPatterns: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.detectAgendaOverrunPatterns(input ?? {});
+    }),
+
+  categoryTimeDistribution: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.detectCategoryTimeDistribution(input ?? {});
+    }),
+
+  generateAgendaOptimization: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.generateAgendaOptimization(input.meetingId);
+    }),
+
+  computeAgendaSnapshot: protectedProcedure
+    .input(z.object({
+      scope: z.string(),
+      scopeId: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.computeAgendaIntelligenceSnapshot(input.scope, input.scopeId, input.dateFrom, input.dateTo);
+    }),
+
+  agendaDashboard: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getAgendaDashboard(input ?? {});
+    }),
+
+  agendaAnalysisList: protectedProcedure
+    .input(z.object({
+      limit: z.number().optional(),
+      offset: z.number().optional(),
+      grade: z.string().optional(),
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getAgendaAnalysisList(input ?? {});
+    }),
+
+  agendaTrendData: protectedProcedure
+    .input(z.object({
+      scope: z.string().optional(),
+      scopeId: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getAgendaTrendData(input ?? {});
+    }),
+
+  updateAgendaItemAnalysis: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      plannedDurationMinutes: z.number().optional(),
+      actualDurationMinutes: z.number().optional(),
+      agendaItemCategory: z.string().optional(),
+      agendaItemTitle: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.updateAgendaItemAnalysis(input.id, input);
+    }),
 });
