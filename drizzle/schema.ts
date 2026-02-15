@@ -10835,3 +10835,51 @@ export type ImeApiKey = typeof imeApiKeys.$inferSelect;
 export type InsertImeApiKey = typeof imeApiKeys.$inferInsert;
 export type ImeApiUsageLog = typeof imeApiUsageLogs.$inferSelect;
 export type InsertImeApiUsageLog = typeof imeApiUsageLogs.$inferInsert;
+
+// ============================================================================
+// Phase 16: Collaboration Network Intelligence
+// ============================================================================
+
+export const imeCollaborationEdges = pgTable("ime_collaboration_edges", {
+  id: serial("id").primaryKey(),
+  participantA: varchar("participant_a", { length: 200 }).notNull(),
+  participantB: varchar("participant_b", { length: 200 }).notNull(),
+  employeeIdA: varchar("employee_id_a", { length: 100 }),
+  employeeIdB: varchar("employee_id_b", { length: 100 }),
+  departmentA: varchar("department_a", { length: 200 }),
+  departmentB: varchar("department_b", { length: 200 }),
+  meetingCount: integer("meeting_count").default(0),
+  totalCoMeetingMinutes: integer("total_co_meeting_minutes").default(0),
+  avgMeetingSize: integer("avg_meeting_size").default(0),
+  collaborationScore: integer("collaboration_score").default(0),
+  relationshipType: varchar("relationship_type", { length: 20 }).default("same_dept"), // same_dept | cross_dept
+  sharedMeetingIds: text("shared_meeting_ids"), // JSON array
+  firstCollaboration: timestamp("first_collaboration"),
+  lastCollaboration: timestamp("last_collaboration"),
+  computedAt: timestamp("computed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const imeMeetingNecessityScores = pgTable("ime_meeting_necessity_scores", {
+  id: serial("id").primaryKey(),
+  meetingId: varchar("meeting_id", { length: 100 }).notNull(),
+  necessityScore: integer("necessity_score").default(0), // 0-100
+  necessityGrade: varchar("necessity_grade", { length: 2 }).default("C"), // A/B/C/D/F
+  decisionComplexity: integer("decision_complexity").default(0), // 0-10
+  collaborationRequirement: integer("collaboration_requirement").default(0), // 0-10
+  informationRichness: integer("information_richness").default(0), // 0-10
+  outcomeImpact: integer("outcome_impact").default(0), // 0-10
+  participantAlignment: integer("participant_alignment").default(0), // 0-10
+  timeEfficiency: integer("time_efficiency").default(0), // 0-10
+  alternativeViability: varchar("alternative_viability", { length: 20 }).default("none"), // email|slack|doc|none
+  alternativeRationale: text("alternative_rationale"),
+  aiNarrative: text("ai_narrative"),
+  recommendations: text("recommendations"), // JSON array
+  analyzedAt: timestamp("analyzed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type ImeCollaborationEdge = typeof imeCollaborationEdges.$inferSelect;
+export type InsertImeCollaborationEdge = typeof imeCollaborationEdges.$inferInsert;
+export type ImeMeetingNecessityScore = typeof imeMeetingNecessityScores.$inferSelect;
+export type InsertImeMeetingNecessityScore = typeof imeMeetingNecessityScores.$inferInsert;

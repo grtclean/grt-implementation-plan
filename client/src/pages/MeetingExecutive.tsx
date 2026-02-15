@@ -48,6 +48,7 @@ import {
   ComplianceTab,
   HrPerformanceLinkageTab,
   MeetingIntelligenceApiTab,
+  CollaborationNetworkTab,
 } from "./meeting-executive";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -891,6 +892,7 @@ export default function MeetingExecutive() {
           <TabsTrigger value="compliance">合规治理</TabsTrigger>
           <TabsTrigger value="hr-linkage">HR绩效联动</TabsTrigger>
           <TabsTrigger value="api">Intelligence API</TabsTrigger>
+          <TabsTrigger value="collaboration">协作网络</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -999,6 +1001,10 @@ export default function MeetingExecutive() {
 
         <TabsContent value="api">
           <MeetingIntelligenceApiTab />
+        </TabsContent>
+
+        <TabsContent value="collaboration">
+          <CollaborationNetworkTab />
         </TabsContent>
       </Tabs>
     </div>

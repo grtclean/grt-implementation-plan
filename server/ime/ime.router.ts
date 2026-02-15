@@ -1428,4 +1428,78 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       return imeService.getApiUsageLogs(input?.limit);
     }),
+
+  // ==========================================================================
+  // Phase 16: Collaboration Network Intelligence
+  // ==========================================================================
+
+  buildCollaborationNetwork: protectedProcedure
+    .input(z.object({
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .mutation(async ({ input }) => {
+      return imeService.buildCollaborationNetwork(input ?? {});
+    }),
+
+  collaborationDashboard: protectedProcedure
+    .input(z.object({ department: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getCollaborationDashboard(input ?? {});
+    }),
+
+  collaborationNetworkStats: protectedProcedure
+    .input(z.object({ department: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getCollaborationNetworkStats(input ?? {});
+    }),
+
+  collaborationMatrix: protectedProcedure
+    .input(z.object({ level: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getCollaborationMatrix(input ?? {});
+    }),
+
+  topCollaboratorPairs: protectedProcedure
+    .input(z.object({
+      limit: z.number().optional(),
+      relationshipType: z.string().optional(),
+      department: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getTopCollaboratorPairs(input ?? {});
+    }),
+
+  crossDepartmentMetrics: protectedProcedure
+    .input(z.object({ departments: z.array(z.string()).optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.getCrossDepartmentMetrics(input?.departments);
+    }),
+
+  detectSilos: protectedProcedure
+    .input(z.object({ threshold: z.number().optional() }).optional())
+    .query(async ({ input }) => {
+      return imeService.detectCollaborationSilos(input ?? {});
+    }),
+
+  analyzeMeetingNecessity: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.analyzeMeetingNecessity(input.meetingId);
+    }),
+
+  meetingNecessityScores: protectedProcedure
+    .input(z.object({
+      limit: z.number().optional(),
+      grade: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getMeetingNecessityScores(input ?? {});
+    }),
+
+  batchAnalyzeNecessity: protectedProcedure
+    .input(z.object({ meetingIds: z.array(z.string()) }))
+    .mutation(async ({ input }) => {
+      return imeService.batchAnalyzeMeetingNecessity(input.meetingIds);
+    }),
 });
