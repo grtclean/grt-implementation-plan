@@ -319,6 +319,15 @@ export const menuConfig: MenuGroup[] = [
       { name: "主管工作台", nameEn: "Supervisor", path: "/supervisor-workbench", icon: UserCog, minLevel: 2 },
       { name: "议程管理", nameEn: "Agenda", path: "/agenda", icon: Calendar },
       { name: "年度规划", nameEn: "Annual Planning", path: "/annual-planning", icon: CalendarRange, minLevel: 3 },
+      // AI HR智能
+      { name: "AI人才评估", nameEn: "AI Talent", path: "/ai-talent-assessment", icon: UserCheck, isNew: true,
+        allowedRoles: ["admin", "director", "hr_manager", "hr_specialist", "dept_manager"] },
+      { name: "AI培训推荐", nameEn: "AI Training", path: "/ai-training-recommender", icon: GraduationCap, isNew: true,
+        allowedRoles: ["admin", "director", "hr_manager", "hr_specialist", "dept_manager", "team_lead"] },
+      { name: "AI薪酬分析", nameEn: "AI Compensation", path: "/ai-compensation-analysis", icon: DollarSign, isNew: true,
+        allowedRoles: ["admin", "director", "hr_manager", "finance_manager"] },
+      { name: "AI人力规划", nameEn: "AI Workforce", path: "/ai-workforce-planning", icon: Users, isNew: true,
+        allowedRoles: ["admin", "director", "hr_manager", "bu_gm"] },
     ],
   },
 
