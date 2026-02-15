@@ -1683,4 +1683,112 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       return imeService.getRecurringMeetingSummary(input ?? {});
     }),
+
+  // ========================================================================
+  // Phase 19: Decision Effectiveness & Outcome Intelligence
+  // ========================================================================
+
+  analyzeDecisionEffectiveness: protectedProcedure
+    .input(z.object({ meetingId: z.string() }))
+    .mutation(async ({ input }) => {
+      return imeService.analyzeDecisionEffectiveness(input.meetingId);
+    }),
+
+  batchAnalyzeDecisionEffectiveness: protectedProcedure
+    .input(z.object({ meetingIds: z.array(z.string()) }))
+    .mutation(async ({ input }) => {
+      return imeService.batchAnalyzeDecisionEffectiveness(input.meetingIds);
+    }),
+
+  detectDecisionReversals: protectedProcedure
+    .input(z.object({
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .mutation(async ({ input }) => {
+      return imeService.detectDecisionReversals(input ?? {});
+    }),
+
+  assessDecisionQuality: protectedProcedure
+    .input(z.object({ decisionId: z.number() }))
+    .mutation(async ({ input }) => {
+      return imeService.assessDecisionQuality(input.decisionId);
+    }),
+
+  computeDecisionSnapshot: protectedProcedure
+    .input(z.object({
+      scope: z.string(),
+      scopeId: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.computeDecisionIntelligenceSnapshot(input.scope, input.scopeId, input.dateFrom, input.dateTo);
+    }),
+
+  decisionDashboard: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getDecisionDashboard(input ?? {});
+    }),
+
+  decisionTrackingList: protectedProcedure
+    .input(z.object({
+      status: z.string().optional(),
+      department: z.string().optional(),
+      impactCategory: z.string().optional(),
+      meetingId: z.string().optional(),
+      limit: z.number().optional(),
+      offset: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getDecisionTrackingList(input ?? {});
+    }),
+
+  decisionVelocityTrend: protectedProcedure
+    .input(z.object({
+      scope: z.string().optional(),
+      scopeId: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getDecisionVelocityTrend(input ?? {});
+    }),
+
+  decisionReversalAnalysis: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.getDecisionReversalAnalysis(input ?? {});
+    }),
+
+  computeDecisionVelocity: protectedProcedure
+    .input(z.object({
+      department: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      return imeService.computeDecisionVelocity(input ?? {});
+    }),
+
+  updateDecisionFollowThrough: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      status: z.string().optional(),
+      implementationStartDate: z.string().optional(),
+      implementationEndDate: z.string().optional(),
+      businessOutcome: z.string().optional(),
+      impactScore: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return imeService.updateDecisionFollowThrough(input.id, input);
+    }),
 });

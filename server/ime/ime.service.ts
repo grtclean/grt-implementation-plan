@@ -9208,3 +9208,1124 @@ export async function getRecurringMeetingSummary(options?: { status?: string }) 
     },
   };
 }
+
+// ============================================================================
+// Phase 19: Decision Follow-Through & Reversal Intelligence
+// ============================================================================
+
+/**
+ * Analyze decision effectiveness for a single meeting.
+ * Extracts decisions, cross-references outcomes and action items,
+ * computes follow-through status, velocity, and uses LLM for quality scoring.
+ */
+export async function analyzeDecisionEffectiveness(meetingId: string) {
+  const db = await requireDb();
+  const safeId = meetingId.replace(/'/g, "''");
+
+  // 1. Get meeting
+  const meetingRes = await db.execute(sql.raw(
+    `SELECT id, title, objective, summary, meeting_date FROM meeting_records WHERE id = '${safeId}' LIMIT 1`
+  ));
+  const meeting = (meetingRes.rows as any[])[0];
+  if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
+
+  // 2. Extract decisions from content blocks
+  const blocksRes = await db.execute(sql.raw(
+    `SELECT content, speaker FROM meeting_content_blocks WHERE meeting_id = '${safeId}' AND block_type = 'decision'`
+  ));
+  const decisionBlocks = blocksRes.rows as any[];
+
+  // 3. Extract decisions from knowledge entities
+  const entitiesRes = await db.execute(sql.raw(
+    `SELECT id, entity_name, context_text FROM ime_knowledge_entities WHERE meeting_id = '${safeId}' AND entity_type = 'decision'`
+  ));
+  const decisionEntities = entitiesRes.rows as any[];
+
+  // Merge decisions
+  const allDecisions: Array<{ text: string; maker: string; source: string }> = [];
+  for (const b of decisionBlocks) {
+    allDecisions.push({ text: b.content || "", maker: b.speaker || "unknown", source: "content_block" });
+  }
+  for (const e of decisionEntities) {
+    allDecisions.push({ text: e.entity_name || e.context_text || "", maker: "unknown", source: "knowledge_entity" });
+  }
+
+  if (allDecisions.length === 0) {
+    return { meetingId, decisionsAnalyzed: 0, decisions: [] };
+  }
+
+  // 4. Cross-reference with decision outcomes
+  const outcomesRes = await db.execute(sql.raw(
+    `SELECT id, decision_text, outcome_status, outcome_notes, resolved_date, created_at FROM ime_decision_outcomes WHERE meeting_id = '${safeId}'`
+  ));
+  const outcomes = outcomesRes.rows as any[];
+
+  // 5. Cross-reference with action items
+  const actionsRes = await db.execute(sql.raw(
+    `SELECT id, action_text, assignee, status, due_date, resolved_date FROM ime_action_items WHERE meeting_id = '${safeId}'`
+  ));
+  const actionItems = actionsRes.rows as any[];
+
+  // 6. For each decision compute follow-through status and velocity
+  const decisionData: any[] = [];
+  for (const dec of allDecisions) {
+    // Match action items by text similarity (simple substring check)
+    const relatedActions = actionItems.filter((a: any) => {
+      const decLower = dec.text.toLowerCase();
+      const actLower = (a.action_text || "").toLowerCase();
+      return decLower.includes(actLower.substring(0, 20)) || actLower.includes(decLower.substring(0, 20));
+    });
+
+    // Determine follow-through status
+    let followThroughStatus = "pending";
+    if (relatedActions.length > 0) {
+      const statuses = relatedActions.map((a: any) => a.status);
+      if (statuses.every((s: string) => s === "completed" || s === "done")) {
+        followThroughStatus = "implemented";
+      } else if (statuses.some((s: string) => s === "abandoned" || s === "cancelled")) {
+        followThroughStatus = "abandoned";
+      } else if (statuses.some((s: string) => s === "in_progress" || s === "in-progress")) {
+        followThroughStatus = "in_progress";
+      }
+    }
+
+    // Check outcomes too
+    const matchedOutcome = outcomes.find((o: any) => {
+      const oText = (o.decision_text || "").toLowerCase();
+      const dText = dec.text.toLowerCase();
+      return oText.includes(dText.substring(0, 20)) || dText.includes(oText.substring(0, 20));
+    });
+    if (matchedOutcome) {
+      if (matchedOutcome.outcome_status === "implemented" || matchedOutcome.outcome_status === "completed") {
+        followThroughStatus = "implemented";
+      } else if (matchedOutcome.outcome_status === "abandoned") {
+        followThroughStatus = "abandoned";
+      } else if (matchedOutcome.outcome_status === "reversed") {
+        followThroughStatus = "reversed";
+      }
+    }
+
+    // Compute velocity
+    const decisionDate = meeting.meeting_date ? new Date(meeting.meeting_date) : new Date();
+    let velocityDays: number | null = null;
+    let velocityGrade = "N/A";
+    const resolvedDate = matchedOutcome?.resolved_date
+      || relatedActions.find((a: any) => a.resolved_date)?.resolved_date
+      || null;
+
+    if (resolvedDate && followThroughStatus === "implemented") {
+      velocityDays = Math.max(0, Math.round((new Date(resolvedDate).getTime() - decisionDate.getTime()) / 86400000));
+      if (velocityDays < 7) velocityGrade = "A";
+      else if (velocityDays < 14) velocityGrade = "B";
+      else if (velocityDays < 30) velocityGrade = "C";
+      else if (velocityDays < 60) velocityGrade = "D";
+      else velocityGrade = "F";
+    }
+
+    decisionData.push({
+      decisionText: dec.text,
+      decisionMaker: dec.maker,
+      followThroughStatus,
+      velocityDays,
+      velocityGrade,
+      decisionDate: decisionDate.toISOString().split("T")[0],
+      resolvedDate: resolvedDate ? new Date(resolvedDate).toISOString().split("T")[0] : null,
+    });
+  }
+
+  // 7. LLM assessment for quality/clarity/alignment/impact
+  let llmAssessment: any = {};
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "You are a decision quality analyst. Assess the quality, clarity, and strategic alignment of meeting decisions. Score each dimension 0-100. Also assess overall impact from -100 (very negative) to +100 (very positive). Categorize impact as positive, neutral, or negative. Provide a narrative summary and actionable recommendations.",
+        },
+        {
+          role: "user",
+          content: `Meeting: "${meeting.title}"\nObjective: ${meeting.objective || "N/A"}\nSummary: ${(meeting.summary || "").substring(0, 500)}\n\nDecisions made:\n${decisionData.map((d, i) => `${i + 1}. "${d.decisionText}" (by ${d.decisionMaker}, status: ${d.followThroughStatus}, velocity: ${d.velocityDays !== null ? d.velocityDays + " days" : "N/A"})`).join("\n")}`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "decision_effectiveness",
+          schema: {
+            type: "object",
+            properties: {
+              quality_score: { type: "number" },
+              clarity_score: { type: "number" },
+              alignment_score: { type: "number" },
+              impact_score: { type: "number" },
+              impact_category: { type: "string" },
+              narrative: { type: "string" },
+              recommendations: { type: "array", items: { type: "string" } },
+            },
+            required: ["quality_score", "clarity_score", "alignment_score", "impact_score", "impact_category", "narrative", "recommendations"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+    llmAssessment = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+  } catch (e) {
+    llmAssessment = {
+      quality_score: 50,
+      clarity_score: 50,
+      alignment_score: 50,
+      impact_score: 0,
+      impact_category: "neutral",
+      narrative: "LLM assessment unavailable.",
+      recommendations: [],
+    };
+  }
+
+  // 8. Delete existing tracking rows for this meeting
+  await db.execute(sql.raw(`DELETE FROM ime_decision_tracking WHERE meeting_id = '${safeId}'`));
+
+  // 9. Insert new rows
+  const insertedDecisions: any[] = [];
+  for (const dec of decisionData) {
+    const decId = `dec-${crypto.randomUUID()}`;
+    const safeText = dec.decisionText.replace(/'/g, "''");
+    const safeMaker = dec.decisionMaker.replace(/'/g, "''");
+    const safeNarrative = String(llmAssessment.narrative || "").replace(/'/g, "''");
+    const safeRecs = JSON.stringify(llmAssessment.recommendations || []).replace(/'/g, "''");
+    const impactCat = llmAssessment.impact_category || "neutral";
+
+    await db.execute(sql.raw(`
+      INSERT INTO ime_decision_tracking (
+        decision_id, meeting_id, decision_text, decision_maker, department, decision_date,
+        follow_through_status, total_velocity_days, velocity_grade,
+        is_reversed, impact_score, impact_category, ai_quality_score, ai_clarity_score,
+        ai_alignment_score, ai_narrative, ai_recommendations, computed_at, created_at
+      ) VALUES (
+        '${decId}', '${safeId}', '${safeText}', '${safeMaker}', '', '${dec.decisionDate}',
+        '${dec.followThroughStatus}', ${dec.velocityDays !== null ? dec.velocityDays : "NULL"}, '${dec.velocityGrade}',
+        0, ${llmAssessment.impact_score || 0}, '${impactCat}', ${llmAssessment.quality_score || 0},
+        ${llmAssessment.clarity_score || 0}, ${llmAssessment.alignment_score || 0},
+        '${safeNarrative}', '${safeRecs}', NOW(), NOW()
+      )
+    `));
+
+    insertedDecisions.push({
+      decisionId: decId,
+      decisionText: dec.decisionText,
+      decisionMaker: dec.decisionMaker,
+      followThroughStatus: dec.followThroughStatus,
+      velocityDays: dec.velocityDays,
+      velocityGrade: dec.velocityGrade,
+      qualityScore: llmAssessment.quality_score,
+      clarityScore: llmAssessment.clarity_score,
+      alignmentScore: llmAssessment.alignment_score,
+      impactScore: llmAssessment.impact_score,
+      impactCategory: impactCat,
+    });
+  }
+
+  return {
+    meetingId,
+    decisionsAnalyzed: insertedDecisions.length,
+    decisions: insertedDecisions,
+  };
+}
+
+// ============================================================================
+// Phase 19: Batch Analyze Decision Effectiveness
+// ============================================================================
+
+/**
+ * Batch analyze decision effectiveness for multiple meetings.
+ */
+export async function batchAnalyzeDecisionEffectiveness(meetingIds: string[]) {
+  const results: Array<{ meetingId: string; success: boolean; decisionsAnalyzed?: number; error?: string }> = [];
+
+  for (const meetingId of meetingIds) {
+    try {
+      const result = await analyzeDecisionEffectiveness(meetingId);
+      results.push({
+        meetingId,
+        success: true,
+        decisionsAnalyzed: result.decisionsAnalyzed,
+      });
+    } catch (e: any) {
+      results.push({
+        meetingId,
+        success: false,
+        error: e.message || String(e),
+      });
+    }
+  }
+
+  return results;
+}
+
+// ============================================================================
+// Phase 19: Detect Decision Reversals
+// ============================================================================
+
+/**
+ * Detect semantic contradictions / reversals between decisions across meetings.
+ * Uses LLM for semantic detection with keyword fallback.
+ */
+export async function detectDecisionReversals(options?: { dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  let dateFilter = "";
+  if (options?.dateFrom) dateFilter += ` AND decision_date >= '${options.dateFrom}'`;
+  if (options?.dateTo) dateFilter += ` AND decision_date <= '${options.dateTo}'`;
+
+  // Load all tracked decisions chronologically
+  const decisionsRes = await db.execute(sql.raw(`
+    SELECT id, decision_id, meeting_id, decision_text, decision_maker, department, decision_date
+    FROM ime_decision_tracking
+    WHERE 1=1 ${dateFilter}
+    ORDER BY decision_date ASC, id ASC
+  `));
+  const decisions = decisionsRes.rows as any[];
+
+  if (decisions.length < 2) {
+    return { reversalsDetected: 0, reversals: [] };
+  }
+
+  // Group by meeting
+  const byMeeting: Record<string, any[]> = {};
+  for (const d of decisions) {
+    const mid = d.meeting_id || "unknown";
+    if (!byMeeting[mid]) byMeeting[mid] = [];
+    byMeeting[mid].push(d);
+  }
+
+  const meetingKeys = Object.keys(byMeeting);
+  const reversals: Array<{ originalDecisionId: number; reversalDecisionId: number; reason: string }> = [];
+
+  // Process in batches for LLM
+  const batchSize = 50;
+  for (let i = 0; i < decisions.length; i += batchSize) {
+    const batch = decisions.slice(i, i + batchSize);
+    const decisionSummaries = batch.map((d: any) => ({
+      id: d.id,
+      meetingId: d.meeting_id,
+      text: (d.decision_text || "").substring(0, 200),
+      date: d.decision_date,
+    }));
+
+    try {
+      const llmResult = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content: "You are a decision reversal detector. Given a list of decisions from different meetings, identify pairs where a later decision contradicts, reverses, or cancels an earlier decision. Only flag clear reversals, not refinements.",
+          },
+          {
+            role: "user",
+            content: `Analyze these decisions for reversals:\n${JSON.stringify(decisionSummaries, null, 2)}`,
+          },
+        ],
+        responseFormat: {
+          type: "json_schema",
+          json_schema: {
+            name: "decision_reversals",
+            schema: {
+              type: "object",
+              properties: {
+                reversals: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      originalDecisionId: { type: "number" },
+                      reversalDecisionId: { type: "number" },
+                      reason: { type: "string" },
+                    },
+                    required: ["originalDecisionId", "reversalDecisionId", "reason"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["reversals"],
+              additionalProperties: false,
+            },
+            strict: true,
+          },
+        },
+      });
+
+      const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+      if (parsed.reversals && Array.isArray(parsed.reversals)) {
+        reversals.push(...parsed.reversals);
+      }
+    } catch (e) {
+      // Fallback: keyword-based detection
+      const reversalKeywords = ["reconsider", "reverse", "cancel", "instead", "overturn", "revoke", "undo", "revert"];
+      for (const d of batch) {
+        const textLower = (d.decision_text || "").toLowerCase();
+        const hasReversalKeyword = reversalKeywords.some((kw) => textLower.includes(kw));
+        if (hasReversalKeyword) {
+          // Find the most likely original decision (earlier, different meeting)
+          const earlier = decisions.find(
+            (prev: any) => prev.id < d.id && prev.meeting_id !== d.meeting_id
+          );
+          if (earlier) {
+            reversals.push({
+              originalDecisionId: earlier.id,
+              reversalDecisionId: d.id,
+              reason: `Keyword match: decision contains reversal language`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Update ime_decision_tracking rows for detected reversals
+  for (const rev of reversals) {
+    const originalDec = decisions.find((d: any) => d.id === rev.originalDecisionId);
+    const reversalDec = decisions.find((d: any) => d.id === rev.reversalDecisionId);
+    if (originalDec && reversalDec) {
+      const safeReason = String(rev.reason).replace(/'/g, "''");
+      await db.execute(sql.raw(`
+        UPDATE ime_decision_tracking
+        SET is_reversed = 1,
+            reversal_meeting_id = '${reversalDec.meeting_id}',
+            reversal_date = '${reversalDec.decision_date}',
+            reversal_reason = '${safeReason}'
+        WHERE id = ${originalDec.id}
+      `));
+    }
+  }
+
+  // Enrich reversals with full context for frontend display
+  const enrichedReversals = reversals.map((rev: any) => {
+    const originalDec = decisions.find((d: any) => d.id === rev.originalDecisionId);
+    const reversalDec = decisions.find((d: any) => d.id === rev.reversalDecisionId);
+    return {
+      ...rev,
+      original_decision: originalDec?.decision_text || "",
+      original_meeting_id: originalDec?.meeting_id || "",
+      reversal_meeting_id: reversalDec?.meeting_id || "",
+      reversal_date: reversalDec?.decision_date || null,
+    };
+  });
+
+  return {
+    reversalsDetected: enrichedReversals.length,
+    reversals: enrichedReversals,
+  };
+}
+
+// ============================================================================
+// Phase 19: Compute Decision Velocity
+// ============================================================================
+
+/**
+ * Compute decision velocity statistics for implemented decisions.
+ * Supports filtering by department and date range.
+ */
+export async function computeDecisionVelocity(options?: { department?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  let where = "follow_through_status = 'implemented' AND total_velocity_days IS NOT NULL";
+  if (options?.department) where += ` AND department = '${options.department.replace(/'/g, "''")}'`;
+  if (options?.dateFrom) where += ` AND decision_date >= '${options.dateFrom}'`;
+  if (options?.dateTo) where += ` AND decision_date <= '${options.dateTo}'`;
+
+  // Overall velocity stats
+  const overallRes = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as total_count,
+      COALESCE(AVG(total_velocity_days), 0) as avg_velocity,
+      COALESCE(MIN(total_velocity_days), 0) as fastest,
+      COALESCE(MAX(total_velocity_days), 0) as slowest
+    FROM ime_decision_tracking
+    WHERE ${where}
+  `));
+  const overall = (overallRes.rows as any[])[0] || {};
+
+  // Get all velocity values for median and p90 calculation
+  const allVelocityRes = await db.execute(sql.raw(`
+    SELECT total_velocity_days
+    FROM ime_decision_tracking
+    WHERE ${where}
+    ORDER BY total_velocity_days ASC
+  `));
+  const velocityValues = (allVelocityRes.rows as any[]).map((r: any) => Number(r.total_velocity_days));
+
+  let median = 0;
+  let p90 = 0;
+  if (velocityValues.length > 0) {
+    const mid = Math.floor(velocityValues.length / 2);
+    median = velocityValues.length % 2 !== 0 ? velocityValues[mid] : Math.round((velocityValues[mid - 1] + velocityValues[mid]) / 2);
+    const p90Index = Math.floor(velocityValues.length * 0.9);
+    p90 = velocityValues[Math.min(p90Index, velocityValues.length - 1)];
+  }
+
+  const avgVelocity = Math.round(Number(overall.avg_velocity) || 0);
+  let overallGrade = "F";
+  if (avgVelocity < 7) overallGrade = "A";
+  else if (avgVelocity < 14) overallGrade = "B";
+  else if (avgVelocity < 30) overallGrade = "C";
+  else if (avgVelocity < 60) overallGrade = "D";
+
+  // By department
+  const deptRes = await db.execute(sql.raw(`
+    SELECT
+      department,
+      COUNT(*) as total_count,
+      COALESCE(AVG(total_velocity_days), 0) as avg_velocity,
+      COALESCE(MIN(total_velocity_days), 0) as fastest,
+      COALESCE(MAX(total_velocity_days), 0) as slowest
+    FROM ime_decision_tracking
+    WHERE ${where}
+    GROUP BY department
+    ORDER BY avg_velocity ASC
+  `));
+  const byDepartment = (deptRes.rows as any[]).map((r: any) => {
+    const deptAvg = Math.round(Number(r.avg_velocity) || 0);
+    let grade = "F";
+    if (deptAvg < 7) grade = "A";
+    else if (deptAvg < 14) grade = "B";
+    else if (deptAvg < 30) grade = "C";
+    else if (deptAvg < 60) grade = "D";
+    return {
+      department: r.department || "unknown",
+      count: Number(r.total_count),
+      avgVelocity: deptAvg,
+      fastest: Number(r.fastest),
+      slowest: Number(r.slowest),
+      grade,
+    };
+  });
+
+  // Identify bottlenecks (>2x average)
+  const bottleneckThreshold = avgVelocity * 2;
+  const bottlenecks = byDepartment.filter((d) => d.avgVelocity > bottleneckThreshold);
+
+  return {
+    overall: {
+      avg: avgVelocity,
+      median,
+      p90,
+      fastest: Number(overall.fastest) || 0,
+      slowest: Number(overall.slowest) || 0,
+      grade: overallGrade,
+      totalCount: Number(overall.total_count) || 0,
+    },
+    byDepartment,
+    bottlenecks,
+  };
+}
+
+// ============================================================================
+// Phase 19: Assess Decision Quality (Deep LLM Assessment)
+// ============================================================================
+
+/**
+ * Deep LLM assessment of a single decision's quality, clarity, and alignment.
+ */
+export async function assessDecisionQuality(decisionId: number) {
+  const db = await requireDb();
+
+  // Load the decision
+  const decRes = await db.execute(sql.raw(
+    `SELECT * FROM ime_decision_tracking WHERE id = ${decisionId} LIMIT 1`
+  ));
+  const decision = (decRes.rows as any[])[0];
+  if (!decision) throw new Error(`Decision ${decisionId} not found`);
+
+  // Load meeting context
+  const meetingRes = await db.execute(sql.raw(
+    `SELECT title, objective, summary FROM meeting_records WHERE id = '${String(decision.meeting_id).replace(/'/g, "''")}' LIMIT 1`
+  ));
+  const meeting = (meetingRes.rows as any[])[0] || {};
+
+  // Deep LLM assessment
+  const llmResult = await invokeLLM({
+    messages: [
+      {
+        role: "system",
+        content: "You are an expert decision quality analyst. Perform a deep assessment of the given decision. Evaluate quality (specificity, measurability, feasibility), clarity (unambiguous language, clear ownership), and strategic alignment (supports organizational goals). Identify risk factors and provide actionable recommendations.",
+      },
+      {
+        role: "user",
+        content: `Meeting: "${meeting.title || "Unknown"}"\nObjective: ${meeting.objective || "N/A"}\nSummary: ${(meeting.summary || "").substring(0, 300)}\n\nDecision: "${decision.decision_text}"\nDecision maker: ${decision.decision_maker || "unknown"}\nDepartment: ${decision.department || "unknown"}\nCurrent status: ${decision.follow_through_status}\nVelocity: ${decision.total_velocity_days !== null ? decision.total_velocity_days + " days" : "N/A"}`,
+      },
+    ],
+    responseFormat: {
+      type: "json_schema",
+      json_schema: {
+        name: "decision_quality_assessment",
+        schema: {
+          type: "object",
+          properties: {
+            quality_score: { type: "number" },
+            clarity_score: { type: "number" },
+            alignment_score: { type: "number" },
+            risk_factors: { type: "array", items: { type: "string" } },
+            recommendations: { type: "array", items: { type: "string" } },
+            narrative: { type: "string" },
+          },
+          required: ["quality_score", "clarity_score", "alignment_score", "risk_factors", "recommendations", "narrative"],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    },
+  });
+
+  const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+
+  // Update ime_decision_tracking with AI scores
+  const safeNarrative = String(parsed.narrative || "").replace(/'/g, "''");
+  const safeRecs = JSON.stringify(parsed.recommendations || []).replace(/'/g, "''");
+
+  await db.execute(sql.raw(`
+    UPDATE ime_decision_tracking
+    SET ai_quality_score = ${parsed.quality_score || 0},
+        ai_clarity_score = ${parsed.clarity_score || 0},
+        ai_alignment_score = ${parsed.alignment_score || 0},
+        ai_narrative = '${safeNarrative}',
+        ai_recommendations = '${safeRecs}',
+        computed_at = NOW()
+    WHERE id = ${decisionId}
+  `));
+
+  return {
+    decisionId,
+    qualityScore: parsed.quality_score,
+    clarityScore: parsed.clarity_score,
+    alignmentScore: parsed.alignment_score,
+    riskFactors: parsed.risk_factors || [],
+    recommendations: parsed.recommendations || [],
+    narrative: parsed.narrative || "",
+  };
+}
+
+// ============================================================================
+// Phase 19: Compute Decision Intelligence Snapshot
+// ============================================================================
+
+/**
+ * Aggregate decision tracking data into a snapshot for a given scope.
+ * Scope: 'org' (all), 'department', 'team', 'individual'
+ */
+export async function computeDecisionIntelligenceSnapshot(
+  scope: string,
+  scopeId?: string,
+  dateFrom?: string,
+  dateTo?: string,
+) {
+  const db = await requireDb();
+
+  let where = "1=1";
+  if (scope === "department" && scopeId) {
+    where += ` AND department = '${scopeId.replace(/'/g, "''")}'`;
+  } else if ((scope === "team" || scope === "individual") && scopeId) {
+    where += ` AND decision_maker = '${scopeId.replace(/'/g, "''")}'`;
+  }
+  if (dateFrom) where += ` AND decision_date >= '${dateFrom}'`;
+  if (dateTo) where += ` AND decision_date <= '${dateTo}'`;
+
+  // Aggregate counts
+  const countsRes = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as total_decisions,
+      SUM(CASE WHEN follow_through_status = 'implemented' THEN 1 ELSE 0 END) as implemented_count,
+      SUM(CASE WHEN follow_through_status = 'abandoned' THEN 1 ELSE 0 END) as abandoned_count,
+      SUM(CASE WHEN is_reversed = 1 THEN 1 ELSE 0 END) as reversed_count,
+      SUM(CASE WHEN follow_through_status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+      COALESCE(AVG(CASE WHEN total_velocity_days IS NOT NULL THEN total_velocity_days END), 0) as avg_velocity_days,
+      COALESCE(MIN(CASE WHEN total_velocity_days IS NOT NULL THEN total_velocity_days END), 0) as fastest_velocity_days,
+      COALESCE(MAX(CASE WHEN total_velocity_days IS NOT NULL THEN total_velocity_days END), 0) as slowest_velocity_days,
+      COALESCE(AVG(impact_score), 0) as avg_impact_score,
+      SUM(CASE WHEN impact_category = 'positive' THEN 1 ELSE 0 END) as positive_impact_count,
+      SUM(CASE WHEN impact_category = 'negative' THEN 1 ELSE 0 END) as negative_impact_count,
+      COALESCE(AVG(ai_quality_score), 0) as avg_quality_score,
+      COALESCE(AVG(ai_clarity_score), 0) as avg_clarity_score,
+      COALESCE(AVG(ai_alignment_score), 0) as avg_alignment_score
+    FROM ime_decision_tracking
+    WHERE ${where}
+  `));
+  const stats = (countsRes.rows as any[])[0] || {};
+
+  const totalDecisions = Number(stats.total_decisions) || 0;
+  const implementedCount = Number(stats.implemented_count) || 0;
+  const abandonedCount = Number(stats.abandoned_count) || 0;
+  const reversedCount = Number(stats.reversed_count) || 0;
+  const pendingCount = Number(stats.pending_count) || 0;
+  const followThroughRate = totalDecisions > 0 ? Math.round((implementedCount / totalDecisions) * 100) : 0;
+  const reversalRate = totalDecisions > 0 ? Math.round((reversedCount / totalDecisions) * 100) : 0;
+  const avgVelocityDays = Math.round(Number(stats.avg_velocity_days) || 0);
+  const fastestVelocityDays = Number(stats.fastest_velocity_days) || 0;
+  const slowestVelocityDays = Number(stats.slowest_velocity_days) || 0;
+  const avgImpactScore = Math.round(Number(stats.avg_impact_score) || 0);
+  const positiveImpactCount = Number(stats.positive_impact_count) || 0;
+  const negativeImpactCount = Number(stats.negative_impact_count) || 0;
+  const avgQualityScore = Math.round(Number(stats.avg_quality_score) || 0);
+  const avgClarityScore = Math.round(Number(stats.avg_clarity_score) || 0);
+  const avgAlignmentScore = Math.round(Number(stats.avg_alignment_score) || 0);
+
+  // Median velocity
+  const velRes = await db.execute(sql.raw(`
+    SELECT total_velocity_days
+    FROM ime_decision_tracking
+    WHERE ${where} AND total_velocity_days IS NOT NULL
+    ORDER BY total_velocity_days ASC
+  `));
+  const velValues = (velRes.rows as any[]).map((r: any) => Number(r.total_velocity_days));
+  let medianVelocityDays = 0;
+  if (velValues.length > 0) {
+    const mid = Math.floor(velValues.length / 2);
+    medianVelocityDays = velValues.length % 2 !== 0 ? velValues[mid] : Math.round((velValues[mid - 1] + velValues[mid]) / 2);
+  }
+
+  // Velocity grade
+  let velocityGrade = "F";
+  if (avgVelocityDays < 7) velocityGrade = "A";
+  else if (avgVelocityDays < 14) velocityGrade = "B";
+  else if (avgVelocityDays < 30) velocityGrade = "C";
+  else if (avgVelocityDays < 60) velocityGrade = "D";
+
+  // Overall decision grade: 40% follow-through, 30% quality, 30% velocity
+  const followThroughScore = followThroughRate; // 0-100
+  const qualityNorm = avgQualityScore; // 0-100
+  const velocityNorm = avgVelocityDays <= 0 ? 100 : Math.max(0, 100 - (avgVelocityDays / 60) * 100);
+  const overallScore = Math.round(followThroughScore * 0.4 + qualityNorm * 0.3 + velocityNorm * 0.3);
+  let overallDecisionGrade = "F";
+  if (overallScore >= 90) overallDecisionGrade = "A";
+  else if (overallScore >= 75) overallDecisionGrade = "B";
+  else if (overallScore >= 60) overallDecisionGrade = "C";
+  else if (overallScore >= 40) overallDecisionGrade = "D";
+
+  // Top bottlenecks
+  const bottleneckRes = await db.execute(sql.raw(`
+    SELECT department, COUNT(*) as cnt
+    FROM ime_decision_tracking
+    WHERE ${where} AND total_velocity_days > ${avgVelocityDays * 2}
+    GROUP BY department
+    ORDER BY cnt DESC
+    LIMIT 5
+  `));
+  const topBottlenecks = JSON.stringify((bottleneckRes.rows as any[]).map((r: any) => ({
+    department: r.department,
+    count: Number(r.cnt),
+  })));
+
+  // Top reversal reasons
+  const reversalReasonRes = await db.execute(sql.raw(`
+    SELECT reversal_reason, COUNT(*) as cnt
+    FROM ime_decision_tracking
+    WHERE ${where} AND is_reversed = 1 AND reversal_reason IS NOT NULL AND reversal_reason != ''
+    GROUP BY reversal_reason
+    ORDER BY cnt DESC
+    LIMIT 5
+  `));
+  const topReversalReasons = JSON.stringify((reversalReasonRes.rows as any[]).map((r: any) => ({
+    reason: r.reversal_reason,
+    count: Number(r.cnt),
+  })));
+
+  // Previous snapshot for trend comparison
+  const prevSnapshotRes = await db.execute(sql.raw(`
+    SELECT overall_decision_grade, follow_through_rate, avg_velocity_days, avg_quality_score
+    FROM ime_decision_intelligence_snapshots
+    WHERE scope = '${scope.replace(/'/g, "''")}'
+      AND (scope_id = '${(scopeId || "").replace(/'/g, "''")}' OR (scope_id IS NULL AND '${scopeId || ""}' = ''))
+    ORDER BY computed_at DESC
+    LIMIT 1
+  `));
+  const prevSnapshot = (prevSnapshotRes.rows as any[])[0];
+  let trendVsPrevious = "stable";
+  let trendSlope = 0;
+  if (prevSnapshot) {
+    const prevFollowThrough = Number(prevSnapshot.follow_through_rate) || 0;
+    trendSlope = followThroughRate - prevFollowThrough;
+    if (trendSlope > 5) trendVsPrevious = "improving";
+    else if (trendSlope < -5) trendVsPrevious = "declining";
+  }
+
+  // LLM narrative + recommendations
+  let aiNarrative = "";
+  let recommendations = "[]";
+  try {
+    const llmResult = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "You are a decision intelligence analyst. Generate a concise narrative summarizing decision-making performance and provide actionable recommendations for improvement.",
+        },
+        {
+          role: "user",
+          content: `Scope: ${scope}${scopeId ? ` (${scopeId})` : ""}\nTotal decisions: ${totalDecisions}\nImplemented: ${implementedCount} (${followThroughRate}%)\nAbandoned: ${abandonedCount}\nReversed: ${reversedCount} (${reversalRate}%)\nAvg velocity: ${avgVelocityDays} days (grade: ${velocityGrade})\nAvg quality: ${avgQualityScore}, clarity: ${avgClarityScore}, alignment: ${avgAlignmentScore}\nOverall grade: ${overallDecisionGrade}\nTrend: ${trendVsPrevious}`,
+        },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "decision_snapshot_narrative",
+          schema: {
+            type: "object",
+            properties: {
+              narrative: { type: "string" },
+              recommendations: { type: "array", items: { type: "string" } },
+            },
+            required: ["narrative", "recommendations"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    });
+    const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
+    aiNarrative = parsed.narrative || "";
+    recommendations = JSON.stringify(parsed.recommendations || []);
+  } catch (e) {
+    aiNarrative = "Narrative generation unavailable.";
+    recommendations = "[]";
+  }
+
+  const safeScopeId = (scopeId || "").replace(/'/g, "''");
+  const periodStart = dateFrom || new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+  const periodEnd = dateTo || new Date().toISOString().split("T")[0];
+
+  // Delete existing snapshot for same scope/period
+  await db.execute(sql.raw(`
+    DELETE FROM ime_decision_intelligence_snapshots
+    WHERE scope = '${scope.replace(/'/g, "''")}'
+      AND (scope_id = '${safeScopeId}' OR (scope_id IS NULL AND '${safeScopeId}' = ''))
+      AND period_start = '${periodStart}'
+      AND period_end = '${periodEnd}'
+  `));
+
+  // Insert new snapshot
+  await db.execute(sql.raw(`
+    INSERT INTO ime_decision_intelligence_snapshots (
+      scope, scope_id, period_start, period_end,
+      total_decisions, implemented_count, abandoned_count, reversed_count, pending_count,
+      follow_through_rate, reversal_rate,
+      avg_velocity_days, median_velocity_days, fastest_velocity_days, slowest_velocity_days, velocity_grade,
+      avg_impact_score, positive_impact_count, negative_impact_count,
+      avg_quality_score, avg_clarity_score, avg_alignment_score,
+      overall_decision_grade, top_bottlenecks, top_reversal_reasons,
+      ai_narrative, trend_vs_previous, trend_slope, recommendations,
+      computed_at, created_at
+    ) VALUES (
+      '${scope.replace(/'/g, "''")}', ${safeScopeId ? `'${safeScopeId}'` : "NULL"}, '${periodStart}', '${periodEnd}',
+      ${totalDecisions}, ${implementedCount}, ${abandonedCount}, ${reversedCount}, ${pendingCount},
+      ${followThroughRate}, ${reversalRate},
+      ${avgVelocityDays}, ${medianVelocityDays}, ${fastestVelocityDays}, ${slowestVelocityDays}, '${velocityGrade}',
+      ${avgImpactScore}, ${positiveImpactCount}, ${negativeImpactCount},
+      ${avgQualityScore}, ${avgClarityScore}, ${avgAlignmentScore},
+      '${overallDecisionGrade}', '${topBottlenecks.replace(/'/g, "''")}', '${topReversalReasons.replace(/'/g, "''")}',
+      '${aiNarrative.replace(/'/g, "''")}', '${trendVsPrevious}', ${trendSlope}, '${recommendations.replace(/'/g, "''")}',
+      NOW(), NOW()
+    )
+  `));
+
+  return {
+    scope,
+    scopeId: scopeId || null,
+    periodStart,
+    periodEnd,
+    totalDecisions,
+    implementedCount,
+    abandonedCount,
+    reversedCount,
+    pendingCount,
+    followThroughRate,
+    reversalRate,
+    avgVelocityDays,
+    medianVelocityDays,
+    fastestVelocityDays,
+    slowestVelocityDays,
+    velocityGrade,
+    avgImpactScore,
+    positiveImpactCount,
+    negativeImpactCount,
+    avgQualityScore,
+    avgClarityScore,
+    avgAlignmentScore,
+    overallDecisionGrade,
+    topBottlenecks: JSON.parse(topBottlenecks),
+    topReversalReasons: JSON.parse(topReversalReasons),
+    aiNarrative,
+    trendVsPrevious,
+    trendSlope,
+    recommendations: JSON.parse(recommendations),
+  };
+}
+
+// ============================================================================
+// Phase 19: Decision Dashboard (Simple Aggregate)
+// ============================================================================
+
+/**
+ * Get a simple aggregate dashboard for decisions.
+ */
+export async function getDecisionDashboard(filters?: { department?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  let where = "1=1";
+  if (filters?.department) where += ` AND department = '${filters.department.replace(/'/g, "''")}'`;
+  if (filters?.dateFrom) where += ` AND decision_date >= '${filters.dateFrom}'`;
+  if (filters?.dateTo) where += ` AND decision_date <= '${filters.dateTo}'`;
+
+  const res = await db.execute(sql.raw(`
+    SELECT
+      COUNT(*) as total_decisions,
+      SUM(CASE WHEN follow_through_status = 'implemented' THEN 1 ELSE 0 END) as implemented_count,
+      SUM(CASE WHEN is_reversed = 1 THEN 1 ELSE 0 END) as reversed_count,
+      COALESCE(AVG(CASE WHEN total_velocity_days IS NOT NULL THEN total_velocity_days END), 0) as avg_velocity_days,
+      COALESCE(AVG(ai_quality_score), 0) as avg_quality_score
+    FROM ime_decision_tracking
+    WHERE ${where}
+  `));
+  const stats = (res.rows as any[])[0] || {};
+
+  const totalDecisions = Number(stats.total_decisions) || 0;
+  const implementedCount = Number(stats.implemented_count) || 0;
+  const followThroughRate = totalDecisions > 0 ? Math.round((implementedCount / totalDecisions) * 100) : 0;
+
+  return {
+    totalDecisions,
+    implementedCount,
+    reversedCount: Number(stats.reversed_count) || 0,
+    avgVelocityDays: Math.round(Number(stats.avg_velocity_days) || 0),
+    avgQualityScore: Math.round(Number(stats.avg_quality_score) || 0),
+    followThroughRate,
+  };
+}
+
+// ============================================================================
+// Phase 19: Decision Tracking List (Paginated)
+// ============================================================================
+
+/**
+ * Get a paginated list of tracked decisions with meeting title.
+ */
+export async function getDecisionTrackingList(options?: {
+  status?: string;
+  department?: string;
+  impactCategory?: string;
+  meetingId?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const db = await requireDb();
+
+  let where = "1=1";
+  if (options?.status) where += ` AND dt.follow_through_status = '${options.status.replace(/'/g, "''")}'`;
+  if (options?.department) where += ` AND dt.department = '${options.department.replace(/'/g, "''")}'`;
+  if (options?.impactCategory) where += ` AND dt.impact_category = '${options.impactCategory.replace(/'/g, "''")}'`;
+  if (options?.meetingId) where += ` AND dt.meeting_id = '${options.meetingId.replace(/'/g, "''")}'`;
+
+  const limit = options?.limit || 50;
+  const offset = options?.offset || 0;
+
+  const res = await db.execute(sql.raw(`
+    SELECT
+      dt.*,
+      mr.title as meeting_title
+    FROM ime_decision_tracking dt
+    LEFT JOIN meeting_records mr ON mr.id = dt.meeting_id
+    WHERE ${where}
+    ORDER BY dt.created_at DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `));
+
+  const countRes = await db.execute(sql.raw(`
+    SELECT COUNT(*) as total
+    FROM ime_decision_tracking dt
+    WHERE ${where}
+  `));
+  const total = Number((countRes.rows as any[])[0]?.total) || 0;
+
+  return {
+    rows: res.rows,
+    total,
+    limit,
+    offset,
+  };
+}
+
+// ============================================================================
+// Phase 19: Decision Velocity Trend
+// ============================================================================
+
+/**
+ * Get velocity trend data from snapshots for line chart rendering.
+ */
+export async function getDecisionVelocityTrend(options?: { scope?: string; scopeId?: string; limit?: number }) {
+  const db = await requireDb();
+
+  let where = "1=1";
+  if (options?.scope) where += ` AND scope = '${options.scope.replace(/'/g, "''")}'`;
+  if (options?.scopeId) where += ` AND scope_id = '${options.scopeId.replace(/'/g, "''")}'`;
+
+  const limit = options?.limit || 20;
+
+  const res = await db.execute(sql.raw(`
+    SELECT
+      id, scope, scope_id, period_start, period_end,
+      total_decisions, implemented_count, follow_through_rate, reversal_rate,
+      avg_velocity_days, median_velocity_days, fastest_velocity_days, slowest_velocity_days,
+      velocity_grade, overall_decision_grade,
+      avg_quality_score, avg_clarity_score, avg_alignment_score,
+      trend_vs_previous, trend_slope,
+      computed_at
+    FROM ime_decision_intelligence_snapshots
+    WHERE ${where}
+    ORDER BY period_end DESC
+    LIMIT ${limit}
+  `));
+
+  return res.rows;
+}
+
+// ============================================================================
+// Phase 19: Decision Reversal Analysis
+// ============================================================================
+
+/**
+ * Get detailed reversal analysis with department breakdown.
+ */
+export async function getDecisionReversalAnalysis(options?: { department?: string; dateFrom?: string; dateTo?: string }) {
+  const db = await requireDb();
+
+  let where = "is_reversed = 1";
+  if (options?.department) where += ` AND department = '${options.department.replace(/'/g, "''")}'`;
+  if (options?.dateFrom) where += ` AND decision_date >= '${options.dateFrom}'`;
+  if (options?.dateTo) where += ` AND decision_date <= '${options.dateTo}'`;
+
+  // Get reversed decisions
+  const reversedRes = await db.execute(sql.raw(`
+    SELECT
+      id, decision_id, meeting_id, decision_text, decision_maker, department,
+      decision_date, reversal_meeting_id, reversal_date, reversal_reason,
+      impact_score, impact_category
+    FROM ime_decision_tracking
+    WHERE ${where}
+    ORDER BY reversal_date DESC
+  `));
+  const reversedDecisions = reversedRes.rows as any[];
+
+  // Group by department
+  const byDeptRes = await db.execute(sql.raw(`
+    SELECT department, COUNT(*) as cnt
+    FROM ime_decision_tracking
+    WHERE ${where}
+    GROUP BY department
+    ORDER BY cnt DESC
+  `));
+  const byDepartment = (byDeptRes.rows as any[]).map((r: any) => ({
+    department: r.department || "unknown",
+    count: Number(r.cnt),
+  }));
+
+  // Top reversal reasons
+  const reasonsRes = await db.execute(sql.raw(`
+    SELECT reversal_reason, COUNT(*) as cnt
+    FROM ime_decision_tracking
+    WHERE ${where} AND reversal_reason IS NOT NULL AND reversal_reason != ''
+    GROUP BY reversal_reason
+    ORDER BY cnt DESC
+    LIMIT 10
+  `));
+  const topReasons = (reasonsRes.rows as any[]).map((r: any) => ({
+    reason: r.reversal_reason,
+    count: Number(r.cnt),
+  }));
+
+  return {
+    reversedDecisions,
+    byDepartment,
+    totalReversals: reversedDecisions.length,
+    topReasons,
+  };
+}
+
+// ============================================================================
+// Phase 19: Update Decision Follow-Through
+// ============================================================================
+
+/**
+ * Manually update a decision's follow-through status and related fields.
+ */
+export async function updateDecisionFollowThrough(
+  id: number,
+  updates: {
+    status?: string;
+    implementationStartDate?: string;
+    implementationEndDate?: string;
+    businessOutcome?: string;
+    impactScore?: number;
+  },
+) {
+  const db = await requireDb();
+
+  const setClauses: string[] = [];
+
+  if (updates.status) {
+    setClauses.push(`follow_through_status = '${updates.status.replace(/'/g, "''")}'`);
+  }
+  if (updates.implementationStartDate) {
+    setClauses.push(`implementation_start_date = '${updates.implementationStartDate}'`);
+  }
+  if (updates.implementationEndDate) {
+    setClauses.push(`implementation_end_date = '${updates.implementationEndDate}'`);
+  }
+  if (updates.businessOutcome !== undefined) {
+    setClauses.push(`business_outcome = '${String(updates.businessOutcome).replace(/'/g, "''")}'`);
+  }
+  if (updates.impactScore !== undefined) {
+    setClauses.push(`impact_score = ${updates.impactScore}`);
+    // Compute impact category
+    let impactCategory = "neutral";
+    if (updates.impactScore > 0) impactCategory = "positive";
+    else if (updates.impactScore < 0) impactCategory = "negative";
+    setClauses.push(`impact_category = '${impactCategory}'`);
+  }
+
+  // Compute velocity if both dates provided
+  if (updates.implementationStartDate && updates.implementationEndDate) {
+    const startDate = new Date(updates.implementationStartDate);
+    const endDate = new Date(updates.implementationEndDate);
+    const startToCompletion = Math.max(0, Math.round((endDate.getTime() - startDate.getTime()) / 86400000));
+    setClauses.push(`start_to_completion_days = ${startToCompletion}`);
+
+    // Also try to compute decision_to_start and total velocity
+    const decRes = await db.execute(sql.raw(
+      `SELECT decision_date FROM ime_decision_tracking WHERE id = ${id} LIMIT 1`
+    ));
+    const dec = (decRes.rows as any[])[0];
+    if (dec && dec.decision_date) {
+      const decisionDate = new Date(dec.decision_date);
+      const decisionToStart = Math.max(0, Math.round((startDate.getTime() - decisionDate.getTime()) / 86400000));
+      const totalVelocity = decisionToStart + startToCompletion;
+      setClauses.push(`decision_to_start_days = ${decisionToStart}`);
+      setClauses.push(`total_velocity_days = ${totalVelocity}`);
+
+      // Velocity grade
+      let velocityGrade = "F";
+      if (totalVelocity < 7) velocityGrade = "A";
+      else if (totalVelocity < 14) velocityGrade = "B";
+      else if (totalVelocity < 30) velocityGrade = "C";
+      else if (totalVelocity < 60) velocityGrade = "D";
+      setClauses.push(`velocity_grade = '${velocityGrade}'`);
+    }
+  }
+
+  if (setClauses.length === 0) {
+    return { success: true, id, message: "No updates provided" };
+  }
+
+  await db.execute(sql.raw(`
+    UPDATE ime_decision_tracking
+    SET ${setClauses.join(", ")}
+    WHERE id = ${id}
+  `));
+
+  return { success: true, id };
+}
