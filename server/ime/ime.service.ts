@@ -3,6 +3,7 @@
  * 参会者贡献分析与会议效能评估服务
  */
 
+import crypto from "crypto";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
@@ -7263,4 +7264,277 @@ export async function getLinkageDashboard(period?: string, department?: string) 
     recentActions: recent.rows,
     topImpacted: topImpacted.rows,
   };
+}
+
+// ============================================================================
+// Phase 15: Meeting Intelligence API — Key Management & Usage
+// ============================================================================
+
+function generateApiKey(): string {
+  const bytes = crypto.randomBytes(24);
+  return `grt_ime_${bytes.toString("base64url")}`;
+}
+
+function hashApiKey(key: string): string {
+  return crypto.createHash("sha256").update(key).digest("hex");
+}
+
+export async function createApiKey(params: {
+  keyName: string;
+  scopes: string[];
+  rateLimit?: number;
+  rateLimitWindow?: string;
+  description?: string;
+  createdBy?: string;
+  expiresAt?: string;
+}): Promise<{ apiKey: string; keyPrefix: string; id: number }> {
+  const db = await requireDb();
+  const apiKey = generateApiKey();
+  const keyHash = hashApiKey(apiKey);
+  const keyPrefix = apiKey.substring(0, 12);
+
+  const result = await db.execute(sql`
+    INSERT INTO ime_api_keys (key_name, key_hash, key_prefix, scopes, rate_limit, rate_limit_window, description, created_by, expires_at)
+    VALUES (
+      ${params.keyName},
+      ${keyHash},
+      ${keyPrefix},
+      ${JSON.stringify(params.scopes)},
+      ${params.rateLimit ?? 1000},
+      ${params.rateLimitWindow ?? "hourly"},
+      ${params.description ?? null},
+      ${params.createdBy ?? null},
+      ${params.expiresAt ? new Date(params.expiresAt).toISOString() : null}
+    )
+    RETURNING id
+  `);
+
+  const id = (result.rows[0] as any)?.id;
+  return { apiKey, keyPrefix, id };
+}
+
+export async function listApiKeys() {
+  const db = await requireDb();
+  const result = await db.execute(sql`
+    SELECT id, key_name, key_prefix, scopes, rate_limit, rate_limit_window,
+           request_count, last_used_at, error_count, is_active, description,
+           created_by, created_at, updated_at, expires_at
+    FROM ime_api_keys
+    ORDER BY created_at DESC
+  `);
+  return result.rows;
+}
+
+export async function revokeApiKey(id: number) {
+  const db = await requireDb();
+  await db.execute(sql`
+    UPDATE ime_api_keys SET is_active = 0, updated_at = NOW() WHERE id = ${id}
+  `);
+  return { success: true };
+}
+
+export async function regenerateApiKey(id: number): Promise<{ apiKey: string; keyPrefix: string }> {
+  const db = await requireDb();
+  const apiKey = generateApiKey();
+  const keyHash = hashApiKey(apiKey);
+  const keyPrefix = apiKey.substring(0, 12);
+
+  await db.execute(sql`
+    UPDATE ime_api_keys
+    SET key_hash = ${keyHash}, key_prefix = ${keyPrefix}, updated_at = NOW()
+    WHERE id = ${id}
+  `);
+  return { apiKey, keyPrefix };
+}
+
+export async function validateApiKey(apiKey: string): Promise<{
+  valid: boolean;
+  keyId?: number;
+  keyName?: string;
+  scopes?: string[];
+  rateLimit?: number;
+  rateLimitWindow?: string;
+}> {
+  const db = await requireDb();
+  const keyHash = hashApiKey(apiKey);
+
+  const result = await db.execute(sql`
+    SELECT id, key_name, scopes, rate_limit, rate_limit_window, is_active, expires_at
+    FROM ime_api_keys
+    WHERE key_hash = ${keyHash}
+    LIMIT 1
+  `);
+
+  if (result.rows.length === 0) return { valid: false };
+
+  const row = result.rows[0] as any;
+  if (!row.is_active) return { valid: false };
+  if (row.expires_at && new Date(row.expires_at) < new Date()) return { valid: false };
+
+  let scopes: string[] = [];
+  try { scopes = JSON.parse(row.scopes); } catch { scopes = []; }
+
+  return {
+    valid: true,
+    keyId: row.id,
+    keyName: row.key_name,
+    scopes,
+    rateLimit: row.rate_limit,
+    rateLimitWindow: row.rate_limit_window,
+  };
+}
+
+export async function checkRateLimit(
+  apiKeyId: number,
+  rateLimit: number,
+  window: string
+): Promise<{ allowed: boolean; currentCount: number }> {
+  const db = await requireDb();
+  const interval = window === "daily" ? "1 DAY" : "1 HOUR";
+
+  const result = await db.execute(sql.raw(
+    `SELECT COUNT(*) as cnt FROM ime_api_usage_logs
+     WHERE api_key_id = ${apiKeyId}
+     AND requested_at >= NOW() - INTERVAL ${interval}`
+  ));
+
+  const currentCount = Number((result.rows[0] as any)?.cnt || 0);
+  return { allowed: currentCount < rateLimit, currentCount };
+}
+
+export async function logApiUsage(params: {
+  apiKeyId: number;
+  keyName: string;
+  endpoint: string;
+  method: string;
+  statusCode: number;
+  responseTimeMs: number;
+  ipAddress?: string;
+  userAgent?: string;
+  errorMessage?: string;
+}) {
+  const db = await requireDb();
+  await db.execute(sql`
+    INSERT INTO ime_api_usage_logs (api_key_id, key_name, endpoint, method, status_code, response_time_ms, ip_address, user_agent, error_message)
+    VALUES (
+      ${params.apiKeyId},
+      ${params.keyName},
+      ${params.endpoint},
+      ${params.method},
+      ${params.statusCode},
+      ${params.responseTimeMs},
+      ${params.ipAddress ?? null},
+      ${params.userAgent ?? null},
+      ${params.errorMessage ?? null}
+    )
+  `);
+
+  // Update key stats
+  const errorInc = params.statusCode >= 400 ? 1 : 0;
+  await db.execute(sql`
+    UPDATE ime_api_keys
+    SET request_count = request_count + 1,
+        last_used_at = NOW(),
+        error_count = error_count + ${errorInc}
+    WHERE id = ${params.apiKeyId}
+  `);
+}
+
+export async function getApiKeyUsageStats(apiKeyId: number, days: number = 30) {
+  const db = await requireDb();
+
+  const totals = await db.execute(sql.raw(
+    `SELECT
+       COUNT(*) as total_requests,
+       SUM(CASE WHEN status_code < 400 THEN 1 ELSE 0 END) as success_count,
+       AVG(response_time_ms) as avg_response_time
+     FROM ime_api_usage_logs
+     WHERE api_key_id = ${apiKeyId}
+     AND requested_at >= NOW() - INTERVAL ${days} DAY`
+  ));
+
+  const stats = totals.rows[0] as any;
+  const totalRequests = Number(stats?.total_requests || 0);
+  const successCount = Number(stats?.success_count || 0);
+  const successRate = totalRequests > 0 ? Math.round((successCount / totalRequests) * 100) : 100;
+  const avgResponseTime = Math.round(Number(stats?.avg_response_time || 0));
+
+  const byDay = await db.execute(sql.raw(
+    `SELECT DATE(requested_at) as day, COUNT(*) as cnt
+     FROM ime_api_usage_logs
+     WHERE api_key_id = ${apiKeyId}
+     AND requested_at >= NOW() - INTERVAL ${days} DAY
+     GROUP BY DATE(requested_at)
+     ORDER BY day`
+  ));
+
+  const topEndpoints = await db.execute(sql.raw(
+    `SELECT endpoint, method, COUNT(*) as cnt,
+       AVG(response_time_ms) as avg_time
+     FROM ime_api_usage_logs
+     WHERE api_key_id = ${apiKeyId}
+     AND requested_at >= NOW() - INTERVAL ${days} DAY
+     GROUP BY endpoint, method
+     ORDER BY cnt DESC
+     LIMIT 10`
+  ));
+
+  return {
+    totalRequests,
+    successRate,
+    avgResponseTime,
+    requestsByDay: byDay.rows,
+    topEndpoints: topEndpoints.rows,
+  };
+}
+
+export async function getApiDashboard() {
+  const db = await requireDb();
+
+  const keyCounts = await db.execute(sql.raw(
+    `SELECT
+       COUNT(*) as total_keys,
+       SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_keys
+     FROM ime_api_keys`
+  ));
+
+  const requestCounts = await db.execute(sql.raw(
+    `SELECT COUNT(*) as total_requests FROM ime_api_usage_logs`
+  ));
+
+  const todayCount = await db.execute(sql.raw(
+    `SELECT COUNT(*) as cnt FROM ime_api_usage_logs
+     WHERE requested_at >= CURRENT_DATE`
+  ));
+
+  const errorRate = await db.execute(sql.raw(
+    `SELECT
+       COUNT(*) as total,
+       SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as errors
+     FROM ime_api_usage_logs`
+  ));
+
+  const kc = keyCounts.rows[0] as any;
+  const rc = requestCounts.rows[0] as any;
+  const tc = todayCount.rows[0] as any;
+  const er = errorRate.rows[0] as any;
+
+  const totalReqs = Number(er?.total || 0);
+  const errorReqs = Number(er?.errors || 0);
+
+  return {
+    totalKeys: Number(kc?.total_keys || 0),
+    activeKeys: Number(kc?.active_keys || 0),
+    totalRequests: Number(rc?.total_requests || 0),
+    requestsToday: Number(tc?.cnt || 0),
+    avgErrorRate: totalReqs > 0 ? Math.round((errorReqs / totalReqs) * 100) : 0,
+  };
+}
+
+export async function getApiUsageLogs(limit: number = 50) {
+  const db = await requireDb();
+  const result = await db.execute(sql.raw(
+    `SELECT * FROM ime_api_usage_logs ORDER BY requested_at DESC LIMIT ${limit}`
+  ));
+  return result.rows;
 }
