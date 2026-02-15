@@ -309,6 +309,8 @@ export const menuConfig: MenuGroup[] = [
       // 薪酬
       { name: "薪酬管理", nameEn: "Compensation", path: "/compensation", icon: DollarSign, isNew: true,
         allowedRoles: ["admin", "director", "hr_manager", "finance_manager"] },
+      { name: "代理职能", nameEn: "Delegation", path: "/delegation", icon: UserCog, isNew: true },
+      { name: "绩效薪资查询", nameEn: "My Pay & Perf", path: "/perf-salary", icon: Wallet, isNew: true },
       // 主管工作台
       { name: "主管工作台", nameEn: "Supervisor", path: "/supervisor-workbench", icon: UserCog, minLevel: 2 },
       { name: "议程管理", nameEn: "Agenda", path: "/agenda", icon: Calendar },

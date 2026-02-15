@@ -113,6 +113,8 @@ import { sopRouter } from "./services/sop.router";
 import { costStandardsRouter } from "./services/cost-standards.router";
 import { imeRouter } from "./ime/ime.router";
 import { dailyPlanRouter } from "./daily-plan/daily-plan.router";
+import { delegationRouter } from "./delegation/delegation.router";
+import { perfSalaryRouter } from "./perf-salary/perfSalary.router";
 
 // AI Assistant modules (Purchase, Quality, Service)
 import { purchaseAssistantRouter } from "./ai-assistants/purchaseRoutes";
@@ -275,6 +277,10 @@ export const appRouter = router({
 
   // 每日工作计划推送 (AI-driven daily work plan)
   dailyPlan: dailyPlanRouter,
+
+  // Phase B: 代理职能 + 绩效薪资查询
+  delegation: delegationRouter,
+  perfSalary: perfSalaryRouter,
   customerSolutionMeeting: customerSolutionMeetingRouter,
   taskNotification: webhookConfigRouter,
   caseLibrary: caseLibraryRouter,
