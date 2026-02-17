@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Shield, Loader2, Sparkles, AlertTriangle, CheckCircle, FileText,
 } from "lucide-react";
@@ -132,9 +133,14 @@ export default function AIDesignReview() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">设计阶段</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={designPhase} onChange={(e) => setDesignPhase(e.target.value)}>
-                  {DESIGN_PHASES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
+                <Select value={designPhase} onValueChange={(v) => setDesignPhase(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择设计阶段" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DESIGN_PHASES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-1">

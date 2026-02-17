@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Package, Loader2, Sparkles, AlertTriangle, CheckCircle, TrendingUp,
 } from "lucide-react";
@@ -30,8 +31,8 @@ export default function InventoryOptimization() {
   const [avgDailyUsage, setAvgDailyUsage] = useState("");
   const [leadTimeDays, setLeadTimeDays] = useState("");
   const [unitCost, setUnitCost] = useState("");
-  const [demandVariability, setDemandVariability] = useState("");
-  const [serviceLevel, setServiceLevel] = useState("");
+  const [demandVariability, setDemandVariability] = useState("__none__");
+  const [serviceLevel, setServiceLevel] = useState("__none__");
   const [result, setResult] = useState<OptimizationResult | null>(null);
 
   const mutation = trpc.operationsIntelligence.optimizeInventory.useMutation({
@@ -47,8 +48,8 @@ export default function InventoryOptimization() {
       avgDailyUsage: Number(avgDailyUsage),
       leadTimeDays: Number(leadTimeDays),
       unitCost: unitCost ? Number(unitCost) : undefined,
-      demandVariability: demandVariability || undefined,
-      serviceLevel: serviceLevel || undefined,
+      demandVariability: demandVariability === "__none__" ? undefined : demandVariability,
+      serviceLevel: serviceLevel === "__none__" ? undefined : serviceLevel,
     });
   };
 
@@ -119,21 +120,31 @@ export default function InventoryOptimization() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">需求波动性（可选）</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={demandVariability} onChange={(e) => setDemandVariability(e.target.value)}>
-                  <option value="">不指定</option>
-                  <option value="low">低</option>
-                  <option value="medium">中</option>
-                  <option value="high">高</option>
-                </select>
+                <Select value={demandVariability} onValueChange={(v) => setDemandVariability(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="不指定" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">不指定</SelectItem>
+                    <SelectItem value="low">低</SelectItem>
+                    <SelectItem value="medium">中</SelectItem>
+                    <SelectItem value="high">高</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">服务水平（可选）</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={serviceLevel} onChange={(e) => setServiceLevel(e.target.value)}>
-                  <option value="">不指定</option>
-                  <option value="90%">90%</option>
-                  <option value="95%">95%</option>
-                  <option value="99%">99%</option>
-                </select>
+                <Select value={serviceLevel} onValueChange={(v) => setServiceLevel(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="不指定" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">不指定</SelectItem>
+                    <SelectItem value="90%">90%</SelectItem>
+                    <SelectItem value="95%">95%</SelectItem>
+                    <SelectItem value="99%">99%</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex justify-end">

@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import {
   TrendingUp, Loader2, Sparkles, CheckCircle, AlertTriangle, Zap,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const PROCESS_STEPS = [
   "T1-BOM确认/备料", "T2-下料/切割", "T3-折弯/成型", "T4-焊接",
@@ -105,9 +106,14 @@ export default function ProductionEfficiency() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">工序步骤</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={processStep} onChange={(e) => setProcessStep(e.target.value)}>
-                  {PROCESS_STEPS.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <Select value={processStep} onValueChange={(v) => setProcessStep(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择工序步骤" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROCESS_STEPS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">产量(件/班)</label>

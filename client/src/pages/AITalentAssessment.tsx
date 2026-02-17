@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import {
   UserCheck, Loader2, Sparkles, CheckCircle, AlertTriangle,
@@ -140,17 +141,27 @@ export default function AITalentAssessment() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">岗位角色</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={role} onChange={(e) => setRole(e.target.value)}>
-                  {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-                </select>
+                <Select value={role} onValueChange={(v) => setRole(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择岗位" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">所属部门</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={department} onChange={(e) => setDepartment(e.target.value)}>
-                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
+                <Select value={department} onValueChange={(v) => setDepartment(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择部门" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">工作年限</label>

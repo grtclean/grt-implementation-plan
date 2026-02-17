@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import Layout from "@/components/Layout";
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertCircle, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 
 /**
@@ -160,6 +162,7 @@ export default function VisitorRequestForm() {
   };
 
   return (
+    <Layout>
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* 页面标题 */}
@@ -233,6 +236,7 @@ export default function VisitorRequestForm() {
         )}
       </div>
     </div>
+    </Layout>
   );
 }
 
@@ -371,17 +375,17 @@ function BasicInfoForm({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>国家</Label>
-              <select
-                name="country"
-                value={formData.country}
-                onChange={onChange}
-                className="w-full border rounded px-3 py-2"
-              >
-                <option value="CN">中国</option>
-                <option value="US">美国</option>
-                <option value="DE">德国</option>
-                <option value="GB">英国</option>
-              </select>
+              <Select value={formData.country} onValueChange={(v) => onChange({ target: { name: "country", value: v, type: "select" } })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择国家" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CN">中国</SelectItem>
+                  <SelectItem value="US">美国</SelectItem>
+                  <SelectItem value="DE">德国</SelectItem>
+                  <SelectItem value="GB">英国</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>工厂名称</Label>

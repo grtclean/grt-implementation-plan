@@ -41,12 +41,30 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, useTransition } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { ChevronLeft, ChevronRight as ChevronRightIcon } from "lucide-react";
+import ErrorBoundary from "@/components/ErrorBoundary";
+
+// Context to prevent double-rendering of Layout (e.g., Suspense fallback + lazy page)
+const LayoutActiveContext = createContext(false);
+export const useIsInsideLayout = () => useContext(LayoutActiveContext);
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  // Skip rendering if already inside a Layout (prevents double sidebar)
+  const isInsideLayout = useContext(LayoutActiveContext);
+  if (isInsideLayout) return <>{children}</>;
+
+  return (
+    <LayoutActiveContext.Provider value={true}>
+      <LayoutInner>{children}</LayoutInner>
+    </LayoutActiveContext.Provider>
+  );
+}
+
+function LayoutInner({ children }: { children: React.ReactNode }) {
+  const [location, setLocation] = useLocation();
+  const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   
   // 移动端左滑关闭菜单手势
@@ -215,9 +233,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     );
   };
 
-  // 获取未处理预警数量
+  // 获取未处理预警数量 - 使用安全的查询配置防止Layout崩溃
   const { data: alertCountData } = trpc.compliance.getPendingAlertCount.useQuery(undefined, {
     refetchInterval: 60000,
+    retry: false,
+    throwOnError: false,
   });
 
   const alertCount = alertCountData?.count ?? 0;
@@ -226,7 +246,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navRef = useRef<HTMLElement>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const showScrollTopRef = useRef(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const scrollProgressRef = useRef(0);
 
   // 监听侧边栏滚动，显示/隐藏返回顶部按钮和进度条，并保存滚动位置
   // 使用 ref + rAF 防止频繁 setState 导致重渲染/闪烁
@@ -244,7 +264,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         }
         const maxScroll = scrollHeight - clientHeight;
         const progress = maxScroll > 0 ? (scrollTop / maxScroll) * 100 : 0;
-        setScrollProgress(Math.min(100, Math.max(0, progress)));
+        scrollProgressRef.current = Math.min(100, Math.max(0, progress));
         sessionStorage.setItem('sidebarScrollPosition', String(scrollTop));
       }
     });
@@ -346,8 +366,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 data-menu-path={item.path}
                 data-menu-active={isActive ? "true" : "false"}
               >
-                <Link href={item.path} onClick={() => {
+                <a href={item.path} onClick={(e) => {
+                  e.preventDefault();
                   setOpen(false);
+                  startTransition(() => { setLocation(item.path); });
                 }}>
                   <div
                     className={cn(
@@ -377,7 +399,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     )}
                     {isActive && !isCompliancePage && <div className="w-1 h-1 rounded-full bg-primary shadow-[0_0_5px_var(--primary)]" />}
                   </div>
-                </Link>
+                </a>
               </div>
             );
           })}
@@ -745,10 +767,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </div>
-        <div className={cn(
-          "p-6 lg:p-8 lang-content-transition",
-          isChanging && "lang-content-changing"
-        )}>{children}</div>
+        {/* Transition loading bar */}
+        {isPending && (
+          <div className="absolute top-0 left-0 right-0 h-0.5 z-50 bg-primary/20 overflow-hidden">
+            <div className="h-full w-1/3 bg-primary animate-[slideRight_1s_ease-in-out_infinite]" />
+          </div>
+        )}
+        <ErrorBoundary level="section">
+          <div className={cn(
+            "p-6 lg:p-8 lang-content-transition",
+            isChanging && "lang-content-changing",
+            isPending && "pointer-events-none"
+          )}>{children}</div>
+        </ErrorBoundary>
       </main>
 
       {/* 全局菜单搜索 (Ctrl+K) */}

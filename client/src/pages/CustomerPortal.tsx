@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import Layout from "@/components/Layout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -167,6 +168,7 @@ export default function CustomerPortal() {
   };
 
   return (
+    <Layout>
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* 头部导航 */}
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
@@ -512,5 +514,6 @@ export default function CustomerPortal() {
         </div>
       </footer>
     </div>
+    </Layout>
   );
 }

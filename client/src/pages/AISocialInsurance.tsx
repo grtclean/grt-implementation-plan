@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import {
   Calculator, Loader2, Sparkles, TrendingUp, Users, Shield,
@@ -100,15 +101,16 @@ export default function AISocialInsurance() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">缴纳城市</label>
-                <select
-                  className="w-full bg-background border rounded px-3 py-2 text-sm"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                >
-                  {CITIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+                <Select value={city} onValueChange={(v) => setCity(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择城市" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CITIES.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">月工资基数（元）</label>

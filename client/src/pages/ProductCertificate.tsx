@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { FileCheck, Loader2, Sparkles, CheckCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const STANDARDS = [
   { value: "ISO 16232", label: "ISO 16232" },
@@ -124,9 +125,14 @@ export default function ProductCertificate() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">执行标准 *</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={standard} onChange={(e) => setStandard(e.target.value)}>
-                  {STANDARDS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+                <Select value={standard} onValueChange={(v) => setStandard(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择执行标准" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STANDARDS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">检验员</label>

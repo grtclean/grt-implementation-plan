@@ -272,6 +272,12 @@
     filter: blur(1px);
   }
 
+  /* Route transition loading bar */
+  @keyframes slideRight {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+
   /* Collapsible menu animation */
   @keyframes collapsible-down {
     from {

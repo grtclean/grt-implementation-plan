@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   UserCheck, Loader2, Sparkles, AlertTriangle, Shield, Heart,
 } from "lucide-react";
@@ -128,9 +129,14 @@ export default function AICustomerChurn() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">所属行业</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={industry} onChange={(e) => setIndustry(e.target.value)}>
-                  {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
-                </select>
+                <Select value={industry} onValueChange={(v) => setIndustry(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择行业" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INDUSTRIES.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -144,9 +150,14 @@ export default function AICustomerChurn() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">订单频率</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={orderFrequency} onChange={(e) => setOrderFrequency(e.target.value)}>
-                  {ORDER_FREQUENCIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-                </select>
+                <Select value={orderFrequency} onValueChange={(v) => setOrderFrequency(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择频率" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ORDER_FREQUENCIES.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

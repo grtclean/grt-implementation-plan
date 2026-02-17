@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DollarSign, Loader2, Sparkles, TrendingUp, BarChart3, Shield,
 } from "lucide-react";
@@ -134,9 +135,14 @@ export default function AICompensationAnalysis() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">所属部门</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={department} onChange={(e) => setDepartment(e.target.value)}>
-                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
+                <Select value={department} onValueChange={(v) => setDepartment(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择部门" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -156,17 +162,27 @@ export default function AICompensationAnalysis() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">绩效等级（可选）</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={performanceGrade} onChange={(e) => setPerformanceGrade(e.target.value)}>
-                  <option value="">不指定</option>
-                  {PERFORMANCE_GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-                </select>
+                <Select value={performanceGrade || "__unspecified__"} onValueChange={(v) => setPerformanceGrade(v === "__unspecified__" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="不指定" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__unspecified__">不指定</SelectItem>
+                    {PERFORMANCE_GRADES.map((g) => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">学历（可选）</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={education} onChange={(e) => setEducation(e.target.value)}>
-                  <option value="">不指定</option>
-                  {EDUCATION_LEVELS.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
-                </select>
+                <Select value={education || "__unspecified__"} onValueChange={(v) => setEducation(v === "__unspecified__" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="不指定" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__unspecified__">不指定</SelectItem>
+                    {EDUCATION_LEVELS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex justify-end">

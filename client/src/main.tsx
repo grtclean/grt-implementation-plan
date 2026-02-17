@@ -117,7 +117,28 @@ const trpcClient = trpc.createClient({
 // This eliminates all loading→content transitions and page jumping.
 import { authReady } from "@/_core/hooks/useAuth";
 
-authReady.then(() => {
+// Dismiss the loading overlay and unlock CSS transitions
+let loaderDismissed = false;
+function dismissLoader() {
+  if (loaderDismissed) return;
+  loaderDismissed = true;
+  const loader = document.getElementById("app-loader");
+  if (loader) {
+    loader.classList.add("fade-out");
+    // Remove overlay AND enable transitions only AFTER fade-out completes
+    setTimeout(() => {
+      loader.remove();
+      document.documentElement.classList.remove("no-transitions");
+    }, 400);
+  } else {
+    document.documentElement.classList.remove("no-transitions");
+  }
+}
+
+// Safety: always dismiss overlay within 3s, even if auth/render fails
+setTimeout(dismissLoader, 3000);
+
+authReady.then(async () => {
   createRoot(document.getElementById("root")!).render(
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
@@ -127,4 +148,17 @@ authReady.then(() => {
       </QueryClientProvider>
     </trpc.Provider>
   );
+
+  // Wait for fonts to load so text doesn't reflow after overlay dismisses
+  try { await document.fonts.ready; } catch {}
+
+  // Wait for first paint to complete before removing overlay
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      dismissLoader();
+    });
+  });
+}).catch(() => {
+  // Auth failed — dismiss overlay anyway so user sees the login redirect
+  dismissLoader();
 });

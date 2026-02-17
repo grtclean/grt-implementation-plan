@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Truck, Loader2, CheckCircle, AlertTriangle, Sparkles, Shield,
 } from "lucide-react";
@@ -137,9 +138,14 @@ export default function SupplierAssessment() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">供应类别</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={category} onChange={(e) => setCategory(e.target.value)}>
-                  {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
+                <Select value={category} onValueChange={(v) => setCategory(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择供应类别" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -159,17 +165,27 @@ export default function SupplierAssessment() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">价格竞争力（可选）</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={priceCompetitiveness} onChange={(e) => setPriceCompetitiveness(e.target.value)}>
-                  <option value="">不指定</option>
-                  {PRICE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
+                <Select value={priceCompetitiveness || "__unspecified__"} onValueChange={(v) => setPriceCompetitiveness(v === "__unspecified__" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="不指定" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__unspecified__">不指定</SelectItem>
+                    {PRICE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">响应速度（可选）</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={responseTime} onChange={(e) => setResponseTime(e.target.value)}>
-                  <option value="">不指定</option>
-                  {RESPONSE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
+                <Select value={responseTime || "__unspecified__"} onValueChange={(v) => setResponseTime(v === "__unspecified__" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="不指定" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__unspecified__">不指定</SelectItem>
+                    {RESPONSE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex justify-end">

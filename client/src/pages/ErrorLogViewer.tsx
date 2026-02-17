@@ -52,7 +52,10 @@ export default function ErrorLogViewer() {
 
   useEffect(() => {
     refreshLogs();
-    const interval = setInterval(refreshLogs, 5000); // 每5秒刷新一次
+    const interval = setInterval(() => {
+      const current = getErrorLogs();
+      setLogs(prev => current.length !== prev.length ? [...current] as ErrorLog[] : prev);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 

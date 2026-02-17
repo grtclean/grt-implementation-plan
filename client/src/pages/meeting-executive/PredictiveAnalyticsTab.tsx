@@ -9,6 +9,7 @@ import {
   Zap,
   Shield,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -110,29 +111,31 @@ export function PredictiveAnalyticsTab() {
             </Button>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <select
-              className="border rounded px-3 py-2 text-sm"
-              value={fatigueScope}
-              onChange={(e) => setFatigueScope(e.target.value)}
-            >
-              <option value="organization">全组织</option>
-              <option value="department">部门</option>
-              <option value="channel">频道</option>
-            </select>
+            <Select value={fatigueScope} onValueChange={(v) => setFatigueScope(v)}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="选择范围" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="organization">全组织</SelectItem>
+                <SelectItem value="department">部门</SelectItem>
+                <SelectItem value="channel">频道</SelectItem>
+              </SelectContent>
+            </Select>
             <Input
               placeholder="范围ID（可选）"
               value={fatigueScopeId}
               onChange={(e) => setFatigueScopeId(e.target.value)}
               className="max-w-xs"
             />
-            <select
-              className="border rounded px-3 py-2 text-sm"
-              value={fatiguePeriod}
-              onChange={(e) => setFatiguePeriod(e.target.value)}
-            >
-              <option value="monthly">月度</option>
-              <option value="quarterly">季度</option>
-            </select>
+            <Select value={fatiguePeriod} onValueChange={(v) => setFatiguePeriod(v)}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="选择周期" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">月度</SelectItem>
+                <SelectItem value="quarterly">季度</SelectItem>
+              </SelectContent>
+            </Select>
             <Button variant="outline" onClick={handleDetectFatigue} disabled={fatigueMutation.isPending}>
               {fatigueMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Activity className="h-4 w-4 mr-2" />}
               检测疲劳

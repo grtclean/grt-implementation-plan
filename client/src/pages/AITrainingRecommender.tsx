@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import {
   GraduationCap, Loader2, Sparkles, BookOpen, Target,
@@ -51,8 +52,8 @@ export default function AITrainingRecommender() {
   const [currentSkills, setCurrentSkills] = useState("");
   const [targetSkills, setTargetSkills] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("中级");
-  const [learningPreference, setLearningPreference] = useState("");
-  const [department, setDepartment] = useState("");
+  const [learningPreference, setLearningPreference] = useState("__none__");
+  const [department, setDepartment] = useState("__none__");
   const [result, setResult] = useState<TrainingResult | null>(null);
 
   const mutation = trpc.hrIntelligence.recommendTraining.useMutation({
@@ -67,8 +68,8 @@ export default function AITrainingRecommender() {
       currentSkills,
       targetSkills,
       experienceLevel,
-      learningPreference: learningPreference || undefined,
-      department: department || undefined,
+      learningPreference: learningPreference === "__none__" ? undefined : learningPreference,
+      department: department === "__none__" ? undefined : department,
     });
   };
 
@@ -137,15 +138,25 @@ export default function AITrainingRecommender() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">岗位角色</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={role} onChange={(e) => setRole(e.target.value)}>
-                  {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-                </select>
+                <Select value={role} onValueChange={(v) => setRole(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择岗位" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">经验等级</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={experienceLevel} onChange={(e) => setExperienceLevel(e.target.value)}>
-                  {EXPERIENCE_LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
-                </select>
+                <Select value={experienceLevel} onValueChange={(v) => setExperienceLevel(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择等级" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXPERIENCE_LEVELS.map((l) => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-1">
@@ -169,17 +180,27 @@ export default function AITrainingRecommender() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">学习偏好（可选）</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={learningPreference} onChange={(e) => setLearningPreference(e.target.value)}>
-                  <option value="">不指定</option>
-                  {LEARNING_PREFERENCES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
+                <Select value={learningPreference} onValueChange={(v) => setLearningPreference(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="不指定" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">不指定</SelectItem>
+                    {LEARNING_PREFERENCES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">所属部门（可选）</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={department} onChange={(e) => setDepartment(e.target.value)}>
-                  <option value="">不指定</option>
-                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
+                <Select value={department} onValueChange={(v) => setDepartment(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="不指定" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">不指定</SelectItem>
+                    {DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex justify-end">

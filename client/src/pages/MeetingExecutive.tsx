@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Layout from "@/components/Layout";
 import {
   BarChart3,
   Users,
@@ -861,6 +862,7 @@ function PerformanceLinkTab() {
 
 export default function MeetingExecutive() {
   return (
+    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
@@ -1038,5 +1040,6 @@ export default function MeetingExecutive() {
         </TabsContent>
       </Tabs>
     </div>
+    </Layout>
   );
 }

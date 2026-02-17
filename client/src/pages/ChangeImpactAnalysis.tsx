@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   GitBranch, Loader2, AlertTriangle, CheckCircle, Clock,
   Package, ShoppingCart, Calendar, DollarSign, Shield, Sparkles,
@@ -132,15 +133,16 @@ export default function ChangeImpactAnalysis() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">变更类型</label>
-                <select
-                  className="w-full bg-background border rounded px-3 py-2 text-sm"
-                  value={changeType}
-                  onChange={(e) => setChangeType(e.target.value)}
-                >
-                  {CHANGE_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
+                <Select value={changeType} onValueChange={(v) => setChangeType(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择变更类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CHANGE_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">影响组件（可选）</label>

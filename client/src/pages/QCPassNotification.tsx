@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import {
   CheckCircle, Loader2, Sparkles, FileText, Mail, Paperclip, ListChecks, Calendar, Users,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const EQUIPMENT_MODELS = [
   { value: "碳氢真空清洗机", label: "碳氢真空清洗机" },
@@ -128,15 +129,16 @@ export default function QCPassNotification() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">设备型号 *</label>
-                <select
-                  className="w-full bg-background border rounded px-3 py-2 text-sm"
-                  value={equipmentModel}
-                  onChange={(e) => setEquipmentModel(e.target.value)}
-                >
-                  {EQUIPMENT_MODELS.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
+                <Select value={equipmentModel} onValueChange={(v) => setEquipmentModel(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择设备型号" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EQUIPMENT_MODELS.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

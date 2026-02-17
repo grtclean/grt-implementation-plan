@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Upload, CheckCircle2, AlertCircle, FileText, BarChart3, GitBranch } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { PageHeader } from "@/components/grt";
@@ -81,15 +82,16 @@ export default function AnnualPlanningSystem() {
           title="Annual Planning & Change Management"
           description="Manage annual KPIs, organization structure, and process improvements with AI assistance"
           actions={
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="px-3 py-2 border border-border rounded-md bg-background text-foreground"
-            >
-              {[2024, 2025, 2026, 2027].map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
+            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="选择年份" />
+              </SelectTrigger>
+              <SelectContent>
+                {[2024, 2025, 2026, 2027].map(year => (
+                  <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           }
         />
         {/* Status Overview */}

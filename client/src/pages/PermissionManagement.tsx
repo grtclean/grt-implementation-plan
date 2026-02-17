@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { AlertCircle, Plus, Edit2, Trash2, CheckCircle2, Shield } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/grt";
 import Layout from "@/components/Layout";
 
@@ -173,23 +174,27 @@ function RolesTab() {
               </div>
               <div>
                 <Label>默认数据范围</Label>
-                <select
+                <Select
                   value={newRole.defaultDataScope}
-                  onChange={(e) =>
+                  onValueChange={(v) =>
                     setNewRole({
                       ...newRole,
-                      defaultDataScope: e.target.value as any,
+                      defaultDataScope: v as any,
                     })
                   }
-                  className="w-full border rounded px-3 py-2"
                 >
-                  <option value="global">全局</option>
-                  <option value="department">部门</option>
-                  <option value="team">团队</option>
-                  <option value="self">个人</option>
-                  <option value="project">项目</option>
-                  <option value="customer">客户</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="选择数据范围" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="global">全局</SelectItem>
+                    <SelectItem value="department">部门</SelectItem>
+                    <SelectItem value="team">团队</SelectItem>
+                    <SelectItem value="self">个人</SelectItem>
+                    <SelectItem value="project">项目</SelectItem>
+                    <SelectItem value="customer">客户</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <Button
                 onClick={handleCreateRole}
@@ -323,18 +328,21 @@ function UserPermissionsTab() {
         </div>
         <div>
           <Label>选择角色</Label>
-          <select
-            value={selectedRoleId || ''}
-            onChange={(e) => setSelectedRoleId(Number(e.target.value))}
-            className="w-full border rounded px-3 py-2"
+          <Select
+            value={selectedRoleId ? String(selectedRoleId) : undefined}
+            onValueChange={(v) => setSelectedRoleId(Number(v))}
           >
-            <option value="">选择角色...</option>
-            {rolesData?.roles?.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.displayName}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="选择角色..." />
+            </SelectTrigger>
+            <SelectContent>
+              {rolesData?.roles?.map((role) => (
+                <SelectItem key={role.id} value={String(role.id)}>
+                  {role.displayName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <Button
           onClick={handleAssignRole}

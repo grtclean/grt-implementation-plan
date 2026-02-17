@@ -21,13 +21,7 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
-  
-  // Serve static files from dist/public in development
-  const distPath = path.resolve(import.meta.dirname, "../..", "dist", "public");
-  if (fs.existsSync(distPath)) {
-    app.use(express.static(distPath));
-  }
-  
+
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 

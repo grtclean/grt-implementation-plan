@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import {
   Users, Loader2, Sparkles, UserPlus, AlertTriangle,
@@ -42,7 +43,7 @@ export default function AIWorkforcePlanning() {
   const [attritionRate, setAttritionRate] = useState("");
   const [budgetConstraint, setBudgetConstraint] = useState("");
   const [growthTarget, setGrowthTarget] = useState("");
-  const [timeHorizon, setTimeHorizon] = useState("");
+  const [timeHorizon, setTimeHorizon] = useState("__none__");
   const [result, setResult] = useState<WorkforceResult | null>(null);
 
   const mutation = trpc.hrIntelligence.planWorkforce.useMutation({
@@ -59,7 +60,7 @@ export default function AIWorkforcePlanning() {
       attritionRate: Number(attritionRate),
       budgetConstraint: budgetConstraint || undefined,
       growthTarget: growthTarget || undefined,
-      timeHorizon: timeHorizon || undefined,
+      timeHorizon: timeHorizon === "__none__" ? undefined : timeHorizon,
     });
   };
 
@@ -130,9 +131,14 @@ export default function AIWorkforcePlanning() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">部门名称</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={department} onChange={(e) => setDepartment(e.target.value)}>
-                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
+                <Select value={department} onValueChange={(v) => setDepartment(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择部门" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">现有人数</label>
@@ -164,10 +170,15 @@ export default function AIWorkforcePlanning() {
             </div>
             <div className="space-y-1">
               <label className="text-sm text-muted-foreground">规划周期（可选）</label>
-              <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={timeHorizon} onChange={(e) => setTimeHorizon(e.target.value)}>
-                <option value="">不指定</option>
-                {TIME_HORIZONS.map((h) => <option key={h.value} value={h.value}>{h.label}</option>)}
-              </select>
+              <Select value={timeHorizon} onValueChange={(v) => setTimeHorizon(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="不指定" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">不指定</SelectItem>
+                  {TIME_HORIZONS.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!currentHeadcount || !plannedProjects.trim() || !attritionRate || mutation.isPending}>

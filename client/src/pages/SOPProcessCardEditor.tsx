@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   FileText, Loader2, Sparkles, CheckCircle, Shield, Clock, Wrench, Package,
   AlertTriangle,
@@ -93,15 +94,25 @@ export default function SOPProcessCardEditor() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">产品类型</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={productType} onChange={(e) => setProductType(e.target.value)}>
-                  {PRODUCT_TYPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
+                <Select value={productType} onValueChange={(v) => setProductType(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择产品类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRODUCT_TYPES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">清洗方式</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={cleaningMethod} onChange={(e) => setCleaningMethod(e.target.value)}>
-                  {CLEANING_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
+                <Select value={cleaningMethod} onValueChange={(v) => setCleaningMethod(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择清洗方式" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CLEANING_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-1">

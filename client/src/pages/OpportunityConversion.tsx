@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Target, Loader2, Sparkles, CheckCircle, AlertTriangle, FileText,
   Users, Clock,
@@ -131,15 +132,16 @@ export default function OpportunityConversion() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">行业 *</label>
-                <select
-                  className="w-full bg-background border rounded px-3 py-2 text-sm"
-                  value={industry}
-                  onChange={(e) => setIndustry(e.target.value)}
-                >
-                  {INDUSTRIES.map((ind) => (
-                    <option key={ind.value} value={ind.value}>{ind.label}</option>
-                  ))}
-                </select>
+                <Select value={industry} onValueChange={(v) => setIndustry(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择行业" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INDUSTRIES.map((ind) => (
+                      <SelectItem key={ind.value} value={ind.value}>{ind.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">预算范围（万元，可选）</label>

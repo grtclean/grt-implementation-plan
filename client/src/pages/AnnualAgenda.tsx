@@ -1287,18 +1287,19 @@ export default function AnnualAgenda() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>{isZh ? '2026年度日程' : '2026 Annual Agenda'}</CardTitle>
-                  <select 
-                    className="px-3 py-1 rounded-md border bg-background"
-                    value={selectedDepartment}
-                    onChange={(e) => setSelectedDepartment(e.target.value)}
-                  >
-                    <option value="All">{isZh ? '全部部门' : 'All Departments'}</option>
-                    {DEPARTMENTS.map(dept => (
-                      <option key={dept.id} value={dept.id}>
-                        {isZh ? dept.name : dept.nameEn}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={selectedDepartment} onValueChange={(v) => setSelectedDepartment(v)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder={isZh ? '全部部门' : 'All Departments'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">{isZh ? '全部部门' : 'All Departments'}</SelectItem>
+                      {DEPARTMENTS.map(dept => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {isZh ? dept.name : dept.nameEn}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardHeader>
               <CardContent>

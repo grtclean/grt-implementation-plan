@@ -19,8 +19,9 @@ import { trpc } from "@/lib/trpc";
 import {
   Play, Square, Clock, CheckCircle2, AlertCircle,
   Loader2, Timer, Calendar, History, Wrench,
-  ChevronRight, User, Zap
+  ChevronRight, User, Zap, Home
 } from "lucide-react";
+import { Link } from "wouter";
 import { useState, useEffect } from "react";
 
 export default function WorkerMobileView() {
@@ -59,6 +60,15 @@ export default function WorkerMobileView() {
 
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-20">
+      {/* 返回主页导航 */}
+      <div className="flex items-center gap-2 py-2">
+        <Link href="/">
+          <Button variant="ghost" size="sm" className="gap-1">
+            <Home className="w-4 h-4" />
+            返回主页
+          </Button>
+        </Link>
+      </div>
       {/* 顶部：员工信息和统计 */}
       <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
         <CardContent className="p-4">

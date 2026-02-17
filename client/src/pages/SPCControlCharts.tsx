@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   BarChart3, Loader2, Sparkles, AlertTriangle, CheckCircle, TrendingUp,
 } from "lucide-react";
@@ -147,9 +148,14 @@ export default function SPCControlCharts() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">控制图类型</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={chartType} onChange={(e) => setChartType(e.target.value)}>
-                  {CHART_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
+                <Select value={chartType} onValueChange={(v) => setChartType(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择控制图类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CHART_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex justify-end">

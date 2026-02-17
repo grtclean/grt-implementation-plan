@@ -18,27 +18,50 @@
         if (theme === 'dark') {
           document.documentElement.classList.add('dark');
         }
-        // 2. Disable all CSS transitions until app is fully loaded
+        // 2. Disable all CSS transitions until app signals ready
         document.documentElement.classList.add('no-transitions');
-        // Remove after 800ms - enough for auth + initial queries to resolve
-        setTimeout(function() {
-          document.documentElement.classList.remove('no-transitions');
-        }, 800);
       })();
     </script>
     <style>
       /* Suppress all transitions during initial load to prevent flicker */
       .no-transitions, .no-transitions *, .no-transitions *::before, .no-transitions *::after {
         transition: none !important;
-        animation: none !important;
+        animation-name: none !important;
       }
+      /* Loading overlay — covers page until React app is ready */
+      #app-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.3s ease;
+      }
+      .dark #app-loader { background: oklch(0.13 0.02 260); }
+      :root:not(.dark) #app-loader { background: oklch(0.985 0 0); }
+      #app-loader.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #app-loader .spinner {
+        width: 32px;
+        height: 32px;
+        border: 2px solid transparent;
+        border-top-color: #6366f1;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite !important;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Oswald:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Oswald:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=optional" rel="stylesheet">
   </head>
 
   <body>
+    <!-- Loading overlay — removed by main.tsx after React mount -->
+    <div id="app-loader"><div class="spinner"></div></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script

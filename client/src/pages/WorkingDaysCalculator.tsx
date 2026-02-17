@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   CalendarDays, Loader2, Sparkles, CheckCircle, AlertTriangle, Clock, Calendar, ListChecks,
 } from "lucide-react";
@@ -98,15 +99,16 @@ export default function WorkingDaysCalculator() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">地区</label>
-                <select
-                  className="w-full bg-background border rounded px-3 py-2 text-sm"
-                  value={region}
-                  onChange={(e) => setRegion(e.target.value)}
-                >
-                  {REGIONS.map((r) => (
-                    <option key={r.value} value={r.value}>{r.label}</option>
-                  ))}
-                </select>
+                <Select value={region} onValueChange={(v) => setRegion(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择地区" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REGIONS.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">缓冲选项</label>

@@ -84,9 +84,8 @@ export default function CcdRealtime() {
     },
   });
 
-  // 模拟WebSocket连接
+  // 模拟WebSocket连接建立（仅在挂载时触发一次）
   useEffect(() => {
-    // 模拟连接建立
     const connectTimer = setTimeout(() => {
       setWsConnected(true);
       toast({
@@ -94,36 +93,38 @@ export default function CcdRealtime() {
         description: "CCD检测实时推送频道已建立",
       });
     }, 1500);
+    return () => clearTimeout(connectTimer);
+  }, []);
 
-    // 模拟实时消息
+  // 模拟实时消息推送
+  const isPausedRef = useRef(isPaused);
+  isPausedRef.current = isPaused;
+
+  useEffect(() => {
     const messageInterval = setInterval(() => {
-      if (!isPaused) {
-        const processes = Object.keys(PROCESS_NAMES);
-        const severities: ("critical" | "major" | "minor")[] = ["critical", "major", "minor"];
-        const defectTypes = ["表面划痕", "焊接气孔", "尺寸偏差", "装配松动", "涂层脱落", "电气短路"];
-        
-        const newMsg: RealtimeMessage = {
-          id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: Date.now(),
-          processCode: processes[Math.floor(Math.random() * 6) + 1], // T2-T7
-          defectType: defectTypes[Math.floor(Math.random() * defectTypes.length)],
-          severity: severities[Math.floor(Math.random() * severities.length)],
-          confidence: 0.75 + Math.random() * 0.24,
-          interlockTriggered: Math.random() > 0.7,
-        };
-        
-        setMessages(prev => {
-          const updated = [...prev, newMsg];
-          return updated.slice(-100); // 保留最近100条
-        });
-      }
-    }, 3000 + Math.random() * 4000);
+      if (isPausedRef.current) return;
+      const processes = Object.keys(PROCESS_NAMES);
+      const severities: ("critical" | "major" | "minor")[] = ["critical", "major", "minor"];
+      const defectTypes = ["表面划痕", "焊接气孔", "尺寸偏差", "装配松动", "涂层脱落", "电气短路"];
 
-    return () => {
-      clearTimeout(connectTimer);
-      clearInterval(messageInterval);
-    };
-  }, [isPaused]);
+      const newMsg: RealtimeMessage = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: Date.now(),
+        processCode: processes[Math.floor(Math.random() * 6) + 1], // T2-T7
+        defectType: defectTypes[Math.floor(Math.random() * defectTypes.length)],
+        severity: severities[Math.floor(Math.random() * severities.length)],
+        confidence: 0.75 + Math.random() * 0.24,
+        interlockTriggered: Math.random() > 0.7,
+      };
+
+      setMessages(prev => {
+        const updated = [...prev, newMsg];
+        return updated.slice(-100); // 保留最近100条
+      });
+    }, 4000);
+
+    return () => clearInterval(messageInterval);
+  }, []);
 
   // 自动滚动
   useEffect(() => {

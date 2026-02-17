@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   RefreshCw, Loader2, Sparkles, AlertTriangle, CheckCircle, Shield, Clock,
 } from "lucide-react";
@@ -112,15 +113,25 @@ export default function ShiftHandover() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">当前班次</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={currentShift} onChange={(e) => setCurrentShift(e.target.value)}>
-                  {SHIFTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+                <Select value={currentShift} onValueChange={(v) => setCurrentShift(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择班次" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SHIFTS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">交接班次</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={nextShift} onChange={(e) => setNextShift(e.target.value)}>
-                  {SHIFTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+                <Select value={nextShift} onValueChange={(v) => setNextShift(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择班次" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SHIFTS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">交接人</label>

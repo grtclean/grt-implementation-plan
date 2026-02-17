@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ClipboardCheck, Loader2, Sparkles, AlertTriangle, CheckCircle, Shield,
   FileText, BarChart3,
@@ -29,7 +30,7 @@ const CLEANING_METHODS = [
 ];
 
 const CLEANLINESS_CLASSES = [
-  { value: "", label: "不指定" },
+  { value: "__none__", label: "不指定" },
   { value: "A", label: "A级(最高)" },
   { value: "B", label: "B级" },
   { value: "C", label: "C级" },
@@ -88,7 +89,7 @@ export default function CleanlinessInspection() {
   const [workpieceType, setWorkpieceType] = useState("");
   const [cleaningMethod, setCleaningMethod] = useState("碳氢真空清洗");
   const [standard, setStandard] = useState("ISO 16232");
-  const [cleanlinessClass, setCleanlinessClass] = useState("");
+  const [cleanlinessClass, setCleanlinessClass] = useState("__none__");
   const [particleData, setParticleData] = useState("");
   const [residualMass, setResidualMass] = useState("");
   const [maxParticleSize, setMaxParticleSize] = useState("");
@@ -114,7 +115,7 @@ export default function CleanlinessInspection() {
     if (!batchNumber.trim() || !workpieceType.trim() || !particleData.trim() || inspectMutation.isPending) return;
     inspectMutation.mutate({
       batchNumber, workpieceType, cleaningMethod, standard,
-      cleanlinessClass: cleanlinessClass || undefined,
+      cleanlinessClass: cleanlinessClass === "__none__" ? undefined : cleanlinessClass,
       particleData,
       residualMass: residualMass ? Number(residualMass) : undefined,
       maxParticleSize: maxParticleSize ? Number(maxParticleSize) : undefined,
@@ -123,9 +124,9 @@ export default function CleanlinessInspection() {
   };
 
   const handleJudge = () => {
-    if (!batchNumber.trim() || !particleData.trim() || !cleanlinessClass || judgeMutation.isPending) return;
+    if (!batchNumber.trim() || !particleData.trim() || cleanlinessClass === "__none__" || judgeMutation.isPending) return;
     judgeMutation.mutate({
-      batchNumber, standard, cleanlinessClass, particleData,
+      batchNumber, standard, cleanlinessClass: cleanlinessClass === "__none__" ? undefined : cleanlinessClass, particleData,
       residualMass: residualMass ? Number(residualMass) : undefined,
       maxParticleSize: maxParticleSize ? Number(maxParticleSize) : undefined,
     });
@@ -220,29 +221,49 @@ export default function CleanlinessInspection() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">清洗方式</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={cleaningMethod} onChange={(e) => setCleaningMethod(e.target.value)}>
-                  {CLEANING_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
+                <Select value={cleaningMethod} onValueChange={(v) => setCleaningMethod(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择清洗方式" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CLEANING_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">执行标准</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={standard} onChange={(e) => setStandard(e.target.value)}>
-                  {STANDARDS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+                <Select value={standard} onValueChange={(v) => setStandard(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择执行标准" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STANDARDS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">清洁度等级要求</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={cleanlinessClass} onChange={(e) => setCleanlinessClass(e.target.value)}>
-                  {CLEANLINESS_CLASSES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
+                <Select value={cleanlinessClass} onValueChange={(v) => setCleanlinessClass(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="不指定" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CLEANLINESS_CLASSES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">检测方法</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={inspectionMethod} onChange={(e) => setInspectionMethod(e.target.value)}>
-                  {INSPECTION_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
+                <Select value={inspectionMethod} onValueChange={(v) => setInspectionMethod(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择检测方法" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INSPECTION_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-1">
@@ -267,7 +288,7 @@ export default function CleanlinessInspection() {
                 </Button>
               )}
               {activeTab === "judge" && (
-                <Button onClick={handleJudge} disabled={!batchNumber.trim() || !particleData.trim() || !cleanlinessClass || isPending}>
+                <Button onClick={handleJudge} disabled={!batchNumber.trim() || !particleData.trim() || cleanlinessClass === "__none__" || isPending}>
                   {judgeMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Shield className="h-4 w-4 mr-2" />}
                   自动判定
                 </Button>

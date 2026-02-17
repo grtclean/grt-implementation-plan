@@ -1,8 +1,9 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import Layout from "@/components/Layout";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import RequireAuth from "./components/RequireAuth";
 import { LanguageProvider } from "./contexts/LanguageContext";
@@ -351,8 +352,28 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   );
 }
 
-function Router() {
+function LazyFallback() {
   return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-muted-foreground">加载中...</p>
+      </div>
+    </div>
+  );
+}
+
+// Standalone routes that should NOT have sidebar layout
+const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/404'];
+const STANDALONE_PREFIXES = ['/signature/', '/m/'];
+
+function Router() {
+  const [location] = useLocation();
+  const isStandalone = STANDALONE_PATHS.includes(location)
+    || STANDALONE_PREFIXES.some(p => location.startsWith(p));
+
+  const routes = (
+    <Suspense fallback={<LazyFallback />}>
     <Switch>
       {/* Public routes */}
       <Route path={"/"} component={Home} />
@@ -1345,7 +1366,11 @@ function Router() {
       {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
   );
+
+  // Standalone pages render without sidebar; all others get persistent Layout
+  return isStandalone ? routes : <Layout>{routes}</Layout>;
 }
 
 // NOTE: About Theme

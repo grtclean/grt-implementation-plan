@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertTriangle, Loader2, Sparkles, CheckCircle, Shield, Target, ListChecks,
 } from "lucide-react";
@@ -68,7 +69,7 @@ export default function NCRWorkflow() {
   const [defectCategory, setDefectCategory] = useState("尺寸超差");
   const [detectionStage, setDetectionStage] = useState("来料检验");
   const [quantity, setQuantity] = useState("");
-  const [severity, setSeverity] = useState("");
+  const [severity, setSeverity] = useState("__none__");
   const [previousOccurrences, setPreviousOccurrences] = useState("");
 
   // Result state
@@ -88,7 +89,7 @@ export default function NCRWorkflow() {
       defectCategory,
       detectionStage,
       quantity: Number(quantity),
-      severity: severity || undefined,
+      severity: severity === "__none__" ? undefined : severity,
       previousOccurrences: previousOccurrences.trim() || undefined,
     });
   };
@@ -168,22 +169,37 @@ export default function NCRWorkflow() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">缺陷类别 *</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={defectCategory} onChange={(e) => setDefectCategory(e.target.value)}>
-                  {DEFECT_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
+                <Select value={defectCategory} onValueChange={(v) => setDefectCategory(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择缺陷类别" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEFECT_CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">检出环节 *</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={detectionStage} onChange={(e) => setDetectionStage(e.target.value)}>
-                  {DETECTION_STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+                <Select value={detectionStage} onValueChange={(v) => setDetectionStage(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择检出环节" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DETECTION_STAGES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">严重程度</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={severity} onChange={(e) => setSeverity(e.target.value)}>
-                  <option value="">不指定</option>
-                  {SEVERITIES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+                <Select value={severity} onValueChange={(v) => setSeverity(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="不指定" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">不指定</SelectItem>
+                    {SEVERITIES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-1">

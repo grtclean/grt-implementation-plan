@@ -14,6 +14,7 @@ import {
   ShieldAlert, Loader2, AlertTriangle, CheckCircle, TrendingUp,
   Sparkles, Target,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const STAGES = [
   "M0", "M1", "M2", "M3", "M4", "M5", "M6",
@@ -139,15 +140,16 @@ export default function ProjectRiskPrediction() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">当前阶段 *</label>
-                <select
-                  className="w-full bg-background border rounded px-3 py-2 text-sm"
-                  value={currentStage}
-                  onChange={(e) => setCurrentStage(e.target.value)}
-                >
-                  {STAGES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                <Select value={currentStage} onValueChange={(v) => setCurrentStage(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择阶段" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STAGES.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

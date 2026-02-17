@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import {
   AlertTriangle, Loader2, Sparkles, CheckCircle, Users, Zap, Clock,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const EXCEPTION_TYPES = [
   { value: "设备故障", label: "设备故障" },
@@ -123,15 +124,16 @@ export default function ProductionExceptionReport() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">异常类型 *</label>
-                <select
-                  className="w-full bg-background border rounded px-3 py-2 text-sm"
-                  value={exceptionType}
-                  onChange={(e) => setExceptionType(e.target.value)}
-                >
-                  {EXCEPTION_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
+                <Select value={exceptionType} onValueChange={(v) => setExceptionType(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择异常类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXCEPTION_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">发生位置 *</label>

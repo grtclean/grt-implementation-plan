@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   BookOpen, Loader2, Sparkles, CheckCircle, Shield, AlertTriangle, Lightbulb, Wrench,
 } from "lucide-react";
@@ -115,9 +116,14 @@ export default function TicketToKnowledgeBase() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">设备型号 *</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={equipmentModel} onChange={(e) => setEquipmentModel(e.target.value)}>
-                  {EQUIPMENT_MODELS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
+                <Select value={equipmentModel} onValueChange={(v) => setEquipmentModel(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择设备型号" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EQUIPMENT_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">处理人（可选）</label>

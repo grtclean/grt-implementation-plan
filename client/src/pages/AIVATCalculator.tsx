@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import {
   Receipt, Loader2, Sparkles, FileText, ListChecks, Lightbulb, TableProperties,
@@ -93,31 +94,51 @@ export default function AIVATCalculator() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">币种</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={currency} onChange={(e) => setCurrency(e.target.value)}>
-                  {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <Select value={currency} onValueChange={(v) => setCurrency(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择币种" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">发货地区</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={fromRegion} onChange={(e) => setFromRegion(e.target.value)}>
-                  {REGIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
+                <Select value={fromRegion} onValueChange={(v) => setFromRegion(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择发货地区" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REGIONS.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">目的地区</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={toRegion} onChange={(e) => setToRegion(e.target.value)}>
-                  {REGIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
+                <Select value={toRegion} onValueChange={(v) => setToRegion(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择目的地区" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REGIONS.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">产品类型</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={productType} onChange={(e) => setProductType(e.target.value)}>
-                  {PRODUCT_TYPES.map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
+                <Select value={productType} onValueChange={(v) => setProductType(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择产品类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRODUCT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">交易类型</label>

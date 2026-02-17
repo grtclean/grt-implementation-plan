@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Wrench, Loader2, Sparkles, AlertTriangle, CheckCircle, Package, Calendar,
 } from "lucide-react";
@@ -132,21 +133,36 @@ export default function AIMaintenancePlan() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">设备型号</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={equipmentModel} onChange={(e) => setEquipmentModel(e.target.value)}>
-                  {EQUIPMENT_MODELS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
+                <Select value={equipmentModel} onValueChange={(v) => setEquipmentModel(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择设备型号" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EQUIPMENT_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">环境条件</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={environmentCondition} onChange={(e) => setEnvironmentCondition(e.target.value)}>
-                  {ENVIRONMENT_CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
+                <Select value={environmentCondition} onValueChange={(v) => setEnvironmentCondition(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择环境条件" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ENVIRONMENT_CONDITIONS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">使用强度</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={usageIntensity} onChange={(e) => setUsageIntensity(e.target.value)}>
-                  {USAGE_INTENSITIES.map((i) => <option key={i.value} value={i.value}>{i.label}</option>)}
-                </select>
+                <Select value={usageIntensity} onValueChange={(v) => setUsageIntensity(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择使用强度" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {USAGE_INTENSITIES.map((i) => <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

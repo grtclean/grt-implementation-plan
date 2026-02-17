@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MessageCircle, Loader2, Sparkles, TrendingUp, TrendingDown, Minus,
   AlertTriangle, CheckCircle, ListChecks, BarChart3,
@@ -150,9 +151,14 @@ export default function NPSSurveyAutomation() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">服务类型 *</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={serviceType} onChange={(e) => setServiceType(e.target.value)}>
-                  {SERVICE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
+                <Select value={serviceType} onValueChange={(v) => setServiceType(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择服务类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SERVICE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">服务工程师 *</label>

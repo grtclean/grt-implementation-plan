@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ClipboardCheck, Loader2, Sparkles, AlertTriangle, CheckCircle, Target,
 } from "lucide-react";
@@ -133,15 +134,26 @@ export default function AIRequirementsAnalysis() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">所属行业</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={industry} onChange={(e) => setIndustry(e.target.value)}>
-                  {INDUSTRIES.map((i) => <option key={i.value} value={i.value}>{i.label}</option>)}
-                </select>
+                <Select value={industry} onValueChange={(v) => setIndustry(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择行业" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INDUSTRIES.map((i) => <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">清洁度标准（可选）</label>
-                <select className="w-full bg-background border rounded px-3 py-2 text-sm" value={cleanlinessStandard} onChange={(e) => setCleanlinessStandard(e.target.value)}>
-                  {STANDARDS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+                <Select value={cleanlinessStandard || "__unspecified__"} onValueChange={(v) => setCleanlinessStandard(v === "__unspecified__" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="不指定" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__unspecified__">不指定</SelectItem>
+                    {STANDARDS.filter((s) => s.value !== "").map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-1">
