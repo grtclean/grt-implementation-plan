@@ -46,6 +46,7 @@ import {
 // 组织架构Tab组件
 function OrgStructureTab() {
   const [selectedDept, setSelectedDept] = useState<number | null>(null);
+  const [expandedRole, setExpandedRole] = useState<number | null>(null);
 
   // 获取部门列表
   const { data: deptData, isLoading: deptLoading } = trpc.jiandaoyun.getDepartments.useQuery(
@@ -59,6 +60,26 @@ function OrgStructureTab() {
 
   // 获取角色列表
   const { data: roleData, isLoading: roleLoading } = trpc.jiandaoyun.getRoles.useQuery();
+
+  // 获取选中角色的成员
+  const { data: roleMembersData, isLoading: roleMembersLoading } = trpc.jiandaoyun.getRoleMembersLive.useQuery(
+    { roleNo: expandedRole! },
+    { enabled: !!expandedRole }
+  );
+
+  // 同步角色成员
+  const syncRoleMembersMutation = trpc.jiandaoyun.syncRoleMembers.useMutation({
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success(`角色成员同步完成: 新增${(result as any).created || 0}, 更新${(result as any).updated || 0}`);
+      } else {
+        toast.error(`同步失败: ${(result as any).error}`);
+      }
+    },
+    onError: (error) => {
+      toast.error(`同步错误: ${error.message}`);
+    },
+  });
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -176,13 +197,30 @@ function OrgStructureTab() {
       {/* 角色列表 */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            角色列表
-          </CardTitle>
-          <CardDescription>
-            共 {roleData?.roles?.length || 0} 个角色
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                角色列表
+              </CardTitle>
+              <CardDescription>
+                共 {roleData?.roles?.length || 0} 个角色（点击展开成员）
+              </CardDescription>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => syncRoleMembersMutation.mutate()}
+              disabled={syncRoleMembersMutation.isPending}
+            >
+              {syncRoleMembersMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-1" />
+              )}
+              同步角色成员
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {roleLoading ? (
@@ -204,14 +242,46 @@ function OrgStructureTab() {
             <ScrollArea className="h-[400px]">
               <div className="space-y-2">
                 {roleData?.roles?.map((role) => (
-                  <div
-                    key={role.role_no}
-                    className="p-3 rounded-lg border bg-card"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{role.name}</span>
-                      <Badge variant="outline">组#{role.group_no}</Badge>
+                  <div key={role.role_no}>
+                    <div
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors hover:bg-accent ${
+                        expandedRole === role.role_no ? 'border-primary bg-primary/5' : 'bg-card'
+                      }`}
+                      onClick={() => setExpandedRole(expandedRole === role.role_no ? null : role.role_no)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ArrowRight className={`w-4 h-4 transition-transform ${expandedRole === role.role_no ? 'rotate-90' : ''}`} />
+                          <span className="font-medium">{role.name}</span>
+                        </div>
+                        <Badge variant="outline">组#{role.group_no}</Badge>
+                      </div>
                     </div>
+                    {expandedRole === role.role_no && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        {roleMembersLoading ? (
+                          <div className="p-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          </div>
+                        ) : roleMembersData?.error ? (
+                          <p className="text-xs text-red-500 p-2">{roleMembersData.error}</p>
+                        ) : roleMembersData?.members?.length === 0 ? (
+                          <p className="text-xs text-muted-foreground p-2">该角色暂无成员</p>
+                        ) : (
+                          roleMembersData?.members?.map((member) => (
+                            <div key={member.username} className="p-2 rounded border bg-muted/30 flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
+                                {member.name.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{member.name}</p>
+                                <p className="text-xs text-muted-foreground">{member.username}</p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -228,7 +298,7 @@ function SyncTasksTab() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newTask, setNewTask] = useState({
     taskName: '',
-    taskType: 'user' as 'user' | 'department' | 'role' | 'form_data' | 'full',
+    taskType: 'user' as 'user' | 'department' | 'role' | 'role_members' | 'form_data' | 'full',
     syncDirection: 'jdy_to_grt' as 'jdy_to_grt' | 'grt_to_jdy' | 'bidirectional',
     cronExpression: '0 0 2 * * *',
     isEnabled: true,
@@ -303,6 +373,7 @@ function SyncTasksTab() {
     user: '用户同步',
     department: '部门同步',
     role: '角色同步',
+    role_members: '角色成员同步',
     form_data: '表单数据',
     full: '全量同步',
   };
@@ -406,6 +477,7 @@ function SyncTasksTab() {
                     <SelectItem value="user">用户同步</SelectItem>
                     <SelectItem value="department">部门同步</SelectItem>
                     <SelectItem value="role">角色同步</SelectItem>
+                    <SelectItem value="role_members">角色成员同步</SelectItem>
                     <SelectItem value="form_data">表单数据</SelectItem>
                     <SelectItem value="full">全量同步</SelectItem>
                   </SelectContent>
