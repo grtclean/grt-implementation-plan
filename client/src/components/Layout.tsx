@@ -42,7 +42,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, useTransition } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { ChevronLeft, ChevronRight as ChevronRightIcon } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -65,7 +65,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
 function LayoutInner({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const [isPending, startTransition] = useTransition();
+  // Navigation is now synchronous (no startTransition) for reliable menu clicks
   const [open, setOpen] = useState(false);
   
   // 移动端左滑关闭菜单手势
@@ -370,7 +370,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
                 <a href={item.path} onClick={(e) => {
                   e.preventDefault();
                   setOpen(false);
-                  startTransition(() => { setLocation(item.path); });
+                  setLocation(item.path);
                 }}>
                   <div
                     className={cn(
@@ -769,17 +769,8 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </div>
-        {/* Transition loading bar */}
-        {isPending && (
-          <div className="fixed top-0 left-0 right-0 h-0.5 z-[60] bg-primary/30 overflow-hidden">
-            <div className="h-full w-1/3 bg-primary animate-[slideRight_0.8s_ease-in-out_infinite]" />
-          </div>
-        )}
         <ErrorBoundary key={location} level="section">
-          <div className={cn(
-            "p-6 lg:p-8",
-            isPending && "opacity-80 pointer-events-none"
-          )}>{children}</div>
+          <div className="p-6 lg:p-8">{children}</div>
         </ErrorBoundary>
       </main>
 
