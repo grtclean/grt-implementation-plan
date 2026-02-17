@@ -145,7 +145,10 @@ export function FeatureGuideDialog({
   const currentStepData = actualSteps[currentStep];
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) markGuideCompleted(actualFeatureKey);
+      }}>
       <DialogContent className="max-w-[95vw] sm:max-w-lg mx-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">

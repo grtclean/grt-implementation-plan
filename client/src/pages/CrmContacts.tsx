@@ -50,17 +50,7 @@ export default function CrmContacts() {
   const [search, setSearch] = useState("");
   const [customerFilter, setCustomerFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newContact, setNewContact] = useState<{
-    name: string;
-    customerId: number;
-    position: string;
-    department: string;
-    phone: string;
-    mobile: string;
-    email: string;
-    isKeyPerson: "yes" | "no";
-    remark: string;
-  }>({
+  const [newContact, setNewContact] = useState({
     name: "",
     customerId: 0,
     position: "",
@@ -68,8 +58,8 @@ export default function CrmContacts() {
     phone: "",
     mobile: "",
     email: "",
-    isKeyPerson: "no",
-    remark: "",
+    isKeyPerson: false,
+    notes: "",
   });
 
   const { data: contacts = [], isLoading, refetch } = (trpc.crm.contacts as any).list.useQuery({
@@ -77,7 +67,8 @@ export default function CrmContacts() {
     customerId: customerFilter !== "all" ? parseInt(customerFilter) : undefined,
   });
 
-  const { data: customers = [] } = (trpc.crm.customers as any).list.useQuery({});
+  const { data: customersData } = (trpc.crm.customers as any).list.useQuery({});
+  const customers: any[] = customersData?.items ?? [];
 
   const createMutation = (trpc.crm.contacts as any).create.useMutation({
     onSuccess: () => {
@@ -91,23 +82,20 @@ export default function CrmContacts() {
         phone: "",
         mobile: "",
         email: "",
-        isKeyPerson: "no",
-        remark: "",
+        isKeyPerson: false,
+        notes: "",
       });
     },
   });
 
   const handleCreate = () => {
     if (!newContact.name || !newContact.customerId) return;
-    createMutation.mutate({
-      ...newContact,
-      isKeyPerson: newContact.isKeyPerson,
-    });
+    createMutation.mutate(newContact);
   };
 
   // Statistics
   const totalContacts = contacts.length;
-  const keyContacts = contacts.filter(c => c.isKeyPerson === "yes").length;
+  const keyContacts = contacts.filter((c: any) => c.isKeyPerson === true).length;
   const uniqueCustomers = new Set(contacts.map(c => c.customerId)).size;
 
   return (
@@ -205,8 +193,8 @@ export default function CrmContacts() {
                     <input
                       type="checkbox"
                       id="isKeyContact"
-                      checked={newContact.isKeyPerson === "yes"}
-                      onChange={(e) => setNewContact({ ...newContact, isKeyPerson: e.target.checked ? "yes" : "no" })}
+                      checked={newContact.isKeyPerson}
+                      onChange={(e) => setNewContact({ ...newContact, isKeyPerson: e.target.checked })}
                       className="rounded border-border"
                     />
                     <Label htmlFor="isKeyContact">{t("crm.contacts.setAsKeyPerson")}</Label>
@@ -214,8 +202,8 @@ export default function CrmContacts() {
                   <div className="space-y-2">
                     <Label>{t("crm.remark")}</Label>
                     <Textarea
-                      value={newContact.remark}
-                      onChange={(e) => setNewContact({ ...newContact, remark: e.target.value })}
+                      value={newContact.notes}
+                      onChange={(e) => setNewContact({ ...newContact, notes: e.target.value })}
                       placeholder={t("crm.contacts.enterRemark")}
                       rows={2}
                     />
@@ -343,7 +331,7 @@ export default function CrmContacts() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {contact.isKeyPerson === "yes" && (
+                        {contact.isKeyPerson === true && (
                           <Badge variant="default" className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
                             <Star className="w-3 h-3 mr-1" />
                             {t("crm.contacts.isKeyPerson")}

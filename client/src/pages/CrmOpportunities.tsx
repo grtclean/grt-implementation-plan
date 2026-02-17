@@ -71,12 +71,14 @@ export default function CrmOpportunities() {
     { id: "closed_lost", name: t("crm.opp.stage.closedLost"), color: "bg-red-500" },
   ];
 
-  const { data: opportunities = [], isLoading, refetch } = (trpc.crm.opportunities as any).list.useQuery({
+  const { data: oppData, isLoading, refetch } = (trpc.crm.opportunities as any).list.useQuery({
     search: search || undefined,
     stage: stageFilter !== "all" ? stageFilter : undefined,
   });
+  const opportunities: any[] = oppData?.items ?? [];
 
-  const { data: customers = [] } = (trpc.crm.customers as any).list.useQuery({});
+  const { data: custData } = (trpc.crm.customers as any).list.useQuery({});
+  const customers: any[] = custData?.items ?? [];
 
   const createMutation = (trpc.crm.opportunities as any).create.useMutation({
     onSuccess: () => {
@@ -104,12 +106,10 @@ export default function CrmOpportunities() {
       name: newOpportunity.name,
       customerId: newOpportunity.customerId,
       stage: newOpportunity.stage,
-      expectedAmount: newOpportunity.expectedAmount,
+      expectedAmount: newOpportunity.expectedAmount ? String(newOpportunity.expectedAmount) : undefined,
       probability: newOpportunity.probability,
-      expectedCloseDate: newOpportunity.expectedCloseDate 
-        ? new Date(newOpportunity.expectedCloseDate) 
-        : undefined,
-      remark: newOpportunity.description,
+      expectedCloseDate: newOpportunity.expectedCloseDate || undefined,
+      notes: newOpportunity.description,
     });
   };
 
@@ -538,10 +538,10 @@ export default function CrmOpportunities() {
                   </div>
                 </div>
                 
-                {selectedOpportunity.remark && (
+                {selectedOpportunity.notes && (
                   <div>
                     <Label className="text-muted-foreground">{t("common.description")}</Label>
-                    <p className="mt-1">{selectedOpportunity.remark}</p>
+                    <p className="mt-1">{selectedOpportunity.notes}</p>
                   </div>
                 )}
 
