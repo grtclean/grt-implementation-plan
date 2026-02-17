@@ -775,7 +775,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             <div className="h-full w-1/3 bg-primary animate-[slideRight_0.8s_ease-in-out_infinite]" />
           </div>
         )}
-        <ErrorBoundary level="section">
+        <ErrorBoundary key={location} level="section">
           <div className={cn(
             "p-6 lg:p-8",
             isPending && "opacity-80 pointer-events-none"

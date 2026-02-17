@@ -105,7 +105,7 @@ export default function QuotationCreate() {
         <div className="flex items-center gap-2">
           {STEPS.map((s, i) => (
             <div key={s} className="flex items-center gap-2 flex-1">
-              <button onClick={() => setStep(i)} className={"flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all w-full " + (i === step ? "bg-primary text-primary-foreground" : i < step ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground")}>
+              <button onClick={() => setStep(i)} className={"flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full " + (i === step ? "bg-primary text-primary-foreground" : i < step ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground")}>
                 <span className="w-6 h-6 rounded-full border flex items-center justify-center text-xs font-bold">{i + 1}</span>
                 <span className="hidden md:inline">{s}</span>
               </button>
@@ -126,7 +126,7 @@ export default function QuotationCreate() {
               </div>
               <div className="grid gap-3">
                 {CUSTOMERS.filter(c => !search || c.name.includes(search)).map(c => (
-                  <button key={c.id} onClick={() => setSelectedCustomer(c.id)} className={"flex items-center gap-4 p-4 rounded-lg border transition-all " + (selectedCustomer === c.id ? "border-primary bg-primary/10" : "hover:bg-accent/50")}>
+                  <button key={c.id} onClick={() => setSelectedCustomer(c.id)} className={"flex items-center gap-4 p-4 rounded-lg border transition-colors " + (selectedCustomer === c.id ? "border-primary bg-primary/10" : "hover:bg-accent/50")}>
                     <div className="flex-1 text-left">
                       <p className="font-medium">{c.name}</p>
                       <p className="text-sm text-muted-foreground">{c.industry} · {c.contact}</p>
@@ -147,7 +147,7 @@ export default function QuotationCreate() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {EQUIPMENT.map(e => (
-                    <button key={e.model} onClick={() => setSelectedEquip(e.model)} className={"p-4 rounded-lg border text-center transition-all " + (selectedEquip === e.model ? "border-primary bg-primary/10" : "hover:bg-accent/50")}>
+                    <button key={e.model} onClick={() => setSelectedEquip(e.model)} className={"p-4 rounded-lg border text-center transition-colors " + (selectedEquip === e.model ? "border-primary bg-primary/10" : "hover:bg-accent/50")}>
                       <p className="font-mono font-bold">{e.model}</p>
                       <p className="text-sm text-muted-foreground mt-1">{e.name}</p>
                       <p className="text-primary font-medium mt-2">{fmt(e.basePrice)}</p>
@@ -161,7 +161,7 @@ export default function QuotationCreate() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {OPTIONS.map(o => (
-                    <button key={o.id} onClick={() => toggleOpt(o.id)} className={"flex items-center gap-3 p-3 rounded-lg border transition-all " + (selectedOpts.includes(o.id) ? "border-primary bg-primary/10" : "hover:bg-accent/50")}>
+                    <button key={o.id} onClick={() => toggleOpt(o.id)} className={"flex items-center gap-3 p-3 rounded-lg border transition-colors " + (selectedOpts.includes(o.id) ? "border-primary bg-primary/10" : "hover:bg-accent/50")}>
                       {selectedOpts.includes(o.id) ? <Minus className="h-4 w-4 text-red-400" /> : <Plus className="h-4 w-4 text-green-400" />}
                       <div className="text-left flex-1">
                         <p className="text-sm font-medium">{o.name}</p>
@@ -214,7 +214,7 @@ export default function QuotationCreate() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {STRATEGIES.map(s => (
-                    <button key={s.id} onClick={() => setStrategy(s.id)} className={"p-4 rounded-lg border text-center transition-all " + (strategy === s.id ? "border-primary bg-primary/10" : "hover:bg-accent/50")}>
+                    <button key={s.id} onClick={() => setStrategy(s.id)} className={"p-4 rounded-lg border text-center transition-colors " + (strategy === s.id ? "border-primary bg-primary/10" : "hover:bg-accent/50")}>
                       <p className="font-bold">{s.name}</p>
                       <p className="text-2xl font-bold text-primary mt-1">{s.margin}%</p>
                       <p className="text-xs text-muted-foreground mt-1">{s.desc}</p>
