@@ -1,5 +1,6 @@
 /**
  * Top Bar inline search with dropdown results
+ * Uses uncontrolled input to avoid React controlled-input issues with IME
  */
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -13,6 +14,7 @@ export function TopBarSearch() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isComposingRef = useRef(false);
   const [, navigate] = useLocation();
   const { searchResults, query, setQuery, getItemName, getGroupName, language } = useGlobalSearch(8);
 
@@ -36,10 +38,10 @@ export function TopBarSearch() {
     navigate(path);
     setOpen(false);
     setQuery("");
+    // Clear the uncontrolled input via ref
+    if (inputRef.current) inputRef.current.value = "";
     inputRef.current?.blur();
   }, [navigate, setQuery]);
-
-  const isComposingRef = useRef(false);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (isComposingRef.current) return;
@@ -64,17 +66,16 @@ export function TopBarSearch() {
 
   return (
     <div ref={containerRef} className="relative w-80">
-      {/* Search Input */}
+      {/* Search Input — uncontrolled (no value prop) for reliable IME support */}
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         <input
           ref={inputRef}
-          value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
           onCompositionStart={() => { isComposingRef.current = true; }}
-          onCompositionEnd={() => { isComposingRef.current = false; }}
+          onCompositionEnd={(e) => { isComposingRef.current = false; setQuery((e.target as HTMLInputElement).value); }}
           placeholder={language === "zh" ? "搜索菜单页面..." : "Search pages..."}
           className="pl-8 pr-16 h-8 w-full rounded-md border border-transparent bg-muted/50 px-3 py-1 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus:border-border focus:bg-background focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] transition-colors"
         />
@@ -97,6 +98,7 @@ export function TopBarSearch() {
                 return (
                   <button
                     key={result.item.path}
+                    tabIndex={-1}
                     onClick={() => handleSelect(result.item.path)}
                     onMouseEnter={() => setSelectedIndex(index)}
                     className={cn(
