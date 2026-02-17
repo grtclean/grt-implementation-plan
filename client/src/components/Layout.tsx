@@ -101,7 +101,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved === 'true';
   });
-  const { language, setLanguage, t, isChanging } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const { currentUserRole, currentBU, permissions, dataScope } = useUserProfile();
@@ -329,7 +329,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             });
           }}
           className={cn(
-            "flex items-center gap-3 w-full px-4 py-2.5 rounded-sm transition-all duration-200 group cursor-pointer border border-transparent touch-feedback focus:outline-none",
+            "flex items-center gap-3 w-full px-4 py-2.5 rounded-sm transition-colors duration-150 group cursor-pointer border border-transparent touch-feedback focus:outline-none",
             hasActiveItem
               ? "bg-sidebar-accent/50 text-sidebar-foreground border-primary/20"
               : "text-muted-foreground hover:bg-sidebar-accent/30 hover:text-sidebar-foreground"
@@ -374,7 +374,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
                 }}>
                   <div
                     className={cn(
-                      "flex items-center gap-3 px-4 py-2 rounded-sm transition-all duration-200 cursor-pointer border border-transparent relative touch-feedback",
+                      "flex items-center gap-3 px-4 py-2 rounded-sm transition-colors duration-150 cursor-pointer border border-transparent relative touch-feedback",
                       isActive
                         ? "bg-sidebar-accent text-sidebar-accent-foreground border-primary/30 shadow-[inset_0_0_10px_rgba(249,115,22,0.1)]"
                         : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:border-sidebar-border"
@@ -433,7 +433,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
                   toggleGroup(group.name);
                 }}
                 className={cn(
-                  "flex items-center justify-center w-full p-2 rounded-sm transition-all duration-200 focus:outline-none",
+                  "flex items-center justify-center w-full p-2 rounded-sm transition-colors duration-150 focus:outline-none",
                   hasActiveItem
                     ? "bg-sidebar-accent/50 text-primary"
                     : "text-muted-foreground hover:bg-sidebar-accent/30 hover:text-sidebar-foreground"
@@ -442,7 +442,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
                 <GroupIcon className="w-5 h-5" />
               </button>
               {/* Tooltip */}
-              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover text-popover-foreground text-sm rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover text-popover-foreground text-sm rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap z-50 pointer-events-none">
                 {language === 'zh' ? group.name : (language === 'de' ? group.nameDe : (language === 'fr' ? group.nameFr : group.nameEn))}
               </div>
             </div>
@@ -607,7 +607,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         {showScrollTop && (
           <button
             onClick={scrollToTop}
-            className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 bg-primary/90 hover:bg-primary text-primary-foreground text-xs font-medium rounded-full shadow-lg transition-all duration-200 hover:scale-105 z-10"
+            className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 bg-primary/90 hover:bg-primary text-primary-foreground text-xs font-medium rounded-full shadow-lg transition-colors duration-150 z-10"
             title={language === 'zh' ? '返回顶部' : 'Back to top'}
           >
             <ArrowUp className="w-3.5 h-3.5" />
@@ -663,7 +663,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar - Sprint 1 三段式布局 */}
       <aside className={cn(
-        "hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border h-screen sticky top-0 shrink-0 transition-[width] duration-300 z-50",
+        "hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border h-screen sticky top-0 shrink-0 z-50",
         sidebarCollapsed ? "w-16" : "w-72"
       )}>
         {/* 侧边栏折叠切换按钮 */}
@@ -712,7 +712,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       {/* Main Content - Sprint 1 flex布局，侧边栏为第一个子元素，主内容区为第二个子元素 flex-1 */}
       <main className="flex-1 pt-16 lg:pt-0">
         {/* Desktop Top Bar with Language Selector and User */}
-        <div className="hidden lg:flex items-center justify-between px-8 py-3 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-40">
+        <div className="hidden lg:flex items-center justify-between px-8 py-3 border-b border-border bg-background sticky top-0 z-40">
           <TopBarSearch />
           <div className="flex items-center gap-3">
             <LanguageSelector variant="header" />
@@ -771,15 +771,14 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         </div>
         {/* Transition loading bar */}
         {isPending && (
-          <div className="absolute top-0 left-0 right-0 h-0.5 z-50 bg-primary/20 overflow-hidden">
-            <div className="h-full w-1/3 bg-primary animate-[slideRight_1s_ease-in-out_infinite]" />
+          <div className="fixed top-0 left-0 right-0 h-0.5 z-[60] bg-primary/30 overflow-hidden">
+            <div className="h-full w-1/3 bg-primary animate-[slideRight_0.8s_ease-in-out_infinite]" />
           </div>
         )}
         <ErrorBoundary level="section">
           <div className={cn(
-            "p-6 lg:p-8 lang-content-transition",
-            isChanging && "lang-content-changing",
-            isPending && "pointer-events-none"
+            "p-6 lg:p-8",
+            isPending && "opacity-80 pointer-events-none"
           )}>{children}</div>
         </ErrorBoundary>
       </main>
