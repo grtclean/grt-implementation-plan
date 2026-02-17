@@ -47,6 +47,140 @@ import { Link, useLocation, useRoute } from "wouter";
 import { ChevronLeft, ChevronRight as ChevronRightIcon } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
+// ============================================================
+// Sidebar menu group – extracted outside LayoutInner so that
+// its identity is stable across parent re-renders (prevents
+// React from unmounting / remounting all menu groups on every
+// state change such as the 60-second alert count refetch).
+// ============================================================
+
+interface SidebarMenuGroupProps {
+  group: MenuGroup;
+  isExpanded: boolean;
+  hasActiveItem: boolean;
+  language: string;
+  location: string;
+  currentBU: string | null;
+  alertCount: number;
+  onToggle: (groupName: string) => void;
+  onNavigate: (path: string) => void;
+}
+
+function SidebarMenuGroup({
+  group,
+  isExpanded,
+  hasActiveItem,
+  language,
+  location,
+  currentBU,
+  alertCount,
+  onToggle,
+  onNavigate,
+}: SidebarMenuGroupProps) {
+  const getGroupName = () => {
+    switch (language) {
+      case "zh": return group.name;
+      case "de": return group.nameDe || group.nameEn;
+      case "fr": return group.nameFr || group.nameEn;
+      default: return group.nameEn;
+    }
+  };
+  const groupName = getGroupName();
+  const GroupIcon = group.icon;
+
+  return (
+    <div data-menu-group={group.name}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          const scrollContainer = document.querySelector('nav.overflow-y-auto');
+          const scrollTop = scrollContainer?.scrollTop || 0;
+          (e.currentTarget as HTMLButtonElement).blur();
+          onToggle(group.name);
+          requestAnimationFrame(() => {
+            if (scrollContainer) {
+              scrollContainer.scrollTop = scrollTop;
+            }
+          });
+        }}
+        className={cn(
+          "flex items-center gap-3 w-full px-4 py-2.5 rounded-sm transition-colors duration-150 group cursor-pointer border border-transparent touch-feedback focus:outline-none",
+          hasActiveItem
+            ? "bg-sidebar-accent/50 text-sidebar-foreground border-primary/20"
+            : "text-muted-foreground hover:bg-sidebar-accent/30 hover:text-sidebar-foreground"
+        )}
+      >
+        <GroupIcon className={cn("w-5 h-5", hasActiveItem ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+        <span className="font-medium tracking-wide flex-1 text-left text-sm">{groupName}</span>
+        {isExpanded ? (
+          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        )}
+      </button>
+      {isExpanded && (
+        <div className="pl-4 space-y-0.5 mt-1">
+          {group.items.map((item) => {
+            const isActive = location === item.path;
+            const getItemName = () => {
+              switch (language) {
+                case "zh": return item.name;
+                case "de": return item.nameDe || item.nameEn;
+                case "fr": return item.nameFr || item.nameEn;
+                default: return item.nameEn;
+              }
+            };
+            const itemName = getItemName();
+            const ItemIcon = item.icon;
+            const isCompliancePage = item.path === "/compliance-dashboard";
+
+            return (
+              <div
+                key={item.path}
+                className="relative group/item"
+                data-menu-path={item.path}
+                data-menu-active={isActive ? "true" : "false"}
+              >
+                <a href={item.path} onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate(item.path);
+                }}>
+                  <div
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-2 rounded-sm transition-colors duration-150 cursor-pointer border border-transparent relative touch-feedback",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground border-primary/30 shadow-[inset_0_0_10px_rgba(249,115,22,0.1)]"
+                        : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:border-sidebar-border"
+                    )}
+                  >
+                    <ItemIcon className={cn("w-4 h-4", isActive ? "text-primary" : "text-muted-foreground group-hover/item:text-foreground")} />
+                    <span className="text-sm flex-1">{itemName}</span>
+                    {item.isNew && (
+                      <span className="px-1 py-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/30 rounded leading-none">
+                        NEW
+                      </span>
+                    )}
+                    {item.requiresBU && !currentBU && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title={language === 'zh' ? '请先选择事业部' : 'Select a BU first'} />
+                    )}
+                    {isCompliancePage && alertCount > 0 && (
+                      <span className="flex items-center justify-center min-w-[18px] h-4 px-1 text-[10px] font-bold text-white bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse">
+                        {alertCount > 99 ? '99+' : alertCount}
+                      </span>
+                    )}
+                    {isActive && !isCompliancePage && <div className="w-1 h-1 rounded-full bg-primary shadow-[0_0_5px_var(--primary)]" />}
+                  </div>
+                </a>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Context to prevent double-rendering of Layout (e.g., Suspense fallback + lazy page)
 const LayoutActiveContext = createContext(false);
 export const useIsInsideLayout = () => useContext(LayoutActiveContext);
@@ -294,121 +428,11 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   
   // 收藏菜单功能已移除
 
-  const MenuGroupComponent = ({ group }: { group: MenuGroup }) => {
-    const isExpanded = expandedGroups.includes(group.name);
-    const hasActiveItem = group.items.some(item => location === item.path);
-    // Support all 4 languages for menu names
-    const getGroupName = () => {
-      switch (language) {
-        case "zh": return group.name;
-        case "de": return group.nameDe || group.nameEn;
-        case "fr": return group.nameFr || group.nameEn;
-        default: return group.nameEn;
-      }
-    };
-    const groupName = getGroupName();
-    const GroupIcon = group.icon;
-
-    return (
-      <div data-menu-group={group.name}>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            // 保存当前滚动位置
-            const scrollContainer = document.querySelector('nav.overflow-y-auto');
-            const scrollTop = scrollContainer?.scrollTop || 0;
-            // 阻止按钮获取焦点导致的滚动
-            (e.currentTarget as HTMLButtonElement).blur();
-            toggleGroup(group.name);
-            // 恢复滚动位置
-            requestAnimationFrame(() => {
-              if (scrollContainer) {
-                scrollContainer.scrollTop = scrollTop;
-              }
-            });
-          }}
-          className={cn(
-            "flex items-center gap-3 w-full px-4 py-2.5 rounded-sm transition-colors duration-150 group cursor-pointer border border-transparent touch-feedback focus:outline-none",
-            hasActiveItem
-              ? "bg-sidebar-accent/50 text-sidebar-foreground border-primary/20"
-              : "text-muted-foreground hover:bg-sidebar-accent/30 hover:text-sidebar-foreground"
-          )}
-        >
-          <GroupIcon className={cn("w-5 h-5", hasActiveItem ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-          <span className="font-medium tracking-wide flex-1 text-left text-sm">{groupName}</span>
-          {isExpanded ? (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          )}
-        </button>
-        {isExpanded && (
-          <div className="pl-4 space-y-0.5 mt-1">
-          {group.items.map((item, itemIndex) => {
-            const isActive = location === item.path;
-            // Support all 4 languages for menu item names
-            const getItemName = () => {
-              switch (language) {
-                case "zh": return item.name;
-                case "de": return item.nameDe || item.nameEn;
-                case "fr": return item.nameFr || item.nameEn;
-                default: return item.nameEn;
-              }
-            };
-            const itemName = getItemName();
-            const ItemIcon = item.icon;
-            const isCompliancePage = item.path === "/compliance-dashboard";
-
-            return (
-              <div 
-                key={item.path} 
-                className="relative group/item"
-                data-menu-path={item.path}
-                data-menu-active={isActive ? "true" : "false"}
-              >
-                <a href={item.path} onClick={(e) => {
-                  e.preventDefault();
-                  setOpen(false);
-                  setLocation(item.path);
-                }}>
-                  <div
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-2 rounded-sm transition-colors duration-150 cursor-pointer border border-transparent relative touch-feedback",
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground border-primary/30 shadow-[inset_0_0_10px_rgba(249,115,22,0.1)]"
-                        : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:border-sidebar-border"
-                    )}
-                  >
-                    <ItemIcon className={cn("w-4 h-4", isActive ? "text-primary" : "text-muted-foreground group-hover/item:text-foreground")} />
-                    <span className="text-sm flex-1">{itemName}</span>
-                    {/* 新功能标记 */}
-                    {item.isNew && (
-                      <span className="px-1 py-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/30 rounded leading-none">
-                        NEW
-                      </span>
-                    )}
-                    {/* 需要BU选择但未选中BU时显示提示 */}
-                    {item.requiresBU && !currentBU && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title={language === 'zh' ? '请先选择事业部' : 'Select a BU first'} />
-                    )}
-                    {/* 合规预警徽章 */}
-                    {isCompliancePage && alertCount > 0 && (
-                      <span className="flex items-center justify-center min-w-[18px] h-4 px-1 text-[10px] font-bold text-white bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse">
-                        {alertCount > 99 ? '99+' : alertCount}
-                      </span>
-                    )}
-                    {isActive && !isCompliancePage && <div className="w-1 h-1 rounded-full bg-primary shadow-[0_0_5px_var(--primary)]" />}
-                  </div>
-                </a>
-              </div>
-            );
-          })}
-          </div>
-        )}
-      </div>
-    );
-  };
+  // Stable navigate handler for sidebar items (closes mobile sheet + navigates)
+  const handleMenuNavigate = useCallback((path: string) => {
+    setOpen(false);
+    setLocation(path);
+  }, [setLocation]);
 
   // 折叠状态的侧边栏内容
   const CollapsedNavContent = () => (
@@ -595,7 +619,18 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
           onScroll={handleNavScroll}
         >
           {filteredMenuConfig.map((group) => (
-            <MenuGroupComponent key={group.name} group={group} />
+            <SidebarMenuGroup
+              key={group.name}
+              group={group}
+              isExpanded={expandedGroups.includes(group.name)}
+              hasActiveItem={group.items.some(item => location === item.path)}
+              language={language}
+              location={location}
+              currentBU={currentBU}
+              alertCount={alertCount}
+              onToggle={toggleGroup}
+              onNavigate={handleMenuNavigate}
+            />
           ))}
 
           <div className="pt-4 mt-4 border-t border-sidebar-border/50">
