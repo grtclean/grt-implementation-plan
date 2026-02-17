@@ -435,7 +435,9 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   }, [setLocation]);
 
   // 折叠状态的侧边栏内容
-  const CollapsedNavContent = () => (
+  // Called as functions (not JSX elements) so React treats the output as
+  // inline JSX in the parent, preventing unmount/remount on every re-render.
+  const collapsedNavContent = () => (
     <>
       <div className="p-3 border-b border-sidebar-border flex items-center justify-center">
         <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.5)]">
@@ -497,7 +499,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     </>
   );
 
-  const NavContent = () => (
+  const navContent = () => (
     <div className="flex flex-col h-full">
       {/* 1. 固定顶部区域 - Logo (h-16 flex items-center px-4 shrink-0) */}
       <div className="h-16 flex items-center px-4 shrink-0 border-b border-sidebar-border gap-3">
@@ -712,7 +714,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             <ChevronLeft className="w-4 h-4 text-primary-foreground" />
           )}
         </button>
-        {sidebarCollapsed ? <CollapsedNavContent /> : <NavContent />}
+        {sidebarCollapsed ? collapsedNavContent() : navContent()}
       </aside>
 
       {/* Mobile Header */}
@@ -730,7 +732,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            <NavContent />
+            {navContent()}
           </SheetContent>
         </Sheet>
         <div className="flex items-center gap-2 flex-1">

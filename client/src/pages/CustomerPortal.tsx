@@ -171,7 +171,7 @@ export default function CustomerPortal() {
     <Layout>
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* 头部导航 */}
-      <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-border/50 bg-background sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
