@@ -51,7 +51,7 @@ export default function OffboardingProgressDashboard({
       userPreferenceShow={userPreferenceShow}
       icon={<UserMinus className="w-4 h-4" />}
       headerExtra={
-        <Link href="/employee-offboarding">
+        <Link href="/offboarding">
           <span className="text-xs text-orange-500 hover:text-orange-400 cursor-pointer flex items-center gap-1">
             查看全部 <ArrowRight className="w-3 h-3" />
           </span>
@@ -125,7 +125,7 @@ export default function OffboardingProgressDashboard({
               <OffboardingCard key={item.id} item={item} />
             ))}
             {data.items.length > 5 && (
-              <Link href="/employee-offboarding">
+              <Link href="/offboarding">
                 <div className="text-center py-2 text-xs text-orange-500 hover:text-orange-400 cursor-pointer">
                   还有 {data.items.length - 5} 条记录，点击查看全部
                 </div>
@@ -157,7 +157,7 @@ function OffboardingCard({ item }: { item: any }) {
   const isOverdue = item.daysRemaining < 0;
 
   return (
-    <Link href="/employee-offboarding">
+    <Link href="/offboarding">
       <div className={`rounded-lg border p-3 cursor-pointer transition-all hover:border-orange-500/30 ${
         isOverdue ? 'border-red-500/30 bg-red-500/5' :
         isUrgent ? 'border-yellow-500/30 bg-yellow-500/5' :

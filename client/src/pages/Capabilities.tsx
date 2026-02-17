@@ -46,7 +46,7 @@ export default function Capabilities() {
             <Link href="/capabilities" className="text-sm text-foreground font-medium">
               能力展示
             </Link>
-            <Link href="/verify" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/certificate-verify" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               资质验证
             </Link>
             <Link href="/">
@@ -507,7 +507,7 @@ export default function Capabilities() {
                   </div>
 
                   <div className="pt-4">
-                    <Link href="/verify">
+                    <Link href="/certificate-verify">
                       <Button>
                         开始验证 <ArrowRight className="ml-2 w-4 h-4" />
                       </Button>
@@ -530,7 +530,7 @@ export default function Capabilities() {
             我们的技术团队随时准备为您提供专业咨询
           </p>
           <div className="flex gap-4 justify-center">
-            <Link href="/contact">
+            <Link href="/help">
               <Button size="lg">联系我们</Button>
             </Link>
             <Link href="/public">

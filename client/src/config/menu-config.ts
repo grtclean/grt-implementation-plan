@@ -110,7 +110,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "hr-lifecycle",
         label: "人员生命周期",
-        path: "/hr/lifecycle",
+        path: "/hr-lifecycle",
         icon: UserPlus,
         requiresAuth: true,
         description: "从招聘到离职全流程管理",
@@ -119,7 +119,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "hr-recruitment",
         label: "招聘管理",
-        path: "/hr/recruitment",
+        path: "/recruitment",
         icon: Search,
         requiresAuth: true,
         description: "招聘漏斗和候选人管理",
@@ -128,7 +128,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "hr-onboarding",
         label: "入职培训",
-        path: "/hr/onboarding",
+        path: "/training",
         icon: GraduationCap,
         requiresAuth: true,
         description: "30/60/90天入职计划",
@@ -137,7 +137,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "hr-probation",
         label: "转正评估",
-        path: "/hr/probation",
+        path: "/employee-management",
         icon: Award,
         requiresAuth: true,
         description: "试用期评估和转正审批",
@@ -146,7 +146,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "hr-employment",
         label: "在职管理",
-        path: "/hr/employment",
+        path: "/employee-management",
         icon: Briefcase,
         requiresAuth: true,
         description: "在职员工管理和发展",
@@ -155,7 +155,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "hr-offboarding",
         label: "离职管理",
-        path: "/hr/offboarding",
+        path: "/offboarding",
         icon: LogOut,
         requiresAuth: true,
         description: "员工离职流程管理",
@@ -164,7 +164,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "hr-profiles",
         label: "员工档案",
-        path: "/hr/profiles",
+        path: "/employee-management",
         icon: FileText,
         requiresAuth: true,
         description: "员工信息档案",
@@ -182,14 +182,14 @@ export const menuConfig: MenuItem[] = [
       {
         id: "procurement",
         label: "采购管理",
-        path: "/procurement",
+        path: "/pos/procurement",
         icon: ShoppingCart,
         requiresAuth: true,
         children: [
           {
             id: "procurement-requests",
             label: "采购申请",
-            path: "/procurement/requests",
+            path: "/pos/procurement",
             icon: FileText,
             requiresAuth: true,
             aiEnabled: true,
@@ -197,7 +197,7 @@ export const menuConfig: MenuItem[] = [
           {
             id: "procurement-orders",
             label: "采购订单",
-            path: "/procurement/orders",
+            path: "/pos/procurement",
             icon: Package,
             requiresAuth: true,
             aiEnabled: true,
@@ -205,7 +205,7 @@ export const menuConfig: MenuItem[] = [
           {
             id: "procurement-suppliers",
             label: "供应商管理",
-            path: "/procurement/suppliers",
+            path: "/supplier-assessment",
             icon: Building2,
             requiresAuth: true,
             aiEnabled: true,
@@ -213,7 +213,7 @@ export const menuConfig: MenuItem[] = [
           {
             id: "procurement-receipts",
             label: "收货质检",
-            path: "/procurement/receipts",
+            path: "/warehouse-management",
             icon: CheckCircle2,
             requiresAuth: true,
             aiEnabled: true,
@@ -223,21 +223,21 @@ export const menuConfig: MenuItem[] = [
       {
         id: "materials",
         label: "物料管理",
-        path: "/materials",
+        path: "/material-tracking",
         icon: Package,
         requiresAuth: true,
         children: [
           {
             id: "materials-inventory",
             label: "物料库存",
-            path: "/materials/inventory",
+            path: "/inventory-dashboard",
             icon: Package,
             requiresAuth: true,
           },
           {
             id: "materials-bom",
             label: "BOM管理",
-            path: "/materials/bom",
+            path: "/bom-management",
             icon: GitBranch,
             requiresAuth: true,
             aiEnabled: true,
@@ -245,7 +245,7 @@ export const menuConfig: MenuItem[] = [
           {
             id: "materials-alerts",
             label: "库存预警",
-            path: "/materials/alerts",
+            path: "/material-shortage-alert",
             icon: AlertCircle,
             requiresAuth: true,
             aiEnabled: true,
@@ -265,7 +265,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "delivery-tasks",
         label: "交付任务",
-        path: "/delivery/tasks",
+        path: "/delivery-management",
         icon: ListTodo,
         requiresAuth: true,
         description: "M7-M9交付任务列表",
@@ -274,7 +274,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "delivery-gate",
         label: "Gate检查",
-        path: "/delivery/gate",
+        path: "/stage-gate",
         icon: CheckCircle2,
         requiresAuth: true,
         description: "预验收到终验收Gate检查",
@@ -283,7 +283,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "delivery-issues",
         label: "现场问题",
-        path: "/delivery/issues",
+        path: "/after-sales",
         icon: AlertCircle,
         requiresAuth: true,
         description: "现场问题记录和追踪",
@@ -292,7 +292,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "delivery-acceptance",
         label: "终验收",
-        path: "/delivery/acceptance",
+        path: "/final-acceptance",
         icon: Award,
         requiresAuth: true,
         description: "客户终验收管理",
@@ -311,7 +311,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "production-plan",
         label: "生产计划",
-        path: "/production/plan",
+        path: "/production-dashboard",
         icon: Clock,
         requiresAuth: true,
         aiEnabled: true,
@@ -327,7 +327,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "production-quality",
         label: "质量控制",
-        path: "/production/quality",
+        path: "/qc-management",
         icon: CheckCircle2,
         requiresAuth: true,
         aiEnabled: true,
@@ -346,7 +346,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "ai-business-assistants",
         label: "业务助手",
-        path: "/ai/business",
+        path: "/ai-hub",
         icon: Bot,
         requiresAuth: true,
         description: "核心业务AI助手",
@@ -354,7 +354,7 @@ export const menuConfig: MenuItem[] = [
           {
             id: "ai-interview",
             label: "AI 面试助手",
-            path: "/ai/interview",
+            path: "/ai-hub",
             icon: UserPlus,
             requiresAuth: true,
             aiEnabled: true,
@@ -362,7 +362,7 @@ export const menuConfig: MenuItem[] = [
           {
             id: "ai-solution",
             label: "AI 方案助手",
-            path: "/ai/solution",
+            path: "/ai/solution-assistant",
             icon: Lightbulb,
             requiresAuth: true,
             aiEnabled: true,
@@ -370,7 +370,7 @@ export const menuConfig: MenuItem[] = [
           {
             id: "ai-quotation",
             label: "AI 报价助手",
-            path: "/ai/quotation",
+            path: "/ai/quotation-assistant",
             icon: DollarSign,
             requiresAuth: true,
             aiEnabled: true,
@@ -378,7 +378,7 @@ export const menuConfig: MenuItem[] = [
           {
             id: "ai-kpi",
             label: "AI 绩效助手",
-            path: "/ai/kpi",
+            path: "/ai/kpi-assistant",
             icon: Target,
             requiresAuth: true,
             aiEnabled: true,
@@ -386,7 +386,7 @@ export const menuConfig: MenuItem[] = [
           {
             id: "ai-purchase",
             label: "AI 采购助手",
-            path: "/ai/purchase",
+            path: "/ai-purchase",
             icon: ShoppingCart,
             requiresAuth: true,
             aiEnabled: true,
@@ -448,7 +448,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "performance-personal",
         label: "个人绩效",
-        path: "/performance/personal",
+        path: "/my-performance",
         icon: UserCog,
         requiresAuth: true,
         aiEnabled: true,
@@ -456,7 +456,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "performance-department",
         label: "部门绩效",
-        path: "/performance/department",
+        path: "/dept-performance",
         icon: Users,
         requiresAuth: true,
         aiEnabled: true,
@@ -491,7 +491,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "finance-budget",
         label: "预算管理",
-        path: "/budget",
+        path: "/budget-management",
         icon: Package,
         requiresAuth: true,
         aiEnabled: true,
@@ -556,7 +556,7 @@ export const menuConfig: MenuItem[] = [
       {
         id: "meeting-minutes",
         label: "会议纪要",
-        path: "/meeting-minutes",
+        path: "/meeting-intelligence",
         icon: FileCheck,
         requiresAuth: true,
         aiEnabled: true,

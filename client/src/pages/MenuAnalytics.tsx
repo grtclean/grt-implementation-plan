@@ -27,7 +27,7 @@ const UNUSED_PAGES = [
   { path: "/toothpaste-test-history", name: "牙膏测试历史", visits: 2, lastAccess: "2026-01-05" },
   { path: "/cleaning-trajectory-3d", name: "清洗轨迹3D", visits: 5, lastAccess: "2026-01-18" },
   { path: "/notebook-search", name: "笔记搜索", visits: 8, lastAccess: "2026-01-22" },
-  { path: "/gemini-specification", name: "Gemini规范", visits: 3, lastAccess: "2026-01-10" },
+  { path: "/gemini-spec", name: "Gemini规范", visits: 3, lastAccess: "2026-01-10" },
 ];
 
 const ROLE_USAGE = [

@@ -348,7 +348,7 @@ export default function CapabilityOS() {
                   {language === 'zh' ? "能力仪表盘" : "Capability Dashboard"}
                 </Button>
               </Link>
-              <Link href="/docs/capability-os">
+              <Link href="/docs">
                 <Button variant="outline" size="lg" className="bg-background/50 backdrop-blur-sm border-primary/30 hover:bg-primary/10 hover:text-primary hover:border-primary font-medium tracking-wide rounded-sm h-12 px-8">
                   {language === 'zh' ? "查看文档" : "View Docs"}
                 </Button>
@@ -727,7 +727,7 @@ export default function CapabilityOS() {
                   </p>
                 </div>
                 <div className="flex gap-3">
-                  <Link href="/docs/capability-os">
+                  <Link href="/docs">
                     <Button variant="outline" className="border-primary/30 hover:bg-primary/10 hover:text-primary">
                       {language === 'zh' ? "查看文档" : "View Docs"} <ArrowRight className="ml-2 w-4 h-4" />
                     </Button>

@@ -55,7 +55,7 @@ const menuItems: MenuItem[] = [
       { icon: Target, label: "项目管理", path: "/projects" },
       { icon: Target, label: "项目中心", path: "/project-hub" },
       { icon: GitBranch, label: "门径管理", path: "/stage-gate" },
-      { icon: GitBranch, label: "门径中心", path: "/stage-gate-hub" },
+      { icon: GitBranch, label: "门径中心", path: "/stage-gate" },
       { icon: Users, label: "CRM客户", path: "/crm" },
     ]
   },
@@ -86,7 +86,7 @@ const menuItems: MenuItem[] = [
       { icon: Layers, label: "项目管理", path: "/pos/projects" },
       { icon: Package, label: "采购建议", path: "/pos/procurement" },
       { icon: Cpu, label: "MES同步", path: "/pos/mes" },
-      { icon: GitBranch, label: "版本管理", path: "/pos/versions" },
+      { icon: GitBranch, label: "版本管理", path: "/pos/projects" },
       { icon: ClipboardList, label: "连接器配置", path: "/pos/connectors" },
       { icon: Factory, label: "工序步骤管理", path: "/production-steps" },
       { icon: BarChart3, label: "工序进度看板", path: "/process-progress" },

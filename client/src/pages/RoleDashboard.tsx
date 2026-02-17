@@ -207,7 +207,7 @@ export default function RoleDashboard() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>
-            <Link href="/settings/profile">
+            <Link href="/user-profile">
               <Cog className="w-4 h-4 mr-1" />
               {isEn ? "Settings" : "设置"}
             </Link>

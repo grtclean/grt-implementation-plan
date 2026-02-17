@@ -37,13 +37,13 @@ export default function PublicHome() {
             <Link href="/capabilities" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               能力展示
             </Link>
-            <Link href="/solutions" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/capabilities" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               解决方案
             </Link>
-            <Link href="/case-studies" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/capabilities" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               案例展示
             </Link>
-            <Link href="/verify" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/certificate-verify" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               资质验证
             </Link>
             <Link href="/">
@@ -79,7 +79,7 @@ export default function PublicHome() {
                   探索能力 <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
-              <Link href="/verify">
+              <Link href="/certificate-verify">
                 <Button variant="outline" size="lg" className="h-12 px-8">
                   验证资质
                 </Button>
@@ -252,7 +252,7 @@ export default function PublicHome() {
                 ))}
               </ul>
               <div className="mt-8">
-                <Link href="/api-docs">
+                <Link href="/docs">
                   <Button variant="outline">
                     查看API文档 <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
@@ -263,7 +263,7 @@ export default function PublicHome() {
               <div className="font-mono text-sm">
                 <div className="text-muted-foreground mb-2">// 示例：验证清洁度合规性</div>
                 <pre className="text-xs overflow-x-auto">
-{`POST /api/zkp/verify
+{`POST /api/zkp/certificate-verify
 {
   "requestType": "vda_19_1_compliance",
   "targetEntityType": "project",
@@ -302,13 +302,13 @@ export default function PublicHome() {
             我们都能为您提供专业支持
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/contact">
+            <Link href="/help">
               <Button size="lg" className="h-12 px-8">
                 <Globe className="mr-2 w-4 h-4" />
                 联系我们
               </Button>
             </Link>
-            <Link href="/verify">
+            <Link href="/certificate-verify">
               <Button variant="outline" size="lg" className="h-12 px-8">
                 <Shield className="mr-2 w-4 h-4" />
                 验证资质
@@ -335,18 +335,18 @@ export default function PublicHome() {
               <h4 className="font-semibold mb-4">产品与服务</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/capabilities" className="hover:text-foreground">能力展示</Link></li>
-                <li><Link href="/solutions" className="hover:text-foreground">解决方案</Link></li>
-                <li><Link href="/case-studies" className="hover:text-foreground">案例展示</Link></li>
-                <li><Link href="/equipment" className="hover:text-foreground">设备产品</Link></li>
+                <li><Link href="/capabilities" className="hover:text-foreground">解决方案</Link></li>
+                <li><Link href="/capabilities" className="hover:text-foreground">案例展示</Link></li>
+                <li><Link href="/capabilities" className="hover:text-foreground">设备产品</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">技术支持</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/api-docs" className="hover:text-foreground">API文档</Link></li>
-                <li><Link href="/verify" className="hover:text-foreground">资质验证</Link></li>
-                <li><Link href="/standards" className="hover:text-foreground">标准规范</Link></li>
-                <li><Link href="/faq" className="hover:text-foreground">常见问题</Link></li>
+                <li><Link href="/docs" className="hover:text-foreground">API文档</Link></li>
+                <li><Link href="/certificate-verify" className="hover:text-foreground">资质验证</Link></li>
+                <li><Link href="/cost-standards" className="hover:text-foreground">标准规范</Link></li>
+                <li><Link href="/help" className="hover:text-foreground">常见问题</Link></li>
               </ul>
             </div>
             <div>
@@ -361,9 +361,9 @@ export default function PublicHome() {
           <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
             <p>© 2026 GRT智能系统. All rights reserved.</p>
             <p className="mt-2">
-              <Link href="/privacy" className="hover:text-foreground">隐私政策</Link>
+              <Link href="/help" className="hover:text-foreground">隐私政策</Link>
               {" | "}
-              <Link href="/terms" className="hover:text-foreground">服务条款</Link>
+              <Link href="/help" className="hover:text-foreground">服务条款</Link>
             </p>
           </div>
         </div>
