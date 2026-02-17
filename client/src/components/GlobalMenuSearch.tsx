@@ -21,7 +21,7 @@ export function GlobalMenuSearch() {
   const [, navigate] = useLocation();
   const { searchResults, query, setQuery, getItemName, getGroupName, language } = useGlobalSearch(12);
 
-  // 注册全局快捷键 Ctrl+K / Cmd+K
+  // 注册全局快捷键 Ctrl+K / Cmd+K + TopBarSearch click event
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
@@ -33,8 +33,14 @@ export function GlobalMenuSearch() {
         setOpen(false);
       }
     };
+    // Listen for custom event from TopBarSearch trigger button
+    const openHandler = () => setOpen(true);
     document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    window.addEventListener("open-global-search", openHandler);
+    return () => {
+      document.removeEventListener("keydown", handler);
+      window.removeEventListener("open-global-search", openHandler);
+    };
   }, [open]);
 
   // 打开时聚焦输入框

@@ -710,7 +710,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content - Sprint 1 flex布局，侧边栏为第一个子元素，主内容区为第二个子元素 flex-1 */}
-      <main className="flex-1 pt-16 lg:pt-0 transition-all duration-300">
+      <main className="flex-1 pt-16 lg:pt-0">
         {/* Desktop Top Bar with Language Selector and User */}
         <div className="hidden lg:flex items-center justify-between px-8 py-3 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-40">
           <TopBarSearch />
