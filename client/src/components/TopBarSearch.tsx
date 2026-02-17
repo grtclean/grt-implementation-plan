@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useGlobalSearch } from "@/hooks/useGlobalSearch";
-import { useComposition } from "@/hooks/useComposition";
 import { Search, ArrowRight } from "lucide-react";
 
 export function TopBarSearch() {
@@ -41,7 +40,7 @@ export function TopBarSearch() {
     inputRef.current?.blur();
   }, [navigate, setQuery]);
 
-  const handleKeyDownInner = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setSelectedIndex(prev => Math.min(prev + 1, searchResults.length - 1));
@@ -59,9 +58,6 @@ export function TopBarSearch() {
     }
   }, [searchResults, selectedIndex, handleSelect]);
 
-  // Guard keyboard events during IME composition (e.g. typing Chinese)
-  const composition = useComposition<HTMLInputElement>({ onKeyDown: handleKeyDownInner });
-
   const showDropdown = open && (query.trim().length > 0 || searchResults.length > 0);
 
   return (
@@ -74,9 +70,7 @@ export function TopBarSearch() {
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
-          onKeyDown={composition.onKeyDown}
-          onCompositionStart={composition.onCompositionStart}
-          onCompositionEnd={composition.onCompositionEnd}
+          onKeyDown={handleKeyDown}
           placeholder={language === "zh" ? "搜索菜单页面..." : "Search pages..."}
           className="pl-8 pr-16 h-8 text-sm bg-muted/50 border-transparent focus:border-border focus:bg-background transition-colors"
         />
