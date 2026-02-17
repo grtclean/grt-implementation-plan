@@ -9,7 +9,7 @@
  * - crm.interactions.* (list, create, resolve, stats)
  */
 
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import { z } from "zod";
 import {
   listCustomers,
@@ -498,4 +498,11 @@ export const crmRouter = router({
   opportunities: opportunitiesRouter,
   leads: leadsRouter,
   interactions: interactionsRouter,
+
+  /** Seed CRM test data (admin only) */
+  seedData: adminProcedure.mutation(async () => {
+    const { seedCrmData } = await import("../seed-crm");
+    const result = await seedCrmData();
+    return result;
+  }),
 });
