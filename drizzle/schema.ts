@@ -317,7 +317,7 @@ export const statusEnum66 = pgEnum('statusEnum66', ['Active', 'Inactive', 'OnLea
 export const alertTypeEnum3 = pgEnum('alertTypeEnum3', ['overtime', 'undertime', 'continuous_work', 'low_efficiency', 'quality_issue']);
 export const statusEnum67 = pgEnum('statusEnum67', ['Pending', 'Acknowledged', 'Resolved', 'Ignored']);
 export const syncStatusEnum2 = pgEnum('syncStatusEnum2', ['pending', 'synced', 'failed', 'manual']);
-export const taskTypeEnum4 = pgEnum('taskTypeEnum4', ['user', 'department', 'role', 'form_data', 'full']);
+export const taskTypeEnum4 = pgEnum('taskTypeEnum4', ['user', 'department', 'role', 'role_members', 'form_data', 'full']);
 export const syncDirectionEnum = pgEnum('syncDirectionEnum', ['jdy_to_grt', 'grt_to_jdy', 'bidirectional']);
 export const lastRunStatusEnum1 = pgEnum('lastRunStatusEnum1', ['success', 'partial', 'failed']);
 export const statusEnum68 = pgEnum('statusEnum68', ['running', 'success', 'partial', 'failed']);
@@ -7467,6 +7467,29 @@ export const jiandaoyunRoleMappings = pgTable("jiandaoyun_role_mappings", {
 (table) => [
   index("idx_jdy_role_mappings_role_no").on(table.jdyRoleNo),
   index("idx_jdy_role_mappings_grt_role").on(table.grtRoleId),
+]);
+
+// 简道云角色成员表 - 记录角色下的成员列表
+export const jiandaoyunRoleMembers = pgTable("jiandaoyun_role_members", {
+  id: serial('id').primaryKey().primaryKey(),
+
+  // 简道云角色成员信息
+  jdyRoleNo: integer("jdy_role_no").notNull(), // 简道云角色编号
+  jdyUsername: varchar("jdy_username", { length: 100 }).notNull(), // 简道云用户名
+  jdyName: varchar("jdy_name", { length: 100 }).notNull(), // 简道云显示名称
+  jdyDepartmentsRange: json("jdy_departments_range"), // 该用户在该角色下的部门范围
+  jdyHasChild: boolean("jdy_has_child").default(false), // 是否包含子部门
+
+  // 同步状态
+  syncStatus: syncStatusEnum2('syncStatus').default('pending').notNull(),
+  lastSyncAt: timestamp("last_sync_at", { mode: 'string' }),
+
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+},
+(table) => [
+  index("idx_jdy_role_members_role_no").on(table.jdyRoleNo),
+  index("idx_jdy_role_members_username").on(table.jdyUsername),
 ]);
 
 // 简道云数据同步任务表 - 记录定时同步任务

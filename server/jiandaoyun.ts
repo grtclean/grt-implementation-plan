@@ -90,6 +90,14 @@ export interface JiandaoyunRole {
   integrate_id?: string;
 }
 
+// 角色成员信息
+export interface JiandaoyunRoleMember {
+  username: string;
+  name: string;
+  departments_range?: number[];
+  has_child?: boolean;
+}
+
 // 数据统计
 export interface JiandaoyunStats {
   totalApps: number;
@@ -103,12 +111,26 @@ export interface JiandaoyunStats {
  */
 export class JiandaoyunClient {
   private config: JiandaoyunConfig;
+  private lastRequestTime = 0;
+  private minIntervalMs = 100; // ~10 requests/sec to stay under 简道云 rate limit
 
   constructor(config: JiandaoyunConfig) {
     this.config = {
       ...config,
       baseUrl: config.baseUrl || 'https://api.jiandaoyun.com/api/v5',
     };
+  }
+
+  /**
+   * 限流：确保请求间隔不小于 minIntervalMs
+   */
+  private async throttle(): Promise<void> {
+    const now = Date.now();
+    const elapsed = now - this.lastRequestTime;
+    if (elapsed < this.minIntervalMs) {
+      await new Promise(resolve => setTimeout(resolve, this.minIntervalMs - elapsed));
+    }
+    this.lastRequestTime = Date.now();
   }
 
   /**
@@ -134,8 +156,9 @@ export class JiandaoyunClient {
     method: 'GET' | 'POST' = 'POST',
     body?: Record<string, unknown>
   ): Promise<T> {
+    await this.throttle();
     const url = this.buildUrl(endpoint);
-    
+
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${this.config.apiKey}`,
       'Content-Type': 'application/json',
@@ -320,16 +343,58 @@ export class JiandaoyunClient {
   }
 
   /**
-   * 获取角色列表
+   * 获取角色列表（带分页）
    * V5 API: POST /corp/role/list
    */
   async getRoles(): Promise<JiandaoyunRole[]> {
-    const result = await this.request<{ roles: JiandaoyunRole[] }>(
-      '/corp/role/list',
+    const allRoles: JiandaoyunRole[] = [];
+    let skip = 0;
+    const limit = 100;
+
+    while (true) {
+      const result = await this.request<{ roles: JiandaoyunRole[] }>(
+        '/corp/role/list',
+        'POST',
+        { skip, limit }
+      );
+      const roles = result.roles || [];
+      allRoles.push(...roles);
+      if (roles.length < limit) break;
+      skip += limit;
+    }
+
+    return allRoles;
+  }
+
+  /**
+   * 获取角色成员列表（单页）
+   * V5 API: POST /corp/role/user/list
+   */
+  async getRoleMembers(roleNo: number, skip = 0, limit = 100): Promise<JiandaoyunRoleMember[]> {
+    const result = await this.request<{ users: JiandaoyunRoleMember[] }>(
+      '/corp/role/user/list',
       'POST',
-      {}
+      { role_no: roleNo, skip, limit }
     );
-    return result.roles || [];
+    return result.users || [];
+  }
+
+  /**
+   * 获取角色的所有成员（自动分页）
+   */
+  async getAllRoleMembers(roleNo: number): Promise<JiandaoyunRoleMember[]> {
+    const allMembers: JiandaoyunRoleMember[] = [];
+    let skip = 0;
+    const limit = 100;
+
+    while (true) {
+      const members = await this.getRoleMembers(roleNo, skip, limit);
+      allMembers.push(...members);
+      if (members.length < limit) break;
+      skip += limit;
+    }
+
+    return allMembers;
   }
 
   /**
@@ -438,6 +503,16 @@ export class JiandaoyunSyncService {
       throw new Error('Jiandaoyun API not configured');
     }
     return this.client.getRoles();
+  }
+
+  /**
+   * 获取角色成员列表
+   */
+  async getRoleMembers(roleNo: number): Promise<JiandaoyunRoleMember[]> {
+    if (!this.client) {
+      throw new Error('Jiandaoyun API not configured');
+    }
+    return this.client.getAllRoleMembers(roleNo);
   }
 
   /**
@@ -634,6 +709,17 @@ export interface RoleSyncResult {
 }
 
 /**
+ * 角色成员同步结果
+ */
+export interface RoleMemberSyncResult {
+  totalRoleMembers: number;
+  created: number;
+  updated: number;
+  failed: number;
+  errors: string[];
+}
+
+/**
  * 简道云用户同步服务
  * 将简道云成员同步到GRT系统
  */
@@ -816,6 +902,86 @@ export class JiandaoyunUserSyncService {
     }
 
     return result;
+  }
+
+  /**
+   * 同步所有角色的成员到角色成员表
+   */
+  async syncRoleMembers(): Promise<RoleMemberSyncResult> {
+    const result: RoleMemberSyncResult = {
+      totalRoleMembers: 0,
+      created: 0,
+      updated: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    try {
+      // 获取所有角色
+      const roles = await this.syncService.getRoles();
+
+      for (const role of roles) {
+        try {
+          // 获取该角色的所有成员
+          const members = await this.syncService.getRoleMembers(role.role_no);
+
+          for (const member of members) {
+            result.totalRoleMembers++;
+            try {
+              const existing = await (await requireDb()).execute(
+                drizzleSql`SELECT id FROM jiandaoyun_role_members WHERE jdy_role_no = ${role.role_no} AND jdy_username = ${member.username} LIMIT 1`
+              );
+
+              if (existing && (existing as any)[0]?.length > 0) {
+                await (await requireDb()).execute(
+                  drizzleSql`UPDATE jiandaoyun_role_members
+                    SET jdy_name = ${member.name},
+                        jdy_departments_range = ${JSON.stringify(member.departments_range || [])},
+                        jdy_has_child = ${member.has_child || false},
+                        last_sync_at = NOW(),
+                        sync_status = 'synced',
+                        updated_at = NOW()
+                    WHERE jdy_role_no = ${role.role_no} AND jdy_username = ${member.username}`
+                );
+                result.updated++;
+              } else {
+                await (await requireDb()).execute(
+                  drizzleSql`INSERT INTO jiandaoyun_role_members
+                    (jdy_role_no, jdy_username, jdy_name, jdy_departments_range, jdy_has_child, sync_status, last_sync_at)
+                    VALUES (${role.role_no}, ${member.username}, ${member.name}, ${JSON.stringify(member.departments_range || [])}, ${member.has_child || false}, 'synced', NOW())`
+                );
+                result.created++;
+              }
+            } catch (error: any) {
+              result.failed++;
+              result.errors.push(`Failed to sync role member ${member.name} in role ${role.name}: ${error.message}`);
+            }
+          }
+        } catch (error: any) {
+          result.errors.push(`Failed to get members for role ${role.name}: ${error.message}`);
+        }
+      }
+    } catch (error: any) {
+      result.errors.push(`Failed to fetch roles: ${error.message}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * 获取角色成员映射列表
+   */
+  async getRoleMemberMappings(roleNo?: number): Promise<any[]> {
+    if (roleNo) {
+      const result = await (await requireDb()).execute(
+        drizzleSql`SELECT * FROM jiandaoyun_role_members WHERE jdy_role_no = ${roleNo} ORDER BY jdy_name`
+      );
+      return (result as any)[0] || [];
+    }
+    const result = await (await requireDb()).execute(
+      drizzleSql`SELECT * FROM jiandaoyun_role_members ORDER BY jdy_role_no, jdy_name`
+    );
+    return (result as any)[0] || [];
   }
 
   /**
