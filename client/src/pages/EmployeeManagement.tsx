@@ -62,6 +62,13 @@ export default function EmployeeManagement() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [isInitializing, setIsInitializing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [detailEmployeeId, setDetailEmployeeId] = useState<string | null>(null);
+
+  // 获取员工详情
+  const { data: detailEmployee, isLoading: detailLoading } = trpc.employee.getById.useQuery(
+    { employeeId: detailEmployeeId! },
+    { enabled: !!detailEmployeeId }
+  );
 
   // 获取员工列表
   const { data: employeesData, isLoading, refetch } = trpc.employee.list.useQuery({
@@ -287,7 +294,7 @@ export default function EmployeeManagement() {
                       </TableCell>
                       <TableCell>{employee.position}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => setDetailEmployeeId(employee.employeeId)}>
                           查看详情
                         </Button>
                       </TableCell>
@@ -319,6 +326,82 @@ export default function EmployeeManagement() {
           ))}
         </div>
       </div>
+
+      {/* Employee Detail Dialog */}
+      <Dialog open={!!detailEmployeeId} onOpenChange={(open) => { if (!open) setDetailEmployeeId(null); }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>员工详情</DialogTitle>
+            <DialogDescription>员工基本信息</DialogDescription>
+          </DialogHeader>
+          {detailLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : detailEmployee ? (
+            <div className="grid gap-3 py-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">员工编号</p>
+                  <p className="font-mono font-medium">{detailEmployee.employeeId}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">姓名</p>
+                  <p className="font-medium">{detailEmployee.name}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">部门</p>
+                  <p>{detailEmployee.department}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">事业部</p>
+                  <Badge variant="outline" className={`${BU_COLORS[detailEmployee.buCode || ""] || ""} text-white border-0`}>
+                    {BU_CODE_TO_NAME[detailEmployee.buCode || ""] || detailEmployee.buCode || "-"}
+                  </Badge>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">职务</p>
+                  <p>{detailEmployee.position}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">状态</p>
+                  <Badge className={detailEmployee.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
+                    {detailEmployee.status === "active" ? "在职" : detailEmployee.status === "resigned" ? "已离职" : "停用"}
+                  </Badge>
+                </div>
+              </div>
+              {(detailEmployee.email || detailEmployee.phone) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {detailEmployee.email && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">邮箱</p>
+                      <p className="text-sm">{detailEmployee.email}</p>
+                    </div>
+                  )}
+                  {detailEmployee.phone && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">电话</p>
+                      <p className="text-sm">{detailEmployee.phone}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {detailEmployee.hireDate && (
+                <div>
+                  <p className="text-xs text-muted-foreground">入职日期</p>
+                  <p className="text-sm">{new Date(detailEmployee.hireDate).toLocaleDateString("zh-CN")}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">未找到员工信息</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
