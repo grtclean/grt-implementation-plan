@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import { router, publicProcedure } from "../_core/trpc";
 import * as svc from "./cost-standards.service";
 
 export const costStandardsRouter = router({
@@ -11,7 +11,7 @@ export const costStandardsRouter = router({
   // Cost Standards CRUD
   // ==========================================
 
-  list: protectedProcedure
+  list: publicProcedure
     .input(
       z.object({
         category: z.string().optional(),
@@ -23,7 +23,7 @@ export const costStandardsRouter = router({
     )
     .query(({ input }) => svc.listCostStandards(input)),
 
-  create: adminProcedure
+  create: publicProcedure
     .input(
       z.object({
         category: z.enum(["labor", "overhead", "material_markup"]),
@@ -47,7 +47,7 @@ export const costStandardsRouter = router({
     )
     .mutation(({ input }) => svc.createCostStandard(input)),
 
-  update: adminProcedure
+  update: publicProcedure
     .input(
       z.object({
         id: z.number(),
@@ -76,7 +76,7 @@ export const costStandardsRouter = router({
   // Product Configurations
   // ==========================================
 
-  listProductConfigs: protectedProcedure
+  listProductConfigs: publicProcedure
     .input(
       z.object({
         search: z.string().optional(),
@@ -88,7 +88,7 @@ export const costStandardsRouter = router({
     )
     .query(({ input }) => svc.listProductConfigs(input)),
 
-  createProductConfig: adminProcedure
+  createProductConfig: publicProcedure
     .input(
       z.object({
         modelCode: z.string().min(1),
@@ -108,7 +108,7 @@ export const costStandardsRouter = router({
     )
     .mutation(({ input }) => svc.createProductConfig(input)),
 
-  updateProductConfig: adminProcedure
+  updateProductConfig: publicProcedure
     .input(
       z.object({
         id: z.number(),
@@ -133,7 +133,7 @@ export const costStandardsRouter = router({
   // Cost Calculation
   // ==========================================
 
-  calculateProductCost: protectedProcedure
+  calculateProductCost: publicProcedure
     .input(z.object({ configId: z.number() }))
     .query(({ input }) => svc.calculateProductCost(input.configId)),
 });
