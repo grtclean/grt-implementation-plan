@@ -74,14 +74,15 @@ export default function CrmCustomers() {
     phone: "",
     email: "",
     address: "",
-    remark: "",
+    notes: "",
   });
 
-  const { data: customers = [], isLoading, refetch } = (trpc.crm.customers as any).list.useQuery({
+  const { data: listData, isLoading, refetch } = (trpc.crm.customers as any).list.useQuery({
     search: search || undefined,
     type: typeFilter !== "all" ? typeFilter : undefined,
     level: levelFilter !== "all" ? levelFilter : undefined,
   });
+  const customers: any[] = listData?.items ?? [];
 
   const createMutation = (trpc.crm.customers as any).create.useMutation({
     onSuccess: () => {
@@ -96,7 +97,7 @@ export default function CrmCustomers() {
         phone: "",
         email: "",
         address: "",
-        remark: "",
+        notes: "",
       });
     },
   });
@@ -295,8 +296,8 @@ export default function CrmCustomers() {
                   <div className="col-span-2 space-y-2">
                     <Label>{t("crm.remark")}</Label>
                     <Textarea
-                      value={newCustomer.remark}
-                      onChange={(e) => setNewCustomer({ ...newCustomer, remark: e.target.value })}
+                      value={newCustomer.notes}
+                      onChange={(e) => setNewCustomer({ ...newCustomer, notes: e.target.value })}
                       placeholder={t("crm.enterRemark")}
                       rows={3}
                     />
@@ -398,7 +399,7 @@ export default function CrmCustomers() {
                   {customers.map((customer) => (
                     <TableRow key={customer.id}>
                       <TableCell className="font-mono text-xs">
-                        {customer.customerCode}
+                        {customer.code}
                       </TableCell>
                       <TableCell>
                         <div>
@@ -486,7 +487,7 @@ export default function CrmCustomers() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-muted-foreground">客户编号</Label>
-                    <p className="font-mono">{selectedCustomer?.customerCode}</p>
+                    <p className="font-mono">{selectedCustomer?.code}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">客户类型</Label>
@@ -514,7 +515,7 @@ export default function CrmCustomers() {
                   </div>
                   <div className="col-span-2">
                     <Label className="text-muted-foreground">备注</Label>
-                    <p>{selectedCustomer?.remark || '-'}</p>
+                    <p>{selectedCustomer?.notes || '-'}</p>
                   </div>
                 </div>
               </TabsContent>
