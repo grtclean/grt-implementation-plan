@@ -9,6 +9,7 @@ import { sql } from "drizzle-orm";
 import { sendTaskReminderEmails } from "./email-reminder.service";
 import { sendEmail, generateHtmlEmail } from "./email.service";
 import { notifyOwner } from "../_core/notification";
+import { getJiandaoyunScheduler } from "./jiandaoyun-scheduler.service";
 
 // 定时任务配置
 interface ScheduledTask {
@@ -363,6 +364,52 @@ async function handlePerformanceReviewReminder(): Promise<TaskExecutionResult> {
   }
 }
 
+// 6. 简道云组织架构同步
+async function handleJiandaoyunOrgSync(): Promise<TaskExecutionResult> {
+  console.log("[Scheduler] 执行简道云组织架构同步...");
+  try {
+    const scheduler = getJiandaoyunScheduler();
+    const enabledTasks = await scheduler.getEnabledTasks();
+
+    if (enabledTasks.length === 0) {
+      return {
+        success: true,
+        message: '无启用的简道云同步任务',
+      };
+    }
+
+    let executedCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
+
+    for (const task of enabledTasks) {
+      try {
+        const result = await scheduler.executeTask(task.id, 'schedule');
+        if (result.status === 'failed') {
+          failedCount++;
+          if (result.errorMessage) errors.push(result.errorMessage);
+        } else {
+          executedCount++;
+        }
+      } catch (error: any) {
+        failedCount++;
+        errors.push(`Task ${task.task_name}: ${error.message}`);
+      }
+    }
+
+    return {
+      success: failedCount === 0,
+      message: `简道云同步完成: ${executedCount} 成功, ${failedCount} 失败 (共 ${enabledTasks.length} 个任务)`,
+      details: { executedCount, failedCount, errors },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `简道云同步失败: ${String(error)}`,
+    };
+  }
+}
+
 // ==================== 系统定时任务列表 ====================
 
 const scheduledTasks: ScheduledTask[] = [
@@ -410,6 +457,15 @@ const scheduledTasks: ScheduledTask[] = [
     handler: handlePerformanceReviewReminder,
     enabled: true,
     category: 'reminder',
+  },
+  {
+    id: "jiandaoyun-org-sync",
+    name: "简道云组织架构同步",
+    description: "每天凌晨2点同步简道云组织架构（用户/部门/角色/角色成员）",
+    cronExpression: "0 0 2 * * *", // 每天凌晨2:00
+    handler: handleJiandaoyunOrgSync,
+    enabled: true,
+    category: 'sync',
   },
 ];
 

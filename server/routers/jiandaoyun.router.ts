@@ -328,6 +328,52 @@ export const jiandaoyunRouter = router({
       }
     }),
 
+  /**
+   * 同步简道云角色成员
+   */
+  syncRoleMembers: adminProcedure.mutation(async () => {
+    const userSyncService = getJiandaoyunUserSyncService();
+    try {
+      const result = await userSyncService.syncRoleMembers();
+      return { success: true, ...result };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }),
+
+  /**
+   * 获取角色成员映射列表
+   */
+  getRoleMemberMappings: protectedProcedure
+    .input(z.object({ roleNo: z.number().optional() }))
+    .query(async ({ input }) => {
+      const userSyncService = getJiandaoyunUserSyncService();
+      try {
+        const mappings = await userSyncService.getRoleMemberMappings(input.roleNo);
+        return { mappings, error: null };
+      } catch (error: any) {
+        return { mappings: [], error: error.message };
+      }
+    }),
+
+  /**
+   * 实时获取角色成员（直接调用API）
+   */
+  getRoleMembersLive: protectedProcedure
+    .input(z.object({ roleNo: z.number() }))
+    .query(async ({ input }) => {
+      const service = getJiandaoyunSyncService();
+      if (!service.isConfigured()) {
+        return { members: [], error: "简道云API未配置" };
+      }
+      try {
+        const members = await service.getRoleMembers(input.roleNo);
+        return { members, error: null };
+      } catch (error: any) {
+        return { members: [], error: error.message };
+      }
+    }),
+
   // ===== 定时同步任务路由 =====
 
   /**
@@ -349,7 +395,7 @@ export const jiandaoyunRouter = router({
   createSyncTask: adminProcedure
     .input(z.object({
       taskName: z.string(),
-      taskType: z.enum(['user', 'department', 'role', 'form_data', 'full']),
+      taskType: z.enum(['user', 'department', 'role', 'role_members', 'form_data', 'full']),
       jdyAppId: z.string().optional(),
       jdyFormId: z.string().optional(),
       syncDirection: z.enum(['jdy_to_grt', 'grt_to_jdy', 'bidirectional']),

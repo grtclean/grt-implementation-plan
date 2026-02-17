@@ -12,7 +12,7 @@ import { getJiandaoyunSyncService, getJiandaoyunUserSyncService } from '../jiand
  */
 export interface SyncTaskConfig {
   taskName: string;
-  taskType: 'user' | 'department' | 'role' | 'form_data' | 'full';
+  taskType: 'user' | 'department' | 'role' | 'role_members' | 'form_data' | 'full';
   jdyAppId?: string;
   jdyFormId?: string;
   syncDirection: 'jdy_to_grt' | 'grt_to_jdy' | 'bidirectional';
@@ -203,6 +203,18 @@ export class JiandaoyunScheduler {
           }
           break;
 
+        case 'role_members':
+          const roleMemberResult = await this.userSyncService.syncRoleMembers();
+          result.recordsProcessed = roleMemberResult.totalRoleMembers;
+          result.recordsCreated = roleMemberResult.created;
+          result.recordsUpdated = roleMemberResult.updated;
+          result.recordsFailed = roleMemberResult.failed;
+          if (roleMemberResult.errors.length > 0) {
+            result.status = roleMemberResult.failed > 0 ? 'partial' : 'success';
+            result.errorMessage = roleMemberResult.errors.join('; ');
+          }
+          break;
+
         case 'form_data':
           // 表单数据同步
           if (task.jdy_app_id && task.jdy_form_id) {
@@ -220,13 +232,14 @@ export class JiandaoyunScheduler {
           const userSync = await this.userSyncService.syncMembers();
           const deptSync = await this.userSyncService.syncDepartments();
           const roleSync = await this.userSyncService.syncRoles();
-          
-          result.recordsProcessed = userSync.totalMembers + deptSync.totalDepts + roleSync.totalRoles;
-          result.recordsCreated = userSync.created + deptSync.created + roleSync.created;
-          result.recordsUpdated = userSync.updated + deptSync.updated + roleSync.updated;
-          result.recordsFailed = userSync.failed + deptSync.failed + roleSync.failed;
-          
-          const allErrors = [...userSync.errors, ...deptSync.errors, ...roleSync.errors];
+          const roleMemberSync = await this.userSyncService.syncRoleMembers();
+
+          result.recordsProcessed = userSync.totalMembers + deptSync.totalDepts + roleSync.totalRoles + roleMemberSync.totalRoleMembers;
+          result.recordsCreated = userSync.created + deptSync.created + roleSync.created + roleMemberSync.created;
+          result.recordsUpdated = userSync.updated + deptSync.updated + roleSync.updated + roleMemberSync.updated;
+          result.recordsFailed = userSync.failed + deptSync.failed + roleSync.failed + roleMemberSync.failed;
+
+          const allErrors = [...userSync.errors, ...deptSync.errors, ...roleSync.errors, ...roleMemberSync.errors];
           if (allErrors.length > 0) {
             result.status = result.recordsFailed > 0 ? 'partial' : 'success';
             result.errorMessage = allErrors.join('; ');
@@ -398,7 +411,17 @@ export class JiandaoyunScheduler {
       isEnabled: true,
     });
     taskIds.push(roleTaskId);
-    
+
+    // 角色成员同步任务（每天凌晨3点30分）
+    const roleMemberTaskId = await this.createTask({
+      taskName: '简道云角色成员同步',
+      taskType: 'role_members',
+      syncDirection: 'jdy_to_grt',
+      cronExpression: '0 30 3 * * *',
+      isEnabled: true,
+    });
+    taskIds.push(roleMemberTaskId);
+
     return taskIds;
   }
 }
