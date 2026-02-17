@@ -3,7 +3,6 @@
  */
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useGlobalSearch } from "@/hooks/useGlobalSearch";
@@ -40,7 +39,10 @@ export function TopBarSearch() {
     inputRef.current?.blur();
   }, [navigate, setQuery]);
 
+  const isComposingRef = useRef(false);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (isComposingRef.current) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setSelectedIndex(prev => Math.min(prev + 1, searchResults.length - 1));
@@ -65,14 +67,16 @@ export function TopBarSearch() {
       {/* Search Input */}
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <Input
+        <input
           ref={inputRef}
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
+          onCompositionStart={() => { isComposingRef.current = true; }}
+          onCompositionEnd={() => { isComposingRef.current = false; }}
           placeholder={language === "zh" ? "搜索菜单页面..." : "Search pages..."}
-          className="pl-8 pr-16 h-8 text-sm bg-muted/50 border-transparent focus:border-border focus:bg-background transition-colors"
+          className="pl-8 pr-16 h-8 w-full rounded-md border border-transparent bg-muted/50 px-3 py-1 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus:border-border focus:bg-background focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] transition-colors"
         />
         <kbd className="absolute right-2 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 select-none items-center gap-0.5 rounded border bg-background px-1.5 font-mono text-[10px] text-muted-foreground">
           ⌘K
