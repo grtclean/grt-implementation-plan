@@ -3,6 +3,7 @@
  * 报价单创建、版本管理、审批流、AI辅助定价
  */
 import { useState } from "react";
+import { useLocation } from "wouter";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
@@ -32,6 +33,7 @@ const MOCK_QUOTES = [
 
 export default function QuotationManagement() {
   const { currentBU } = useUserProfile();
+  const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const filtered = MOCK_QUOTES.filter(q => (!currentBU || q.bu === currentBU) && (!search || q.customer.includes(search) || q.project.includes(search)));
 
@@ -45,7 +47,7 @@ export default function QuotationManagement() {
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button><Plus className="h-4 w-4 mr-2" />新建报价</Button>
+            <Button onClick={() => navigate("/quotation-create")}><Plus className="h-4 w-4 mr-2" />新建报价</Button>
           </>
         }
       />
