@@ -428,7 +428,7 @@ export default function MeetingDashboard() {
                       className="gap-2"
                       onClick={() => {
                         // 导航到会议详情
-                        window.location.href = `/meetings/${meeting.id}`;
+                        window.location.href = `/meeting-intelligence`;
                       }}
                     >
                       <Eye className="w-4 h-4" />
@@ -441,7 +441,7 @@ export default function MeetingDashboard() {
                       className="gap-2"
                       onClick={() => {
                         // 导航到编辑页面
-                        window.location.href = `/meetings/${meeting.id}/edit`;
+                        window.location.href = `/meeting-intelligence`;
                       }}
                     >
                       <Edit2 className="w-4 h-4" />

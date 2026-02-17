@@ -73,7 +73,7 @@ const mockNotifications: Notification[] = [
     isRead: false,
     isImportant: true,
     createdAt: "2024-02-11T08:45:00",
-    actionUrl: "/hr/offboarding",
+    actionUrl: "/offboarding",
   },
   {
     id: "3",
@@ -84,7 +84,7 @@ const mockNotifications: Notification[] = [
     isRead: false,
     isImportant: false,
     createdAt: "2024-02-11T08:00:00",
-    actionUrl: "/procurement/orders",
+    actionUrl: "/pos/procurement",
   },
   {
     id: "4",
@@ -95,7 +95,7 @@ const mockNotifications: Notification[] = [
     isRead: true,
     isImportant: true,
     createdAt: "2024-02-10T16:30:00",
-    actionUrl: "/delivery/tasks",
+    actionUrl: "/delivery-management",
   },
   {
     id: "5",
@@ -117,7 +117,7 @@ const mockNotifications: Notification[] = [
     isRead: true,
     isImportant: false,
     createdAt: "2024-02-10T14:20:00",
-    actionUrl: "/hr/probation",
+    actionUrl: "/employee-management",
   },
   {
     id: "7",
@@ -128,7 +128,7 @@ const mockNotifications: Notification[] = [
     isRead: true,
     isImportant: true,
     createdAt: "2024-02-10T10:15:00",
-    actionUrl: "/materials/alerts",
+    actionUrl: "/material-shortage-alert",
   },
   {
     id: "8",
@@ -139,7 +139,7 @@ const mockNotifications: Notification[] = [
     isRead: true,
     isImportant: false,
     createdAt: "2024-02-10T09:00:00",
-    actionUrl: "/performance/personal",
+    actionUrl: "/my-performance",
   },
 ];
 
@@ -441,15 +441,15 @@ export default function Notifications() {
                   <Zap className="w-4 h-4 mr-2" />
                   查看 AI 建议
                 </Button>
-                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/hr/offboarding"}>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/offboarding"}>
                   <UserPlus className="w-4 h-4 mr-2" />
                   待审批离职申请
                 </Button>
-                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/materials/alerts"}>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/material-shortage-alert"}>
                   <AlertTriangle className="w-4 h-4 mr-2" />
                   库存预警
                 </Button>
-                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/delivery/tasks"}>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/delivery-management"}>
                   <Truck className="w-4 h-4 mr-2" />
                   待处理交付任务
                 </Button>

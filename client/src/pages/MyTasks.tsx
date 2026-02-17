@@ -674,19 +674,19 @@ export default function MyTasks() {
                 <CardTitle className="text-lg">快捷操作</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/hr/offboarding"}>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/offboarding"}>
                   <UserPlus className="w-4 h-4 mr-2" />
                   离职审批
                 </Button>
-                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/hr/probation"}>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/employee-management"}>
                   <Target className="w-4 h-4 mr-2" />
                   转正评估
                 </Button>
-                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/delivery/gate"}>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/stage-gate"}>
                   <CheckCircle2 className="w-4 h-4 mr-2" />
                   Gate检查
                 </Button>
-                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/procurement/orders"}>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/pos/procurement"}>
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   采购订单
                 </Button>
