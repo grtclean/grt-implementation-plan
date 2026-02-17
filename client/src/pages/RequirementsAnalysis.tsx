@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -47,9 +48,14 @@ const MOCK_REQUIREMENTS = [
 ];
 
 export default function RequirementsAnalysis() {
+  const { toast } = useToast();
   const { currentBU } = useUserProfile();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+
+  const handleComingSoon = () => {
+    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  };
 
   const filteredReqs = MOCK_REQUIREMENTS.filter(r => {
     if (currentBU && r.bu !== currentBU) return false;
@@ -68,7 +74,7 @@ export default function RequirementsAnalysis() {
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button><Plus className="h-4 w-4 mr-2" />新建需求</Button>
+            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />新建需求</Button>
           </>
         }
       />

@@ -3,6 +3,7 @@
  * 清洗方案配置、3D布局、技术参数计算
  */
 import Layout from "@/components/Layout";
+import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -26,8 +27,13 @@ const MOCK_SOLUTIONS = [
 ];
 
 export default function SolutionDesign() {
+  const { toast } = useToast();
   const { currentBU } = useUserProfile();
   const filtered = MOCK_SOLUTIONS.filter(s => !currentBU || s.bu === currentBU);
+
+  const handleComingSoon = () => {
+    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  };
 
   return (
     <Layout>
@@ -39,7 +45,7 @@ export default function SolutionDesign() {
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button><Plus className="h-4 w-4 mr-2" />新建方案</Button>
+            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />新建方案</Button>
           </>
         }
       />

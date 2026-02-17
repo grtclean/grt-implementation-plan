@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -27,7 +28,12 @@ const MOCK_POSITIONS = [
 ];
 
 export default function Recruitment() {
+  const { toast } = useToast();
   const [tab, setTab] = useState("open");
+
+  const handleComingSoon = () => {
+    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  };
 
   return (
     <Layout>
@@ -36,7 +42,7 @@ export default function Recruitment() {
         icon={UserCheck}
         title="招聘管理"
         description="职位管理 · 候选人追踪 · 面试安排"
-        actions={<Button><Plus className="h-4 w-4 mr-2" />发布职位</Button>}
+        actions={<Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />发布职位</Button>}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

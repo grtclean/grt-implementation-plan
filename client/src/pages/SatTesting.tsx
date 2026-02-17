@@ -3,6 +3,7 @@
  * 现场验收测试、测试报告、缺陷跟踪
  */
 import Layout from "@/components/Layout";
+import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -27,8 +28,13 @@ const MOCK_TESTS = [
 ];
 
 export default function SatTesting() {
+  const { toast } = useToast();
   const { currentBU } = useUserProfile();
   const filtered = MOCK_TESTS.filter(t => !currentBU || t.bu === currentBU);
+
+  const handleComingSoon = () => {
+    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  };
 
   return (
     <Layout>
@@ -40,7 +46,7 @@ export default function SatTesting() {
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button><Plus className="h-4 w-4 mr-2" />新建测试计划</Button>
+            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />新建测试计划</Button>
           </>
         }
       />

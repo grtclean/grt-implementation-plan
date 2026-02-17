@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -29,7 +30,11 @@ const MOCK_PARTS = [
 ];
 
 export default function SpareParts() {
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
+  const handleComingSoon = () => {
+    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  };
   const filtered = MOCK_PARTS.filter(p => !search || p.name.includes(search) || p.model.includes(search));
 
   return (
@@ -41,8 +46,8 @@ export default function SpareParts() {
         description="备件库存管理与需求预测"
         actions={
           <>
-            <Button><Plus className="h-4 w-4 mr-2" />入库登记</Button>
-            <Button variant="outline"><Truck className="h-4 w-4 mr-2" />采购申请</Button>
+            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />入库登记</Button>
+            <Button variant="outline" onClick={handleComingSoon}><Truck className="h-4 w-4 mr-2" />采购申请</Button>
           </>
         }
       />

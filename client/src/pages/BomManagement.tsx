@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useUserProfile } from "@/contexts/UserProfileContext";
+import { useToast } from "@/hooks/use-toast";
 import { Package, Plus, Search, Upload, Download, Building2, DollarSign, Layers } from "lucide-react";
 
 const statusColorMap = createStatusColorMap({
@@ -29,7 +30,11 @@ const MOCK_BOMS = [
 
 export default function BomManagement() {
   const { currentBU } = useUserProfile();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
+  const handleComingSoon = () => {
+    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  };
   const filtered = MOCK_BOMS.filter(b => (!currentBU || b.bu === currentBU) && (!search || b.name.includes(search)));
 
   return (
@@ -42,9 +47,9 @@ export default function BomManagement() {
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button><Plus className="h-4 w-4 mr-2" />新建BOM</Button>
-            <Button variant="outline"><Upload className="h-4 w-4 mr-2" />导入</Button>
-            <Button variant="outline"><Download className="h-4 w-4 mr-2" />导出</Button>
+            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />新建BOM</Button>
+            <Button variant="outline" onClick={handleComingSoon}><Upload className="h-4 w-4 mr-2" />导入</Button>
+            <Button variant="outline" onClick={handleComingSoon}><Download className="h-4 w-4 mr-2" />导出</Button>
           </>
         }
       />

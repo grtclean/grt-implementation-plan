@@ -153,11 +153,11 @@ export default function CapabilityManagement() {
                     </div>
 
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => showPlaceholder('查看证据')}>
                         <FileText className="w-4 h-4 mr-1" />
                         查看证据
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => showPlaceholder('升级评估')}>
                         <TrendingUp className="w-4 h-4 mr-1" />
                         升级评估
                       </Button>
@@ -271,7 +271,7 @@ export default function CapabilityManagement() {
                     <span>预计升级时间：{developmentPath.estimatedMonths} 个月</span>
                   </div>
 
-                  <Button className="w-full">
+                  <Button className="w-full" onClick={() => showPlaceholder('申请升级评估')}>
                     <Award className="w-4 h-4 mr-2" />
                     申请升级评估
                   </Button>
@@ -314,7 +314,7 @@ export default function CapabilityManagement() {
               </div>
             )}
 
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={() => showPlaceholder('下载完整报告')}>
               <FileText className="w-4 h-4 mr-2" />
               下载完整报告
             </Button>

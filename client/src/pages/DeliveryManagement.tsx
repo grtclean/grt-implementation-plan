@@ -528,7 +528,7 @@ export default function DeliveryManagement() {
                           <AlertTriangle className="w-4 h-4 mr-1" />
                           报告问题
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => toast.info("功能开发中，敬请期待")}>
                           <Eye className="w-4 h-4 mr-1" />
                           详情
                         </Button>
@@ -601,11 +601,11 @@ export default function DeliveryManagement() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => toast.info("AI诊断功能开发中，敬请期待")}>
                           <Bot className="w-4 h-4 mr-1" />
                           AI诊断
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => toast.info("功能开发中，敬请期待")}>
                           <Eye className="w-4 h-4" />
                         </Button>
                       </div>
@@ -697,11 +697,11 @@ export default function DeliveryManagement() {
                 </div>
                 
                 <div className="flex justify-end gap-2 mt-6">
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={() => toast.info("功能开发中，敬请期待")}>
                     <RefreshCw className="w-4 h-4 mr-2" />
                     重置
                   </Button>
-                  <Button>
+                  <Button onClick={() => toast.info("Gate检查提交功能开发中，敬请期待")}>
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     提交检查
                   </Button>
@@ -748,7 +748,7 @@ export default function DeliveryManagement() {
                   <p className="text-sm text-muted-foreground mb-4">
                     分析现场问题，提供根因分析、解决方案和所需备件清单
                   </p>
-                  <Button className="w-full" variant="outline">
+                  <Button className="w-full" variant="outline" onClick={() => toast.info("Site Copilot Agent 开发中，敬请期待")}>
                     <AlertTriangle className="w-4 h-4 mr-2" />
                     诊断现场问题
                   </Button>
@@ -769,7 +769,7 @@ export default function DeliveryManagement() {
                   <p className="text-sm text-muted-foreground mb-4">
                     分析URS复杂度、客户等级、历史问题，评估项目风险等级
                   </p>
-                  <Button className="w-full" variant="outline">
+                  <Button className="w-full" variant="outline" onClick={() => toast.info("Risk Radar Agent 开发中，敬请期待")}>
                     <Target className="w-4 h-4 mr-2" />
                     分析项目风险
                   </Button>
@@ -790,7 +790,7 @@ export default function DeliveryManagement() {
                   <p className="text-sm text-muted-foreground mb-4">
                     根据报警列表生成故障排除指南、维护SOP、操作手册
                   </p>
-                  <Button className="w-full" variant="outline">
+                  <Button className="w-full" variant="outline" onClick={() => toast.info("Technical Writer Agent 开发中，敬请期待")}>
                     <FileCheck className="w-4 h-4 mr-2" />
                     生成技术文档
                   </Button>

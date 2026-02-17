@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,8 +23,13 @@ const MOCK_DOCS = [
 ];
 
 export default function TechDocuments() {
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const filtered = MOCK_DOCS.filter(d => !search || d.name.includes(search) || d.category.includes(search));
+
+  const handleComingSoon = () => {
+    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  };
 
   return (
     <Layout>
@@ -34,8 +40,8 @@ export default function TechDocuments() {
         description="技术文档库 · 版本控制与知识沉淀"
         actions={
           <>
-            <Button><Plus className="h-4 w-4 mr-2" />新建文档</Button>
-            <Button variant="outline"><Upload className="h-4 w-4 mr-2" />上传</Button>
+            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />新建文档</Button>
+            <Button variant="outline" onClick={handleComingSoon}><Upload className="h-4 w-4 mr-2" />上传</Button>
           </>
         }
       />

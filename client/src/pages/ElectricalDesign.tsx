@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/contexts/UserProfileContext";
+import { useToast } from "@/hooks/use-toast";
 import { Zap, Plus, Building2, Cpu, CheckCircle2, Clock, AlertTriangle, FileText } from "lucide-react";
 
 const statusColorMap = createStatusColorMap({
@@ -28,6 +29,10 @@ const MOCK_DESIGNS = [
 
 export default function ElectricalDesign() {
   const { currentBU } = useUserProfile();
+  const { toast } = useToast();
+  const handleComingSoon = () => {
+    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  };
   const filtered = MOCK_DESIGNS.filter(d => !currentBU || d.bu === currentBU);
 
   return (
@@ -40,7 +45,7 @@ export default function ElectricalDesign() {
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button><Plus className="h-4 w-4 mr-2" />新建设计</Button>
+            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />新建设计</Button>
           </>
         }
       />

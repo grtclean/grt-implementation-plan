@@ -10,6 +10,7 @@ import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import { FileCheck, Plus, Search, DollarSign, Clock, AlertTriangle } from "lucide-react";
 
 const contractStatusColorMap = createStatusColorMap({
@@ -27,7 +28,11 @@ const MOCK_CONTRACTS = [
 ];
 
 export default function ContractManagement() {
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
+  const handleComingSoon = () => {
+    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  };
   const filtered = MOCK_CONTRACTS.filter(c => !search || c.customer.includes(search) || c.title.includes(search));
 
   return (
@@ -37,7 +42,7 @@ export default function ContractManagement() {
         icon={FileCheck}
         title="合同管理"
         description="合同全生命周期管理"
-        actions={<Button><Plus className="h-4 w-4 mr-2" />新建合同</Button>}
+        actions={<Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />新建合同</Button>}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
