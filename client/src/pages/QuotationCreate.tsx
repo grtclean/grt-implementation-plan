@@ -2,7 +2,6 @@
  * 报价生成页面 - 多步骤报价创建向导
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -90,8 +89,7 @@ export default function QuotationCreate() {
   const fmt = (v: number) => "¥" + v.toLocaleString();
 
   return (
-    <Layout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-6">
         <PageHeader
           icon={Calculator}
           title="报价生成"
@@ -290,6 +288,5 @@ export default function QuotationCreate() {
           </Button>
         </div>
       </div>
-    </Layout>
   );
 }

@@ -4,7 +4,6 @@
  */
 import { useState } from "react";
 import { useLocation } from "wouter";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -38,7 +37,6 @@ export default function QuotationManagement() {
   const filtered = MOCK_QUOTES.filter(q => (!currentBU || q.bu === currentBU) && (!search || q.customer.includes(search) || q.project.includes(search)));
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Calculator}
@@ -99,6 +97,5 @@ export default function QuotationManagement() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }
