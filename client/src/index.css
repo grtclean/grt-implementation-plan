@@ -133,8 +133,6 @@
     @apply border-border;
   }
   html {
-    /* Prevent horizontal content shift when scrollbar appears/disappears (Windows) */
-    scrollbar-gutter: stable;
     /* Smooth handoff from inline bg (set in <script>) → CSS bg after load */
     background-color: var(--background);
   }

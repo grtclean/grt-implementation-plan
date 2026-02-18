@@ -703,10 +703,10 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       {/* Desktop Sidebar - Sprint 1 三段式布局 */}
       <aside className={cn(
-        "hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border h-screen sticky top-0 shrink-0 z-50",
+        "hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border shrink-0 z-50 relative",
         sidebarCollapsed ? "w-16" : "w-72"
       )}>
         {/* 侧边栏折叠切换按钮 */}
@@ -753,7 +753,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content - Sprint 1 flex布局，侧边栏为第一个子元素，主内容区为第二个子元素 flex-1 */}
-      <main className="flex-1 pt-16 lg:pt-0">
+      <main className="flex-1 pt-16 lg:pt-0 overflow-y-auto [scrollbar-gutter:stable]">
         {/* Desktop Top Bar with Language Selector and User */}
         <div className="hidden lg:flex items-center justify-between px-8 py-3 border-b border-border bg-background sticky top-0 z-40">
           <TopBarSearch />
