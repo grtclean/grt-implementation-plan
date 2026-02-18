@@ -127,23 +127,25 @@ export async function createCustomer(data: {
   const insertData: any = {
     code,
     name: data.name,
-    shortName: data.shortName,
     type: data.type || "prospect",
     level: data.level || "C",
-    industry: data.industry,
-    region: data.region,
-    address: data.address,
-    website: data.website,
-    phone: data.phone,
-    email: data.email,
-    taxId: data.taxId,
-    annualRevenue: data.annualRevenue,
-    employeeCount: data.employeeCount,
-    source: data.source,
-    assignedTo: data.assignedTo,
     status: data.status || "active",
-    notes: data.notes,
   };
+
+  // Only include optional fields when they have actual values
+  if (data.shortName) insertData.shortName = data.shortName;
+  if (data.industry) insertData.industry = data.industry;
+  if (data.region) insertData.region = data.region;
+  if (data.address) insertData.address = data.address;
+  if (data.website) insertData.website = data.website;
+  if (data.phone) insertData.phone = data.phone;
+  if (data.email) insertData.email = data.email;
+  if (data.taxId) insertData.taxId = data.taxId;
+  if (data.annualRevenue) insertData.annualRevenue = data.annualRevenue;
+  if (data.employeeCount) insertData.employeeCount = data.employeeCount;
+  if (data.source) insertData.source = data.source;
+  if (data.assignedTo) insertData.assignedTo = data.assignedTo;
+  if (data.notes) insertData.notes = data.notes;
 
   const result = await db
     .insert(crmCustomersV2)

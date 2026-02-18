@@ -1,0 +1,185 @@
+/**
+ * Contract Router - Contract Management tRPC endpoints
+ *
+ * Endpoints:
+ * - contract.list / getById / create / update / delete / stats
+ * - contract.uploadDocument / getDocuments / deleteDocument
+ * - contract.analyzeDocument / getAnalysis / getAnalysesByContract / applyAnalysis
+ */
+
+import { router, protectedProcedure } from "../_core/trpc";
+import { z } from "zod";
+import {
+  listContracts,
+  getContractById,
+  createContract,
+  updateContract,
+  deleteContract,
+  getContractStats,
+  uploadDocument,
+  getDocuments,
+  deleteDocument,
+  analyzeDocument,
+  getAnalysis,
+  getAnalysesByContract,
+  applyAnalysis,
+} from "./contract.service";
+
+export const contractRouter = router({
+  // ============================================================
+  // P0: Contract CRUD
+  // ============================================================
+
+  list: protectedProcedure
+    .input(
+      z
+        .object({
+          search: z.string().optional(),
+          type: z.string().optional(),
+          status: z.string().optional(),
+          customerId: z.number().optional(),
+          limit: z.number().min(1).max(100).optional(),
+          offset: z.number().min(0).optional(),
+        })
+        .optional()
+    )
+    .query(async ({ input }) => {
+      return listContracts(input ?? {});
+    }),
+
+  getById: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      return getContractById(input.id);
+    }),
+
+  create: protectedProcedure
+    .input(
+      z.object({
+        customerId: z.number().optional(),
+        opportunityId: z.number().optional(),
+        title: z.string().min(1),
+        type: z.enum(["sales", "service", "framework"]).optional(),
+        amount: z.string().optional(),
+        currency: z.string().optional(),
+        status: z
+          .enum(["draft", "pending_approval", "active", "completed", "terminated"])
+          .optional(),
+        signDate: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        terms: z.string().optional(),
+        notes: z.string().optional(),
+        createdBy: z.number().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return createContract(input);
+    }),
+
+  update: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        customerId: z.number().optional(),
+        opportunityId: z.number().optional(),
+        title: z.string().min(1).optional(),
+        type: z.enum(["sales", "service", "framework"]).optional(),
+        amount: z.string().optional(),
+        currency: z.string().optional(),
+        status: z
+          .enum(["draft", "pending_approval", "active", "completed", "terminated"])
+          .optional(),
+        signDate: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        terms: z.string().optional(),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      return updateContract(id, data);
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      return deleteContract(input.id);
+    }),
+
+  stats: protectedProcedure.query(async () => {
+    return getContractStats();
+  }),
+
+  // ============================================================
+  // P1: Document Upload & Management
+  // ============================================================
+
+  uploadDocument: protectedProcedure
+    .input(
+      z.object({
+        contractId: z.number(),
+        fileName: z.string().min(1),
+        mimeType: z.string(),
+        docType: z.enum([
+          "tech_spec",
+          "bidding_req",
+          "equipment_spec",
+          "order",
+          "contract",
+          "other",
+        ]),
+        fileBase64: z.string().min(1),
+        uploadedBy: z.number().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return uploadDocument(input);
+    }),
+
+  getDocuments: protectedProcedure
+    .input(
+      z.object({
+        contractId: z.number(),
+        docType: z.string().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      return getDocuments(input.contractId, input.docType);
+    }),
+
+  deleteDocument: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      return deleteDocument(input.id);
+    }),
+
+  // ============================================================
+  // P2: AI Document Analysis
+  // ============================================================
+
+  analyzeDocument: protectedProcedure
+    .input(z.object({ documentId: z.number() }))
+    .mutation(async ({ input }) => {
+      return analyzeDocument(input.documentId);
+    }),
+
+  getAnalysis: protectedProcedure
+    .input(z.object({ documentId: z.number() }))
+    .query(async ({ input }) => {
+      return getAnalysis(input.documentId);
+    }),
+
+  getAnalysesByContract: protectedProcedure
+    .input(z.object({ contractId: z.number() }))
+    .query(async ({ input }) => {
+      return getAnalysesByContract(input.contractId);
+    }),
+
+  applyAnalysis: protectedProcedure
+    .input(z.object({ analysisId: z.number(), userId: z.number() }))
+    .mutation(async ({ input }) => {
+      return applyAnalysis(input.analysisId, input.userId);
+    }),
+});

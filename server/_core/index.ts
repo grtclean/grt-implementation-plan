@@ -104,6 +104,24 @@ async function startServer() {
     })
   );
   app.use("/api/v1/ime", imeRestApi);
+
+  // Contract document download endpoint
+  app.get("/api/contract-documents/:id/download", async (req, res) => {
+    try {
+      const { getDocumentById } = await import("../contract/contract.service");
+      const doc = await getDocumentById(parseInt(req.params.id, 10));
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      const filePath = require("path").resolve(process.cwd(), doc.filePath);
+      res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(doc.originalName)}`);
+      res.setHeader("Content-Type", doc.mimeType || "application/octet-stream");
+      res.sendFile(filePath);
+    } catch (error: any) {
+      console.error("[Contract Download] Error:", error);
+      res.status(500).json({ error: "Download failed" });
+    }
+  });
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {

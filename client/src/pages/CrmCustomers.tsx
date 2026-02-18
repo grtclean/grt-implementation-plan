@@ -85,6 +85,7 @@ export default function CrmCustomers() {
 
   const createMutation = (trpc.crm.customers as any).create.useMutation({
     onSuccess: () => {
+      toast.success("客户创建成功");
       refetch();
       setIsCreateOpen(false);
       setNewCustomer({
@@ -98,6 +99,9 @@ export default function CrmCustomers() {
         address: "",
         notes: "",
       });
+    },
+    onError: (error: any) => {
+      toast.error(`客户创建失败: ${error.message}`);
     },
   });
 
@@ -124,8 +128,23 @@ export default function CrmCustomers() {
   };
 
   const handleCreate = () => {
-    if (!newCustomer.name) return;
-    createMutation.mutate(newCustomer);
+    if (!newCustomer.name.trim()) {
+      toast.error("请输入客户名称");
+      return;
+    }
+    // Clean up empty strings to undefined for optional fields
+    const payload: any = {
+      name: newCustomer.name.trim(),
+      type: newCustomer.type,
+      level: newCustomer.level,
+    };
+    if (newCustomer.shortName.trim()) payload.shortName = newCustomer.shortName.trim();
+    if (newCustomer.industry.trim()) payload.industry = newCustomer.industry.trim();
+    if (newCustomer.phone.trim()) payload.phone = newCustomer.phone.trim();
+    if (newCustomer.email.trim()) payload.email = newCustomer.email.trim();
+    if (newCustomer.address.trim()) payload.address = newCustomer.address.trim();
+    if (newCustomer.notes.trim()) payload.notes = newCustomer.notes.trim();
+    createMutation.mutate(payload);
   };
 
   const getTypeLabel = (type: string) => {

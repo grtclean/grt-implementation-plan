@@ -95,6 +95,7 @@ import { bomRouter } from "./routers/bom.router";
 import { warehouseRouter } from "./routers/warehouse.router";
 import { docIntelligenceRouter } from "./doc-intelligence/doc-intelligence.router";
 import { crmRouter } from "./crm/crm.router";
+import { contractRouter } from "./contract/contract.router";
 import { changeEventRouter } from "./modules/changeEvent.router";
 import { knowledgeBaseRouter as realKnowledgeBaseRouter } from "./modules/knowledge-base.router";
 import { timeReconciliationRouter } from "./services/time-reconciliation.router";
@@ -212,6 +213,7 @@ export const appRouter = router({
   m7m9: deliveryRouter,
   tripRequest: placeholderRouters.tripRequest,
   crm: crmRouter,
+  contract: contractRouter,
   annualPlanning: placeholderRouters.annualPlanning,
   changeManagement: realChangeManagementRouter,
   expenseReportScheduler: placeholderRouters.expenseReportScheduler,
