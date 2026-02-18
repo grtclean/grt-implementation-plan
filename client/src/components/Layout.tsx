@@ -58,8 +58,9 @@ interface SidebarMenuGroupProps {
   group: MenuGroup;
   isExpanded: boolean;
   hasActiveItem: boolean;
+  /** The path of the active item inside this group, or null if none. */
+  activeItemPath: string | null;
   language: string;
-  location: string;
   currentBU: string | null;
   alertCount: number;
   onToggle: (groupName: string) => void;
@@ -70,8 +71,8 @@ function SidebarMenuGroupImpl({
   group,
   isExpanded,
   hasActiveItem,
+  activeItemPath,
   language,
-  location,
   currentBU,
   alertCount,
   onToggle,
@@ -122,7 +123,7 @@ function SidebarMenuGroupImpl({
       {isExpanded && (
         <div className="pl-4 space-y-0.5 mt-1">
           {group.items.map((item) => {
-            const isActive = location === item.path;
+            const isActive = activeItemPath === item.path;
             const getItemName = () => {
               switch (language) {
                 case "zh": return item.name;
@@ -322,18 +323,20 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
   // 当路由变化时，自动展开包含当前路径的菜单组
   const prevLocationRef = useRef(location);
+  const expandedGroupsRef = useRef(expandedGroups);
+  expandedGroupsRef.current = expandedGroups;
   useEffect(() => {
     // 只在路由真正变化时才执行
     if (prevLocationRef.current === location) return;
     prevLocationRef.current = location;
-    
-    const currentGroup = menuConfig.find(group => 
+
+    const currentGroup = menuConfig.find(group =>
       group.items.some(item => item.path === location)
     );
-    if (currentGroup && !expandedGroups.includes(currentGroup.name)) {
+    if (currentGroup && !expandedGroupsRef.current.includes(currentGroup.name)) {
       setExpandedGroups(prev => [...prev, currentGroup.name]);
     }
-  }, [location, expandedGroups]);
+  }, [location]);
 
   // F1快捷键打开帮助面板
   useEffect(() => {
@@ -619,20 +622,23 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
           style={{ WebkitOverflowScrolling: 'touch' }}
           onScroll={handleNavScroll}
         >
-          {filteredMenuConfig.map((group) => (
-            <SidebarMenuGroup
-              key={group.name}
-              group={group}
-              isExpanded={expandedGroups.includes(group.name)}
-              hasActiveItem={group.items.some(item => location === item.path)}
-              language={language}
-              location={location}
-              currentBU={currentBU}
-              alertCount={alertCount}
-              onToggle={toggleGroup}
-              onNavigate={handleMenuNavigate}
-            />
-          ))}
+          {filteredMenuConfig.map((group) => {
+            const activeItem = group.items.find(item => location === item.path);
+            return (
+              <SidebarMenuGroup
+                key={group.name}
+                group={group}
+                isExpanded={expandedGroups.includes(group.name)}
+                hasActiveItem={!!activeItem}
+                activeItemPath={activeItem?.path ?? null}
+                language={language}
+                currentBU={currentBU}
+                alertCount={alertCount}
+                onToggle={toggleGroup}
+                onNavigate={handleMenuNavigate}
+              />
+            );
+          })}
 
           <div className="pt-4 mt-4 border-t border-sidebar-border/50">
             <FeedbackDialog />
@@ -805,7 +811,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </div>
-        <ErrorBoundary key={location} level="section">
+        <ErrorBoundary resetKeys={[location]} level="section">
           <div className="p-6 lg:p-8">{children}</div>
         </ErrorBoundary>
       </main>

@@ -8,6 +8,9 @@ interface Props {
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
   level?: "page" | "section" | "component";
+  /** When any value in this array changes, the error state resets automatically.
+   *  Use this instead of key={...} to avoid destroying the entire subtree. */
+  resetKeys?: unknown[];
 }
 
 interface State {
@@ -63,6 +66,18 @@ class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    // Reset error state when resetKeys change (avoids key={...} which destroys the tree)
+    if (this.state.hasError && this.props.resetKeys && prevProps.resetKeys) {
+      const changed = this.props.resetKeys.some(
+        (key, i) => key !== prevProps.resetKeys![i]
+      );
+      if (changed) {
+        this.setState({ hasError: false, error: null, errorInfo: null, copied: false });
+      }
+    }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
