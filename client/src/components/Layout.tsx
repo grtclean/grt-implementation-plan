@@ -42,7 +42,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, memo } from "react";
+import { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, memo } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { ChevronLeft, ChevronRight as ChevronRightIcon } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -385,8 +385,11 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
   // 侧边栏导航区域引用和滚动状态
   const navRef = useRef<HTMLElement>(null);
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const showScrollTopRef = useRef(false);
+  const [showScrollTop, setShowScrollTop] = useState(() => {
+    const saved = sessionStorage.getItem('sidebarScrollPosition');
+    return saved ? parseInt(saved, 10) > 200 : false;
+  });
+  const showScrollTopRef = useRef(showScrollTop);
   const scrollProgressRef = useRef(0);
 
   // 监听侧边栏滚动，显示/隐藏返回顶部按钮和进度条，并保存滚动位置
@@ -411,13 +414,11 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     });
   }, []);
   
-  // 恢复侧边栏滚动位置 — 使用 rAF 在首次绘制前恢复，避免可见跳跃
-  useEffect(() => {
+  // 恢复侧边栏滚动位置 — useLayoutEffect 在浏览器绘制前同步执行，防止可见跳跃
+  useLayoutEffect(() => {
     const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition');
     if (savedScrollPosition && navRef.current) {
-      const pos = parseInt(savedScrollPosition, 10);
-      // Immediate assignment before first paint
-      navRef.current.scrollTop = pos;
+      navRef.current.scrollTop = parseInt(savedScrollPosition, 10);
     }
   }, []);
   
