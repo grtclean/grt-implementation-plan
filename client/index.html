@@ -37,7 +37,9 @@
         transition: none !important;
         animation-name: none !important;
       }
-      /* Loading overlay — covers page until React app is ready */
+      /* Loading overlay — covers page until React app is ready.
+         Removed instantly (no fade) by main.tsx for clean single-frame
+         switch that works well on remote desktop connections. */
       #app-loader {
         position: fixed;
         inset: 0;
@@ -45,15 +47,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        /* !important needed to override .no-transitions * { transition: none !important } */
-        transition: opacity 0.3s ease !important;
       }
       .dark #app-loader { background: oklch(0.13 0.02 260); }
       :root:not(.dark) #app-loader { background: oklch(0.985 0 0); }
-      #app-loader.fade-out {
-        opacity: 0;
-        pointer-events: none;
-      }
       #app-loader .spinner {
         width: 32px;
         height: 32px;

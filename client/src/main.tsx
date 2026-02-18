@@ -20,6 +20,10 @@ const queryClient = new QueryClient({
     queries: {
       retry: false,
       refetchOnWindowFocus: false,
+      // Keep data fresh for 30s — on page navigation, cached data shows
+      // instantly (no loading spinner) while a background refetch updates it.
+      // This eliminates the loading→content layout shift on every navigation.
+      staleTime: 30_000,
     },
     mutations: {
       retry: false,
@@ -117,32 +121,22 @@ const trpcClient = trpc.createClient({
 // This eliminates all loading→content transitions and page jumping.
 import { authReady } from "@/_core/hooks/useAuth";
 
-// Dismiss the loading overlay and unlock CSS transitions
+// Dismiss the loading overlay and unlock CSS transitions.
+// Uses INSTANT removal (no fade) — on remote desktop, a gradual opacity
+// fade produces many intermediate frames that each look like a "jump."
+// An instant switch is one clean frame update.
 let loaderDismissed = false;
 function dismissLoader() {
   if (loaderDismissed) return;
   loaderDismissed = true;
   const loader = document.getElementById("app-loader");
-  // Remove the inline background-color override — CSS `html { background-color: var(--background) }`
-  // now handles it, so the transition is seamless (same color).
+  if (loader) loader.remove();
   document.documentElement.style.backgroundColor = '';
-  if (loader) {
-    loader.classList.add("fade-out");
-    // Remove overlay after fade-out, then enable transitions one frame later
-    // so that any pending style differences don't trigger visible transitions
-    setTimeout(() => {
-      loader.remove();
-      requestAnimationFrame(() => {
-        document.documentElement.classList.remove("no-transitions");
-      });
-    }, 350);
-  } else {
-    document.documentElement.classList.remove("no-transitions");
-  }
+  document.documentElement.classList.remove("no-transitions");
 }
 
-// Safety: always dismiss overlay within 3s, even if auth/render fails
-setTimeout(dismissLoader, 3000);
+// Safety: always dismiss overlay within 4s, even if auth/render fails
+setTimeout(dismissLoader, 4000);
 
 authReady.then(async () => {
   createRoot(document.getElementById("root")!).render(
@@ -155,9 +149,7 @@ authReady.then(async () => {
     </trpc.Provider>
   );
 
-  // Wait for fonts to load (max 2s) so text doesn't reflow after overlay dismisses.
-  // Google Fonts uses display=optional — if font misses the ~100ms block window
-  // the browser uses fallback permanently, so this resolves quickly in practice.
+  // Wait for fonts (max 2s) — display=optional means this resolves fast in practice
   try {
     await Promise.race([
       document.fonts.ready,
@@ -165,23 +157,23 @@ authReady.then(async () => {
     ]);
   } catch {}
 
-  // Wait for first paint to complete, then wait for initial data queries
-  // to settle before removing the overlay.  This prevents the common
-  // "content jumps in after the spinner disappears" layout shift.
+  // Wait for first paint + initial data queries to settle.
+  // The overlay stays visible until the page content is FULLY ready,
+  // then is removed in one shot (no fade) for a clean single-frame switch.
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      // Let React effects fire and initiate tRPC queries, then wait
-      // for them to resolve (adaptive: fast APIs → fast dismiss).
+      // Let React effects fire (80ms) then poll for query completion
       setTimeout(() => {
         const waitForQueries = (remaining: number) => {
           if (remaining <= 0 || queryClient.isFetching() === 0) {
-            dismissLoader();
+            // One more rAF to ensure React has flushed all pending state updates
+            requestAnimationFrame(() => dismissLoader());
           } else {
             setTimeout(() => waitForQueries(remaining - 50), 50);
           }
         };
-        waitForQueries(800); // max 800ms for queries to settle
-      }, 80); // 80ms for effects to initiate queries
+        waitForQueries(1500); // max 1.5s for queries to settle
+      }, 80);
     });
   });
 }).catch(() => {
