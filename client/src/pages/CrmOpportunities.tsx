@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -141,7 +140,6 @@ export default function CrmOpportunities() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
@@ -555,6 +553,5 @@ export default function CrmOpportunities() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }

@@ -3,7 +3,6 @@
  * Phase H: 健康评分 · 维护计划 · 备件管理 · 成本预估
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,7 +106,6 @@ export default function AIMaintenancePlan() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Wrench}
@@ -332,6 +330,5 @@ export default function AIMaintenancePlan() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

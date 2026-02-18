@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -336,7 +335,6 @@ export default function JiandaoyunAnalysis() {
   const totalErrors = migrationProgressData.reduce((sum, m) => sum + m.errorRecords, 0);
 
   return (
-    <Layout>
       <div className="space-y-8">
         {/* Header */}
         <div className="space-y-4">
@@ -1306,6 +1304,5 @@ export default function JiandaoyunAnalysis() {
           </Link>
         </div>
       </div>
-    </Layout>
   );
 }

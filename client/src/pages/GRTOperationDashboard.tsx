@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import Layout from "@/components/Layout";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
@@ -718,7 +717,6 @@ export default function GRTOperationDashboard() {
   }, [selectedStage, currentStage]);
 
   return (
-    <Layout>
       <div className="min-h-screen bg-[#0A0E17] text-slate-200 font-sans selection:bg-blue-500/30">
         {/* Sidebar Navigation */}
         <nav className="fixed left-0 top-0 h-full w-64 bg-[#111625] border-r border-slate-800 p-4 flex flex-col z-50">
@@ -1197,6 +1195,5 @@ export default function GRTOperationDashboard() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }

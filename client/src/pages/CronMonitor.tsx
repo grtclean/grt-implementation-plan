@@ -3,7 +3,6 @@
  * 任务状态、执行历史、手动触发
  */
 
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,7 +109,6 @@ export default function CronMonitor() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Clock}
@@ -172,6 +170,5 @@ export default function CronMonitor() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

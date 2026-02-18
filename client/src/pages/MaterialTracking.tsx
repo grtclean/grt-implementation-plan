@@ -3,7 +3,6 @@
  * 物料入库、出库、追踪、库存预警
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,6 @@ export default function MaterialTracking() {
   const filtered = MOCK_MATERIALS.filter(m => !search || m.name.includes(search) || m.id.includes(search));
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Package}
@@ -72,6 +70,5 @@ export default function MaterialTracking() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

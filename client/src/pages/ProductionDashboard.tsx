@@ -35,7 +35,6 @@ import {
   Zap
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 
 import { toast } from "sonner";
@@ -246,7 +245,6 @@ export default function ProductionDashboard() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Factory}
@@ -645,6 +643,5 @@ export default function ProductionDashboard() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

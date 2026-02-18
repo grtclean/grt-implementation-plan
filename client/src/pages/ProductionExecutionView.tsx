@@ -21,7 +21,6 @@ import {
   Timer, ClipboardCheck, RefreshCw, Loader2, Filter, X
 } from 'lucide-react';
 import { useLanguage } from "@/contexts/LanguageContext";
-import LayoutComponent from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -548,7 +547,6 @@ export default function ProductionExecutionView() {
   const isLoading = isLoadingDefinitions || isLoadingStages;
 
   return (
-    <LayoutComponent>
       <div className="flex flex-col h-full bg-[#0B1120] text-slate-200 font-sans p-6 overflow-hidden min-h-screen">
         
         {/* HEADER */}
@@ -967,6 +965,5 @@ export default function ProductionExecutionView() {
           </div>
         </div>
       </div>
-    </LayoutComponent>
   );
 }

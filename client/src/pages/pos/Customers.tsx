@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -389,7 +388,6 @@ export default function POSCustomers() {
   const totalContacts = data?.items?.reduce((sum: number, c: any) => sum + (c.keyContacts?.length || 0), 0) || 0;
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* 面包屑导航 */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -493,6 +491,5 @@ export default function POSCustomers() {
         onClose={() => setSelectedCustomer(null)}
       />
     </div>
-    </Layout>
   );
 }

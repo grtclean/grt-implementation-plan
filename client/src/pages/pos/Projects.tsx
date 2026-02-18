@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,7 +56,6 @@ export default function POSProjects() {
   });
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={FolderKanban}
@@ -175,6 +173,5 @@ export default function POSProjects() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

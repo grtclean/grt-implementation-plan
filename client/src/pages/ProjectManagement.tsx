@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import AISuggestionPanelWithMode from "@/components/AISuggestionPanelWithMode";
 import ProcessNotebook from "@/components/ProcessNotebook";
 import FeatureGuide from "@/components/FeatureGuide";
@@ -108,7 +107,7 @@ export default function ProjectManagement() {
   };
 
   return (
-    <Layout>
+      <>
       <FeatureGuide
         featureId="project-management"
         title={t("projects.guide.title")}
@@ -399,6 +398,6 @@ export default function ProjectManagement() {
         {/* Process Notebook */}
         <ProcessNotebook processType="project-management" processId="list" />
       </div>
-    </Layout>
+      </>
   );
 }

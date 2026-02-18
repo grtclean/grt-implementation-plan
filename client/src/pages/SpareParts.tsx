@@ -3,7 +3,6 @@
  * 备件库存、需求预测、供应商管理
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
@@ -38,7 +37,6 @@ export default function SpareParts() {
   const filtered = MOCK_PARTS.filter(p => !search || p.name.includes(search) || p.model.includes(search));
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Package}
@@ -99,6 +97,5 @@ export default function SpareParts() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

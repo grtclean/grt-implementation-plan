@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Wrench, Plus, Clock, CheckCircle2, ArrowRight, Settings, Users } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 const MOCK_PROCESSES = [
   { id: "WP-001", name: "钢结构焊接", category: "结构", avgTime: "4.5h", workers: 3, status: "进行中", quality: 98 },
@@ -20,7 +19,6 @@ const MOCK_PROCESSES = [
 
 export default function ProcessManagement() {
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Wrench}
@@ -62,6 +60,5 @@ export default function ProcessManagement() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

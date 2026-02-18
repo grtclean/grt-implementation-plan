@@ -12,7 +12,6 @@ import {
   Calendar, ChevronRight, Clock, AlertTriangle
 } from "lucide-react";
 import { PageHeader } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 // 项目模板库
 const projectTemplates = [
@@ -72,7 +71,6 @@ export default function ProjectHubEnhanced() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={FolderKanban}
@@ -275,6 +273,5 @@ export default function ProjectHubEnhanced() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

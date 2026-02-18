@@ -5,7 +5,6 @@
  */
 
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -969,7 +968,6 @@ export default function AfterSalesManagement() {
   const { t } = useLanguage();
   
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader icon={ClipboardList} title="售后服务管理" description="管理客户档案、设备资产和服务工单" />
         
@@ -1003,6 +1001,5 @@ export default function AfterSalesManagement() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

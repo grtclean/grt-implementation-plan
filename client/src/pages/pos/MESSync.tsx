@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -154,7 +153,6 @@ export default function POSMESSync() {
   const mesConnected = connectionStatus?.mes?.connected ?? false;
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
       <PageHeader
@@ -591,6 +589,5 @@ export default function POSMESSync() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

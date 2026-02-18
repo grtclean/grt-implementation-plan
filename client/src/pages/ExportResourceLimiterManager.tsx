@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
-import Layout from '@/components/Layout';
 import { PageHeader, StatCard } from '@/components/grt';
 import { Activity, Cpu, HardDrive, Play, Pause, XCircle, Clock, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 
@@ -63,7 +62,6 @@ export default function ExportResourceLimiterManager() {
   };
 
   return (
-    <Layout>
     <div className="p-6 space-y-6">
       <PageHeader
         icon={Activity}
@@ -162,6 +160,5 @@ export default function ExportResourceLimiterManager() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

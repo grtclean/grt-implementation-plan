@@ -3,7 +3,6 @@
  * 一键将已解决工单转化为知识库文章 · 自动提取关键字和标签
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -72,7 +71,6 @@ export default function TicketToKnowledgeBase() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={BookOpen}
@@ -290,6 +288,5 @@ export default function TicketToKnowledgeBase() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

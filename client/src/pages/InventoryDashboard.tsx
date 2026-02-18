@@ -3,7 +3,6 @@
  * 总览卡片、库存水平表、最近出入库动态、批次追溯、临期预警
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -181,7 +180,6 @@ function ExpiryAlerts() {
 
 export default function InventoryDashboard() {
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader icon={Package} title="库存看板" description="实时库存总览、出入库动态、批次追溯与预警" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -197,6 +195,5 @@ export default function InventoryDashboard() {
         </div>
         <LotTraceSection />
       </div>
-    </Layout>
   );
 }

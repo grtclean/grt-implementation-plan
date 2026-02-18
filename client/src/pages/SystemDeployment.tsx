@@ -5,7 +5,6 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -286,7 +285,6 @@ export default function SystemDeployment() {
   };
   
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Server}
@@ -892,6 +890,5 @@ export default function SystemDeployment() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatusBadge, createStatusColorMap } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -136,7 +135,6 @@ export default function ProjectPhaseDocuments() {
   );
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={FolderOpen}
@@ -312,6 +310,5 @@ export default function ProjectPhaseDocuments() {
           </div>
         )}
       </div>
-    </Layout>
   );
 }

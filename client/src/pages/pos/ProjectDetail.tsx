@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -161,7 +160,6 @@ export default function POSProjectDetail() {
   ];
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* 面包屑导航 */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -741,6 +739,5 @@ export default function POSProjectDetail() {
         </DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }

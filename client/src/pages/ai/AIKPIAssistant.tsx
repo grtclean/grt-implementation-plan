@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt";
-import Layout from "@/components/Layout";
 import {
   Target,
   Loader2,
@@ -144,7 +143,6 @@ export default function AIKPIAssistant() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Target}
@@ -344,6 +342,5 @@ export default function AIKPIAssistant() {
         </Tabs>
       )}
     </div>
-    </Layout>
   );
 }

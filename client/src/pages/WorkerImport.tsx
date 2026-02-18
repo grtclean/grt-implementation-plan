@@ -3,7 +3,6 @@
  * 文件上传、字段映射、导入预览
  */
 
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -143,7 +142,6 @@ export default function WorkerImport() {
   ];
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={FileSpreadsheet}
@@ -264,6 +262,5 @@ export default function WorkerImport() {
           </div>
         )}
       </div>
-    </Layout>
   );
 }

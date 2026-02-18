@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -273,7 +272,6 @@ export default function SmartMeeting() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -590,6 +588,5 @@ export default function SmartMeeting() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

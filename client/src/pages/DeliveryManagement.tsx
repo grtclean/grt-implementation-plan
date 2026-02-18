@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import FeatureGuide from "@/components/FeatureGuide";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
@@ -229,7 +228,7 @@ export default function DeliveryManagement() {
   };
 
   return (
-    <Layout>
+      <>
       <FeatureGuide
         featureId="delivery-management"
         title="M7-M9 交付管理"
@@ -994,6 +993,6 @@ export default function DeliveryManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+      </>
   );
 }

@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -241,7 +240,6 @@ export default function WebhookSettings() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Webhook}
@@ -528,7 +526,6 @@ export default function WebhookSettings() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }
 

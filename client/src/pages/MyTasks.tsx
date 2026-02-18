@@ -4,7 +4,6 @@
  */
 
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import FeatureGuide from "@/components/FeatureGuide";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -438,7 +437,7 @@ export default function MyTasks() {
   };
 
   return (
-    <Layout>
+      <>
       <FeatureGuide
         featureId="my-tasks"
         title="我的任务"
@@ -723,6 +722,6 @@ export default function MyTasks() {
           </div>
         </div>
       </div>
-    </Layout>
+      </>
   );
 }

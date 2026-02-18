@@ -3,7 +3,6 @@
  * 员工可在出差/休假期间将审批权限委托给同事
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -106,7 +105,6 @@ export default function DelegationManagement() {
   }
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={UserCog}
@@ -316,6 +314,5 @@ export default function DelegationManagement() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }

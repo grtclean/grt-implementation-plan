@@ -13,7 +13,6 @@ import Placeholder from "@tiptap/extension-placeholder";
 // @ts-ignore - tiptap optional dependency
 import Link from "@tiptap/extension-link";
 import { trpc } from "@/lib/trpc";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -185,7 +184,6 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
   }
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* 页面标题和操作栏 */}
       <div className="space-y-4">
@@ -371,7 +369,6 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }
 

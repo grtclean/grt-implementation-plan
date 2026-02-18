@@ -3,7 +3,6 @@
  * 展示所有定时任务状态，支持手动触发和配置修改
  */
 
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -132,7 +131,6 @@ export default function SchedulerManagement() {
   const logs: TaskExecutionLog[] = logsData || [];
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Timer}
@@ -411,6 +409,5 @@ export default function SchedulerManagement() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

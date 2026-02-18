@@ -3,7 +3,6 @@
  * Phase 21 P0: US-004 — 结构化表单 · AI风险分析 · 任务接续
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,7 +95,6 @@ export default function ShiftHandover() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={RefreshCw}
@@ -258,6 +256,5 @@ export default function ShiftHandover() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

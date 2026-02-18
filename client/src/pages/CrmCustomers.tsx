@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -164,7 +163,7 @@ export default function CrmCustomers() {
   const aLevelCount = customers.filter(c => c.level === "A").length;
 
   return (
-    <Layout>
+      <>
       <FeatureGuide
         featureId="crm-customers"
         title={t("crm.guide.title")}
@@ -551,6 +550,6 @@ export default function CrmCustomers() {
           </Link>
         </div>
       </div>
-    </Layout>
+      </>
   );
 }

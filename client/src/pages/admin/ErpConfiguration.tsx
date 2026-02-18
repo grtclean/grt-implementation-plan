@@ -15,7 +15,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Database, RefreshCw, Settings, Plus, TestTube, History, CheckCircle, XCircle, Clock, Loader2 } from "lucide-react";
 
@@ -124,7 +123,6 @@ export default function ErpConfiguration() {
   }
 
   return (
-    <Layout>
     <div className="space-y-6 p-6">
       {/* 页面标题 */}
       <PageHeader
@@ -339,6 +337,5 @@ export default function ErpConfiguration() {
         </Dialog>
       )}
     </div>
-    </Layout>
   );
 }

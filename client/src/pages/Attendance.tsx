@@ -2,7 +2,6 @@
  * 考勤管理页面
  * 打卡记录、考勤统计、异常处理、请假管理
  */
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -30,7 +29,6 @@ const MOCK_RECORDS = [
 
 export default function Attendance() {
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Clock}
@@ -74,6 +72,5 @@ export default function Attendance() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

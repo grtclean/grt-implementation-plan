@@ -2,7 +2,6 @@
  * 个人智能体中心增强版 - 行为数据聚合、技能推断、知识图谱
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -75,7 +74,6 @@ export default function PersonalAgentHubEnhanced() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Brain}
@@ -288,6 +286,5 @@ export default function PersonalAgentHubEnhanced() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

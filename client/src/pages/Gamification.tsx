@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +33,6 @@ export default function Gamification() {
   const leaderboard = leaderboardQuery.data;
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Trophy}
@@ -137,6 +135,5 @@ export default function Gamification() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

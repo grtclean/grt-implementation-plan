@@ -3,7 +3,6 @@
  * CE/UL/CCC 区域认证追踪 · 差距分析 · 时间线规划 · 文档清单
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -87,7 +86,6 @@ export default function RegionalCertificationTracker() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Award}
@@ -358,6 +356,5 @@ export default function RegionalCertificationTracker() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

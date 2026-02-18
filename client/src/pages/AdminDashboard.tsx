@@ -1,5 +1,4 @@
 import React from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +31,6 @@ export default function AdminDashboard() {
   // 如果不是管理员，显示无权限页面
   if (currentUserRole !== "admin") {
     return (
-      <Layout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
           <div className="p-4 rounded-full bg-destructive/10">
             <Lock className="w-12 h-12 text-destructive" />
@@ -45,7 +43,6 @@ export default function AdminDashboard() {
             返回首页
           </Button>
         </div>
-      </Layout>
     );
   }
 
@@ -74,7 +71,6 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Shield}
@@ -293,6 +289,5 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

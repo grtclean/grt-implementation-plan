@@ -54,7 +54,6 @@ import {
 } from 'lucide-react';
 import NotificationConfig from '@/components/sync/NotificationConfig';
 import { useToast } from '@/hooks/use-toast';
-import Layout from '@/components/Layout';
 import { PageHeader, StatCard } from '@/components/grt';
 
 // 类型定义
@@ -301,7 +300,6 @@ export default function CloudBackupSyncManager() {
   };
 
   return (
-    <Layout>
     <div className="container mx-auto py-6 space-y-6">
       {/* 页面标题 */}
       <PageHeader
@@ -626,6 +624,5 @@ export default function CloudBackupSyncManager() {
         </DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }

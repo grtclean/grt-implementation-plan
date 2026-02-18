@@ -17,7 +17,6 @@
 
 import { useState } from "react";
 import { Link } from "wouter";
-import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -178,7 +177,6 @@ export default function RoleDashboard() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* Header: 问候 + 角色信息 */}
       <div className="flex items-center justify-between">
@@ -424,6 +422,5 @@ export default function RoleDashboard() {
         </div>
       )}
     </div>
-    </Layout>
   );
 }

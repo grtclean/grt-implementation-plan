@@ -3,7 +3,6 @@
  * 仓库列表、库位管理、入库管理、出库管理
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -218,7 +217,6 @@ function IssuesTab() {
 
 export default function WarehouseManagement() {
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader icon={Warehouse} title="仓库管理" description="仓库、库位、入库、出库一站式管理" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -235,6 +233,5 @@ export default function WarehouseManagement() {
           <TabsContent value="issues"><IssuesTab /></TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

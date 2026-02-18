@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { MessageSquare, Target, Brain, Shield, TrendingUp, Play, Pause, RotateCcw } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 const mockNegotiations = [
   { id: "neg_001", clientAgent: "上汽采购AI", round: 5, ourOffer: 125000, clientOffer: 98000, zopaMin: 105000, zopaMax: 130000, sentiment: "positive", status: "negotiating" },
@@ -34,7 +33,6 @@ export default function AiSalesHub() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={MessageSquare}
@@ -149,6 +147,5 @@ export default function AiSalesHub() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

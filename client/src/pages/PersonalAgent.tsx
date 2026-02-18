@@ -22,7 +22,6 @@ import {
   Code, Cpu, Lightbulb, TrendingUp, Clock, User,
   BookOpen, Target, Zap, GitBranch, Search, Sparkles
 } from "lucide-react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 
 // 行为上下文类型
@@ -122,7 +121,6 @@ export default function PersonalAgent() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Brain}
@@ -522,6 +520,5 @@ export default function PersonalAgent() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

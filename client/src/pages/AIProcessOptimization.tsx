@@ -4,7 +4,6 @@
  */
 
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import FeatureGuide from "@/components/FeatureGuide";
 import { Button } from "@/components/ui/button";
@@ -429,7 +428,7 @@ export default function AIProcessOptimization() {
   };
 
   return (
-    <Layout>
+      <>
       <FeatureGuide
         featureId="ai-process-optimization"
         title="AI 流程优化建议中心"
@@ -714,6 +713,6 @@ export default function AIProcessOptimization() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
+      </>
   );
 }

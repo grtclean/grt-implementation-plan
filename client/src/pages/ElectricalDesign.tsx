@@ -2,7 +2,6 @@
  * 电气设计页面 (TX-004)
  * 电气控制系统设计、PLC程序、电气图纸管理
  */
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -36,7 +35,6 @@ export default function ElectricalDesign() {
   const filtered = MOCK_DESIGNS.filter(d => !currentBU || d.bu === currentBU);
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Zap}
@@ -93,6 +91,5 @@ export default function ElectricalDesign() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

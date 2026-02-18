@@ -3,7 +3,6 @@
  * Phase G: 成本优化 · 节省建议 · 毛利分析 · 风险评估
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,7 +66,6 @@ export default function AICostOptimization() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Calculator}
@@ -260,6 +258,5 @@ export default function AICostOptimization() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

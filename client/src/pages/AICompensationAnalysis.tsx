@@ -3,7 +3,6 @@
  * Phase F: 薪酬竞争力 · 市场对标 · 公平性分析 · 调薪建议
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -105,7 +104,6 @@ export default function AICompensationAnalysis() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={DollarSign}
@@ -306,6 +304,5 @@ export default function AICompensationAnalysis() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

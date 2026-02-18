@@ -5,7 +5,6 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -176,7 +175,6 @@ export default function SecurityDashboard() {
   // 检查是否是管理员
   if (user && user.role !== 'admin') {
     return (
-      <Layout>
         <div className="flex items-center justify-center h-[60vh]">
           <Card className="max-w-md">
             <CardContent className="pt-6 text-center">
@@ -188,12 +186,10 @@ export default function SecurityDashboard() {
             </CardContent>
           </Card>
         </div>
-      </Layout>
     );
   }
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Shield}
@@ -818,7 +814,6 @@ export default function SecurityDashboard() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }
 

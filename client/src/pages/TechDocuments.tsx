@@ -3,7 +3,6 @@
  * 技术文档库、版本管理、审批流
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
@@ -32,7 +31,6 @@ export default function TechDocuments() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={FileText}
@@ -90,6 +88,5 @@ export default function TechDocuments() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

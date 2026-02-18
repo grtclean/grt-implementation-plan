@@ -3,7 +3,6 @@
  * 功能：项目启动会风险预警、URS评审、红蓝对抗配置
  */
 
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -146,7 +145,6 @@ export default function M1KickoffDashboard() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -538,6 +536,5 @@ export default function M1KickoffDashboard() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

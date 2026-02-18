@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -161,7 +160,6 @@ export default function ExpenseReportScheduler() {
 
   if (isLoading) {
     return (
-      <Layout>
         <div className="space-y-6 animate-pulse">
           <div className="flex items-center justify-between">
             <div className="space-y-2">
@@ -192,12 +190,10 @@ export default function ExpenseReportScheduler() {
             ))}
           </div>
         </div>
-      </Layout>
     );
   }
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -485,6 +481,5 @@ export default function ExpenseReportScheduler() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }

@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -617,7 +616,6 @@ export default function NotificationChannelSettings() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Bell}
@@ -1010,7 +1008,6 @@ export default function NotificationChannelSettings() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }
 

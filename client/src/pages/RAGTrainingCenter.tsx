@@ -7,7 +7,6 @@
  */
 
 import { useState, useRef, useCallback } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import {
@@ -274,7 +273,6 @@ export default function RAGTrainingCenter() {
 
   // ---- Render ----
   return (
-    <Layout>
       <div className="min-h-screen p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -841,6 +839,5 @@ export default function RAGTrainingCenter() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

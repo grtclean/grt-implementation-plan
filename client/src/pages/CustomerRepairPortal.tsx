@@ -3,7 +3,6 @@
  * Phase 21 P0: US-006 — 在线报修 · AI智能分诊 · 自助排查
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -87,7 +86,6 @@ export default function CustomerRepairPortal() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Ticket}
@@ -264,6 +262,5 @@ export default function CustomerRepairPortal() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

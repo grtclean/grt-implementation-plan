@@ -24,7 +24,6 @@ import { AlertCircle, Plus, Edit2, Trash2, CheckCircle2, Shield } from 'lucide-r
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 /**
  * 权限管理主页面
@@ -46,7 +45,6 @@ export default function PermissionManagement() {
   }
 
   return (
-    <Layout>
     <div className="space-y-6">
         <PageHeader
           icon={Shield}
@@ -84,7 +82,6 @@ export default function PermissionManagement() {
           </TabsContent>
         </Tabs>
     </div>
-    </Layout>
   );
 }
 

@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShieldAlert, Plus, Search, User, Lock, Unlock, AlertTriangle, Clock } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 interface BlacklistEntry {
   id: string;
@@ -38,7 +37,6 @@ export default function PermissionBlacklist() {
   const filtered = MOCK_BLACKLIST.filter(b => !search || b.user.includes(search) || b.blockedModule.includes(search));
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={ShieldAlert}
@@ -110,6 +108,5 @@ export default function PermissionBlacklist() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

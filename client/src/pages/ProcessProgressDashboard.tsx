@@ -24,7 +24,6 @@ import {
   ChevronRight, Activity, Timer, Zap
 } from "lucide-react";
 import { PageHeader } from "@/components/grt";
-import Layout from "@/components/Layout";
 import { useState, useMemo } from "react";
 
 export default function ProcessProgressDashboard() {
@@ -40,7 +39,6 @@ export default function ProcessProgressDashboard() {
   const data = progressQuery.data as any;
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
       <PageHeader
@@ -149,7 +147,6 @@ export default function ProcessProgressDashboard() {
         </Card>
       )}
     </div>
-    </Layout>
   );
 }
 

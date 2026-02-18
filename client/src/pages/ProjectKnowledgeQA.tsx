@@ -3,7 +3,6 @@
  * Phase D: AI项目智能
  */
 import { useState, useRef, useEffect } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,7 +91,6 @@ export default function ProjectKnowledgeQA() {
   };
 
   return (
-    <Layout>
       <div className="flex flex-col h-[calc(100vh-4rem)] p-6">
         <PageHeader
           icon={MessageSquare}
@@ -231,6 +229,5 @@ export default function ProjectKnowledgeQA() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

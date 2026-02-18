@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -110,7 +109,6 @@ export default function CcdIntegration() {
   const stats = (statsQuery.data ?? {}) as any;
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Cpu}
@@ -397,6 +395,5 @@ export default function CcdIntegration() {
         </DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }

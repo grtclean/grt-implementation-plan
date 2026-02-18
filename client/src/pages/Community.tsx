@@ -11,7 +11,6 @@
  */
 
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
@@ -36,7 +35,6 @@ export default function Community() {
   const [activeTab, setActiveTab] = useState("members");
   
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -95,7 +93,6 @@ export default function Community() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }
 

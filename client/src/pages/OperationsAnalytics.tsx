@@ -2,7 +2,6 @@
  * 运营分析仪表盘
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +72,6 @@ export default function OperationsAnalytics() {
   const maxRev = Math.max(...REVENUE);
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={BarChart3}
@@ -220,6 +218,5 @@ export default function OperationsAnalytics() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

@@ -4,7 +4,6 @@
  */
 
 import { useState, useEffect } from 'react';
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -305,7 +304,6 @@ export default function ModelExplainabilityReport() {
   if (!report) return <div className="container py-8"><div className="flex items-center justify-center h-96"><div className="text-center space-y-4"><AlertCircle className="w-12 h-12 mx-auto text-destructive" /><p className="text-muted-foreground">无法加载报告数据</p><Button onClick={handleRefresh}>重试</Button></div></div></div>;
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
@@ -364,6 +362,5 @@ export default function ModelExplainabilityReport() {
 
       <Card><CardHeader><CardTitle className="flex items-center gap-2"><Zap className="w-5 h-5 text-yellow-500" />优化建议</CardTitle></CardHeader><CardContent><ul className="space-y-3">{report.recommendations.map((rec, index) => (<li key={index} className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium flex-shrink-0 mt-0.5">{index + 1}</div><span className="text-muted-foreground">{rec}</span></li>))}</ul></CardContent></Card>
     </div>
-    </Layout>
   );
 }

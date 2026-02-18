@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FolderKanban, FileText, CheckSquare, BarChart3, Plus, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 const mockProjects = [
   { id: "prj_001", name: "上汽清洗线项目", customer: "上汽大众", stage: "M5", progress: 65, status: "on_track", pmName: "张工" },
@@ -41,7 +40,6 @@ export default function ProjectHub() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={FolderKanban}
@@ -153,6 +151,5 @@ export default function ProjectHub() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

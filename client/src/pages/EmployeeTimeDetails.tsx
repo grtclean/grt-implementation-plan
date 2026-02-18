@@ -3,7 +3,6 @@
  * 显示员工基本信息、工时记录、历史违规和合规趋势图表
  */
 
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,17 +48,14 @@ export default function EmployeeTimeDetails() {
 
   if (isLoading) {
     return (
-      <Layout>
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      </Layout>
     );
   }
 
   if (error || !data) {
     return (
-      <Layout>
         <div className="flex flex-col items-center justify-center h-96 gap-4">
           <XCircle className="w-16 h-16 text-destructive" />
           <h2 className="text-xl font-semibold">员工数据加载失败</h2>
@@ -71,7 +67,6 @@ export default function EmployeeTimeDetails() {
             返回合规仪表板
           </Button>
         </div>
-      </Layout>
     );
   }
 
@@ -134,7 +129,6 @@ export default function EmployeeTimeDetails() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -376,6 +370,5 @@ export default function EmployeeTimeDetails() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

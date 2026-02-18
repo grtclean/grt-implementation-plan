@@ -5,7 +5,6 @@
 
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -187,7 +186,6 @@ export default function AgentUnitManagement() {
   const stats = (statisticsQuery.data as any) || { total: 0, byStatus: { pending: 0, calibrating: 0, passed: 0, rework: 0 }, passRate: 0 };
   
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -618,6 +616,5 @@ export default function AgentUnitManagement() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

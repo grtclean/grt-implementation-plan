@@ -35,7 +35,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 
 // 通知渠道类型
@@ -234,11 +233,9 @@ export default function NotificationSettings() {
 
   if (authLoading) {
     return (
-      <Layout>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </Layout>
     );
   }
 
@@ -246,7 +243,6 @@ export default function NotificationSettings() {
   const currentConfig = channelConfigs.find(c => c.id === activeChannel)!;
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Bell}
@@ -590,6 +586,5 @@ export default function NotificationSettings() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

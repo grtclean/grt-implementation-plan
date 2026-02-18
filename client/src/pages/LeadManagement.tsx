@@ -4,7 +4,6 @@
  */
 
 import { useState, useRef, useEffect } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -398,7 +397,6 @@ export default function LeadManagement() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -1170,6 +1168,5 @@ export default function LeadManagement() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }

@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Bot, Zap, CheckCircle, Clock } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { PageHeader, StatCard } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 export default function AiAssistantPanel() {
   const { toast } = useToast();
@@ -39,7 +38,6 @@ export default function AiAssistantPanel() {
   );
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Bot}
@@ -225,6 +223,5 @@ export default function AiAssistantPanel() {
         </Card>
       )}
     </div>
-    </Layout>
   );
 }

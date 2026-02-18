@@ -3,7 +3,6 @@
  * 智能诊断引导 · 逐步排故指令 · 升级判断
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -84,7 +83,6 @@ export default function RemoteAssistance() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Headphones}
@@ -331,6 +329,5 @@ export default function RemoteAssistance() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

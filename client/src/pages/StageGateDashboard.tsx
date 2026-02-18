@@ -3,7 +3,6 @@
  * Main page: stat cards, project selector, 4-tab layout
  */
 import { useState, Suspense, lazy } from "react";
-import Layout from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, StatCard } from "@/components/grt";
@@ -68,7 +67,6 @@ export default function StageGateDashboard() {
     : 0;
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={CheckSquare}
@@ -164,6 +162,5 @@ export default function StageGateDashboard() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

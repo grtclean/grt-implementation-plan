@@ -3,7 +3,6 @@
  * 生产计划 vs 库存智能比对 · 缺料预测 · 采购建议
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -102,7 +101,6 @@ export default function MaterialShortageAlert() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={AlertTriangle}
@@ -346,6 +344,5 @@ export default function MaterialShortageAlert() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

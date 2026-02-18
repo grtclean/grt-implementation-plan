@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,7 +46,6 @@ export default function CapabilityManagementPage() {
   }
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader icon={Award} title="能力管理" description="管理员工能力、证据、升级评估和发展路径" />
 
@@ -226,6 +224,5 @@ export default function CapabilityManagementPage() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

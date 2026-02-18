@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from "@/components/ui/label";
 import { Shield, Plus, Clock, User, CheckCircle2, XCircle, AlertTriangle, Calendar, Search } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 interface TempPermission {
   id: string;
@@ -39,7 +38,6 @@ export default function TemporaryPermissions() {
   const filtered = MOCK_TEMP_PERMS.filter(p => !search || p.user.includes(search) || p.module.includes(search));
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Shield}
@@ -109,6 +107,5 @@ export default function TemporaryPermissions() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

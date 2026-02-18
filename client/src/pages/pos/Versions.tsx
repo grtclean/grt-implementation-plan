@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -516,7 +515,6 @@ export default function POSVersions() {
   const displayVersions = versions && versions.length > 0 ? versions : sampleVersions;
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* 返回按钮 */}
       <div className="flex items-center gap-4">
@@ -695,6 +693,5 @@ export default function POSVersions() {
         onClose={() => setShowCompareDialog(false)}
       />
     </div>
-    </Layout>
   );
 }

@@ -2,7 +2,6 @@
  * 方案设计页面 (TX-002)
  * 清洗方案配置、3D布局、技术参数计算
  */
-import Layout from "@/components/Layout";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
@@ -36,7 +35,6 @@ export default function SolutionDesign() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Lightbulb}
@@ -87,6 +85,5 @@ export default function SolutionDesign() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

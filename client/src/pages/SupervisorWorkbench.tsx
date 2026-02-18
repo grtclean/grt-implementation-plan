@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { MapView } from "@/components/Map";
@@ -267,7 +266,6 @@ export default function SupervisorWorkbench() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Users}
@@ -490,6 +488,5 @@ export default function SupervisorWorkbench() {
         </Card>
       )}
     </div>
-    </Layout>
   );
 }

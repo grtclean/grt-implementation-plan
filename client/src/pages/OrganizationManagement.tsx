@@ -3,7 +3,6 @@
  * 部门管理、岗位管理、组织树
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,7 +61,6 @@ function OrgNodeComponent({ node, depth = 0 }: { node: OrgNode; depth?: number }
 
 export default function OrganizationManagement() {
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Building2}
@@ -90,6 +88,5 @@ export default function OrganizationManagement() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

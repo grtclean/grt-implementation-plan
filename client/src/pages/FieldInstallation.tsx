@@ -2,7 +2,6 @@
  * 现场安装页面 (TX-013)
  * 设备安装进度、安装团队调度、现场问题记录
  */
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -35,7 +34,6 @@ export default function FieldInstallation() {
   const filtered = MOCK_INSTALLATIONS.filter(i => !currentBU || i.bu === currentBU);
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Wrench}
@@ -92,6 +90,5 @@ export default function FieldInstallation() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

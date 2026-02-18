@@ -4,7 +4,6 @@
  */
 
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -107,7 +106,7 @@ export default function BusinessUnits() {
   ] : [];
 
   return (
-    <Layout>
+      <>
       <div className="space-y-6">
         <PageHeader
           icon={TrendingUp}
@@ -482,6 +481,6 @@ export default function BusinessUnits() {
           </div>
         </DialogContent>
       </Dialog>
-    </Layout>
+      </>
   );
 }

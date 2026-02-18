@@ -13,7 +13,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { CheckCircle, AlertCircle, RefreshCw, Settings, Database, Clock } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
-import Layout from '@/components/Layout';
 import { PageHeader } from '@/components/grt';
 
 export default function ERPIntegration() {
@@ -103,7 +102,6 @@ export default function ERPIntegration() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
       <PageHeader
@@ -475,6 +473,5 @@ export default function ERPIntegration() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

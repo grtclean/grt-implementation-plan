@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import Layout from '@/components/Layout';
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -346,7 +345,6 @@ export default function EngineerCheckpoints() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -614,6 +612,5 @@ export default function EngineerCheckpoints() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }

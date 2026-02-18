@@ -2,7 +2,6 @@
  * 社群管理中心 - 消息审核、AI回复、脱敏测试、群消息统计
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,7 +25,6 @@ export default function SocialCommunityHub() {
   const [testInput, setTestInput] = useState("");
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={MessageSquare}
@@ -136,6 +134,5 @@ export default function SocialCommunityHub() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

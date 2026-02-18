@@ -4,7 +4,6 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -169,7 +168,6 @@ export default function AuditLogViewer() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Shield}
@@ -243,7 +241,6 @@ export default function AuditLogViewer() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }
 

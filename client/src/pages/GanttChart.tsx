@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { BarChart3, Building2, Calendar, ChevronLeft, ChevronRight, Milestone } from "lucide-react";
 import { PageHeader } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 const MOCK_TASKS = [
   { id: 1, name: "需求分析", project: "缸体清洗线", start: 1, duration: 3, progress: 100, color: "bg-green-500" },
@@ -29,7 +28,6 @@ export default function GanttChart() {
   const { currentBU } = useUserProfile();
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
@@ -96,6 +94,5 @@ export default function GanttChart() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

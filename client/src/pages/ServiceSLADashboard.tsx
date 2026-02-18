@@ -3,7 +3,6 @@
  * SLA达标率分析 · 工程师效能 · 改进建议
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -124,7 +123,6 @@ export default function ServiceSLADashboard() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Gauge}
@@ -385,6 +383,5 @@ export default function ServiceSLADashboard() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

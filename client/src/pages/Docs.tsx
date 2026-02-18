@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -163,7 +162,6 @@ export default function Docs() {
   ];
 
   return (
-    <Layout>
       <div className="space-y-8">
         <PageHeader
           icon={Book}
@@ -376,6 +374,5 @@ export default function Docs() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

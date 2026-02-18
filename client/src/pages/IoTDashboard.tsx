@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +43,6 @@ export default function IoTDashboard() {
   ];
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader icon={Cpu} title={isZh ? "IoT数字孪生" : "IoT Digital Twin"} />
 
@@ -145,6 +143,5 @@ export default function IoTDashboard() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

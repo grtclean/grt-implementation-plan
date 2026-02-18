@@ -2,7 +2,6 @@
  * 我的绩效页面
  * 个人绩效仪表盘、目标追踪、自评
  */
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -29,7 +28,6 @@ export default function MyPerformance() {
   const { roleConfig } = useUserProfile();
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Star}
@@ -70,6 +68,5 @@ export default function MyPerformance() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

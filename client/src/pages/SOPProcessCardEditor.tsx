@@ -3,7 +3,6 @@
  * Phase 21 P0: US-005 — AI工序生成 · 参数表 · 质检点 · BOM关联
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,7 +76,6 @@ export default function SOPProcessCardEditor() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={FileText}
@@ -284,6 +282,5 @@ export default function SOPProcessCardEditor() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

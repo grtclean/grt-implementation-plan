@@ -5,7 +5,6 @@
  * Rewrites the former mock HistoricalCases page with real AI-powered search.
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,7 +92,6 @@ export default function HistoricalCases() {
   const maxSimilarity = results.length > 0 ? Math.max(...results.map((r) => r.similarity)) : 0;
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={BookOpen}
@@ -291,6 +289,5 @@ export default function HistoricalCases() {
           </div>
         )}
       </div>
-    </Layout>
   );
 }

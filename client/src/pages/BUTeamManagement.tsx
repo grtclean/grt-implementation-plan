@@ -5,7 +5,6 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -212,7 +211,6 @@ export default function BUTeamManagement() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Building2}
@@ -758,6 +756,5 @@ export default function BUTeamManagement() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

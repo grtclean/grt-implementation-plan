@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -176,7 +175,6 @@ export default function AgendaManagement() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
@@ -740,6 +738,5 @@ export default function AgendaManagement() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

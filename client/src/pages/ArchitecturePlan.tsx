@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -216,7 +215,6 @@ export default function ArchitecturePlan() {
   const { t, language } = useLanguage();
 
   return (
-    <Layout>
       <div className="space-y-8">
         {/* 页面标题 */}
         <PageHeader
@@ -636,6 +634,5 @@ export default function ArchitecturePlan() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

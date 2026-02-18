@@ -3,7 +3,6 @@
  * 沟通记录 · 满意度追踪 · NPS管理
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -132,7 +131,6 @@ export default function CustomerFeedback() {
   ).length;
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={MessageCircle}
@@ -354,6 +352,5 @@ export default function CustomerFeedback() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }

@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import ToothpasteTestDataEntry from "@/components/ToothpasteTestDataEntry";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,6 @@ export default function ToothpasteTest() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 返回按钮 */}
         <div className="flex items-center gap-4">
@@ -29,6 +27,5 @@ export default function ToothpasteTest() {
         {/* 牙膏试验数据录入组件 */}
         <ToothpasteTestDataEntry onSubmit={handleSubmit} />
       </div>
-    </Layout>
   );
 }

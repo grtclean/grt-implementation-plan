@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -449,7 +448,7 @@ export default function AnnualPlanning() {
   }, [dragState, selectedYear, updateItemMutation]);
 
   return (
-    <Layout>
+      <>
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
@@ -1679,6 +1678,6 @@ export default function AnnualPlanning() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+      </>
   );
 }

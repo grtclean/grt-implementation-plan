@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -133,16 +132,13 @@ export default function EvidenceSubmission() {
 
   if (isLoading) {
     return (
-      <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </Layout>
     );
   }
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={TrendingUp}
@@ -426,6 +422,5 @@ export default function EvidenceSubmission() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

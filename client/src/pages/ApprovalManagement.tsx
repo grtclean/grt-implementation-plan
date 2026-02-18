@@ -2,7 +2,6 @@
  * 审批管理页面
  */
 import { useState } from 'react';
-import Layout from '@/components/Layout';
 import { PageHeader, StatCard } from '@/components/grt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,7 +71,6 @@ export default function ApprovalManagement() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
       <PageHeader
@@ -242,6 +240,5 @@ export default function ApprovalManagement() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

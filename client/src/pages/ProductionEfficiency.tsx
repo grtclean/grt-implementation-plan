@@ -3,7 +3,6 @@
  * Phase E: OEE分析 · 瓶颈识别 · 产能优化
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -80,7 +79,6 @@ export default function ProductionEfficiency() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={TrendingUp}
@@ -260,6 +258,5 @@ export default function ProductionEfficiency() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

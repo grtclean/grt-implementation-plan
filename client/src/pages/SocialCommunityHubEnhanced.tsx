@@ -2,7 +2,6 @@
  * 社群管理中心增强版 - 批量审核、AI评分、脱敏测试
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,7 +76,6 @@ export default function SocialCommunityHubEnhanced() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={MessageSquare}
@@ -296,6 +294,5 @@ export default function SocialCommunityHubEnhanced() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

@@ -4,7 +4,6 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -163,7 +162,6 @@ export default function ChangeManagement() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -589,6 +587,5 @@ export default function ChangeManagement() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

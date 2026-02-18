@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,7 +65,6 @@ export default function Roadmap() {
   ];
 
   return (
-    <Layout>
       <div className="space-y-8">
         <PageHeader
           icon={Rocket}
@@ -131,6 +129,5 @@ export default function Roadmap() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

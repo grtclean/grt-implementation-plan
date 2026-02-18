@@ -2,7 +2,6 @@
  * 销售分析页面
  * 销售漏斗、业绩趋势、BU对比、预测
  */
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +23,6 @@ export default function SalesAnalytics() {
   const filtered = BU_SALES.filter(s => !currentBU || s.bu.includes(currentBU));
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
@@ -68,6 +66,5 @@ export default function SalesAnalytics() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

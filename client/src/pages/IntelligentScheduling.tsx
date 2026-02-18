@@ -3,7 +3,6 @@
  */
 
 import { useState, useMemo } from 'react';
-import Layout from '@/components/Layout';
 import { PageHeader, StatCard } from "@/components/grt";
 import { GanttChart, type GanttTask, type GanttResource } from '@/components/GanttChart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -376,7 +375,6 @@ export default function IntelligentScheduling() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -937,6 +935,5 @@ export default function IntelligentScheduling() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }

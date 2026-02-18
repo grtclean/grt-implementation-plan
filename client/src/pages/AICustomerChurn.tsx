@@ -3,7 +3,6 @@
  * Phase G: 流失概率 · 健康评分 · 风险因子 · 挽留策略
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -99,7 +98,6 @@ export default function AICustomerChurn() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={UserCheck}
@@ -312,6 +310,5 @@ export default function AICustomerChurn() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

@@ -2,7 +2,6 @@
  * 薪酬管理页面
  * 薪资结构、薪酬核算、社保公积金
  */
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +19,6 @@ const SALARY_OVERVIEW = [
 
 export default function Compensation() {
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={DollarSign}
@@ -65,6 +63,5 @@ export default function Compensation() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

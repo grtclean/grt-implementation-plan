@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,7 +83,6 @@ export default function CertificateVerify() {
   };
 
   return (
-    <Layout>
       <div className="max-w-3xl mx-auto space-y-6">
         {/* 返回按钮 */}
         <Link href="/capability-certificates">
@@ -294,6 +292,5 @@ export default function CertificateVerify() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

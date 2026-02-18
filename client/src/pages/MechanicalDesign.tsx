@@ -2,7 +2,6 @@
  * 机械设计页面 (TX-003)
  * 机械结构设计、图纸管理、设计变更
  */
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -36,7 +35,6 @@ export default function MechanicalDesign() {
   const filtered = MOCK_DESIGNS.filter(d => !currentBU || d.bu === currentBU);
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Cog}
@@ -94,6 +92,5 @@ export default function MechanicalDesign() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

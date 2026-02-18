@@ -5,7 +5,6 @@
 
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -188,7 +187,6 @@ export default function ConnectorConfig() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -370,7 +368,6 @@ export default function ConnectorConfig() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }
 

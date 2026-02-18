@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +24,6 @@ import { Link } from "wouter";
 // 能力介绍页面 - SEO优化
 export default function Capabilities() {
   return (
-    <Layout>
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -540,6 +538,5 @@ export default function Capabilities() {
         </div>
       </section>
     </div>
-    </Layout>
   );
 }

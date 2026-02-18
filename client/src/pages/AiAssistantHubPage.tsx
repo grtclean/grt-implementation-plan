@@ -6,7 +6,6 @@
  * Grouped by: 通用AI (General AI), 业务AI (Business AI), 系统管理 (System Admin)
  */
 
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
@@ -198,7 +197,6 @@ function AssistantCard({ entry }: { entry: AssistantEntry }) {
 
 export default function AiAssistantHubPage() {
   return (
-    <Layout>
       <div className="space-y-8">
         {/* Page header */}
         <PageHeader icon={Bot} title="AI助手中心" description="统一管理所有AI助手和智能工具" />
@@ -220,6 +218,5 @@ export default function AiAssistantHubPage() {
           </section>
         ))}
       </div>
-    </Layout>
   );
 }

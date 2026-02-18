@@ -2,7 +2,6 @@
  * AI Early Warning Center - 3-Layer Dashboard
  */
 
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
@@ -80,7 +79,6 @@ export default function AIEarlyWarning() {
   const unreadCount = notifications.filter((n) => n.isRead === false).length;
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         {/* Header */}
         <PageHeader
@@ -338,6 +336,5 @@ export default function AIEarlyWarning() {
             </Card>
           </TabsContent>        </Tabs>
       </div>
-    </Layout>
   );
 }

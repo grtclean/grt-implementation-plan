@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt";
-import Layout from "@/components/Layout";
 import {
   Lightbulb,
   Send,
@@ -194,7 +193,6 @@ export default function AISolutionAssistant() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Lightbulb}
@@ -391,6 +389,5 @@ export default function AISolutionAssistant() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

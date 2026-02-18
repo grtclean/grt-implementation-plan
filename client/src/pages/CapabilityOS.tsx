@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -302,7 +301,6 @@ export default function CapabilityOS() {
   ];
 
   return (
-    <Layout>
       <div className="relative z-10 space-y-10">
         <PageHeader
           icon={Brain}
@@ -738,6 +736,5 @@ export default function CapabilityOS() {
           </Card>
         </section>
       </div>
-    </Layout>
   );
 }

@@ -4,7 +4,6 @@
  * 支持工人与UWB标签的真实数据绑定
  */
 
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -190,7 +189,6 @@ export default function UWBManagement() {
   const floorZones = displayZones.filter((a: any) => a.floor === parseInt(selectedFloor) || selectedFloor === "1");
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={MapPin}
@@ -720,6 +718,5 @@ export default function UWBManagement() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

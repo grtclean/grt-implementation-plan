@@ -5,7 +5,6 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -47,7 +46,6 @@ export default function SocialCommunityAnalytics() {
   const trendChange = calculateTrendChange();
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -256,6 +254,5 @@ export default function SocialCommunityAnalytics() {
           </Card>
         </div>
       </div>
-    </Layout>
   );
 }

@@ -28,7 +28,6 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 interface ComponentHealth {
   name: string;
@@ -148,7 +147,6 @@ export default function SystemHealthDashboard() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Activity}
@@ -478,6 +476,5 @@ export default function SystemHealthDashboard() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

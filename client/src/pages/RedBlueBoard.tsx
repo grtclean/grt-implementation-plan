@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,11 +84,9 @@ export default function RedBlueBoard() {
 
   if (isLoading) {
     return (
-      <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </Layout>
     );
   }
 
@@ -130,7 +127,6 @@ export default function RedBlueBoard() {
   const gateStatus = buildGateStatus();
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Shield}
@@ -298,6 +294,5 @@ export default function RedBlueBoard() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

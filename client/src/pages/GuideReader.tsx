@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -155,7 +154,6 @@ export default function GuideReader() {
   };
 
   return (
-    <Layout>
       <div className="h-[calc(100vh-120px)] flex flex-col">
         {/* Header */}
         <div className="border-b border-border pb-4 mb-4">
@@ -276,6 +274,5 @@ export default function GuideReader() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

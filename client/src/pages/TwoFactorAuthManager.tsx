@@ -4,7 +4,6 @@
  */
 
 import { useState } from 'react';
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -217,7 +216,6 @@ export default function TwoFactorAuthManager() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Shield}
@@ -601,6 +599,5 @@ export default function TwoFactorAuthManager() {
         </DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }

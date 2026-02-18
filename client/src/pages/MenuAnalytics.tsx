@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart3, TrendingUp, Users, Clock, MousePointerClick, Star, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 const TOP_PAGES = [
   { path: "/", name: "我的看板", visits: 1250, users: 128, avgTime: "3m 20s", trend: "up" },
@@ -40,7 +39,6 @@ const ROLE_USAGE = [
 
 export default function MenuAnalytics() {
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
@@ -138,6 +136,5 @@ export default function MenuAnalytics() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

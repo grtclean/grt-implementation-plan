@@ -2,7 +2,6 @@
  * 团队绩效页面
  * 团队成员绩效对比、团队目标追踪
  */
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -32,7 +31,6 @@ export default function TeamPerformance() {
   const { dataScope } = useUserProfile();
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Users}
@@ -78,6 +76,5 @@ export default function TeamPerformance() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

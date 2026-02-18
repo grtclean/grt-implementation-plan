@@ -3,7 +3,6 @@
  * 合同创建、审批、履行追踪、到期提醒
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -36,7 +35,6 @@ export default function ContractManagement() {
   const filtered = MOCK_CONTRACTS.filter(c => !search || c.customer.includes(search) || c.title.includes(search));
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={FileCheck}
@@ -90,6 +88,5 @@ export default function ContractManagement() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

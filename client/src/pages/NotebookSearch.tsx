@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -270,7 +269,6 @@ export default function NotebookSearch() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Search}
@@ -516,6 +514,5 @@ export default function NotebookSearch() {
           <StatCard icon={Download} label="本月导出" value={12} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
         </div>
       </div>
-    </Layout>
   );
 }

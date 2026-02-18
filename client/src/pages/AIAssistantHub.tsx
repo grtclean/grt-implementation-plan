@@ -11,7 +11,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -724,16 +723,14 @@ export default function AIAssistantHub() {
 
   if (authLoading) {
     return (
-      <Layout>
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
-      </Layout>
     );
   }
 
   return (
-    <Layout>
+      <>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -1015,6 +1012,6 @@ export default function AIAssistantHub() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+      </>
   );
 }

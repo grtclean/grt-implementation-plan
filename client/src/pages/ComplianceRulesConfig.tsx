@@ -3,7 +3,6 @@
  * 管理员可自定义各地区的工时阈值、预警触发条件和邮件通知模板
  */
 
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -245,7 +244,6 @@ export default function ComplianceRulesConfig() {
   const templates = (templatesData as any)?.templates || [];
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -737,6 +735,5 @@ export default function ComplianceRulesConfig() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -469,7 +468,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
   };
 
   return (
-    <Layout>
+      <>
       <FeatureGuide
         featureId="cost-management"
         title="成本管理"
@@ -1906,6 +1905,6 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
           </>
         )}
       </div>
-    </Layout>
+      </>
   );
 }

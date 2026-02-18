@@ -2,7 +2,6 @@
  * 研发验证中心 - 统一的研发验证管理页面
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
@@ -24,7 +23,6 @@ export default function RDVerificationCenter() {
   const [activeTab, setActiveTab] = useState("overview");
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 面包屑导航 */}
         <nav className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -89,6 +87,5 @@ export default function RDVerificationCenter() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

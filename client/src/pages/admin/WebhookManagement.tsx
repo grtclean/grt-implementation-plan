@@ -3,7 +3,6 @@
  * 配置社群Bridge、告警通知、ERP回调等Webhook端点
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -155,7 +154,6 @@ export default function WebhookManagement() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Webhook}
@@ -398,6 +396,5 @@ export default function WebhookManagement() {
         </Dialog>
       )}
     </div>
-    </Layout>
   );
 }

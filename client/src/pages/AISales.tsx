@@ -21,7 +21,6 @@ import {
   TrendingUp, DollarSign, Handshake, AlertTriangle, RefreshCw,
   Plus, Eye, Activity, Target, Zap
 } from "lucide-react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 
 const sessionStatusColorMap = createStatusColorMap({
@@ -123,7 +122,6 @@ export default function AISales() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Bot}
@@ -510,6 +508,5 @@ export default function AISales() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

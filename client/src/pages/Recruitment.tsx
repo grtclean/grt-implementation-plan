@@ -3,7 +3,6 @@
  * 职位发布、候选人管理、面试安排、Offer管理
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
@@ -36,7 +35,6 @@ export default function Recruitment() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={UserCheck}
@@ -83,6 +81,5 @@ export default function Recruitment() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

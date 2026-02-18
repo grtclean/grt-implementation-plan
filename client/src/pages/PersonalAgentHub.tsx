@@ -2,7 +2,6 @@
  * 个人智能体中心 - 行为探针、技能推断、知识图谱、成长曲线
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,7 +32,6 @@ export default function PersonalAgentHub() {
   const [activeTab, setActiveTab] = useState("behavior");
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={User}
@@ -149,6 +147,5 @@ export default function PersonalAgentHub() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

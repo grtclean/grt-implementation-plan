@@ -7,7 +7,6 @@ import { toast } from "sonner";
 const showPlaceholder = (featureName: string) => {
   toast.info('功能完善中', { description: `${featureName}功能正在开发完善中，敬请期待` });
 };
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -50,7 +49,6 @@ export default function LiquidWorkforceHub() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Briefcase}
@@ -166,6 +164,5 @@ export default function LiquidWorkforceHub() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

@@ -4,7 +4,6 @@
  */
 
 import { useState } from 'react';
-import Layout from '@/components/Layout';
 import { PageHeader, StatCard } from '@/components/grt';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -194,7 +193,6 @@ export default function KnowledgeGraphApproval() {
   };
 
   return (
-    <Layout>
     <div className="container py-8 space-y-6">
       <PageHeader
         icon={GitBranch}
@@ -245,6 +243,5 @@ export default function KnowledgeGraphApproval() {
         <DialogContent><DialogHeader><DialogTitle>确认操作</DialogTitle><DialogDescription>{dialogAction?.action === 'approve' && '确定要批准此建议吗？批准后可以应用到知识图谱。'}{dialogAction?.action === 'reject' && '确定要拒绝此建议吗？请填写拒绝原因。'}{dialogAction?.action === 'apply' && '确定要应用此建议吗？这将修改知识图谱数据。'}{dialogAction?.action === 'revert' && '确定要撤销此建议吗？这将回滚知识图谱的变更。'}</DialogDescription></DialogHeader>{(dialogAction?.action === 'approve' || dialogAction?.action === 'reject') && <Textarea placeholder="请输入审批意见（可选）" value={comment} onChange={e => setComment(e.target.value)} />}<DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>取消</Button><Button onClick={confirmAction} variant={dialogAction?.action === 'reject' ? 'destructive' : 'default'}>确认</Button></DialogFooter></DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }

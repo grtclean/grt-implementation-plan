@@ -12,7 +12,6 @@ import {
   ArrowUp, ArrowDown, Activity
 } from "lucide-react";
 import { PageHeader } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 // 谈判会话数据
 const negotiationSessions = [
@@ -75,7 +74,6 @@ export default function AiSalesHubEnhanced() {
   const sessionEmotions = emotionAnalysis.filter(e => e.sessionId === selectedSession.id);
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={TrendingUp}
@@ -235,6 +233,5 @@ export default function AiSalesHubEnhanced() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

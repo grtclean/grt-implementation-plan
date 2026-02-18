@@ -2,7 +2,6 @@
  * v2.5.15 消息聚合可视化页面
  */
 
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -91,7 +90,6 @@ export default function NotificationAggregationPreview() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Bell}
@@ -180,6 +178,5 @@ export default function NotificationAggregationPreview() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

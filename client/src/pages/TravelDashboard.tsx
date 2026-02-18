@@ -4,7 +4,6 @@
  */
 
 import { useEffect, useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -187,7 +186,6 @@ export default function TravelDashboard() {
   };
 
   return (
-    <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 md:p-6">
         {/* 顶部标题栏 */}
         <div className="flex items-center justify-between mb-6">
@@ -571,6 +569,5 @@ export default function TravelDashboard() {
           <p>数据每5分钟自动刷新 | 最后更新: {currentTime.toLocaleString('zh-CN')}</p>
         </div>
       </div>
-    </Layout>
   );
 }

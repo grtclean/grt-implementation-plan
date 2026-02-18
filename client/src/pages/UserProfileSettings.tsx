@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -112,16 +111,13 @@ export default function UserProfileSettings() {
 
   if (isLoading) {
     return (
-      <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </Layout>
     );
   }
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={User}
@@ -496,6 +492,5 @@ export default function UserProfileSettings() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

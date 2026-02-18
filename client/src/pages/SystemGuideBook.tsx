@@ -16,7 +16,6 @@ import {
   Lightbulb, AlertCircle, CheckCircle2, Info
 } from "lucide-react";
 import { PageHeader } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 // 指南内容数据
 const guideCategories = [
@@ -488,7 +487,6 @@ export default function SystemGuideBook() {
   })).filter(category => category.articles.length > 0);
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={BookOpen}
@@ -708,6 +706,5 @@ export default function SystemGuideBook() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

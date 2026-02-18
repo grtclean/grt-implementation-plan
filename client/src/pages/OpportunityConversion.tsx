@@ -3,7 +3,6 @@
  * 商机信息自动转化为结构化技术需求文档
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,7 +87,6 @@ export default function OpportunityConversion() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Target}
@@ -334,6 +332,5 @@ export default function OpportunityConversion() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

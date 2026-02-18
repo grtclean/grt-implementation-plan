@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,7 +84,6 @@ export default function AIQualityAssistant() {
   const filteredInspection = selectedStage === "all" ? MOCK_INSPECTION : MOCK_INSPECTION.filter(i => i.stage === selectedStage);
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader icon={Shield} title="AI质量助手" description="缺陷根因分析、检测计划生成与CAPA追踪管理" />
 
@@ -242,7 +240,6 @@ export default function AIQualityAssistant() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }
 

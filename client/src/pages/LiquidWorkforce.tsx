@@ -21,7 +21,6 @@ import {
   Plus, Search, Filter, Eye, CheckCircle, XCircle, Clock,
   Zap, Shield, DollarSign, BarChart3
 } from "lucide-react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 
 const bidStatusColorMap = createStatusColorMap({
@@ -117,7 +116,6 @@ export default function LiquidWorkforce() {
   });
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Briefcase}
@@ -514,6 +512,5 @@ export default function LiquidWorkforce() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }

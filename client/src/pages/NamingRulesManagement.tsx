@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -966,7 +965,6 @@ function VersionsTab() {
 // Main Component
 export default function NamingRulesManagement() {
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Tags}
@@ -1069,6 +1067,5 @@ export default function NamingRulesManagement() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

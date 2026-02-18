@@ -7,7 +7,6 @@
 
 import React, { useState } from 'react';
 import { trpc } from '@/lib/trpc';
-import Layout from '@/components/Layout';
 import { PageHeader } from "@/components/grt";
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -638,7 +637,6 @@ export default function SocialPlatformSettings() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Settings}
@@ -787,6 +785,5 @@ export default function SocialPlatformSettings() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

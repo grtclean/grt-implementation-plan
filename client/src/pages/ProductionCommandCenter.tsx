@@ -3,7 +3,6 @@
  * 统一聚合生产制造各模块数据的综合看板
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard as GrtStatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -73,7 +72,6 @@ export default function ProductionCommandCenter() {
     : (productionStats?.summary?.qualityCheckOrders ?? 0);
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Monitor}
@@ -154,7 +152,6 @@ export default function ProductionCommandCenter() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }
 

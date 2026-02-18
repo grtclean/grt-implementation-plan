@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -97,7 +96,6 @@ export default function AIServiceAssistant() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader icon={Headphones} title="AI服务助手" description="智能故障诊断、维保计划管理与知识库匹配" />
 
@@ -260,6 +258,5 @@ export default function AIServiceAssistant() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

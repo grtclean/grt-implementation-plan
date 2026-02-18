@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import LiveDashboard from "@/components/LiveDashboard";
 import MaintenanceAlertDashboard from "@/components/MaintenanceAlertDashboard";
@@ -25,7 +24,6 @@ export default function Home() {
   const { t } = useLanguage();
 
   return (
-    <Layout>
       <div className="relative z-10 space-y-10">
         {/* Login Prompt for Unauthenticated Users */}
         {!loading && !isAuthenticated && (
@@ -232,7 +230,6 @@ export default function Home() {
           </div>
         </section>
       </div>
-    </Layout>
   );
 }
 

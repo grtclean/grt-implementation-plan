@@ -32,7 +32,6 @@ import {
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
-import Layout from '@/components/Layout';
 import { PageHeader, StatCard } from '@/components/grt';
 
 // 会议类型配置
@@ -154,7 +153,7 @@ export default function MeetingOwnerManagement() {
   };
 
   return (
-    <Layout>
+      <>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -451,7 +450,7 @@ export default function MeetingOwnerManagement() {
         rule={editingRule}
         onSave={(data) => saveRuleMutation.mutate(data)}
       />
-    </Layout>
+      </>
   );
 }
 

@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -180,7 +179,6 @@ export default function TeamCapabilityAnalysis() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Users}
@@ -439,6 +437,5 @@ export default function TeamCapabilityAnalysis() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

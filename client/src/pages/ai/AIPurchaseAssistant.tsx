@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,7 +81,6 @@ export default function AIPurchaseAssistant() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader icon={ShoppingCart} title="AI采购助手" description="智能供应商推荐、价格对比与采购策略优化" />
 
@@ -220,6 +218,5 @@ export default function AIPurchaseAssistant() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

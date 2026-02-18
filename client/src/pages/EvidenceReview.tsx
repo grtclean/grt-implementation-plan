@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -129,7 +128,6 @@ export default function EvidenceReview() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Shield}
@@ -426,6 +424,5 @@ export default function EvidenceReview() {
           )}
         </Tabs>
       </div>
-    </Layout>
   );
 }

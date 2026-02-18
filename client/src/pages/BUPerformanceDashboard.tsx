@@ -5,7 +5,6 @@
 
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
-import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -199,7 +198,6 @@ export default function BUPerformanceDashboard() {
   }, [statsData, selectedBU]);
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -475,6 +473,5 @@ export default function BUPerformanceDashboard() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

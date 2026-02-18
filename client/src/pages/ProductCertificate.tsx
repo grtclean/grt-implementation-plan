@@ -3,7 +3,6 @@
  * US-007: 自动生成结构化产品合格证 · 数据校验 · 一键输出
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,7 +84,6 @@ export default function ProductCertificate() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={FileCheck}
@@ -260,6 +258,5 @@ export default function ProductCertificate() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

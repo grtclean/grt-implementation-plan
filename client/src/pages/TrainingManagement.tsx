@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -191,7 +190,6 @@ export default function TrainingManagement() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
@@ -748,7 +746,6 @@ export default function TrainingManagement() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }
 

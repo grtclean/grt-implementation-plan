@@ -3,7 +3,6 @@
  * Phase E: 供应商绩效评分 · 风险识别 · 优化建议
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -108,7 +107,6 @@ export default function SupplierAssessment() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Truck}
@@ -293,6 +291,5 @@ export default function SupplierAssessment() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

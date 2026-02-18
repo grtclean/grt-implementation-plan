@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -693,7 +692,6 @@ export default function CertificationManagement() {
   const avgProgress = Math.round(plannedCertifications.reduce((sum, c) => sum + c.progress, 0) / totalPlanned);
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Award}
@@ -901,6 +899,5 @@ export default function CertificationManagement() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

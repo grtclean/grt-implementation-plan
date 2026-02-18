@@ -3,7 +3,6 @@
  * Phase H: 设计评分 · 问题识别 · 合规检查 · 材料兼容性
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,7 +102,6 @@ export default function AIDesignReview() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Shield}
@@ -291,6 +289,5 @@ export default function AIDesignReview() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

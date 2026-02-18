@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -119,7 +118,6 @@ export default function BomImport() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
@@ -348,6 +346,5 @@ export default function BomImport() {
         </DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }

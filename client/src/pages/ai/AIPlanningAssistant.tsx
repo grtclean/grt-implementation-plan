@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt";
-import Layout from "@/components/Layout";
 import {
   CalendarDays,
   Loader2,
@@ -138,7 +137,6 @@ export default function AIPlanningAssistant() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={CalendarDays}
@@ -333,6 +331,5 @@ export default function AIPlanningAssistant() {
         </Tabs>
       )}
     </div>
-    </Layout>
   );
 }

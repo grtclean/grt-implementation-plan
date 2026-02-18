@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -95,7 +94,6 @@ export default function HRMIntelligent() {
   });
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -1163,7 +1161,6 @@ export default function HRMIntelligent() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }
 

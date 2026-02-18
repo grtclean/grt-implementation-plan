@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,9 +110,7 @@ export default function ExpenseForecast() {
   // 显示骨架屏
   if (isLoading) {
     return (
-      <Layout>
         <ExpenseForecastSkeleton />
-      </Layout>
     );
   }
 
@@ -176,7 +173,6 @@ export default function ExpenseForecast() {
   }, [currentForecast]);
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -471,6 +467,5 @@ export default function ExpenseForecast() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

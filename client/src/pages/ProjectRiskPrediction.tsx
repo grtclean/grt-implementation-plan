@@ -3,7 +3,6 @@
  * Phase D: AI智能分析 · 历史数据驱动 · 早期预警
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -106,7 +105,6 @@ export default function ProjectRiskPrediction() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={ShieldAlert}
@@ -345,6 +343,5 @@ export default function ProjectRiskPrediction() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

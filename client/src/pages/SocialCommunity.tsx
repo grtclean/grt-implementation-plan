@@ -20,7 +20,6 @@ import {
   AlertTriangle, RefreshCw, Search, Filter, Eye, Edit, Trash2,
   Plus, Settings, Activity
 } from "lucide-react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 
 const statusColorMap = createStatusColorMap({
@@ -119,7 +118,6 @@ export default function SocialCommunity() {
   });
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={MessageSquare}
@@ -563,6 +561,5 @@ export default function SocialCommunity() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }

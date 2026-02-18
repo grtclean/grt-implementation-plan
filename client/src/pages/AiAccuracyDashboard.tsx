@@ -20,7 +20,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { trpc } from "@/lib/trpc";
 import { PageHeader, StatCard } from "@/components/grt";
-import Layout from "@/components/Layout";
 import {
   Brain, BarChart3, TrendingUp, CheckCircle2, XCircle,
   Edit, Loader2, Target, Sparkles, AlertTriangle,
@@ -40,7 +39,6 @@ export default function AiAccuracyDashboard() {
   const data = accuracyQuery.data as any;
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Brain}
@@ -313,6 +311,5 @@ export default function AiAccuracyDashboard() {
         </Card>
       )}
     </div>
-    </Layout>
   );
 }

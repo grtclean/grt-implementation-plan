@@ -2,7 +2,6 @@
  * 项目数字孪生仪表盘
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -123,7 +122,6 @@ export default function ProjectDigitalTwin() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         {/* Header */}
         <PageHeader
@@ -211,6 +209,5 @@ export default function ProjectDigitalTwin() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

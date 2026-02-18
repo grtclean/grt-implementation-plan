@@ -3,7 +3,6 @@
  * UWB定位 vs BOM工步 vs 生产执行 工时三角对账 · 差异分析
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -206,7 +205,6 @@ export default function TimeReconciliationDashboard() {
   // ============================================================
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Clock}
@@ -860,6 +858,5 @@ export default function TimeReconciliationDashboard() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

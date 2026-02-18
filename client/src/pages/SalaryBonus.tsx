@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -122,7 +121,6 @@ export default function SalaryBonus() {
   const detail = detailQuery.data as any;
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
@@ -561,6 +559,5 @@ export default function SalaryBonus() {
         </DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }

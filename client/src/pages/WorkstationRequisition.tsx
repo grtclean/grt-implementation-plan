@@ -3,7 +3,6 @@
  * BOM自动解析 · 最优拣货路线 · 缺料预警
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,7 +75,6 @@ export default function WorkstationRequisition() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Package}
@@ -301,6 +299,5 @@ export default function WorkstationRequisition() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

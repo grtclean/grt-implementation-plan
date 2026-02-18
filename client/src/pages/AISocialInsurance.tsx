@@ -3,7 +3,6 @@
  * 社保计算 · 公积金 · 企业成本 · 合规建议
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,7 +74,6 @@ export default function AISocialInsurance() {
     amount.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Calculator}
@@ -292,6 +290,5 @@ export default function AISocialInsurance() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

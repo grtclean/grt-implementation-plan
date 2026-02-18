@@ -3,7 +3,6 @@
  * WebGL在线预览 · 支持STL/OBJ格式 · 旋转/缩放/平移
  */
 import { useState, useRef, useEffect, useCallback } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -322,7 +321,6 @@ export default function ModelViewer3D() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Box}
@@ -464,6 +462,5 @@ export default function ModelViewer3D() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

@@ -51,7 +51,6 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader, StatCard } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 // 类型定义
 type AlertLevel = 'info' | 'warning' | 'critical' | 'emergency';
@@ -320,7 +319,6 @@ export default function SystemAlertNotificationManager() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Bell}
@@ -617,6 +615,5 @@ export default function SystemAlertNotificationManager() {
         </DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }

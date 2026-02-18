@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -164,7 +163,6 @@ export default function MicrosoftGraphSettings() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Settings}
@@ -343,6 +341,5 @@ export default function MicrosoftGraphSettings() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

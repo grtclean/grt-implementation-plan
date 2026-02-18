@@ -3,7 +3,6 @@
  * 客户需求录入、技术可行性评估、需求分解与追踪
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
@@ -65,7 +64,6 @@ export default function RequirementsAnalysis() {
   });
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={ClipboardCheck}
@@ -142,6 +140,5 @@ export default function RequirementsAnalysis() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

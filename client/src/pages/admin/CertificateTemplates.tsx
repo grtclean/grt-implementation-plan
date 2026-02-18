@@ -3,7 +3,6 @@
  * 管理培训证书、能力认证证书的模板设计和生成
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -145,7 +144,6 @@ export default function CertificateTemplates() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Award}
@@ -504,6 +502,5 @@ export default function CertificateTemplates() {
         </DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }

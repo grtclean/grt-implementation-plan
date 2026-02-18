@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import SubsystemHelpPanel, {
   SubsystemType, 
@@ -59,7 +58,6 @@ export default function SubsystemHelp() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={BookOpen}
@@ -165,6 +163,5 @@ export default function SubsystemHelp() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

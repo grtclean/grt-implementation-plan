@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -99,7 +98,6 @@ export default function CrmContacts() {
   const uniqueCustomers = new Set(contacts.map(c => c.customerId)).size;
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
@@ -372,6 +370,5 @@ export default function CrmContacts() {
           </Link>
         </div>
       </div>
-    </Layout>
   );
 }

@@ -4,7 +4,6 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +41,6 @@ export default function MaterialManagement() {
   const { data: statsData } = trpc.materials.getInventoryStats.useQuery();
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
       <PageHeader
@@ -250,6 +248,5 @@ export default function MaterialManagement() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

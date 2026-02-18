@@ -2,7 +2,6 @@
  * 部门绩效页面
  * 部门KPI追踪、跨团队对比、预算执行
  */
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -30,7 +29,6 @@ export default function DeptPerformance() {
   const { dataScope } = useUserProfile();
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
@@ -67,6 +65,5 @@ export default function DeptPerformance() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

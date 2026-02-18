@@ -2,7 +2,6 @@
  * SAT测试页面 (TX-014)
  * 现场验收测试、测试报告、缺陷跟踪
  */
-import Layout from "@/components/Layout";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
@@ -37,7 +36,6 @@ export default function SatTesting() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={TestTube}
@@ -92,6 +90,5 @@ export default function SatTesting() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

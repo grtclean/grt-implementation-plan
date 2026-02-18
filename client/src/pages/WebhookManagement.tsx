@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -296,7 +295,6 @@ export default function WebhookManagement() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Webhook}
@@ -612,7 +610,6 @@ export default function WebhookManagement() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }
 

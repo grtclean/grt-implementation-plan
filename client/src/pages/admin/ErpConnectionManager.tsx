@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import {
   Database, CheckCircle, XCircle, RefreshCw, Settings,
@@ -136,7 +135,6 @@ export default function ErpConnectionManager() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Database}
@@ -286,6 +284,5 @@ export default function ErpConnectionManager() {
         ))}
       </Tabs>
     </div>
-    </Layout>
   );
 }

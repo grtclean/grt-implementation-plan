@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/grt";
-import Layout from "@/components/Layout";
 import {
   Calculator,
   Loader2,
@@ -140,7 +139,6 @@ export default function AIQuotationAssistant() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Calculator}
@@ -336,6 +334,5 @@ export default function AIQuotationAssistant() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

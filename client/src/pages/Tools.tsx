@@ -1,5 +1,4 @@
 import DemoModal from "@/components/DemoModal";
-import Layout from "@/components/Layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -117,7 +116,6 @@ export default function Tools() {
   ];
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={LayoutTemplate}
@@ -193,6 +191,5 @@ export default function Tools() {
           ))}
         </Tabs>
       </div>
-    </Layout>
   );
 }

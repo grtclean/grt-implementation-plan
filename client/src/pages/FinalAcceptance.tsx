@@ -2,7 +2,6 @@
  * 终验收页面 (TX-015)
  * 最终验收管理、签收确认、验收报告
  */
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -35,7 +34,6 @@ export default function FinalAcceptance() {
   const filtered = MOCK_ACCEPTANCES.filter(a => !currentBU || a.bu === currentBU);
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={CheckCircle}
@@ -86,6 +84,5 @@ export default function FinalAcceptance() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

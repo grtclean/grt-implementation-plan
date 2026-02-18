@@ -3,7 +3,6 @@
  * 功能：预验收Gate检查、现场安装跟踪、最终验收管理
  */
 
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -137,7 +136,6 @@ export default function M7M9DeliveryTrack() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -463,6 +461,5 @@ export default function M7M9DeliveryTrack() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

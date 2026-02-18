@@ -3,7 +3,6 @@
  * SOP流转 · 满意度管理 · 工单统计
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -168,7 +167,6 @@ export default function ServiceTickets() {
   const detail = detailQuery.data;
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
@@ -548,6 +546,5 @@ export default function ServiceTickets() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }

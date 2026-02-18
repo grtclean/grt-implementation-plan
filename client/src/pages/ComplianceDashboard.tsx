@@ -4,7 +4,6 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import SchedulerStatusPanel from "@/components/SchedulerStatusPanel";
 import ReportHistoryPanel from "@/components/ReportHistoryPanel";
 import { Button } from "@/components/ui/button";
@@ -327,7 +326,6 @@ export default function ComplianceDashboard() {
     : employeeStatuses.filter(e => e.jurisdiction === selectedJurisdiction);
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -921,6 +919,5 @@ export default function ComplianceDashboard() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

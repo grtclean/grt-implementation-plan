@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -231,11 +230,9 @@ export default function CapabilityDashboard() {
 
   if (isLoading) {
     return (
-      <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </Layout>
     );
   }
 
@@ -248,7 +245,6 @@ export default function CapabilityDashboard() {
   const pendingEvidences = myEvidences?.filter((e: any) => e.status === 'pending').length || 0;
 
   return (
-    <Layout>
       <div className="space-y-4 sm:space-y-6">
         <PageHeader
           icon={BarChart3}
@@ -594,6 +590,5 @@ export default function CapabilityDashboard() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

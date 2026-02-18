@@ -3,7 +3,6 @@
  * US-008: 控制图分析 · Cp/Cpk计算 · 过程能力评估 · 异常模式识别
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -100,7 +99,6 @@ export default function SPCControlCharts() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={BarChart3}
@@ -357,6 +355,5 @@ export default function SPCControlCharts() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

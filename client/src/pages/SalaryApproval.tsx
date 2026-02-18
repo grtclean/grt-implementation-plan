@@ -11,7 +11,6 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -170,7 +169,6 @@ export default function SalaryApproval() {
   const workflows = (workflowsQuery.data as any)?.workflows || workflowsQuery.data || [];
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
       <PageHeader
@@ -594,6 +592,5 @@ export default function SalaryApproval() {
         </DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }

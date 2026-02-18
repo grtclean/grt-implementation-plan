@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -10,7 +9,6 @@ export default function Risks() {
   const { t } = useLanguage();
 
   return (
-    <Layout>
       <div className="space-y-8">
         <PageHeader icon={ShieldAlert} title={t("risks.title")} description={t("risks.subtitle")} />
 
@@ -131,6 +129,5 @@ export default function Risks() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

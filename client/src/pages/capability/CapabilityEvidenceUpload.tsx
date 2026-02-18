@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { trpc } from '@/lib/trpc';
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -217,7 +216,6 @@ export default function CapabilityEvidenceUpload() {
   const pendingCount = evidenceList.filter(e => e.status === 'pending').length;
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Upload}
@@ -437,6 +435,5 @@ export default function CapabilityEvidenceUpload() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

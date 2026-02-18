@@ -3,7 +3,6 @@
  * 自动汇总月度质量指标 · 缺陷Pareto · NCR趋势 · 管理层报告
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -120,7 +119,6 @@ export default function QualityMonthlyReport() {
     : 1;
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={BarChart3}
@@ -457,6 +455,5 @@ export default function QualityMonthlyReport() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

@@ -55,7 +55,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 
 // 通知类型
@@ -276,7 +275,6 @@ export default function DingTalkSettings() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -842,6 +840,5 @@ export default function DingTalkSettings() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

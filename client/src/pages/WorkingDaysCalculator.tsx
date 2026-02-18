@@ -3,7 +3,6 @@
  * 节假日感知 · 多地区支持 · 缓冲天数 · 关键时段预警
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,7 +53,6 @@ export default function WorkingDaysCalculator() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={CalendarDays}
@@ -259,6 +257,5 @@ export default function WorkingDaysCalculator() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

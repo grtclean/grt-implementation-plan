@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Upload, CheckCircle2, AlertCircle, FileText, BarChart3, GitBranch } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { PageHeader } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 // Sub-components
 import KPIInputForm from './annual-planning/KPIInputForm';
@@ -74,7 +73,6 @@ export default function AnnualPlanningSystem() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
@@ -305,6 +303,5 @@ export default function AnnualPlanningSystem() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

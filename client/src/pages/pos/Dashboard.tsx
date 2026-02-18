@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -252,7 +251,6 @@ export default function POSDashboard() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
@@ -390,6 +388,5 @@ export default function POSDashboard() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

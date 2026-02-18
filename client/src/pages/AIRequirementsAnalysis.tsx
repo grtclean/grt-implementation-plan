@@ -3,7 +3,6 @@
  * Phase H: 可行性评估 · 产品线推荐 · 技术参数 · 风险识别
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -98,7 +97,6 @@ export default function AIRequirementsAnalysis() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={ClipboardCheck}
@@ -315,6 +313,5 @@ export default function AIRequirementsAnalysis() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

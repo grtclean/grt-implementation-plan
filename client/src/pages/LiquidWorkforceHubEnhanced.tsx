@@ -2,7 +2,6 @@
  * 液态用工中心增强版 - 技能认证审核、竞标匹配、版税分成
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -60,7 +59,6 @@ export default function LiquidWorkforceHubEnhanced() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Briefcase}
@@ -201,6 +199,5 @@ export default function LiquidWorkforceHubEnhanced() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

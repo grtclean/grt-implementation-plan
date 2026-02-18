@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 const showPlaceholder = (featureName: string) => {
   toast.info('功能完善中', { description: `${featureName}功能正在开发完善中，敬请期待` });
 };
-import Layout from '@/components/Layout';
 import { PageHeader, StatCard } from '@/components/grt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -213,7 +212,6 @@ export default function MfgTaskItemManager() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* 页面标题 */}
       <PageHeader
@@ -415,6 +413,5 @@ export default function MfgTaskItemManager() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

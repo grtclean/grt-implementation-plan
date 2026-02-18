@@ -5,7 +5,6 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -147,7 +146,6 @@ export default function SocialCommunitySettings() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -678,6 +676,5 @@ export default function SocialCommunitySettings() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

@@ -3,7 +3,6 @@
  * 员工自助查看绩效指标与薪资明细
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +50,6 @@ export default function PerformanceSalaryQuery() {
   const latestRecord = records.data?.[0];
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={TrendingUp}
@@ -300,7 +298,6 @@ export default function PerformanceSalaryQuery() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }
 

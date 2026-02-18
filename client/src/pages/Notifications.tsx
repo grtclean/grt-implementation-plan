@@ -4,7 +4,6 @@
  */
 
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -326,7 +325,6 @@ export default function Notifications() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Bell}
@@ -482,6 +480,5 @@ export default function Notifications() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

@@ -4,7 +4,6 @@
  */
 
 import { useState } from 'react';
-import Layout from "@/components/Layout";
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -162,7 +161,6 @@ export default function VisitorRequestForm() {
   };
 
   return (
-    <Layout>
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* 页面标题 */}
@@ -236,7 +234,6 @@ export default function VisitorRequestForm() {
         )}
       </div>
     </div>
-    </Layout>
   );
 }
 

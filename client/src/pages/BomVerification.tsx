@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -127,7 +126,6 @@ export default function BomVerification() {
   const detail = detailQuery.data as any;
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
@@ -572,6 +570,5 @@ export default function BomVerification() {
         </DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }

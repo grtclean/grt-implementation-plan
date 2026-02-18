@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Layout from '@/components/Layout';
 import { PageHeader } from '@/components/grt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -254,7 +253,6 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
   };
 
   return (
-    <Layout>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* 头部 */}
@@ -464,6 +462,5 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
         </div>
       </div>
     </div>
-    </Layout>
   );
 }

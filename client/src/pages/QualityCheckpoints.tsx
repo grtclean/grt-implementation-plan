@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -113,7 +112,6 @@ export default function QualityCheckpoints() {
   const dashboard = dashboardQuery.data;
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
@@ -462,6 +460,5 @@ export default function QualityCheckpoints() {
         </DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }

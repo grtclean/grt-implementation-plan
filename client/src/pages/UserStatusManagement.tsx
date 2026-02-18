@@ -4,7 +4,6 @@
  */
 
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -240,7 +239,6 @@ export default function UserStatusManagement() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Users}
@@ -517,6 +515,5 @@ export default function UserStatusManagement() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

@@ -3,7 +3,6 @@
  * Phase D: AI驱动 · 变更链追溯 · 影响范围评估
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,7 +106,6 @@ export default function ChangeImpactAnalysis() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6 p-6">
         <PageHeader
           icon={GitBranch}
@@ -283,6 +281,5 @@ export default function ChangeImpactAnalysis() {
           </>
         )}
       </div>
-    </Layout>
   );
 }

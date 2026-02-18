@@ -5,7 +5,6 @@
  */
 
 import { useState, useMemo } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import FeatureGuide from "@/components/FeatureGuide";
 import { Button } from "@/components/ui/button";
@@ -842,7 +841,7 @@ export default function EmployeeIntelligentPerformance() {
   ];
 
   return (
-    <Layout>
+      <>
       <FeatureGuide
         featureId="employee-intelligent-performance"
         title="员工智能绩效"
@@ -1684,6 +1683,6 @@ export default function EmployeeIntelligentPerformance() {
           </div>
         </DialogContent>
       </Dialog>
-    </Layout>
+      </>
   );
 }

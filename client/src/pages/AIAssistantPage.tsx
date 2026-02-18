@@ -8,7 +8,6 @@ import { AlertCircle, Bot, Plus, Zap, MessageSquare, Settings } from "lucide-rea
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader, StatCard } from "@/components/grt";
-import Layout from "@/components/Layout";
 
 export default function AIAssistantPage() {
   const { toast } = useToast();
@@ -47,7 +46,6 @@ export default function AIAssistantPage() {
   }
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Bot}
@@ -205,6 +203,5 @@ export default function AIAssistantPage() {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
   );
 }

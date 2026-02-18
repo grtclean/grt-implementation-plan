@@ -39,7 +39,6 @@ import {
   Zap
 } from "lucide-react";
 import { useState, useMemo } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import FeatureGuide from "@/components/FeatureGuide";
 import { toast } from "sonner";
@@ -405,7 +404,6 @@ export default function WorkerManagement() {
   };
 
   return (
-    <Layout>
       <div className="space-y-6">
         <PageHeader
           icon={Users}
@@ -1044,6 +1042,5 @@ export default function WorkerManagement() {
           ]} 
         />
       </div>
-    </Layout>
   );
 }

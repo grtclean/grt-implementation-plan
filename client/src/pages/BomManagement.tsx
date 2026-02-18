@@ -3,7 +3,6 @@
  * 物料清单管理、BOM版本、成本估算
  */
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -38,7 +37,6 @@ export default function BomManagement() {
   const filtered = MOCK_BOMS.filter(b => (!currentBU || b.bu === currentBU) && (!search || b.name.includes(search)));
 
   return (
-    <Layout>
     <div className="space-y-6">
       <PageHeader
         icon={Package}
@@ -100,6 +98,5 @@ export default function BomManagement() {
         </CardContent>
       </Card>
     </div>
-    </Layout>
   );
 }

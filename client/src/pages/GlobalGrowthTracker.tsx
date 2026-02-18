@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -168,7 +167,6 @@ export default function GlobalGrowthTracker() {
   const globalProgress = (totalCurrentCNY / totalTargetCNY) * 100;
 
   return (
-    <Layout>
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
@@ -506,6 +504,5 @@ export default function GlobalGrowthTracker() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }

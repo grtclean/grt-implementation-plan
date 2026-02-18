@@ -3,7 +3,6 @@
  * Mobile-first page for field commissioning engineers.
  * Designed for one-handed phone use with large touch targets.
  */
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -145,7 +144,6 @@ export default function FieldEngineerDashboard() {
   };
 
   return (
-    <Layout>
       <div className="max-w-md mx-auto pb-8">
         {/* Header */}
         <div className="p-4 border-b sticky top-0 bg-background z-10">
@@ -353,6 +351,5 @@ export default function FieldEngineerDashboard() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
 }
