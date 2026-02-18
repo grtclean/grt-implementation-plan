@@ -100,7 +100,7 @@ export default function ContractManagement() {
   const { data: stats } = (trpc.contract as any).stats.useQuery();
 
   // Customer list for the selector
-  const { data: customerListData } = (trpc.crm?.customers as any)?.list?.useQuery?.({}) ?? { data: undefined };
+  const { data: customerListData } = (trpc.crm.customers as any).list.useQuery({});
   const customers: any[] = customerListData?.items ?? [];
 
   // Create mutation
