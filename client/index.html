@@ -10,7 +10,10 @@
     <!-- Prevent flash of incorrect theme and CSS transition flicker during initial load -->
     <script>
       (function() {
-        // 1. Set dark class synchronously to prevent theme flash
+        // 1. Disable browser's automatic scroll restoration — it fights with
+        //    React's rendering and causes visible content jumping on refresh
+        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        // 2. Set dark class synchronously to prevent theme flash
         var theme = localStorage.getItem('grt-theme') || 'dark';
         if (theme === 'system') {
           theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -19,10 +22,10 @@
         if (isDark) {
           document.documentElement.classList.add('dark');
         }
-        // 2. Set background color on <html> IMMEDIATELY — prevents white flash
+        // 3. Set background color on <html> IMMEDIATELY — prevents white flash
         //    between page load and CSS load (Vite CSS isn't available yet)
         document.documentElement.style.backgroundColor = isDark ? '#0b1120' : '#fafafa';
-        // 3. Disable all CSS transitions until app signals ready
+        // 4. Disable all CSS transitions until app signals ready
         document.documentElement.classList.add('no-transitions');
       })();
     </script>
@@ -40,7 +43,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: opacity 0.3s ease;
+        /* !important needed to override .no-transitions * { transition: none !important } */
+        transition: opacity 0.3s ease !important;
       }
       .dark #app-loader { background: #0b1120; }
       :root:not(.dark) #app-loader { background: #fafafa; }
