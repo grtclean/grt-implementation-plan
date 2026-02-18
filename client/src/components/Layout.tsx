@@ -42,7 +42,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, memo } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { ChevronLeft, ChevronRight as ChevronRightIcon } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -66,7 +66,7 @@ interface SidebarMenuGroupProps {
   onNavigate: (path: string) => void;
 }
 
-function SidebarMenuGroup({
+function SidebarMenuGroupImpl({
   group,
   isExpanded,
   hasActiveItem,
@@ -180,6 +180,8 @@ function SidebarMenuGroup({
     </div>
   );
 }
+
+const SidebarMenuGroup = memo(SidebarMenuGroupImpl);
 
 // Context to prevent double-rendering of Layout (e.g., Suspense fallback + lazy page)
 const LayoutActiveContext = createContext(false);
@@ -360,22 +362,23 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
-  const toggleGroup = (groupName: string) => {
-    setExpandedGroups(prev => 
-      prev.includes(groupName) 
+  const toggleGroup = useCallback((groupName: string) => {
+    setExpandedGroups(prev =>
+      prev.includes(groupName)
         ? prev.filter(g => g !== groupName)
         : [...prev, groupName]
     );
-  };
+  }, []);
 
   // 获取未处理预警数量 - 使用安全的查询配置防止Layout崩溃
-  const { data: alertCountData } = trpc.compliance.getPendingAlertCount.useQuery(undefined, {
+  // select extracts just the count so React Query only re-renders when the number changes
+  const alertCount = trpc.compliance.getPendingAlertCount.useQuery(undefined, {
     refetchInterval: 60000,
+    staleTime: 55000, // treat data as fresh for 55s to minimise refetches
     retry: false,
     throwOnError: false,
-  });
-
-  const alertCount = alertCountData?.count ?? 0;
+    select: (d) => d?.count ?? 0,
+  }).data ?? 0;
 
   // 侧边栏导航区域引用和滚动状态
   const navRef = useRef<HTMLElement>(null);
@@ -405,17 +408,13 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     });
   }, []);
   
-  // 恢复侧边栏滚动位置
+  // 恢复侧边栏滚动位置 — 使用 rAF 在首次绘制前恢复，避免可见跳跃
   useEffect(() => {
     const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition');
     if (savedScrollPosition && navRef.current) {
-      // 延迟恢复滚动位置，确保DOM已渲染
-      const timer = setTimeout(() => {
-        if (navRef.current) {
-          navRef.current.scrollTop = parseInt(savedScrollPosition, 10);
-        }
-      }, 100);
-      return () => clearTimeout(timer);
+      const pos = parseInt(savedScrollPosition, 10);
+      // Immediate assignment before first paint
+      navRef.current.scrollTop = pos;
     }
   }, []);
   

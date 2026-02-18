@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from "react";
 
 // ============================================
 // 扩展角色类型定义 - 与 shared/permissions.ts 对齐
@@ -438,10 +438,10 @@ export function UserProfileProvider({ children, defaultRole = "employee" }: User
   const [viewMode, setViewMode] = useState<ViewMode>("normal");
   const [isRoleSwitching, setIsRoleSwitching] = useState(false);
 
-  // 计算权限和配置
-  const permissions = getPermissionsByRole(currentUserRole);
-  const roleConfig = ROLE_CONFIGS[currentUserRole];
-  const dataScope = getDataScopeByRole(currentUserRole);
+  // 计算权限和配置 — memoize to prevent new object references on every render
+  const permissions = useMemo(() => getPermissionsByRole(currentUserRole), [currentUserRole]);
+  const roleConfig = useMemo(() => ROLE_CONFIGS[currentUserRole], [currentUserRole]);
+  const dataScope = useMemo(() => getDataScopeByRole(currentUserRole), [currentUserRole]);
 
   // 切换角色
   const switchRole = useCallback((newRole: UserRole) => {
@@ -560,7 +560,7 @@ export function UserProfileProvider({ children, defaultRole = "employee" }: User
     }
   }, [currentUserRole]);
 
-  const value: UserProfileContextType = {
+  const value = useMemo<UserProfileContextType>(() => ({
     currentUserRole,
     currentBU,
     currentDepartment,
@@ -575,7 +575,11 @@ export function UserProfileProvider({ children, defaultRole = "employee" }: User
     hasPermission,
     canAccessRoute,
     isRoleAtLeast,
-  };
+  }), [
+    currentUserRole, currentBU, currentDepartment, viewMode,
+    permissions, roleConfig, dataScope, isRoleSwitching,
+    switchRole, switchBU, setViewMode, hasPermission, canAccessRoute, isRoleAtLeast,
+  ]);
 
   return (
     <UserProfileContext.Provider value={value}>
