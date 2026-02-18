@@ -123,19 +123,20 @@ function dismissLoader() {
   if (loaderDismissed) return;
   loaderDismissed = true;
   const loader = document.getElementById("app-loader");
+  // Remove the inline background-color override — CSS `html { background-color: var(--background) }`
+  // now handles it, so the transition is seamless (same color).
+  document.documentElement.style.backgroundColor = '';
   if (loader) {
     loader.classList.add("fade-out");
     // Remove overlay after fade-out, then enable transitions one frame later
     // so that any pending style differences don't trigger visible transitions
     setTimeout(() => {
       loader.remove();
-      document.documentElement.style.backgroundColor = '';
       requestAnimationFrame(() => {
         document.documentElement.classList.remove("no-transitions");
       });
     }, 350);
   } else {
-    document.documentElement.style.backgroundColor = '';
     document.documentElement.classList.remove("no-transitions");
   }
 }
