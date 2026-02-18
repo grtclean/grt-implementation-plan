@@ -64,9 +64,21 @@
       }
       @keyframes spin { to { transform: rotate(360deg); } }
     </style>
+    <!--
+      Google Fonts loaded ASYNCHRONOUSLY to prevent render-blocking.
+      The media="print" trick loads the CSS without blocking paint,
+      then switches to media="all" once loaded. If fonts never load
+      (slow CDN, firewall), the page uses system font fallbacks — no
+      layout shift because display=optional means no font swap.
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Oswald:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=optional" rel="stylesheet">
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Oswald:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=optional"
+      media="print" onload="this.media='all'">
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Oswald:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=optional">
+    </noscript>
   </head>
 
   <body>
@@ -74,10 +86,21 @@
     <div id="app-loader"><div class="spinner"></div></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script
-      defer
-      src="%VITE_ANALYTICS_ENDPOINT%/umami"
-      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
+    <!-- Analytics loaded AFTER page load event so it doesn't keep the
+         browser loading indicator spinning (which causes perceived "jumping") -->
+    <script>
+      window.addEventListener('load', function() {
+        var ep = '%VITE_ANALYTICS_ENDPOINT%';
+        var id = '%VITE_ANALYTICS_WEBSITE_ID%';
+        if (ep && id && ep.charAt(0) !== '%') {
+          var s = document.createElement('script');
+          s.src = ep + '/umami';
+          s.dataset.websiteId = id;
+          s.async = true;
+          document.body.appendChild(s);
+        }
+      });
+    </script>
   </body>
 
 </html>

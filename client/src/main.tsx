@@ -155,8 +155,15 @@ authReady.then(async () => {
     </trpc.Provider>
   );
 
-  // Wait for fonts to load so text doesn't reflow after overlay dismisses
-  try { await document.fonts.ready; } catch {}
+  // Wait for fonts to load (max 2s) so text doesn't reflow after overlay dismisses.
+  // Google Fonts uses display=optional — if font misses the ~100ms block window
+  // the browser uses fallback permanently, so this resolves quickly in practice.
+  try {
+    await Promise.race([
+      document.fonts.ready,
+      new Promise(r => setTimeout(r, 2000)),
+    ]);
+  } catch {}
 
   // Wait for first paint to complete, then wait for initial data queries
   // to settle before removing the overlay.  This prevents the common
