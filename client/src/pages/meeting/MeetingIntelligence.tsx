@@ -4,7 +4,6 @@
  */
 
 import { useState } from "react";
-import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/grt";
 import { ChannelSidebar } from "@/components/meeting/ChannelSidebar";
 import { InsightPanel } from "@/components/meeting/InsightPanel";
@@ -165,8 +164,7 @@ export default function MeetingIntelligence() {
   };
 
   return (
-    <Layout>
-      <div className="flex h-[calc(100vh-4rem)] -m-6">
+      <div className="flex h-[calc(100vh-4rem)] -m-6 lg:-m-8">
         {/* Left Sidebar - Channel Navigator */}
         <div className="w-64 flex-shrink-0 border-r border-border/50">
           <ChannelSidebar
@@ -481,7 +479,6 @@ export default function MeetingIntelligence() {
           <InsightPanel channelId={selectedChannel?.id} />
         </div>
       </div>
-    </Layout>
   );
 }
 

@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Layout from "@/components/Layout";
 import { PageHeader, StatCard } from "@/components/grt";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
@@ -460,7 +459,6 @@ export default function DevTaskBoard() {
   };
 
   return (
-    <Layout>
     <div className="space-y-6">
       {/* ========== Header ========== */}
       <PageHeader
@@ -1494,6 +1492,5 @@ export default function DevTaskBoard() {
         </DialogContent>
       </Dialog>
     </div>
-    </Layout>
   );
 }
