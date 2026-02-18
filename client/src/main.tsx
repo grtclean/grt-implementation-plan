@@ -158,10 +158,23 @@ authReady.then(async () => {
   // Wait for fonts to load so text doesn't reflow after overlay dismisses
   try { await document.fonts.ready; } catch {}
 
-  // Wait for first paint to complete before removing overlay
+  // Wait for first paint to complete, then wait for initial data queries
+  // to settle before removing the overlay.  This prevents the common
+  // "content jumps in after the spinner disappears" layout shift.
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      dismissLoader();
+      // Let React effects fire and initiate tRPC queries, then wait
+      // for them to resolve (adaptive: fast APIs → fast dismiss).
+      setTimeout(() => {
+        const waitForQueries = (remaining: number) => {
+          if (remaining <= 0 || queryClient.isFetching() === 0) {
+            dismissLoader();
+          } else {
+            setTimeout(() => waitForQueries(remaining - 50), 50);
+          }
+        };
+        waitForQueries(800); // max 800ms for queries to settle
+      }, 80); // 80ms for effects to initiate queries
     });
   });
 }).catch(() => {

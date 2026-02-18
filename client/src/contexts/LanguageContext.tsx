@@ -80,13 +80,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isError, isPublicPage, isInitialized]);
 
-  // Fallback initialization (short timeout - only needed for first-ever login with no localStorage)
+  // Fallback: if query hasn't resolved and isn't loading, initialize immediately
   useEffect(() => {
     if (isInitialized) return;
-    const timer = setTimeout(() => {
-      setIsInitialized(true);
-    }, 300);
-    return () => clearTimeout(timer);
+    // Initialize immediately — no 300ms delay that causes visible re-render
+    setIsInitialized(true);
   }, [isInitialized]);
 
   const setLanguage = useCallback((lang: Language) => {
