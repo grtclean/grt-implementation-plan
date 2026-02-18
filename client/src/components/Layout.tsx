@@ -322,11 +322,11 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   }, [expandedGroups]);
 
   // 当路由变化时，自动展开包含当前路径的菜单组
+  // useLayoutEffect 保证在浏览器绘制前完成，避免菜单展开造成的可见跳跃
   const prevLocationRef = useRef(location);
   const expandedGroupsRef = useRef(expandedGroups);
   expandedGroupsRef.current = expandedGroups;
-  useEffect(() => {
-    // 只在路由真正变化时才执行
+  useLayoutEffect(() => {
     if (prevLocationRef.current === location) return;
     prevLocationRef.current = location;
 

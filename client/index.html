@@ -15,10 +15,14 @@
         if (theme === 'system') {
           theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
-        if (theme === 'dark') {
+        var isDark = theme === 'dark';
+        if (isDark) {
           document.documentElement.classList.add('dark');
         }
-        // 2. Disable all CSS transitions until app signals ready
+        // 2. Set background color on <html> IMMEDIATELY — prevents white flash
+        //    between page load and CSS load (Vite CSS isn't available yet)
+        document.documentElement.style.backgroundColor = isDark ? '#0b1120' : '#fafafa';
+        // 3. Disable all CSS transitions until app signals ready
         document.documentElement.classList.add('no-transitions');
       })();
     </script>
@@ -38,8 +42,8 @@
         justify-content: center;
         transition: opacity 0.3s ease;
       }
-      .dark #app-loader { background: oklch(0.13 0.02 260); }
-      :root:not(.dark) #app-loader { background: oklch(0.985 0 0); }
+      .dark #app-loader { background: #0b1120; }
+      :root:not(.dark) #app-loader { background: #fafafa; }
       #app-loader.fade-out {
         opacity: 0;
         pointer-events: none;

@@ -125,12 +125,17 @@ function dismissLoader() {
   const loader = document.getElementById("app-loader");
   if (loader) {
     loader.classList.add("fade-out");
-    // Remove overlay AND enable transitions only AFTER fade-out completes
+    // Remove overlay after fade-out, then enable transitions one frame later
+    // so that any pending style differences don't trigger visible transitions
     setTimeout(() => {
       loader.remove();
-      document.documentElement.classList.remove("no-transitions");
-    }, 400);
+      document.documentElement.style.backgroundColor = '';
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove("no-transitions");
+      });
+    }, 350);
   } else {
+    document.documentElement.style.backgroundColor = '';
     document.documentElement.classList.remove("no-transitions");
   }
 }
