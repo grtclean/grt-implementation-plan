@@ -113,7 +113,8 @@ async function startServer() {
       if (!doc) {
         return res.status(404).json({ error: "Document not found" });
       }
-      const filePath = require("path").resolve(process.cwd(), doc.filePath);
+      const pathMod = await import("path");
+      const filePath = pathMod.resolve(process.cwd(), doc.filePath);
       res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(doc.originalName)}`);
       res.setHeader("Content-Type", doc.mimeType || "application/octet-stream");
       res.sendFile(filePath);
