@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import {
   Target, Users, BookOpen, Crosshair, BrainCircuit, CalendarCheck,
-  Scroll, Plus, Pencil, Loader2, FileSignature, Eye,
+  Scroll, Plus, Pencil, Loader2, FileSignature, Eye, DatabaseZap,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -1079,9 +1079,63 @@ function MilitaryOrderDialog({
   );
 }
 
+// ── Seed Data ──
+
+const SEED_POSITIONS = [
+  { title: "研发工程师", department: "技术研发部", buCode: "industrial", responsibilities: "负责清洗设备核心技术研发、方案设计与技术攻关", hiringRequirements: "本科及以上，机械/自动化相关专业，3年以上经验", coreCompetency: "机械设计、流体力学、PLC编程", headcount: 8, status: "active" as const },
+  { title: "销售经理", department: "市场销售部", buCode: "overseas", responsibilities: "负责海外市场开拓、客户关系维护与订单跟进", hiringRequirements: "本科及以上，英语流利，5年以上B2B销售经验", coreCompetency: "商务谈判、客户管理、市场分析", headcount: 4, status: "active" as const },
+  { title: "质量主管", department: "质量管理部", buCode: "automotive", responsibilities: "负责产品质量管控、体系审核与持续改进", hiringRequirements: "本科及以上，质量管理相关专业，持CQE证书优先", coreCompetency: "SPC、FMEA、8D分析、ISO9001", headcount: 2, status: "active" as const },
+  { title: "项目经理", department: "项目管理部", buCode: "industrial", responsibilities: "负责项目全生命周期管理，协调资源与进度控制", hiringRequirements: "本科及以上，PMP认证，5年以上项目管理经验", coreCompetency: "项目规划、风险管理、跨部门协调", headcount: 6, status: "active" as const },
+  { title: "生产班长", department: "生产制造部", buCode: "semiconductor", responsibilities: "负责产线日常管理、人员调度与生产任务执行", hiringRequirements: "大专及以上，3年以上生产管理经验", coreCompetency: "精益生产、5S管理、设备维护", headcount: 10, status: "active" as const },
+  { title: "财务分析师", department: "财务部", buCode: "industrial", responsibilities: "负责成本分析、预算编制与经营数据报告", hiringRequirements: "本科及以上，会计/财务专业，CPA优先", coreCompetency: "成本核算、财务建模、ERP系统", headcount: 3, status: "active" as const },
+];
+
+const SEED_LIBRARY = [
+  { name: "营业收入达成率", description: "实际营业收入 / 目标营业收入 × 100%", unit: "percent" as const, kpiType: "financial" as const, category: "销售类", calculationFormula: "实际收入/目标收入×100", dataSource: "ERP财务模块" },
+  { name: "毛利率", description: "（营业收入-营业成本）/ 营业收入 × 100%", unit: "percent" as const, kpiType: "financial" as const, category: "财务类", calculationFormula: "(收入-成本)/收入×100", dataSource: "ERP财务模块" },
+  { name: "客户满意度", description: "客户满意度调查评分（百分制）", unit: "score" as const, kpiType: "customer" as const, category: "服务类", calculationFormula: "满意度问卷加权平均分", dataSource: "CRM系统" },
+  { name: "项目按时交付率", description: "按时完成的项目数 / 总项目数 × 100%", unit: "percent" as const, kpiType: "internal_process" as const, category: "项目类", calculationFormula: "按时交付项目数/总项目数×100", dataSource: "项目管理系统" },
+  { name: "产品一次合格率", description: "一次检验合格产品数 / 送检总数 × 100%", unit: "percent" as const, kpiType: "internal_process" as const, category: "质量类", calculationFormula: "合格数/送检数×100", dataSource: "QMS系统" },
+  { name: "新产品研发周期", description: "从立项到通过验收的平均天数", unit: "days" as const, kpiType: "internal_process" as const, category: "研发类", calculationFormula: "∑(验收日期-立项日期)/项目数", dataSource: "PLM系统" },
+  { name: "员工培训完成率", description: "完成年度培训计划的员工比例", unit: "percent" as const, kpiType: "learning_growth" as const, category: "人才类", calculationFormula: "完成培训人数/应培训人数×100", dataSource: "HR培训系统" },
+  { name: "人均产值", description: "营业收入 / 全职员工人数", unit: "currency" as const, kpiType: "financial" as const, category: "效率类", calculationFormula: "营业收入/FTE人数", dataSource: "ERP+HR系统" },
+  { name: "客户回款率", description: "实际回款金额 / 应收账款 × 100%", unit: "percent" as const, kpiType: "financial" as const, category: "财务类", calculationFormula: "回款金额/应收金额×100", dataSource: "ERP应收模块" },
+  { name: "核心人才保留率", description: "年度核心人才留存比例", unit: "percent" as const, kpiType: "learning_growth" as const, category: "人才类", calculationFormula: "期末核心人才数/期初核心人才数×100", dataSource: "HR系统" },
+];
+
+const SEED_SKILLS = [
+  { userId: 1, skillName: "PLC编程", skillCategory: "technical" as const, currentLevel: 4, targetLevel: 5, assessmentDate: "2026-01-15", notes: "熟练掌握西门子S7系列" },
+  { userId: 1, skillName: "机械设计", skillCategory: "technical" as const, currentLevel: 3, targetLevel: 4, assessmentDate: "2026-01-15" },
+  { userId: 2, skillName: "商务谈判", skillCategory: "soft_skill" as const, currentLevel: 4, targetLevel: 5, assessmentDate: "2026-01-20" },
+  { userId: 2, skillName: "英语沟通", skillCategory: "soft_skill" as const, currentLevel: 3, targetLevel: 5, assessmentDate: "2026-01-20", notes: "需加强技术文档英文写作" },
+  { userId: 3, skillName: "SPC统计过程控制", skillCategory: "technical" as const, currentLevel: 4, targetLevel: 5, assessmentDate: "2026-02-01" },
+  { userId: 3, skillName: "团队管理", skillCategory: "leadership" as const, currentLevel: 3, targetLevel: 4, assessmentDate: "2026-02-01" },
+  { userId: 4, skillName: "项目风险管理", skillCategory: "domain" as const, currentLevel: 3, targetLevel: 5, assessmentDate: "2026-01-25" },
+  { userId: 4, skillName: "跨部门协调", skillCategory: "leadership" as const, currentLevel: 4, targetLevel: 5, assessmentDate: "2026-01-25" },
+  { userId: 5, skillName: "精益生产", skillCategory: "domain" as const, currentLevel: 3, targetLevel: 4, assessmentDate: "2026-02-05" },
+  { userId: 6, skillName: "财务建模", skillCategory: "technical" as const, currentLevel: 4, targetLevel: 5, assessmentDate: "2026-02-10", notes: "Excel高级建模能力出色" },
+];
+
+const SEED_REVIEWS = [
+  { userId: 1, monthDate: "2026-01", overallKpiScore: "92.5", bonusCoefficient: "1.20", gapsText: "新产品研发进度略有延迟", improvementPlanText: "增加周进度检查频次，提前识别风险", status: "finalized" as const },
+  { userId: 2, monthDate: "2026-01", overallKpiScore: "88.0", bonusCoefficient: "1.10", gapsText: "Q1海外订单未达预期", improvementPlanText: "加强东南亚市场拓展，增加客户拜访频次", status: "finalized" as const },
+  { userId: 3, monthDate: "2026-01", overallKpiScore: "95.0", bonusCoefficient: "1.30", gapsText: "无明显短板", improvementPlanText: "推动SPC在新产线全面覆盖", status: "reviewed" as const },
+  { userId: 4, monthDate: "2026-01", overallKpiScore: "85.5", bonusCoefficient: "1.05", gapsText: "2个项目存在进度偏差", improvementPlanText: "优化资源调配，引入关键路径法管理", status: "submitted" as const },
+  { userId: 1, monthDate: "2026-02", overallKpiScore: "94.0", bonusCoefficient: "1.25", status: "draft" as const },
+  { userId: 5, monthDate: "2026-01", overallKpiScore: "90.0", bonusCoefficient: "1.15", gapsText: "设备OEE未达目标", improvementPlanText: "加强TPM推进，减少非计划停机", status: "finalized" as const },
+];
+
+const SEED_MILITARY_ORDERS = [
+  { userId: 1, year: 2026, commitmentText: "2026年完成3项核心技术突破，新产品研发周期缩短15%，专利申请不少于5项", rewardText: "年终奖上浮50%，晋升高级工程师", consequenceText: "年终奖下调20%，取消评优资格", status: "active" as const },
+  { userId: 2, year: 2026, commitmentText: "2026年海外营收突破2000万美元，新签客户不少于15家，回款率≥90%", rewardText: "销售提成系数上浮至1.5倍", consequenceText: "提成系数降至0.8倍", status: "active" as const },
+  { userId: 3, year: 2026, commitmentText: "2026年产品一次合格率提升至98.5%以上，客户质量投诉下降30%，推动SPC全面覆盖", rewardText: "年终奖上浮30%，推荐参加集团质量标兵评选", consequenceText: "年终奖下调15%", status: "active" as const },
+  { userId: 4, year: 2026, commitmentText: "2026年项目按时交付率达到95%以上，项目毛利率不低于22%，客户满意度≥90分", rewardText: "年终奖上浮40%，优先参加PMP高级培训", consequenceText: "年终奖下调20%，暂停新项目分配", status: "active" as const },
+];
+
 // ── Main Page ──
 export default function KpiPerformance() {
   const [activeTab, setActiveTab] = useState("positions");
+  const [seeding, setSeeding] = useState(false);
 
   // Dialog states
   const [posDialogOpen, setPosDialogOpen] = useState(false);
@@ -1138,6 +1192,72 @@ export default function KpiPerformance() {
   };
 
   const isLoading = posLoading || libLoading;
+  const isEmpty = positions.length === 0 && library.length === 0 && skills.length === 0 && militaryOrders.length === 0 && !isLoading;
+
+  // Seed mutations
+  const createPosMut = trpc.kpiPerformance.positions.create.useMutation();
+  const createLibMut = trpc.kpiPerformance.library.create.useMutation();
+  const createTgtMut = trpc.kpiPerformance.targets.create.useMutation();
+  const createSklMut = trpc.kpiPerformance.skills.create.useMutation();
+  const createRevMut = trpc.kpiPerformance.reviews.create.useMutation();
+  const createMoMut = trpc.kpiPerformance.militaryOrders.create.useMutation();
+
+  const handleSeedDefaults = async () => {
+    setSeeding(true);
+    try {
+      // 1. Seed positions — collect created IDs
+      const posIds: number[] = [];
+      for (const item of SEED_POSITIONS) {
+        const res = await createPosMut.mutateAsync(item);
+        posIds.push(res.id);
+      }
+      // 2. Seed KPI library — collect created IDs
+      const libIds: number[] = [];
+      for (const item of SEED_LIBRARY) {
+        const res = await createLibMut.mutateAsync(item);
+        libIds.push(res.id);
+      }
+      // 3. Seed targets — link positions to KPIs
+      const seedTargets = [
+        { positionId: posIds[0], kpiId: libIds[5], year: 2026, targetValue: "120", weight: "0.30", scoringMethod: "linear" as const, notes: "研发周期天数" },
+        { positionId: posIds[0], kpiId: libIds[4], year: 2026, targetValue: "97", weight: "0.25", scoringMethod: "threshold" as const, notes: "一次合格率%" },
+        { positionId: posIds[1], kpiId: libIds[0], year: 2026, targetValue: "100", weight: "0.35", scoringMethod: "linear" as const, notes: "营收达成%" },
+        { positionId: posIds[1], kpiId: libIds[8], year: 2026, targetValue: "90", weight: "0.25", scoringMethod: "step" as const, notes: "回款率%" },
+        { positionId: posIds[2], kpiId: libIds[4], year: 2026, targetValue: "98.5", weight: "0.40", scoringMethod: "threshold" as const },
+        { positionId: posIds[3], kpiId: libIds[3], year: 2026, targetValue: "95", weight: "0.35", scoringMethod: "linear" as const },
+        { positionId: posIds[3], kpiId: libIds[1], year: 2026, targetValue: "22", weight: "0.25", scoringMethod: "threshold" as const, notes: "毛利率%" },
+        { positionId: posIds[4], kpiId: libIds[7], year: 2026, targetValue: "800000", weight: "0.30", scoringMethod: "linear" as const, notes: "人均产值(元)" },
+      ];
+      for (const item of seedTargets) {
+        await createTgtMut.mutateAsync(item);
+      }
+      // 4. Seed skills
+      for (const item of SEED_SKILLS) {
+        await createSklMut.mutateAsync(item);
+      }
+      // 5. Seed reviews
+      for (const item of SEED_REVIEWS) {
+        await createRevMut.mutateAsync(item);
+      }
+      // 6. Seed military orders
+      for (const item of SEED_MILITARY_ORDERS) {
+        await createMoMut.mutateAsync(item);
+      }
+      // Invalidate all caches
+      utils.kpiPerformance.positions.list.invalidate();
+      utils.kpiPerformance.library.list.invalidate();
+      utils.kpiPerformance.targets.list.invalidate();
+      utils.kpiPerformance.skills.list.invalidate();
+      utils.kpiPerformance.reviews.list.invalidate();
+      utils.kpiPerformance.militaryOrders.list.invalidate();
+      const total = SEED_POSITIONS.length + SEED_LIBRARY.length + seedTargets.length + SEED_SKILLS.length + SEED_REVIEWS.length + SEED_MILITARY_ORDERS.length;
+      toast.success(`已初始化 ${total} 条演示数据（6张表）`);
+    } catch (e: any) {
+      toast.error(`初始化失败: ${e.message}`);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   return (
     <>
@@ -1146,7 +1266,17 @@ export default function KpiPerformance() {
           icon={Target}
           title="KPI绩效管理"
           description="岗位画像、KPI指标库、目标设定、技能矩阵、月度评审与军令状"
-          actions={isLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : undefined}
+          actions={
+            <div className="flex items-center gap-2">
+              {isLoading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+              {isEmpty && (
+                <Button variant="outline" size="sm" onClick={handleSeedDefaults} disabled={seeding}>
+                  {seeding ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <DatabaseZap className="h-4 w-4 mr-1" />}
+                  初始化演示数据
+                </Button>
+              )}
+            </div>
+          }
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
