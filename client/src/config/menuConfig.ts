@@ -389,7 +389,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "考勤管理", nameEn: "Attendance", path: "/attendance", icon: Clock, isNew: true,
         allowedRoles: ["admin", "hr_manager", "hr_specialist", "dept_manager", "team_lead"] },
       // 绩效管理 - 分层查看
-      { name: "我的绩效", nameEn: "My Performance", path: "/my-performance", icon: Star, isNew: true },
+      { name: "我的岗位看板", nameEn: "My Position Dashboard", path: "/my-performance", icon: Star, isNew: true },
       { name: "团队绩效", nameEn: "Team Performance", path: "/team-performance", icon: Users, isNew: true,
         minLevel: 2 },
       { name: "部门绩效", nameEn: "Dept Performance", path: "/dept-performance", icon: BarChart3, isNew: true,
