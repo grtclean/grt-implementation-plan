@@ -13,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Target, Users, BookOpen, Crosshair, BrainCircuit, CalendarCheck,
   Scroll, Plus, Pencil, Loader2, FileSignature, Eye, DatabaseZap,
@@ -1216,7 +1215,7 @@ function AiAnalysisDialog({
         </div>
 
         {/* Results */}
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {analyzeMut.isPending && (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin mb-3" />
@@ -1330,7 +1329,7 @@ function AiAnalysisDialog({
               <p className="text-xs mt-1">AI将分析月度评审数据、技能矩阵，生成培训建议与风险预警</p>
             </div>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
