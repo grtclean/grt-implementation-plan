@@ -156,6 +156,9 @@ import { p2AutomationRouter } from "./p2-automation/p2Automation.router";
 // Phase I: 区域合规与本地化 (CN劳动法/五险一金/认证/工作日/VAT/本地化)
 import { regionalComplianceRouter } from "./regional-compliance/regionalCompliance.router";
 
+// HR & KPI Performance Management (岗位KPI/指标库/目标/技能矩阵/月度绩效/军令状)
+import { kpiPerformanceRouter } from "./kpi-performance/kpiPerformance.router";
+
 /**
  * This is the primary router for the tRPC API.
  * All application routes are registered here.
@@ -439,6 +442,9 @@ export const appRouter = router({
 
   // Phase I: 区域合规与本地化
   regionalCompliance: regionalComplianceRouter,
+
+  // HR & KPI Performance Management
+  kpiPerformance: kpiPerformanceRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {
