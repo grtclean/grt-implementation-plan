@@ -8,7 +8,25 @@
  */
 
 import { z } from "zod";
+import { randomUUID } from "crypto";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+
+// ── QR session in-memory store (ephemeral, no DB needed) ──
+const qrSessions = new Map<string, {
+  stationId: string;
+  departmentCode: string;
+  status: 'pending' | 'confirmed';
+  operator: { id: number; name: string } | null;
+  createdAt: number;
+}>();
+
+// Cleanup expired sessions every 60s (TTL = 5 min)
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, session] of qrSessions) {
+    if (now - session.createdAt > 5 * 60 * 1000) qrSessions.delete(id);
+  }
+}, 60_000);
 
 export const kioskRouter = router({
   /**
@@ -365,5 +383,88 @@ export const kioskRouter = router({
         console.error("[Kiosk] operatorPunchIn error:", err);
         return { allowed: true, reason: "资质验证服务异常，默认放行" };
       }
+    }),
+
+  // ── QR Code Login Flow ──
+
+  /**
+   * Create a new QR session — kiosk displays the resulting QR code
+   */
+  createQrSession: publicProcedure
+    .input(z.object({ stationId: z.string(), departmentCode: z.string() }))
+    .mutation(({ input }) => {
+      const sessionId = randomUUID();
+      qrSessions.set(sessionId, {
+        stationId: input.stationId,
+        departmentCode: input.departmentCode,
+        status: "pending",
+        operator: null,
+        createdAt: Date.now(),
+      });
+      return { sessionId };
+    }),
+
+  /**
+   * Poll QR session status — kiosk calls every 2s
+   */
+  pollQrSession: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .query(({ input }) => {
+      const session = qrSessions.get(input.sessionId);
+      if (!session) return { status: "expired" as const, operator: null };
+      return { status: session.status, operator: session.operator };
+    }),
+
+  /**
+   * Confirm QR session — called from mobile page after operator enters employee ID
+   */
+  confirmQrSession: publicProcedure
+    .input(z.object({ sessionId: z.string(), employeeId: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      const session = qrSessions.get(input.sessionId);
+      if (!session) return { success: false, operatorName: null, stationId: null, error: "会话已过期" };
+      if (session.status === "confirmed") return { success: false, operatorName: null, stationId: session.stationId, error: "该二维码已被使用" };
+
+      try {
+        const dbModule = await import("../db");
+        const schema = await import("../../drizzle/schema");
+        const { eq, or } = await import("drizzle-orm");
+        const db = await dbModule.requireDb();
+
+        const users = await db
+          .select()
+          .from(schema.users)
+          .where(
+            or(
+              eq(schema.users.openId, input.employeeId),
+              eq(schema.users.name, input.employeeId)
+            )
+          )
+          .limit(1);
+
+        if (users.length === 0) {
+          return { success: false, operatorName: null, stationId: session.stationId, error: "工号未找到" };
+        }
+
+        const user = users[0];
+        session.status = "confirmed";
+        session.operator = { id: user.id, name: user.name || input.employeeId };
+
+        return { success: true, operatorName: user.name || input.employeeId, stationId: session.stationId, error: null };
+      } catch (err) {
+        console.error("[Kiosk] confirmQrSession error:", err);
+        return { success: false, operatorName: null, stationId: session.stationId, error: "服务器错误" };
+      }
+    }),
+
+  /**
+   * Get QR session info — mobile page calls this to show station context
+   */
+  getQrSessionInfo: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .query(({ input }) => {
+      const session = qrSessions.get(input.sessionId);
+      if (!session) return { found: false, stationId: null, departmentCode: null };
+      return { found: true, stationId: session.stationId, departmentCode: session.departmentCode };
     }),
 });

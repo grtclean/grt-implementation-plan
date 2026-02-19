@@ -263,6 +263,7 @@ import RAGTrainingCenter from "./pages/RAGTrainingCenter";
 import DelegationManagement from "./pages/DelegationManagement";
 import PerformanceSalaryQuery from "./pages/PerformanceSalaryQuery";
 import KioskWorkshop from "./pages/KioskWorkshop";
+import KioskQrConfirm from "./pages/KioskQrConfirm";
 
 // KPI绩效管理
 const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
@@ -962,6 +963,7 @@ function Router() {
         <ProtectedRoute component={WorkerMobileView} />
       </Route>
       {/* Workshop Kiosk Terminal (IATF 16949 / VDA 6.3) */}
+      <Route path="/kiosk/qr-confirm" component={KioskQrConfirm} />
       <Route path="/kiosk" component={KioskWorkshop} />
       <Route path="/ai-accuracy">
         <ProtectedRoute component={AiAccuracyDashboard} />
