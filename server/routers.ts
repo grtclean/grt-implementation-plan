@@ -159,6 +159,9 @@ import { regionalComplianceRouter } from "./regional-compliance/regionalComplian
 // HR & KPI Performance Management (岗位KPI/指标库/目标/技能矩阵/月度绩效/军令状)
 import { kpiPerformanceRouter } from "./kpi-performance/kpiPerformance.router";
 
+// Workshop Kiosk (IATF 16949 / VDA 6.3 compliance)
+import { kioskRouter } from "./routers/kiosk.router";
+
 /**
  * This is the primary router for the tRPC API.
  * All application routes are registered here.
@@ -445,6 +448,9 @@ export const appRouter = router({
 
   // HR & KPI Performance Management
   kpiPerformance: kpiPerformanceRouter,
+
+  // Workshop Kiosk (IATF 16949 / VDA 6.3 compliance)
+  kiosk: kioskRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {

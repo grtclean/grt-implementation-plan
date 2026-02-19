@@ -142,7 +142,7 @@ function IframeLoginPrompt({ onRefresh, loginSuccessReceived }: { onRefresh: () 
 export default function RequireAuth({ children }: RequireAuthProps) {
   // === KEY FIX: Skip auth entirely for /login and /login-success pages ===
   const currentPath = window.location.pathname;
-  const isPublicPage = currentPath === "/login" || currentPath === "/login-success";
+  const isPublicPage = currentPath === "/login" || currentPath === "/login-success" || currentPath.startsWith("/kiosk");
 
   const { isAuthenticated, loading, refresh } = useAuth();
   const [inIframe] = useState(() => isInIframe());

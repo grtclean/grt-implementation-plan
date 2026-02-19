@@ -153,6 +153,45 @@ export function registerLocalAuthRoutes(app: Express) {
     }
   });
 
+  // Kiosk login — no password, creates/finds a generic kiosk session
+  app.post("/api/auth/kiosk-login", async (req: Request, res: Response) => {
+    try {
+      const { stationId, departmentCode } = req.body;
+      if (!stationId) {
+        res.status(400).json({ error: "stationId is required" });
+        return;
+      }
+
+      const kioskUsername = `kiosk-${departmentCode || "workshop"}-${stationId}`.toLowerCase().replace(/[^a-z0-9-]/g, "");
+      const { db, users } = await getDbAndSchema();
+
+      // Find or create the kiosk user
+      let existing = await db.select().from(users).where(eq(users.openId, kioskUsername)).limit(1);
+      if (existing.length === 0) {
+        await db.insert(users).values({
+          openId: kioskUsername,
+          name: `Kiosk ${stationId}`,
+          loginMethod: "kiosk",
+          role: "user",
+          lastSignedIn: new Date().toISOString(),
+        });
+        existing = await db.select().from(users).where(eq(users.openId, kioskUsername)).limit(1);
+      } else {
+        await db.update(users).set({ lastSignedIn: new Date().toISOString() }).where(eq(users.openId, kioskUsername));
+      }
+
+      const token = await signToken({ openId: kioskUsername, name: `Kiosk ${stationId}` });
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: 24 * 60 * 60 * 1000 }); // 24h
+
+      console.log(`[LocalAuth] Kiosk logged in: ${kioskUsername} (station: ${stationId})`);
+      res.json({ success: true, stationId, kioskUser: kioskUsername });
+    } catch (error) {
+      console.error("[LocalAuth] Kiosk login error:", error);
+      res.status(500).json({ error: "Kiosk login failed" });
+    }
+  });
+
   // Logout
   app.post("/api/auth/logout", (req: Request, res: Response) => {
     const cookieOptions = getSessionCookieOptions(req);

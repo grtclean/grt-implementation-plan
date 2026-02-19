@@ -91,6 +91,10 @@ export const qualityMaterialPerformanceRouter = router({
       ccdAnalysisData: z.any().optional(),
       defectCount: z.number().optional(),
       remarks: z.string().optional(),
+      // IATF 16949 traceability fields (optional, injected by kiosk)
+      operatorId: z.number().optional(),
+      stationId: z.string().optional(),
+      clientTimestamp: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       return submitCheckResult({
@@ -132,6 +136,9 @@ export const qualityMaterialPerformanceRouter = router({
       rootCause: z.string().optional(),
       correctiveAction: z.string().optional(),
       assignedTo: z.string().optional(),
+      // IATF 16949 traceability fields (optional, injected by kiosk)
+      reportedByOperatorId: z.number().optional(),
+      reportedAtStation: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       return createQualityDefect(input);

@@ -328,6 +328,8 @@ export const menuConfig: MenuGroup[] = [
         allowedRoles: ["admin"] },
       { name: "通知渠道配置", nameEn: "Notification Channels", path: "/production/notification-channels", icon: Bell, isNew: true,
         allowedRoles: ["admin"] },
+      { name: "车间终端", nameEn: "Workshop Kiosk", path: "/kiosk", icon: Monitor, isNew: true,
+        allowedRoles: ["admin"] },
     ],
   },
 

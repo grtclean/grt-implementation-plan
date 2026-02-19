@@ -262,6 +262,7 @@ import IoTDashboard from "./pages/IoTDashboard";
 import RAGTrainingCenter from "./pages/RAGTrainingCenter";
 import DelegationManagement from "./pages/DelegationManagement";
 import PerformanceSalaryQuery from "./pages/PerformanceSalaryQuery";
+import KioskWorkshop from "./pages/KioskWorkshop";
 
 // KPI绩效管理
 const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
@@ -371,8 +372,8 @@ function LazyFallback() {
 }
 
 // Standalone routes that should NOT have sidebar layout
-const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/404'];
-const STANDALONE_PREFIXES = ['/signature/', '/m/'];
+const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/404'];
+const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/'];
 
 function Router() {
   const [location] = useLocation();
@@ -960,6 +961,8 @@ function Router() {
       <Route path="/worker-mobile">
         <ProtectedRoute component={WorkerMobileView} />
       </Route>
+      {/* Workshop Kiosk Terminal (IATF 16949 / VDA 6.3) */}
+      <Route path="/kiosk" component={KioskWorkshop} />
       <Route path="/ai-accuracy">
         <ProtectedRoute component={AiAccuracyDashboard} />
       </Route>
