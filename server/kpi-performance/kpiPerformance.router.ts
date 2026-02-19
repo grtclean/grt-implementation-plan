@@ -12,6 +12,7 @@
 
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
+import { analyzeKpiPerformance } from "./kpiAiAnalysis.service";
 import {
   listKpiPositions,
   getKpiPositionById,
@@ -542,6 +543,24 @@ const militaryOrdersRouter = router({
 });
 
 // ============================================================
+// AI Analysis sub-router
+// ============================================================
+
+const aiAnalysisRouter = router({
+  analyze: protectedProcedure
+    .input(
+      z.object({
+        buCode: z.string().optional(),
+        department: z.string().optional(),
+        monthDate: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return analyzeKpiPerformance(input);
+    }),
+});
+
+// ============================================================
 // Unified KPI Performance Router
 // ============================================================
 
@@ -552,4 +571,5 @@ export const kpiPerformanceRouter = router({
   skills: skillsRouter,
   reviews: reviewsRouter,
   militaryOrders: militaryOrdersRouter,
+  aiAnalysis: aiAnalysisRouter,
 });

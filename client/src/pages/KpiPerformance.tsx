@@ -13,9 +13,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Target, Users, BookOpen, Crosshair, BrainCircuit, CalendarCheck,
   Scroll, Plus, Pencil, Loader2, FileSignature, Eye, DatabaseZap,
+  Sparkles, AlertTriangle, GraduationCap, TrendingUp,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -1079,6 +1081,261 @@ function MilitaryOrderDialog({
   );
 }
 
+// ── AI Analysis types & components ──
+
+type KpiAnalysisResult = {
+  summary: string;
+  trainingRecommendations: {
+    title: string;
+    reason: string;
+    targetAudience: string;
+    priority: "high" | "medium" | "low";
+    affectedUserIds: number[];
+  }[];
+  riskAlerts: {
+    type: string;
+    severity: "critical" | "high" | "medium" | "low";
+    description: string;
+    affectedUserIds: number[];
+    suggestedAction: string;
+  }[];
+  patterns: {
+    pattern: string;
+    frequency: number;
+    impact: string;
+  }[];
+};
+
+const PRIORITY_STYLES: Record<string, string> = {
+  high: "bg-red-100 text-red-700",
+  medium: "bg-yellow-100 text-yellow-700",
+  low: "bg-green-100 text-green-700",
+};
+
+const SEVERITY_STYLES: Record<string, string> = {
+  critical: "bg-red-200 text-red-800",
+  high: "bg-red-100 text-red-700",
+  medium: "bg-yellow-100 text-yellow-700",
+  low: "bg-green-100 text-green-700",
+};
+
+const SEVERITY_LABELS: Record<string, string> = {
+  critical: "严重",
+  high: "高",
+  medium: "中",
+  low: "低",
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  high: "高",
+  medium: "中",
+  low: "低",
+};
+
+const BU_OPTIONS = [
+  { value: "", label: "全部BU" },
+  { value: "overseas", label: "海外" },
+  { value: "commercial_vehicle", label: "商用车" },
+  { value: "automotive", label: "乘用车" },
+  { value: "semiconductor", label: "半导体" },
+  { value: "industrial", label: "工业通用" },
+];
+
+function AiAnalysisDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const [buCode, setBuCode] = useState("");
+  const [department, setDepartment] = useState("");
+  const [monthDate, setMonthDate] = useState("");
+  const [result, setResult] = useState<KpiAnalysisResult | null>(null);
+
+  const analyzeMut = trpc.kpiPerformance.aiAnalysis.analyze.useMutation({
+    onSuccess: (data) => {
+      setResult(data as KpiAnalysisResult);
+      toast.success("AI分析完成");
+    },
+    onError: (e) => toast.error(`分析失败: ${e.message}`),
+  });
+
+  const handleAnalyze = () => {
+    setResult(null);
+    analyzeMut.mutate({
+      buCode: buCode || undefined,
+      department: department || undefined,
+      monthDate: monthDate || undefined,
+    });
+  };
+
+  const handleClose = (v: boolean) => {
+    if (!v) {
+      setResult(null);
+      analyzeMut.reset();
+    }
+    onOpenChange(v);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-amber-500" />
+            KPI AI 智能分析
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Filter bar */}
+        <div className="flex items-end gap-3 pb-3 border-b">
+          <div className="flex-1">
+            <Label className="text-xs">事业部</Label>
+            <Select value={buCode || "__all__"} onValueChange={(v) => setBuCode(v === "__all__" ? "" : v)}>
+              <SelectTrigger className="h-8"><SelectValue placeholder="全部BU" /></SelectTrigger>
+              <SelectContent>
+                {BU_OPTIONS.map((o) => (
+                  <SelectItem key={o.value || "__all__"} value={o.value || "__all__"}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1">
+            <Label className="text-xs">部门</Label>
+            <Input className="h-8" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="如: 技术研发部" />
+          </div>
+          <div className="flex-1">
+            <Label className="text-xs">月份</Label>
+            <Input className="h-8" type="month" value={monthDate} onChange={(e) => setMonthDate(e.target.value)} />
+          </div>
+          <Button size="sm" onClick={handleAnalyze} disabled={analyzeMut.isPending}>
+            {analyzeMut.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+            开始分析
+          </Button>
+        </div>
+
+        {/* Results */}
+        <ScrollArea className="flex-1 min-h-0">
+          {analyzeMut.isPending && (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin mb-3" />
+              <p className="text-sm">AI正在分析绩效数据...</p>
+              <p className="text-xs mt-1">这可能需要10-30秒</p>
+            </div>
+          )}
+
+          {result && (
+            <div className="space-y-5 pr-3">
+              {/* Summary */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="h-4 w-4 text-blue-500" />
+                    <span className="font-semibold text-sm">综合摘要</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{result.summary}</p>
+                </CardContent>
+              </Card>
+
+              {/* Training Recommendations */}
+              {result.trainingRecommendations.length > 0 && (
+                <div>
+                  <h4 className="flex items-center gap-2 font-semibold text-sm mb-2">
+                    <GraduationCap className="h-4 w-4 text-green-600" />
+                    培训建议 ({result.trainingRecommendations.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {result.trainingRecommendations.map((rec, i) => (
+                      <Card key={i}>
+                        <CardContent className="p-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-sm">{rec.title}</span>
+                                <Badge className={PRIORITY_STYLES[rec.priority]}>
+                                  {PRIORITY_LABELS[rec.priority]}优先级
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">{rec.reason}</p>
+                              <div className="flex items-center gap-3 mt-1.5 text-xs">
+                                <span className="text-muted-foreground">目标受众: {rec.targetAudience}</span>
+                                <span className="text-muted-foreground">涉及 {rec.affectedUserIds.length} 人</span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Risk Alerts */}
+              {result.riskAlerts.length > 0 && (
+                <div>
+                  <h4 className="flex items-center gap-2 font-semibold text-sm mb-2">
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                    风险预警 ({result.riskAlerts.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {result.riskAlerts.map((alert, i) => (
+                      <Card key={i} className="border-l-2 border-l-red-400">
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge className={SEVERITY_STYLES[alert.severity]}>
+                              {SEVERITY_LABELS[alert.severity]}
+                            </Badge>
+                            <span className="font-medium text-sm">{alert.type}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-1">{alert.description}</p>
+                          <p className="text-xs"><span className="font-medium">建议措施:</span> {alert.suggestedAction}</p>
+                          <p className="text-xs text-muted-foreground mt-1">涉及 {alert.affectedUserIds.length} 人</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Patterns */}
+              {result.patterns.length > 0 && (
+                <div>
+                  <h4 className="flex items-center gap-2 font-semibold text-sm mb-2">
+                    <TrendingUp className="h-4 w-4 text-purple-500" />
+                    规律发现 ({result.patterns.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {result.patterns.map((p, i) => (
+                      <Card key={i}>
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-sm">{p.pattern}</span>
+                            <Badge variant="outline">{p.frequency}人</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{p.impact}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!analyzeMut.isPending && !result && (
+            <div className="text-center py-16 text-muted-foreground">
+              <Sparkles className="h-8 w-8 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">选择筛选条件并点击"开始分析"</p>
+              <p className="text-xs mt-1">AI将分析月度评审数据、技能矩阵，生成培训建议与风险预警</p>
+            </div>
+          )}
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Seed Data ──
 
 const SEED_POSITIONS = [
@@ -1136,6 +1393,7 @@ const SEED_MILITARY_ORDERS = [
 export default function KpiPerformance() {
   const [activeTab, setActiveTab] = useState("positions");
   const [seeding, setSeeding] = useState(false);
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
 
   // Dialog states
   const [posDialogOpen, setPosDialogOpen] = useState(false);
@@ -1269,6 +1527,10 @@ export default function KpiPerformance() {
           actions={
             <div className="flex items-center gap-2">
               {isLoading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+              <Button variant="outline" size="sm" onClick={() => setAiDialogOpen(true)}>
+                <Sparkles className="h-4 w-4 mr-1" />
+                AI分析
+              </Button>
               {isEmpty && (
                 <Button variant="outline" size="sm" onClick={handleSeedDefaults} disabled={seeding}>
                   {seeding ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <DatabaseZap className="h-4 w-4 mr-1" />}
@@ -1334,6 +1596,7 @@ export default function KpiPerformance() {
       <SkillDialog open={sklDialogOpen} onOpenChange={setSklDialogOpen} editItem={sklEditItem} />
       <ReviewDialog open={revDialogOpen} onOpenChange={setRevDialogOpen} editItem={revEditItem} />
       <MilitaryOrderDialog open={moDialogOpen} onOpenChange={setMoDialogOpen} editItem={moEditItem} />
+      <AiAnalysisDialog open={aiDialogOpen} onOpenChange={setAiDialogOpen} />
     </>
   );
 }
