@@ -424,6 +424,8 @@ export const menuConfig: MenuGroup[] = [
         allowedRoles: ["admin", "director", "hr_manager", "hr_specialist"] },
       { name: "智能绩效", nameEn: "Smart Performance", path: "/employee-performance", icon: Star, isNew: true,
         allowedRoles: ["admin", "director", "hr_manager", "hr_specialist", "dept_manager"] },
+      { name: "KPI绩效管理", nameEn: "KPI Management", path: "/kpi-management", icon: Target, isNew: true,
+        allowedRoles: ["admin", "director", "hr_manager", "hr_specialist", "dept_manager"] },
       { name: "薪资奖金", nameEn: "Salary Bonus", path: "/salary-bonus", icon: DollarSign, isNew: true,
         allowedRoles: ["admin", "director", "hr_manager", "finance_manager"] },
       { name: "薪资报表", nameEn: "Salary Report", path: "/salary-report", icon: FileText, isNew: true,

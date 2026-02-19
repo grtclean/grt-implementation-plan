@@ -259,6 +259,9 @@ import RAGTrainingCenter from "./pages/RAGTrainingCenter";
 import DelegationManagement from "./pages/DelegationManagement";
 import PerformanceSalaryQuery from "./pages/PerformanceSalaryQuery";
 
+// KPI绩效管理
+const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
+
 // v2.6.0 新增页面
 const QuotationCreate = React.lazy(() => import("./pages/QuotationCreate"));
 const ProjectDigitalTwin = React.lazy(() => import("./pages/ProjectDigitalTwin"));
@@ -1354,7 +1357,10 @@ function Router() {
         <ProtectedRoute component={AIContentLocalizer} />
       </Route>
 
-      {/* Phase B: 代理职能 + 绩效薪资查询 */}
+      {/* Phase B: 代理职能 + 绩效薪资查询 + KPI绩效管理 */}
+      <Route path="/kpi-management">
+        <ProtectedRoute component={KpiPerformance} />
+      </Route>
       <Route path="/delegation">
         <ProtectedRoute component={DelegationManagement} />
       </Route>
