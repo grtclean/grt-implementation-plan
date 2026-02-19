@@ -156,6 +156,10 @@ import GRTOperationDashboard from "./pages/GRTOperationDashboard";
 import CustomerQuestionnaire from "./pages/CustomerQuestionnaire";
 import ProcessGanttChart from "./components/ProcessGanttChart";
 import JiandaoyunIntegration from "./pages/JiandaoyunIntegration";
+import JiandaoyunFullImport from "./pages/JiandaoyunFullImport";
+import JiandaoyunFormBrowser from "./pages/JiandaoyunFormBrowser";
+import JiandaoyunWorkflowViewer from "./pages/JiandaoyunWorkflowViewer";
+import JiandaoyunKnowledgeViewer from "./pages/JiandaoyunKnowledgeViewer";
 import CertificationManagement from "./pages/CertificationManagement";
 import AnnualAgenda from "./pages/AnnualAgenda";
 import CustomerValueView from "./pages/CustomerValueView";
@@ -389,6 +393,10 @@ function Router() {
       <Route path={"/monitoring"} component={MonitoringDashboard} />
       <Route path={"/jiandaoyun"} component={JiandaoyunAnalysis} />
       <Route path={"/jiandaoyun-integration"} component={JiandaoyunIntegration} />
+      <Route path={"/jiandaoyun-import"} component={JiandaoyunFullImport} />
+      <Route path={"/jiandaoyun-forms"} component={JiandaoyunFormBrowser} />
+      <Route path={"/jiandaoyun-workflows"} component={JiandaoyunWorkflowViewer} />
+      <Route path={"/jiandaoyun-knowledge"} component={JiandaoyunKnowledgeViewer} />
       <Route path={"/public"} component={PublicHome} />
       <Route path={"/capabilities"} component={Capabilities} />
       <Route path={"/capability-os"} component={CapabilityOS} />

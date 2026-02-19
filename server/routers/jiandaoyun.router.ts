@@ -8,6 +8,10 @@ import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import { getJiandaoyunSyncService, getJiandaoyunUserSyncService } from "../jiandaoyun";
 import { getJiandaoyunScheduler } from "../services/jiandaoyun-scheduler.service";
 import { getPermissionMappingService, GRT_ROLES, GRT_PERMISSIONS } from "../services/permission-mapping.service";
+import { getJdyFullImportService, type ImportPhase } from "../services/jdy-full-import.service";
+import { getJdyFormDiscoveryService } from "../services/jdy-form-discovery.service";
+import { requireDb } from "../db";
+import { sql as drizzleSql } from "drizzle-orm";
 
 export const jiandaoyunRouter = router({
   /**
@@ -711,4 +715,299 @@ export const jiandaoyunRouter = router({
       return { buMembers: [], error: error.message };
     }
   }),
+
+  // ===== 全量导入功能 =====
+
+  /**
+   * 启动全量导入
+   */
+  startFullImport: adminProcedure
+    .input(z.object({
+      phases: z.array(z.enum(['org', 'user', 'discovery', 'project', 'approval', 'knowledge'])).min(1),
+      dryRun: z.boolean().default(false),
+    }))
+    .mutation(async ({ input }) => {
+      const service = getJdyFullImportService();
+      if (service.isRunning()) {
+        throw new Error('已有导入任务正在运行');
+      }
+      const runCode = await service.startImport({
+        phases: input.phases as ImportPhase[],
+        dryRun: input.dryRun,
+      });
+      return { runCode };
+    }),
+
+  /**
+   * 获取导入进度
+   */
+  getImportProgress: protectedProcedure
+    .input(z.object({ runCode: z.string() }))
+    .query(async ({ input }) => {
+      const service = getJdyFullImportService();
+      const progress = await service.getProgress(input.runCode);
+      if (!progress) {
+        throw new Error(`导入运行 ${input.runCode} 未找到`);
+      }
+      return progress;
+    }),
+
+  /**
+   * 列出所有导入记录
+   */
+  getImportRuns: protectedProcedure
+    .query(async () => {
+      const service = getJdyFullImportService();
+      return service.getImportRuns();
+    }),
+
+  /**
+   * 取消导入
+   */
+  cancelImport: adminProcedure
+    .mutation(async () => {
+      const service = getJdyFullImportService();
+      const cancelled = service.requestCancel();
+      return { cancelled };
+    }),
+
+  /**
+   * 检查是否有正在运行的导入
+   */
+  isImportRunning: protectedProcedure
+    .query(async () => {
+      const service = getJdyFullImportService();
+      return { running: service.isRunning() };
+    }),
+
+  /**
+   * 执行表单发现
+   */
+  discoverForms: adminProcedure
+    .mutation(async () => {
+      const service = getJdyFormDiscoveryService();
+      return service.discoverForms();
+    }),
+
+  /**
+   * 获取发现的表单映射
+   */
+  getFormMappings: protectedProcedure
+    .input(z.object({
+      targetEntity: z.string().optional(),
+      confirmedOnly: z.boolean().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      const service = getJdyFormDiscoveryService();
+      if (input?.confirmedOnly) {
+        return service.getConfirmedMappings(input?.targetEntity);
+      }
+      return service.getFormMappings(input?.targetEntity);
+    }),
+
+  /**
+   * 更新/确认表单映射
+   */
+  updateFormMapping: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      targetEntity: z.string().optional(),
+      fieldMapping: z.record(z.string(), z.string()).optional(),
+      isConfirmed: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const service = getJdyFormDiscoveryService();
+      const { id, ...updates } = input;
+      return service.updateFormMapping(id, updates);
+    }),
+
+  /**
+   * 获取导入验证结果
+   */
+  getImportVerification: protectedProcedure
+    .query(async () => {
+      const service = getJdyFullImportService();
+      return service.getVerification();
+    }),
+
+  // ===== 审批流程查看器端点 =====
+
+  /**
+   * 获取审批模板列表 + 实例计数
+   */
+  getApprovalTemplates: protectedProcedure
+    .query(async () => {
+      const db = await requireDb();
+      const result = await db.execute(
+        drizzleSql`SELECT t.*,
+          (SELECT COUNT(*) FROM grt_approval_instances i WHERE i.template_id = t.id) as instance_count
+        FROM grt_approval_templates t
+        ORDER BY t.created_at DESC`
+      );
+      const rows = (result as any)[0] || [];
+      return rows.map((r: any) => ({
+        ...r,
+        steps: typeof r.steps === 'string' ? JSON.parse(r.steps) : (r.steps || []),
+        instance_count: Number(r.instance_count || 0),
+      }));
+    }),
+
+  /**
+   * 获取审批实例列表（支持按模板/状态筛选）
+   */
+  getApprovalInstances: protectedProcedure
+    .input(z.object({
+      templateId: z.number().optional(),
+      status: z.string().optional(),
+      limit: z.number().min(1).max(200).optional().default(50),
+      offset: z.number().optional().default(0),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const templateId = input?.templateId;
+      const status = input?.status;
+      const limit = input?.limit || 50;
+      const offset = input?.offset || 0;
+
+      let query = drizzleSql`SELECT * FROM grt_approval_instances WHERE 1=1`;
+      if (templateId) {
+        query = drizzleSql`SELECT * FROM grt_approval_instances WHERE template_id = ${templateId}`;
+        if (status) {
+          query = drizzleSql`SELECT * FROM grt_approval_instances WHERE template_id = ${templateId} AND status = ${status}`;
+        }
+      } else if (status) {
+        query = drizzleSql`SELECT * FROM grt_approval_instances WHERE status = ${status}`;
+      }
+
+      // Count query
+      let countQuery = drizzleSql`SELECT COUNT(*) as cnt FROM grt_approval_instances WHERE 1=1`;
+      if (templateId && status) {
+        countQuery = drizzleSql`SELECT COUNT(*) as cnt FROM grt_approval_instances WHERE template_id = ${templateId} AND status = ${status}`;
+      } else if (templateId) {
+        countQuery = drizzleSql`SELECT COUNT(*) as cnt FROM grt_approval_instances WHERE template_id = ${templateId}`;
+      } else if (status) {
+        countQuery = drizzleSql`SELECT COUNT(*) as cnt FROM grt_approval_instances WHERE status = ${status}`;
+      }
+
+      const [dataResult, countResult] = await Promise.all([
+        db.execute(drizzleSql`${query} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`),
+        db.execute(countQuery),
+      ]);
+
+      return {
+        instances: (dataResult as any)[0] || [],
+        total: Number((countResult as any)[0]?.[0]?.cnt || 0),
+      };
+    }),
+
+  /**
+   * 获取审批实例的步骤记录
+   */
+  getApprovalStepRecords: protectedProcedure
+    .input(z.object({ instanceId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const result = await db.execute(
+        drizzleSql`SELECT * FROM grt_approval_step_records
+          WHERE instance_id = ${input.instanceId}
+          ORDER BY step_number ASC`
+      );
+      return (result as any)[0] || [];
+    }),
+
+  /**
+   * 获取审批统计数据
+   */
+  getApprovalStats: protectedProcedure
+    .query(async () => {
+      const db = await requireDb();
+      const [statusStats, templateStats, avgTime] = await Promise.all([
+        db.execute(drizzleSql`SELECT status, COUNT(*) as cnt FROM grt_approval_instances GROUP BY status`),
+        db.execute(drizzleSql`SELECT t.template_name, COUNT(i.id) as cnt
+          FROM grt_approval_templates t
+          LEFT JOIN grt_approval_instances i ON i.template_id = t.id
+          GROUP BY t.id, t.template_name
+          ORDER BY cnt DESC LIMIT 10`),
+        db.execute(drizzleSql`SELECT AVG(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 60) as avg_minutes
+          FROM grt_approval_step_records WHERE completed_at IS NOT NULL`),
+      ]);
+
+      const statusMap: Record<string, number> = {};
+      for (const row of ((statusStats as any)[0] || [])) {
+        statusMap[row.status] = Number(row.cnt);
+      }
+
+      return {
+        statusDistribution: statusMap,
+        topTemplates: ((templateStats as any)[0] || []).map((r: any) => ({
+          name: r.template_name,
+          count: Number(r.cnt),
+        })),
+        avgProcessingMinutes: Number(((avgTime as any)[0]?.[0]?.avg_minutes || 0).toFixed(1)),
+        totalInstances: Object.values(statusMap).reduce((a, b) => a + b, 0),
+        pendingCount: statusMap['pending'] || 0,
+        approvedCount: statusMap['approved'] || 0,
+        rejectedCount: statusMap['rejected'] || 0,
+      };
+    }),
+
+  // ===== 知识库端点 =====
+
+  /**
+   * 获取知识文档列表
+   */
+  getKnowledgeDocuments: protectedProcedure
+    .input(z.object({
+      category: z.string().optional(),
+      source: z.string().optional(),
+      search: z.string().optional(),
+      limit: z.number().min(1).max(100).optional().default(50),
+      offset: z.number().optional().default(0),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const category = input?.category;
+      const source = input?.source;
+      const search = input?.search;
+      const limit = input?.limit || 50;
+      const offset = input?.offset || 0;
+
+      // Build dynamic query
+      let whereClause = '1=1';
+      const conditions: string[] = [];
+      if (category) conditions.push(`category = '${category.replace(/'/g, "''")}'`);
+      if (source) conditions.push(`source = '${source.replace(/'/g, "''")}'`);
+      if (search) conditions.push(`(title ILIKE '%${search.replace(/'/g, "''")}%' OR content ILIKE '%${search.replace(/'/g, "''")}%')`);
+      if (conditions.length > 0) whereClause = conditions.join(' AND ');
+
+      const [dataResult, countResult, statsResult] = await Promise.all([
+        db.execute(drizzleSql.raw(`SELECT * FROM knowledge_documents WHERE ${whereClause} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`)),
+        db.execute(drizzleSql.raw(`SELECT COUNT(*) as cnt FROM knowledge_documents WHERE ${whereClause}`)),
+        db.execute(drizzleSql`SELECT category, COUNT(*) as cnt FROM knowledge_documents GROUP BY category`),
+      ]);
+
+      const catStats: Record<string, number> = {};
+      for (const row of ((statsResult as any)[0] || [])) {
+        catStats[row.category] = Number(row.cnt);
+      }
+
+      return {
+        documents: ((dataResult as any)[0] || []).map((d: any) => ({
+          ...d,
+          tags: typeof d.tags === 'string' ? (() => { try { return JSON.parse(d.tags); } catch { return []; } })() : (d.tags || []),
+        })),
+        total: Number((countResult as any)[0]?.[0]?.cnt || 0),
+        categoryStats: catStats,
+      };
+    }),
+
+  /**
+   * 导入知识库文档（从表单元数据）
+   */
+  importKnowledge: adminProcedure
+    .mutation(async () => {
+      const { getJdyKnowledgeImportService } = await import('../services/jdy-knowledge-import.service');
+      const service = getJdyKnowledgeImportService();
+      return service.importKnowledge();
+    }),
 });

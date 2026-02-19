@@ -573,6 +573,10 @@ export const menuConfig: MenuGroup[] = [
       { name: "系统指南", nameEn: "System Guide", path: "/system-guide", icon: BookOpen },
       // 系统分析/运维工具
       { name: "简道云分析", nameEn: "Jiandaoyun", path: "/jiandaoyun", icon: Database },
+      { name: "简道云导入", nameEn: "JDY Import", path: "/jiandaoyun-import", icon: Cloud, isNew: true },
+      { name: "表单浏览器", nameEn: "Form Browser", path: "/jiandaoyun-forms", icon: Database, isNew: true },
+      { name: "审批流程", nameEn: "Workflows", path: "/jiandaoyun-workflows", icon: GitBranch, isNew: true },
+      { name: "知识库", nameEn: "Knowledge", path: "/jiandaoyun-knowledge", icon: BookOpen, isNew: true },
       { name: "Webhook管理", nameEn: "Webhooks", path: "/webhook", icon: Webhook },
       { name: "定时任务", nameEn: "Scheduler", path: "/scheduler", icon: Timer },
       { name: "Cron监控", nameEn: "Cron Monitor", path: "/cron-monitor", icon: Clock },
