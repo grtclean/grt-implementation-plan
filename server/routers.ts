@@ -10,11 +10,56 @@ import { visitorRouter } from "./visitor-management/visitor.router";
 import { aiAssistantRouter } from "./ai-assistants/ai-assistant.router";
 import { capabilityRouter } from "./capability-management/capability.router";
 
-// Import placeholder routers for TypeScript compatibility
-import { placeholderRouters } from "./placeholder-routers";
-
 // Import delivery management router (replaces m7m9 placeholder)
 import { deliveryRouter } from "./delivery/delivery.router";
+
+// Import real DB-backed routers (replacing placeholders)
+import { orgRouter } from "./routers/org.router";
+import { mesRouter } from "./routers/mes.router";
+import { complianceRouter } from "./routers/compliance.router";
+import { hrmRouter } from "./routers/hrm.router";
+import { costRouter } from "./routers/cost.router";
+import { costAlertRouter } from "./routers/cost-alert.router";
+import { annualPlanningRouter } from "./routers/annual-planning.router";
+import { webhookRouter as realWebhookRouter } from "./routers/webhook.router";
+import { namingRouter as realNamingRouter } from "./routers/naming.router";
+import { communityRouter as realCommunityRouter } from "./routers/community.router";
+import { tripRequestRouter as realTripRequestRouter } from "./routers/trip-request.router";
+import { reportTemplateRouter as realReportTemplateRouter } from "./routers/report-template.router";
+import { importHistoryRouter as realImportHistoryRouter } from "./routers/import-history.router";
+import { chatHistoryRouter as realChatHistoryRouter } from "./routers/chat-history.router";
+import { taskExecutionLogRouter as realTaskExecutionLogRouter } from "./routers/task-execution-log.router";
+import { trainingCertificateRouter as realTrainingCertificateRouter } from "./routers/training-certificate.router";
+import { trainingAssessmentRouter as realTrainingAssessmentRouter } from "./routers/training-assessment.router";
+import { processNotebookRouter as realProcessNotebookRouter } from "./routers/process-notebook.router";
+import { feedbackRouter as realFeedbackRouter } from "./routers/feedback.router";
+import { analyticsRouter as realAnalyticsRouter } from "./routers/analytics.router";
+import { expenseReportRouter as realExpenseReportRouter } from "./routers/expense-report.router";
+import { expenseComparisonRouter as realExpenseComparisonRouter } from "./routers/expense-comparison.router";
+import { projectRouter as realProjectRouter } from "./routers/project.router";
+import { aiPlanningRouter } from "./routers/ai-planning.router";
+import { fmeaRouter } from "./routers/fmea.router";
+import { controlPlanRouter } from "./routers/control-plan.router";
+import { taskBoardRouter } from "./routers/task-board.router";
+import { ppapRouter } from "./routers/ppap.router";
+import { msaRouter } from "./routers/msa.router";
+import { eightDCapaRouter } from "./routers/eight-d-capa.router";
+import { sopDbRouter } from "./routers/sop-db.router";
+import { safetyRuleRouter } from "./routers/safety-rule.router";
+import { workerRouter as realWorkerRouter } from "./routers/worker.router";
+import { agendaRouter as realAgendaRouter } from "./routers/agenda.router";
+import { planningDependencyRouter as realPlanningDependencyRouter } from "./routers/planning-dependency.router";
+import { migrationRouter as realMigrationRouter } from "./routers/migration.router";
+import { leadImportRouter as realLeadImportRouter } from "./routers/lead-import.router";
+import { aiChatRouter as realAiChatRouter } from "./routers/ai-chat.router";
+import { usersRouter as realUsersRouter } from "./routers/users.router";
+import { aiSuggestionRouter as realAiSuggestionRouter } from "./routers/ai-suggestion.router";
+import { aiNotebookRouter as realAiNotebookRouter } from "./routers/ai-notebook.router";
+import { redBlueRouter } from "./routers/red-blue.router";
+import { alertRuleRouter as realAlertRuleRouter } from "./routers/alert-rule.router";
+import { authRouter as realAuthRouter } from "./routers/auth.router";
+import { travelDashboardRouter as realTravelDashboardRouter } from "./routers/travel-dashboard.router";
+import { ruleTemplateRouter as realRuleTemplateRouter } from "./routers/rule-template.router";
 
 // Import real implementation routers
 import { changeManagementRouter as realChangeManagementRouter } from "./deployment/changeManagement.router";
@@ -51,6 +96,24 @@ import { userProfileRouter } from "./routers/user-profile.router";
 import { certificationRouter } from "./certification/certification.router";
 import { annualAgendaRouter } from "./annual-agenda/annual-agenda.router";
 import { aiExecutionModeRouter } from "./routers/ai-execution-mode.router";
+import { aiTriggerRouter as realAiTriggerRouter } from "./routers/ai-trigger.router";
+import { expenseReportSchedulerRouter as realExpenseReportSchedulerRouter } from "./routers/expense-report-scheduler.router";
+import { reportSchedulerRouter as realReportSchedulerRouter } from "./routers/report-scheduler.router";
+import { deadlockMonitorRouter as realDeadlockMonitorRouter } from "./routers/deadlock-monitor.router";
+import { templateUsageStatsRouter as realTemplateUsageStatsRouter } from "./routers/template-usage-stats.router";
+import { hrLifecycleRouter as realHrLifecycleRouter } from "./routers/hr-lifecycle.router";
+import { fieldMappingRouter as realFieldMappingRouter } from "./routers/field-mapping.router";
+import { employeeDARouter as realEmployeeDARouter } from "./routers/employee-da.router";
+import { ruleVersionRouter as realRuleVersionRouter } from "./routers/rule-version.router";
+import { notificationChannelTestRouter as realNotificationChannelTestRouter } from "./routers/notification-channel-test.router";
+import { leadAnalyticsRouter as realLeadAnalyticsRouter } from "./routers/lead-analytics.router";
+import { newAiAssistantRouter as realNewAiAssistantRouter } from "./routers/new-ai-assistant.router";
+import { leadAutoFollowRouter as realLeadAutoFollowRouter } from "./routers/lead-auto-follow.router";
+import { expenseForecastRouter as realExpenseForecastRouter } from "./routers/expense-forecast.router";
+import { budgetOverrunApprovalRouter as realBudgetOverrunApprovalRouter } from "./routers/budget-overrun-approval.router";
+import { expenseComparisonExportRouter as realExpenseComparisonExportRouter } from "./routers/expense-comparison-export.router";
+import { daIntegrationRouter as realDaIntegrationRouter } from "./routers/da-integration.router";
+import { fieldMappingRecommendRouter as realFieldMappingRecommendRouter } from "./routers/field-mapping-recommend.router";
 import { schedulerRouter } from "./routers/scheduler.router";
 import { monitoringRouter } from "./monitoring/monitoring.router";
 
@@ -161,12 +224,30 @@ import { kpiPerformanceRouter } from "./kpi-performance/kpiPerformance.router";
 
 // Workshop Kiosk (IATF 16949 / VDA 6.3 compliance)
 import { kioskRouter } from "./routers/kiosk.router";
+import { capabilityOsRouter as realCapabilityOsRouter } from "./routers/capability-os.router";
+import { taskCockpitRouter } from "./routers/task-cockpit.router";
+import { testEngineRouter } from "./routers/test-engine.router";
+import { plmRouter } from "./routers/plm.router";
+import { digitalTwinRouter } from "./routers/digital-twin.router";
+import { oaRouter } from "./routers/oa.router";
+import { oaFormsRouter } from "./routers/oa-forms.router";
+import { competencyRouter as realCompetencyRouter } from "./routers/competency.router";
+import { governanceRouter } from "./routers/governance.router";
+import { campaignRouter } from "./routers/campaign.router";
+import { genesisRouter } from "./routers/genesis.router";
+import { helpRouter } from "./routers/help.router";
+import { supplyChainRouter } from "./routers/supply-chain.router";
+import { p2pLifecycleRouter } from "./routers/p2p-lifecycle.router";
+import { aiAgentFleetRouter } from "./routers/ai-agent-fleet.router";
+import { reportCenterRouter } from "./routers/report-center.router";
 
 /**
  * This is the primary router for the tRPC API.
  * All application routes are registered here.
  */
 export const appRouter = router({
+  // Organization
+  org: orgRouter,
   // System and authentication
   system: systemRouter,
   security: securityRouter,
@@ -206,76 +287,84 @@ export const appRouter = router({
 
   // Placeholder routers for TypeScript compatibility
   // These return empty/mock data and can be replaced with real implementations
-  capabilityOs: placeholderRouters.capabilityOs,
+  capabilityOs: realCapabilityOsRouter,
   afterSales: realAfterSalesRouter,
-  compliance: placeholderRouters.compliance,
-  webhook: placeholderRouters.webhook,
-  agenda: placeholderRouters.agenda,
-  naming: placeholderRouters.naming,
-  hrm: placeholderRouters.hrm,
-  reportTemplate: placeholderRouters.reportTemplate,
-  cost: placeholderRouters.cost,
-  community: placeholderRouters.community,
+  compliance: complianceRouter,
+  webhook: realWebhookRouter,
+  agenda: realAgendaRouter,
+  naming: realNamingRouter,
+  hrm: hrmRouter,
+  reportTemplate: realReportTemplateRouter,
+  cost: costRouter,
+  community: realCommunityRouter,
   m7m9: deliveryRouter,
-  tripRequest: placeholderRouters.tripRequest,
+  tripRequest: realTripRequestRouter,
   crm: crmRouter,
   contract: contractRouter,
-  annualPlanning: placeholderRouters.annualPlanning,
+  annualPlanning: annualPlanningRouter,
   changeManagement: realChangeManagementRouter,
-  expenseReportScheduler: placeholderRouters.expenseReportScheduler,
-  costAlert: placeholderRouters.costAlert,
-  alertRule: placeholderRouters.alertRule,
-  worker: placeholderRouters.worker,
-  reportScheduler: placeholderRouters.reportScheduler,
+  expenseReportScheduler: realExpenseReportSchedulerRouter,
+  costAlert: costAlertRouter,
+  alertRule: realAlertRuleRouter,
+  worker: realWorkerRouter,
+  reportScheduler: realReportSchedulerRouter,
   employeeAiAssistant: employeeAiAssistantRouter,
   skillRecommendation: skillRecommendationRouter,
   permissionManagement: permissionManagementRouter,
-  deadlockMonitor: placeholderRouters.deadlockMonitor,
-  aiTrigger: placeholderRouters.aiTrigger,
-  templateUsageStats: placeholderRouters.templateUsageStats,
-  hrLifecycle: placeholderRouters.hrLifecycle,
-  fieldMapping: placeholderRouters.fieldMapping,
-  employeeDA: placeholderRouters.employeeDA,
-  ruleVersion: placeholderRouters.ruleVersion,
-  project: placeholderRouters.project,
-  processNotebook: placeholderRouters.processNotebook,
-  chatHistory: placeholderRouters.chatHistory,
+  deadlockMonitor: realDeadlockMonitorRouter,
+  aiTrigger: realAiTriggerRouter,
+  templateUsageStats: realTemplateUsageStatsRouter,
+  hrLifecycle: realHrLifecycleRouter,
+  fieldMapping: realFieldMappingRouter,
+  employeeDA: realEmployeeDARouter,
+  ruleVersion: realRuleVersionRouter,
+  project: realProjectRouter,
+  processNotebook: realProcessNotebookRouter,
+  chatHistory: realChatHistoryRouter,
   aiExecutionMode: aiExecutionModeRouter,
-  taskExecutionLog: placeholderRouters.taskExecutionLog,
-  ruleTemplate: placeholderRouters.ruleTemplate,
-  planningDependency: placeholderRouters.planningDependency,
-  notificationChannelTest: placeholderRouters.notificationChannelTest,
-  leadAnalytics: placeholderRouters.leadAnalytics,
-  importHistory: placeholderRouters.importHistory,
+  taskExecutionLog: realTaskExecutionLogRouter,
+  ruleTemplate: realRuleTemplateRouter,
+  planningDependency: realPlanningDependencyRouter,
+  notificationChannelTest: realNotificationChannelTestRouter,
+  leadAnalytics: realLeadAnalyticsRouter,
+  importHistory: realImportHistoryRouter,
   devTasks: realDevTasksRouter,
-  aiSuggestion: placeholderRouters.aiSuggestion,
-  aiNotebook: placeholderRouters.aiNotebook,
-  trainingCertificate: placeholderRouters.trainingCertificate,
-  trainingAssessment: placeholderRouters.trainingAssessment,
-  redBlue: placeholderRouters.redBlue,
+  aiSuggestion: realAiSuggestionRouter,
+  aiNotebook: realAiNotebookRouter,
+  trainingCertificate: realTrainingCertificateRouter,
+  trainingAssessment: realTrainingAssessmentRouter,
+  redBlue: redBlueRouter,
   projectGate: projectGateRouter,
   productionDashboard: productionRouter,
   processManagement: processManagementRouter,
   questionnaire: questionnaireRouter,
-  newAiAssistant: placeholderRouters.newAiAssistant,
-  migration: placeholderRouters.migration,
-  leadImport: placeholderRouters.leadImport,
-  leadAutoFollow: placeholderRouters.leadAutoFollow,
-  expenseReport: placeholderRouters.expenseReport,
-  expenseForecast: placeholderRouters.expenseForecast,
-  expenseComparison: placeholderRouters.expenseComparison,
-  budgetOverrunApproval: placeholderRouters.budgetOverrunApproval,
-  aiChat: placeholderRouters.aiChat,
+  newAiAssistant: realNewAiAssistantRouter,
+  migration: realMigrationRouter,
+  leadImport: realLeadImportRouter,
+  leadAutoFollow: realLeadAutoFollowRouter,
+  expenseReport: realExpenseReportRouter,
+  expenseForecast: realExpenseForecastRouter,
+  expenseComparison: realExpenseComparisonRouter,
+  budgetOverrunApproval: realBudgetOverrunApprovalRouter,
+  aiChat: realAiChatRouter,
   knowledgeBase: realKnowledgeBaseRouter,
-  users: placeholderRouters.users,
-  auth: placeholderRouters.auth,
-  analytics: placeholderRouters.analytics,
-  feedback: placeholderRouters.feedback,
+  users: realUsersRouter,
+  auth: realAuthRouter,
+  analytics: realAnalyticsRouter,
+  feedback: realFeedbackRouter,
   
   // 钉钉通知集成
   dingtalk: dingtalkRouter,
   ai: aiRouter,
-  
+  aiPlanning: aiPlanningRouter,
+  fmea: fmeaRouter,
+  controlPlan: controlPlanRouter,
+  taskBoard: taskBoardRouter,
+  ppap: ppapRouter,
+  msa: msaRouter,
+  eightDCapa: eightDCapaRouter,
+  safetyRule: safetyRuleRouter,
+
   // AI服务和能力证据
   aiServices: aiServicesRouter,
   microsoftGraph: microsoftGraphRouter,
@@ -385,10 +474,10 @@ export const appRouter = router({
   fieldService: fieldServiceRouter,
 
   // Additional placeholder routers
-  travelDashboard: placeholderRouters.travelDashboard,
-  expenseComparisonExport: placeholderRouters.expenseComparisonExport,
-  daIntegration: placeholderRouters.daIntegration,
-  fieldMappingRecommend: placeholderRouters.fieldMappingRecommend,
+  travelDashboard: realTravelDashboardRouter,
+  expenseComparisonExport: realExpenseComparisonExportRouter,
+  daIntegration: realDaIntegrationRouter,
+  fieldMappingRecommend: realFieldMappingRecommendRouter,
 
   // AI Early Warning System (3-layer: Health Scanner, Risk Scorer, LLM Narrative)
   aiEarlyWarning: aiEarlyWarningRouter,
@@ -403,8 +492,8 @@ export const appRouter = router({
   gamification: gamificationRouter,
   performanceTrace: performanceTraceRouter,
   iotDigitalTwin: iotDigitalTwinRouter,
-  // SOP Template Library
-  sop: sopRouter,
+  // SOP Template Library (DB-backed, replaces in-memory service)
+  sop: sopDbRouter,
 
   // 成本标准与产品配置
   costStandards: costStandardsRouter,
@@ -449,8 +538,53 @@ export const appRouter = router({
   // HR & KPI Performance Management
   kpiPerformance: kpiPerformanceRouter,
 
+  // Smart Cockpit (任务驾驶舱 — 时间追踪、前置条件、分类任务管理)
+  taskCockpit: taskCockpitRouter,
+
+  // Testing & Template Engine (Software UAT, PLC, FAT/SAT, custom)
+  testEngine: testEngineRouter,
+
+  // Light-PLM: Document Management (SolidWorks, EPLAN, versioning, design reviews)
+  plm: plmRouter,
+
+  // Digital Twin Hub — IATF 16949 compliant 3D asset management
+  digitalTwin: digitalTwinRouter,
+
+  // Smart OA & Command Center (请假/用车/文具/礼品审批 + 晨会看板 + 出差报告)
+  oa: oaRouter,
+  // OA Dynamic Forms Engine (templates, submissions, multi-step approvals)
+  oaForms: oaFormsRouter,
+
   // Workshop Kiosk (IATF 16949 / VDA 6.3 compliance)
   kiosk: kioskRouter,
+
+  // HR Competency Assessment (TSDCKL六大能力矩阵)
+  competency: realCompetencyRouter,
+  mes: mesRouter,
+
+  // System Control Tower — Enterprise Governance (MDM, BPMN, RLS, Audit)
+  governance: governanceRouter,
+
+  // Strategic Campaigns — Global Rollover Engine
+  campaign: campaignRouter,
+
+  // AI Knowledge Genesis — Document Ingestion & Proposal Engine
+  genesis: genesisRouter,
+
+  // Context-Aware Help — Route-based help articles & empowerment overlay
+  help: helpRouter,
+
+  // Supply Chain Traceability & Quality Control (IATF 16949)
+  supplyChain: supplyChainRouter,
+
+  // P2P (Procure-to-Pay) Lifecycle — Framework Agreements, RFQ, Delivery, Payment Workflows
+  p2p: p2pLifecycleRouter,
+
+  // AI Agent Fleet — L1-L5 Multi-Agent Legion + G-Token Ledger
+  aiAgentFleet: aiAgentFleetRouter,
+
+  // Live Executive Briefing Center (动态汇报中枢)
+  reportCenter: reportCenterRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {

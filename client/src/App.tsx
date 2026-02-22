@@ -299,6 +299,8 @@ import MPhaseFormDirectory from "./pages/MPhaseFormDirectory";
 import FormDetailPage from "./pages/FormDetailPage";
 import FatSatExecutionDashboard from "./pages/FatSatExecutionDashboard";
 import MorningMeetingPresentation from "./pages/MorningMeetingPresentation";
+import ReportCenter from "./pages/ReportCenter";
+import ReportPresent from "./pages/ReportPresent";
 
 // KPI绩效管理
 const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
@@ -409,7 +411,7 @@ function LazyFallback() {
 
 // Standalone routes that should NOT have sidebar layout
 const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/404', '/oa-test', '/morning-meeting'];
-const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/'];
+const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/'];
 
 function Router() {
   const [location] = useLocation();
@@ -1044,6 +1046,11 @@ function Router() {
       </Route>
       <Route path="/pre-sales-questionnaire">
         <ProtectedRoute component={PreSalesQuestionnaireForm} />
+      </Route>
+      {/* Live Executive Briefing Center (动态汇报中枢) */}
+      <Route path="/report-center/:id/present" component={ReportPresent} />
+      <Route path="/report-center">
+        <ProtectedRoute component={ReportCenter} />
       </Route>
       <Route path="/morning-meeting" component={MorningMeetingPresentation} />
       <Route path="/morning-meeting-board">
