@@ -7,7 +7,7 @@ import { z } from "zod";
 import { router, publicProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sysReports } from "../../drizzle/report-center-schema";
-import { eq, desc, and, sql, count, ilike } from "drizzle-orm";
+import { eq, desc, and, or, sql, ilike } from "drizzle-orm";
 
 const idInput = z.object({ id: z.union([z.string(), z.number()]) });
 const toNum = (id: string | number) =>
@@ -38,28 +38,26 @@ export const reportCenterRouter = router({
     )
     .query(async ({ input }) => {
       const db = await requireDb();
+      const conditions = [];
+      if (input?.status) conditions.push(eq(sysReports.status, input.status));
+      if (input?.reportType)
+        conditions.push(eq(sysReports.reportType, input.reportType));
+      if (input?.search) {
+        const q = `%${input.search}%`;
+        conditions.push(
+          or(
+            ilike(sysReports.title, q),
+            ilike(sysReports.authorName, q),
+            ilike(sysReports.department, q)
+          )
+        );
+      }
       const rows = await db
         .select()
         .from(sysReports)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(sysReports.updatedAt));
-
-      let filtered = rows;
-      if (input?.status) {
-        filtered = filtered.filter((r) => r.status === input.status);
-      }
-      if (input?.reportType) {
-        filtered = filtered.filter((r) => r.reportType === input.reportType);
-      }
-      if (input?.search) {
-        const q = input.search.toLowerCase();
-        filtered = filtered.filter(
-          (r) =>
-            r.title.toLowerCase().includes(q) ||
-            (r.authorName && r.authorName.toLowerCase().includes(q)) ||
-            (r.department && r.department.toLowerCase().includes(q))
-        );
-      }
-      return filtered;
+      return rows;
     }),
 
   /** Get single report by ID */
@@ -100,7 +98,7 @@ export const reportCenterRouter = router({
           coverGradient: input.coverGradient ?? "from-blue-600 to-cyan-500",
         })
         .returning();
-      return rows[0];
+      return rows[0] ?? null;
     }),
 
   /** Update an existing report */

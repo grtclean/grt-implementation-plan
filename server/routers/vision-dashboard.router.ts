@@ -97,7 +97,7 @@ export const visionDashboardRouter = router({
           currentMode: "EXTERNAL",
         })
         .returning();
-      return rows[0];
+      return rows[0] ?? null;
     }),
 
   // ─── Mode Switching ────────────────────────────────────
@@ -264,7 +264,7 @@ export const visionDashboardRouter = router({
       logsByStation[log.stationId].push(log);
     }
 
-    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const oneHourAgoMs = Date.now() - 3600000;
     return allStations.map((st) => {
       const logs = logsByStation[st.id] || [];
       const total = logs.length;
@@ -281,7 +281,10 @@ export const visionDashboardRouter = router({
           : 0;
       const latestLog = logs[logs.length - 1];
 
-      const recentLogs = logs.filter((l) => l.createdAt > oneHourAgo);
+      // Use Date objects for comparison (DB returns "YYYY-MM-DD HH:mm:ss", not ISO)
+      const recentLogs = logs.filter(
+        (l) => new Date(l.createdAt).getTime() > oneHourAgoMs
+      );
       let status: "running" | "idle" | "alarm" = "idle";
       if (
         recentLogs.some((l) =>
