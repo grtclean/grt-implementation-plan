@@ -2,13 +2,17 @@
  * 方案设计页面 (TX-002)
  * 清洗方案配置、3D布局、技术参数计算
  */
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { Lightbulb, Plus, CheckCircle2, Clock, Building2, Layers, AlertTriangle } from "lucide-react";
 
@@ -26,12 +30,42 @@ const MOCK_SOLUTIONS = [
 ];
 
 export default function SolutionDesign() {
-  const { toast } = useToast();
   const { currentBU } = useUserProfile();
-  const filtered = MOCK_SOLUTIONS.filter(s => !currentBU || s.bu === currentBU);
+  const [solutions, setSolutions] = useState(MOCK_SOLUTIONS);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [formData, setFormData] = useState({ project: "", customer: "", engineer: "" });
 
-  const handleComingSoon = () => {
-    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  const filtered = solutions.filter(s => !currentBU || s.bu === currentBU);
+
+  const handleCreate = () => {
+    if (!formData.project.trim()) {
+      toast.error("请输入项目名称");
+      return;
+    }
+    if (!formData.customer.trim()) {
+      toast.error("请输入客户名称");
+      return;
+    }
+    if (!formData.engineer.trim()) {
+      toast.error("请输入工程师");
+      return;
+    }
+
+    const newId = `SOL-${String(solutions.length + 1).padStart(3, "0")}`;
+    const newSolution = {
+      id: newId,
+      project: formData.project.trim(),
+      customer: formData.customer.trim(),
+      status: "设计中",
+      bu: currentBU || "BU3",
+      version: "V1.0",
+      engineer: formData.engineer.trim(),
+    };
+
+    setSolutions(prev => [newSolution, ...prev]);
+    setShowCreateDialog(false);
+    setFormData({ project: "", customer: "", engineer: "" });
+    toast.success("方案创建成功");
   };
 
   return (
@@ -43,15 +77,15 @@ export default function SolutionDesign() {
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />新建方案</Button>
+            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />新建方案</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard icon={Clock} label="进行中方案" value={12} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={CheckCircle2} label="已通过评审" value={8} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={AlertTriangle} label="待修改" value={3} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Clock} label="进行中方案" value={solutions.filter(s => s.status === "设计中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label="已通过评审" value={solutions.filter(s => s.status === "已评审").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label="待修改" value={solutions.filter(s => s.status === "修改中").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       <Card>
@@ -84,6 +118,53 @@ export default function SolutionDesign() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新建方案</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="sol-project">项目名称 *</Label>
+              <Input
+                id="sol-project"
+                placeholder="例如：缸体清洗线"
+                value={formData.project}
+                onChange={e => setFormData(prev => ({ ...prev, project: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sol-customer">客户 *</Label>
+              <Input
+                id="sol-customer"
+                placeholder="例如：上海大众"
+                value={formData.customer}
+                onChange={e => setFormData(prev => ({ ...prev, customer: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sol-engineer">工程师 *</Label>
+              <Input
+                id="sol-engineer"
+                placeholder="例如：王工"
+                value={formData.engineer}
+                onChange={e => setFormData(prev => ({ ...prev, engineer: e.target.value }))}
+              />
+            </div>
+            {currentBU && (
+              <div className="space-y-2">
+                <Label>事业部</Label>
+                <Input value={currentBU} disabled />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
+            <Button onClick={handleCreate}>创建</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

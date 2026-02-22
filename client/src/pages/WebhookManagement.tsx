@@ -39,9 +39,13 @@ interface WebhookLog {
   payload: string | null;
   response: string | null;
   statusCode: number | null;
-  success: boolean;
+  success: number;
   errorMessage: string | null;
-  sentAt: Date;
+  sentAt: string;
+  retryCount: number;
+  maxRetries: number;
+  nextRetryAt: string | null;
+  retryStatus: string;
 }
 
 const webhookTypeLabels: Record<WebhookType, string> = {
@@ -290,7 +294,7 @@ export default function WebhookManagement() {
     }));
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleString("zh-CN");
   };
 
@@ -1160,9 +1164,9 @@ interface WebhookTemplate {
   titleTemplate: string;
   contentTemplate: string;
   availableVariables: string | null;
-  isDefault: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  isDefault: number;
+  createdAt: string;
+  updatedAt: string;
   createdBy: number | null;
 }
 
@@ -1284,7 +1288,7 @@ function TemplatesTab() {
       titleTemplate: template.titleTemplate,
       contentTemplate: template.contentTemplate,
       availableVariables: template.availableVariables || "",
-      isDefault: template.isDefault,
+      isDefault: !!template.isDefault,
     });
     setShowEditTemplateDialog(true);
   };

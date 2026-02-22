@@ -11,24 +11,56 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FolderKanban, FileText, CheckSquare, BarChart3, Plus, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/grt";
 
-const mockProjects = [
+type Project = {
+  id: string;
+  name: string;
+  customer: string;
+  stage: string;
+  progress: number;
+  status: string;
+  pmName: string;
+};
+
+type Deliverable = {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  reviewer: string;
+};
+
+const INITIAL_PROJECTS: Project[] = [
   { id: "prj_001", name: "上汽清洗线项目", customer: "上汽大众", stage: "M5", progress: 65, status: "on_track", pmName: "张工" },
   { id: "prj_002", name: "一汽喷涂线项目", customer: "一汽集团", stage: "M7", progress: 85, status: "at_risk", pmName: "李工" },
   { id: "prj_003", name: "比亚迪装配线", customer: "比亚迪", stage: "M3", progress: 35, status: "on_track", pmName: "王工" },
 ];
 
-const mockDeliverables = [
+const INITIAL_DELIVERABLES: Deliverable[] = [
   { id: "del_001", name: "设计方案书", type: "design_doc", status: "approved", reviewer: "技术总监" },
   { id: "del_002", name: "BOM清单", type: "bom", status: "pending", reviewer: "采购经理" },
   { id: "del_003", name: "PPAP文件包", type: "ppap", status: "rejected", reviewer: "质量经理" },
 ];
 
+const STAGE_OPTIONS = ["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9", "M10", "M11", "M12"];
+
+const DEFAULT_FORM = { name: "", customer: "", stage: "M0", pmName: "" };
+
 export default function ProjectHub() {
   const [activeTab, setActiveTab] = useState("projects");
+  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
+  const [deliverables, setDeliverables] = useState<Deliverable[]>(INITIAL_DELIVERABLES);
+
+  // Create dialog state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState(DEFAULT_FORM);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -39,13 +71,104 @@ export default function ProjectHub() {
     }
   };
 
+  const handleCreateProject = () => {
+    if (!form.name.trim() || !form.customer.trim() || !form.pmName.trim()) {
+      toast.error("请填写必填字段", { description: "项目名称、客户名称和项目经理不能为空" });
+      return;
+    }
+    const newProject: Project = {
+      id: `prj_${Date.now()}`,
+      name: form.name.trim(),
+      customer: form.customer.trim(),
+      stage: form.stage,
+      progress: 0,
+      status: "on_track",
+      pmName: form.pmName.trim(),
+    };
+    setProjects(prev => [newProject, ...prev]);
+    setCreateOpen(false);
+    setForm(DEFAULT_FORM);
+    toast.success("新建项目成功", { description: `项目「${newProject.name}」已创建` });
+  };
+
+  const handleApprove = (del: Deliverable) => {
+    setDeliverables(prev =>
+      prev.map(d => d.id === del.id ? { ...d, status: "approved" } : d)
+    );
+    toast.success("审批通过", { description: `「${del.name}」已批准` });
+  };
+
+  const handleReject = (del: Deliverable) => {
+    setDeliverables(prev =>
+      prev.map(d => d.id === del.id ? { ...d, status: "rejected" } : d)
+    );
+    toast.success("已驳回", { description: `「${del.name}」已驳回` });
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         icon={FolderKanban}
         title="项目中心"
         description="项目全生命周期管理、M0-M12状态追踪"
-        actions={<Button size="sm" onClick={() => showPlaceholder('新建项目')}><Plus className="w-4 h-4 mr-2" />新建项目</Button>}
+        actions={
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="w-4 h-4 mr-2" />新建项目</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[480px]">
+              <DialogHeader>
+                <DialogTitle>新建项目</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="proj-name">项目名称 <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="proj-name"
+                    placeholder="请输入项目名称"
+                    value={form.name}
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="proj-customer">客户名称 <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="proj-customer"
+                    placeholder="请输入客户名称"
+                    value={form.customer}
+                    onChange={e => setForm(f => ({ ...f, customer: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="proj-stage">当前阶段</Label>
+                  <Select value={form.stage} onValueChange={val => setForm(f => ({ ...f, stage: val }))}>
+                    <SelectTrigger id="proj-stage">
+                      <SelectValue placeholder="选择阶段" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STAGE_OPTIONS.map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="proj-pm">项目经理 <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="proj-pm"
+                    placeholder="请输入项目经理姓名"
+                    value={form.pmName}
+                    onChange={e => setForm(f => ({ ...f, pmName: e.target.value }))}
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" onClick={() => { setCreateOpen(false); setForm(DEFAULT_FORM); }}>取消</Button>
+                  <Button onClick={handleCreateProject}>创建项目</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        }
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -66,7 +189,7 @@ export default function ProjectHub() {
 
         <TabsContent value="projects" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {mockProjects.map((project) => (
+            {projects.map((project) => (
               <Card key={project.id} className="hover:border-primary/50 transition-colors">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -105,7 +228,7 @@ export default function ProjectHub() {
             <CardHeader><CardTitle>交付物审批</CardTitle><CardDescription>设计文档、BOM、PPAP等交付物审批流程</CardDescription></CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockDeliverables.map((del) => (
+                {deliverables.map((del) => (
                   <div key={del.id} className="flex items-center justify-between p-4 bg-muted rounded-lg">
                     <div className="flex items-center gap-4">
                       <FileText className="w-8 h-8 text-primary/50" />
@@ -120,8 +243,8 @@ export default function ProjectHub() {
                       </Badge>
                       {del.status === "pending" && (
                         <div className="flex gap-1">
-                          <Button size="sm" variant="default" onClick={() => showPlaceholder('审批批准')}>批准</Button>
-                          <Button size="sm" variant="outline" onClick={() => showPlaceholder('审批驳回')}>驳回</Button>
+                          <Button size="sm" variant="default" onClick={() => handleApprove(del)}>批准</Button>
+                          <Button size="sm" variant="outline" onClick={() => handleReject(del)}>驳回</Button>
                         </div>
                       )}
                     </div>

@@ -349,7 +349,9 @@ export default function ModelTrainingScheduler() {
                           <Play className="w-4 h-4 mr-1" />
                           立即执行
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon"
+                          onClick={() => toast.info(`配置训练任务: ${schedule.name}`)}
+                        >
                           <Settings className="w-4 h-4" />
                         </Button>
                       </div>

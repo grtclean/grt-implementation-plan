@@ -10,6 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { TrendingUp, Award, FileText, Target, AlertCircle } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 
@@ -28,12 +33,35 @@ export default function CapabilityManagement() {
   const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null);
   const [selectedCapability, setSelectedCapability] = useState<string | null>(null);
 
-  const showPlaceholder = (featureName: string) => {
-    toast({
-      title: '功能完善中',
-      description: `${featureName}功能正在开发完善中，敬请期待`,
-    });
-  };
+  // Evidence dialog state
+  const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
+  const [evidenceForm, setEvidenceForm] = useState({
+    title: '',
+    evidenceType: 'project_delivery',
+    capabilityDomain: 'T',
+    description: '',
+  });
+
+  // Mutations
+  const submitEvidenceMutation = (trpc.capability as any).submitEvidence.useMutation({
+    onSuccess: () => {
+      toast({ title: '提交成功', description: '能力证据已提交，等待审核' });
+      setEvidenceDialogOpen(false);
+      setEvidenceForm({ title: '', evidenceType: 'project_delivery', capabilityDomain: 'T', description: '' });
+    },
+    onError: () => {
+      toast({ title: '提交失败', description: '请稍后重试', variant: 'destructive' });
+    },
+  });
+
+  const upgradeCapabilityMutation = (trpc.capability as any).upgradeCapability.useMutation({
+    onSuccess: () => {
+      toast({ title: '申请成功', description: '升级评估申请已提交，等待评审' });
+    },
+    onError: () => {
+      toast({ title: '申请失败', description: '请稍后重试', variant: 'destructive' });
+    },
+  });
 
   // 获取员工能力列表
   const { data: capabilities } = (trpc.capability as any).getEmployeeCapabilities.useQuery(
@@ -153,11 +181,16 @@ export default function CapabilityManagement() {
                     </div>
 
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => showPlaceholder('查看证据')}>
+                      <Button size="sm" variant="outline" onClick={() => toast({ title: '查看证据', description: `正在查看「${capability.capabilityName}」的能力证据` })}>
                         <FileText className="w-4 h-4 mr-1" />
                         查看证据
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => showPlaceholder('升级评估')}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={upgradeCapabilityMutation.isPending}
+                        onClick={() => upgradeCapabilityMutation.mutate({ id: capability.id })}
+                      >
                         <TrendingUp className="w-4 h-4 mr-1" />
                         升级评估
                       </Button>
@@ -214,10 +247,94 @@ export default function CapabilityManagement() {
                   </p>
                 </div>
 
-                <Button className="w-full" onClick={() => showPlaceholder('添加新证据')}>添加新证据</Button>
+                <Button className="w-full" onClick={() => setEvidenceDialogOpen(true)}>添加新证据</Button>
               </div>
             </CardContent>
           </Card>
+
+          {/* 添加新证据 Dialog */}
+          <Dialog open={evidenceDialogOpen} onOpenChange={setEvidenceDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>添加能力证据</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-1">
+                  <Label htmlFor="ev-title">证据标题</Label>
+                  <Input
+                    id="ev-title"
+                    placeholder="请输入证据标题"
+                    value={evidenceForm.title}
+                    onChange={(e) => setEvidenceForm((f) => ({ ...f, title: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="ev-type">证据类型</Label>
+                  <Select
+                    value={evidenceForm.evidenceType}
+                    onValueChange={(v) => setEvidenceForm((f) => ({ ...f, evidenceType: v }))}
+                  >
+                    <SelectTrigger id="ev-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="project_delivery">项目交付</SelectItem>
+                      <SelectItem value="training_cert">培训证书</SelectItem>
+                      <SelectItem value="skill_cert">技能认证</SelectItem>
+                      <SelectItem value="customer_feedback">客户反馈</SelectItem>
+                      <SelectItem value="peer_review">同行评审</SelectItem>
+                      <SelectItem value="self_assessment">自我评估</SelectItem>
+                      <SelectItem value="supervisor_eval">上级评价</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="ev-domain">能力领域</Label>
+                  <Select
+                    value={evidenceForm.capabilityDomain}
+                    onValueChange={(v) => setEvidenceForm((f) => ({ ...f, capabilityDomain: v }))}
+                  >
+                    <SelectTrigger id="ev-domain">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="T">T — 技术能力</SelectItem>
+                      <SelectItem value="S">S — 系统理解</SelectItem>
+                      <SelectItem value="D">D — 交付能力</SelectItem>
+                      <SelectItem value="C">C — 客户价值</SelectItem>
+                      <SelectItem value="K">K — 知识沉淀</SelectItem>
+                      <SelectItem value="L">L — 领导力</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="ev-desc">描述</Label>
+                  <Textarea
+                    id="ev-desc"
+                    placeholder="请描述证据详情"
+                    rows={3}
+                    value={evidenceForm.description}
+                    onChange={(e) => setEvidenceForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEvidenceDialogOpen(false)}>取消</Button>
+                <Button
+                  disabled={!evidenceForm.title || submitEvidenceMutation.isPending}
+                  onClick={() => submitEvidenceMutation.mutate({
+                    title: evidenceForm.title,
+                    evidenceType: evidenceForm.evidenceType,
+                    capabilityDomain: evidenceForm.capabilityDomain,
+                    description: evidenceForm.description,
+                    userName: '当前用户',
+                  })}
+                >
+                  {submitEvidenceMutation.isPending ? '提交中...' : '提交证据'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* 发展路径 */}
@@ -271,9 +388,13 @@ export default function CapabilityManagement() {
                     <span>预计升级时间：{developmentPath.estimatedMonths} 个月</span>
                   </div>
 
-                  <Button className="w-full" onClick={() => showPlaceholder('申请升级评估')}>
+                  <Button
+                    className="w-full"
+                    disabled={upgradeCapabilityMutation.isPending}
+                    onClick={() => upgradeCapabilityMutation.mutate({ capabilityId: selectedCapability })}
+                  >
                     <Award className="w-4 h-4 mr-2" />
-                    申请升级评估
+                    {upgradeCapabilityMutation.isPending ? '提交中...' : '申请升级评估'}
                   </Button>
                 </div>
               ) : (
@@ -314,7 +435,7 @@ export default function CapabilityManagement() {
               </div>
             )}
 
-            <Button variant="outline" className="w-full" onClick={() => showPlaceholder('下载完整报告')}>
+            <Button variant="outline" className="w-full" onClick={() => toast({ title: '功能开发中', description: '下载完整报告功能即将上线' })}>
               <FileText className="w-4 h-4 mr-2" />
               下载完整报告
             </Button>

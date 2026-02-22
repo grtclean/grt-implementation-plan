@@ -1,0 +1,2 @@
+ALTER TABLE "dt_assets" DROP CONSTRAINT "dt_assets_asset_number_unique";--> statement-breakpoint
+ALTER TABLE "dt_assets" ADD CONSTRAINT "dt_assets_design_frozen_by_users_id_fk" FOREIGN KEY ("design_frozen_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;

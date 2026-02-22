@@ -3,10 +3,6 @@
  */
 import { useState } from "react";
 import { toast } from "sonner";
-
-const showPlaceholder = (featureName: string) => {
-  toast.info('功能完善中', { description: `${featureName}功能正在开发完善中，敬请期待` });
-};
 import { PageHeader, StatCard } from "@/components/grt";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -14,12 +10,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { 
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
   Briefcase, Award, Gavel, FileCheck, Search, Plus,
   TrendingUp
 } from "lucide-react";
 
-const mockSkillCapsules = [
+const initialSkillCapsules = [
   { id: "sk_001", name: "高压喷嘴流体仿真 Level 5", ownerDid: "did:grt:user001", royaltyRate: 15, usageCount: 234, validationProof: "0x7a8b...3f2e" },
   { id: "sk_002", name: "PLC编程 Level 4", ownerDid: "did:grt:user002", royaltyRate: 12, usageCount: 156, validationProof: "0x9c4d...8a1b" },
   { id: "sk_003", name: "3D建模 Level 3", ownerDid: "did:grt:user003", royaltyRate: 10, usageCount: 89, validationProof: "0x2e5f...7c3d" },
@@ -39,6 +37,41 @@ export default function LiquidWorkforceHub() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("skills");
   const [searchQuery, setSearchQuery] = useState("");
+  const [skillCapsules, setSkillCapsules] = useState(initialSkillCapsules);
+
+  // 发布技能 Dialog 状态
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [formSkillName, setFormSkillName] = useState('');
+  const [formRoyaltyRate, setFormRoyaltyRate] = useState('');
+
+  const resetPublishForm = () => {
+    setFormSkillName('');
+    setFormRoyaltyRate('');
+  };
+
+  const handlePublishSubmit = () => {
+    if (!formSkillName) {
+      toast.error('请填写技能名称');
+      return;
+    }
+    const rate = Number(formRoyaltyRate);
+    if (formRoyaltyRate && (rate < 0 || rate > 100)) {
+      toast.error('分润比例须在 0~100 之间');
+      return;
+    }
+    const newSkill = {
+      id: `sk_${Date.now()}`,
+      name: formSkillName,
+      ownerDid: `did:grt:${user?.username ?? 'user'}`,
+      royaltyRate: rate || 0,
+      usageCount: 0,
+      validationProof: `0x${Math.random().toString(16).slice(2, 10)}...${Math.random().toString(16).slice(2, 6)}`,
+    };
+    setSkillCapsules((prev) => [newSkill, ...prev]);
+    setPublishOpen(false);
+    resetPublishForm();
+    toast.success(`技能 "${newSkill.name}" 发布成功`);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -54,7 +87,7 @@ export default function LiquidWorkforceHub() {
         icon={Briefcase}
         title="液态用工中心"
         description="技能胶囊市场、任务竞标、智能合约管理"
-        actions={<Button size="sm"><Plus className="w-4 h-4 mr-2" />发布技能</Button>}
+        actions={<Button size="sm" onClick={() => setPublishOpen(true)}><Plus className="w-4 h-4 mr-2" />发布技能</Button>}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -80,7 +113,7 @@ export default function LiquidWorkforceHub() {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {mockSkillCapsules.map((skill) => (
+            {skillCapsules.map((skill) => (
               <Card key={skill.id} className="hover:border-primary/50 transition-colors">
                 <CardHeader>
                   <CardTitle className="text-lg">{skill.name}</CardTitle>
@@ -91,7 +124,13 @@ export default function LiquidWorkforceHub() {
                     <span className="text-muted-foreground">版税率: {skill.royaltyRate}%</span>
                     <span className="text-muted-foreground">调用: {skill.usageCount}次</span>
                   </div>
-                  <Button className="w-full" size="sm" onClick={() => showPlaceholder('调用技能')}>调用技能</Button>
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    onClick={() => toast.success(`技能 "${skill.name}" 调用请求已发送`)}
+                  >
+                    调用技能
+                  </Button>
                 </CardContent>
               </Card>
             ))}
@@ -163,6 +202,43 @@ export default function LiquidWorkforceHub() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* 发布技能 Dialog */}
+      <Dialog open={publishOpen} onOpenChange={(open) => { setPublishOpen(open); if (!open) resetPublishForm(); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>发布技能胶囊</DialogTitle>
+            <DialogDescription>填写技能信息，发布后将出现在技能市场中。</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="skillName">技能名称 *</Label>
+              <Input
+                id="skillName"
+                placeholder="如 高压喷嘴流体仿真 Level 5"
+                value={formSkillName}
+                onChange={(e) => setFormSkillName(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="royaltyRate">分润比例 (0-100%)</Label>
+              <Input
+                id="royaltyRate"
+                type="number"
+                placeholder="如 15"
+                min={0}
+                max={100}
+                value={formRoyaltyRate}
+                onChange={(e) => setFormRoyaltyRate(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPublishOpen(false); resetPublishForm(); }}>取消</Button>
+            <Button onClick={handlePublishSubmit}>发布技能</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

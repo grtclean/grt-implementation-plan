@@ -396,9 +396,17 @@ function handleDisconnect(connId: string) {
  * 初始化WebSocket服务器
  */
 export function initWebSocketServer(server: any): WebSocketServer {
-  const wss = new WebSocketServer({ 
-    server,
-    path: '/ws/collaboration',
+  // Use noServer mode to avoid destroying sockets for non-matching paths
+  // (ws library's { server, path } mode calls abortHandshake on mismatches,
+  //  which kills Vite HMR WebSocket connections)
+  const wss = new WebSocketServer({ noServer: true });
+
+  server.on('upgrade', (request: IncomingMessage, socket: any, head: Buffer) => {
+    const url = new URL(request.url || '', `http://${request.headers.host}`);
+    if (url.pathname !== '/ws/collaboration') return;
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
   });
 
   wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {

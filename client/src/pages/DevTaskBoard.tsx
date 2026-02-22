@@ -34,7 +34,7 @@ const statusColumns = [
 // ============================================
 // Version options (updated for GRT iterations)
 // ============================================
-const versions = ["v0.1-alpha", "v0.2-beta", "v0.3-rc", "v1.0", "v1.1", "v1.2", "v2.0", "v2.1"];
+const versions = ["v4.5", "v4.6", "v4.7", "v4.8", "v5.0-alpha", "v5.0-beta", "v5.0-rc", "v5.0"];
 
 // ============================================
 // Module options (13 modules, aligned with menuConfig.ts)
@@ -76,7 +76,7 @@ const moduleBadgeColors: Record<string, string> = {
 const priorityBorderColors: Record<string, string> = {
   critical: "border-l-red-500",
   high: "border-l-orange-500",
-  medium: "border-l-yellow-500",
+  medium: "border-l-blue-500",
   low: "border-l-gray-400",
 };
 
@@ -86,7 +86,7 @@ const priorityBorderColors: Record<string, string> = {
 const priorities = [
   { id: "critical", label: "紧急", labelEn: "Critical", color: "bg-red-500" },
   { id: "high", label: "高", labelEn: "High", color: "bg-orange-500" },
-  { id: "medium", label: "中", labelEn: "Medium", color: "bg-yellow-500" },
+  { id: "medium", label: "中", labelEn: "Medium", color: "bg-blue-500" },
   { id: "low", label: "低", labelEn: "Low", color: "bg-gray-500" },
 ];
 
@@ -94,14 +94,14 @@ const priorities = [
 // Assignee preset list (GRT team)
 // ============================================
 const assignees = [
-  { id: "zhao", name: "赵工", nameEn: "Zhao", initials: "赵" },
-  { id: "chen", name: "陈工", nameEn: "Chen", initials: "陈" },
-  { id: "li", name: "李工", nameEn: "Li", initials: "李" },
-  { id: "zhang", name: "张工", nameEn: "Zhang", initials: "张" },
-  { id: "wang", name: "王工", nameEn: "Wang", initials: "王" },
-  { id: "liu", name: "刘工", nameEn: "Liu", initials: "刘" },
-  { id: "yang", name: "杨工", nameEn: "Yang", initials: "杨" },
-  { id: "huang", name: "黄工", nameEn: "Huang", initials: "黄" },
+  { id: "zhao", name: "赵工", nameEn: "Zhao", initials: "赵", avatarColor: "bg-blue-500" },
+  { id: "chen", name: "陈工", nameEn: "Chen", initials: "陈", avatarColor: "bg-emerald-500" },
+  { id: "li", name: "李工", nameEn: "Li", initials: "李", avatarColor: "bg-violet-500" },
+  { id: "zhang", name: "张工", nameEn: "Zhang", initials: "张", avatarColor: "bg-orange-500" },
+  { id: "wang", name: "王工", nameEn: "Wang", initials: "王", avatarColor: "bg-pink-500" },
+  { id: "liu", name: "刘工", nameEn: "Liu", initials: "刘", avatarColor: "bg-cyan-500" },
+  { id: "huang", name: "黄工", nameEn: "Huang", initials: "黄", avatarColor: "bg-amber-500" },
+  { id: "zhou", name: "周工", nameEn: "Zhou", initials: "周", avatarColor: "bg-indigo-500" },
 ];
 
 // Task type icons
@@ -117,7 +117,7 @@ const typeIcons: Record<string, any> = {
 const priorityColors: Record<string, string> = {
   critical: "bg-red-500",
   high: "bg-orange-500",
-  medium: "bg-yellow-500",
+  medium: "bg-blue-500",
   low: "bg-gray-500",
 };
 
@@ -170,7 +170,7 @@ export default function DevTaskBoard() {
   const [taskForm, setTaskForm] = useState({
     title: "",
     description: "",
-    version: "v1.0",
+    version: "v5.0-alpha",
     module: "project",
     type: "feature" as const,
     priority: "medium" as const,
@@ -233,7 +233,7 @@ export default function DevTaskBoard() {
     setTaskForm({
       title: "",
       description: "",
-      version: "v1.0",
+      version: "v5.0-alpha",
       module: "project",
       type: "feature",
       priority: "medium",
@@ -252,7 +252,7 @@ export default function DevTaskBoard() {
     setTaskForm({
       title: task.title || "",
       description: task.description || "",
-      version: task.version || "v1.0",
+      version: task.version || "v5.0-alpha",
       module: task.module || "project",
       type: task.type || "feature",
       priority: task.priority || "medium",
@@ -424,14 +424,14 @@ export default function DevTaskBoard() {
   // Helper sub-components
   // ============================================
 
-  // Assignee avatar circle
+  // Assignee avatar circle with individual colors
   const AssigneeAvatar = ({ assigneeId, size = "sm" }: { assigneeId: string; size?: "sm" | "md" }) => {
     const person = assignees.find(a => a.id === assigneeId);
     if (!person) return null;
     const sizeClass = size === "sm" ? "w-5 h-5 text-[10px]" : "w-7 h-7 text-xs";
     return (
       <div
-        className={`${sizeClass} rounded-full bg-primary/15 text-primary flex items-center justify-center font-medium shrink-0`}
+        className={`${sizeClass} rounded-full ${person.avatarColor} text-white flex items-center justify-center font-medium shrink-0`}
         title={language === "zh" ? person.name : person.nameEn}
       >
         {person.initials}
@@ -911,13 +911,14 @@ export default function DevTaskBoard() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-[10px] h-6 px-1.5"
+                                className="text-[10px] h-6 px-1.5 text-muted-foreground hover:text-destructive"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   moveTaskBackward(task);
                                 }}
                               >
-                                <ChevronLeft className="w-3 h-3" />
+                                <ChevronLeft className="w-3 h-3 mr-0.5" />
+                                {language === "zh" ? "退回" : "Return"}
                               </Button>
                             )}
                             {column.id !== "done" && (

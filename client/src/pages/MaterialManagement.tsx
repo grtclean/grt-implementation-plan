@@ -8,11 +8,24 @@ import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus, Download, Upload, Search, Edit2, Trash2, Package, AlertTriangle, XCircle, BarChart3 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+
+interface LocalMaterial {
+  id: string;
+  materialCode: string;
+  materialName: string;
+  categoryCode: string;
+  specificationCode: string;
+  quantityOnHand: number;
+  standardCost: number;
+  status: string;
+}
 
 export default function MaterialManagement() {
   const { toast } = useToast();
@@ -20,11 +33,51 @@ export default function MaterialManagement() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [activeTab, setActiveTab] = useState('list');
 
-  const showPlaceholder = (featureName: string) => {
-    toast({
-      title: '功能完善中',
-      description: `${featureName}功能正在开发完善中，敬请期待`,
-    });
+  // 新增物料 Dialog 状态
+  const [createOpen, setCreateOpen] = useState(false);
+  const [formMaterialCode, setFormMaterialCode] = useState('');
+  const [formMaterialName, setFormMaterialName] = useState('');
+  const [formCategoryCode, setFormCategoryCode] = useState('');
+  const [formSpecificationCode, setFormSpecificationCode] = useState('');
+  const [formQuantityOnHand, setFormQuantityOnHand] = useState('');
+  const [formStandardCost, setFormStandardCost] = useState('');
+
+  // 本地新增物料（无后端mutation时追加到本地）
+  const [localMaterials, setLocalMaterials] = useState<LocalMaterial[]>([]);
+
+  const resetForm = () => {
+    setFormMaterialCode('');
+    setFormMaterialName('');
+    setFormCategoryCode('');
+    setFormSpecificationCode('');
+    setFormQuantityOnHand('');
+    setFormStandardCost('');
+  };
+
+  const handleCreateSubmit = () => {
+    if (!formMaterialCode || !formMaterialName) {
+      toast({ title: '请填写必填项', description: '物料编码和物料名称为必填项', variant: 'destructive' });
+      return;
+    }
+    const newMaterial: LocalMaterial = {
+      id: `local_${Date.now()}`,
+      materialCode: formMaterialCode,
+      materialName: formMaterialName,
+      categoryCode: formCategoryCode,
+      specificationCode: formSpecificationCode,
+      quantityOnHand: Number(formQuantityOnHand) || 0,
+      standardCost: Number(formStandardCost) || 0,
+      status: 'active',
+    };
+    setLocalMaterials((prev) => [newMaterial, ...prev]);
+    setCreateOpen(false);
+    resetForm();
+    toast({ title: '新增成功', description: `物料 "${newMaterial.materialName}" 已添加` });
+  };
+
+  const handleDeleteMaterial = (material: LocalMaterial) => {
+    setLocalMaterials((prev) => prev.filter((m) => m.id !== material.id));
+    toast({ title: '已删除', description: `物料 "${material.materialName}" 已删除` });
   };
 
   // 获取物料列表
@@ -53,7 +106,7 @@ export default function MaterialManagement() {
               <Download className="w-4 h-4 mr-2" />
               导出
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               新增物料
             </Button>
@@ -134,8 +187,19 @@ export default function MaterialManagement() {
                           加载中...
                         </TableCell>
                       </TableRow>
-                    ) : materialsData?.items && materialsData.items.length > 0 ? (
-                      materialsData.items.map((material: any) => (
+                    ) : (() => {
+                      const serverItems: any[] = materialsData?.items ?? [];
+                      const allItems = [...localMaterials, ...serverItems];
+                      if (allItems.length === 0) {
+                        return (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                              暂无物料数据
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+                      return allItems.map((material: any) => (
                         <TableRow key={material.id}>
                           <TableCell className="font-mono text-sm">{material.materialCode}</TableCell>
                           <TableCell>{material.materialName}</TableCell>
@@ -145,8 +209,8 @@ export default function MaterialManagement() {
                           <TableCell>¥{material.standardCost || 0}</TableCell>
                           <TableCell>
                             <span className={`text-xs px-2 py-1 rounded-full ${
-                              material.status === 'active' 
-                                ? 'bg-green-100 text-green-800' 
+                              material.status === 'active'
+                                ? 'bg-green-100 text-green-800'
                                 : 'bg-gray-100 text-gray-800'
                             }`}>
                               {material.status === 'active' ? '活跃' : '停用'}
@@ -154,23 +218,31 @@ export default function MaterialManagement() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="ghost" size="sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toast({ title: '编辑物料', description: `正在编辑 "${material.materialName}"` })}
+                              >
                                 <Edit2 className="w-4 h-4" />
                               </Button>
-                              <Button variant="ghost" size="sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  if (String(material.id).startsWith('local_')) {
+                                    handleDeleteMaterial(material as LocalMaterial);
+                                  } else {
+                                    toast({ title: '删除', description: `物料 "${material.materialName}" 删除功能即将上线` });
+                                  }
+                                }}
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                          暂无物料数据
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      ));
+                    })()}
                   </TableBody>
                 </Table>
               </div>
@@ -187,7 +259,7 @@ export default function MaterialManagement() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Button>
+                <Button onClick={() => toast({ title: '功能即将上线', description: '新增分类功能即将上线' })}>
                   <Plus className="w-4 h-4 mr-2" />
                   新增分类
                 </Button>
@@ -211,7 +283,7 @@ export default function MaterialManagement() {
                   <p className="text-sm text-muted-foreground mb-2">拖拽文件到此处或点击选择</p>
                   <p className="text-xs text-muted-foreground">支持 Excel、CSV 格式</p>
                 </div>
-                <Button className="w-full" onClick={() => showPlaceholder('导入物料')}>导入物料</Button>
+                <Button className="w-full" onClick={() => toast({ title: '功能即将上线', description: '导入功能即将上线' })}>导入物料</Button>
               </div>
             </CardContent>
           </Card>
@@ -247,6 +319,78 @@ export default function MaterialManagement() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* 新增物料 Dialog */}
+      <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) resetForm(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>新增物料</DialogTitle>
+            <DialogDescription>填写物料基本信息，物料编码和物料名称为必填项。</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="materialCode">物料编码 *</Label>
+              <Input
+                id="materialCode"
+                placeholder="如 UC-PMP-DN50-0001"
+                value={formMaterialCode}
+                onChange={(e) => setFormMaterialCode(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="materialName">物料名称 *</Label>
+              <Input
+                id="materialName"
+                placeholder="如 离心泵 DN50"
+                value={formMaterialName}
+                onChange={(e) => setFormMaterialName(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="categoryCode">分类编码</Label>
+              <Input
+                id="categoryCode"
+                placeholder="如 PMP"
+                value={formCategoryCode}
+                onChange={(e) => setFormCategoryCode(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="specificationCode">规格编码</Label>
+              <Input
+                id="specificationCode"
+                placeholder="如 DN50"
+                value={formSpecificationCode}
+                onChange={(e) => setFormSpecificationCode(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="quantityOnHand">库存数量</Label>
+              <Input
+                id="quantityOnHand"
+                type="number"
+                placeholder="0"
+                value={formQuantityOnHand}
+                onChange={(e) => setFormQuantityOnHand(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="standardCost">标准成本 (¥)</Label>
+              <Input
+                id="standardCost"
+                type="number"
+                placeholder="0.00"
+                value={formStandardCost}
+                onChange={(e) => setFormStandardCost(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCreateOpen(false); resetForm(); }}>取消</Button>
+            <Button onClick={handleCreateSubmit}>确认新增</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -14,7 +14,7 @@
         //    React's rendering and causes visible content jumping on refresh
         if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
         // 2. Set dark class synchronously to prevent theme flash
-        var theme = localStorage.getItem('grt-theme') || 'dark';
+        var theme = localStorage.getItem('grt-theme') || 'light';
         if (theme === 'system') {
           theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
@@ -26,7 +26,7 @@
         //    between page load and CSS load (Vite CSS isn't available yet)
         //    MUST match the exact --background values in index.css to avoid
         //    color shift during the loading overlay fade-out
-        document.documentElement.style.backgroundColor = isDark ? 'oklch(0.13 0.02 260)' : 'oklch(0.985 0 0)';
+        document.documentElement.style.backgroundColor = isDark ? 'oklch(0.13 0.02 260)' : '#faf9f8';
         // 4. Disable all CSS transitions until app signals ready
         document.documentElement.classList.add('no-transitions');
       })();
@@ -49,16 +49,18 @@
         justify-content: center;
       }
       .dark #app-loader { background: oklch(0.13 0.02 260); }
-      :root:not(.dark) #app-loader { background: oklch(0.985 0 0); }
+      :root:not(.dark) #app-loader { background: #faf9f8; }
       #app-loader .spinner {
         width: 32px;
         height: 32px;
         border: 2px solid transparent;
-        border-top-color: #6366f1;
+        border-top-color: #0078d4;
         border-radius: 50%;
         animation: spin 0.7s linear infinite !important;
       }
       @keyframes spin { to { transform: rotate(360deg); } }
+      /* When loader is fading out after timeout, show content underneath */
+      #app-loader.removing { opacity: 0; pointer-events: none; }
     </style>
     <!--
       Google Fonts loaded ASYNCHRONOUSLY to prevent render-blocking.
@@ -81,6 +83,17 @@
     <!-- Loading overlay — removed by main.tsx after React mount -->
     <div id="app-loader"><div class="spinner"></div></div>
     <div id="root"></div>
+    <!-- SAFETY: Remove loading overlay even if JS modules fail to load.
+         This runs BEFORE module loading, so it's guaranteed to execute.
+         main.tsx normally removes it sooner (~3s); this is a fallback. -->
+    <script>
+      setTimeout(function() {
+        var loader = document.getElementById('app-loader');
+        if (loader) loader.remove();
+        document.documentElement.style.backgroundColor = '';
+        document.documentElement.classList.remove('no-transitions');
+      }, 5000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
     <!-- Analytics loaded AFTER page load event so it doesn't keep the
          browser loading indicator spinning (which causes perceived "jumping") -->

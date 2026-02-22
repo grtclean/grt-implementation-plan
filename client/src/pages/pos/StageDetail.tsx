@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -397,7 +398,9 @@ export default function StageDetail() {
                         <Badge variant={task.status === 'completed' ? 'default' : task.status === 'in_progress' ? 'secondary' : 'outline'}>
                           {task.status === 'completed' ? '已完成' : task.status === 'in_progress' ? '进行中' : '待处理'}
                         </Badge>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon"
+                          onClick={() => toast.info(`编辑任务: ${task.title}`)}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                       </div>

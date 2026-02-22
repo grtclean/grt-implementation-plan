@@ -28,6 +28,14 @@ import {
   searchDocuments,
   incrementRelevance,
 } from "../modules/knowledge-base.service";
+import {
+  provisionAllEmployees,
+  provisionSingleEmployee,
+  refreshPresetsByRole,
+  getProvisioningStatus,
+  listAllAssistants,
+  buildOwnerContext,
+} from "../services/ai-assistant-provisioning.service";
 
 // ==================== 输入验证 ====================
 
@@ -267,13 +275,41 @@ export const employeeAiAssistantRouter = router({
           ? `${knowledgeContext}请基于以上知识库信息回答用户的问题: ${input.message}`
           : input.message;
 
+        // 读取助理的 personalityConfig → 获取岗位感知系统提示词
+        let systemContent =
+          "你是一个专业的个人AI助手，帮助员工进行职业发展、技能提升和日常工作协助。你可以利用知识库中的技术文档来回答GRT清洗设备相关的专业问题。请以友好、专业的方式回复。";
+
+        // 获取该用户的助理记录
+        const [myAssistant] = await db
+          .select()
+          .from(employeeAiAssistants)
+          .where(eq(employeeAiAssistants.employeeId, userId))
+          .limit(1);
+
+        let ownerContext = "";
+        if (myAssistant?.personalityConfig) {
+          try {
+            const cfg = JSON.parse(myAssistant.personalityConfig);
+            if (cfg.systemPrompt) {
+              systemContent = cfg.systemPrompt;
+            }
+            // 构建岗位上下文（会议、任务、技能评估）
+            ownerContext = await buildOwnerContext(userId, cfg);
+          } catch {
+            // JSON解析失败 — 使用默认提示词
+          }
+        }
+
+        const fullSystemContent = ownerContext
+          ? `${systemContent}\n\n【当前上下文】\n${ownerContext}`
+          : systemContent;
+
         // 调用LLM获取响应
         const llmResponse = await invokeLLM({
           messages: [
             {
               role: "system",
-              content:
-                "你是一个专业的个人AI助手，帮助员工进行职业发展、技能提升和日常工作协助。你可以利用知识库中的技术文档来回答GRT清洗设备相关的专业问题。请以友好、专业的方式回复。",
+              content: fullSystemContent,
             },
             {
               role: "user",
@@ -478,9 +514,90 @@ export const employeeAiAssistantRouter = router({
     }
   }),
 
+  // ==================== 管理端：AI助理配置 ====================
+
   /**
-   * 基础CRUD操作
+   * 一键配置所有员工AI助理
    */
+  provisionAll: publicProcedure.mutation(async () => {
+    try {
+      return await provisionAllEmployees();
+    } catch (error: any) {
+      console.error("[provisionAll] Error:", error);
+      return { created: 0, skipped: 0, errors: [error.message] };
+    }
+  }),
+
+  /**
+   * 配置单个员工AI助理
+   */
+  provisionOne: publicProcedure
+    .input(z.object({ employeeId: z.number() }))
+    .mutation(async ({ input }) => {
+      try {
+        return await provisionSingleEmployee(input.employeeId);
+      } catch (error: any) {
+        console.error("[provisionOne] Error:", error);
+        return { created: 0, skipped: 0, errors: [error.message] };
+      }
+    }),
+
+  /**
+   * 配置状态概览
+   */
+  getProvisioningStatus: publicProcedure.query(async () => {
+    try {
+      return await getProvisioningStatus();
+    } catch (error: any) {
+      console.error("[getProvisioningStatus] Error:", error);
+      return {
+        totalEmployees: 0,
+        provisionedCount: 0,
+        pendingCount: 0,
+        byDepartment: {},
+      };
+    }
+  }),
+
+  /**
+   * 查看所有AI助理列表（JOIN hrmEmployees）
+   */
+  listAllAssistants: publicProcedure
+    .input(
+      z
+        .object({
+          department: z.string().optional(),
+          search: z.string().optional(),
+          limit: z.number().default(50),
+          offset: z.number().default(0),
+        })
+        .optional()
+    )
+    .query(async ({ input }) => {
+      try {
+        return await listAllAssistants(input ?? undefined);
+      } catch (error: any) {
+        console.error("[listAllAssistants] Error:", error);
+        return { items: [], total: 0 };
+      }
+    }),
+
+  /**
+   * 按角色刷新所有AI助理的预设
+   */
+  refreshPresets: publicProcedure
+    .input(z.object({ roleId: z.string().optional() }).optional())
+    .mutation(async ({ input }) => {
+      try {
+        return await refreshPresetsByRole(input?.roleId);
+      } catch (error: any) {
+        console.error("[refreshPresets] Error:", error);
+        return { created: 0, skipped: 0, errors: [error.message] };
+      }
+    }),
+
+  // ==================== 基础CRUD操作 ====================
+
   list: publicProcedure.query(async () => {
     return { items: [], total: 0, page: 1, pageSize: 10 };
   }),

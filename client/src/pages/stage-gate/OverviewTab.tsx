@@ -39,7 +39,9 @@ export default function OverviewTab({ projectId }: OverviewTabProps) {
     mandatoryFailures: any[];
   } | null>(null);
 
-  const { data: overview = [], isLoading, refetch } = trpc.stageGate.getProjectGateOverview.useQuery(
+  const utils = trpc.useUtils();
+
+  const { data: overview = [], isLoading } = trpc.stageGate.getProjectGateOverview.useQuery(
     { projectId },
     { enabled: projectId > 0 }
   );
@@ -47,7 +49,7 @@ export default function OverviewTab({ projectId }: OverviewTabProps) {
   const templateMutation = trpc.stageGate.createGateChecklistsFromTemplate.useMutation({
     onSuccess: (result) => {
       toast.success(`成功导入 ${result.insertedCount} 个检查项`);
-      refetch();
+      utils.stageGate.getProjectGateOverview.invalidate({ projectId });
     },
     onError: (err) => toast.error(`导入失败: ${err.message}`),
   });
@@ -68,9 +70,9 @@ export default function OverviewTab({ projectId }: OverviewTabProps) {
   const handleCheckPassable = async (stage: string) => {
     setCheckingStage(stage);
     try {
-      const result = await (trpc as any).stageGate.checkGatePassable.query({
+      const result = await utils.stageGate.checkGatePassable.fetch({
         projectId,
-        gateStage: stage,
+        gateStage: stage as any,
       });
       setPassResult({ stage, ...result });
     } catch (err: any) {

@@ -251,7 +251,7 @@ export default function AIAssistantHub() {
   // Load session messages when session changes
   useEffect(() => {
     if (sessionMessages && sessionMessages.length > 0) {
-      const loadedMessages: ChatMessage[] = sessionMessages.map((m: { id: number; role: string; content: string; createdAt: Date }) => ({
+      const loadedMessages: ChatMessage[] = sessionMessages.map((m: { id: number; role: string; content: string; createdAt: Date | string }) => ({
         id: m.id.toString(),
         role: m.role as "user" | "assistant" | "system",
         content: m.content,

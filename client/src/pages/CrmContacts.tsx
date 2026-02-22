@@ -42,6 +42,7 @@ import {
   Eye
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Link } from "wouter";
 
 export default function CrmContacts() {
@@ -338,10 +339,14 @@ export default function CrmContacts() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8"
+                            onClick={() => toast.info(`查看联系人: ${contact.name}`)}
+                          >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8"
+                            onClick={() => toast.info(`编辑联系人: ${contact.name}`)}
+                          >
                             <Edit className="w-4 h-4" />
                           </Button>
                         </div>

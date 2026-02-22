@@ -39,7 +39,7 @@ export interface CreateEmployeeInput {
 }
 
 // 部门到BU的映射
-const DEPARTMENT_TO_BU: Record<string, string> = {
+export const DEPARTMENT_TO_BU: Record<string, string> = {
   '事业一部': 'BU1',
   '事业二部': 'BU2',
   '事业三部': 'BU3',

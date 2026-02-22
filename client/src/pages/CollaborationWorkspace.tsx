@@ -601,13 +601,19 @@ export default function CollaborationWorkspace() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon"
+                              onClick={() => toast.info(`编辑文档: ${doc.name}`)}
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon"
+                              onClick={() => toast.info(`下载文档: ${doc.name}`)}
+                            >
                               <Download className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon"
+                              onClick={() => toast.info(`分享文档: ${doc.name}`)}
+                            >
                               <Share2 className="h-4 w-4" />
                             </Button>
                           </div>

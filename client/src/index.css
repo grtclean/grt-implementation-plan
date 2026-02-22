@@ -46,44 +46,44 @@
 }
 
 :root {
-  /* Industrial Precision Theme - Light Mode (Not used as default, but kept for structure) */
-  --primary: oklch(0.279 0.041 260.031); /* Navy Blue */
-  --primary-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.279 0.041 260.031);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --chart-1: oklch(0.646 0.222 41.116); /* Orange */
-  --chart-2: oklch(0.279 0.041 260.031); /* Navy */
-  --chart-3: oklch(0.446 0.03 256.802); /* Slate */
-  --chart-4: oklch(0.704 0.14 249.713); /* Light Blue */
-  --chart-5: oklch(0.552 0.016 285.938); /* Grey */
-  --radius: 0.25rem; /* Sharp corners for industrial feel */
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.205 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.205 0 0);
+  /* Microsoft Fluent Design System - Light Mode (Default) */
+  --primary: oklch(0.55 0.15 250); /* Microsoft Blue #0078d4 */
+  --primary-foreground: oklch(1 0 0); /* White */
+  --sidebar-primary: oklch(0.55 0.15 250);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --chart-1: oklch(0.55 0.15 250); /* Microsoft Blue */
+  --chart-2: oklch(0.58 0.1 195); /* Teal */
+  --chart-3: oklch(0.65 0.16 55); /* Orange */
+  --chart-4: oklch(0.6 0.14 145); /* Green */
+  --chart-5: oklch(0.52 0.15 300); /* Purple */
+  --radius: 0.375rem; /* Fluent rounded corners */
+  --background: #faf9f8; /* Fluent neutral lighter */
+  --foreground: oklch(0.27 0.01 260); /* #323130 */
+  --card: oklch(1 0 0); /* White */
+  --card-foreground: oklch(0.27 0.01 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.279 0.041 260.031);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.205 0 0);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.279 0.041 260.031);
+  --popover-foreground: oklch(0.27 0.01 260);
+  --secondary: oklch(0.96 0.003 80); /* #f3f2f1 */
+  --secondary-foreground: oklch(0.27 0.01 260);
+  --muted: oklch(0.96 0.003 80); /* #f3f2f1 */
+  --muted-foreground: oklch(0.46 0.01 260); /* #605e5c */
+  --accent: oklch(0.96 0.003 80); /* #f3f2f1 */
+  --accent-foreground: oklch(0.27 0.01 260);
+  --destructive: oklch(0.45 0.16 25); /* #a4262c */
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.94 0.003 260); /* #edebe9 */
+  --input: oklch(0.94 0.003 260);
+  --ring: oklch(0.55 0.15 250); /* Microsoft Blue */
+  --sidebar: oklch(1 0 0); /* White */
+  --sidebar-foreground: oklch(0.27 0.01 260); /* #323130 */
+  --sidebar-accent: oklch(0.96 0.003 80); /* #f3f2f1 */
+  --sidebar-accent-foreground: oklch(0.27 0.01 260);
+  --sidebar-border: oklch(0.94 0.003 260); /* #edebe9 */
+  --sidebar-ring: oklch(0.55 0.15 250);
 }
 
 .dark {
-  /* Industrial Precision Theme - Dark Mode (Default) */
+  /* Industrial Precision Theme - Dark Mode (Secondary, kept for backwards compat) */
   --primary: oklch(0.646 0.222 41.116); /* Safety Orange */
   --primary-foreground: oklch(0.141 0.005 285.823);
   --sidebar-primary: oklch(0.646 0.222 41.116);
@@ -140,7 +140,7 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading tracking-tight uppercase;
+    @apply font-sans font-semibold tracking-normal;
   }
   .font-mono {
     font-family: 'JetBrains Mono', monospace;
@@ -341,14 +341,26 @@
   }
 }
 
-/* Sidebar scrollbar styles - Sprint 1 优化 */
+/* Hide scrollbar while keeping scroll functionality (for horizontal tab bars, timelines) */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}
+
+/* Sidebar scrollbar styles - Fluent Design (light + dark) */
 .sidebar-scroll {
   scrollbar-width: thin;
-  scrollbar-color: oklch(0.446 0.03 256.802) transparent; /* slate-600 */
+  scrollbar-color: #c8c6c4 transparent;
+}
+.dark .sidebar-scroll {
+  scrollbar-color: oklch(0.35 0.02 260) transparent;
 }
 
 .sidebar-scroll::-webkit-scrollbar {
-  width: 4px; /* 4px宽度，更优雅 */
+  width: 4px;
 }
 
 .sidebar-scroll::-webkit-scrollbar-track {
@@ -356,18 +368,27 @@
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background-color: oklch(0.446 0.03 256.802); /* slate-600 */
+  background-color: #c8c6c4;
   border-radius: 2px;
+}
+.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: oklch(0.35 0.02 260);
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: oklch(0.552 0.016 285.938); /* slate-500 */
+  background-color: #a19f9d;
+}
+.dark .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: oklch(0.45 0.02 260);
 }
 
-/* 自定义滚动条通用样式 */
+/* Custom scrollbar - Fluent Design (light + dark) */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: oklch(0.446 0.03 256.802) transparent;
+  scrollbar-color: #c8c6c4 transparent;
+}
+.dark .custom-scrollbar {
+  scrollbar-color: oklch(0.35 0.02 260) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -379,12 +400,18 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: oklch(0.446 0.03 256.802);
+  background-color: #c8c6c4;
   border-radius: 2px;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: oklch(0.35 0.02 260);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: oklch(0.552 0.016 285.938);
+  background-color: #a19f9d;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: oklch(0.45 0.02 260);
 }
 
 /* Ensure sidebar nav can scroll on all platforms */

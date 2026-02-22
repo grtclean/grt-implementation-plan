@@ -35,8 +35,8 @@ import {
   Legend,
 } from "recharts";
 
-// ── Configurable mock user (replace with real auth later) ──
-const MOCK_USER_ID = 1;
+// TODO: Replace with real auth context (e.g., useUserProfile().id)
+const CURRENT_USER_ID = 1;
 const CURRENT_YEAR = 2026;
 
 // ── Status color maps ──
@@ -124,12 +124,12 @@ export default function MyPerformance() {
 
   const { data: militaryData, isLoading: milLoading } =
     trpc.kpiPerformance.militaryOrders.list.useQuery({
-      userId: MOCK_USER_ID,
+      userId: CURRENT_USER_ID,
       year: CURRENT_YEAR,
     });
 
   const { data: skillsData, isLoading: skillLoading } =
-    trpc.kpiPerformance.skills.list.useQuery({ userId: MOCK_USER_ID });
+    trpc.kpiPerformance.skills.list.useQuery({ userId: CURRENT_USER_ID });
 
   const { data: targetsData, isLoading: targetsLoading } =
     trpc.kpiPerformance.targets.list.useQuery({ year: CURRENT_YEAR, limit: 100 });
@@ -138,7 +138,7 @@ export default function MyPerformance() {
     trpc.kpiPerformance.library.list.useQuery({ limit: 200 });
 
   const { data: reviewsData, isLoading: revLoading } =
-    trpc.kpiPerformance.reviews.list.useQuery({ userId: MOCK_USER_ID });
+    trpc.kpiPerformance.reviews.list.useQuery({ userId: CURRENT_USER_ID });
 
   const anyLoading = posLoading || milLoading || skillLoading || targetsLoading || libLoading || revLoading;
 

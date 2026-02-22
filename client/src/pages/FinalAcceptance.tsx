@@ -2,14 +2,18 @@
  * 终验收页面 (TX-015)
  * 最终验收管理、签收确认、验收报告
  */
+import { useState } from "react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useUserProfile } from "@/contexts/UserProfileContext";
-import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, Plus, Building2, Award, Clock, CheckCircle2 } from "lucide-react";
 
 const statusColorMap = createStatusColorMap({
@@ -27,11 +31,43 @@ const MOCK_ACCEPTANCES = [
 
 export default function FinalAcceptance() {
   const { currentBU } = useUserProfile();
-  const { toast } = useToast();
-  const handleComingSoon = () => {
-    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  const [acceptances, setAcceptances] = useState(MOCK_ACCEPTANCES);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [formData, setFormData] = useState({ project: "", customer: "", date: "" });
+
+  const filtered = acceptances.filter(a => !currentBU || a.bu === currentBU);
+
+  const handleCreate = () => {
+    if (!formData.project.trim()) {
+      toast.error("请输入项目名称");
+      return;
+    }
+    if (!formData.customer.trim()) {
+      toast.error("请输入客户名称");
+      return;
+    }
+    if (!formData.date) {
+      toast.error("请选择验收日期");
+      return;
+    }
+
+    const newId = `ACC-${String(acceptances.length + 1).padStart(3, "0")}`;
+    const newAcceptance = {
+      id: newId,
+      project: formData.project.trim(),
+      customer: formData.customer.trim(),
+      bu: currentBU || "BU3",
+      status: "待验收",
+      date: formData.date,
+      signedBy: "-",
+      score: 0,
+    };
+
+    setAcceptances(prev => [newAcceptance, ...prev]);
+    setShowCreateDialog(false);
+    setFormData({ project: "", customer: "", date: "" });
+    toast.success("验收单创建成功");
   };
-  const filtered = MOCK_ACCEPTANCES.filter(a => !currentBU || a.bu === currentBU);
 
   return (
     <div className="space-y-6">
@@ -42,15 +78,15 @@ export default function FinalAcceptance() {
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />创建验收单</Button>
+            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />创建验收单</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={CheckCircle2} label="已验收" value={15} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={Clock} label="验收中" value={3} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={Award} label="待验收" value={2} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={CheckCircle2} label="已验收" value={acceptances.filter(a => a.status === "已验收").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Clock} label="验收中" value={acceptances.filter(a => a.status === "验收中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Award} label="待验收" value={acceptances.filter(a => a.status === "待验收").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       <Card>
@@ -83,6 +119,53 @@ export default function FinalAcceptance() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>创建验收单</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="fa-project">项目名称 *</Label>
+              <Input
+                id="fa-project"
+                placeholder="例如：半导体清洗设备"
+                value={formData.project}
+                onChange={e => setFormData(prev => ({ ...prev, project: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fa-customer">客户 *</Label>
+              <Input
+                id="fa-customer"
+                placeholder="例如：英飞凌"
+                value={formData.customer}
+                onChange={e => setFormData(prev => ({ ...prev, customer: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fa-date">验收日期 *</Label>
+              <Input
+                id="fa-date"
+                type="date"
+                value={formData.date}
+                onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
+              />
+            </div>
+            {currentBU && (
+              <div className="space-y-2">
+                <Label>事业部</Label>
+                <Input value={currentBU} disabled />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
+            <Button onClick={handleCreate}>创建</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

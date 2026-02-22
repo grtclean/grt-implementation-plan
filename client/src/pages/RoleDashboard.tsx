@@ -1,51 +1,32 @@
 /**
  * GRT 5.0 角色智能工作台 (Role-based Dashboard)
  *
- * 根据当前登录用户角色，展示不同的工作台Widget组合:
- * - admin: 系统概览、监控、用户管理入口
- * - bu_gm: BU业绩、项目看板、团队概览
- * - bu_pm: 项目进度、里程碑、任务分配
- * - bu_sales: 商机pipeline、客户跟进、报价
- * - bu_mech/bu_elec: 设计任务、BOM变更、技术文档
- * - procurement_eng: 采购订单、供应商、库存预警
- * - cs_engineer: 工单、客户反馈、现场服务
- * - hr_manager/hr_specialist: 人事管理、绩效、培训
- * - finance_manager/finance_specialist: 成本、预算、费用审批
- * - production_worker: 工位看板、工序进度
- * - employee: 通用工作台（待办、消息、日程）
+ * Project Lens: real tRPC-backed project overview filtered by role M-phases.
+ * Quick actions grid is preserved per-role.
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfile, ROLE_CONFIGS, type UserRole } from "@/contexts/UserProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trpc } from "@/lib/trpc";
+import { ROLE_PHASE_FILTER, PHASE_LABELS } from "@/config/rolePhaseConfig";
 import {
   BarChart3, Bell, BookOpen, Calendar, CheckCircle2, Clock, Cog, FileText,
   FolderKanban, Headphones, LayoutDashboard, ListTodo, MessageSquare,
   Package, ShoppingCart, Target, TrendingUp, Users, Wrench, Zap,
-  ArrowRight, AlertTriangle, Activity, Building2, Shield,
+  ArrowRight, AlertTriangle, Activity, Building2, Shield, Circle,
 } from "lucide-react";
 
 // ============================================
-// 角色-Widget映射配置
+// 快捷操作定义
 // ============================================
 
-interface DashboardWidget {
-  id: string;
-  title: string;
-  titleEn: string;
-  description: string;
-  icon: any;
-  color: string;
-  link?: string;
-  renderContent: () => React.ReactNode;
-}
-
-// 快捷操作定义
 interface QuickAction {
   label: string;
   labelEn: string;
@@ -54,7 +35,6 @@ interface QuickAction {
   color: string;
 }
 
-// 角色对应的快捷操作
 const roleQuickActions: Record<string, QuickAction[]> = {
   admin: [
     { label: "系统监控", labelEn: "Monitoring", icon: Activity, link: "/monitoring", color: "text-red-500" },
@@ -133,30 +113,98 @@ const roleQuickActions: Record<string, QuickAction[]> = {
   ],
 };
 
-// 默认快捷操作（未配置的角色使用）
 const defaultQuickActions: QuickAction[] = roleQuickActions.employee;
 
 // ============================================
-// 模拟待办/通知数据
+// Health dot color mapping
 // ============================================
-
-const mockPendingItems = [
-  { id: 1, type: "approval", title: "采购申请 PR-20260212-001 待审批", time: "10分钟前", urgent: true },
-  { id: 2, type: "task", title: "M3阶段评审资料准备", time: "30分钟前", urgent: false },
-  { id: 3, type: "meeting", title: "项目周例会 14:00", time: "1小时后", urgent: false },
-  { id: 4, type: "notification", title: "BOM版本 v2.1 已审批通过", time: "2小时前", urgent: false },
-  { id: 5, type: "alert", title: "物料 MC-E-01-0023 库存低于安全库存", time: "3小时前", urgent: true },
-];
-
-const mockProjectStats = [
-  { name: "XZ-2026-001 半导体清洗设备", stage: "M3", progress: 45, status: "on_track" },
-  { name: "CV-2026-003 商用车装配线", stage: "M5", progress: 72, status: "on_track" },
-  { name: "IC-2025-012 芯片封装设备", stage: "M9", progress: 88, status: "at_risk" },
-  { name: "GN-2026-002 通用检测平台", stage: "M1", progress: 15, status: "on_track" },
-];
+const healthColor: Record<string, string> = {
+  green: "text-green-500",
+  yellow: "text-yellow-500",
+  red: "text-red-500",
+};
 
 // ============================================
-// 组件
+// Project Lens Panel (tRPC-backed)
+// ============================================
+function ProjectLensPanel({ phases, isEn }: { phases: string[] | null; isEn: boolean }) {
+  const { data: projects, isLoading } = trpc.project.listByRole.useQuery(
+    phases ? { phases, limit: 20 } : { limit: 20 }
+  );
+
+  const projectIds = useMemo(() => (projects ?? []).map(p => p.id), [projects]);
+  const { data: taskCounts } = trpc.taskBoard.getCountsByProjects.useQuery(
+    { projectIds },
+    { enabled: projectIds.length > 0 }
+  );
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full" />)}
+      </div>
+    );
+  }
+
+  if (!projects || projects.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground text-sm">
+        {isEn ? "No projects in the selected phases" : "所选阶段暂无项目"}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {projects.map((proj) => {
+        const phase = proj.currentPhase ?? "M0";
+        const phaseLabel = PHASE_LABELS[phase];
+        const counts = taskCounts?.[proj.id];
+        return (
+          <Link key={proj.id} href={`/pos/projects/${proj.id}`}>
+            <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
+              {/* Health dot */}
+              <Circle
+                className={`w-3 h-3 shrink-0 fill-current ${healthColor[proj.healthStatus ?? "green"]}`}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium truncate">
+                    {proj.projectCode ? `${proj.projectCode} ` : ""}{proj.name}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="outline" className="text-xs font-mono">
+                      {phase}{phaseLabel ? ` · ${isEn ? phaseLabel.en : phaseLabel.zh}` : ""}
+                    </Badge>
+                    {counts && counts.overdue > 0 && (
+                      <Badge variant="destructive" className="text-xs">
+                        {counts.overdue} {isEn ? "overdue" : "逾期"}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Progress value={proj.completionPercent ?? 0} className="h-2 flex-1" />
+                  <span className="text-xs text-muted-foreground w-10 text-right">
+                    {proj.completionPercent ?? 0}%
+                  </span>
+                  {counts && (
+                    <span className="text-xs text-muted-foreground">
+                      {counts.total} {isEn ? "tasks" : "任务"}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================================
+// Main Component
 // ============================================
 
 export default function RoleDashboard() {
@@ -168,7 +216,19 @@ export default function RoleDashboard() {
   const roleConfig = ROLE_CONFIGS[role as UserRole] || ROLE_CONFIGS.employee;
   const quickActions = roleQuickActions[role] || defaultQuickActions;
 
-  // 获取问候语
+  // Project Lens: determine visible phases based on role
+  const hasProjectLens = role in ROLE_PHASE_FILTER;
+  const phases = ROLE_PHASE_FILTER[role] ?? null;
+
+  // Pending tasks (real data)
+  const { data: myTasks } = trpc.taskBoard.getMyTasks.useQuery(
+    { assigneeId: 1 },  // TODO: replace with real user ID from context
+  );
+  const pendingTasks = useMemo(() =>
+    (myTasks ?? []).filter(t => t.status !== "done" && t.status !== "cancelled").slice(0, 5),
+    [myTasks]
+  );
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return isEn ? "Good morning" : "早上好";
@@ -234,61 +294,69 @@ export default function RoleDashboard() {
         </div>
       </div>
 
-      {/* 主仪表板区域: 待办 + 项目/业务卡片 */}
+      {/* 主仪表板区域: 待办 + 统计 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 左侧: 待办事项 */}
+        {/* 左侧: 待办事项 (real tRPC data) */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-blue-500" />
-                {isEn ? "Pending Items" : "待办事项"}
+                {isEn ? "Pending Tasks" : "待办任务"}
               </CardTitle>
-              <Badge>{mockPendingItems.length}</Badge>
+              <Badge>{pendingTasks.length}</Badge>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {mockPendingItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    {item.urgent && (
-                      <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
-                    )}
-                    {!item.urgent && item.type === "approval" && (
-                      <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />
-                    )}
-                    {!item.urgent && item.type === "task" && (
-                      <ListTodo className="w-4 h-4 text-green-500 shrink-0" />
-                    )}
-                    {!item.urgent && item.type === "meeting" && (
-                      <Calendar className="w-4 h-4 text-purple-500 shrink-0" />
-                    )}
-                    {!item.urgent && item.type === "notification" && (
-                      <Bell className="w-4 h-4 text-gray-500 shrink-0" />
-                    )}
-                    <div>
-                      <p className={`text-sm ${item.urgent ? "font-semibold text-red-700 dark:text-red-400" : ""}`}>
-                        {item.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{item.time}</p>
+            {pendingTasks.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground text-sm">
+                {isEn ? "No pending tasks" : "暂无待办任务"}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingTasks.map((task) => {
+                  const isOverdue = task.plannedEndDate && task.plannedEndDate < new Date().toISOString() && task.status !== "done";
+                  return (
+                    <div
+                      key={task.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {isOverdue ? (
+                          <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                        ) : (
+                          <ListTodo className="w-4 h-4 text-blue-500 shrink-0" />
+                        )}
+                        <div>
+                          <p className={`text-sm ${isOverdue ? "font-semibold text-red-700 dark:text-red-400" : ""}`}>
+                            {task.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {task.phaseCode && <span className="mr-2">{task.phaseCode}</span>}
+                            {task.priority !== "medium" && (
+                              <Badge variant={task.priority === "critical" ? "destructive" : "secondary"} className="text-[10px] mr-2">
+                                {task.priority}
+                              </Badge>
+                            )}
+                            {task.status}
+                          </p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href="/task-cockpit">
+                          <ArrowRight className="w-4 h-4" />
+                        </Link>
+                      </Button>
                     </div>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* 右侧: 统计摘要 */}
         <div className="space-y-4">
-          {/* 今日统计 */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
@@ -299,20 +367,28 @@ export default function RoleDashboard() {
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
                 <div className="text-center p-2 rounded bg-blue-50 dark:bg-blue-950/30">
-                  <p className="text-2xl font-bold text-blue-600">5</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {(myTasks ?? []).filter(t => t.status !== "done" && t.status !== "cancelled").length}
+                  </p>
                   <p className="text-xs text-muted-foreground">{isEn ? "Pending" : "待处理"}</p>
                 </div>
                 <div className="text-center p-2 rounded bg-green-50 dark:bg-green-950/30">
-                  <p className="text-2xl font-bold text-green-600">12</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {(myTasks ?? []).filter(t => t.status === "done").length}
+                  </p>
                   <p className="text-xs text-muted-foreground">{isEn ? "Completed" : "已完成"}</p>
                 </div>
                 <div className="text-center p-2 rounded bg-orange-50 dark:bg-orange-950/30">
-                  <p className="text-2xl font-bold text-orange-600">2</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {(myTasks ?? []).filter(t => t.plannedEndDate && t.plannedEndDate < new Date().toISOString() && t.status !== "done" && t.status !== "cancelled").length}
+                  </p>
                   <p className="text-xs text-muted-foreground">{isEn ? "Overdue" : "已逾期"}</p>
                 </div>
                 <div className="text-center p-2 rounded bg-purple-50 dark:bg-purple-950/30">
-                  <p className="text-2xl font-bold text-purple-600">3</p>
-                  <p className="text-xs text-muted-foreground">{isEn ? "Meetings" : "会议"}</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {(myTasks ?? []).filter(t => t.status === "in_progress").length}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{isEn ? "In Progress" : "进行中"}</p>
                 </div>
               </div>
             </CardContent>
@@ -340,14 +416,19 @@ export default function RoleDashboard() {
         </div>
       </div>
 
-      {/* 项目进度概览 (BU角色 & PM可见) */}
-      {["admin", "bu_gm", "bu_pm", "director"].includes(role) && (
+      {/* Project Lens Panel — visible for any role in ROLE_PHASE_FILTER */}
+      {hasProjectLens && (
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <FolderKanban className="w-5 h-5 text-indigo-500" />
-                {isEn ? "Project Overview" : "项目进度概览"}
+                {isEn ? "Project Lens" : "项目透视"}
+                {phases && (
+                  <span className="text-xs font-normal text-muted-foreground ml-2">
+                    ({phases.join(", ")})
+                  </span>
+                )}
               </CardTitle>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/pos">
@@ -357,27 +438,7 @@ export default function RoleDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {mockProjectStats.map((proj, idx) => (
-                <div key={idx} className="flex items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium truncate">{proj.name}</span>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">{proj.stage}</Badge>
-                        {proj.status === "at_risk" && (
-                          <Badge variant="destructive" className="text-xs">
-                            {isEn ? "At Risk" : "有风险"}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <Progress value={proj.progress} className="h-2" />
-                    <p className="text-xs text-muted-foreground mt-1">{proj.progress}%</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ProjectLensPanel phases={phases} isEn={isEn} />
           </CardContent>
         </Card>
       )}

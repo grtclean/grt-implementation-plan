@@ -67,6 +67,9 @@ export const approvalTemplates = pgTable(
     isActive: boolean('is_active').default(true),
     version: varchar('version', { length: 20 }).default('1.0'),
 
+    // 简道云关联
+    jiandaoyunId: varchar('jiandaoyun_id', { length: 64 }),
+
     // 创建信息
     createdBy: integer('created_by'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -75,6 +78,7 @@ export const approvalTemplates = pgTable(
   (table) => ({
     templateCodeIdx: index('approval_template_code_idx').on(table.templateCode),
     businessTypeIdx: index('approval_template_business_type_idx').on(table.businessType),
+    jiandaoyunIdIdx: index('approval_template_jdy_id_idx').on(table.jiandaoyunId),
   })
 );
 
@@ -133,6 +137,9 @@ export const approvalInstances = pgTable(
     // 附件
     attachments: json('attachments'), // JSON数组: [{ name, url, type }]
 
+    // 简道云关联
+    jiandaoyunId: varchar('jiandaoyun_id', { length: 64 }),
+
     // 时间戳
     submittedAt: timestamp('submitted_at'),
     completedAt: timestamp('completed_at'),
@@ -146,6 +153,7 @@ export const approvalInstances = pgTable(
     businessIdIdx: index('approval_instance_business_idx').on(table.businessId),
     applicantIdIdx: index('approval_instance_applicant_idx').on(table.applicantId),
     statusIdx: index('approval_instance_status_idx').on(table.status),
+    jiandaoyunIdIdx: index('approval_instance_jdy_id_idx').on(table.jiandaoyunId),
   })
 );
 
@@ -187,6 +195,9 @@ export const approvalStepRecords = pgTable(
     delegatedToName: varchar('delegated_to_name', { length: 128 }),
     delegateReason: text('delegate_reason'),
 
+    // 简道云关联
+    jiandaoyunId: varchar('jiandaoyun_id', { length: 64 }),
+
     // 时间信息
     assignedAt: timestamp('assigned_at').defaultNow().notNull(),
     dueAt: timestamp('due_at'),
@@ -199,6 +210,7 @@ export const approvalStepRecords = pgTable(
     instanceIdIdx: index('approval_step_instance_idx').on(table.instanceId),
     approverIdIdx: index('approval_step_approver_idx').on(table.approverId),
     statusIdx: index('approval_step_status_idx').on(table.status),
+    jiandaoyunIdIdx: index('approval_step_jdy_id_idx').on(table.jiandaoyunId),
   })
 );
 

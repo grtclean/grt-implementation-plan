@@ -61,6 +61,8 @@ export const devTasksRouter = router({
         estimatedHours: z.number().optional(),
         claudePrompt: z.string().optional(),
         acceptanceCriteria: z.string().optional(),
+        assignee: z.string().optional(),
+        dueDate: z.string().optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -75,6 +77,7 @@ export const devTasksRouter = router({
           estimatedHours: input.estimatedHours || null,
           claudePrompt: input.claudePrompt || null,
           acceptanceCriteria: input.acceptanceCriteria || null,
+          dueDate: input.dueDate || null,
           status: "backlog",
         });
         return result;
@@ -100,20 +103,25 @@ export const devTasksRouter = router({
         actualHours: z.number().optional(),
         claudePrompt: z.string().optional(),
         acceptanceCriteria: z.string().optional(),
+        assignee: z.string().optional(),
+        dueDate: z.string().optional(),
         startDate: z.string().optional(),
         completedDate: z.string().optional(),
       })
     )
     .mutation(async ({ input }) => {
       try {
-        const { id, startDate, completedDate, ...data } = input;
+        const { id, startDate, completedDate, dueDate, ...data } = input;
         const updateData: any = { ...data };
-        
+
         if (startDate) {
           updateData.startDate = new Date(startDate);
         }
         if (completedDate) {
           updateData.completedDate = new Date(completedDate);
+        }
+        if (dueDate) {
+          updateData.dueDate = new Date(dueDate);
         }
         
         return await updateDevTask(id, updateData);

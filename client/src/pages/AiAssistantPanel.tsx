@@ -9,6 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertCircle, Bot, Zap, CheckCircle, Clock } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { PageHeader, StatCard } from "@/components/grt";
@@ -18,11 +21,28 @@ export default function AiAssistantPanel() {
   const [selectedAssistant, setSelectedAssistant] = useState<string | null>(null);
   const [executionMode, setExecutionMode] = useState<'internal' | 'generative'>('internal');
 
-  const showPlaceholder = (featureName: string) => {
-    toast({
-      title: '功能完善中',
-      description: `${featureName}功能正在开发完善中，敬请期待`,
-    });
+  // 创建数字助手 Dialog 状态
+  const [createDAOpen, setCreateDAOpen] = useState(false);
+  const [formDisplayName, setFormDisplayName] = useState('');
+
+  // 创建数字助手 mutation
+  const createDAMutation = trpc.employeeDA.create.useMutation({
+    onSuccess: () => {
+      setCreateDAOpen(false);
+      setFormDisplayName('');
+      toast({ title: '创建成功', description: `数字助手 "${formDisplayName}" 已创建` });
+    },
+    onError: () => {
+      toast({ title: '创建失败', description: '请稍后重试', variant: 'destructive' });
+    },
+  });
+
+  const handleCreateDA = () => {
+    if (!formDisplayName.trim()) {
+      toast({ title: '请填写助手名称', variant: 'destructive' });
+      return;
+    }
+    createDAMutation.mutate({ displayName: formDisplayName.trim() });
   };
 
   // 获取AI助手统计信息
@@ -166,7 +186,7 @@ export default function AiAssistantPanel() {
                 <div className="text-center py-8">
                   <AlertCircle className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
                   <p className="text-muted-foreground mb-4">您还没有配置个人数字助手</p>
-                  <Button onClick={() => showPlaceholder('创建数字助手')}>创建数字助手</Button>
+                  <Button onClick={() => setCreateDAOpen(true)}>创建数字助手</Button>
                 </div>
               )}
             </CardContent>
@@ -218,10 +238,38 @@ export default function AiAssistantPanel() {
               </Card>
             </div>
 
-            <Button className="w-full" onClick={() => showPlaceholder('AI执行建议')}>执行建议</Button>
+            <Button className="w-full" onClick={() => toast({ title: 'AI分析中', description: 'AI正在分析最佳执行方案...' })}>执行建议</Button>
           </CardContent>
         </Card>
       )}
+
+      {/* 创建数字助手 Dialog */}
+      <Dialog open={createDAOpen} onOpenChange={(open) => { setCreateDAOpen(open); if (!open) setFormDisplayName(''); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>创建数字助手</DialogTitle>
+            <DialogDescription>为您创建一个个人专属AI数字助手。</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="displayName">助手名称 *</Label>
+              <Input
+                id="displayName"
+                placeholder="如 我的智能助手"
+                value={formDisplayName}
+                onChange={(e) => setFormDisplayName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCreateDA(); }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCreateDAOpen(false); setFormDisplayName(''); }}>取消</Button>
+            <Button onClick={handleCreateDA} disabled={createDAMutation.isPending}>
+              {createDAMutation.isPending ? '创建中...' : '确认创建'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

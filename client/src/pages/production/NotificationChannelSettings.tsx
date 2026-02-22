@@ -808,10 +808,14 @@ export default function NotificationChannelSettings() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" title="编辑">
+                            <Button variant="ghost" size="icon" title="编辑"
+                              onClick={() => toast.info(`编辑模板: ${template.name}`)}
+                            >
                               <Edit2 className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" title="预览">
+                            <Button variant="ghost" size="icon" title="预览"
+                              onClick={() => toast.info(`预览模板: ${template.name}`)}
+                            >
                               <Eye className="w-4 h-4" />
                             </Button>
                           </div>

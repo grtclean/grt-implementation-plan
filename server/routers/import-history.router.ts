@@ -1,0 +1,111 @@
+import { z } from "zod";
+import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { requireDb } from "../db";
+import { importHistory } from "../../drizzle/schema";
+import { eq, desc, count } from "drizzle-orm";
+
+export const importHistoryRouter = router({
+  // 导入历史列表
+  list: publicProcedure.query(async () => {
+    const db = await requireDb();
+    const items = await db.select().from(importHistory).orderBy(desc(importHistory.createdAt)).limit(100);
+    return { items, total: items.length, page: 1, pageSize: items.length };
+  }),
+
+  // 获取导入详情
+  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+    const db = await requireDb();
+    const [item] = await db.select().from(importHistory).where(eq(importHistory.id, parseInt(input.id)));
+    return item || null;
+  }),
+
+  // 创建导入记录
+  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+    const db = await requireDb();
+    const [record] = await db.insert(importHistory).values({
+      importType: input.importType || "general",
+      fileName: input.fileName || "unknown",
+      fileSize: input.fileSize,
+      filePath: input.filePath,
+      totalRows: input.totalRows || 0,
+      fieldMapping: input.fieldMapping ? JSON.stringify(input.fieldMapping) : undefined,
+      status: "pending",
+      createdBy: input.createdBy || 1,
+    }).returning();
+    return { success: true, message: "导入记录已创建", data: record };
+  }),
+
+  // 更新导入记录
+  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+    const db = await requireDb();
+    const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
+    const { id: _id, ...updates } = input;
+    const [record] = await db.update(importHistory)
+      .set(updates)
+      .where(eq(importHistory.id, id))
+      .returning();
+    return { success: true, message: "更新成功", data: record };
+  }),
+
+  // 删除导入记录
+  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+    const db = await requireDb();
+    await db.delete(importHistory).where(eq(importHistory.id, parseInt(input.id)));
+    return { success: true, message: "删除成功" };
+  }),
+
+  // 获取历史记录
+  getHistory: publicProcedure.query(async () => {
+    const db = await requireDb();
+    return await db.select().from(importHistory).orderBy(desc(importHistory.createdAt)).limit(50);
+  }),
+
+  // 获取导入详细信息
+  getDetails: publicProcedure.input(z.any()).query(async ({ input }) => {
+    const db = await requireDb();
+    const id = typeof input?.id === "string" ? parseInt(input.id) : (input?.id || 0);
+    const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id));
+    return { details: item || null };
+  }),
+
+  // 导入统计（前端调用 getStats）
+  getStats: publicProcedure.input(z.any()).query(async ({ input }) => {
+    const db = await requireDb();
+    const [total] = await db.select({ count: count() }).from(importHistory);
+    const [pending] = await db.select({ count: count() }).from(importHistory).where(eq(importHistory.status, "pending"));
+    const [completed] = await db.select({ count: count() }).from(importHistory).where(eq(importHistory.status, "completed"));
+    const [failed] = await db.select({ count: count() }).from(importHistory).where(eq(importHistory.status, "failed"));
+    return {
+      total: total.count,
+      pending: pending.count,
+      completed: completed.count,
+      failed: failed.count,
+    };
+  }),
+
+  // 检查是否可回滚
+  canRollback: publicProcedure.input(z.any()).query(async ({ input }) => {
+    const db = await requireDb();
+    const id = typeof input?.id === "string" ? parseInt(input.id) : (input?.id || 0);
+    const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id));
+    if (!item) return { canRollback: false, reason: "记录不存在" };
+    if (item.status !== "completed") return { canRollback: false, reason: "只有已完成的导入才能回滚" };
+    if (item.rollbackAt) return { canRollback: false, reason: "已经回滚过" };
+    return { canRollback: true };
+  }),
+
+  // 回滚导入
+  rollback: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+    const db = await requireDb();
+    const id = typeof input?.id === "string" ? parseInt(input.id) : (input?.id || 0);
+    const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id));
+    if (!item) return { success: false, message: "记录不存在" };
+    if (item.rollbackAt) return { success: false, message: "已经回滚过" };
+
+    const [updated] = await db.update(importHistory)
+      .set({ rollbackAt: new Date(), rollbackBy: input.rollbackBy || 1, status: "rolled_back" })
+      .where(eq(importHistory.id, id))
+      .returning();
+    return { success: true, message: "回滚成功", data: updated };
+  }),
+});

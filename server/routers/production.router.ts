@@ -1,22 +1,17 @@
 /**
  * GRT 5.0 生产看板路由
  * 实现工单管理、设备状态、生产进度等功能
+ *
+ * Uses real database queries via Drizzle ORM.
  */
 
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
-
-// ===== 类型定义 =====
-
-// 工单状态
-type WorkOrderStatus = 'draft' | 'planned' | 'in_progress' | 'quality_check' | 'completed' | 'on_hold' | 'cancelled';
-
-// 工单优先级
-type WorkOrderPriority = 'low' | 'normal' | 'high' | 'urgent';
-
-// 设备状态
-type EquipmentStatus = 'idle' | 'running' | 'maintenance' | 'fault' | 'offline';
+import { requireDb } from "../db";
+import { eq, desc, and, or, count, sql } from "drizzle-orm";
+import { productionWorkOrders, qcInspectionRecords } from "../../drizzle/schema";
+import { productionEquipments, productionEquipmentStatusHistory } from "../../drizzle/production-equipment-schema";
 
 // ===== Schema定义 =====
 
@@ -61,232 +56,83 @@ const QCRecordSchema = z.object({
   })).optional(),
 });
 
-// ===== 模拟数据存储 =====
-
-// 工单数据
-let workOrders: any[] = [
-  {
-    id: 1,
-    orderCode: 'WO-2026-001',
-    projectId: 1,
-    projectCode: 'PRJ-2026-001',
-    projectName: '工业清洗系统 IC-2000',
-    productId: 1,
-    productCode: 'IC-2000-X',
-    productName: '工业清洗系统 IC-2000',
-    productModel: 'IC-2000-X',
-    quantity: 2,
-    unit: '台',
-    priority: 'high',
-    status: 'in_progress',
-    progress: 75,
-    plannedStartDate: '2026-01-15',
-    plannedEndDate: '2026-01-30',
-    actualStartDate: '2026-01-15',
-    estimatedHours: 160,
-    actualHours: 120,
-    assignedTeam: 'A组',
-    assignedLeaderId: 1,
-    assignedLeaderName: '张工',
-    customerId: 1,
-    customerName: '某汽车零部件公司',
-    createdAt: '2026-01-10T08:00:00Z',
-    updatedAt: '2026-01-28T16:00:00Z',
-  },
-  {
-    id: 2,
-    orderCode: 'WO-2026-002',
-    projectId: 2,
-    projectCode: 'PRJ-2026-002',
-    projectName: '喷淋清洗设备 SC-500',
-    productId: 2,
-    productCode: 'SC-500-A',
-    productName: '喷淋清洗设备 SC-500',
-    productModel: 'SC-500-A',
-    quantity: 5,
-    unit: '台',
-    priority: 'normal',
-    status: 'planned',
-    progress: 0,
-    plannedStartDate: '2026-02-01',
-    plannedEndDate: '2026-02-20',
-    estimatedHours: 200,
-    actualHours: 0,
-    assignedTeam: 'B组',
-    assignedLeaderId: 2,
-    assignedLeaderName: '李工',
-    customerId: 2,
-    customerName: '某电子制造公司',
-    createdAt: '2026-01-20T10:00:00Z',
-    updatedAt: '2026-01-20T10:00:00Z',
-  },
-  {
-    id: 3,
-    orderCode: 'WO-2026-003',
-    projectId: 1,
-    projectCode: 'PRJ-2026-001',
-    projectName: '工业清洗系统 IC-2000',
-    productId: 1,
-    productCode: 'IC-2000-X',
-    productName: '工业清洗系统 IC-2000',
-    productModel: 'IC-2000-X',
-    quantity: 2,
-    unit: '台',
-    priority: 'normal',
-    status: 'quality_check',
-    progress: 95,
-    plannedStartDate: '2026-01-15',
-    plannedEndDate: '2026-01-30',
-    actualStartDate: '2026-01-16',
-    estimatedHours: 160,
-    actualHours: 155,
-    assignedTeam: 'A组',
-    assignedLeaderId: 1,
-    assignedLeaderName: '张工',
-    customerId: 1,
-    customerName: '某汽车零部件公司',
-    createdAt: '2026-01-10T08:00:00Z',
-    updatedAt: '2026-01-29T14:00:00Z',
-  },
-  {
-    id: 4,
-    orderCode: 'WO-2026-004',
-    projectId: 3,
-    projectCode: 'PRJ-2026-003',
-    projectName: '超声波清洗机 UC-300',
-    productId: 3,
-    productCode: 'UC-300-B',
-    productName: '超声波清洗机 UC-300',
-    productModel: 'UC-300-B',
-    quantity: 8,
-    unit: '台',
-    priority: 'urgent',
-    status: 'in_progress',
-    progress: 45,
-    plannedStartDate: '2026-01-20',
-    plannedEndDate: '2026-02-10',
-    actualStartDate: '2026-01-20',
-    estimatedHours: 320,
-    actualHours: 140,
-    assignedTeam: 'C组',
-    assignedLeaderId: 3,
-    assignedLeaderName: '王工',
-    customerId: 3,
-    customerName: '某医疗器械公司',
-    createdAt: '2026-01-15T09:00:00Z',
-    updatedAt: '2026-01-30T11:00:00Z',
-  },
-  {
-    id: 5,
-    orderCode: 'WO-2026-005',
-    projectId: 4,
-    projectCode: 'PRJ-2026-004',
-    projectName: '真空干燥系统 VD-100',
-    productId: 4,
-    productCode: 'VD-100-C',
-    productName: '真空干燥系统 VD-100',
-    productModel: 'VD-100-C',
-    quantity: 3,
-    unit: '台',
-    priority: 'high',
-    status: 'completed',
-    progress: 100,
-    plannedStartDate: '2026-01-05',
-    plannedEndDate: '2026-01-25',
-    actualStartDate: '2026-01-05',
-    actualEndDate: '2026-01-24',
-    estimatedHours: 240,
-    actualHours: 235,
-    assignedTeam: 'A组',
-    assignedLeaderId: 1,
-    assignedLeaderName: '张工',
-    customerId: 4,
-    customerName: '某半导体公司',
-    createdAt: '2026-01-02T08:00:00Z',
-    updatedAt: '2026-01-24T17:00:00Z',
-  },
-];
-
-// QC记录数据
-let qcRecords: any[] = [
-  {
-    id: 1,
-    workOrderId: 1,
-    workOrderCode: 'WO-2026-001',
-    checkType: 'process',
-    checkPoint: '焊接工序',
-    totalItems: 50,
-    passItems: 48,
-    failItems: 2,
-    result: 'pass',
-    inspector: '质检员A',
-    inspectorId: 101,
-    checkedAt: '2026-01-25T14:00:00Z',
-    createdAt: '2026-01-25T14:00:00Z',
-  },
-  {
-    id: 2,
-    workOrderId: 3,
-    workOrderCode: 'WO-2026-003',
-    checkType: 'final',
-    checkPoint: '整机测试',
-    totalItems: 100,
-    passItems: 98,
-    failItems: 2,
-    result: 'pass',
-    inspector: '质检员B',
-    inspectorId: 102,
-    checkedAt: '2026-01-29T10:00:00Z',
-    createdAt: '2026-01-29T10:00:00Z',
-  },
-  {
-    id: 3,
-    workOrderId: 4,
-    workOrderCode: 'WO-2026-004',
-    checkType: 'incoming',
-    checkPoint: '原材料检验',
-    totalItems: 200,
-    passItems: 195,
-    failItems: 5,
-    result: 'conditional',
-    inspector: '质检员A',
-    inspectorId: 101,
-    notes: '5件外观轻微划痕，不影响使用',
-    checkedAt: '2026-01-21T09:00:00Z',
-    createdAt: '2026-01-21T09:00:00Z',
-  },
-];
-
-// 设备数据
-let equipments: any[] = [
-  { id: 1, code: 'EQ-001', name: '数控加工中心', type: 'CNC', status: 'running', location: '车间A', currentWorkOrderId: 1, utilization: 85 },
-  { id: 2, code: 'EQ-002', name: '焊接机器人', type: 'ROBOT', status: 'running', location: '车间A', currentWorkOrderId: 1, utilization: 78 },
-  { id: 3, code: 'EQ-003', name: '激光切割机', type: 'LASER', status: 'idle', location: '车间B', currentWorkOrderId: null, utilization: 45 },
-  { id: 4, code: 'EQ-004', name: '喷涂设备', type: 'SPRAY', status: 'maintenance', location: '车间C', currentWorkOrderId: null, utilization: 0 },
-  { id: 5, code: 'EQ-005', name: '装配线', type: 'ASSEMBLY', status: 'running', location: '车间D', currentWorkOrderId: 4, utilization: 92 },
-];
-
-// 设备状态变更历史记录
-let equipmentStatusHistory: any[] = [];
-let equipmentStatusHistoryIdCounter = 1;
-
-// ID计数器
-let workOrderIdCounter = 6;
-let qcRecordIdCounter = 4;
-
 // 生成唯一编码
 function generateCode(prefix: string): string {
   const year = new Date().getFullYear();
-  const seq = String(workOrderIdCounter).padStart(3, '0');
-  return `${prefix}-${year}-${seq}`;
+  const ts = Date.now().toString(36).slice(-4).toUpperCase();
+  const rand = String(Math.floor(Math.random() * 900) + 100);
+  return `${prefix}-${year}-${ts}${rand}`;
+}
+
+/** Map DB work order row → API response shape */
+function mapWorkOrder(row: any) {
+  return {
+    id: row.id,
+    orderCode: row.workOrderCode,
+    projectId: row.projectId,
+    productName: row.productName,
+    productModel: row.productModel,
+    quantity: row.quantity,
+    priority: row.priority,
+    status: row.status,
+    progress: row.completionRate ? Number(row.completionRate) : 0,
+    plannedStartDate: row.plannedStartDate,
+    plannedEndDate: row.plannedEndDate,
+    actualStartDate: row.actualStartDate,
+    actualEndDate: row.actualEndDate,
+    estimatedHours: row.estimatedHours ? Number(row.estimatedHours) : 0,
+    actualHours: row.actualHours ? Number(row.actualHours) : 0,
+    assignedTeam: row.assignedTeam,
+    assignedLeaderId: row.supervisorId,
+    assignedLeaderName: null,
+    notes: row.notes,
+    createdBy: row.createdBy,
+    createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
+    updatedAt: row.updatedAt ?? null,
+  };
+}
+
+/** Map DB QC row → API response shape. Counts stored in checklistItems JSON. */
+function mapQCRecord(row: any) {
+  let checklist: any = {};
+  if (row.checklistItems) {
+    try { checklist = typeof row.checklistItems === 'string' ? JSON.parse(row.checklistItems) : row.checklistItems; } catch {}
+  }
+  return {
+    id: row.id,
+    workOrderId: row.workOrderId,
+    workOrderCode: null,
+    checkType: row.inspectionType,
+    checkPoint: checklist.checkPoint || row.defectType || '',
+    totalItems: checklist.totalItems ?? 0,
+    passItems: checklist.passItems ?? 0,
+    failItems: checklist.failItems ?? 0,
+    result: row.result,
+    inspector: row.inspectorName || '',
+    inspectorId: row.inspectorId,
+    notes: row.notes,
+    checkedAt: row.inspectionTime ? new Date(row.inspectionTime).toISOString() : null,
+    createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
+  };
+}
+
+/** Map equipment row → API response shape */
+function mapEquipment(row: any) {
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.name,
+    type: row.type,
+    status: row.status,
+    location: row.location,
+    currentWorkOrderId: row.currentWorkOrderId,
+    utilization: row.utilization ? Number(row.utilization) : 0,
+  };
 }
 
 export const productionRouter = router({
   // ===== 工单管理 =====
-  
-  /**
-   * 获取工单列表
-   */
+
   list: publicProcedure
     .input(z.object({
       status: z.enum(['draft', 'planned', 'in_progress', 'quality_check', 'completed', 'on_hold', 'cancelled']).optional(),
@@ -299,135 +145,118 @@ export const productionRouter = router({
       page: z.number().default(1),
       pageSize: z.number().default(20),
     }).optional())
-    .query(({ input }) => {
-      let result = [...workOrders];
-      
-      if (input?.status) {
-        result = result.filter(wo => wo.status === input.status);
-      }
-      if (input?.priority) {
-        result = result.filter(wo => wo.priority === input.priority);
-      }
-      if (input?.projectId) {
-        result = result.filter(wo => wo.projectId === input.projectId);
-      }
-      if (input?.assignedTeam) {
-        result = result.filter(wo => wo.assignedTeam === input.assignedTeam);
-      }
-      if (input?.customerId) {
-        result = result.filter(wo => wo.customerId === input.customerId);
-      }
-      
-      // 按更新时间倒序
-      result.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-      
-      const total = result.length;
+    .query(async ({ input }) => {
+      const db = await requireDb();
       const page = input?.page || 1;
       const pageSize = input?.pageSize || 20;
-      const start = (page - 1) * pageSize;
-      const items = result.slice(start, start + pageSize);
-      
-      return { items, total, page, pageSize };
+
+      const conditions = [];
+      if (input?.status) conditions.push(eq(productionWorkOrders.status, input.status));
+      if (input?.priority) conditions.push(eq(productionWorkOrders.priority, input.priority));
+      if (input?.projectId) conditions.push(eq(productionWorkOrders.projectId, input.projectId));
+      if (input?.assignedTeam) conditions.push(eq(productionWorkOrders.assignedTeam, input.assignedTeam));
+
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [totalResult, rows] = await Promise.all([
+        db.select({ value: count() }).from(productionWorkOrders).where(where),
+        db.select().from(productionWorkOrders).where(where)
+          .orderBy(desc(productionWorkOrders.updatedAt))
+          .limit(pageSize).offset((page - 1) * pageSize),
+      ]);
+
+      return { items: rows.map(mapWorkOrder), total: totalResult[0].value, page, pageSize };
     }),
-  
-  /**
-   * 获取单个工单
-   */
+
   getById: publicProcedure
     .input(z.object({
       id: z.number().optional(),
       orderCode: z.string().optional(),
     }))
-    .query(({ input }) => {
-      const wo = workOrders.find(
-        w => w.id === input.id || w.orderCode === input.orderCode
-      );
-      if (!wo) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
-      }
-      return wo;
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const conditions = [];
+      if (input.id) conditions.push(eq(productionWorkOrders.id, input.id));
+      if (input.orderCode) conditions.push(eq(productionWorkOrders.workOrderCode, input.orderCode));
+      if (conditions.length === 0) throw new TRPCError({ code: 'BAD_REQUEST', message: '请提供id或orderCode' });
+
+      const rows = await db.select().from(productionWorkOrders)
+        .where(conditions.length > 1 ? or(...conditions) : conditions[0]);
+      if (rows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
+      return mapWorkOrder(rows[0]);
     }),
-  
-  /**
-   * 创建工单
-   */
+
   create: protectedProcedure
     .input(WorkOrderSchema)
-    .mutation(({ input, ctx }) => {
-      const orderCode = input.orderCode || generateCode('WO');
-      
-      const newWorkOrder = {
-        id: workOrderIdCounter++,
-        orderCode,
-        ...input,
+    .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const result = await db.insert(productionWorkOrders).values({
+        workOrderCode: input.orderCode || generateCode('WO'),
+        projectId: input.projectId ?? null,
+        productName: input.productName,
+        productModel: input.productModel ?? null,
+        quantity: input.quantity,
+        priority: input.priority,
         status: 'draft',
-        progress: 0,
-        actualHours: 0,
-        createdBy: ctx.user?.id,
-        createdByName: ctx.user?.name,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      
-      workOrders.push(newWorkOrder);
-      return newWorkOrder;
+        plannedStartDate: input.plannedStartDate ?? null,
+        plannedEndDate: input.plannedEndDate ?? null,
+        estimatedHours: input.estimatedHours != null ? String(input.estimatedHours) : null,
+        actualHours: '0',
+        completionRate: '0.00',
+        assignedTeam: input.assignedTeam ?? null,
+        supervisorId: input.assignedLeaderId ?? null,
+        notes: input.notes ?? null,
+        createdBy: ctx.user?.id ?? null,
+      }).returning();
+      return mapWorkOrder(result[0]);
     }),
-  
-  /**
-   * 更新工单
-   */
+
   update: protectedProcedure
-    .input(z.object({
-      id: z.number(),
-    }).merge(WorkOrderSchema.partial()))
-    .mutation(({ input }) => {
-      const index = workOrders.findIndex(wo => wo.id === input.id);
-      if (index === -1) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
-      }
-      
-      workOrders[index] = {
-        ...workOrders[index],
-        ...input,
-        updatedAt: new Date().toISOString(),
-      };
-      
-      return workOrders[index];
+    .input(z.object({ id: z.number() }).merge(WorkOrderSchema.partial()))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id));
+      if (existing.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
+
+      const u: Record<string, any> = { updatedAt: new Date().toISOString() };
+      if (input.orderCode !== undefined) u.workOrderCode = input.orderCode;
+      if (input.projectId !== undefined) u.projectId = input.projectId;
+      if (input.productName !== undefined) u.productName = input.productName;
+      if (input.productModel !== undefined) u.productModel = input.productModel;
+      if (input.quantity !== undefined) u.quantity = input.quantity;
+      if (input.priority !== undefined) u.priority = input.priority;
+      if (input.plannedStartDate !== undefined) u.plannedStartDate = input.plannedStartDate;
+      if (input.plannedEndDate !== undefined) u.plannedEndDate = input.plannedEndDate;
+      if (input.estimatedHours !== undefined) u.estimatedHours = String(input.estimatedHours);
+      if (input.assignedTeam !== undefined) u.assignedTeam = input.assignedTeam;
+      if (input.assignedLeaderId !== undefined) u.supervisorId = input.assignedLeaderId;
+      if (input.notes !== undefined) u.notes = input.notes;
+
+      const result = await db.update(productionWorkOrders).set(u).where(eq(productionWorkOrders.id, input.id)).returning();
+      return mapWorkOrder(result[0]);
     }),
-  
-  /**
-   * 更新工单状态
-   */
+
   updateStatus: protectedProcedure
     .input(z.object({
       id: z.number(),
       status: z.enum(['draft', 'planned', 'in_progress', 'quality_check', 'completed', 'on_hold', 'cancelled']),
       notes: z.string().optional(),
     }))
-    .mutation(({ input, ctx }) => {
-      const wo = workOrders.find(w => w.id === input.id);
-      if (!wo) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
-      }
-      
-      wo.status = input.status;
-      wo.updatedAt = new Date().toISOString();
-      
-      // 记录状态变更
-      if (input.status === 'in_progress' && !wo.actualStartDate) {
-        wo.actualStartDate = new Date().toISOString().split('T')[0];
-      }
-      if (input.status === 'completed') {
-        wo.actualEndDate = new Date().toISOString().split('T')[0];
-        wo.progress = 100;
-      }
-      
-      return wo;
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id));
+      if (existing.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
+
+      const wo = existing[0];
+      const u: Record<string, any> = { status: input.status, updatedAt: new Date().toISOString() };
+      if (input.status === 'in_progress' && !wo.actualStartDate) u.actualStartDate = new Date().toISOString().split('T')[0];
+      if (input.status === 'completed') { u.actualEndDate = new Date().toISOString().split('T')[0]; u.completionRate = '100.00'; }
+      if (input.notes !== undefined) u.notes = input.notes;
+
+      const result = await db.update(productionWorkOrders).set(u).where(eq(productionWorkOrders.id, input.id)).returning();
+      return mapWorkOrder(result[0]);
     }),
-  
-  /**
-   * 更新工单进度
-   */
+
   updateProgress: protectedProcedure
     .input(z.object({
       id: z.number(),
@@ -435,168 +264,152 @@ export const productionRouter = router({
       actualHours: z.number().optional(),
       notes: z.string().optional(),
     }))
-    .mutation(({ input }) => {
-      const wo = workOrders.find(w => w.id === input.id);
-      if (!wo) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id));
+      if (existing.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
+
+      const wo = existing[0];
+      const u: Record<string, any> = { completionRate: String(input.progress.toFixed(2)), updatedAt: new Date().toISOString() };
+      if (input.actualHours !== undefined) u.actualHours = String(input.actualHours);
+
+      if (input.progress === 100 && wo.status !== 'completed') u.status = 'quality_check';
+      else if (input.progress > 0 && wo.status === 'planned') {
+        u.status = 'in_progress';
+        if (!wo.actualStartDate) u.actualStartDate = new Date().toISOString().split('T')[0];
       }
-      
-      wo.progress = input.progress;
-      if (input.actualHours !== undefined) {
-        wo.actualHours = input.actualHours;
-      }
-      wo.updatedAt = new Date().toISOString();
-      
-      // 自动更新状态
-      if (input.progress === 100 && wo.status !== 'completed') {
-        wo.status = 'quality_check';
-      } else if (input.progress > 0 && wo.status === 'planned') {
-        wo.status = 'in_progress';
-        wo.actualStartDate = wo.actualStartDate || new Date().toISOString().split('T')[0];
-      }
-      
-      return wo;
+
+      const result = await db.update(productionWorkOrders).set(u).where(eq(productionWorkOrders.id, input.id)).returning();
+      return mapWorkOrder(result[0]);
     }),
-  
-  /**
-   * 删除工单
-   */
+
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(({ input }) => {
-      const index = workOrders.findIndex(wo => wo.id === input.id);
-      if (index === -1) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
-      }
-      
-      const wo = workOrders[index];
-      if (!['draft', 'cancelled'].includes(wo.status)) {
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id));
+      if (existing.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
+      if (!['draft', 'cancelled'].includes(existing[0].status ?? ''))
         throw new TRPCError({ code: 'BAD_REQUEST', message: '只能删除草稿或已取消的工单' });
-      }
-      
-      workOrders.splice(index, 1);
+      await db.delete(productionWorkOrders).where(eq(productionWorkOrders.id, input.id));
       return { success: true };
     }),
-  
+
   // ===== QC质检 =====
-  
-  /**
-   * 获取QC记录列表
-   */
+
   getQCRecords: publicProcedure
     .input(z.object({
       workOrderId: z.number().optional(),
       checkType: z.enum(['incoming', 'process', 'final', 'patrol']).optional(),
       result: z.enum(['pass', 'fail', 'conditional']).optional(),
     }).optional())
-    .query(({ input }) => {
-      let result = [...qcRecords];
-      
-      if (input?.workOrderId) {
-        result = result.filter(r => r.workOrderId === input.workOrderId);
-      }
-      if (input?.checkType) {
-        result = result.filter(r => r.checkType === input.checkType);
-      }
-      if (input?.result) {
-        result = result.filter(r => r.result === input.result);
-      }
-      
-      return result;
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const conditions = [];
+      if (input?.workOrderId) conditions.push(eq(qcInspectionRecords.workOrderId, input.workOrderId));
+      if (input?.checkType) conditions.push(eq(qcInspectionRecords.inspectionType, input.checkType));
+      if (input?.result) conditions.push(eq(qcInspectionRecords.result, input.result));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+      const rows = await db.select().from(qcInspectionRecords).where(where).orderBy(desc(qcInspectionRecords.createdAt));
+      return rows.map(mapQCRecord);
     }),
-  
-  /**
-   * 创建QC记录
-   */
+
   createQCRecord: protectedProcedure
     .input(QCRecordSchema)
-    .mutation(({ input, ctx }) => {
-      const wo = workOrders.find(w => w.id === input.workOrderId);
-      if (!wo) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
-      }
-      
-      const newRecord = {
-        id: qcRecordIdCounter++,
-        ...input,
-        workOrderCode: wo.orderCode,
-        checkedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-      };
-      
-      qcRecords.push(newRecord);
-      return newRecord;
+    .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const woRows = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.workOrderId));
+      if (woRows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
+
+      // Store count data in checklistItems JSON since DB doesn't have separate columns
+      const checklistData = JSON.stringify({
+        checkPoint: input.checkPoint,
+        totalItems: input.totalItems,
+        passItems: input.passItems,
+        failItems: input.failItems,
+      });
+
+      const result = await db.insert(qcInspectionRecords).values({
+        inspectionCode: generateCode('QC'),
+        taskId: 0,
+        workOrderId: input.workOrderId,
+        inspectionType: input.checkType,
+        inspectorId: input.inspectorId ?? ctx.user?.id ?? 0,
+        inspectorName: input.inspector,
+        inspectionTime: new Date(),
+        result: input.result,
+        defectType: input.checkPoint,
+        checklistItems: checklistData,
+        qualityScore: input.totalItems > 0 ? Math.round((input.passItems / input.totalItems) * 100) : 0,
+        notes: input.notes ?? null,
+      }).returning();
+
+      return mapQCRecord(result[0]);
     }),
-  
-  /**
-   * 获取QC统计
-   */
+
   getQCStats: publicProcedure
     .input(z.object({
       startDate: z.string().optional(),
       endDate: z.string().optional(),
     }).optional())
-    .query(({ input }) => {
-      let records = [...qcRecords];
-      
-      const totalRecords = records.length;
-      const passCount = records.filter(r => r.result === 'pass').length;
-      const failCount = records.filter(r => r.result === 'fail').length;
-      const conditionalCount = records.filter(r => r.result === 'conditional').length;
-      
-      const totalItems = records.reduce((sum, r) => sum + r.totalItems, 0);
-      const totalPass = records.reduce((sum, r) => sum + r.passItems, 0);
-      const totalFail = records.reduce((sum, r) => sum + r.failItems, 0);
-      
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const conditions = [];
+      if (input?.startDate) conditions.push(sql`${qcInspectionRecords.inspectionTime} >= ${input.startDate}`);
+      if (input?.endDate) conditions.push(sql`${qcInspectionRecords.inspectionTime} <= ${input.endDate + 'T23:59:59.999Z'}`);
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [totalR, passR, failR, conditionalR] = await Promise.all([
+        db.select({ value: count() }).from(qcInspectionRecords).where(where),
+        db.select({ value: count() }).from(qcInspectionRecords).where(where ? and(where, eq(qcInspectionRecords.result, 'pass')) : eq(qcInspectionRecords.result, 'pass')),
+        db.select({ value: count() }).from(qcInspectionRecords).where(where ? and(where, eq(qcInspectionRecords.result, 'fail')) : eq(qcInspectionRecords.result, 'fail')),
+        db.select({ value: count() }).from(qcInspectionRecords).where(where ? and(where, eq(qcInspectionRecords.result, 'conditional')) : eq(qcInspectionRecords.result, 'conditional')),
+      ]);
+
+      const totalRecords = totalR[0].value;
+      const passCount = passR[0].value;
+      const failCount = failR[0].value;
+      const conditionalCount = conditionalR[0].value;
+
+      // Aggregate item counts from checklistItems JSON
+      const allRows = await db.select({ checklistItems: qcInspectionRecords.checklistItems }).from(qcInspectionRecords).where(where);
+      let totalItems = 0, totalPass = 0, totalFail = 0;
+      for (const row of allRows) {
+        try {
+          const data = typeof row.checklistItems === 'string' ? JSON.parse(row.checklistItems) : row.checklistItems;
+          if (data) { totalItems += data.totalItems || 0; totalPass += data.passItems || 0; totalFail += data.failItems || 0; }
+        } catch {}
+      }
+
       return {
         stats: {
-          totalRecords,
-          passCount,
-          failCount,
-          conditionalCount,
+          totalRecords, passCount, failCount, conditionalCount,
           passRate: totalRecords > 0 ? ((passCount / totalRecords) * 100).toFixed(1) + '%' : '0%',
-          totalItems,
-          totalPass,
-          totalFail,
+          totalItems, totalPass, totalFail,
           itemPassRate: totalItems > 0 ? ((totalPass / totalItems) * 100).toFixed(1) + '%' : '0%',
         }
       };
     }),
-  
+
   // ===== 设备管理 =====
-  
-  /**
-   * 获取设备列表
-   */
+
   getEquipments: publicProcedure
     .input(z.object({
       status: z.enum(['idle', 'running', 'maintenance', 'fault', 'offline']).optional(),
       type: z.string().optional(),
       location: z.string().optional(),
     }).optional())
-    .query(({ input }) => {
-      let result = [...equipments];
-      
-      if (input?.status) {
-        result = result.filter(e => e.status === input.status);
-      }
-      if (input?.type) {
-        result = result.filter(e => e.type === input.type);
-      }
-      if (input?.location) {
-        result = result.filter(e => e.location === input.location);
-      }
-      
-      return result;
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const conditions = [];
+      if (input?.status) conditions.push(eq(productionEquipments.status, input.status));
+      if (input?.type) conditions.push(eq(productionEquipments.type, input.type));
+      if (input?.location) conditions.push(eq(productionEquipments.location, input.location));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+      const rows = await db.select().from(productionEquipments).where(where).orderBy(productionEquipments.id);
+      return rows.map(mapEquipment);
     }),
-  
-  /**
-   * 更新设备状态（联动排程资源可用性）
-   *
-   * When equipment status changes (e.g., maintenance -> available or vice versa),
-   * this automatically updates the scheduling system's resource availability
-   * and records the status change for audit trail.
-   */
+
   updateEquipmentStatus: protectedProcedure
     .input(z.object({
       id: z.number(),
@@ -605,117 +418,75 @@ export const productionRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const eq = equipments.find(e => e.id === input.id);
-      if (!eq) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: '设备不存在' });
-      }
+      const db = await requireDb();
+      const eqRows = await db.select().from(productionEquipments).where(eq(productionEquipments.id, input.id));
+      if (eqRows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '设备不存在' });
 
-      const previousStatus = eq.status;
-      const previousWorkOrderId = eq.currentWorkOrderId;
+      const equipment = eqRows[0];
+      const previousStatus = equipment.status;
+      const previousWorkOrderId = equipment.currentWorkOrderId;
 
-      // Update equipment status
-      eq.status = input.status;
-      if (input.currentWorkOrderId !== undefined) {
-        eq.currentWorkOrderId = input.currentWorkOrderId;
-      }
+      const u: Record<string, any> = { status: input.status, updatedAt: new Date().toISOString() };
+      if (input.currentWorkOrderId !== undefined) u.currentWorkOrderId = input.currentWorkOrderId;
+      if (['maintenance', 'fault', 'offline'].includes(input.status)) u.utilization = '0.00';
 
-      // Update utilization based on status
-      if (input.status === 'maintenance' || input.status === 'fault' || input.status === 'offline') {
-        eq.utilization = 0;
-      }
+      const updatedRows = await db.update(productionEquipments).set(u).where(eq(productionEquipments.id, input.id)).returning();
+      const updated = updatedRows[0];
 
-      // Record status change in history for audit trail
-      const historyEntry = {
-        id: equipmentStatusHistoryIdCounter++,
-        equipmentId: eq.id,
-        equipmentCode: eq.code,
-        equipmentName: eq.name,
+      // Record status change in audit trail
+      const historyRows = await db.insert(productionEquipmentStatusHistory).values({
+        equipmentId: equipment.id,
+        equipmentCode: equipment.code,
+        equipmentName: equipment.name,
         previousStatus,
         newStatus: input.status,
         previousWorkOrderId,
-        newWorkOrderId: eq.currentWorkOrderId,
-        notes: input.notes || null,
-        changedBy: ctx.user?.id || null,
-        changedByName: ctx.user?.name || null,
+        newWorkOrderId: updated.currentWorkOrderId,
+        notes: input.notes ?? null,
+        changedBy: ctx.user?.id ?? null,
+        changedByName: ctx.user?.name ?? null,
         changedAt: new Date().toISOString(),
-      };
-      equipmentStatusHistory.push(historyEntry);
+      }).returning();
 
-      // Determine scheduling resource availability based on the new status
+      // Sync scheduling resource availability (best-effort)
       const isAvailable = input.status === 'idle' || input.status === 'running';
       const wasAvailable = previousStatus === 'idle' || previousStatus === 'running';
-
-      // If availability changed, update scheduling system's resource availability
       let schedulingUpdateResult: any = null;
+
       if (isAvailable !== wasAvailable) {
         try {
           const { getDb } = await import('../db');
-          const db: any = await getDb();
-          if (db) {
+          const rawDb: any = await getDb();
+          if (rawDb) {
             const today = new Date().toISOString().split('T')[0];
-
-            // Try to find a matching scheduling resource for this equipment
-            const [resourceRows] = await db.execute(
+            const [resourceRows] = await rawDb.execute(
               'SELECT id, availability_calendar FROM scheduling_resources WHERE resource_name = ? AND resource_type = ?',
-              [eq.name, 'equipment']
+              [equipment.name, 'equipment']
             ) as any[];
-
-            if (resourceRows && resourceRows.length > 0) {
+            if (resourceRows?.length > 0) {
               const resource = resourceRows[0];
               let calendar = resource.availability_calendar || [];
-              if (typeof calendar === 'string') {
-                try { calendar = JSON.parse(calendar); } catch { calendar = []; }
-              }
-
-              // Update or add today's availability entry
-              const existingIndex = calendar.findIndex((c: any) => c.date === today);
-              const newEntry = {
-                date: today,
-                available: isAvailable,
-                availableHours: isAvailable ? 8 : 0,
-                reason: input.notes || `Equipment status changed to ${input.status}`,
-              };
-
-              if (existingIndex >= 0) {
-                calendar[existingIndex] = newEntry;
-              } else {
-                calendar.push(newEntry);
-              }
-
-              await db.execute(
-                'UPDATE scheduling_resources SET availability_calendar = ?, status = ? WHERE id = ?',
-                [JSON.stringify(calendar), isAvailable ? 'available' : 'unavailable', resource.id]
-              );
-
-              schedulingUpdateResult = {
-                resourceId: resource.id,
-                updatedAvailability: isAvailable,
-                date: today,
-              };
+              if (typeof calendar === 'string') try { calendar = JSON.parse(calendar); } catch { calendar = []; }
+              const idx = calendar.findIndex((c: any) => c.date === today);
+              const entry = { date: today, available: isAvailable, availableHours: isAvailable ? 8 : 0, reason: input.notes || `Equipment status changed to ${input.status}` };
+              if (idx >= 0) calendar[idx] = entry; else calendar.push(entry);
+              await rawDb.execute('UPDATE scheduling_resources SET availability_calendar = ?, status = ? WHERE id = ?', [JSON.stringify(calendar), isAvailable ? 'available' : 'unavailable', resource.id]);
+              schedulingUpdateResult = { resourceId: resource.id, updatedAvailability: isAvailable, date: today };
             }
           }
         } catch (error) {
-          // Scheduling update is best-effort; log but do not fail
           console.warn('[Production] Failed to update scheduling resource availability:', error);
         }
       }
 
       return {
-        equipment: eq,
-        statusChange: {
-          from: previousStatus,
-          to: input.status,
-          availabilityChanged: isAvailable !== wasAvailable,
-        },
+        equipment: mapEquipment(updated),
+        statusChange: { from: previousStatus, to: input.status, availabilityChanged: isAvailable !== wasAvailable },
         schedulingUpdate: schedulingUpdateResult,
-        historyEntryId: historyEntry.id,
+        historyEntryId: historyRows[0]?.id,
       };
     }),
 
-  /**
-   * 获取设备状态变更历史（审计追踪）
-   * Equipment status change audit trail.
-   */
   getEquipmentStatusHistory: publicProcedure
     .input(z.object({
       equipmentId: z.number().optional(),
@@ -724,159 +495,112 @@ export const productionRouter = router({
       page: z.number().default(1),
       pageSize: z.number().default(20),
     }).optional())
-    .query(({ input }) => {
-      let result = [...equipmentStatusHistory];
-
-      if (input?.equipmentId) {
-        result = result.filter(h => h.equipmentId === input.equipmentId);
-      }
-      if (input?.startDate) {
-        result = result.filter(h => h.changedAt >= input.startDate!);
-      }
-      if (input?.endDate) {
-        const endDateWithTime = input.endDate + 'T23:59:59.999Z';
-        result = result.filter(h => h.changedAt <= endDateWithTime);
-      }
-
-      // Sort by most recent first
-      result.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime());
-
-      const total = result.length;
+    .query(async ({ input }) => {
+      const db = await requireDb();
       const page = input?.page || 1;
       const pageSize = input?.pageSize || 20;
-      const start = (page - 1) * pageSize;
-      const items = result.slice(start, start + pageSize);
 
-      return { items, total, page, pageSize };
+      const conditions = [];
+      if (input?.equipmentId) conditions.push(eq(productionEquipmentStatusHistory.equipmentId, input.equipmentId));
+      if (input?.startDate) conditions.push(sql`${productionEquipmentStatusHistory.changedAt} >= ${input.startDate}`);
+      if (input?.endDate) conditions.push(sql`${productionEquipmentStatusHistory.changedAt} <= ${input.endDate + 'T23:59:59.999Z'}`);
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [totalResult, rows] = await Promise.all([
+        db.select({ value: count() }).from(productionEquipmentStatusHistory).where(where),
+        db.select().from(productionEquipmentStatusHistory).where(where)
+          .orderBy(desc(productionEquipmentStatusHistory.changedAt))
+          .limit(pageSize).offset((page - 1) * pageSize),
+      ]);
+
+      return { items: rows, total: totalResult[0].value, page, pageSize };
     }),
 
   // ===== 生产统计 =====
-  
-  /**
-   * 获取生产看板统计
-   */
-  getDashboardStats: publicProcedure.query(() => {
-    const totalOrders = workOrders.length;
-    const inProgressOrders = workOrders.filter(wo => wo.status === 'in_progress').length;
-    const completedOrders = workOrders.filter(wo => wo.status === 'completed').length;
-    const qualityCheckOrders = workOrders.filter(wo => wo.status === 'quality_check').length;
-    const plannedOrders = workOrders.filter(wo => wo.status === 'planned').length;
-    
-    const totalQuantity = workOrders.reduce((sum, wo) => sum + wo.quantity, 0);
-    const completedQuantity = workOrders
-      .filter(wo => wo.status === 'completed')
-      .reduce((sum, wo) => sum + wo.quantity, 0);
-    
-    const avgProgress = workOrders.length > 0
-      ? Math.round(workOrders.reduce((sum, wo) => sum + wo.progress, 0) / workOrders.length)
-      : 0;
-    
-    const runningEquipments = equipments.filter(e => e.status === 'running').length;
-    const totalEquipments = equipments.length;
-    const avgUtilization = equipments.length > 0
-      ? Math.round(equipments.reduce((sum, e) => sum + e.utilization, 0) / equipments.length)
-      : 0;
-    
-    // 按状态分组
-    const ordersByStatus = {
-      draft: workOrders.filter(wo => wo.status === 'draft').length,
-      planned: plannedOrders,
-      in_progress: inProgressOrders,
-      quality_check: qualityCheckOrders,
-      completed: completedOrders,
-      on_hold: workOrders.filter(wo => wo.status === 'on_hold').length,
-      cancelled: workOrders.filter(wo => wo.status === 'cancelled').length,
-    };
-    
-    // 按优先级分组
-    const ordersByPriority = {
-      urgent: workOrders.filter(wo => wo.priority === 'urgent').length,
-      high: workOrders.filter(wo => wo.priority === 'high').length,
-      normal: workOrders.filter(wo => wo.priority === 'normal').length,
-      low: workOrders.filter(wo => wo.priority === 'low').length,
-    };
-    
-    // 按团队分组
+
+  getDashboardStats: publicProcedure.query(async () => {
+    const db = await requireDb();
+
+    const [statusCounts, priorityCounts, teamCounts, quantityResult, equipStatusCounts, utilizationResult, recentRows] = await Promise.all([
+      db.select({ status: productionWorkOrders.status, cnt: count() }).from(productionWorkOrders).groupBy(productionWorkOrders.status),
+      db.select({ priority: productionWorkOrders.priority, cnt: count() }).from(productionWorkOrders).groupBy(productionWorkOrders.priority),
+      db.select({ team: productionWorkOrders.assignedTeam, cnt: count() }).from(productionWorkOrders).groupBy(productionWorkOrders.assignedTeam),
+      db.select({
+        totalQuantity: sql<number>`COALESCE(SUM(${productionWorkOrders.quantity}), 0)`,
+        completedQuantity: sql<number>`COALESCE(SUM(CASE WHEN ${productionWorkOrders.status} = 'completed' THEN ${productionWorkOrders.quantity} ELSE 0 END), 0)`,
+        avgProgress: sql<number>`COALESCE(AVG(${productionWorkOrders.completionRate}::numeric), 0)`,
+      }).from(productionWorkOrders),
+      db.select({ status: productionEquipments.status, cnt: count() }).from(productionEquipments).groupBy(productionEquipments.status),
+      db.select({ avgUtil: sql<number>`COALESCE(AVG(${productionEquipments.utilization}::numeric), 0)` }).from(productionEquipments),
+      db.select().from(productionWorkOrders).orderBy(desc(productionWorkOrders.updatedAt)).limit(5),
+    ]);
+
+    const ordersByStatus: Record<string, number> = { draft: 0, planned: 0, in_progress: 0, quality_check: 0, completed: 0, on_hold: 0, cancelled: 0 };
+    let totalOrders = 0;
+    for (const r of statusCounts) { const s = r.status ?? 'draft'; ordersByStatus[s] = r.cnt; totalOrders += r.cnt; }
+
+    const ordersByPriority: Record<string, number> = { urgent: 0, high: 0, normal: 0, low: 0 };
+    for (const r of priorityCounts) { ordersByPriority[r.priority ?? 'normal'] = r.cnt; }
+
     const ordersByTeam: Record<string, number> = {};
-    workOrders.forEach(wo => {
-      const team = wo.assignedTeam || '未分配';
-      ordersByTeam[team] = (ordersByTeam[team] || 0) + 1;
-    });
-    
+    for (const r of teamCounts) { ordersByTeam[r.team || '未分配'] = r.cnt; }
+
+    const equipStats: Record<string, number> = { running: 0, idle: 0, maintenance: 0, fault: 0, offline: 0 };
+    let totalEquipments = 0;
+    for (const r of equipStatusCounts) { equipStats[r.status] = r.cnt; totalEquipments += r.cnt; }
+
     return {
       summary: {
-        totalOrders,
-        inProgressOrders,
-        completedOrders,
-        qualityCheckOrders,
-        plannedOrders,
-        totalQuantity,
-        completedQuantity,
-        avgProgress,
+        totalOrders, inProgressOrders: ordersByStatus.in_progress, completedOrders: ordersByStatus.completed,
+        qualityCheckOrders: ordersByStatus.quality_check, plannedOrders: ordersByStatus.planned,
+        totalQuantity: Number(quantityResult[0].totalQuantity), completedQuantity: Number(quantityResult[0].completedQuantity),
+        avgProgress: Math.round(Number(quantityResult[0].avgProgress)),
       },
-      equipment: {
-        total: totalEquipments,
-        running: runningEquipments,
-        idle: equipments.filter(e => e.status === 'idle').length,
-        maintenance: equipments.filter(e => e.status === 'maintenance').length,
-        fault: equipments.filter(e => e.status === 'fault').length,
-        avgUtilization,
-      },
-      ordersByStatus,
-      ordersByPriority,
-      ordersByTeam,
-      recentOrders: workOrders.slice(0, 5),
+      equipment: { total: totalEquipments, running: equipStats.running, idle: equipStats.idle, maintenance: equipStats.maintenance, fault: equipStats.fault, avgUtilization: Math.round(Number(utilizationResult[0].avgUtil)) },
+      ordersByStatus, ordersByPriority, ordersByTeam,
+      recentOrders: recentRows.map(mapWorkOrder),
     };
   }),
-  
-  /**
-   * 获取生产进度趋势
-   */
+
   getProgressTrend: publicProcedure
-    .input(z.object({
-      days: z.number().default(7),
-    }).optional())
+    .input(z.object({ days: z.number().default(7) }).optional())
     .query(({ input }) => {
-      // 模拟趋势数据
       const days = input?.days || 7;
       const trend = [];
       const today = new Date();
-      
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        
         trend.push({
-          date: dateStr,
+          date: date.toISOString().split('T')[0],
           completed: Math.floor(Math.random() * 3) + 1,
           inProgress: Math.floor(Math.random() * 5) + 2,
           planned: Math.floor(Math.random() * 4) + 1,
         });
       }
-      
       return trend;
     }),
-  
-  /**
-   * 获取团队产能
-   */
-  getTeamCapacity: publicProcedure.query(() => {
-    const teams = ['A组', 'B组', 'C组'];
-    
-    return teams.map(team => {
-      const teamOrders = workOrders.filter(wo => wo.assignedTeam === team);
-      const totalHours = teamOrders.reduce((sum, wo) => sum + (wo.estimatedHours || 0), 0);
-      const actualHours = teamOrders.reduce((sum, wo) => sum + (wo.actualHours || 0), 0);
-      const completedOrders = teamOrders.filter(wo => wo.status === 'completed').length;
-      
+
+  getTeamCapacity: publicProcedure.query(async () => {
+    const db = await requireDb();
+    const teamData = await db.select({
+      team: productionWorkOrders.assignedTeam,
+      totalOrders: count(),
+      completedOrders: sql<number>`SUM(CASE WHEN ${productionWorkOrders.status} = 'completed' THEN 1 ELSE 0 END)`,
+      inProgressOrders: sql<number>`SUM(CASE WHEN ${productionWorkOrders.status} = 'in_progress' THEN 1 ELSE 0 END)`,
+      totalHours: sql<number>`COALESCE(SUM(${productionWorkOrders.estimatedHours}::numeric), 0)`,
+      actualHours: sql<number>`COALESCE(SUM(${productionWorkOrders.actualHours}::numeric), 0)`,
+    }).from(productionWorkOrders).groupBy(productionWorkOrders.assignedTeam);
+
+    return teamData.map(row => {
+      const totalHours = Number(row.totalHours);
+      const actualHours = Number(row.actualHours);
       return {
-        team,
-        totalOrders: teamOrders.length,
-        completedOrders,
-        inProgressOrders: teamOrders.filter(wo => wo.status === 'in_progress').length,
-        totalHours,
-        actualHours,
+        team: row.team || '未分配',
+        totalOrders: row.totalOrders,
+        completedOrders: Number(row.completedOrders),
+        inProgressOrders: Number(row.inProgressOrders),
+        totalHours, actualHours,
         efficiency: totalHours > 0 ? Math.round((actualHours / totalHours) * 100) : 0,
       };
     });

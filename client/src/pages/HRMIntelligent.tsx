@@ -58,6 +58,47 @@ export default function HRMIntelligent() {
   const [showNewPositionDialog, setShowNewPositionDialog] = useState(false);
   const [showNewCandidateDialog, setShowNewCandidateDialog] = useState(false);
 
+  // Form state for new position dialog
+  const [newPosition, setNewPosition] = useState({
+    name: "",
+    department: "",
+    responsibilities: "",
+    keyTasks: "",
+    kpiIndicators: "",
+  });
+
+  // Form state for new candidate dialog
+  const [newCandidate, setNewCandidate] = useState({
+    name: "",
+    positionName: "",
+    age: "",
+    workYears: "",
+    expectedSalary: "",
+  });
+
+  // Local state arrays for optimistic UI (prepended to server data)
+  const [localPositions, setLocalPositions] = useState<Array<{
+    id: string;
+    name: string;
+    department: string;
+    positionCode: string;
+    responsibilities: string;
+    keyTasks: string;
+    kpiIndicators: string;
+    status: string;
+  }>>([]);
+
+  const [localCandidates, setLocalCandidates] = useState<Array<{
+    id: string;
+    name: string;
+    positionName: string;
+    age: number;
+    workYears: number;
+    expectedSalary: string;
+    status: string;
+    source: string;
+  }>>([]);
+
   // 岗位职责数据
   const positionsQuery = trpc.hrm.getPositions.useQuery();
   const candidatesQuery = trpc.hrm.getCandidates.useQuery();
@@ -65,9 +106,9 @@ export default function HRMIntelligent() {
   const salaryStructuresQuery = trpc.hrm.getSalaryStructures.useQuery();
   const performanceGradesQuery = trpc.hrm.getPerformanceGrades.useQuery();
   
-  // 安全访问数据
-  const positions = { data: positionsQuery.data ?? [], refetch: positionsQuery.refetch, isLoading: positionsQuery.isLoading };
-  const candidates = { data: candidatesQuery.data ?? [], refetch: candidatesQuery.refetch, isLoading: candidatesQuery.isLoading };
+  // 安全访问数据（本地新增项优先显示在列表顶部）
+  const positions = { data: [...localPositions, ...(positionsQuery.data ?? [])] as typeof positionsQuery.data, refetch: positionsQuery.refetch, isLoading: positionsQuery.isLoading };
+  const candidates = { data: [...localCandidates, ...(candidatesQuery.data ?? [])] as typeof candidatesQuery.data, refetch: candidatesQuery.refetch, isLoading: candidatesQuery.isLoading };
   const employees = { data: employeesQuery.data ?? [], refetch: employeesQuery.refetch, isLoading: employeesQuery.isLoading };
   const salaryStructures = { data: salaryStructuresQuery.data ?? [], refetch: salaryStructuresQuery.refetch, isLoading: salaryStructuresQuery.isLoading };
   const performanceGrades = { data: performanceGradesQuery.data ?? [], refetch: performanceGradesQuery.refetch, isLoading: performanceGradesQuery.isLoading };
@@ -488,44 +529,57 @@ export default function HRMIntelligent() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>岗位名称</Label>
-                        <Input placeholder="如：电气研发工程师" />
+                        <Input
+                          placeholder="如：电气研发工程师"
+                          value={newPosition.name}
+                          onChange={(e) => setNewPosition(p => ({ ...p, name: e.target.value }))}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>所属部门</Label>
-                        <Select>
+                        <Select
+                          value={newPosition.department}
+                          onValueChange={(val) => setNewPosition(p => ({ ...p, department: val }))}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="选择部门" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="rd">研发部</SelectItem>
-                            <SelectItem value="sales">销售部</SelectItem>
-                            <SelectItem value="production">生产部</SelectItem>
-                            <SelectItem value="quality">品管部</SelectItem>
-                            <SelectItem value="finance">财务部</SelectItem>
-                            <SelectItem value="hr">人事部</SelectItem>
+                            <SelectItem value="研发部">研发部</SelectItem>
+                            <SelectItem value="销售部">销售部</SelectItem>
+                            <SelectItem value="生产部">生产部</SelectItem>
+                            <SelectItem value="品管部">品管部</SelectItem>
+                            <SelectItem value="财务部">财务部</SelectItem>
+                            <SelectItem value="人事部">人事部</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label>岗位职责</Label>
-                      <Textarea 
+                      <Textarea
                         placeholder="描述该岗位的主要职责和工作内容..."
                         className="min-h-[100px]"
+                        value={newPosition.responsibilities}
+                        onChange={(e) => setNewPosition(p => ({ ...p, responsibilities: e.target.value }))}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>关键工作任务</Label>
-                      <Textarea 
+                      <Textarea
                         placeholder="列出该岗位的关键工作任务（每行一个）..."
                         className="min-h-[80px]"
+                        value={newPosition.keyTasks}
+                        onChange={(e) => setNewPosition(p => ({ ...p, keyTasks: e.target.value }))}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>KPI评估项目</Label>
-                      <Textarea 
+                      <Textarea
                         placeholder="定义该岗位的KPI评估指标（每行一个）..."
                         className="min-h-[80px]"
+                        value={newPosition.kpiIndicators}
+                        onChange={(e) => setNewPosition(p => ({ ...p, kpiIndicators: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -534,7 +588,22 @@ export default function HRMIntelligent() {
                       取消
                     </Button>
                     <Button onClick={() => {
+                      if (!newPosition.name.trim()) {
+                        toast.error("请输入岗位名称");
+                        return;
+                      }
+                      setLocalPositions(prev => [{
+                        id: `local-pos-${Date.now()}`,
+                        name: newPosition.name.trim(),
+                        department: newPosition.department,
+                        positionCode: `POS-${Date.now()}`,
+                        responsibilities: newPosition.responsibilities,
+                        keyTasks: newPosition.keyTasks,
+                        kpiIndicators: newPosition.kpiIndicators,
+                        status: "active",
+                      }, ...prev]);
                       toast.success("岗位创建成功");
+                      setNewPosition({ name: "", department: "", responsibilities: "", keyTasks: "", kpiIndicators: "" });
                       setShowNewPositionDialog(false);
                     }}>
                       创建岗位
@@ -642,17 +711,24 @@ export default function HRMIntelligent() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label>姓名</Label>
-                          <Input placeholder="候选人姓名" />
+                          <Input
+                            placeholder="候选人姓名"
+                            value={newCandidate.name}
+                            onChange={(e) => setNewCandidate(c => ({ ...c, name: e.target.value }))}
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label>应聘岗位</Label>
-                          <Select>
+                          <Select
+                            value={newCandidate.positionName}
+                            onValueChange={(val) => setNewCandidate(c => ({ ...c, positionName: val }))}
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder="选择岗位" />
                             </SelectTrigger>
                             <SelectContent>
                               {positions.data?.map((pos) => (
-                                <SelectItem key={pos.id} value={pos.id.toString()}>
+                                <SelectItem key={pos.id} value={pos.name}>
                                   {pos.name}
                                 </SelectItem>
                               ))}
@@ -663,15 +739,29 @@ export default function HRMIntelligent() {
                       <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
                           <Label>年龄</Label>
-                          <Input type="number" placeholder="年龄" />
+                          <Input
+                            type="number"
+                            placeholder="年龄"
+                            value={newCandidate.age}
+                            onChange={(e) => setNewCandidate(c => ({ ...c, age: e.target.value }))}
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label>工作年限</Label>
-                          <Input type="number" placeholder="年" />
+                          <Input
+                            type="number"
+                            placeholder="年"
+                            value={newCandidate.workYears}
+                            onChange={(e) => setNewCandidate(c => ({ ...c, workYears: e.target.value }))}
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label>期望薪资</Label>
-                          <Input placeholder="如：15-20K" />
+                          <Input
+                            placeholder="如：15-20K"
+                            value={newCandidate.expectedSalary}
+                            onChange={(e) => setNewCandidate(c => ({ ...c, expectedSalary: e.target.value }))}
+                          />
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -689,7 +779,22 @@ export default function HRMIntelligent() {
                         取消
                       </Button>
                       <Button onClick={() => {
+                        if (!newCandidate.name.trim()) {
+                          toast.error("请输入候选人姓名");
+                          return;
+                        }
+                        setLocalCandidates(prev => [{
+                          id: `local-cand-${Date.now()}`,
+                          name: newCandidate.name.trim(),
+                          positionName: newCandidate.positionName,
+                          age: parseInt(newCandidate.age) || 0,
+                          workYears: parseInt(newCandidate.workYears) || 0,
+                          expectedSalary: newCandidate.expectedSalary,
+                          status: "screening",
+                          source: "手动录入",
+                        }, ...prev]);
                         toast.success("候选人添加成功，AI正在分析简历...");
+                        setNewCandidate({ name: "", positionName: "", age: "", workYears: "", expectedSalary: "" });
                         setShowNewCandidateDialog(false);
                       }}>
                         添加并分析

@@ -3,13 +3,17 @@
  * 职位发布、候选人管理、面试安排、Offer管理
  */
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserCheck, Plus, Users, Clock, CheckCircle2, Briefcase } from "lucide-react";
 
 const positionStatusColorMap = createStatusColorMap({
@@ -27,11 +31,46 @@ const MOCK_POSITIONS = [
 ];
 
 export default function Recruitment() {
-  const { toast } = useToast();
   const [tab, setTab] = useState("open");
+  const [positions, setPositions] = useState(MOCK_POSITIONS);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    dept: "",
+    salary: "",
+    urgency: "正常",
+  });
 
-  const handleComingSoon = () => {
-    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  const handleCreate = () => {
+    if (!formData.title.trim()) {
+      toast.error("请输入职位名称");
+      return;
+    }
+    if (!formData.dept.trim()) {
+      toast.error("请输入所属部门");
+      return;
+    }
+    if (!formData.salary.trim()) {
+      toast.error("请输入薪资范围");
+      return;
+    }
+
+    const newId = Math.max(...positions.map(p => p.id), 0) + 1;
+    const newPosition = {
+      id: newId,
+      title: formData.title.trim(),
+      dept: formData.dept.trim(),
+      bu: "通用",
+      applicants: 0,
+      status: "招聘中",
+      urgency: formData.urgency,
+      salary: formData.salary.trim(),
+    };
+
+    setPositions(prev => [newPosition, ...prev]);
+    setShowCreateDialog(false);
+    setFormData({ title: "", dept: "", salary: "", urgency: "正常" });
+    toast.success("职位发布成功");
   };
 
   return (
@@ -40,21 +79,21 @@ export default function Recruitment() {
         icon={UserCheck}
         title="招聘管理"
         description="职位管理 · 候选人追踪 · 面试安排"
-        actions={<Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />发布职位</Button>}
+        actions={<Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />发布职位</Button>}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Briefcase} label="开放职位" value={8} />
-        <StatCard icon={Users} label="候选人" value={56} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={Clock} label="本周面试" value={12} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={CheckCircle2} label="待发Offer" value={3} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Briefcase} label="开放职位" value={positions.filter(p => p.status === "招聘中").length} />
+        <StatCard icon={Users} label="候选人" value={positions.reduce((sum, p) => sum + p.applicants, 0)} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Clock} label="面试中" value={positions.filter(p => p.status === "面试中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label="已关闭" value={positions.filter(p => p.status === "已关闭").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
         <CardHeader><CardTitle>职位列表</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {MOCK_POSITIONS.map(p => (
+            {positions.map(p => (
               <div key={p.id} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors">
                 <Briefcase className="h-10 w-10 text-primary/20" />
                 <div className="flex-1">
@@ -71,7 +110,7 @@ export default function Recruitment() {
                 </div>
               </div>
             ))}
-            {MOCK_POSITIONS.length === 0 && (
+            {positions.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <UserCheck className="w-12 h-12 mb-3 opacity-50" />
                 <p className="font-medium">暂无招聘职位</p>
@@ -80,6 +119,60 @@ export default function Recruitment() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>发布职位</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rc-title">职位名称 *</Label>
+              <Input
+                id="rc-title"
+                placeholder="例如：高级机械工程师"
+                value={formData.title}
+                onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rc-dept">所属部门 *</Label>
+              <Input
+                id="rc-dept"
+                placeholder="例如：研发设计部"
+                value={formData.dept}
+                onChange={e => setFormData(prev => ({ ...prev, dept: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rc-salary">薪资范围 *</Label>
+              <Input
+                id="rc-salary"
+                placeholder="例如：20-35K"
+                value={formData.salary}
+                onChange={e => setFormData(prev => ({ ...prev, salary: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>紧急程度</Label>
+              <Select value={formData.urgency} onValueChange={val => setFormData(prev => ({ ...prev, urgency: val }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="正常">正常</SelectItem>
+                  <SelectItem value="高">高</SelectItem>
+                  <SelectItem value="紧急">紧急</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
+            <Button onClick={handleCreate}>发布</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

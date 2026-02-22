@@ -261,13 +261,19 @@ export default function LiveDocumentManager() {
                         <TableCell>{doc.updatedAt}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon"
+                              onClick={() => toast.info(`查看文档: ${doc.title}`)}
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon"
+                              onClick={() => toast.info(`编辑文档: ${doc.title}`)}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon"
+                              onClick={() => toast.info(`下载文档: ${doc.title}`)}
+                            >
                               <Download className="h-4 w-4" />
                             </Button>
                           </div>
@@ -313,13 +319,19 @@ export default function LiveDocumentManager() {
                         <TableCell>{doc.updatedAt}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon"
+                              onClick={() => toast.info(`查看文档: ${doc.title}`)}
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon"
+                              onClick={() => toast.info(`编辑文档: ${doc.title}`)}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon"
+                              onClick={() => toast.info(`下载文档: ${doc.title}`)}
+                            >
                               <Download className="h-4 w-4" />
                             </Button>
                           </div>

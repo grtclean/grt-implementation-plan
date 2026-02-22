@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head><title>Diag</title></head>
+<body>
+<h2>Module Loading Diagnostic</h2>
+<pre id="log" style="white-space:pre-wrap;font-size:13px;"></pre>
+<script type="module">
+const log = document.getElementById('log');
+function msg(s) { log.textContent += s + '\n'; }
+
+msg('1. Script module started');
+
+try {
+  msg('2. Testing /@vite/client...');
+  await import('/@vite/client');
+  msg('   OK');
+} catch(e) { msg('   FAIL: ' + e.message); }
+
+try {
+  msg('3. Testing react...');
+  await import('/node_modules/.vite/deps/react.js?v=3c6fd5a4');
+  msg('   OK');
+} catch(e) { msg('   FAIL: ' + e.message); }
+
+try {
+  msg('4. Testing /src/lib/trpc.ts...');
+  await import('/src/lib/trpc.ts');
+  msg('   OK');
+} catch(e) { msg('   FAIL: ' + e.message); }
+
+try {
+  msg('5. Testing /src/_core/hooks/useAuth.ts...');
+  await import('/src/_core/hooks/useAuth.ts');
+  msg('   OK');
+} catch(e) { msg('   FAIL: ' + e.message); }
+
+try {
+  msg('6. Testing /src/App.tsx...');
+  await import('/src/App.tsx');
+  msg('   OK');
+} catch(e) { msg('   FAIL: ' + e.message); }
+
+try {
+  msg('7. Testing /src/main.tsx...');
+  await import('/src/main.tsx');
+  msg('   OK - React app should have mounted');
+} catch(e) { msg('   FAIL: ' + e.message); }
+
+msg('\nDone.');
+</script>
+</body>
+</html>

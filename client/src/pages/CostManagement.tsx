@@ -350,7 +350,7 @@ CPI: ${costSummary.summary.totalSpent > 0 ? (costSummary.summary.totalBudget / c
 
 成本明细
 ---------
-${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.description}: ${formatCurrency((r as any).amount || r.actualAmount)}`).join('\n') || '无记录'}
+${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.description}: ${formatCurrency((r as any).amount || r.amount)}`).join('\n') || '无记录'}
     `.trim();
     
     // Create and download file
@@ -389,7 +389,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
     csv += '成本明细,\n';
     csv += '类别ID,描述,金额(元)\n';
     costRecords?.forEach(r => {
-      csv += `${r.categoryId},${r.description},${r.actualAmount / 100}\n`;
+      csv += `${r.categoryId},${r.description},${r.amount / 100}\n`;
     });
     
     // Create and download file
@@ -749,7 +749,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold text-lg">{formatCurrency(Number(rec.amount || record.actualAmount))}</p>
+                              <p className="font-bold text-lg">{formatCurrency(Number(rec.amount || record.amount))}</p>
                               <Badge variant="outline" className={
                                 rec.status === "approved" ? "bg-green-500/20 text-green-400" :
                                 rec.status === "paid" ? "bg-blue-500/20 text-blue-400" :

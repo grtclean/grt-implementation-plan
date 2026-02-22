@@ -1,12 +1,20 @@
 /**
  * 项目阶段门禁管理路由
- * M0-M12 阶段门禁管控
+ * M0-M12 阶段门禁管控 — Real DB implementation
  */
 
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { requireDb } from "../db";
+import {
+  projects, projectGates, projectMilestones,
+  projectsV2, projectStagesV2,
+} from "../../drizzle/schema";
+import { gateChecklists } from "../../drizzle/schema";
+import { redBlueConfigs, redBlueExecutions } from "../../drizzle/approval-engine-schema";
+import { eq, desc, and, count, sql, lt, gte } from "drizzle-orm";
 
-// M阶段定义
+// M阶段定义（静态参考数据）
 const M_STAGE_DEFINITIONS = [
   { code: "M0", nameZh: "项目启动", nameEn: "Project Initiation", category: "INITIATION", description: "项目立项、团队组建", requiredDeliverables: ["项目章程", "团队组建表", "初步预算"] },
   { code: "M1", nameZh: "启动会", nameEn: "Kickoff Meeting", category: "INITIATION", description: "项目启动会、需求确认", requiredDeliverables: ["启动会纪要", "需求确认书", "项目计划"] },
@@ -23,218 +31,159 @@ const M_STAGE_DEFINITIONS = [
   { code: "M12", nameZh: "项目关闭", nameEn: "Project Closure", category: "CLOSURE", description: "项目关闭、经验总结", requiredDeliverables: ["项目总结报告", "经验教训", "客户满意度"] },
 ];
 
-// 模拟项目阶段数据
-const mockProjectStages = [
-  {
-    id: 1,
-    projectId: 1,
-    projectName: "IC-2000 工业清洗系统",
-    projectNo: "PRJ-2026-001",
-    currentStage: "M5",
-    stageStatus: "IN_PROGRESS",
-    stageProgress: 65,
-    plannedStartDate: "2026-01-02",
-    plannedEndDate: "2026-03-15",
-    actualStartDate: "2026-01-02",
-    actualEndDate: null,
-    customerName: "某汽车零部件公司",
-    customerTier: "TIER1",
-    projectManager: "王工",
-    stages: [
-      { code: "M0", status: "COMPLETED", completedDate: "2026-01-02", score: 95 },
-      { code: "M1", status: "COMPLETED", completedDate: "2026-01-05", score: 92 },
-      { code: "M2", status: "COMPLETED", completedDate: "2026-01-10", score: 88 },
-      { code: "M3", status: "COMPLETED", completedDate: "2026-01-15", score: 90 },
-      { code: "M4", status: "COMPLETED", completedDate: "2026-01-18", score: 85 },
-      { code: "M5", status: "IN_PROGRESS", completedDate: null, score: null },
-      { code: "M6", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M7", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M8", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M9", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M10", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M11", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M12", status: "NOT_STARTED", completedDate: null, score: null },
-    ],
-  },
-  {
-    id: 2,
-    projectId: 2,
-    projectName: "UC-3000 超声波清洗机",
-    projectNo: "PRJ-2026-002",
-    currentStage: "M3",
-    stageStatus: "IN_PROGRESS",
-    stageProgress: 40,
-    plannedStartDate: "2026-01-15",
-    plannedEndDate: "2026-04-30",
-    actualStartDate: "2026-01-15",
-    actualEndDate: null,
-    customerName: "精密机械有限公司",
-    customerTier: "TIER2",
-    projectManager: "李工",
-    stages: [
-      { code: "M0", status: "COMPLETED", completedDate: "2026-01-15", score: 90 },
-      { code: "M1", status: "COMPLETED", completedDate: "2026-01-18", score: 88 },
-      { code: "M2", status: "COMPLETED", completedDate: "2026-01-22", score: 92 },
-      { code: "M3", status: "IN_PROGRESS", completedDate: null, score: null },
-      { code: "M4", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M5", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M6", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M7", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M8", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M9", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M10", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M11", status: "NOT_STARTED", completedDate: null, score: null },
-      { code: "M12", status: "NOT_STARTED", completedDate: null, score: null },
-    ],
-  },
-];
-
-// 模拟门禁检查项
-const mockGateChecklist = [
-  {
-    id: 1,
-    projectId: 1,
-    stageCode: "M5",
-    checkItem: "物料齐套确认",
-    category: "MATERIAL",
-    isRequired: true,
-    status: "PASSED",
-    checkedBy: "采购部",
-    checkedAt: "2026-01-20",
-    evidence: "物料齐套率100%",
-  },
-  {
-    id: 2,
-    projectId: 1,
-    stageCode: "M5",
-    checkItem: "生产工单下达",
-    category: "PRODUCTION",
-    isRequired: true,
-    status: "PASSED",
-    checkedBy: "生产部",
-    checkedAt: "2026-01-20",
-    evidence: "工单号WO-2026-001",
-  },
-  {
-    id: 3,
-    projectId: 1,
-    stageCode: "M5",
-    checkItem: "工艺文件齐全",
-    category: "TECHNICAL",
-    isRequired: true,
-    status: "IN_PROGRESS",
-    checkedBy: null,
-    checkedAt: null,
-    evidence: null,
-  },
-  {
-    id: 4,
-    projectId: 1,
-    stageCode: "M5",
-    checkItem: "质量控制计划",
-    category: "QUALITY",
-    isRequired: true,
-    status: "NOT_STARTED",
-    checkedBy: null,
-    checkedAt: null,
-    evidence: null,
-  },
-];
-
-// 模拟红蓝对抗记录
-const mockRedBlueRecords = [
-  {
-    id: 1,
-    projectId: 1,
-    stageCode: "M4",
-    redTeamLeader: "张工",
-    blueTeamLeader: "李工",
-    scheduledDate: "2026-01-17",
-    status: "COMPLETED",
-    redTeamFindings: [
-      "设计文档缺少边界条件说明",
-      "BOM中部分物料交期风险",
-      "客户特殊要求未完全体现",
-    ],
-    blueTeamResponses: [
-      "已补充边界条件说明文档",
-      "已联系备选供应商",
-      "已更新设计方案",
-    ],
-    overallScore: 85,
-    recommendation: "通过，但需跟踪物料交期风险",
-  },
-];
-
 export const projectGateRouter = router({
   // 获取阶段定义列表
   getStageDefinitions: publicProcedure.query(() => {
     return M_STAGE_DEFINITIONS;
   }),
 
-  // 获取项目阶段列表
+  // 获取项目阶段列表 (from projects v1 table with gates)
   getProjectStages: publicProcedure
     .input(z.object({
       projectId: z.number().optional(),
       currentStage: z.string().optional(),
       customerTier: z.string().optional(),
     }).optional())
-    .query(({ input }) => {
-      let result = [...mockProjectStages];
-      
+    .query(async ({ input }) => {
+      const db = await requireDb();
+
+      // Get all projects with their current phase
+      let projectList = await db.select().from(projects).orderBy(desc(projects.createdAt));
+
       if (input?.projectId) {
-        result = result.filter(p => p.projectId === input.projectId);
+        projectList = projectList.filter(p => p.id === input.projectId);
       }
       if (input?.currentStage) {
-        result = result.filter(p => p.currentStage === input.currentStage);
+        projectList = projectList.filter(p => p.currentPhase === input.currentStage);
       }
-      if (input?.customerTier) {
-        result = result.filter(p => p.customerTier === input.customerTier);
-      }
-      
-      return result;
+
+      // Get gates for all projects to build stage data
+      const allGates = await db.select().from(projectGates);
+
+      return projectList.map(p => {
+        const projectGateList = allGates.filter(g => g.projectId === p.id);
+        const stages = M_STAGE_DEFINITIONS.map(def => {
+          const gate = projectGateList.find(g => g.phaseCode === def.code);
+          let status = "NOT_STARTED";
+          if (gate) {
+            if (gate.status === "approved") status = "COMPLETED";
+            else if (gate.status === "in_review") status = "IN_PROGRESS";
+            else if (gate.status === "rejected") status = "FAILED";
+            else status = "NOT_STARTED";
+          }
+          if (p.currentPhase === def.code && status === "NOT_STARTED") {
+            status = "IN_PROGRESS";
+          }
+          return {
+            code: def.code,
+            status,
+            completedDate: gate?.actualDate || null,
+            score: gate?.checklistCompleted && gate?.checklistTotal
+              ? Math.round((gate.checklistCompleted / gate.checklistTotal) * 100)
+              : null,
+          };
+        });
+
+        const currentIdx = M_STAGE_DEFINITIONS.findIndex(d => d.code === p.currentPhase);
+        const stageProgress = currentIdx >= 0 ? Math.round((currentIdx / 12) * 100) : 0;
+
+        return {
+          id: p.id,
+          projectId: p.id,
+          projectName: p.name,
+          projectNo: p.projectCode || `PRJ-${p.id}`,
+          currentStage: p.currentPhase || "M0",
+          stageStatus: "IN_PROGRESS",
+          stageProgress,
+          plannedStartDate: p.plannedStartDate,
+          plannedEndDate: p.plannedEndDate,
+          actualStartDate: p.actualStartDate,
+          actualEndDate: p.actualEndDate,
+          projectManager: p.managerId ? `用户${p.managerId}` : null,
+          stages,
+        };
+      });
     }),
 
   // 获取项目阶段详情
   getProjectStageDetail: publicProcedure
-    .input(z.object({
-      projectId: z.number(),
-    }))
-    .query(({ input }) => {
-      const project = mockProjectStages.find(p => p.projectId === input.projectId);
-      if (!project) {
-        throw new Error("项目不存在");
-      }
-      
-      // 添加阶段定义信息
-      const stagesWithDefinition = project.stages.map(stage => {
-        const definition = M_STAGE_DEFINITIONS.find(d => d.code === stage.code);
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId));
+      if (!project) throw new Error("项目不存在");
+
+      const gates = await db.select().from(projectGates).where(eq(projectGates.projectId, input.projectId));
+
+      const stagesWithDefinition = M_STAGE_DEFINITIONS.map(def => {
+        const gate = gates.find(g => g.phaseCode === def.code);
+        let status = "NOT_STARTED";
+        if (gate) {
+          if (gate.status === "approved") status = "COMPLETED";
+          else if (gate.status === "in_review") status = "IN_PROGRESS";
+          else if (gate.status === "rejected") status = "FAILED";
+        }
+        if (project.currentPhase === def.code && status === "NOT_STARTED") {
+          status = "IN_PROGRESS";
+        }
         return {
-          ...stage,
-          nameZh: definition?.nameZh || "",
-          nameEn: definition?.nameEn || "",
-          category: definition?.category || "",
-          description: definition?.description || "",
-          requiredDeliverables: definition?.requiredDeliverables || [],
+          code: def.code,
+          status,
+          completedDate: gate?.actualDate || null,
+          score: gate?.checklistCompleted && gate?.checklistTotal
+            ? Math.round((gate.checklistCompleted / gate.checklistTotal) * 100)
+            : null,
+          nameZh: def.nameZh,
+          nameEn: def.nameEn,
+          category: def.category,
+          description: def.description,
+          requiredDeliverables: def.requiredDeliverables,
         };
       });
-      
+
+      const currentIdx = M_STAGE_DEFINITIONS.findIndex(d => d.code === project.currentPhase);
       return {
-        ...project,
+        id: project.id,
+        projectId: project.id,
+        projectName: project.name,
+        projectNo: project.projectCode || `PRJ-${project.id}`,
+        currentStage: project.currentPhase || "M0",
+        stageStatus: "IN_PROGRESS",
+        stageProgress: currentIdx >= 0 ? Math.round((currentIdx / 12) * 100) : 0,
+        plannedStartDate: project.plannedStartDate,
+        plannedEndDate: project.plannedEndDate,
+        actualStartDate: project.actualStartDate,
+        actualEndDate: project.actualEndDate,
         stages: stagesWithDefinition,
       };
     }),
 
-  // 获取门禁检查项
+  // 获取门禁检查项 (from gateChecklists table)
   getGateChecklist: publicProcedure
     .input(z.object({
       projectId: z.number(),
       stageCode: z.string(),
     }))
-    .query(({ input }) => {
-      return mockGateChecklist.filter(
-        c => c.projectId === input.projectId && c.stageCode === input.stageCode
-      );
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const items = await db.select().from(gateChecklists)
+        .where(and(
+          eq(gateChecklists.projectId, input.projectId),
+          eq(gateChecklists.gateStage, input.stageCode),
+        ))
+        .orderBy(gateChecklists.sortOrder);
+      return items.map(item => ({
+        id: item.id,
+        projectId: Number(item.projectId),
+        stageCode: item.gateStage,
+        checkItem: item.checkItem,
+        category: item.category || "GENERAL",
+        isRequired: item.isMandatory,
+        status: item.status === "verified" ? "PASSED" : item.status === "not_started" ? "NOT_STARTED" : "IN_PROGRESS",
+        checkedBy: item.verifiedBy ? `用户${item.verifiedBy}` : null,
+        checkedAt: item.verifiedAt ? new Date(item.verifiedAt as unknown as string).toISOString().split("T")[0] : null,
+        evidence: item.notes,
+      }));
     }),
 
   // 更新门禁检查项状态
@@ -245,11 +194,20 @@ export const projectGateRouter = router({
       evidence: z.string().optional(),
       notes: z.string().optional(),
     }))
-    .mutation(({ input }) => {
-      return {
-        success: true,
-        message: "检查项状态已更新",
-      };
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const dbStatus = input.status === "PASSED" ? "verified"
+        : input.status === "NOT_STARTED" ? "not_started"
+        : input.status === "WAIVED" ? "waived"
+        : "in_progress";
+      await db.update(gateChecklists)
+        .set({
+          status: dbStatus,
+          notes: input.notes || input.evidence,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(gateChecklists.id, input.checklistId));
+      return { success: true, message: "检查项状态已更新" };
     }),
 
   // 申请阶段通过
@@ -260,12 +218,39 @@ export const projectGateRouter = router({
       summary: z.string(),
       attachments: z.array(z.string()).optional(),
     }))
-    .mutation(({ input }) => {
-      return {
-        success: true,
-        requestId: Date.now(),
-        message: "门禁通过申请已提交",
-      };
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      // Check if gate record exists for this project+stage
+      const existing = await db.select().from(projectGates)
+        .where(and(
+          eq(projectGates.projectId, input.projectId),
+          eq(projectGates.phaseCode, input.stageCode),
+        ));
+
+      if (existing.length > 0) {
+        // Update existing gate to in_review
+        await db.update(projectGates)
+          .set({
+            status: "in_review",
+            remark: input.summary,
+            attachments: input.attachments ? JSON.stringify(input.attachments) : undefined,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(projectGates.id, existing[0].id));
+        return { success: true, requestId: existing[0].id, message: "门禁通过申请已提交" };
+      } else {
+        // Create new gate record
+        const stageDef = M_STAGE_DEFINITIONS.find(d => d.code === input.stageCode);
+        const [gate] = await db.insert(projectGates).values({
+          projectId: input.projectId,
+          phaseCode: input.stageCode,
+          name: stageDef?.nameZh || input.stageCode,
+          status: "in_review",
+          remark: input.summary,
+          attachments: input.attachments ? JSON.stringify(input.attachments) : undefined,
+        }).returning();
+        return { success: true, requestId: gate.id, message: "门禁通过申请已提交" };
+      }
     }),
 
   // 审批阶段通过
@@ -276,11 +261,33 @@ export const projectGateRouter = router({
       score: z.number().min(0).max(100).optional(),
       comments: z.string().optional(),
     }))
-    .mutation(({ input }) => {
-      return {
-        success: true,
-        message: input.approved ? "门禁已批准通过" : "门禁申请已退回",
-      };
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.update(projectGates)
+        .set({
+          status: input.approved ? "approved" : "rejected",
+          actualDate: input.approved ? new Date().toISOString() : undefined,
+          approverId: 1, // TODO: get from auth context
+          approvalComment: input.comments,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(projectGates.id, input.requestId));
+
+      // If approved, advance project to next phase
+      if (input.approved) {
+        const [gate] = await db.select().from(projectGates).where(eq(projectGates.id, input.requestId));
+        if (gate) {
+          const currentIdx = M_STAGE_DEFINITIONS.findIndex(d => d.code === gate.phaseCode);
+          if (currentIdx >= 0 && currentIdx < M_STAGE_DEFINITIONS.length - 1) {
+            const nextPhase = M_STAGE_DEFINITIONS[currentIdx + 1].code;
+            await db.update(projects)
+              .set({ currentPhase: nextPhase, updatedAt: new Date().toISOString() })
+              .where(eq(projects.id, gate.projectId));
+          }
+        }
+      }
+
+      return { success: true, message: input.approved ? "门禁已批准通过" : "门禁申请已退回" };
     }),
 
   // 获取红蓝对抗记录
@@ -289,12 +296,24 @@ export const projectGateRouter = router({
       projectId: z.number(),
       stageCode: z.string().optional(),
     }))
-    .query(({ input }) => {
-      let result = mockRedBlueRecords.filter(r => r.projectId === input.projectId);
-      if (input.stageCode) {
-        result = result.filter(r => r.stageCode === input.stageCode);
-      }
-      return result;
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const configs = await db.select().from(redBlueConfigs)
+        .where(eq(redBlueConfigs.projectId, input.projectId));
+
+      return configs.map(cfg => ({
+        id: cfg.id,
+        projectId: cfg.projectId,
+        stageCode: (cfg.results as any)?.stageCode || "M4",
+        redTeamLeader: cfg.redTeamLeaderName || `用户${cfg.redTeamLeaderId}`,
+        blueTeamLeader: cfg.blueTeamLeaderName || `用户${cfg.blueTeamLeaderId}`,
+        scheduledDate: cfg.createdAt ? new Date(cfg.createdAt).toISOString().split("T")[0] : null,
+        status: (cfg.status || "draft").toUpperCase(),
+        redTeamFindings: (cfg.results as any)?.redTeamFindings || [],
+        blueTeamResponses: (cfg.results as any)?.blueTeamResponses || [],
+        overallScore: (cfg.results as any)?.overallScore || 0,
+        recommendation: cfg.lessonsLearned || "",
+      }));
     }),
 
   // 创建红蓝对抗
@@ -307,12 +326,20 @@ export const projectGateRouter = router({
       scheduledDate: z.string(),
       objectives: z.array(z.string()).optional(),
     }))
-    .mutation(({ input }) => {
-      return {
-        success: true,
-        sessionId: Date.now(),
-        message: "红蓝对抗会议已创建",
-      };
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const configCode = `RB-${input.projectId}-${input.stageCode}-${Date.now().toString(36)}`;
+      const [config] = await db.insert(redBlueConfigs).values({
+        configCode,
+        configName: `${input.stageCode} 红蓝对抗`,
+        projectId: input.projectId,
+        redTeamLeaderName: input.redTeamLeader,
+        blueTeamLeaderName: input.blueTeamLeader,
+        redTeamObjectives: input.objectives?.join("\n"),
+        status: "scheduled",
+        createdBy: 1, // TODO: from auth context
+      }).returning();
+      return { success: true, sessionId: config.id, message: "红蓝对抗会议已创建" };
     }),
 
   // 记录红蓝对抗结果
@@ -324,54 +351,95 @@ export const projectGateRouter = router({
       overallScore: z.number().min(0).max(100),
       recommendation: z.string(),
     }))
-    .mutation(({ input }) => {
-      return {
-        success: true,
-        message: "红蓝对抗结果已记录",
-      };
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.update(redBlueConfigs)
+        .set({
+          results: {
+            redTeamFindings: input.redTeamFindings,
+            blueTeamResponses: input.blueTeamResponses,
+            overallScore: input.overallScore,
+          },
+          lessonsLearned: input.recommendation,
+          status: "completed",
+          updatedAt: new Date(),
+        })
+        .where(eq(redBlueConfigs.id, input.sessionId));
+      return { success: true, message: "红蓝对抗结果已记录" };
     }),
 
   // 获取项目阶段统计
-  getStageStats: publicProcedure.query(() => {
-    const stats = {
-      totalProjects: mockProjectStages.length,
-      byStage: M_STAGE_DEFINITIONS.map(def => ({
-        code: def.code,
-        nameZh: def.nameZh,
-        count: mockProjectStages.filter(p => p.currentStage === def.code).length,
-      })),
+  getStageStats: publicProcedure.query(async () => {
+    const db = await requireDb();
+    const allProjects = await db.select().from(projects);
+
+    const byStage = M_STAGE_DEFINITIONS.map(def => ({
+      code: def.code,
+      nameZh: def.nameZh,
+      count: allProjects.filter(p => p.currentPhase === def.code).length,
+    }));
+
+    const completed = allProjects.filter(p => p.status === "completed").length;
+    const active = allProjects.filter(p => p.status === "active");
+    const avgProgress = active.length
+      ? Math.round(active.reduce((sum, p) => sum + (p.completionPercent ?? 0), 0) / active.length)
+      : 0;
+
+    return {
+      totalProjects: allProjects.length,
+      byStage,
       byStatus: {
-        onTrack: mockProjectStages.filter(p => p.stageStatus === "IN_PROGRESS" && p.stageProgress >= 50).length,
-        atRisk: mockProjectStages.filter(p => p.stageStatus === "IN_PROGRESS" && p.stageProgress < 50).length,
-        delayed: mockProjectStages.filter(p => p.stageStatus === "DELAYED").length,
-        completed: mockProjectStages.filter(p => p.stageStatus === "COMPLETED").length,
+        onTrack: active.filter(p => (p.completionPercent ?? 0) >= 50).length,
+        atRisk: active.filter(p => (p.completionPercent ?? 0) < 50 && (p.completionPercent ?? 0) > 0).length,
+        delayed: allProjects.filter(p => p.status === "on_hold").length,
+        completed,
       },
-      tier1Projects: mockProjectStages.filter(p => p.customerTier === "TIER1").length,
-      avgProgress: Math.round(mockProjectStages.reduce((sum, p) => sum + p.stageProgress, 0) / mockProjectStages.length),
+      avgProgress,
     };
-    
-    return stats;
   }),
 
   // 获取即将到期的门禁
   getUpcomingGates: publicProcedure
-    .input(z.object({
-      days: z.number().default(7),
-    }))
-    .query(({ input }) => {
-      // 模拟即将到期的门禁
-      return [
-        {
-          projectId: 1,
-          projectName: "IC-2000 工业清洗系统",
-          currentStage: "M5",
-          nextStage: "M6",
-          dueDate: "2026-02-01",
-          daysRemaining: 5,
-          completionRate: 65,
-          blockers: ["工艺文件待完成", "质量计划待审批"],
-        },
-      ];
+    .input(z.object({ days: z.number().default(7) }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const pendingGates = await db.select().from(projectGates)
+        .where(eq(projectGates.status, "pending"));
+
+      // Get associated project info
+      const projectIds = [...new Set(pendingGates.map(g => g.projectId))];
+      const projectList = projectIds.length > 0
+        ? await db.select().from(projects)
+        : [];
+
+      return pendingGates
+        .filter(g => {
+          if (!g.plannedDate) return false;
+          const planned = new Date(g.plannedDate);
+          const diff = Math.ceil((planned.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          return diff <= input.days && diff >= 0;
+        })
+        .map(g => {
+          const project = projectList.find(p => p.id === g.projectId);
+          const planned = new Date(g.plannedDate!);
+          const daysRemaining = Math.ceil((planned.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          const currentIdx = M_STAGE_DEFINITIONS.findIndex(d => d.code === g.phaseCode);
+          const nextStage = currentIdx < M_STAGE_DEFINITIONS.length - 1
+            ? M_STAGE_DEFINITIONS[currentIdx + 1].code
+            : g.phaseCode;
+          return {
+            projectId: g.projectId,
+            projectName: project?.name || `项目${g.projectId}`,
+            currentStage: g.phaseCode,
+            nextStage,
+            dueDate: g.plannedDate,
+            daysRemaining,
+            completionRate: g.checklistTotal
+              ? Math.round(((g.checklistCompleted ?? 0) / g.checklistTotal) * 100)
+              : 0,
+            blockers: [],
+          };
+        });
     }),
 });
 

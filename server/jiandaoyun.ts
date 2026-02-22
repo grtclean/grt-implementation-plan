@@ -398,6 +398,32 @@ export class JiandaoyunClient {
   }
 
   /**
+   * 获取表单所有数据（自动分页）
+   * 通过 data_id 游标自动翻页获取全部记录
+   */
+  async getAllFormData(
+    appId: string,
+    formId: string,
+    filter?: Record<string, unknown>
+  ): Promise<JiandaoyunRecord[]> {
+    const all: JiandaoyunRecord[] = [];
+    let dataId: string | undefined;
+
+    while (true) {
+      const batch = await this.getFormData(appId, formId, {
+        limit: 100,
+        dataId,
+        filter,
+      });
+      if (!batch.data.length) break;
+      all.push(...batch.data);
+      dataId = batch.data[batch.data.length - 1]._id;
+    }
+
+    return all;
+  }
+
+  /**
    * 测试API连接
    */
   async testConnection(): Promise<{ success: boolean; message: string; apps?: number; appList?: JiandaoyunApp[] }> {
@@ -582,6 +608,23 @@ export class JiandaoyunSyncService {
     }
 
     return this.client.getFormData(appId, formId, options);
+  }
+
+  /**
+   * 获取表单所有数据（自动分页）
+   */
+  async getAllFormData(appId: string, formId: string, filter?: Record<string, unknown>): Promise<JiandaoyunRecord[]> {
+    if (!this.client) {
+      throw new Error('Jiandaoyun API not configured');
+    }
+    return this.client.getAllFormData(appId, formId, filter);
+  }
+
+  /**
+   * 获取客户端实例（供其他服务直接使用）
+   */
+  getClient(): JiandaoyunClient | null {
+    return this.client;
   }
 
   /**

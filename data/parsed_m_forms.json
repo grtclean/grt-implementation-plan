@@ -1,0 +1,2474 @@
+{
+  "version": "1.0",
+  "generatedAt": "2026-02-22T00:00:00Z",
+  "totalForms": 25,
+  "totalFields": 195,
+  "stages": [
+    {
+      "stage": "M0",
+      "stageName": "商机识别",
+      "stageNameEn": "Opportunity Identification",
+      "formCount": 2,
+      "formIds": [
+        "M0-1",
+        "M0-2"
+      ]
+    },
+    {
+      "stage": "M1",
+      "stageName": "需求确认",
+      "stageNameEn": "Requirements Confirmation",
+      "formCount": 2,
+      "formIds": [
+        "M1-1",
+        "M1-2"
+      ]
+    },
+    {
+      "stage": "M2",
+      "stageName": "方案设计",
+      "stageNameEn": "Solution Design",
+      "formCount": 2,
+      "formIds": [
+        "M2-1",
+        "M2-2"
+      ]
+    },
+    {
+      "stage": "M3",
+      "stageName": "立项评审",
+      "stageNameEn": "Project Approval",
+      "formCount": 2,
+      "formIds": [
+        "M3-1",
+        "M3-2"
+      ]
+    },
+    {
+      "stage": "M4",
+      "stageName": "方案冻结",
+      "stageNameEn": "Design Freeze",
+      "formCount": 1,
+      "formIds": [
+        "M4-1"
+      ]
+    },
+    {
+      "stage": "M5",
+      "stageName": "详细设计",
+      "stageNameEn": "Detailed Design",
+      "formCount": 2,
+      "formIds": [
+        "M5-1",
+        "M5-2"
+      ]
+    },
+    {
+      "stage": "M6",
+      "stageName": "采购制造",
+      "stageNameEn": "Procurement & Manufacturing",
+      "formCount": 3,
+      "formIds": [
+        "M6-1",
+        "M6-2",
+        "M6-3"
+      ]
+    },
+    {
+      "stage": "M7",
+      "stageName": "装配调试",
+      "stageNameEn": "Assembly & Commissioning",
+      "formCount": 2,
+      "formIds": [
+        "M7-1",
+        "M7-2"
+      ]
+    },
+    {
+      "stage": "M8",
+      "stageName": "FAT验收",
+      "stageNameEn": "Factory Acceptance Test",
+      "formCount": 2,
+      "formIds": [
+        "M8-1",
+        "M8-2"
+      ]
+    },
+    {
+      "stage": "M9",
+      "stageName": "发货安装",
+      "stageNameEn": "Shipping & Installation",
+      "formCount": 2,
+      "formIds": [
+        "M9-1",
+        "M9-2"
+      ]
+    },
+    {
+      "stage": "M10",
+      "stageName": "现场调试",
+      "stageNameEn": "Site Commissioning",
+      "formCount": 1,
+      "formIds": [
+        "M10-1"
+      ]
+    },
+    {
+      "stage": "M11",
+      "stageName": "SAT验收",
+      "stageNameEn": "Site Acceptance Test",
+      "formCount": 2,
+      "formIds": [
+        "M11-1",
+        "M11-2"
+      ]
+    },
+    {
+      "stage": "M12",
+      "stageName": "项目结项",
+      "stageNameEn": "Project Closure",
+      "formCount": 2,
+      "formIds": [
+        "M12-1",
+        "M12-2"
+      ]
+    }
+  ],
+  "forms": [
+    {
+      "templateCode": "M0_1",
+      "templateName": "客户管理",
+      "templateNameEn": "M0 客户管理",
+      "description": "商机识别(M0)阶段 — 客户管理",
+      "stage": "M0",
+      "formId": "M0-1",
+      "category": "general",
+      "icon": "users",
+      "color": "blue-500",
+      "fields": [
+        {
+          "name": "customerName",
+          "label": "客户名称",
+          "type": "text",
+          "required": true,
+          "group": "基本信息",
+          "helpText": "请输入客户全称"
+        },
+        {
+          "name": "customerCode",
+          "label": "客户编码",
+          "type": "text",
+          "required": true,
+          "group": "基本信息",
+          "helpText": "系统自动生成"
+        },
+        {
+          "name": "industry",
+          "label": "行业领域",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "汽车",
+              "label": "汽车"
+            },
+            {
+              "value": "半导体",
+              "label": "半导体"
+            },
+            {
+              "value": "工业",
+              "label": "工业"
+            },
+            {
+              "value": "医疗",
+              "label": "医疗"
+            },
+            {
+              "value": "消费电子",
+              "label": "消费电子"
+            }
+          ],
+          "group": "基本信息"
+        },
+        {
+          "name": "contactPerson",
+          "label": "联系人",
+          "type": "text",
+          "required": true,
+          "group": "联系方式"
+        },
+        {
+          "name": "contactPhone",
+          "label": "联系电话",
+          "type": "text",
+          "required": true,
+          "group": "联系方式"
+        },
+        {
+          "name": "contactEmail",
+          "label": "联系邮箱",
+          "type": "text",
+          "required": false,
+          "group": "联系方式"
+        },
+        {
+          "name": "customerLevel",
+          "label": "客户等级",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "S",
+              "label": "S"
+            },
+            {
+              "value": "A",
+              "label": "A"
+            },
+            {
+              "value": "B",
+              "label": "B"
+            },
+            {
+              "value": "C",
+              "label": "C"
+            },
+            {
+              "value": "D",
+              "label": "D"
+            }
+          ],
+          "group": "分类",
+          "helpText": "客户分级评估"
+        },
+        {
+          "name": "region",
+          "label": "所属区域",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "华东",
+              "label": "华东"
+            },
+            {
+              "value": "华南",
+              "label": "华南"
+            },
+            {
+              "value": "华北",
+              "label": "华北"
+            },
+            {
+              "value": "西南",
+              "label": "西南"
+            },
+            {
+              "value": "海外",
+              "label": "海外"
+            }
+          ],
+          "group": "分类"
+        }
+      ],
+      "fieldCount": 8
+    },
+    {
+      "templateCode": "M0_2",
+      "templateName": "商机登记",
+      "templateNameEn": "M0 商机登记",
+      "description": "商机识别(M0)阶段 — 商机登记",
+      "stage": "M0",
+      "formId": "M0-2",
+      "category": "general",
+      "icon": "users",
+      "color": "blue-500",
+      "fields": [
+        {
+          "name": "opportunityName",
+          "label": "商机名称",
+          "type": "text",
+          "required": true,
+          "group": "商机信息"
+        },
+        {
+          "name": "customerName",
+          "label": "客户名称",
+          "type": "text",
+          "required": true,
+          "group": "商机信息",
+          "helpText": "关联客户"
+        },
+        {
+          "name": "expectedAmount",
+          "label": "预计金额",
+          "type": "number",
+          "required": true,
+          "group": "商机信息",
+          "helpText": "单位：万元",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "expectedCloseDate",
+          "label": "预计成交日",
+          "type": "date",
+          "required": true,
+          "group": "商机信息"
+        },
+        {
+          "name": "opportunitySource",
+          "label": "商机来源",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "展会",
+              "label": "展会"
+            },
+            {
+              "value": "转介绍",
+              "label": "转介绍"
+            },
+            {
+              "value": "网站",
+              "label": "网站"
+            },
+            {
+              "value": "电话",
+              "label": "电话"
+            },
+            {
+              "value": "招标",
+              "label": "招标"
+            }
+          ],
+          "group": "商机信息"
+        },
+        {
+          "name": "opportunityStage",
+          "label": "商机阶段",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "线索",
+              "label": "线索"
+            },
+            {
+              "value": "意向",
+              "label": "意向"
+            },
+            {
+              "value": "方案",
+              "label": "方案"
+            },
+            {
+              "value": "报价",
+              "label": "报价"
+            },
+            {
+              "value": "谈判",
+              "label": "谈判"
+            },
+            {
+              "value": "成交",
+              "label": "成交"
+            }
+          ],
+          "group": "商机信息"
+        },
+        {
+          "name": "owner",
+          "label": "负责人",
+          "type": "text",
+          "required": true,
+          "group": "跟进信息"
+        },
+        {
+          "name": "remarks",
+          "label": "备注",
+          "type": "textarea",
+          "required": false,
+          "group": "跟进信息"
+        }
+      ],
+      "fieldCount": 8
+    },
+    {
+      "templateCode": "M1_1",
+      "templateName": "需求调研表",
+      "templateNameEn": "M1 需求调研表",
+      "description": "需求确认(M1)阶段 — 需求调研表",
+      "stage": "M1",
+      "formId": "M1-1",
+      "category": "general",
+      "icon": "clipboard-list",
+      "color": "cyan-500",
+      "fields": [
+        {
+          "name": "projectName",
+          "label": "项目名称",
+          "type": "text",
+          "required": true,
+          "group": "项目信息"
+        },
+        {
+          "name": "customerName",
+          "label": "客户名称",
+          "type": "text",
+          "required": true,
+          "group": "项目信息"
+        },
+        {
+          "name": "productType",
+          "label": "产品类型",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "标准设备",
+              "label": "标准设备"
+            },
+            {
+              "value": "定制设备",
+              "label": "定制设备"
+            },
+            {
+              "value": "改造项目",
+              "label": "改造项目"
+            },
+            {
+              "value": "技术服务",
+              "label": "技术服务"
+            }
+          ],
+          "group": "项目信息"
+        },
+        {
+          "name": "technicalRequirements",
+          "label": "技术要求",
+          "type": "textarea",
+          "required": true,
+          "group": "技术需求",
+          "helpText": "详细描述技术指标"
+        },
+        {
+          "name": "performanceMetrics",
+          "label": "性能指标",
+          "type": "textarea",
+          "required": true,
+          "group": "技术需求",
+          "helpText": "如节拍/精度/产能等"
+        },
+        {
+          "name": "processRequirements",
+          "label": "工艺要求",
+          "type": "textarea",
+          "required": false,
+          "group": "技术需求"
+        },
+        {
+          "name": "deliveryDeadline",
+          "label": "交付期限",
+          "type": "date",
+          "required": true,
+          "group": "商务需求"
+        },
+        {
+          "name": "budgetRange",
+          "label": "预算范围",
+          "type": "select",
+          "required": false,
+          "options": [
+            {
+              "value": "50万以下",
+              "label": "50万以下"
+            },
+            {
+              "value": "50-100万",
+              "label": "50-100万"
+            },
+            {
+              "value": "100-500万",
+              "label": "100-500万"
+            },
+            {
+              "value": "500万以上",
+              "label": "500万以上"
+            }
+          ],
+          "group": "商务需求"
+        }
+      ],
+      "fieldCount": 8
+    },
+    {
+      "templateCode": "M1_2",
+      "templateName": "技术可行性分析",
+      "templateNameEn": "M1 技术可行性分析",
+      "description": "需求确认(M1)阶段 — 技术可行性分析",
+      "stage": "M1",
+      "formId": "M1-2",
+      "category": "general",
+      "icon": "clipboard-list",
+      "color": "cyan-500",
+      "fields": [
+        {
+          "name": "projectName",
+          "label": "项目名称",
+          "type": "text",
+          "required": true,
+          "group": "基本信息"
+        },
+        {
+          "name": "analyst",
+          "label": "分析人",
+          "type": "text",
+          "required": true,
+          "group": "基本信息"
+        },
+        {
+          "name": "solutionOverview",
+          "label": "技术方案概述",
+          "type": "textarea",
+          "required": true,
+          "group": "技术评估"
+        },
+        {
+          "name": "technicalChallenges",
+          "label": "关键技术难点",
+          "type": "textarea",
+          "required": true,
+          "group": "技术评估"
+        },
+        {
+          "name": "riskLevel",
+          "label": "技术风险等级",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "高",
+              "label": "高"
+            },
+            {
+              "value": "中",
+              "label": "中"
+            },
+            {
+              "value": "低",
+              "label": "低"
+            }
+          ],
+          "group": "风险评估"
+        },
+        {
+          "name": "feasibilityConclusion",
+          "label": "可行性结论",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "可行",
+              "label": "可行"
+            },
+            {
+              "value": "有条件可行",
+              "label": "有条件可行"
+            },
+            {
+              "value": "不可行",
+              "label": "不可行"
+            }
+          ],
+          "group": "风险评估"
+        },
+        {
+          "name": "requiredResources",
+          "label": "所需资源",
+          "type": "textarea",
+          "required": false,
+          "group": "资源评估"
+        }
+      ],
+      "fieldCount": 7
+    },
+    {
+      "templateCode": "M2_1",
+      "templateName": "方案设计书",
+      "templateNameEn": "M2 方案设计书",
+      "description": "方案设计(M2)阶段 — 方案设计书",
+      "stage": "M2",
+      "formId": "M2-1",
+      "category": "project",
+      "icon": "pen-tool",
+      "color": "teal-500",
+      "fields": [
+        {
+          "name": "projectName",
+          "label": "项目名称",
+          "type": "text",
+          "required": true,
+          "group": "基本信息"
+        },
+        {
+          "name": "designVersion",
+          "label": "方案版本",
+          "type": "text",
+          "required": true,
+          "group": "基本信息",
+          "helpText": "如V1.0"
+        },
+        {
+          "name": "designer",
+          "label": "设计人",
+          "type": "text",
+          "required": true,
+          "group": "基本信息"
+        },
+        {
+          "name": "overallDesign",
+          "label": "总体方案描述",
+          "type": "textarea",
+          "required": true,
+          "group": "方案内容"
+        },
+        {
+          "name": "mechanicalDesign",
+          "label": "机械方案",
+          "type": "textarea",
+          "required": true,
+          "group": "方案内容"
+        },
+        {
+          "name": "electricalDesign",
+          "label": "电气方案",
+          "type": "textarea",
+          "required": true,
+          "group": "方案内容"
+        },
+        {
+          "name": "softwareDesign",
+          "label": "软件方案",
+          "type": "textarea",
+          "required": false,
+          "group": "方案内容"
+        },
+        {
+          "name": "bomDraft",
+          "label": "BOM初稿",
+          "type": "textarea",
+          "required": false,
+          "group": "物料"
+        },
+        {
+          "name": "estimatedCost",
+          "label": "预计成本",
+          "type": "number",
+          "required": true,
+          "group": "商务",
+          "helpText": "单位：万元",
+          "validation": {
+            "min": 0
+          }
+        }
+      ],
+      "fieldCount": 9
+    },
+    {
+      "templateCode": "M2_2",
+      "templateName": "报价单",
+      "templateNameEn": "M2 报价单",
+      "description": "方案设计(M2)阶段 — 报价单",
+      "stage": "M2",
+      "formId": "M2-2",
+      "category": "project",
+      "icon": "pen-tool",
+      "color": "teal-500",
+      "fields": [
+        {
+          "name": "projectName",
+          "label": "项目名称",
+          "type": "text",
+          "required": true,
+          "group": "报价信息"
+        },
+        {
+          "name": "customerName",
+          "label": "客户名称",
+          "type": "text",
+          "required": true,
+          "group": "报价信息"
+        },
+        {
+          "name": "quotationAmount",
+          "label": "报价金额",
+          "type": "number",
+          "required": true,
+          "group": "报价信息",
+          "helpText": "单位：万元",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "quotationValidity",
+          "label": "报价有效期",
+          "type": "date",
+          "required": true,
+          "group": "报价信息"
+        },
+        {
+          "name": "paymentTerms",
+          "label": "付款条件",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "预付30%+发货60%+验收10%",
+              "label": "预付30%+发货60%+验收10%"
+            },
+            {
+              "value": "预付50%+验收50%",
+              "label": "预付50%+验收50%"
+            },
+            {
+              "value": "货到付款",
+              "label": "货到付款"
+            },
+            {
+              "value": "其他",
+              "label": "其他"
+            }
+          ],
+          "group": "商务条款"
+        },
+        {
+          "name": "deliveryCycle",
+          "label": "交货周期",
+          "type": "text",
+          "required": true,
+          "group": "商务条款",
+          "helpText": "如12周"
+        },
+        {
+          "name": "warrantyTerms",
+          "label": "质保条款",
+          "type": "textarea",
+          "required": false,
+          "group": "商务条款"
+        }
+      ],
+      "fieldCount": 7
+    },
+    {
+      "templateCode": "M3_1",
+      "templateName": "立项评审表",
+      "templateNameEn": "M3 立项评审表",
+      "description": "立项评审(M3)阶段 — 立项评审表",
+      "stage": "M3",
+      "formId": "M3-1",
+      "category": "project",
+      "icon": "git-branch",
+      "color": "green-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "项目信息"
+        },
+        {
+          "name": "projectName",
+          "label": "项目名称",
+          "type": "text",
+          "required": true,
+          "group": "项目信息"
+        },
+        {
+          "name": "projectManager",
+          "label": "项目经理",
+          "type": "text",
+          "required": true,
+          "group": "项目信息"
+        },
+        {
+          "name": "contractAmount",
+          "label": "合同金额",
+          "type": "number",
+          "required": true,
+          "group": "商务信息",
+          "helpText": "单位：万元",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "grossMargin",
+          "label": "毛利率",
+          "type": "number",
+          "required": true,
+          "group": "商务信息",
+          "helpText": "百分比",
+          "validation": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "name": "technicalReviewConclusion",
+          "label": "技术评审结论",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "通过",
+              "label": "通过"
+            },
+            {
+              "value": "有条件通过",
+              "label": "有条件通过"
+            },
+            {
+              "value": "不通过",
+              "label": "不通过"
+            }
+          ],
+          "group": "评审结论"
+        },
+        {
+          "name": "businessReviewConclusion",
+          "label": "商务评审结论",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "通过",
+              "label": "通过"
+            },
+            {
+              "value": "有条件通过",
+              "label": "有条件通过"
+            },
+            {
+              "value": "不通过",
+              "label": "不通过"
+            }
+          ],
+          "group": "评审结论"
+        },
+        {
+          "name": "overallReviewConclusion",
+          "label": "综合评审结论",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "立项",
+              "label": "立项"
+            },
+            {
+              "value": "暂缓",
+              "label": "暂缓"
+            },
+            {
+              "value": "否决",
+              "label": "否决"
+            }
+          ],
+          "group": "评审结论"
+        },
+        {
+          "name": "reviewComments",
+          "label": "评审意见",
+          "type": "textarea",
+          "required": false,
+          "group": "评审结论"
+        }
+      ],
+      "fieldCount": 9
+    },
+    {
+      "templateCode": "M3_2",
+      "templateName": "项目启动会纪要",
+      "templateNameEn": "M3 项目启动会纪要",
+      "description": "立项评审(M3)阶段 — 项目启动会纪要",
+      "stage": "M3",
+      "formId": "M3-2",
+      "category": "project",
+      "icon": "git-branch",
+      "color": "green-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "会议信息"
+        },
+        {
+          "name": "meetingDate",
+          "label": "会议日期",
+          "type": "date",
+          "required": true,
+          "group": "会议信息"
+        },
+        {
+          "name": "attendees",
+          "label": "参会人员",
+          "type": "textarea",
+          "required": true,
+          "group": "会议信息"
+        },
+        {
+          "name": "milestonesPlan",
+          "label": "项目里程碑计划",
+          "type": "textarea",
+          "required": true,
+          "group": "会议内容"
+        },
+        {
+          "name": "resourceAllocation",
+          "label": "资源分配方案",
+          "type": "textarea",
+          "required": true,
+          "group": "会议内容"
+        },
+        {
+          "name": "riskIdentification",
+          "label": "风险识别",
+          "type": "textarea",
+          "required": false,
+          "group": "会议内容"
+        },
+        {
+          "name": "actionItems",
+          "label": "待办事项",
+          "type": "textarea",
+          "required": true,
+          "group": "会议内容"
+        }
+      ],
+      "fieldCount": 7
+    },
+    {
+      "templateCode": "M4_1",
+      "templateName": "方案冻结确认书",
+      "templateNameEn": "M4 方案冻结确认书",
+      "description": "方案冻结(M4)阶段 — 方案冻结确认书",
+      "stage": "M4",
+      "formId": "M4-1",
+      "category": "project",
+      "icon": "lock",
+      "color": "emerald-600",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "项目信息"
+        },
+        {
+          "name": "frozenVersion",
+          "label": "冻结版本",
+          "type": "text",
+          "required": true,
+          "group": "冻结信息"
+        },
+        {
+          "name": "freezeDate",
+          "label": "冻结日期",
+          "type": "date",
+          "required": true,
+          "group": "冻结信息"
+        },
+        {
+          "name": "mechDesignStatus",
+          "label": "机械设计状态",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "完成",
+              "label": "完成"
+            },
+            {
+              "value": "进行中",
+              "label": "进行中"
+            },
+            {
+              "value": "未开始",
+              "label": "未开始"
+            }
+          ],
+          "group": "设计状态"
+        },
+        {
+          "name": "elecDesignStatus",
+          "label": "电气设计状态",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "完成",
+              "label": "完成"
+            },
+            {
+              "value": "进行中",
+              "label": "进行中"
+            },
+            {
+              "value": "未开始",
+              "label": "未开始"
+            }
+          ],
+          "group": "设计状态"
+        },
+        {
+          "name": "bomFreezeConfirm",
+          "label": "BOM冻结确认",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "是",
+              "label": "是"
+            },
+            {
+              "value": "否",
+              "label": "否"
+            }
+          ],
+          "group": "设计状态"
+        },
+        {
+          "name": "openIssues",
+          "label": "遗留问题",
+          "type": "textarea",
+          "required": false,
+          "group": "补充信息"
+        },
+        {
+          "name": "signatureConfirm",
+          "label": "确认签字",
+          "type": "text",
+          "required": true,
+          "group": "补充信息",
+          "helpText": "项目经理/技术负责人"
+        }
+      ],
+      "fieldCount": 8
+    },
+    {
+      "templateCode": "M5_1",
+      "templateName": "详细设计检查表",
+      "templateNameEn": "M5 详细设计检查表",
+      "description": "详细设计(M5)阶段 — 详细设计检查表",
+      "stage": "M5",
+      "formId": "M5-1",
+      "category": "project",
+      "icon": "ruler",
+      "color": "lime-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "项目信息"
+        },
+        {
+          "name": "inspectionDate",
+          "label": "检查日期",
+          "type": "date",
+          "required": true,
+          "group": "项目信息"
+        },
+        {
+          "name": "mechDrawingProgress",
+          "label": "机械图纸完成度",
+          "type": "number",
+          "required": true,
+          "group": "设计进度",
+          "helpText": "百分比",
+          "validation": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "name": "elecDrawingProgress",
+          "label": "电气图纸完成度",
+          "type": "number",
+          "required": true,
+          "group": "设计进度",
+          "helpText": "百分比",
+          "validation": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "name": "softwareProgress",
+          "label": "软件开发进度",
+          "type": "number",
+          "required": false,
+          "group": "设计进度",
+          "helpText": "百分比",
+          "validation": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "name": "fmeaStatus",
+          "label": "FMEA完成状态",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "完成",
+              "label": "完成"
+            },
+            {
+              "value": "进行中",
+              "label": "进行中"
+            },
+            {
+              "value": "未开始",
+              "label": "未开始"
+            }
+          ],
+          "group": "质量文件"
+        },
+        {
+          "name": "controlPlanStatus",
+          "label": "控制计划状态",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "完成",
+              "label": "完成"
+            },
+            {
+              "value": "进行中",
+              "label": "进行中"
+            },
+            {
+              "value": "未开始",
+              "label": "未开始"
+            }
+          ],
+          "group": "质量文件"
+        },
+        {
+          "name": "designReviewConclusion",
+          "label": "设计评审结论",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "通过",
+              "label": "通过"
+            },
+            {
+              "value": "有条件通过",
+              "label": "有条件通过"
+            },
+            {
+              "value": "需返工",
+              "label": "需返工"
+            }
+          ],
+          "group": "评审结论"
+        }
+      ],
+      "fieldCount": 8
+    },
+    {
+      "templateCode": "M5_2",
+      "templateName": "BOM发布审批",
+      "templateNameEn": "M5 BOM发布审批",
+      "description": "详细设计(M5)阶段 — BOM发布审批",
+      "stage": "M5",
+      "formId": "M5-2",
+      "category": "project",
+      "icon": "ruler",
+      "color": "lime-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "BOM信息"
+        },
+        {
+          "name": "bomVersion",
+          "label": "BOM版本",
+          "type": "text",
+          "required": true,
+          "group": "BOM信息"
+        },
+        {
+          "name": "totalMaterialCount",
+          "label": "物料总数",
+          "type": "number",
+          "required": true,
+          "group": "BOM信息"
+        },
+        {
+          "name": "purchasedPartCount",
+          "label": "采购件数量",
+          "type": "number",
+          "required": true,
+          "group": "BOM信息"
+        },
+        {
+          "name": "inHousePartCount",
+          "label": "自制件数量",
+          "type": "number",
+          "required": true,
+          "group": "BOM信息"
+        },
+        {
+          "name": "bomTotalCost",
+          "label": "BOM成本合计",
+          "type": "number",
+          "required": true,
+          "group": "成本",
+          "helpText": "单位：万元",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "approvalComments",
+          "label": "审批意见",
+          "type": "textarea",
+          "required": false,
+          "group": "审批"
+        }
+      ],
+      "fieldCount": 7
+    },
+    {
+      "templateCode": "M6_1",
+      "templateName": "生产工单",
+      "templateNameEn": "M6 生产工单",
+      "description": "采购制造(M6)阶段 — 生产工单",
+      "stage": "M6",
+      "formId": "M6-1",
+      "category": "project",
+      "icon": "factory",
+      "color": "amber-500",
+      "fields": [
+        {
+          "name": "workOrderCode",
+          "label": "工单编号",
+          "type": "text",
+          "required": true,
+          "group": "工单信息",
+          "helpText": "系统自动生成"
+        },
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "工单信息"
+        },
+        {
+          "name": "productName",
+          "label": "产品名称",
+          "type": "text",
+          "required": true,
+          "group": "工单信息"
+        },
+        {
+          "name": "plannedStartDate",
+          "label": "计划开始日期",
+          "type": "date",
+          "required": true,
+          "group": "排产"
+        },
+        {
+          "name": "plannedEndDate",
+          "label": "计划完成日期",
+          "type": "date",
+          "required": true,
+          "group": "排产"
+        },
+        {
+          "name": "priority",
+          "label": "优先级",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "紧急",
+              "label": "紧急"
+            },
+            {
+              "value": "高",
+              "label": "高"
+            },
+            {
+              "value": "中",
+              "label": "中"
+            },
+            {
+              "value": "低",
+              "label": "低"
+            }
+          ],
+          "group": "排产"
+        },
+        {
+          "name": "productionManager",
+          "label": "生产负责人",
+          "type": "text",
+          "required": true,
+          "group": "排产"
+        },
+        {
+          "name": "remarks",
+          "label": "备注",
+          "type": "textarea",
+          "required": false,
+          "group": "排产"
+        }
+      ],
+      "fieldCount": 8
+    },
+    {
+      "templateCode": "M6_2",
+      "templateName": "采购申请单",
+      "templateNameEn": "M6 采购申请单",
+      "description": "采购制造(M6)阶段 — 采购申请单",
+      "stage": "M6",
+      "formId": "M6-2",
+      "category": "project",
+      "icon": "factory",
+      "color": "amber-500",
+      "fields": [
+        {
+          "name": "requestCode",
+          "label": "申请编号",
+          "type": "text",
+          "required": true,
+          "group": "申请信息"
+        },
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "申请信息"
+        },
+        {
+          "name": "materialName",
+          "label": "物料名称",
+          "type": "text",
+          "required": true,
+          "group": "物料信息"
+        },
+        {
+          "name": "materialCode",
+          "label": "物料编码",
+          "type": "text",
+          "required": true,
+          "group": "物料信息"
+        },
+        {
+          "name": "quantity",
+          "label": "数量",
+          "type": "number",
+          "required": true,
+          "group": "物料信息"
+        },
+        {
+          "name": "estimatedUnitPrice",
+          "label": "预计单价",
+          "type": "number",
+          "required": false,
+          "group": "物料信息",
+          "helpText": "单位：元",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "requiredDate",
+          "label": "需求日期",
+          "type": "date",
+          "required": true,
+          "group": "物料信息"
+        },
+        {
+          "name": "suggestedSupplier",
+          "label": "供应商建议",
+          "type": "text",
+          "required": false,
+          "group": "物料信息"
+        }
+      ],
+      "fieldCount": 8
+    },
+    {
+      "templateCode": "M6_3",
+      "templateName": "来料检验单",
+      "templateNameEn": "M6 来料检验单",
+      "description": "采购制造(M6)阶段 — 来料检验单",
+      "stage": "M6",
+      "formId": "M6-3",
+      "category": "project",
+      "icon": "factory",
+      "color": "amber-500",
+      "fields": [
+        {
+          "name": "inspectionCode",
+          "label": "检验编号",
+          "type": "text",
+          "required": true,
+          "group": "检验信息"
+        },
+        {
+          "name": "supplierName",
+          "label": "供应商名称",
+          "type": "text",
+          "required": true,
+          "group": "检验信息"
+        },
+        {
+          "name": "materialName",
+          "label": "物料名称",
+          "type": "text",
+          "required": true,
+          "group": "检验信息"
+        },
+        {
+          "name": "submittedQty",
+          "label": "送检数量",
+          "type": "number",
+          "required": true,
+          "group": "检验信息"
+        },
+        {
+          "name": "sampledQty",
+          "label": "抽检数量",
+          "type": "number",
+          "required": true,
+          "group": "检验信息"
+        },
+        {
+          "name": "qualifiedQty",
+          "label": "合格数量",
+          "type": "number",
+          "required": true,
+          "group": "检验结果"
+        },
+        {
+          "name": "unqualifiedQty",
+          "label": "不合格数量",
+          "type": "number",
+          "required": true,
+          "group": "检验结果"
+        },
+        {
+          "name": "inspectionConclusion",
+          "label": "检验结论",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "合格",
+              "label": "合格"
+            },
+            {
+              "value": "让步接收",
+              "label": "让步接收"
+            },
+            {
+              "value": "退货",
+              "label": "退货"
+            },
+            {
+              "value": "选用",
+              "label": "选用"
+            }
+          ],
+          "group": "检验结果"
+        },
+        {
+          "name": "inspector",
+          "label": "检验员",
+          "type": "text",
+          "required": true,
+          "group": "检验结果"
+        }
+      ],
+      "fieldCount": 9
+    },
+    {
+      "templateCode": "M7_1",
+      "templateName": "装配检查表",
+      "templateNameEn": "M7 装配检查表",
+      "description": "装配调试(M7)阶段 — 装配检查表",
+      "stage": "M7",
+      "formId": "M7-1",
+      "category": "project",
+      "icon": "wrench",
+      "color": "orange-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "装配信息"
+        },
+        {
+          "name": "stationCode",
+          "label": "工位编号",
+          "type": "text",
+          "required": true,
+          "group": "装配信息"
+        },
+        {
+          "name": "assemblyDate",
+          "label": "装配日期",
+          "type": "date",
+          "required": true,
+          "group": "装配信息"
+        },
+        {
+          "name": "mechAssemblyStatus",
+          "label": "机械装配状态",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "完成",
+              "label": "完成"
+            },
+            {
+              "value": "进行中",
+              "label": "进行中"
+            },
+            {
+              "value": "异常",
+              "label": "异常"
+            }
+          ],
+          "group": "装配进度"
+        },
+        {
+          "name": "elecWiringStatus",
+          "label": "电气接线状态",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "完成",
+              "label": "完成"
+            },
+            {
+              "value": "进行中",
+              "label": "进行中"
+            },
+            {
+              "value": "异常",
+              "label": "异常"
+            }
+          ],
+          "group": "装配进度"
+        },
+        {
+          "name": "pneumaticStatus",
+          "label": "气动/液压状态",
+          "type": "select",
+          "required": false,
+          "options": [
+            {
+              "value": "完成",
+              "label": "完成"
+            },
+            {
+              "value": "进行中",
+              "label": "进行中"
+            },
+            {
+              "value": "异常",
+              "label": "异常"
+            },
+            {
+              "value": "不适用",
+              "label": "不适用"
+            }
+          ],
+          "group": "装配进度"
+        },
+        {
+          "name": "safetyGuardStatus",
+          "label": "安全防护状态",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "完成",
+              "label": "完成"
+            },
+            {
+              "value": "进行中",
+              "label": "进行中"
+            },
+            {
+              "value": "未安装",
+              "label": "未安装"
+            }
+          ],
+          "group": "安全检查"
+        },
+        {
+          "name": "anomalyLog",
+          "label": "异常记录",
+          "type": "textarea",
+          "required": false,
+          "group": "问题跟踪"
+        }
+      ],
+      "fieldCount": 8
+    },
+    {
+      "templateCode": "M7_2",
+      "templateName": "调试记录表",
+      "templateNameEn": "M7 调试记录表",
+      "description": "装配调试(M7)阶段 — 调试记录表",
+      "stage": "M7",
+      "formId": "M7-2",
+      "category": "project",
+      "icon": "wrench",
+      "color": "orange-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "调试信息"
+        },
+        {
+          "name": "debugDate",
+          "label": "调试日期",
+          "type": "date",
+          "required": true,
+          "group": "调试信息"
+        },
+        {
+          "name": "debugEngineer",
+          "label": "调试工程师",
+          "type": "text",
+          "required": true,
+          "group": "调试信息"
+        },
+        {
+          "name": "debugItem",
+          "label": "调试项目",
+          "type": "text",
+          "required": true,
+          "group": "调试内容"
+        },
+        {
+          "name": "targetParams",
+          "label": "目标参数",
+          "type": "text",
+          "required": true,
+          "group": "调试内容"
+        },
+        {
+          "name": "actualResult",
+          "label": "实际结果",
+          "type": "text",
+          "required": true,
+          "group": "调试内容"
+        },
+        {
+          "name": "meetsTarget",
+          "label": "是否达标",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "达标",
+              "label": "达标"
+            },
+            {
+              "value": "未达标",
+              "label": "未达标"
+            },
+            {
+              "value": "需调整",
+              "label": "需调整"
+            }
+          ],
+          "group": "调试内容"
+        },
+        {
+          "name": "issueResolution",
+          "label": "问题及处理",
+          "type": "textarea",
+          "required": false,
+          "group": "问题跟踪"
+        }
+      ],
+      "fieldCount": 8
+    },
+    {
+      "templateCode": "M8_1",
+      "templateName": "FAT测试计划",
+      "templateNameEn": "M8 FAT测试计划",
+      "description": "FAT验收(M8)阶段 — FAT测试计划",
+      "stage": "M8",
+      "formId": "M8-1",
+      "category": "project",
+      "icon": "check-square",
+      "color": "red-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "计划信息"
+        },
+        {
+          "name": "testStartDate",
+          "label": "测试开始日期",
+          "type": "date",
+          "required": true,
+          "group": "计划信息"
+        },
+        {
+          "name": "testEndDate",
+          "label": "测试结束日期",
+          "type": "date",
+          "required": true,
+          "group": "计划信息"
+        },
+        {
+          "name": "testLead",
+          "label": "测试负责人",
+          "type": "text",
+          "required": true,
+          "group": "计划信息"
+        },
+        {
+          "name": "customerRepresentative",
+          "label": "客户方代表",
+          "type": "text",
+          "required": false,
+          "group": "计划信息"
+        },
+        {
+          "name": "testItemList",
+          "label": "测试项目清单",
+          "type": "textarea",
+          "required": true,
+          "group": "测试内容",
+          "helpText": "每行一个测试项"
+        },
+        {
+          "name": "acceptanceCriteria",
+          "label": "验收标准",
+          "type": "textarea",
+          "required": true,
+          "group": "测试内容"
+        }
+      ],
+      "fieldCount": 7
+    },
+    {
+      "templateCode": "M8_2",
+      "templateName": "FAT测试报告",
+      "templateNameEn": "M8 FAT测试报告",
+      "description": "FAT验收(M8)阶段 — FAT测试报告",
+      "stage": "M8",
+      "formId": "M8-2",
+      "category": "project",
+      "icon": "check-square",
+      "color": "red-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "报告信息"
+        },
+        {
+          "name": "testDate",
+          "label": "测试日期",
+          "type": "date",
+          "required": true,
+          "group": "报告信息"
+        },
+        {
+          "name": "testItem",
+          "label": "测试项目",
+          "type": "text",
+          "required": true,
+          "group": "测试结果"
+        },
+        {
+          "name": "testResult",
+          "label": "测试结果",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "通过",
+              "label": "通过"
+            },
+            {
+              "value": "不通过",
+              "label": "不通过"
+            },
+            {
+              "value": "有条件通过",
+              "label": "有条件通过"
+            }
+          ],
+          "group": "测试结果"
+        },
+        {
+          "name": "actualData",
+          "label": "实测数据",
+          "type": "textarea",
+          "required": true,
+          "group": "测试结果"
+        },
+        {
+          "name": "deviationNote",
+          "label": "偏差说明",
+          "type": "textarea",
+          "required": false,
+          "group": "测试结果"
+        },
+        {
+          "name": "customerSignOff",
+          "label": "客户签字确认",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "已确认",
+              "label": "已确认"
+            },
+            {
+              "value": "待确认",
+              "label": "待确认"
+            }
+          ],
+          "group": "确认信息"
+        }
+      ],
+      "fieldCount": 7
+    },
+    {
+      "templateCode": "M9_1",
+      "templateName": "发货清单",
+      "templateNameEn": "M9 发货清单",
+      "description": "发货安装(M9)阶段 — 发货清单",
+      "stage": "M9",
+      "formId": "M9-1",
+      "category": "project",
+      "icon": "truck",
+      "color": "purple-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "发货信息"
+        },
+        {
+          "name": "shipmentDate",
+          "label": "发货日期",
+          "type": "date",
+          "required": true,
+          "group": "发货信息"
+        },
+        {
+          "name": "deliveryAddress",
+          "label": "收货地址",
+          "type": "text",
+          "required": true,
+          "group": "发货信息"
+        },
+        {
+          "name": "transportMode",
+          "label": "运输方式",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "公路",
+              "label": "公路"
+            },
+            {
+              "value": "铁路",
+              "label": "铁路"
+            },
+            {
+              "value": "海运",
+              "label": "海运"
+            },
+            {
+              "value": "空运",
+              "label": "空运"
+            }
+          ],
+          "group": "发货信息"
+        },
+        {
+          "name": "packingList",
+          "label": "包装清单",
+          "type": "textarea",
+          "required": true,
+          "group": "物料清单",
+          "helpText": "每行格式：物料名-数量-箱号"
+        },
+        {
+          "name": "documentList",
+          "label": "随机文件清单",
+          "type": "textarea",
+          "required": true,
+          "group": "物料清单"
+        },
+        {
+          "name": "shipmentManager",
+          "label": "发货负责人",
+          "type": "text",
+          "required": true,
+          "group": "发货信息"
+        }
+      ],
+      "fieldCount": 7
+    },
+    {
+      "templateCode": "M9_2",
+      "templateName": "安装计划书",
+      "templateNameEn": "M9 安装计划书",
+      "description": "发货安装(M9)阶段 — 安装计划书",
+      "stage": "M9",
+      "formId": "M9-2",
+      "category": "project",
+      "icon": "truck",
+      "color": "purple-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "安装信息"
+        },
+        {
+          "name": "installationSite",
+          "label": "安装地点",
+          "type": "text",
+          "required": true,
+          "group": "安装信息"
+        },
+        {
+          "name": "plannedStartDate",
+          "label": "计划开始日期",
+          "type": "date",
+          "required": true,
+          "group": "安装信息"
+        },
+        {
+          "name": "plannedEndDate",
+          "label": "计划完成日期",
+          "type": "date",
+          "required": true,
+          "group": "安装信息"
+        },
+        {
+          "name": "installationTeam",
+          "label": "安装团队",
+          "type": "textarea",
+          "required": true,
+          "group": "人员安排"
+        },
+        {
+          "name": "siteRequirements",
+          "label": "场地要求",
+          "type": "textarea",
+          "required": true,
+          "group": "现场要求",
+          "helpText": "电源/气源/地基等"
+        },
+        {
+          "name": "safetyNotes",
+          "label": "安全注意事项",
+          "type": "textarea",
+          "required": true,
+          "group": "安全"
+        }
+      ],
+      "fieldCount": 7
+    },
+    {
+      "templateCode": "M10_1",
+      "templateName": "现场调试记录",
+      "templateNameEn": "M10 现场调试记录",
+      "description": "现场调试(M10)阶段 — 现场调试记录",
+      "stage": "M10",
+      "formId": "M10-1",
+      "category": "project",
+      "icon": "settings",
+      "color": "violet-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "调试信息"
+        },
+        {
+          "name": "debugDate",
+          "label": "调试日期",
+          "type": "date",
+          "required": true,
+          "group": "调试信息"
+        },
+        {
+          "name": "debugEngineer",
+          "label": "调试工程师",
+          "type": "text",
+          "required": true,
+          "group": "调试信息"
+        },
+        {
+          "name": "customerLiaison",
+          "label": "客户方配合人",
+          "type": "text",
+          "required": false,
+          "group": "调试信息"
+        },
+        {
+          "name": "debugContent",
+          "label": "调试内容",
+          "type": "textarea",
+          "required": true,
+          "group": "调试过程"
+        },
+        {
+          "name": "debugResult",
+          "label": "调试结果",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "正常",
+              "label": "正常"
+            },
+            {
+              "value": "异常需处理",
+              "label": "异常需处理"
+            },
+            {
+              "value": "需更换部件",
+              "label": "需更换部件"
+            }
+          ],
+          "group": "调试过程"
+        },
+        {
+          "name": "openIssues",
+          "label": "遗留问题",
+          "type": "textarea",
+          "required": false,
+          "group": "问题跟踪"
+        },
+        {
+          "name": "tomorrowPlan",
+          "label": "明日计划",
+          "type": "textarea",
+          "required": false,
+          "group": "问题跟踪"
+        }
+      ],
+      "fieldCount": 8
+    },
+    {
+      "templateCode": "M11_1",
+      "templateName": "SAT验收计划",
+      "templateNameEn": "M11 SAT验收计划",
+      "description": "SAT验收(M11)阶段 — SAT验收计划",
+      "stage": "M11",
+      "formId": "M11-1",
+      "category": "project",
+      "icon": "shield-check",
+      "color": "indigo-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "验收信息"
+        },
+        {
+          "name": "acceptanceDate",
+          "label": "验收日期",
+          "type": "date",
+          "required": true,
+          "group": "验收信息"
+        },
+        {
+          "name": "customerAcceptor",
+          "label": "客户方验收人",
+          "type": "text",
+          "required": true,
+          "group": "验收信息"
+        },
+        {
+          "name": "ourRepresentative",
+          "label": "我方负责人",
+          "type": "text",
+          "required": true,
+          "group": "验收信息"
+        },
+        {
+          "name": "acceptanceCriteriaList",
+          "label": "验收标准清单",
+          "type": "textarea",
+          "required": true,
+          "group": "验收标准"
+        },
+        {
+          "name": "performanceRequirements",
+          "label": "性能指标要求",
+          "type": "textarea",
+          "required": true,
+          "group": "验收标准"
+        }
+      ],
+      "fieldCount": 6
+    },
+    {
+      "templateCode": "M11_2",
+      "templateName": "SAT验收报告",
+      "templateNameEn": "M11 SAT验收报告",
+      "description": "SAT验收(M11)阶段 — SAT验收报告",
+      "stage": "M11",
+      "formId": "M11-2",
+      "category": "project",
+      "icon": "shield-check",
+      "color": "indigo-500",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "验收信息"
+        },
+        {
+          "name": "acceptanceDate",
+          "label": "验收日期",
+          "type": "date",
+          "required": true,
+          "group": "验收信息"
+        },
+        {
+          "name": "testItem",
+          "label": "测试项目",
+          "type": "text",
+          "required": true,
+          "group": "测试结果"
+        },
+        {
+          "name": "acceptanceConclusion",
+          "label": "验收结论",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "通过",
+              "label": "通过"
+            },
+            {
+              "value": "不通过",
+              "label": "不通过"
+            },
+            {
+              "value": "有条件通过",
+              "label": "有条件通过"
+            }
+          ],
+          "group": "测试结果"
+        },
+        {
+          "name": "actualData",
+          "label": "实测数据",
+          "type": "textarea",
+          "required": true,
+          "group": "测试结果"
+        },
+        {
+          "name": "openIssuesAndPlan",
+          "label": "遗留问题及整改计划",
+          "type": "textarea",
+          "required": false,
+          "group": "测试结果"
+        },
+        {
+          "name": "customerSignOff",
+          "label": "客户签字确认",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "已确认",
+              "label": "已确认"
+            },
+            {
+              "value": "待确认",
+              "label": "待确认"
+            }
+          ],
+          "group": "确认信息"
+        }
+      ],
+      "fieldCount": 7
+    },
+    {
+      "templateCode": "M12_1",
+      "templateName": "项目结项报告",
+      "templateNameEn": "M12 项目结项报告",
+      "description": "项目结项(M12)阶段 — 项目结项报告",
+      "stage": "M12",
+      "formId": "M12-1",
+      "category": "project",
+      "icon": "flag",
+      "color": "gray-600",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "项目信息"
+        },
+        {
+          "name": "projectName",
+          "label": "项目名称",
+          "type": "text",
+          "required": true,
+          "group": "项目信息"
+        },
+        {
+          "name": "projectManager",
+          "label": "项目经理",
+          "type": "text",
+          "required": true,
+          "group": "项目信息"
+        },
+        {
+          "name": "actualEndDate",
+          "label": "实际完成日期",
+          "type": "date",
+          "required": true,
+          "group": "项目信息"
+        },
+        {
+          "name": "contractAmount",
+          "label": "合同金额",
+          "type": "number",
+          "required": true,
+          "group": "财务总结",
+          "helpText": "单位：万元",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "actualCost",
+          "label": "实际成本",
+          "type": "number",
+          "required": true,
+          "group": "财务总结",
+          "helpText": "单位：万元",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "profitMargin",
+          "label": "利润率",
+          "type": "number",
+          "required": true,
+          "group": "财务总结",
+          "helpText": "百分比",
+          "validation": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "name": "projectSummary",
+          "label": "项目总结",
+          "type": "textarea",
+          "required": true,
+          "group": "经验总结"
+        },
+        {
+          "name": "lessonsLearned",
+          "label": "经验教训",
+          "type": "textarea",
+          "required": true,
+          "group": "经验总结"
+        },
+        {
+          "name": "improvementSuggestions",
+          "label": "改进建议",
+          "type": "textarea",
+          "required": false,
+          "group": "经验总结"
+        }
+      ],
+      "fieldCount": 10
+    },
+    {
+      "templateCode": "M12_2",
+      "templateName": "客户满意度调查",
+      "templateNameEn": "M12 客户满意度调查",
+      "description": "项目结项(M12)阶段 — 客户满意度调查",
+      "stage": "M12",
+      "formId": "M12-2",
+      "category": "project",
+      "icon": "flag",
+      "color": "gray-600",
+      "fields": [
+        {
+          "name": "projectCode",
+          "label": "项目编号",
+          "type": "text",
+          "required": true,
+          "group": "调查信息"
+        },
+        {
+          "name": "customerName",
+          "label": "客户名称",
+          "type": "text",
+          "required": true,
+          "group": "调查信息"
+        },
+        {
+          "name": "surveyDate",
+          "label": "调查日期",
+          "type": "date",
+          "required": true,
+          "group": "调查信息"
+        },
+        {
+          "name": "qualityScore",
+          "label": "产品质量评分",
+          "type": "number",
+          "required": true,
+          "group": "满意度评分",
+          "helpText": "1-10分",
+          "validation": {
+            "min": 1,
+            "max": 10
+          }
+        },
+        {
+          "name": "deliveryScore",
+          "label": "交付及时性评分",
+          "type": "number",
+          "required": true,
+          "group": "满意度评分",
+          "helpText": "1-10分",
+          "validation": {
+            "min": 1,
+            "max": 10
+          }
+        },
+        {
+          "name": "serviceScore",
+          "label": "服务态度评分",
+          "type": "number",
+          "required": true,
+          "group": "满意度评分",
+          "helpText": "1-10分",
+          "validation": {
+            "min": 1,
+            "max": 10
+          }
+        },
+        {
+          "name": "techSupportScore",
+          "label": "技术支持评分",
+          "type": "number",
+          "required": true,
+          "group": "满意度评分",
+          "helpText": "1-10分",
+          "validation": {
+            "min": 1,
+            "max": 10
+          }
+        },
+        {
+          "name": "overallSatisfaction",
+          "label": "综合满意度",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "非常满意",
+              "label": "非常满意"
+            },
+            {
+              "value": "满意",
+              "label": "满意"
+            },
+            {
+              "value": "一般",
+              "label": "一般"
+            },
+            {
+              "value": "不满意",
+              "label": "不满意"
+            },
+            {
+              "value": "非常不满意",
+              "label": "非常不满意"
+            }
+          ],
+          "group": "总评"
+        },
+        {
+          "name": "improvementFeedback",
+          "label": "改进意见",
+          "type": "textarea",
+          "required": false,
+          "group": "总评"
+        }
+      ],
+      "fieldCount": 9
+    }
+  ]
+}

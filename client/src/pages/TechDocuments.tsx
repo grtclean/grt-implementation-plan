@@ -3,13 +3,16 @@
  * 技术文档库、版本管理、审批流
  */
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Plus, Search, Upload, File, Clock, AlertTriangle, CheckCircle2, Database } from "lucide-react";
 
 // TODO: 接入 tRPC 后端接口替换
@@ -22,12 +25,48 @@ const MOCK_DOCS = [
 ];
 
 export default function TechDocuments() {
-  const { toast } = useToast();
   const [search, setSearch] = useState("");
-  const filtered = MOCK_DOCS.filter(d => !search || d.name.includes(search) || d.category.includes(search));
+  const [docs, setDocs] = useState(MOCK_DOCS);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    type: "标准",
+    category: "工艺",
+    author: "",
+  });
 
-  const handleComingSoon = () => {
-    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  const filtered = docs.filter(d => !search || d.name.includes(search) || d.category.includes(search));
+
+  const handleCreate = () => {
+    if (!formData.name.trim()) {
+      toast.error("请输入文档名称");
+      return;
+    }
+    if (!formData.author.trim()) {
+      toast.error("请输入作者");
+      return;
+    }
+
+    const newId = Math.max(...docs.map(d => d.id), 0) + 1;
+    const today = new Date().toISOString().slice(0, 10);
+    const newDoc = {
+      id: newId,
+      name: formData.name.trim(),
+      type: formData.type,
+      category: formData.category,
+      updatedAt: today,
+      author: formData.author.trim(),
+      size: "0KB",
+    };
+
+    setDocs(prev => [newDoc, ...prev]);
+    setShowCreateDialog(false);
+    setFormData({ name: "", type: "标准", category: "工艺", author: "" });
+    toast.success("文档创建成功");
+  };
+
+  const handleUploadComingSoon = () => {
+    toast.info("上传功能开发中，敬请期待");
   };
 
   return (
@@ -38,15 +77,15 @@ export default function TechDocuments() {
         description="技术文档库 · 版本控制与知识沉淀"
         actions={
           <>
-            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />新建文档</Button>
-            <Button variant="outline" onClick={handleComingSoon}><Upload className="h-4 w-4 mr-2" />上传</Button>
+            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />新建文档</Button>
+            <Button variant="outline" onClick={handleUploadComingSoon}><Upload className="h-4 w-4 mr-2" />上传</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={FileText} label="文档总数" value={156} />
-        <StatCard icon={CheckCircle2} label="本月新增" value={12} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={FileText} label="文档总数" value={docs.length} />
+        <StatCard icon={CheckCircle2} label="本月新增" value={docs.filter(d => d.updatedAt >= "2026-02-01").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
         <StatCard icon={AlertTriangle} label="待审批" value={5} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
         <StatCard icon={Database} label="存储占用" value="2.1GB" iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
@@ -87,6 +126,70 @@ export default function TechDocuments() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新建文档</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="doc-name">文档名称 *</Label>
+              <Input
+                id="doc-name"
+                placeholder="例如：清洗工艺标准规范 V1.0"
+                value={formData.name}
+                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>文档类型</Label>
+                <Select value={formData.type} onValueChange={val => setFormData(prev => ({ ...prev, type: val }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="标准">标准</SelectItem>
+                    <SelectItem value="规范">规范</SelectItem>
+                    <SelectItem value="手册">手册</SelectItem>
+                    <SelectItem value="接口">接口</SelectItem>
+                    <SelectItem value="流程">流程</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>分类</Label>
+                <Select value={formData.category} onValueChange={val => setFormData(prev => ({ ...prev, category: val }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="工艺">工艺</SelectItem>
+                    <SelectItem value="电气">电气</SelectItem>
+                    <SelectItem value="机械">机械</SelectItem>
+                    <SelectItem value="软件">软件</SelectItem>
+                    <SelectItem value="质量">质量</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="doc-author">作者 *</Label>
+              <Input
+                id="doc-author"
+                placeholder="例如：王工"
+                value={formData.author}
+                onChange={e => setFormData(prev => ({ ...prev, author: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
+            <Button onClick={handleCreate}>创建</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

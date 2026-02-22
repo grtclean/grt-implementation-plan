@@ -11,7 +11,7 @@
  */
 
 import { z } from "zod";
-import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
+import { router, publicProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
 import { bomMasters, bomItems, bomVersions, bomCostRollups } from "../../drizzle/bom-schema";
@@ -85,12 +85,12 @@ export const bomRouter = router({
   /**
    * 创建BOM主记录
    */
-  createBomMaster: adminProcedure
+  createBomMaster: publicProcedure
     .input(BomMasterCreateSchema)
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
-      const result = await db.insert(bomMasters).values({
+      const rows = await db.insert(bomMasters).values({
         productCode: input.productCode,
         productName: input.productName,
         bomType: input.bomType,
@@ -106,24 +106,21 @@ export const bomRouter = router({
         totalOverheadCost: '0.00',
         erpBomId: null,
         erpSyncStatus: 'not_synced',
-        createdBy: ctx.user?.id,
+        createdBy: null,
         approvedBy: null,
         approvedAt: null,
         description: input.description ?? null,
         notes: input.notes ?? null,
         createdAt: now,
-      });
+      }).returning();
 
-      // Retrieve the inserted record
-      const insertId = result[0].insertId;
-      const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, insertId));
-      return rows[0];
+      return rows[0] ?? null;
     }),
 
   /**
    * 获取BOM列表（分页+筛选）
    */
-  getBomMasters: protectedProcedure
+  getBomMasters: publicProcedure
     .input(z.object({
       bomType: z.string().optional(),
       status: z.string().optional(),
@@ -182,7 +179,7 @@ export const bomRouter = router({
   /**
    * 获取单个BOM（含明细行、版本列表）
    */
-  getBomMaster: protectedProcedure
+  getBomMaster: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -200,7 +197,7 @@ export const bomRouter = router({
   /**
    * 更新BOM主记录
    */
-  updateBomMaster: adminProcedure
+  updateBomMaster: publicProcedure
     .input(BomMasterUpdateSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -229,12 +226,12 @@ export const bomRouter = router({
   /**
    * 更新BOM状态（审批流: draft→pending_review→approved→active）
    */
-  updateBomStatus: adminProcedure
+  updateBomStatus: publicProcedure
     .input(z.object({
       id: z.number(),
       status: z.enum(['draft', 'pending_review', 'approved', 'active', 'superseded', 'obsolete']),
     }))
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       const db = await requireDb();
 
       const existingRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id));
@@ -244,7 +241,7 @@ export const bomRouter = router({
         status: input.status,
       };
       if (input.status === 'approved') {
-        updateValues.approvedBy = ctx.user?.id;
+        updateValues.approvedBy = null;
         updateValues.approvedAt = new Date().toISOString();
       }
 
@@ -257,7 +254,7 @@ export const bomRouter = router({
   /**
    * 删除BOM (仅draft状态)
    */
-  deleteBomMaster: adminProcedure
+  deleteBomMaster: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -279,14 +276,14 @@ export const bomRouter = router({
   /**
    * 添加BOM明细行
    */
-  addBomItem: adminProcedure
+  addBomItem: publicProcedure
     .input(BomItemCreateSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const extendedCost = input.quantity * input.unitCost * (1 + (input.scrapRate || 0) / 100);
       const roundedExtendedCost = Math.round(extendedCost * 100) / 100;
 
-      const result = await db.insert(bomItems).values({
+      const rows = await db.insert(bomItems).values({
         bomMasterId: input.bomMasterId,
         parentItemId: input.parentItemId ?? null,
         level: input.level,
@@ -310,9 +307,7 @@ export const bomRouter = router({
         remarks: input.remarks ?? null,
         effectiveFrom: input.effectiveFrom ?? null,
         effectiveTo: input.effectiveTo ?? null,
-      });
-
-      const insertId = result[0].insertId;
+      }).returning();
 
       // 更新BOM主表的maxLevel
       const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId));
@@ -320,14 +315,13 @@ export const bomRouter = router({
         await db.update(bomMasters).set({ maxLevel: input.level }).where(eq(bomMasters.id, input.bomMasterId));
       }
 
-      const rows = await db.select().from(bomItems).where(eq(bomItems.id, insertId));
-      return rows[0];
+      return rows[0] ?? null;
     }),
 
   /**
    * 更新BOM明细行
    */
-  updateBomItem: adminProcedure
+  updateBomItem: publicProcedure
     .input(BomItemUpdateSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -378,7 +372,7 @@ export const bomRouter = router({
   /**
    * 删除BOM明细行
    */
-  deleteBomItem: adminProcedure
+  deleteBomItem: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -392,7 +386,7 @@ export const bomRouter = router({
   /**
    * 获取BOM树 (多层级展开)
    */
-  getBomTree: protectedProcedure
+  getBomTree: publicProcedure
     .input(z.object({ bomMasterId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -423,7 +417,7 @@ export const bomRouter = router({
   /**
    * 批量添加BOM明细行
    */
-  batchAddBomItems: adminProcedure
+  batchAddBomItems: publicProcedure
     .input(z.object({
       bomMasterId: z.number(),
       items: z.array(BomItemCreateSchema.omit({ bomMasterId: true })),
@@ -437,7 +431,7 @@ export const bomRouter = router({
         const extendedCost = itemInput.quantity * (itemInput.unitCost || 0) * (1 + (itemInput.scrapRate || 0) / 100);
         const roundedExtendedCost = Math.round(extendedCost * 100) / 100;
 
-        const result = await db.insert(bomItems).values({
+        const rows = await db.insert(bomItems).values({
           bomMasterId: input.bomMasterId,
           parentItemId: itemInput.parentItemId ?? null,
           level: itemInput.level,
@@ -461,10 +455,8 @@ export const bomRouter = router({
           remarks: itemInput.remarks ?? null,
           effectiveFrom: itemInput.effectiveFrom ?? null,
           effectiveTo: itemInput.effectiveTo ?? null,
-        });
+        }).returning();
 
-        const insertId = result[0].insertId;
-        const rows = await db.select().from(bomItems).where(eq(bomItems.id, insertId));
         if (rows[0]) createdItems.push(rows[0]);
 
         if ((itemInput.level || 1) > maxLevel) maxLevel = itemInput.level || 1;
@@ -484,9 +476,9 @@ export const bomRouter = router({
   /**
    * 创建新版本 / ECN变更
    */
-  createVersion: adminProcedure
+  createVersion: publicProcedure
     .input(BomVersionCreateSchema)
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       const db = await requireDb();
 
       // 对当前BOM做快照
@@ -494,7 +486,7 @@ export const bomRouter = router({
       const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId));
       const master = masterRows[0] ?? null;
 
-      const result = await db.insert(bomVersions).values({
+      const rows = await db.insert(bomVersions).values({
         bomMasterId: input.bomMasterId,
         version: input.version,
         changeType: input.changeType,
@@ -505,23 +497,21 @@ export const bomRouter = router({
         status: 'draft',
         effectiveDate: input.effectiveDate ?? null,
         expiryDate: null,
-        requestedBy: ctx.user?.id,
+        requestedBy: null,
         reviewedBy: null,
         approvedBy: null,
         approvedAt: null,
         rejectionReason: null,
         bomSnapshot: { master, items: currentItems },
-      });
+      }).returning();
 
-      const insertId = result[0].insertId;
-      const rows = await db.select().from(bomVersions).where(eq(bomVersions.id, insertId));
-      return rows[0];
+      return rows[0] ?? null;
     }),
 
   /**
    * 获取版本列表
    */
-  getVersions: protectedProcedure
+  getVersions: publicProcedure
     .input(z.object({ bomMasterId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -535,13 +525,13 @@ export const bomRouter = router({
   /**
    * 审批版本
    */
-  approveVersion: adminProcedure
+  approveVersion: publicProcedure
     .input(z.object({
       id: z.number(),
       action: z.enum(['approve', 'reject']),
       reason: z.string().optional(),
     }))
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       const db = await requireDb();
       const versionRows = await db.select().from(bomVersions).where(eq(bomVersions.id, input.id));
       if (!versionRows[0]) throw new Error('Version not found');
@@ -551,7 +541,7 @@ export const bomRouter = router({
       if (input.action === 'approve') {
         await db.update(bomVersions).set({
           status: 'approved',
-          approvedBy: ctx.user?.id,
+          approvedBy: null,
           approvedAt: new Date().toISOString(),
         }).where(eq(bomVersions.id, input.id));
 
@@ -575,7 +565,7 @@ export const bomRouter = router({
   /**
    * 触发成本卷积计算
    */
-  calculateCostRollup: protectedProcedure
+  calculateCostRollup: publicProcedure
     .input(z.object({
       bomMasterId: z.number(),
       costType: z.enum(['standard', 'actual', 'estimated', 'budget']).default('standard'),
@@ -620,7 +610,7 @@ export const bomRouter = router({
       }));
 
       const now = new Date().toISOString();
-      const result = await db.insert(bomCostRollups).values({
+      const costRows = await db.insert(bomCostRollups).values({
         bomMasterId: input.bomMasterId,
         version: master.currentVersion,
         costType: input.costType,
@@ -633,7 +623,7 @@ export const bomRouter = router({
         totalCost: String(Math.round(totalCost * 100) / 100),
         costBreakdown,
         currency: 'CNY',
-      });
+      }).returning();
 
       // 更新主表成本
       const roundedMaterialCost = Math.round((materialCost + purchaseCost) * 100) / 100;
@@ -646,15 +636,13 @@ export const bomRouter = router({
         totalOverheadCost: String(roundedOverheadTotal),
       }).where(eq(bomMasters.id, input.bomMasterId));
 
-      const insertId = result[0].insertId;
-      const rows = await db.select().from(bomCostRollups).where(eq(bomCostRollups.id, insertId));
-      return rows[0];
+      return costRows[0] ?? null;
     }),
 
   /**
    * 获取成本卷积历史
    */
-  getCostRollups: protectedProcedure
+  getCostRollups: publicProcedure
     .input(z.object({
       bomMasterId: z.number(),
       costType: z.string().optional(),
@@ -679,7 +667,7 @@ export const bomRouter = router({
   /**
    * BOM统计概览
    */
-  getStats: protectedProcedure.query(async () => {
+  getStats: publicProcedure.query(async () => {
     const db = await requireDb();
 
     const totalResult = await db.select({ value: count() }).from(bomMasters);
@@ -706,7 +694,7 @@ export const bomRouter = router({
   /**
    * 查询物料被哪些BOM使用（反向追溯: Where-Used）
    */
-  whereUsed: protectedProcedure
+  whereUsed: publicProcedure
     .input(z.object({ materialCode: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -748,7 +736,7 @@ export const bomRouter = router({
   /**
    * 天思ERP同步标记
    */
-  markErpSynced: adminProcedure
+  markErpSynced: publicProcedure
     .input(z.object({
       id: z.number(),
       erpBomId: z.string(),

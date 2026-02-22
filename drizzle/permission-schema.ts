@@ -74,10 +74,13 @@ export const roles = pgTable(
     // 角色基本信息
     name: varchar('name', { length: 64 }).notNull().unique(),
     displayName: varchar('display_name', { length: 128 }).notNull(),
+    displayNameZh: varchar('display_name_zh', { length: 128 }),
     description: text('description'),
 
-    // 角色类型
-    roleType: varchar('role_type', { length: 50 }).default('custom'),
+    // 角色分类与层级
+    roleType: varchar('role_type', { length: 50 }).default('custom'),  // system | technical | business | custom
+    category: varchar('category', { length: 50 }).default('general'),  // executive | engineering | operations | general
+    level: integer('level').default(1),  // 0=guest, 1=member, 3=lead, 5=manager, 8=director, 10=super_admin
 
     // 数据范围
     defaultDataScope: varchar('default_data_scope', { length: 50 }).default('self'),

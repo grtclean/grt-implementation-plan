@@ -10,10 +10,19 @@
  * - 批次追踪 (inventoryLots)
  * - 序列号追踪 (serialNumbers)
  * - 库存查询 & 统计
+ *
+ * All data persisted via Drizzle ORM (no in-memory stores).
  */
 
 import { z } from "zod";
 import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
+import { requireDb } from "../db";
+import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
+import {
+  warehouses, warehouseLocations, warehouseReceipts, warehouseReceiptItems,
+  warehouseIssues, warehouseIssueItems, stockCounts,
+} from "../../drizzle/warehouse-schema";
+import { inventoryLots, serialNumbers } from "../../drizzle/inventory-lot-schema";
 
 // ============================================
 // Zod 验证 Schema
@@ -120,29 +129,6 @@ const LotCreateSchema = z.object({
   notes: z.string().optional(),
 });
 
-// ============================================
-// 模拟数据存储
-// ============================================
-
-let warehouseIdSeq = 1;
-const warehousesStore: any[] = [];
-let locationIdSeq = 1;
-const locationsStore: any[] = [];
-let receiptIdSeq = 1;
-const receiptsStore: any[] = [];
-let receiptItemIdSeq = 1;
-const receiptItemsStore: any[] = [];
-let issueIdSeq = 1;
-const issuesStore: any[] = [];
-let issueItemIdSeq = 1;
-const issueItemsStore: any[] = [];
-let stockCountIdSeq = 1;
-const stockCountsStore: any[] = [];
-let lotIdSeq = 1;
-const lotsStore: any[] = [];
-let serialIdSeq = 1;
-const serialsStore: any[] = [];
-
 function generateCode(prefix: string): string {
   return `${prefix}-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;
 }
@@ -159,17 +145,27 @@ export const warehouseRouter = router({
   createWarehouse: adminProcedure
     .input(WarehouseCreateSchema)
     .mutation(async ({ input }) => {
-      const wh = {
-        id: warehouseIdSeq++,
-        ...input,
-        erpWarehouseCode: null,
-        erpSyncStatus: 'not_synced' as const,
+      const db = await requireDb();
+      const now = new Date().toISOString();
+      const result = await db.insert(warehouses).values({
+        warehouseCode: input.warehouseCode,
+        warehouseName: input.warehouseName,
+        warehouseType: input.warehouseType,
+        buCode: input.buCode ?? null,
+        address: input.address ?? null,
+        building: input.building ?? null,
+        floor: input.floor ?? null,
+        totalArea: input.totalArea != null ? String(input.totalArea) : null,
+        totalCapacity: input.totalCapacity ?? null,
+        managerId: input.managerId ?? null,
+        managerName: input.managerName ?? null,
+        contactPhone: input.contactPhone ?? null,
+        description: input.description ?? null,
         isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      warehousesStore.push(wh);
-      return wh;
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
+      return result[0];
     }),
 
   getWarehouses: protectedProcedure
@@ -180,47 +176,63 @@ export const warehouseRouter = router({
       search: z.string().optional(),
     }))
     .query(async ({ input }) => {
-      let filtered = [...warehousesStore];
-      if (input.warehouseType) filtered = filtered.filter(w => w.warehouseType === input.warehouseType);
-      if (input.buCode) filtered = filtered.filter(w => w.buCode === input.buCode);
-      if (input.isActive !== undefined) filtered = filtered.filter(w => w.isActive === input.isActive);
+      const db = await requireDb();
+      const conditions = [];
+      if (input.warehouseType) conditions.push(eq(warehouses.warehouseType, input.warehouseType));
+      if (input.buCode) conditions.push(eq(warehouses.buCode, input.buCode));
+      if (input.isActive !== undefined) conditions.push(eq(warehouses.isActive, input.isActive));
       if (input.search) {
-        const s = input.search.toLowerCase();
-        filtered = filtered.filter(w =>
-          w.warehouseCode.toLowerCase().includes(s) ||
-          w.warehouseName.toLowerCase().includes(s)
-        );
+        const pattern = `%${input.search}%`;
+        conditions.push(or(like(warehouses.warehouseCode, pattern), like(warehouses.warehouseName, pattern)));
       }
-      return filtered;
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+      return db.select().from(warehouses).where(where).orderBy(warehouses.id);
     }),
 
   getWarehouse: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
-      const wh = warehousesStore.find(w => w.id === input.id);
-      if (!wh) return null;
-      const locations = locationsStore.filter(l => l.warehouseId === input.id);
-      return { ...wh, locations };
+      const db = await requireDb();
+      const whRows = await db.select().from(warehouses).where(eq(warehouses.id, input.id));
+      if (!whRows[0]) return null;
+      const locations = await db.select().from(warehouseLocations).where(eq(warehouseLocations.warehouseId, input.id));
+      return { ...whRows[0], locations };
     }),
 
   updateWarehouse: adminProcedure
     .input(WarehouseCreateSchema.partial().extend({ id: z.number() }))
     .mutation(async ({ input }) => {
-      const idx = warehousesStore.findIndex(w => w.id === input.id);
-      if (idx === -1) throw new Error('Warehouse not found');
+      const db = await requireDb();
       const { id, ...updates } = input;
-      warehousesStore[idx] = { ...warehousesStore[idx], ...updates, updatedAt: new Date().toISOString() };
-      return warehousesStore[idx];
+      const u: Record<string, any> = { updatedAt: new Date().toISOString() };
+      if (updates.warehouseCode !== undefined) u.warehouseCode = updates.warehouseCode;
+      if (updates.warehouseName !== undefined) u.warehouseName = updates.warehouseName;
+      if (updates.warehouseType !== undefined) u.warehouseType = updates.warehouseType;
+      if (updates.buCode !== undefined) u.buCode = updates.buCode;
+      if (updates.address !== undefined) u.address = updates.address;
+      if (updates.building !== undefined) u.building = updates.building;
+      if (updates.floor !== undefined) u.floor = updates.floor;
+      if (updates.totalArea !== undefined) u.totalArea = updates.totalArea != null ? String(updates.totalArea) : null;
+      if (updates.totalCapacity !== undefined) u.totalCapacity = updates.totalCapacity;
+      if (updates.managerId !== undefined) u.managerId = updates.managerId;
+      if (updates.managerName !== undefined) u.managerName = updates.managerName;
+      if (updates.contactPhone !== undefined) u.contactPhone = updates.contactPhone;
+      if (updates.description !== undefined) u.description = updates.description;
+
+      await db.update(warehouses).set(u).where(eq(warehouses.id, id));
+      const rows = await db.select().from(warehouses).where(eq(warehouses.id, id));
+      if (!rows[0]) throw new Error('Warehouse not found');
+      return rows[0];
     }),
 
   toggleWarehouseActive: adminProcedure
     .input(z.object({ id: z.number(), isActive: z.boolean() }))
     .mutation(async ({ input }) => {
-      const idx = warehousesStore.findIndex(w => w.id === input.id);
-      if (idx === -1) throw new Error('Warehouse not found');
-      warehousesStore[idx].isActive = input.isActive;
-      warehousesStore[idx].updatedAt = new Date().toISOString();
-      return warehousesStore[idx];
+      const db = await requireDb();
+      await db.update(warehouses).set({ isActive: input.isActive, updatedAt: new Date().toISOString() }).where(eq(warehouses.id, input.id));
+      const rows = await db.select().from(warehouses).where(eq(warehouses.id, input.id));
+      if (!rows[0]) throw new Error('Warehouse not found');
+      return rows[0];
     }),
 
   // ==========================================
@@ -230,20 +242,30 @@ export const warehouseRouter = router({
   createLocation: adminProcedure
     .input(LocationCreateSchema)
     .mutation(async ({ input }) => {
-      const loc = {
-        id: locationIdSeq++,
-        ...input,
+      const db = await requireDb();
+      const now = new Date().toISOString();
+      const result = await db.insert(warehouseLocations).values({
+        warehouseId: input.warehouseId,
+        locationCode: input.locationCode,
+        zone: input.zone,
+        aisle: input.aisle ?? null,
+        shelf: input.shelf ?? null,
+        bin: input.bin ?? null,
+        locationType: input.locationType,
+        maxWeight: input.maxWeight != null ? String(input.maxWeight) : null,
+        maxVolume: input.maxVolume != null ? String(input.maxVolume) : null,
+        maxItems: input.maxItems ?? null,
+        tempRequirement: input.tempRequirement,
         isOccupied: false,
         currentMaterialCode: null,
-        currentQty: 0,
+        currentQty: '0.00',
         isActive: true,
         isLocked: false,
         lockReason: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      locationsStore.push(loc);
-      return loc;
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
+      return result[0];
     }),
 
   getLocations: protectedProcedure
@@ -254,11 +276,12 @@ export const warehouseRouter = router({
       isOccupied: z.boolean().optional(),
     }))
     .query(async ({ input }) => {
-      let filtered = locationsStore.filter(l => l.warehouseId === input.warehouseId);
-      if (input.zone) filtered = filtered.filter(l => l.zone === input.zone);
-      if (input.locationType) filtered = filtered.filter(l => l.locationType === input.locationType);
-      if (input.isOccupied !== undefined) filtered = filtered.filter(l => l.isOccupied === input.isOccupied);
-      return filtered;
+      const db = await requireDb();
+      const conditions = [eq(warehouseLocations.warehouseId, input.warehouseId)];
+      if (input.zone) conditions.push(eq(warehouseLocations.zone, input.zone));
+      if (input.locationType) conditions.push(eq(warehouseLocations.locationType, input.locationType));
+      if (input.isOccupied !== undefined) conditions.push(eq(warehouseLocations.isOccupied, input.isOccupied));
+      return db.select().from(warehouseLocations).where(and(...conditions));
     }),
 
   batchCreateLocations: adminProcedure
@@ -271,55 +294,60 @@ export const warehouseRouter = router({
       locationType: z.enum(['storage', 'picking', 'staging', 'receiving', 'shipping', 'quality_hold']).default('storage'),
     }))
     .mutation(async ({ input }) => {
-      const wh = warehousesStore.find(w => w.id === input.warehouseId);
-      if (!wh) throw new Error('Warehouse not found');
-      const created: any[] = [];
+      const db = await requireDb();
+      // Get warehouse code for location naming
+      const whRows = await db.select().from(warehouses).where(eq(warehouses.id, input.warehouseId));
+      if (!whRows[0]) throw new Error('Warehouse not found');
+      const whCode = whRows[0].warehouseCode;
+      const now = new Date().toISOString();
+
+      const valuesToInsert: any[] = [];
       for (let a = 1; a <= input.aisleCount; a++) {
         for (let s = 1; s <= input.shelfCount; s++) {
           for (let b = 1; b <= input.binCount; b++) {
             const aisleStr = String(a).padStart(2, '0');
             const shelfStr = String(s).padStart(2, '0');
             const binStr = String(b).padStart(2, '0');
-            const locationCode = `${wh.warehouseCode}-${input.zone}-${aisleStr}-${shelfStr}-${binStr}`;
-            const loc = {
-              id: locationIdSeq++,
+            valuesToInsert.push({
               warehouseId: input.warehouseId,
-              locationCode,
+              locationCode: `${whCode}-${input.zone}-${aisleStr}-${shelfStr}-${binStr}`,
               zone: input.zone,
               aisle: aisleStr,
               shelf: shelfStr,
               bin: binStr,
               locationType: input.locationType,
-              maxWeight: null,
-              maxVolume: null,
-              maxItems: null,
-              tempRequirement: 'normal' as const,
+              tempRequirement: 'normal',
               isOccupied: false,
-              currentMaterialCode: null,
-              currentQty: 0,
+              currentQty: '0.00',
               isActive: true,
               isLocked: false,
-              lockReason: null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-            locationsStore.push(loc);
-            created.push(loc);
+              createdAt: now,
+              updatedAt: now,
+            });
           }
         }
       }
-      return { created: created.length, message: `已创建 ${created.length} 个库位` };
+
+      // Batch insert (Drizzle supports arrays)
+      if (valuesToInsert.length > 0) {
+        await db.insert(warehouseLocations).values(valuesToInsert);
+      }
+
+      return { created: valuesToInsert.length, message: `已创建 ${valuesToInsert.length} 个库位` };
     }),
 
   lockLocation: adminProcedure
     .input(z.object({ id: z.number(), isLocked: z.boolean(), lockReason: z.string().optional() }))
     .mutation(async ({ input }) => {
-      const idx = locationsStore.findIndex(l => l.id === input.id);
-      if (idx === -1) throw new Error('Location not found');
-      locationsStore[idx].isLocked = input.isLocked;
-      locationsStore[idx].lockReason = input.isLocked ? (input.lockReason || '手动锁定') : null;
-      locationsStore[idx].updatedAt = new Date().toISOString();
-      return locationsStore[idx];
+      const db = await requireDb();
+      await db.update(warehouseLocations).set({
+        isLocked: input.isLocked,
+        lockReason: input.isLocked ? (input.lockReason || '手动锁定') : null,
+        updatedAt: new Date().toISOString(),
+      }).where(eq(warehouseLocations.id, input.id));
+      const rows = await db.select().from(warehouseLocations).where(eq(warehouseLocations.id, input.id));
+      if (!rows[0]) throw new Error('Location not found');
+      return rows[0];
     }),
 
   // ==========================================
@@ -329,34 +357,47 @@ export const warehouseRouter = router({
   createReceipt: protectedProcedure
     .input(ReceiptCreateSchema)
     .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
       const { items, ...receiptData } = input;
-      const receipt = {
-        id: receiptIdSeq++,
+      const now = new Date().toISOString();
+
+      const receiptResult = await db.insert(warehouseReceipts).values({
         receiptCode: generateCode('RCV'),
-        ...receiptData,
-        status: 'draft' as const,
+        receiptType: receiptData.receiptType,
+        sourceDocType: receiptData.sourceDocType ?? null,
+        sourceDocId: receiptData.sourceDocId ?? null,
+        sourceDocCode: receiptData.sourceDocCode ?? null,
+        warehouseId: receiptData.warehouseId,
+        locationId: receiptData.locationId ?? null,
+        status: 'draft',
         receivedBy: ctx.user?.id,
         receivedByName: ctx.user?.name || '',
         receivedAt: null,
-        qcResult: 'pending' as const,
+        qcResult: null,
         qcBy: null,
         qcAt: null,
         qcNotes: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      receiptsStore.push(receipt);
+        notes: receiptData.notes ?? null,
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
+      const receipt = receiptResult[0];
 
       const createdItems: any[] = [];
       for (const item of items) {
-        const ri = {
-          id: receiptItemIdSeq++,
+        const itemResult = await db.insert(warehouseReceiptItems).values({
           receiptId: receipt.id,
-          ...item,
-          createdAt: new Date().toISOString(),
-        };
-        receiptItemsStore.push(ri);
-        createdItems.push(ri);
+          materialCode: item.materialCode,
+          materialName: item.materialName ?? null,
+          expectedQty: String(item.expectedQty),
+          receivedQty: String(item.receivedQty),
+          unit: item.unit,
+          lotNumber: item.lotNumber ?? null,
+          locationId: item.locationId ?? null,
+          locationCode: item.locationCode ?? null,
+          createdAt: now,
+        }).returning();
+        createdItems.push(itemResult[0]);
       }
 
       return { ...receipt, items: createdItems };
@@ -371,23 +412,30 @@ export const warehouseRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ input }) => {
-      let filtered = [...receiptsStore];
-      if (input.warehouseId) filtered = filtered.filter(r => r.warehouseId === input.warehouseId);
-      if (input.receiptType) filtered = filtered.filter(r => r.receiptType === input.receiptType);
-      if (input.status) filtered = filtered.filter(r => r.status === input.status);
-      const total = filtered.length;
-      const start = (input.page - 1) * input.pageSize;
-      const items = filtered.slice(start, start + input.pageSize);
-      return { items, total, page: input.page, pageSize: input.pageSize };
+      const db = await requireDb();
+      const conditions = [];
+      if (input.warehouseId) conditions.push(eq(warehouseReceipts.warehouseId, input.warehouseId));
+      if (input.receiptType) conditions.push(eq(warehouseReceipts.receiptType, input.receiptType));
+      if (input.status) conditions.push(eq(warehouseReceipts.status, input.status));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [totalResult, items] = await Promise.all([
+        db.select({ value: count() }).from(warehouseReceipts).where(where),
+        db.select().from(warehouseReceipts).where(where)
+          .orderBy(desc(warehouseReceipts.id))
+          .limit(input.pageSize).offset((input.page - 1) * input.pageSize),
+      ]);
+      return { items, total: totalResult[0].value, page: input.page, pageSize: input.pageSize };
     }),
 
   getReceipt: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
-      const receipt = receiptsStore.find(r => r.id === input.id);
-      if (!receipt) return null;
-      const items = receiptItemsStore.filter(ri => ri.receiptId === input.id);
-      return { ...receipt, items };
+      const db = await requireDb();
+      const receiptRows = await db.select().from(warehouseReceipts).where(eq(warehouseReceipts.id, input.id));
+      if (!receiptRows[0]) return null;
+      const items = await db.select().from(warehouseReceiptItems).where(eq(warehouseReceiptItems.receiptId, input.id));
+      return { ...receiptRows[0], items };
     }),
 
   updateReceiptStatus: protectedProcedure
@@ -397,22 +445,20 @@ export const warehouseRouter = router({
       qcNotes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const idx = receiptsStore.findIndex(r => r.id === input.id);
-      if (idx === -1) throw new Error('Receipt not found');
-      receiptsStore[idx].status = input.status;
-
-      if (input.status === 'shelved') {
-        receiptsStore[idx].receivedAt = new Date().toISOString();
-      }
+      const db = await requireDb();
+      const now = new Date().toISOString();
+      const u: Record<string, any> = { status: input.status, updatedAt: now };
+      if (input.status === 'shelved') u.receivedAt = now;
       if (input.status === 'qc_passed' || input.status === 'qc_failed') {
-        receiptsStore[idx].qcResult = input.status === 'qc_passed' ? 'passed' : 'failed';
-        receiptsStore[idx].qcBy = ctx.user?.id;
-        receiptsStore[idx].qcAt = new Date().toISOString();
-        if (input.qcNotes) receiptsStore[idx].qcNotes = input.qcNotes;
+        u.qcResult = input.status === 'qc_passed' ? 'passed' : 'failed';
+        u.qcBy = ctx.user?.id;
+        u.qcAt = now;
+        if (input.qcNotes) u.qcNotes = input.qcNotes;
       }
-
-      receiptsStore[idx].updatedAt = new Date().toISOString();
-      return receiptsStore[idx];
+      await db.update(warehouseReceipts).set(u).where(eq(warehouseReceipts.id, input.id));
+      const rows = await db.select().from(warehouseReceipts).where(eq(warehouseReceipts.id, input.id));
+      if (!rows[0]) throw new Error('Receipt not found');
+      return rows[0];
     }),
 
   // ==========================================
@@ -422,33 +468,47 @@ export const warehouseRouter = router({
   createIssue: protectedProcedure
     .input(IssueCreateSchema)
     .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
       const { items, ...issueData } = input;
-      const issue = {
-        id: issueIdSeq++,
+      const now = new Date().toISOString();
+
+      const issueResult = await db.insert(warehouseIssues).values({
         issueCode: generateCode('ISS'),
-        ...issueData,
-        status: 'draft' as const,
+        issueType: issueData.issueType,
+        sourceDocType: issueData.sourceDocType ?? null,
+        sourceDocId: issueData.sourceDocId ?? null,
+        sourceDocCode: issueData.sourceDocCode ?? null,
+        processCode: issueData.processCode ?? null,
+        warehouseId: issueData.warehouseId,
+        requestDept: issueData.requestDept ?? null,
+        projectCode: issueData.projectCode ?? null,
+        status: 'draft',
         issuedBy: ctx.user?.id,
         issuedByName: ctx.user?.name || '',
         issuedAt: null,
         approvedBy: null,
         approvedAt: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      issuesStore.push(issue);
+        notes: issueData.notes ?? null,
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
+      const issue = issueResult[0];
 
       const createdItems: any[] = [];
       for (const item of items) {
-        const ii = {
-          id: issueItemIdSeq++,
+        const itemResult = await db.insert(warehouseIssueItems).values({
           issueId: issue.id,
-          ...item,
-          issuedQty: 0,
-          createdAt: new Date().toISOString(),
-        };
-        issueItemsStore.push(ii);
-        createdItems.push(ii);
+          materialCode: item.materialCode,
+          materialName: item.materialName ?? null,
+          requestedQty: String(item.requestedQty),
+          issuedQty: '0.00',
+          unit: item.unit,
+          locationId: item.locationId ?? null,
+          locationCode: item.locationCode ?? null,
+          lotNumber: item.lotNumber ?? null,
+          createdAt: now,
+        }).returning();
+        createdItems.push(itemResult[0]);
       }
 
       return { ...issue, items: createdItems };
@@ -464,24 +524,31 @@ export const warehouseRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ input }) => {
-      let filtered = [...issuesStore];
-      if (input.warehouseId) filtered = filtered.filter(i => i.warehouseId === input.warehouseId);
-      if (input.issueType) filtered = filtered.filter(i => i.issueType === input.issueType);
-      if (input.status) filtered = filtered.filter(i => i.status === input.status);
-      if (input.projectCode) filtered = filtered.filter(i => i.projectCode === input.projectCode);
-      const total = filtered.length;
-      const start = (input.page - 1) * input.pageSize;
-      const items = filtered.slice(start, start + input.pageSize);
-      return { items, total, page: input.page, pageSize: input.pageSize };
+      const db = await requireDb();
+      const conditions = [];
+      if (input.warehouseId) conditions.push(eq(warehouseIssues.warehouseId, input.warehouseId));
+      if (input.issueType) conditions.push(eq(warehouseIssues.issueType, input.issueType));
+      if (input.status) conditions.push(eq(warehouseIssues.status, input.status));
+      if (input.projectCode) conditions.push(eq(warehouseIssues.projectCode, input.projectCode));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [totalResult, items] = await Promise.all([
+        db.select({ value: count() }).from(warehouseIssues).where(where),
+        db.select().from(warehouseIssues).where(where)
+          .orderBy(desc(warehouseIssues.id))
+          .limit(input.pageSize).offset((input.page - 1) * input.pageSize),
+      ]);
+      return { items, total: totalResult[0].value, page: input.page, pageSize: input.pageSize };
     }),
 
   getIssue: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
-      const issue = issuesStore.find(i => i.id === input.id);
-      if (!issue) return null;
-      const items = issueItemsStore.filter(ii => ii.issueId === input.id);
-      return { ...issue, items };
+      const db = await requireDb();
+      const issueRows = await db.select().from(warehouseIssues).where(eq(warehouseIssues.id, input.id));
+      if (!issueRows[0]) return null;
+      const items = await db.select().from(warehouseIssueItems).where(eq(warehouseIssueItems.issueId, input.id));
+      return { ...issueRows[0], items };
     }),
 
   updateIssueStatus: adminProcedure
@@ -490,18 +557,15 @@ export const warehouseRouter = router({
       status: z.enum(['draft', 'approved', 'picking', 'issued', 'partial', 'cancelled']),
     }))
     .mutation(async ({ input, ctx }) => {
-      const idx = issuesStore.findIndex(i => i.id === input.id);
-      if (idx === -1) throw new Error('Issue not found');
-      issuesStore[idx].status = input.status;
-      if (input.status === 'approved') {
-        issuesStore[idx].approvedBy = ctx.user?.id;
-        issuesStore[idx].approvedAt = new Date().toISOString();
-      }
-      if (input.status === 'issued') {
-        issuesStore[idx].issuedAt = new Date().toISOString();
-      }
-      issuesStore[idx].updatedAt = new Date().toISOString();
-      return issuesStore[idx];
+      const db = await requireDb();
+      const now = new Date().toISOString();
+      const u: Record<string, any> = { status: input.status, updatedAt: now };
+      if (input.status === 'approved') { u.approvedBy = ctx.user?.id; u.approvedAt = now; }
+      if (input.status === 'issued') u.issuedAt = now;
+      await db.update(warehouseIssues).set(u).where(eq(warehouseIssues.id, input.id));
+      const rows = await db.select().from(warehouseIssues).where(eq(warehouseIssues.id, input.id));
+      if (!rows[0]) throw new Error('Issue not found');
+      return rows[0];
     }),
 
   // ==========================================
@@ -511,25 +575,25 @@ export const warehouseRouter = router({
   createStockCount: adminProcedure
     .input(StockCountCreateSchema)
     .mutation(async ({ input, ctx }) => {
-      const count = {
-        id: stockCountIdSeq++,
+      const db = await requireDb();
+      const now = new Date().toISOString();
+      const result = await db.insert(stockCounts).values({
         countCode: generateCode('CNT'),
-        ...input,
-        status: 'planned' as const,
-        startedAt: null,
-        completedAt: null,
+        countType: input.countType,
+        warehouseId: input.warehouseId,
+        zone: input.zone ?? null,
+        status: 'planned',
+        plannedDate: input.plannedDate ?? null,
         countedBy: ctx.user?.id,
-        verifiedBy: null,
-        approvedBy: null,
         totalItems: 0,
         matchedItems: 0,
         discrepancyItems: 0,
-        totalDiscrepancyValue: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      stockCountsStore.push(count);
-      return count;
+        totalDiscrepancyValue: '0.00',
+        notes: input.notes ?? null,
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
+      return result[0];
     }),
 
   getStockCounts: protectedProcedure
@@ -541,14 +605,20 @@ export const warehouseRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ input }) => {
-      let filtered = [...stockCountsStore];
-      if (input.warehouseId) filtered = filtered.filter(c => c.warehouseId === input.warehouseId);
-      if (input.status) filtered = filtered.filter(c => c.status === input.status);
-      if (input.countType) filtered = filtered.filter(c => c.countType === input.countType);
-      const total = filtered.length;
-      const start = (input.page - 1) * input.pageSize;
-      const items = filtered.slice(start, start + input.pageSize);
-      return { items, total, page: input.page, pageSize: input.pageSize };
+      const db = await requireDb();
+      const conditions = [];
+      if (input.warehouseId) conditions.push(eq(stockCounts.warehouseId, input.warehouseId));
+      if (input.status) conditions.push(eq(stockCounts.status, input.status));
+      if (input.countType) conditions.push(eq(stockCounts.countType, input.countType));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [totalResult, items] = await Promise.all([
+        db.select({ value: count() }).from(stockCounts).where(where),
+        db.select().from(stockCounts).where(where)
+          .orderBy(desc(stockCounts.id))
+          .limit(input.pageSize).offset((input.page - 1) * input.pageSize),
+      ]);
+      return { items, total: totalResult[0].value, page: input.page, pageSize: input.pageSize };
     }),
 
   updateStockCountStatus: adminProcedure
@@ -561,15 +631,22 @@ export const warehouseRouter = router({
       totalDiscrepancyValue: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const idx = stockCountsStore.findIndex(c => c.id === input.id);
-      if (idx === -1) throw new Error('Stock count not found');
+      const db = await requireDb();
+      const now = new Date().toISOString();
       const { id, ...updates } = input;
-      Object.assign(stockCountsStore[idx], updates);
-      if (input.status === 'in_progress') stockCountsStore[idx].startedAt = new Date().toISOString();
-      if (input.status === 'completed') stockCountsStore[idx].completedAt = new Date().toISOString();
-      if (input.status === 'approved') stockCountsStore[idx].approvedBy = ctx.user?.id;
-      stockCountsStore[idx].updatedAt = new Date().toISOString();
-      return stockCountsStore[idx];
+      const u: Record<string, any> = { status: updates.status, updatedAt: now };
+      if (updates.totalItems !== undefined) u.totalItems = updates.totalItems;
+      if (updates.matchedItems !== undefined) u.matchedItems = updates.matchedItems;
+      if (updates.discrepancyItems !== undefined) u.discrepancyItems = updates.discrepancyItems;
+      if (updates.totalDiscrepancyValue !== undefined) u.totalDiscrepancyValue = String(updates.totalDiscrepancyValue);
+      if (updates.status === 'in_progress') u.startedAt = now;
+      if (updates.status === 'completed') u.completedAt = now;
+      if (updates.status === 'approved') u.approvedBy = ctx.user?.id;
+
+      await db.update(stockCounts).set(u).where(eq(stockCounts.id, id));
+      const rows = await db.select().from(stockCounts).where(eq(stockCounts.id, id));
+      if (!rows[0]) throw new Error('Stock count not found');
+      return rows[0];
     }),
 
   // ==========================================
@@ -579,25 +656,39 @@ export const warehouseRouter = router({
   createLot: protectedProcedure
     .input(LotCreateSchema)
     .mutation(async ({ input }) => {
-      const lot = {
-        id: lotIdSeq++,
-        ...input,
-        currentQty: input.initialQty,
-        reservedQty: 0,
-        receivedDate: new Date().toISOString(),
-        qcStatus: 'pending' as const,
-        qcReportId: null,
-        qcCertificateNumber: null,
-        status: 'available' as const,
-        totalCost: (input.unitCost || 0) * input.initialQty,
-        erpLotId: null,
-        erpSyncStatus: 'not_synced' as const,
-        traceAttributes: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      lotsStore.push(lot);
-      return lot;
+      const db = await requireDb();
+      const now = new Date().toISOString();
+      const totalCost = (input.unitCost || 0) * input.initialQty;
+      const result = await db.insert(inventoryLots).values({
+        lotNumber: input.lotNumber,
+        materialCode: input.materialCode,
+        materialName: input.materialName ?? null,
+        initialQty: String(input.initialQty),
+        currentQty: String(input.initialQty),
+        reservedQty: '0.00',
+        unit: input.unit,
+        sourceType: input.sourceType,
+        sourcePOCode: input.sourcePOCode ?? null,
+        sourceWorkOrder: input.sourceWorkOrder ?? null,
+        supplierLotNumber: input.supplierLotNumber ?? null,
+        supplierId: input.supplierId ?? null,
+        supplierName: input.supplierName ?? null,
+        warehouseId: input.warehouseId ?? null,
+        locationId: input.locationId ?? null,
+        locationCode: input.locationCode ?? null,
+        productionDate: input.productionDate ?? null,
+        receivedDate: now,
+        expiryDate: input.expiryDate ?? null,
+        warrantyDate: input.warrantyDate ?? null,
+        qcStatus: 'pending',
+        status: 'available',
+        unitCost: input.unitCost != null ? String(input.unitCost) : null,
+        totalCost: String(totalCost),
+        notes: input.notes ?? null,
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
+      return result[0];
     }),
 
   getLots: protectedProcedure
@@ -611,28 +702,34 @@ export const warehouseRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ input }) => {
-      let filtered = [...lotsStore];
-      if (input.materialCode) filtered = filtered.filter(l => l.materialCode === input.materialCode);
-      if (input.warehouseId) filtered = filtered.filter(l => l.warehouseId === input.warehouseId);
-      if (input.status) filtered = filtered.filter(l => l.status === input.status);
-      if (input.qcStatus) filtered = filtered.filter(l => l.qcStatus === input.qcStatus);
+      const db = await requireDb();
+      const conditions = [];
+      if (input.materialCode) conditions.push(eq(inventoryLots.materialCode, input.materialCode));
+      if (input.warehouseId) conditions.push(eq(inventoryLots.warehouseId, input.warehouseId));
+      if (input.status) conditions.push(eq(inventoryLots.status, input.status));
+      if (input.qcStatus) conditions.push(eq(inventoryLots.qcStatus, input.qcStatus));
       if (input.expiringWithinDays) {
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() + input.expiringWithinDays);
-        filtered = filtered.filter(l =>
-          l.expiryDate && new Date(l.expiryDate) <= cutoff && new Date(l.expiryDate) >= new Date()
-        );
+        conditions.push(sql`${inventoryLots.expiryDate} IS NOT NULL AND ${inventoryLots.expiryDate} <= ${cutoff.toISOString()} AND ${inventoryLots.expiryDate} >= ${new Date().toISOString()}`);
       }
-      const total = filtered.length;
-      const start = (input.page - 1) * input.pageSize;
-      const items = filtered.slice(start, start + input.pageSize);
-      return { items, total, page: input.page, pageSize: input.pageSize };
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [totalResult, items] = await Promise.all([
+        db.select({ value: count() }).from(inventoryLots).where(where),
+        db.select().from(inventoryLots).where(where)
+          .orderBy(desc(inventoryLots.id))
+          .limit(input.pageSize).offset((input.page - 1) * input.pageSize),
+      ]);
+      return { items, total: totalResult[0].value, page: input.page, pageSize: input.pageSize };
     }),
 
   getLot: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
-      return lotsStore.find(l => l.id === input.id) || null;
+      const db = await requireDb();
+      const rows = await db.select().from(inventoryLots).where(eq(inventoryLots.id, input.id));
+      return rows[0] ?? null;
     }),
 
   updateLotStatus: protectedProcedure
@@ -641,11 +738,11 @@ export const warehouseRouter = router({
       status: z.enum(['available', 'reserved', 'quarantine', 'expired', 'consumed', 'scrapped']),
     }))
     .mutation(async ({ input }) => {
-      const idx = lotsStore.findIndex(l => l.id === input.id);
-      if (idx === -1) throw new Error('Lot not found');
-      lotsStore[idx].status = input.status;
-      lotsStore[idx].updatedAt = new Date().toISOString();
-      return lotsStore[idx];
+      const db = await requireDb();
+      await db.update(inventoryLots).set({ status: input.status, updatedAt: new Date().toISOString() }).where(eq(inventoryLots.id, input.id));
+      const rows = await db.select().from(inventoryLots).where(eq(inventoryLots.id, input.id));
+      if (!rows[0]) throw new Error('Lot not found');
+      return rows[0];
     }),
 
   updateLotQC: protectedProcedure
@@ -655,13 +752,14 @@ export const warehouseRouter = router({
       qcCertificateNumber: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const idx = lotsStore.findIndex(l => l.id === input.id);
-      if (idx === -1) throw new Error('Lot not found');
-      lotsStore[idx].qcStatus = input.qcStatus;
-      if (input.qcCertificateNumber) lotsStore[idx].qcCertificateNumber = input.qcCertificateNumber;
-      if (input.qcStatus === 'failed') lotsStore[idx].status = 'quarantine';
-      lotsStore[idx].updatedAt = new Date().toISOString();
-      return lotsStore[idx];
+      const db = await requireDb();
+      const u: Record<string, any> = { qcStatus: input.qcStatus, updatedAt: new Date().toISOString() };
+      if (input.qcCertificateNumber) u.qcCertificateNumber = input.qcCertificateNumber;
+      if (input.qcStatus === 'failed') u.status = 'quarantine';
+      await db.update(inventoryLots).set(u).where(eq(inventoryLots.id, input.id));
+      const rows = await db.select().from(inventoryLots).where(eq(inventoryLots.id, input.id));
+      if (!rows[0]) throw new Error('Lot not found');
+      return rows[0];
     }),
 
   // ==========================================
@@ -682,20 +780,26 @@ export const warehouseRouter = router({
       warrantyExpiry: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const sn = {
-        id: serialIdSeq++,
-        ...input,
-        status: 'in_stock' as const,
-        currentProjectCode: null,
-        currentProcessCode: null,
-        currentHolderId: null,
-        receivedDate: new Date().toISOString(),
-        lifecycleEvents: [{ date: new Date().toISOString(), event: 'created', notes: '入库登记' }],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      serialsStore.push(sn);
-      return sn;
+      const db = await requireDb();
+      const now = new Date().toISOString();
+      const result = await db.insert(serialNumbers).values({
+        serialNumber: input.serialNumber,
+        materialCode: input.materialCode,
+        materialName: input.materialName ?? null,
+        lotId: input.lotId ?? null,
+        lotNumber: input.lotNumber ?? null,
+        warehouseId: input.warehouseId ?? null,
+        locationId: input.locationId ?? null,
+        status: 'in_stock',
+        purchaseOrderCode: input.purchaseOrderCode ?? null,
+        supplierId: input.supplierId ?? null,
+        receivedDate: now,
+        warrantyExpiry: input.warrantyExpiry ?? null,
+        lifecycleEvents: [{ date: now, event: 'created', notes: '入库登记' }],
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
+      return result[0];
     }),
 
   getSerialNumbers: protectedProcedure
@@ -708,18 +812,21 @@ export const warehouseRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ input }) => {
-      let filtered = [...serialsStore];
-      if (input.materialCode) filtered = filtered.filter(s => s.materialCode === input.materialCode);
-      if (input.lotId) filtered = filtered.filter(s => s.lotId === input.lotId);
-      if (input.status) filtered = filtered.filter(s => s.status === input.status);
-      if (input.search) {
-        const q = input.search.toLowerCase();
-        filtered = filtered.filter(s => s.serialNumber.toLowerCase().includes(q));
-      }
-      const total = filtered.length;
-      const start = (input.page - 1) * input.pageSize;
-      const items = filtered.slice(start, start + input.pageSize);
-      return { items, total, page: input.page, pageSize: input.pageSize };
+      const db = await requireDb();
+      const conditions = [];
+      if (input.materialCode) conditions.push(eq(serialNumbers.materialCode, input.materialCode));
+      if (input.lotId) conditions.push(eq(serialNumbers.lotId, input.lotId));
+      if (input.status) conditions.push(eq(serialNumbers.status, input.status));
+      if (input.search) conditions.push(like(serialNumbers.serialNumber, `%${input.search}%`));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [totalResult, items] = await Promise.all([
+        db.select({ value: count() }).from(serialNumbers).where(where),
+        db.select().from(serialNumbers).where(where)
+          .orderBy(desc(serialNumbers.id))
+          .limit(input.pageSize).offset((input.page - 1) * input.pageSize),
+      ]);
+      return { items, total: totalResult[0].value, page: input.page, pageSize: input.pageSize };
     }),
 
   updateSerialStatus: protectedProcedure
@@ -732,22 +839,23 @@ export const warehouseRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const idx = serialsStore.findIndex(s => s.id === input.id);
-      if (idx === -1) throw new Error('Serial number not found');
-      serialsStore[idx].status = input.status;
-      if (input.projectCode !== undefined) serialsStore[idx].currentProjectCode = input.projectCode;
-      if (input.processCode !== undefined) serialsStore[idx].currentProcessCode = input.processCode;
-      if (input.holderId !== undefined) serialsStore[idx].currentHolderId = input.holderId;
-      // 追加生命周期事件
-      const events = serialsStore[idx].lifecycleEvents || [];
-      events.push({
-        date: new Date().toISOString(),
-        event: input.status,
-        notes: input.notes || '',
-      });
-      serialsStore[idx].lifecycleEvents = events;
-      serialsStore[idx].updatedAt = new Date().toISOString();
-      return serialsStore[idx];
+      const db = await requireDb();
+      const now = new Date().toISOString();
+      const currentRows = await db.select().from(serialNumbers).where(eq(serialNumbers.id, input.id));
+      if (!currentRows[0]) throw new Error('Serial number not found');
+
+      const u: Record<string, any> = { status: input.status, updatedAt: now };
+      if (input.projectCode !== undefined) u.currentProjectCode = input.projectCode;
+      if (input.processCode !== undefined) u.currentProcessCode = input.processCode;
+      if (input.holderId !== undefined) u.currentHolderId = input.holderId;
+
+      const events = Array.isArray(currentRows[0].lifecycleEvents) ? [...(currentRows[0].lifecycleEvents as any[])] : [];
+      events.push({ date: now, event: input.status, notes: input.notes || '' });
+      u.lifecycleEvents = events;
+
+      await db.update(serialNumbers).set(u).where(eq(serialNumbers.id, input.id));
+      const rows = await db.select().from(serialNumbers).where(eq(serialNumbers.id, input.id));
+      return rows[0];
     }),
 
   // ==========================================
@@ -755,94 +863,96 @@ export const warehouseRouter = router({
   // ==========================================
 
   getWarehouseStats: protectedProcedure.query(async () => {
-    const totalWarehouses = warehousesStore.filter(w => w.isActive).length;
-    const totalLocations = locationsStore.filter(l => l.isActive).length;
-    const occupiedLocations = locationsStore.filter(l => l.isOccupied).length;
-    const totalLots = lotsStore.filter(l => l.status === 'available').length;
-    const pendingReceipts = receiptsStore.filter(r => r.status === 'draft' || r.status === 'pending_qc').length;
-    const pendingIssues = issuesStore.filter(i => i.status === 'draft' || i.status === 'approved').length;
-    const expiringLots = lotsStore.filter(l => {
-      if (!l.expiryDate) return false;
-      const daysLeft = (new Date(l.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
-      return daysLeft > 0 && daysLeft <= 30;
-    }).length;
-    const quarantineLots = lotsStore.filter(l => l.status === 'quarantine').length;
+    const db = await requireDb();
+    const nowStr = new Date().toISOString();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() + 30);
+    const cutoffStr = cutoff.toISOString();
 
+    const [whR, locR, occR, lotR, pendRcvR, pendIssR, quarR, expR] = await Promise.all([
+      db.select({ value: count() }).from(warehouses).where(eq(warehouses.isActive, true)),
+      db.select({ value: count() }).from(warehouseLocations).where(eq(warehouseLocations.isActive, true)),
+      db.select({ value: count() }).from(warehouseLocations).where(eq(warehouseLocations.isOccupied, true)),
+      db.select({ value: count() }).from(inventoryLots).where(eq(inventoryLots.status, 'available')),
+      db.select({ value: count() }).from(warehouseReceipts).where(or(eq(warehouseReceipts.status, 'draft'), eq(warehouseReceipts.status, 'pending_qc'))),
+      db.select({ value: count() }).from(warehouseIssues).where(or(eq(warehouseIssues.status, 'draft'), eq(warehouseIssues.status, 'approved'))),
+      db.select({ value: count() }).from(inventoryLots).where(eq(inventoryLots.status, 'quarantine')),
+      db.select({ value: count() }).from(inventoryLots).where(sql`${inventoryLots.expiryDate} IS NOT NULL AND ${inventoryLots.expiryDate} <= ${cutoffStr} AND ${inventoryLots.expiryDate} >= ${nowStr}`),
+    ]);
+
+    const totalLocations = locR[0].value;
+    const occupiedLocations = occR[0].value;
     return {
-      totalWarehouses,
+      totalWarehouses: whR[0].value,
       totalLocations,
       occupiedLocations,
       locationUtilization: totalLocations > 0 ? Math.round(occupiedLocations / totalLocations * 100) : 0,
-      totalLots,
-      pendingReceipts,
-      pendingIssues,
-      expiringLots,
-      quarantineLots,
+      totalLots: lotR[0].value,
+      pendingReceipts: pendRcvR[0].value,
+      pendingIssues: pendIssR[0].value,
+      expiringLots: expR[0].value,
+      quarantineLots: quarR[0].value,
     };
   }),
 
-  /**
-   * 物料正向追溯：从批次查去向（被分配到哪些项目/工单）
-   */
   traceForward: protectedProcedure
     .input(z.object({ lotNumber: z.string() }))
     .query(async ({ input }) => {
-      const lot = lotsStore.find(l => l.lotNumber === input.lotNumber);
-      if (!lot) return { lot: null, allocations: [], serialNumbers: [] };
-      const relatedSerials = serialsStore.filter(s => s.lotNumber === input.lotNumber);
-      // 从出库单中找相关记录
-      const relatedIssueItems = issueItemsStore.filter(ii => ii.lotNumber === input.lotNumber);
-      const allocations = relatedIssueItems.map(ii => {
-        const issue = issuesStore.find(i => i.id === ii.issueId);
-        return {
-          issueCode: issue?.issueCode,
-          issueType: issue?.issueType,
-          projectCode: issue?.projectCode,
+      const db = await requireDb();
+      const lotRows = await db.select().from(inventoryLots).where(eq(inventoryLots.lotNumber, input.lotNumber));
+      if (!lotRows[0]) return { lot: null, allocations: [], serialNumbers: [] };
+
+      const [relatedSerials, relatedIssueItems] = await Promise.all([
+        db.select().from(serialNumbers).where(eq(serialNumbers.lotNumber, input.lotNumber)),
+        db.select().from(warehouseIssueItems).where(eq(warehouseIssueItems.lotNumber, input.lotNumber)),
+      ]);
+
+      const allocations = [];
+      for (const ii of relatedIssueItems) {
+        const issueRows = await db.select().from(warehouseIssues).where(eq(warehouseIssues.id, ii.issueId));
+        const issue = issueRows[0];
+        allocations.push({
+          issueCode: issue?.issueCode ?? null,
+          issueType: issue?.issueType ?? null,
+          projectCode: issue?.projectCode ?? null,
           materialCode: ii.materialCode,
           requestedQty: ii.requestedQty,
           issuedQty: ii.issuedQty,
-          issuedAt: issue?.issuedAt,
-        };
-      });
-      return { lot, allocations, serialNumbers: relatedSerials };
+          issuedAt: issue?.issuedAt ?? null,
+        });
+      }
+
+      return { lot: lotRows[0], allocations, serialNumbers: relatedSerials };
     }),
 
-  /**
-   * 物料反向追溯：从项目/工单查来源批次
-   */
   traceBackward: protectedProcedure
     .input(z.object({
       projectCode: z.string().optional(),
       sourceDocCode: z.string().optional(),
     }))
     .query(async ({ input }) => {
-      let relatedIssues = [...issuesStore];
-      if (input.projectCode) relatedIssues = relatedIssues.filter(i => i.projectCode === input.projectCode);
-      if (input.sourceDocCode) relatedIssues = relatedIssues.filter(i => i.sourceDocCode === input.sourceDocCode);
+      const db = await requireDb();
+      const conditions = [];
+      if (input.projectCode) conditions.push(eq(warehouseIssues.projectCode, input.projectCode));
+      if (input.sourceDocCode) conditions.push(eq(warehouseIssues.sourceDocCode, input.sourceDocCode));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+      const relatedIssues = await db.select().from(warehouseIssues).where(where);
 
-      const results = relatedIssues.map(issue => {
-        const items = issueItemsStore.filter(ii => ii.issueId === issue.id);
-        const lotNumbers = Array.from(new Set(items.map(ii => ii.lotNumber).filter(Boolean)));
-        const lots = lotsStore.filter(l => lotNumbers.includes(l.lotNumber));
-        return {
+      const results = [];
+      for (const issue of relatedIssues) {
+        const items = await db.select().from(warehouseIssueItems).where(eq(warehouseIssueItems.issueId, issue.id));
+        const lotNumbers = Array.from(new Set(items.map(ii => ii.lotNumber).filter((ln): ln is string => ln != null)));
+        const lots = lotNumbers.length > 0
+          ? await db.select().from(inventoryLots).where(or(...lotNumbers.map(ln => eq(inventoryLots.lotNumber, ln))))
+          : [];
+        results.push({
           issueCode: issue.issueCode,
           issueType: issue.issueType,
           projectCode: issue.projectCode,
-          items: items.map(ii => ({
-            materialCode: ii.materialCode,
-            materialName: ii.materialName,
-            lotNumber: ii.lotNumber,
-            requestedQty: ii.requestedQty,
-          })),
-          sourceLots: lots.map(l => ({
-            lotNumber: l.lotNumber,
-            materialCode: l.materialCode,
-            supplierName: l.supplierName,
-            productionDate: l.productionDate,
-            expiryDate: l.expiryDate,
-          })),
-        };
-      });
+          items: items.map(ii => ({ materialCode: ii.materialCode, materialName: ii.materialName, lotNumber: ii.lotNumber, requestedQty: ii.requestedQty })),
+          sourceLots: lots.map(l => ({ lotNumber: l.lotNumber, materialCode: l.materialCode, supplierName: l.supplierName, productionDate: l.productionDate, expiryDate: l.expiryDate })),
+        });
+      }
       return results;
     }),
 });

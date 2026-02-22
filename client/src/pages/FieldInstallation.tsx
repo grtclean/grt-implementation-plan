@@ -2,14 +2,18 @@
  * 现场安装页面 (TX-013)
  * 设备安装进度、安装团队调度、现场问题记录
  */
+import { useState } from "react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useUserProfile } from "@/contexts/UserProfileContext";
-import { useToast } from "@/hooks/use-toast";
 import { Wrench, Plus, MapPin, Users, Clock, CheckCircle2, Building2, Truck } from "lucide-react";
 
 const statusColorMap = createStatusColorMap({
@@ -27,11 +31,64 @@ const MOCK_INSTALLATIONS = [
 
 export default function FieldInstallation() {
   const { currentBU } = useUserProfile();
-  const { toast } = useToast();
-  const handleComingSoon = () => {
-    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  const [installations, setInstallations] = useState(MOCK_INSTALLATIONS);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [formData, setFormData] = useState({
+    project: "",
+    customer: "",
+    location: "",
+    team: "",
+    startDate: "",
+    endDate: "",
+  });
+
+  const filtered = installations.filter(i => !currentBU || i.bu === currentBU);
+
+  const handleCreate = () => {
+    if (!formData.project.trim()) {
+      toast.error("请输入项目名称");
+      return;
+    }
+    if (!formData.customer.trim()) {
+      toast.error("请输入客户名称");
+      return;
+    }
+    if (!formData.location.trim()) {
+      toast.error("请输入安装地点");
+      return;
+    }
+    if (!formData.team.trim()) {
+      toast.error("请输入安装团队");
+      return;
+    }
+    if (!formData.startDate) {
+      toast.error("请选择开始日期");
+      return;
+    }
+    if (!formData.endDate) {
+      toast.error("请选择结束日期");
+      return;
+    }
+
+    const newId = `INS-${String(installations.length + 1).padStart(3, "0")}`;
+    const newInstallation = {
+      id: newId,
+      project: formData.project.trim(),
+      customer: formData.customer.trim(),
+      location: formData.location.trim(),
+      status: "待出发",
+      bu: currentBU || "BU3",
+      team: formData.team.trim(),
+      progress: 0,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+    };
+
+    setInstallations(prev => [newInstallation, ...prev]);
+    setShowCreateDialog(false);
+    setFormData({ project: "", customer: "", location: "", team: "", startDate: "", endDate: "" });
+    toast.success("安装任务创建成功");
   };
-  const filtered = MOCK_INSTALLATIONS.filter(i => !currentBU || i.bu === currentBU);
 
   return (
     <div className="space-y-6">
@@ -42,16 +99,16 @@ export default function FieldInstallation() {
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />新建安装任务</Button>
+            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />新建安装任务</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Wrench} label="总安装任务" value={12} />
-        <StatCard icon={Truck} label="进行中" value={4} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={Clock} label="待出发" value={3} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={CheckCircle2} label="已完成" value={5} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Wrench} label="总安装任务" value={installations.length} />
+        <StatCard icon={Truck} label="进行中" value={installations.filter(i => i.status === "安装中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Clock} label="待出发" value={installations.filter(i => i.status === "待出发").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={CheckCircle2} label="已完成" value={installations.filter(i => i.status === "已完成").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
@@ -89,6 +146,76 @@ export default function FieldInstallation() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新建安装任务</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="fi-project">项目名称 *</Label>
+              <Input
+                id="fi-project"
+                placeholder="例如：缸体清洗线"
+                value={formData.project}
+                onChange={e => setFormData(prev => ({ ...prev, project: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fi-customer">客户 *</Label>
+              <Input
+                id="fi-customer"
+                placeholder="例如：上海大众"
+                value={formData.customer}
+                onChange={e => setFormData(prev => ({ ...prev, customer: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fi-location">安装地点 *</Label>
+              <Input
+                id="fi-location"
+                placeholder="例如：上海安亭工厂"
+                value={formData.location}
+                onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fi-team">安装团队 *</Label>
+              <Input
+                id="fi-team"
+                placeholder="例如：安装A组"
+                value={formData.team}
+                onChange={e => setFormData(prev => ({ ...prev, team: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="fi-start">开始日期 *</Label>
+                <Input
+                  id="fi-start"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={e => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fi-end">结束日期 *</Label>
+                <Input
+                  id="fi-end"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={e => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
+            <Button onClick={handleCreate}>创建</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

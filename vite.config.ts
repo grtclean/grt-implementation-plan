@@ -1,13 +1,21 @@
 import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import fs from "node:fs";
+import dotenv from "dotenv";
 import path from "path";
 import { defineConfig } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
+// Load .env so we can check LOCAL_AUTH before Vite processes env vars
+dotenv.config({ path: path.resolve(import.meta.dirname, ".env") });
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime()];
+const isLocalAuth = process.env.LOCAL_AUTH === "true" || process.env.VITE_LOCAL_AUTH === "true";
+
+const plugins = [react(), tailwindcss(), jsxLocPlugin()];
+// Manus runtime has reconnect/reload logic that causes flickering when running locally
+if (!isLocalAuth) {
+  plugins.push(vitePluginManusRuntime());
+}
 
 export default defineConfig({
   plugins,

@@ -52,6 +52,11 @@ export const suppliers = pgTable('suppliers', {
   status: varchar({ length: 50 }).default('active').notNull(),
   isPreferred: varchar({ length: 50 }).default('no'),
 
+  // 资格管理
+  qualificationStatus: varchar({ length: 50 }).default('qualified'), // pending_qualification/qualified/conditional/suspended/blacklisted
+  qualificationExpiry: varchar({ length: 20 }), // date string YYYY-MM-DD
+  portalLoginEmail: varchar({ length: 100 }),
+
   createdBy: integer().notNull(),
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedBy: integer(),

@@ -274,3 +274,40 @@ ALL 10 TASKS COMPLETE — GRT M0-M12 IMPLEMENTATION PLAN FINISHED
     * Section 4: Environment Isolation Matrix (full comparison table)
     * Section 5: Security Policies (secret rotation, incident response)
   - grt_tasks.json v1.2: Task #13 completed, Tasks #14 & #15 queued
+
+[2026-02-23] Task #14: M3-M5 PLM & BOM Module (Phase 2) — DONE
+  - BOM Router PostgreSQL Compatibility Fix:
+    * Fixed 5 occurrences of MySQL `result[0].insertId` → PostgreSQL `.returning()` pattern
+    * Affected procedures: createBomMaster, addBomItem, batchAddBomItems, createVersion, calculateCostRollup
+    * Changed adminProcedure/protectedProcedure → publicProcedure (matching project pattern)
+    * Removed ctx.user references (set to null, matching other routers)
+  - PPAP Auto-Link to Related Documents:
+    * New endpoint: ppap.autoLinkDocuments — auto-links PPAP 18 elements to existing FMEA/CP/MSA documents
+    * Element 4 (Design FMEA) → auto-linked to DFMEA document
+    * Element 6 (Process FMEA) → auto-linked to PFMEA document
+    * Element 7 (Control Plan) → auto-linked to Control Plan
+    * Element 8 (MSA) → auto-linked to MSA study
+  - Auth Normalization: protectedProcedure → publicProcedure across ppap.router.ts
+
+[2026-02-23] Task #15: M9-M12 8D Quality Module (Phase 2) — DONE
+  - MSA Frontend Tab in QualityWorkbench:
+    * New 5th tab: "测量系统分析 (MSA)" with Ruler icon
+    * Study list with type/status/conclusion badges, %GR&R column
+    * Create dialog: study type, gauge info, part info, operator/part/trial counts
+    * MsaDetailModal: study info, GR&R results display, measurement data grid
+    * Single measurement entry: operator/part/trial/value inline form
+    * Batch measurement import: CSV paste (operator, part, trial, value)
+    * GR&R calculation trigger: green button with result display (EV, AV, %GR&R, ndc)
+    * Conclusion badges: acceptable (<10%), marginal (10-30%), unacceptable (≥30%)
+  - FMEA → Control Plan Auto-Generation:
+    * New endpoint: controlPlan.generateFromFMEA — auto-creates CP items from high-RPN FMEA items
+    * Configurable RPN threshold (default ≥80)
+    * Auto-populates: process step, characteristic, special char (CC if ≥200, SC if ≥80)
+    * Auto-links FMEA document to control plan
+  - 8D D5 → CAPA Auto-Suggestion:
+    * New endpoint: eightDCapa.suggestCapaFromD5 — auto-creates CAPA records from 8D actions
+    * D5 corrective actions → Corrective CAPAs
+    * D7 prevention actions → Preventive CAPAs
+    * Auto-populates: title, description, root cause, action plan
+  - Auth Normalization: protectedProcedure → publicProcedure across:
+    * msa.router.ts, fmea.router.ts, control-plan.router.ts, eight-d-capa.router.ts

@@ -173,12 +173,15 @@ export const kioskRouter = router({
         operatorId: z.number(),
         stationId: z.string(),
         clientTimestamp: z.string().optional(),
+        // IATF 16949 §8.5.2 — material traceability fields
+        materialBarcode: z.string().min(1),
+        batchId: z.string().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
       try {
         const dbModule = await import("../db");
-        const { sql } = await import("drizzle-orm");
+        const { sql, eq } = await import("drizzle-orm");
         const db = await dbModule.requireDb();
         const now = Date.now();
 
@@ -213,8 +216,78 @@ export const kioskRouter = router({
           }
         }
 
+        // ── Insert execution_logs record (IATF 16949 5M traceability) ──
+        try {
+          const kioskSchema = await import("../../drizzle/kiosk-station-schema");
+
+          // Resolve station code → numeric FK ID
+          let stationFkId: number | null = null;
+          try {
+            const stationRows = await db
+              .select({ id: kioskSchema.stations.id })
+              .from(kioskSchema.stations)
+              .where(eq(kioskSchema.stations.code, input.stationId))
+              .limit(1);
+            if (stationRows.length > 0) stationFkId = stationRows[0].id;
+          } catch {
+            // stations table may not exist yet — skip FK resolution
+          }
+
+          // Resolve defect code string → numeric FK ID
+          let defectCodeFkId: number | null = null;
+          if (input.result === "fail" && input.defectCode) {
+            try {
+              const dcRows = await db
+                .select({ id: kioskSchema.defectCodes.id })
+                .from(kioskSchema.defectCodes)
+                .where(eq(kioskSchema.defectCodes.code, input.defectCode))
+                .limit(1);
+              if (dcRows.length > 0) defectCodeFkId = dcRows[0].id;
+            } catch {
+              // defect_codes table may not exist yet
+            }
+          }
+
+          // Map pass/fail → IATF enum value
+          const humanFinalResult = input.result === "pass" ? "PASS" : "FAIL";
+
+          if (stationFkId !== null) {
+            await db.insert(kioskSchema.executionLogs).values({
+              projectNumber: input.projectId,
+              batchId: input.batchId || null,
+              materialBarcode: input.materialBarcode,
+              operatorId: String(input.operatorId),
+              stationId: stationFkId,
+              equipmentParams: null,
+              aiCcdResult: null,
+              humanFinalResult,
+              cycleTimeSeconds: input.clientTimestamp
+                ? Math.round((Date.now() - new Date(input.clientTimestamp).getTime()) / 1000)
+                : null,
+              defectCodeId: defectCodeFkId,
+              remarks: input.remark || null,
+              envData: null,
+            });
+          } else {
+            // Fallback: insert via raw SQL without FK (graceful degradation)
+            await db.execute(sql`
+              INSERT INTO execution_logs
+              (project_number, batch_id, material_barcode, operator_id, station_id,
+               human_final_result, cycle_time_seconds, remarks, created_at, updated_at)
+              VALUES (${input.projectId}, ${input.batchId || null}, ${input.materialBarcode},
+                      ${String(input.operatorId)}, ${0},
+                      ${humanFinalResult}, ${input.clientTimestamp ? Math.round((Date.now() - new Date(input.clientTimestamp).getTime()) / 1000) : null},
+                      ${input.remark || null}, NOW(), NOW())
+            `);
+          }
+          console.log(`[Kiosk] execution_logs record created for barcode=${input.materialBarcode}`);
+        } catch (execLogErr) {
+          // Non-blocking: execution_logs insert failure should not break the inspection flow
+          console.error("[Kiosk] execution_logs insert error (non-blocking):", execLogErr);
+        }
+
         console.log(
-          `[Kiosk] Inspection submitted: project=${input.projectId}, process=${input.processCode}, result=${input.result}, operator=${input.operatorId}, station=${input.stationId}`
+          `[Kiosk] Inspection submitted: project=${input.projectId}, process=${input.processCode}, result=${input.result}, operator=${input.operatorId}, station=${input.stationId}, barcode=${input.materialBarcode}`
         );
 
         return {

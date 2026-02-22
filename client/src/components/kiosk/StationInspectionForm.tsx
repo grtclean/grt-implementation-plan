@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Check, X, Camera, Loader2, ChevronLeft, AlertCircle } from "lucide-react";
+import { useState, useRef } from "react";
+import { Check, X, Camera, Loader2, ChevronLeft, AlertCircle, ScanBarcode } from "lucide-react";
 import { useKioskSessionContext } from "@/hooks/useKioskSession";
 
 interface StationInspectionFormProps {
@@ -43,6 +43,8 @@ export default function StationInspectionForm({
   onBack,
 }: StationInspectionFormProps) {
   const session = useKioskSessionContext();
+  const [materialBarcode, setMaterialBarcode] = useState("");
+  const [batchId, setBatchId] = useState("");
   const [result, setResult] = useState<InspectionResult>(null);
   const [defectType, setDefectType] = useState<string>("");
   const [defectCode, setDefectCode] = useState<string>("");
@@ -50,30 +52,33 @@ export default function StationInspectionForm({
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const barcodeRef = useRef<HTMLInputElement>(null);
 
   // Poka-yoke validation
   const validate = (): boolean => {
+    const errors: string[] = [];
+    if (!materialBarcode.trim()) {
+      errors.push("请扫描或输入物料条码");
+    }
     if (!result) {
-      setValidationErrors(["请选择检验结果"]);
-      return false;
+      errors.push("请选择检验结果");
     }
     if (result === "fail") {
-      const errors: string[] = [];
       if (!defectType) errors.push("缺陷类型为必填项");
       if (!defectCode && remark.length < 10) {
         errors.push("请选择缺陷代码或填写至少10字的备注");
       }
-      if (errors.length > 0) {
-        setValidationErrors(errors);
-        return false;
-      }
+    }
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      return false;
     }
     setValidationErrors([]);
     return true;
   };
 
   const canSubmit = (): boolean => {
-    if (!result) return false;
+    if (!materialBarcode.trim() || !result) return false;
     if (result === "pass") return true;
     // Fail requires defectType AND (defectCode OR remark >= 10 chars)
     return !!defectType && (!!defectCode || remark.length >= 10);
@@ -92,7 +97,9 @@ export default function StationInspectionForm({
         defectType: result === "fail" ? defectType : undefined,
         defectCode: result === "fail" ? defectCode : undefined,
         remark: remark || undefined,
-        // IATF 16949 §8.5.2 traceability fields (silent injection)
+        // IATF 16949 §8.5.2 traceability fields
+        materialBarcode: materialBarcode.trim(),
+        batchId: batchId.trim() || undefined,
         operatorId: session.operator!.id,
         stationId: session.stationId,
         clientTimestamp: new Date().toISOString(),
@@ -161,6 +168,37 @@ export default function StationInspectionForm({
 
       {/* Form Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Material Barcode — IATF 16949 §8.5.2 mandatory traceability */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            物料条码 <span className="text-red-400">*必填</span>
+          </label>
+          <div className="relative">
+            <ScanBarcode className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+            <input
+              ref={barcodeRef}
+              type="text"
+              value={materialBarcode}
+              onChange={(e) => { setMaterialBarcode(e.target.value); setValidationErrors([]); }}
+              placeholder="扫描枪扫码或手动输入..."
+              autoFocus
+              className={`w-full h-14 pl-11 pr-4 text-lg font-mono bg-background border rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 ${
+                !materialBarcode.trim() ? "border-amber-500/40" : "border-border"
+              }`}
+            />
+          </div>
+          {/* Optional batch ID */}
+          <div className="mt-2">
+            <input
+              type="text"
+              value={batchId}
+              onChange={(e) => setBatchId(e.target.value)}
+              placeholder="批次号（可选）"
+              className="w-full h-10 px-4 text-sm bg-background border border-border rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+        </div>
+
         {/* Pass/Fail Selection */}
         <div className="grid grid-cols-2 gap-4">
           <button

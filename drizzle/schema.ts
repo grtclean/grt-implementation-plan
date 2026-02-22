@@ -2702,6 +2702,8 @@ export const projectTasks = pgTable("project_tasks", {
 	attachments: text(),
 	remark: text(),
 	jiandaoyunId: varchar({ length: 64 }),
+	safetyChecklistCompleted: boolean('safety_checklist_completed').default(false),
+	taskCategory: varchar('task_category', { length: 50 }),
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 },
@@ -3388,7 +3390,7 @@ export const valueAddedOrders = pgTable("value_added_orders", {
 
 // AI审计日志表
 export const aiAuditLogs = pgTable("ai_audit_logs", {
-	id: serial('id').primaryKey().primaryKey().notNull(),
+	id: serial('id').primaryKey().notNull(),
 	auditType: auditTypeEnum('auditType').notNull(),
 	targetId: integer("target_id").notNull(),
 	targetType: varchar("target_type", { length: 50 }).notNull(),
@@ -3951,7 +3953,7 @@ export const publicCapabilityShowcase = pgTable("public_capability_showcase", {
 
 // 员工信息表 - 支持德国/美国合规
 export const grtEmployees = pgTable("grt_employees", {
-	id: serial('id').primaryKey().primaryKey(),
+	id: serial('id').primaryKey(),
 	employeeId: varchar("employee_id", { length: 50 }).notNull(),
 	name: varchar({ length: 100 }).notNull(),
 	email: varchar({ length: 200 }),
@@ -3977,7 +3979,7 @@ export const grtEmployees = pgTable("grt_employees", {
 
 // 工时记录表 - 支持德国10小时上限和美国FLSA合规
 export const grtTimeEntries = pgTable("grt_time_entries", {
-	id: serial('id').primaryKey().primaryKey(),
+	id: serial('id').primaryKey(),
 	employeeId: integer("employee_id").notNull(),
 	date: date().notNull(),
 	startTime: time("start_time").notNull(),
@@ -4011,7 +4013,7 @@ export const grtTimeEntries = pgTable("grt_time_entries", {
 
 // 合规警报表 - 记录德美合规违规和预警
 export const grtComplianceAlerts = pgTable("grt_compliance_alerts", {
-	id: serial('id').primaryKey().primaryKey(),
+	id: serial('id').primaryKey(),
 	employeeId: integer("employee_id").notNull(),
 	timeEntryId: integer("time_entry_id"),
 	alertType: alertTypeEnum1('alertType').notNull(),
@@ -4038,7 +4040,7 @@ export const grtComplianceAlerts = pgTable("grt_compliance_alerts", {
 
 // 周合规汇总表 - 用于美国FLSA周度审计
 export const grtWeeklyComplianceSummary = pgTable("grt_weekly_compliance_summary", {
-	id: serial('id').primaryKey().primaryKey(),
+	id: serial('id').primaryKey(),
 	employeeId: integer("employee_id").notNull(),
 	weekStartDate: date("week_start_date").notNull(),
 	weekEndDate: date("week_end_date").notNull(),
@@ -4068,7 +4070,7 @@ export const grtWeeklyComplianceSummary = pgTable("grt_weekly_compliance_summary
 
 // 合规报告历史表 - 记录每次生成的合规报告
 export const grtComplianceReports = pgTable("grt_compliance_reports", {
-	id: serial('id').primaryKey().primaryKey(),
+	id: serial('id').primaryKey(),
 	reportId: varchar("report_id", { length: 64 }).notNull(),
 	reportType: reportTypeEnum1('reportType').default('weekly').notNull(),
 	format: formatEnum1('format').default('pdf').notNull(),
@@ -4097,7 +4099,7 @@ export const grtComplianceReports = pgTable("grt_compliance_reports", {
 
 // 合规规则配置表 - 存储各地区的工时阈值和预警规则
 export const grtComplianceRules = pgTable("grt_compliance_rules", {
-	id: serial('id').primaryKey().primaryKey(),
+	id: serial('id').primaryKey(),
 	ruleId: varchar("rule_id", { length: 64 }).notNull(),
 	ruleName: varchar("rule_name", { length: 100 }).notNull(),
 	ruleDescription: text("rule_description"),
@@ -4126,7 +4128,7 @@ export const grtComplianceRules = pgTable("grt_compliance_rules", {
 
 // 合规邮件模板表 - 存储自定义邮件通知模板
 export const grtComplianceEmailTemplates = pgTable("grt_compliance_email_templates", {
-	id: serial('id').primaryKey().primaryKey(),
+	id: serial('id').primaryKey(),
 	templateId: varchar("template_id", { length: 64 }).notNull(),
 	templateName: varchar("template_name", { length: 100 }).notNull(),
 	templateDescription: text("template_description"),
@@ -4457,7 +4459,7 @@ export type InsertGrtWeeklyComplianceSummary = InferInsertModel<typeof grtWeekly
  * 关联CRM客户，标记活跃度和技术偏好
  */
 export const communityMembers = pgTable("community_members", {
-id: serial('id').primaryKey().primaryKey(),
+id: serial('id').primaryKey(),
 // 基础信息
 externalId: varchar("external_id", { length: 100 }).notNull(), // 微信/企微/钉钉ID
 platform: platformEnum('platform').default('wechat').notNull(),
@@ -4500,7 +4502,7 @@ index("idx_community_members_status").on(table.status),
  * 支持托管回复和直接回复两种模式
  */
 export const communityMessages = pgTable("community_messages", {
-id: serial('id').primaryKey().primaryKey(),
+id: serial('id').primaryKey(),
 // 消息来源
 memberId: integer("member_id").notNull(), // 发送者
 messageType: messageTypeEnum('messageType').default('question').notNull(),
@@ -4543,7 +4545,7 @@ index("idx_community_messages_thread").on(table.threadId),
  * 所有内容必须先"上架"，严禁直接转发未审核文件
  */
 export const contentLibrary = pgTable("content_library", {
-id: serial('id').primaryKey().primaryKey(),
+id: serial('id').primaryKey(),
 // 内容信息
 title: varchar({ length: 200 }).notNull(),
 summary: text(),
@@ -4590,7 +4592,7 @@ index("idx_content_library_push").on(table.pushStatus),
  * 作为审计依据
  */
 export const interactionLogs = pgTable("interaction_logs", {
-id: serial('id').primaryKey().primaryKey(),
+id: serial('id').primaryKey(),
 // 交互信息
 interactionType: interactionTypeEnum1('interactionType').default('question').notNull(),
 memberId: integer("member_id").notNull(),
@@ -4627,7 +4629,7 @@ index("idx_interaction_logs_compliance").on(table.complianceStatus),
  * 防止泄露底价、回扣、客户私有配方等敏感信息
  */
 export const sensitiveWords = pgTable("sensitive_words", {
-id: serial('id').primaryKey().primaryKey(),
+id: serial('id').primaryKey(),
 // 敏感词信息
 word: varchar({ length: 100 }).notNull(),
 category: categoryEnum5('category').default('other').notNull(),
@@ -4657,7 +4659,7 @@ index("idx_sensitive_words_active").on(table.isActive),
  * 社群统计表 - 记录社群运营数据
  */
 export const communityStats = pgTable("community_stats", {
-id: serial('id').primaryKey().primaryKey(),
+id: serial('id').primaryKey(),
 // 统计维度
 statDate: date("stat_date").notNull(),
 statType: statTypeEnum('statType').default('daily').notNull(),
@@ -6127,7 +6129,7 @@ export type InsertAiAgentTriggerExecution = InferInsertModel<typeof aiAgentTrigg
 // ============ v2.5.37 Gate检查清单配置表 ============
 
 export const gateChecklistItems = pgTable("gate_checklist_items", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   gateStage: gateStageEnum('gateStage').notNull(),
   category: varchar({ length: 50 }).notNull(),
   item: varchar({ length: 200 }).notNull(),
@@ -6507,7 +6509,7 @@ export const userSessions = pgTable("user_sessions", {
 
 // 变更申请表
 export const changeRequests = pgTable("change_requests", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   requestNo: varchar("request_no", { length: 50 }).notNull(),
   title: varchar({ length: 200 }).notNull(),
   changeType: changeTypeEnum4('changeType').notNull(),
@@ -6569,7 +6571,7 @@ export const changeRequests = pgTable("change_requests", {
 
 // 变更执行记录表
 export const changeExecutions = pgTable("change_executions", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   requestId: integer("request_id").notNull(),
   executionToken: varchar("execution_token", { length: 100 }).notNull(),
   
@@ -6615,7 +6617,7 @@ export const changeExecutions = pgTable("change_executions", {
 
 // 一致性检查日志表
 export const consistencyCheckLogs = pgTable("consistency_check_logs", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   executionId: integer("execution_id").notNull(),
   checkType: checkTypeEnum('checkType').notNull(),
   
@@ -6643,7 +6645,7 @@ export const consistencyCheckLogs = pgTable("consistency_check_logs", {
 
 // 部署配置表
 export const deploymentConfigs = pgTable("deployment_configs", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   configName: varchar("config_name", { length: 100 }).notNull(),
   environment: environmentEnum('environment').notNull(),
   deploymentType: deploymentTypeEnum1('deploymentType').notNull(),
@@ -6669,7 +6671,7 @@ export const deploymentConfigs = pgTable("deployment_configs", {
 
 // 环境同步记录表
 export const environmentSyncLogs = pgTable("environment_sync_logs", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   syncType: syncTypeEnum('syncType').notNull(),
   sourceEnvironment: environmentEnum('sourceEnvironment').notNull(),
   targetEnvironment: environmentEnum('targetEnvironment').notNull(),
@@ -6707,7 +6709,7 @@ export const environmentSyncLogs = pgTable("environment_sync_logs", {
 
 // 变更通知表
 export const changeNotifications = pgTable("change_notifications", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   requestId: integer("request_id"),
   executionId: integer("execution_id"),
   
@@ -7253,7 +7255,7 @@ export const aiServiceChatHistory = pgTable("ai_service_chat_history", {
 
 // 社群平台配置表
 export const socialPlatformConfigs = pgTable("social_platform_configs", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   platform: platformEnum1('platform').notNull(),
   enabled: smallint().default(0).notNull(),
   config: text(), // JSON格式的平台配置
@@ -7273,7 +7275,7 @@ export const socialPlatformConfigs = pgTable("social_platform_configs", {
 // ==================== 工人管理表 ====================
 // 工人基本信息表
 export const workers = pgTable("workers", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   employeeCode: varchar("employee_code", { length: 50 }), // 工号
   name: varchar({ length: 100 }).notNull(),
   department: varchar({ length: 100 }).notNull(),
@@ -7296,7 +7298,7 @@ export const workers = pgTable("workers", {
 
 // 工人效率记录表
 export const workerEfficiencyRecords = pgTable("worker_efficiency_records", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   workerId: integer("worker_id").notNull(),
   recordDate: date("record_date", { mode: 'string' }).notNull(),
   tasksAssigned: integer("tasks_assigned").default(0),
@@ -7317,7 +7319,7 @@ export const workerEfficiencyRecords = pgTable("worker_efficiency_records", {
 
 // 工时预警表
 export const workHourAlerts = pgTable("work_hour_alerts", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   workerId: integer("worker_id").notNull(),
   alertType: alertTypeEnum3('alertType').notNull(),
   alertLevel: severityEnum1('alertLevel').default('warning').notNull(),
@@ -7339,7 +7341,7 @@ export const workHourAlerts = pgTable("work_hour_alerts", {
 
 // 用户收藏菜单表
 export const userFavorites = pgTable("user_favorites", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   userId: integer("user_id").notNull(),
   menuPath: varchar("menu_path", { length: 200 }).notNull(),
   menuName: varchar("menu_name", { length: 100 }).notNull(),
@@ -7382,7 +7384,7 @@ export {
 // ===== 简道云集成表 =====
 // 简道云用户映射表 - 将简道云成员与GRT用户关联
 export const jiandaoyunUserMappings = pgTable("jiandaoyun_user_mappings", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   
   // 简道云用户信息
   jdyUsername: varchar("jdy_username", { length: 100 }).notNull(), // 简道云用户名（唯一标识）
@@ -7414,7 +7416,7 @@ export const jiandaoyunUserMappings = pgTable("jiandaoyun_user_mappings", {
 
 // 简道云部门映射表 - 将简道云部门与GRT部门关联
 export const jiandaoyunDeptMappings = pgTable("jiandaoyun_dept_mappings", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   
   // 简道云部门信息
   jdyDeptNo: integer("jdy_dept_no").notNull(), // 简道云部门编号
@@ -7441,7 +7443,7 @@ export const jiandaoyunDeptMappings = pgTable("jiandaoyun_dept_mappings", {
 
 // 简道云角色映射表 - 将简道云角色与GRT权限角色关联
 export const jiandaoyunRoleMappings = pgTable("jiandaoyun_role_mappings", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   
   // 简道云角色信息
   jdyRoleNo: integer("jdy_role_no").notNull(), // 简道云角色编号
@@ -7471,7 +7473,7 @@ export const jiandaoyunRoleMappings = pgTable("jiandaoyun_role_mappings", {
 
 // 简道云角色成员表 - 记录角色下的成员列表
 export const jiandaoyunRoleMembers = pgTable("jiandaoyun_role_members", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
 
   // 简道云角色成员信息
   jdyRoleNo: integer("jdy_role_no").notNull(), // 简道云角色编号
@@ -7494,7 +7496,7 @@ export const jiandaoyunRoleMembers = pgTable("jiandaoyun_role_members", {
 
 // 简道云数据同步任务表 - 记录定时同步任务
 export const jiandaoyunSyncTasks = pgTable("jiandaoyun_sync_tasks", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   
   // 任务配置
   taskName: varchar("task_name", { length: 200 }).notNull(), // 任务名称
@@ -7533,7 +7535,7 @@ export const jiandaoyunSyncTasks = pgTable("jiandaoyun_sync_tasks", {
 
 // 简道云数据同步日志表 - 记录每次同步的详细日志
 export const jiandaoyunSyncLogs = pgTable("jiandaoyun_sync_logs", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   
   // 关联任务
   taskId: integer("task_id").notNull(),
@@ -7567,11 +7569,90 @@ export const jiandaoyunSyncLogs = pgTable("jiandaoyun_sync_logs", {
 ]);
 
 
+// ===== 简道云全量导入表 =====
+
+// 导入执行状态跟踪表
+export const jiandaoyunImportRuns = pgTable("jiandaoyun_import_runs", {
+  id: serial('id').primaryKey(),
+
+  // 运行标识
+  runCode: varchar("run_code", { length: 64 }).notNull().unique(),
+  runType: varchar("run_type", { length: 20 }).notNull(), // full, org, project, approval
+
+  // 状态
+  status: varchar("status", { length: 20 }).default('pending').notNull(), // pending, running, completed, failed, cancelled
+
+  // 进度
+  currentPhase: varchar("current_phase", { length: 50 }),
+  currentStep: varchar("current_step", { length: 100 }),
+  progressPercent: integer("progress_percent").default(0),
+
+  // 统计
+  totalExpected: integer("total_expected").default(0),
+  totalProcessed: integer("total_processed").default(0),
+  totalCreated: integer("total_created").default(0),
+  totalUpdated: integer("total_updated").default(0),
+  totalSkipped: integer("total_skipped").default(0),
+  totalFailed: integer("total_failed").default(0),
+
+  // 详细结果
+  phaseResults: json("phase_results"), // { phase1: {...}, phase2: {...} }
+  errors: json("errors"), // [{ phase, message, record }]
+  importConfig: json("import_config"), // { phases, dryRun, ... }
+
+  // 时间
+  startedAt: timestamp("started_at", { mode: 'string' }),
+  completedAt: timestamp("completed_at", { mode: 'string' }),
+
+  // 触发信息
+  triggeredBy: integer("triggered_by"),
+
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+},
+(table) => [
+  index("idx_jdy_import_runs_code").on(table.runCode),
+  index("idx_jdy_import_runs_status").on(table.status),
+]);
+
+// 表单发现与字段映射表
+export const jiandaoyunFormMappings = pgTable("jiandaoyun_form_mappings", {
+  id: serial('id').primaryKey(),
+
+  // 简道云表单信息
+  jdyAppId: varchar("jdy_app_id", { length: 64 }).notNull(),
+  jdyAppName: varchar("jdy_app_name", { length: 200 }).notNull(),
+  jdyFormId: varchar("jdy_form_id", { length: 64 }).notNull(),
+  jdyFormName: varchar("jdy_form_name", { length: 200 }).notNull(),
+
+  // GRT目标实体
+  targetEntity: varchar("target_entity", { length: 50 }), // project, projectTask, approval_instance, etc.
+
+  // 映射配置
+  fieldMapping: json("field_mapping"), // { jdyField: grtColumn, ... }
+  recordCount: integer("record_count").default(0),
+  sampleData: json("sample_data"), // 前5条样例数据
+  fieldSchema: json("field_schema"), // JDY字段结构
+
+  // 确认状态
+  isConfirmed: boolean("is_confirmed").default(false).notNull(),
+
+  lastDiscoveredAt: timestamp("last_discovered_at", { mode: 'string' }),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+},
+(table) => [
+  index("idx_jdy_form_mappings_app").on(table.jdyAppId),
+  index("idx_jdy_form_mappings_form").on(table.jdyFormId),
+  index("idx_jdy_form_mappings_target").on(table.targetEntity),
+]);
+
+
 // ==================== Gemini设计功能 - 年度企业日程 ====================
 
 // 年度企业日程主表
 export const annualAgendas = pgTable("annual_agendas", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   year: integer().notNull(), // 年份
   title: varchar("title", { length: 200 }).notNull(), // 日程标题
   description: text("description"), // 日程描述
@@ -7586,7 +7667,7 @@ export const annualAgendas = pgTable("annual_agendas", {
 
 // 年度里程碑表
 export const annualMilestones = pgTable("annual_milestones", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   agendaId: integer("agenda_id").notNull(), // 关联年度日程
   milestoneType: milestoneTypeEnum('milestoneType').notNull(),
   title: varchar("title", { length: 200 }).notNull(),
@@ -7606,7 +7687,7 @@ export const annualMilestones = pgTable("annual_milestones", {
 
 // 部门日程表
 export const departmentAgendas = pgTable("department_agendas", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   agendaId: integer("agenda_id").notNull(), // 关联年度日程
   departmentCode: varchar("department_code", { length: 50 }).notNull(),
   departmentName: varchar("department_name", { length: 100 }).notNull(),
@@ -7626,7 +7707,7 @@ export const departmentAgendas = pgTable("department_agendas", {
 
 // 全球假期表
 export const globalHolidays = pgTable("global_holidays", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   year: integer().notNull(),
   holidayCode: varchar("holiday_code", { length: 50 }).notNull(), // CNY, Xmas, Thanksgiving等
   holidayName: varchar("holiday_name", { length: 100 }).notNull(),
@@ -7645,7 +7726,7 @@ export const globalHolidays = pgTable("global_holidays", {
 
 // 工作职能矩阵表
 export const jobFunctionMatrix = pgTable("job_function_matrix", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   roleCode: varchar("role_code", { length: 50 }).notNull(), // 如 Assembly_L3
   roleName: varchar("role_name", { length: 100 }).notNull(),
   roleLevel: integer("role_level").notNull(), // 1-5级
@@ -7666,7 +7747,7 @@ export const jobFunctionMatrix = pgTable("job_function_matrix", {
 
 // 客户场景表
 export const customerScenarios = pgTable("customer_scenarios", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   scenarioCode: varchar("scenario_code", { length: 50 }).notNull(), // 如 Scenario_4
   scenarioName: varchar("scenario_name", { length: 200 }).notNull(),
   description: text("description"),
@@ -7684,7 +7765,7 @@ export const customerScenarios = pgTable("customer_scenarios", {
 
 // 用户任务视图表
 export const userTaskViews = pgTable("user_task_views", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   userId: integer("user_id").notNull(),
   roleCode: varchar("role_code", { length: 50 }).notNull(),
   currentTaskId: integer("current_task_id"), // 当前任务ID
@@ -7704,7 +7785,7 @@ export const userTaskViews = pgTable("user_task_views", {
 
 // 区域销售配置表
 export const regionalSalesConfigs = pgTable("regional_sales_configs", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   region: varchar("region", { length: 50 }).notNull(), // Europe, USA, Asia等
   year: integer().notNull(),
   salesTarget: decimal("sales_target", { precision: 15, scale: 2 }).notNull(), // 销售目标
@@ -7722,7 +7803,7 @@ export const regionalSalesConfigs = pgTable("regional_sales_configs", {
 
 // 区域人员配置表
 export const regionalStaffConfigs = pgTable("regional_staff_configs", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   regionConfigId: integer("region_config_id").notNull(), // 关联区域销售配置
   staffType: staffTypeEnum('staffType').notNull(),
   headcount: integer().notNull(), // 人数
@@ -7737,7 +7818,7 @@ export const regionalStaffConfigs = pgTable("regional_staff_configs", {
 
 // 资源充足性检查记录表
 export const resourceAdequacyChecks = pgTable("resource_adequacy_checks", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   regionConfigId: integer("region_config_id").notNull(),
   checkDate: date("check_date").notNull(),
   currentRevenue: decimal("current_revenue", { precision: 15, scale: 2 }),
@@ -7756,7 +7837,7 @@ export const resourceAdequacyChecks = pgTable("resource_adequacy_checks", {
 
 // 招聘计划表
 export const hiringPlans = pgTable("hiring_plans", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   regionConfigId: integer("region_config_id").notNull(),
   checkId: integer("check_id"), // 关联资源检查记录
   planCode: varchar("plan_code", { length: 50 }).notNull(),
@@ -7781,7 +7862,7 @@ export const hiringPlans = pgTable("hiring_plans", {
 
 // 资质证书表
 export const certifications = pgTable("certifications", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   certCode: varchar("cert_code", { length: 50 }).notNull(), // 证书编码
   name: varchar("name", { length: 100 }).notNull(), // 证书名称
   nameEn: varchar("name_en", { length: 100 }), // 英文名称
@@ -7806,7 +7887,7 @@ export const certifications = pgTable("certifications", {
 
 // 客户资质要求表
 export const customerCertRequirements = pgTable("customer_cert_requirements", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   customerName: varchar("customer_name", { length: 200 }).notNull(), // 客户名称
   customerNameEn: varchar("customer_name_en", { length: 200 }), // 英文名称
   customerType: customerTypeEnum('customerType').notNull(),
@@ -7827,7 +7908,7 @@ export const customerCertRequirements = pgTable("customer_cert_requirements", {
 
 // 资质建设计划表
 export const certBuildingPlans = pgTable("cert_building_plans", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   planCode: varchar("plan_code", { length: 50 }).notNull(), // 计划编码
   certificationId: integer("certification_id"), // 关联资质
   certificationName: varchar("certification_name", { length: 100 }).notNull(), // 资质名称
@@ -7854,7 +7935,7 @@ export const certBuildingPlans = pgTable("cert_building_plans", {
 
 // 资质审核记录表
 export const certAuditRecords = pgTable("cert_audit_records", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   certificationId: integer("certification_id").notNull(), // 关联资质
   auditType: auditTypeEnum2('auditType').notNull(),
   auditDate: date("audit_date", { mode: 'string' }).notNull(),
@@ -7875,7 +7956,7 @@ export const certAuditRecords = pgTable("cert_audit_records", {
 
 // 资质差距分析表
 export const certGapAnalysis = pgTable("cert_gap_analysis", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   analysisCode: varchar("analysis_code", { length: 50 }).notNull(),
   targetCustomer: varchar("target_customer", { length: 200 }), // 目标客户
   analysisDate: date("analysis_date", { mode: 'string' }).notNull(),
@@ -7901,7 +7982,7 @@ export const certGapAnalysis = pgTable("cert_gap_analysis", {
 
 // 年度企业日程表
 export const annualCorporateAgenda = pgTable("annual_corporate_agenda", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   agendaCode: varchar("agenda_code", { length: 50 }).notNull(),
   year: integer("year").notNull(),
   milestoneId: varchar("milestone_id", { length: 50 }).notNull(),
@@ -7933,7 +8014,7 @@ export const annualCorporateAgenda = pgTable("annual_corporate_agenda", {
 
 // 全球增长追踪器 - 区域配置表
 export const globalGrowthRegions = pgTable("global_growth_regions", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   regionCode: varchar("region_code", { length: 50 }).notNull(),
   regionName: varchar("region_name", { length: 100 }).notNull(),
   regionNameEn: varchar("region_name_en", { length: 100 }),
@@ -7957,7 +8038,7 @@ export const globalGrowthRegions = pgTable("global_growth_regions", {
 
 // 全球增长追踪器 - 收入记录表
 export const globalGrowthRevenue = pgTable("global_growth_revenue", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   regionId: integer("region_id").notNull(),
   year: integer("year").notNull(),
   quarter: integer("quarter").notNull(), // 1-4
@@ -7979,7 +8060,7 @@ export const globalGrowthRevenue = pgTable("global_growth_revenue", {
 
 // 全球增长追踪器 - 资源预警表
 export const globalGrowthAlerts = pgTable("global_growth_alerts", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   alertCode: varchar("alert_code", { length: 50 }).notNull(),
   regionId: integer("region_id").notNull(),
   alertType: alertTypeEnum4('alertType').notNull(),
@@ -8009,7 +8090,7 @@ export const globalGrowthAlerts = pgTable("global_growth_alerts", {
 
 // 生产阶段定义表 - T1-T15阶段配置
 export const productionStageDefinitions = pgTable("production_stage_definitions", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   stageCode: varchar("stage_code", { length: 20 }).notNull(), // T1, T2, ... T15
   stageName: varchar("stage_name", { length: 100 }).notNull(),
   stageNameZh: varchar("stage_name_zh", { length: 100 }).notNull(),
@@ -8031,7 +8112,7 @@ export const productionStageDefinitions = pgTable("production_stage_definitions"
 
 // 项目生产阶段实例表 - 具体项目的T1-T15执行状态
 export const productionStages = pgTable("production_stages", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   projectId: integer("project_id").notNull(), // 关联项目表
   stageDefinitionId: integer("stage_definition_id").notNull(), // 关联阶段定义
   stageCode: varchar("stage_code", { length: 20 }).notNull(), // T1-T15
@@ -8059,7 +8140,7 @@ export const productionStages = pgTable("production_stages", {
 
 // 生产阶段状态变更日志表
 export const productionStageLogs = pgTable("production_stage_logs", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   productionStageId: integer("production_stage_id").notNull(),
   projectId: integer("project_id").notNull(),
   stageCode: varchar("stage_code", { length: 20 }).notNull(),
@@ -8078,7 +8159,7 @@ export const productionStageLogs = pgTable("production_stage_logs", {
 
 // 工时记录表 - 支持多种采集方式
 export const timeRecords = pgTable("time_records", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   userId: integer("user_id").notNull(),
   userName: varchar("user_name", { length: 100 }),
   projectId: integer("project_id").notNull(),
@@ -8108,7 +8189,7 @@ export const timeRecords = pgTable("time_records", {
 
 // 工时采集设备配置表
 export const timeCollectionDevices = pgTable("time_collection_devices", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   deviceCode: varchar("device_code", { length: 50 }).notNull(),
   deviceName: varchar("device_name", { length: 100 }).notNull(),
   deviceType: deviceTypeEnum1('deviceType').notNull(),
@@ -8131,7 +8212,7 @@ export const timeCollectionDevices = pgTable("time_collection_devices", {
 
 // 阶段审批规则表
 export const stageApprovalRules = pgTable("stage_approval_rules", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   stageCode: varchar("stage_code", { length: 20 }).notNull(), // T1-T15
   ruleName: varchar("rule_name", { length: 100 }).notNull(),
   ruleNameZh: varchar("rule_name_zh", { length: 100 }),
@@ -8151,7 +8232,7 @@ export const stageApprovalRules = pgTable("stage_approval_rules", {
 
 // 阶段审批记录表
 export const stageApprovals = pgTable("stage_approvals", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   productionStageId: integer("production_stage_id").notNull(),
   projectId: integer("project_id").notNull(),
   stageCode: varchar("stage_code", { length: 20 }).notNull(),
@@ -8181,7 +8262,7 @@ export const stageApprovals = pgTable("stage_approvals", {
 
 // AI洞察知识库表 - 存储各阶段的AI建议和SOP
 export const productionAiKnowledge = pgTable("production_ai_knowledge", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   stageCode: varchar("stage_code", { length: 20 }).notNull(),
   knowledgeType: knowledgeTypeEnum1('knowledgeType').notNull(),
   title: varchar("title", { length: 200 }).notNull(),
@@ -8204,7 +8285,7 @@ export const productionAiKnowledge = pgTable("production_ai_knowledge", {
 
 // 集成状态表 - Copilot 365 / WeCom等外部系统连接状态
 export const integrationStatus = pgTable("integration_status", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   integrationCode: varchar("integration_code", { length: 50 }).notNull(),
   integrationName: varchar("integration_name", { length: 100 }).notNull(),
   integrationType: integrationTypeEnum('integrationType').notNull(),
@@ -8233,7 +8314,7 @@ export const integrationStatus = pgTable("integration_status", {
  * 包含客户类型、场景、决策权重、关键联系人等
  */
 export const customersV2 = pgTable("customers_v2", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   customerCode: varchar("customer_code", { length: 50 }).notNull(),
   customerName: varchar("customer_name", { length: 200 }).notNull(),
   // 客户类型 [7种]: OEM, Tier1, Tier2, 终端用户, 贸易商, 系统集成商, 其他
@@ -8271,7 +8352,7 @@ export const customersV2 = pgTable("customers_v2", {
  * 项目全生命周期管理
  */
 export const projectsV2 = pgTable("projects_v2", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   projectCode: varchar("project_code", { length: 50 }).notNull(),
   projectName: varchar("project_name", { length: 200 }).notNull(),
   customerId: integer("customer_id").notNull(),
@@ -8321,7 +8402,7 @@ export const projectsV2 = pgTable("projects_v2", {
  * M0-M12每个阶段的详细记录
  */
 export const projectStagesV2 = pgTable("project_stages_v2", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   projectId: integer("project_id").notNull(),
   stageCode: currentStageEnum1('stageCode').notNull(),
   stageName: varchar("stage_name", { length: 100 }),
@@ -8361,7 +8442,7 @@ export const projectStagesV2 = pgTable("project_stages_v2", {
  * AI版本管理 AIV0/V1/V2...
  */
 export const projectVersions = pgTable("project_versions", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   projectId: integer("project_id").notNull(),
   versionCode: varchar("version_code", { length: 20 }).notNull(),
   // 基线项目编号 (用于AIV0生成)
@@ -8394,7 +8475,7 @@ export const projectVersions = pgTable("project_versions", {
  * 采购建议管理
  */
 export const poSuggestions = pgTable("po_suggestions", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   projectId: integer("project_id").notNull(),
   versionId: integer("version_id"),
   // 建议物料列表 JSON
@@ -8424,7 +8505,7 @@ export const poSuggestions = pgTable("po_suggestions", {
  * MES工单与回写映射
  */
 export const mesSync = pgTable("mes_sync", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   projectId: integer("project_id").notNull(),
   stageId: integer("stage_id"),
   // MES工单号
@@ -8457,7 +8538,7 @@ export const mesSync = pgTable("mes_sync", {
  * 列车式评审记录
  */
 export const stageReviews = pgTable("stage_reviews", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   projectId: integer("project_id").notNull(),
   stageId: integer("stage_id").notNull(),
   // 评审类型
@@ -8488,7 +8569,7 @@ export const stageReviews = pgTable("stage_reviews", {
  * 采购/ERP/MES/IM连接器配置
  */
 export const thirdPartyConnectors = pgTable("third_party_connectors", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   connectorCode: varchar("connector_code", { length: 50 }).notNull(),
   connectorName: varchar("connector_name", { length: 100 }).notNull(),
   // 连接器类型
@@ -8529,7 +8610,7 @@ export const userProfileRoleEnum = pgEnum("user_profile_role", ['admin', 'manage
  * 存储用户角色、仪表盘布局和可见模块配置
  */
 export const userProfilesV2 = pgTable("user_profiles_v2", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   userId: integer("user_id").notNull(), // 关联users表
   // 用户角色
   role: roleEnum5('role').default('viewer').notNull(),
@@ -8565,7 +8646,7 @@ export const userProfilesV2 = pgTable("user_profiles_v2", {
  * 定义每个角色的默认权限配置
  */
 export const rolePermissionsV2 = pgTable("role_permissions_v2", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   roleCode: roleEnum5('roleCode').notNull(),
   // 模块代码
   moduleCode: varchar("module_code", { length: 50 }).notNull(),
@@ -8592,7 +8673,7 @@ export const rolePermissionsV2 = pgTable("role_permissions_v2", {
  * 系统模块注册表
  */
 export const systemModules = pgTable("system_modules", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   moduleCode: varchar("module_code", { length: 50 }).notNull(),
   moduleName: varchar("module_name", { length: 100 }).notNull(),
   moduleNameEn: varchar("module_name_en", { length: 100 }),
@@ -8626,7 +8707,7 @@ export const systemModules = pgTable("system_modules", {
  * 定义可用的仪表盘小部件
  */
 export const dashboardWidgets = pgTable("dashboard_widgets", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   widgetCode: varchar("widget_code", { length: 50 }).notNull(),
   widgetName: varchar("widget_name", { length: 100 }).notNull(),
   widgetNameEn: varchar("widget_name_en", { length: 100 }),
@@ -8659,7 +8740,7 @@ export const dashboardWidgets = pgTable("dashboard_widgets", {
  * 存储用户个性化的仪表盘配置
  */
 export const userDashboardConfigs = pgTable("user_dashboard_configs", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   userId: integer("user_id").notNull(),
   // 仪表盘名称
   dashboardName: varchar("dashboard_name", { length: 100 }).notNull(),
@@ -8689,7 +8770,7 @@ export const userDashboardConfigs = pgTable("user_dashboard_configs", {
  * 记录权限变更历史
  */
 export const permissionAuditLogsV2 = pgTable("permission_audit_logs_v2", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   userId: integer("user_id").notNull(),
   // 操作类型
   actionType: actionTypeEnum('actionType').notNull(),
@@ -8865,7 +8946,7 @@ export const collaborationStates = pgTable("collaboration_states", {
  * 记录员工离职的核心信息、顶替者、数据保留策略
  */
 export const employeeOffboarding = pgTable("employee_offboarding", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   // 离职员工信息
   employeeId: integer("employee_id").notNull(), // 关联 hrmEmployees.id
   employeeName: varchar("employee_name", { length: 100 }).notNull(),
@@ -8918,7 +8999,7 @@ export const employeeOffboarding = pgTable("employee_offboarding", {
  * 记录离职员工需要交接的所有工作项目
  */
 export const offboardingHandoverItems = pgTable("offboarding_handover_items", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   offboardingId: integer("offboarding_id").notNull(), // 关联 employeeOffboarding.id
   // 交接项目信息
   category: categoryEnum7('category').notNull(),
@@ -8952,7 +9033,7 @@ export const offboardingHandoverItems = pgTable("offboarding_handover_items", {
  * 记录离职前/后的绩效数据归属
  */
 export const performanceAttribution = pgTable("performance_attribution", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   offboardingId: integer("offboarding_id").notNull(),
   // 绩效项信息
   kpiName: varchar("kpi_name", { length: 200 }).notNull(),
@@ -8997,7 +9078,7 @@ export const performanceAttribution = pgTable("performance_attribution", {
  * 记录离职员工的IT资产、Profile、账号等交接
  */
 export const assetHandover = pgTable("asset_handover", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   offboardingId: integer("offboarding_id").notNull(),
   // 资产信息
   assetCategory: assetCategoryEnum('assetCategory').notNull(),
@@ -9031,7 +9112,7 @@ export const assetHandover = pgTable("asset_handover", {
  * 多级审批：主管 → HR → 财务 → IT
  */
 export const offboardingApprovals = pgTable("offboarding_approvals", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   offboardingId: integer("offboarding_id").notNull(),
   // 审批级别
   approvalLevel: approvalLevelEnum('approvalLevel').notNull(),
@@ -9062,7 +9143,7 @@ export const offboardingApprovals = pgTable("offboarding_approvals", {
  * 记录对离职员工数据的查询，支持按周期过滤和标注
  */
 export const offboardingDataQueryLog = pgTable("offboarding_data_query_log", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   queryUserId: integer("query_user_id").notNull(),
   queryType: queryTypeEnum('queryType').notNull(),
   queryPeriod: periodTypeEnum2('queryPeriod').notNull(),
@@ -9089,7 +9170,7 @@ export const offboardingDataQueryLog = pgTable("offboarding_data_query_log", {
  * 存储公司的各个事业部信息
  */
 export const businessUnits = pgTable("business_units", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   code: varchar("code", { length: 50 }).notNull().unique(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
@@ -9110,7 +9191,7 @@ export const businessUnits = pgTable("business_units", {
  * 存储事业部的各维度绩效指标
  */
 export const buPerformance = pgTable("bu_performance", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   buId: integer("bu_id").notNull(),
   fiscalYear: integer("fiscal_year").notNull(),
   fiscalQuarter: integer("fiscal_quarter"), // Q1, Q2, Q3, Q4
@@ -9174,7 +9255,7 @@ export const buPerformance = pgTable("bu_performance", {
  * 存储事业部的KPI定义和目标
  */
 export const buKpis = pgTable("bu_kpis", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   buId: integer("bu_id").notNull(),
   kpiCode: varchar("kpi_code", { length: 50 }).notNull(),
   kpiName: varchar("kpi_name", { length: 255 }).notNull(),
@@ -9209,7 +9290,7 @@ export const buKpis = pgTable("bu_kpis", {
  * 记录事业部绩效指标的变化历史
  */
 export const buPerformanceHistory = pgTable("bu_performance_history", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   buId: integer("bu_id").notNull(),
   fiscalYear: integer("fiscal_year").notNull(),
   fiscalQuarter: integer("fiscal_quarter"),
@@ -9231,7 +9312,7 @@ export const buPerformanceHistory = pgTable("bu_performance_history", {
  * 存储项目的各维度评分
  */
 export const projectScores = pgTable("project_scores", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   projectId: integer("project_id").notNull(),
   buId: integer("bu_id"),
   
@@ -9258,7 +9339,7 @@ export const projectScores = pgTable("project_scores", {
  * 存储项目成员的个人评分
  */
 export const projectMemberScores = pgTable("project_member_scores", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   projectId: integer("project_id").notNull(),
   employeeId: integer("employee_id").notNull(),
   buId: integer("bu_id"),
@@ -9287,7 +9368,7 @@ export const projectMemberScores = pgTable("project_member_scores", {
  * 存储事业部的员工信息
  */
 export const buEmployees = pgTable("bu_employees", {
-  id: serial('id').primaryKey().primaryKey(),
+  id: serial('id').primaryKey(),
   buId: integer("bu_id").notNull(),
   employeeId: integer("employee_id").notNull(),
   role: varchar("role", { length: 100 }),
@@ -11239,3 +11320,604 @@ export type ImeFacilitatorAnalysis = typeof imeFacilitatorAnalysis.$inferSelect;
 export type InsertImeFacilitatorAnalysis = typeof imeFacilitatorAnalysis.$inferInsert;
 export type ImeFacilitatorIntelligenceSnapshot = typeof imeFacilitatorIntelligenceSnapshots.$inferSelect;
 export type InsertImeFacilitatorIntelligenceSnapshot = typeof imeFacilitatorIntelligenceSnapshots.$inferInsert;
+
+
+// ============ IATF 16949 Core Tool: FMEA (Failure Mode & Effects Analysis) ============
+
+export const fmeaTypeEnum = pgEnum('fmeaTypeEnum', ['DFMEA', 'PFMEA']);
+export const fmeaStatusEnum = pgEnum('fmeaStatusEnum', ['draft', 'in_review', 'approved', 'active', 'archived']);
+export const fmeaActionStatusEnum = pgEnum('fmeaActionStatusEnum', ['open', 'in_progress', 'completed', 'verified', 'cancelled']);
+export const severityLevelEnum = pgEnum('severityLevelEnum', ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
+
+// FMEA主表 — 一个FMEA文档对应一个产品/过程
+export const fmeaDocuments = pgTable("fmea_documents", {
+  id: serial('id').primaryKey(),
+  fmeaCode: varchar("fmea_code", { length: 50 }).notNull(),
+  projectId: integer("project_id"),
+  fmeaType: fmeaTypeEnum("fmea_type").notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
+  scope: text("scope"),
+  productName: varchar("product_name", { length: 200 }),
+  processName: varchar("process_name", { length: 200 }),
+  modelYear: varchar("model_year", { length: 20 }),
+  teamMembers: text("team_members"), // JSON array of names
+  status: fmeaStatusEnum("status").default('draft').notNull(),
+  revision: integer("revision").default(1),
+  approvedBy: integer("approved_by"),
+  approvedAt: timestamp("approved_at", { mode: 'string' }),
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("fmea_documents_code_idx").on(table.fmeaCode),
+  index("fmea_documents_project_idx").on(table.projectId),
+  index("fmea_documents_type_idx").on(table.fmeaType),
+]);
+
+// FMEA失效模式行项 — 每行一个失效模式
+export const fmeaItems = pgTable("fmea_items", {
+  id: serial('id').primaryKey(),
+  fmeaDocumentId: integer("fmea_document_id").notNull(),
+  itemNumber: integer("item_number").notNull(),
+  // 结构分析
+  systemElement: varchar("system_element", { length: 200 }), // 系统/子系统/零件
+  functionRequirement: text("function_requirement"), // 功能/要求
+  // 失效分析
+  failureMode: varchar("failure_mode", { length: 500 }).notNull(), // 潜在失效模式
+  failureEffect: text("failure_effect"), // 潜在失效后果
+  failureCause: text("failure_cause"), // 潜在失效原因/机制
+  // 风险评估 (RPN = S × O × D)
+  severity: integer("severity").default(1).notNull(), // 严重度 1-10
+  occurrence: integer("occurrence").default(1).notNull(), // 频度 1-10
+  detection: integer("detection").default(1).notNull(), // 探测度 1-10
+  rpn: integer("rpn").default(1).notNull(), // 风险优先数
+  // AP (Action Priority) per AIAG-VDA FMEA (replaces RPN in newer standard)
+  actionPriority: varchar("action_priority", { length: 2 }), // H/M/L
+  // 现行控制 - 预防
+  currentPreventionControl: text("current_prevention_control"),
+  // 现行控制 - 探测
+  currentDetectionControl: text("current_detection_control"),
+  // 改进后评估
+  revisedSeverity: integer("revised_severity"),
+  revisedOccurrence: integer("revised_occurrence"),
+  revisedDetection: integer("revised_detection"),
+  revisedRpn: integer("revised_rpn"),
+  revisedActionPriority: varchar("revised_action_priority", { length: 2 }),
+  // 特殊特性
+  specialCharacteristic: varchar("special_characteristic", { length: 10 }), // CC/SC/空
+  // 备注
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("fmea_items_document_idx").on(table.fmeaDocumentId),
+  index("fmea_items_rpn_idx").on(table.rpn),
+]);
+
+// FMEA改进措施
+export const fmeaActions = pgTable("fmea_actions", {
+  id: serial('id').primaryKey(),
+  fmeaItemId: integer("fmea_item_id").notNull(),
+  actionDescription: text("action_description").notNull(),
+  responsiblePerson: varchar("responsible_person", { length: 100 }),
+  responsibleId: integer("responsible_id"),
+  targetDate: timestamp("target_date", { mode: 'string' }),
+  completionDate: timestamp("completion_date", { mode: 'string' }),
+  status: fmeaActionStatusEnum("status").default('open').notNull(),
+  verificationResult: text("verification_result"),
+  evidence: text("evidence"), // 附件/证据链接
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("fmea_actions_item_idx").on(table.fmeaItemId),
+  index("fmea_actions_status_idx").on(table.status),
+]);
+
+
+// ============ IATF 16949 Core Tool: Control Plan (控制计划) ============
+
+export const controlPlanStatusEnum = pgEnum('controlPlanStatusEnum', ['draft', 'active', 'superseded', 'archived']);
+export const controlPlanPhaseEnum = pgEnum('controlPlanPhaseEnum', ['prototype', 'pre_launch', 'production']);
+export const controlMethodEnum = pgEnum('controlMethodEnum', ['visual', 'gauge', 'spc', 'cmm', 'test', 'audit', 'other']);
+
+// 控制计划主表
+export const controlPlans = pgTable("control_plans", {
+  id: serial('id').primaryKey(),
+  planCode: varchar("plan_code", { length: 50 }).notNull(),
+  projectId: integer("project_id"),
+  fmeaDocumentId: integer("fmea_document_id"), // 关联FMEA
+  title: varchar("title", { length: 200 }).notNull(),
+  partName: varchar("part_name", { length: 200 }),
+  partNumber: varchar("part_number", { length: 100 }),
+  phase: controlPlanPhaseEnum("phase").default('prototype').notNull(),
+  revision: integer("revision").default(1),
+  status: controlPlanStatusEnum("status").default('draft').notNull(),
+  customerApprovalDate: timestamp("customer_approval_date", { mode: 'string' }),
+  supplierApprovalDate: timestamp("supplier_approval_date", { mode: 'string' }),
+  approvedBy: integer("approved_by"),
+  approvedAt: timestamp("approved_at", { mode: 'string' }),
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("control_plans_code_idx").on(table.planCode),
+  index("control_plans_project_idx").on(table.projectId),
+  index("control_plans_fmea_idx").on(table.fmeaDocumentId),
+]);
+
+// 控制计划行项 — 每行一个工序/特性
+export const controlPlanItems = pgTable("control_plan_items", {
+  id: serial('id').primaryKey(),
+  controlPlanId: integer("control_plan_id").notNull(),
+  itemNumber: integer("item_number").notNull(),
+  processStep: varchar("process_step", { length: 200 }), // 工序名称
+  processNumber: varchar("process_number", { length: 50 }), // 工序编号
+  machineTool: varchar("machine_tool", { length: 200 }), // 设备/工装
+  // 特性
+  characteristicName: varchar("characteristic_name", { length: 200 }).notNull(),
+  characteristicNumber: varchar("characteristic_number", { length: 50 }),
+  characteristicType: varchar("characteristic_type", { length: 20 }), // product/process
+  specialCharacteristic: varchar("special_characteristic", { length: 10 }), // CC/SC
+  // 规格/公差
+  specification: text("specification"),
+  tolerance: varchar("tolerance", { length: 200 }),
+  // 控制方法
+  controlMethod: controlMethodEnum("control_method").default('visual').notNull(),
+  controlDescription: text("control_description"),
+  sampleSize: varchar("sample_size", { length: 50 }),
+  sampleFrequency: varchar("sample_frequency", { length: 100 }),
+  // 反应计划
+  reactionPlan: text("reaction_plan"),
+  // 关联FMEA项
+  fmeaItemId: integer("fmea_item_id"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("control_plan_items_plan_idx").on(table.controlPlanId),
+]);
+
+
+// ============ IATF 16949 Core Tool: PPAP (Production Part Approval Process) ============
+
+export const ppapStatusEnum = pgEnum('ppapStatusEnum', ['draft', 'submitted', 'approved', 'rejected', 'interim_approved']);
+export const ppapLevelEnum = pgEnum('ppapLevelEnum', ['1', '2', '3', '4', '5']);
+export const ppapElementStatusEnum = pgEnum('ppapElementStatusEnum', ['not_started', 'in_progress', 'completed', 'not_applicable', 'rejected']);
+
+// PPAP提交主表
+export const ppapSubmissions = pgTable("ppap_submissions", {
+  id: serial('id').primaryKey(),
+  submissionCode: varchar("submission_code", { length: 50 }).notNull(),
+  projectId: integer("project_id"),
+  partName: varchar("part_name", { length: 200 }).notNull(),
+  partNumber: varchar("part_number", { length: 100 }).notNull(),
+  revision: varchar("revision", { length: 20 }).default('A'),
+  customerId: integer("customer_id"),
+  customerName: varchar("customer_name", { length: 200 }),
+  submissionLevel: ppapLevelEnum("submission_level").default('3').notNull(),
+  submissionReason: varchar("submission_reason", { length: 200 }), // Initial/Engineering Change/Tooling Change/etc
+  status: ppapStatusEnum("status").default('draft').notNull(),
+  submittedAt: timestamp("submitted_at", { mode: 'string' }),
+  approvedAt: timestamp("approved_at", { mode: 'string' }),
+  approvedBy: integer("approved_by"),
+  customerDecision: text("customer_decision"),
+  notes: text("notes"),
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("ppap_submissions_code_idx").on(table.submissionCode),
+  index("ppap_submissions_project_idx").on(table.projectId),
+]);
+
+// PPAP 18元素检查表
+export const ppapElements = pgTable("ppap_elements", {
+  id: serial('id').primaryKey(),
+  submissionId: integer("submission_id").notNull(),
+  elementNumber: integer("element_number").notNull(), // 1-18
+  elementName: varchar("element_name", { length: 200 }).notNull(),
+  required: smallint("required").default(1).notNull(), // 基于submission level
+  status: ppapElementStatusEnum("status").default('not_started').notNull(),
+  documentPath: text("document_path"), // 文件路径/链接
+  reviewNotes: text("review_notes"),
+  completedBy: integer("completed_by"),
+  completedAt: timestamp("completed_at", { mode: 'string' }),
+  verifiedBy: integer("verified_by"),
+  verifiedAt: timestamp("verified_at", { mode: 'string' }),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("ppap_elements_submission_idx").on(table.submissionId),
+]);
+
+
+// ============ IATF 16949 Core Tool: MSA (Measurement System Analysis) ============
+
+export const msaStudyTypeEnum = pgEnum('msaStudyTypeEnum', ['gage_rr', 'bias', 'linearity', 'stability', 'attribute_agreement']);
+export const msaStudyStatusEnum = pgEnum('msaStudyStatusEnum', ['planned', 'in_progress', 'completed', 'failed', 'archived']);
+
+// MSA研究主表
+export const msaStudies = pgTable("msa_studies", {
+  id: serial('id').primaryKey(),
+  studyCode: varchar("study_code", { length: 50 }).notNull(),
+  projectId: integer("project_id"),
+  controlPlanItemId: integer("control_plan_item_id"), // 关联控制计划
+  studyType: msaStudyTypeEnum("study_type").notNull(),
+  gaugeName: varchar("gauge_name", { length: 200 }).notNull(),
+  gaugeId: varchar("gauge_id", { length: 100 }),
+  gaugeResolution: varchar("gauge_resolution", { length: 50 }),
+  partName: varchar("part_name", { length: 200 }),
+  characteristicName: varchar("characteristic_name", { length: 200 }),
+  specification: text("specification"),
+  tolerance: varchar("tolerance", { length: 100 }),
+  // GR&R结果
+  numOperators: integer("num_operators").default(3),
+  numParts: integer("num_parts").default(10),
+  numTrials: integer("num_trials").default(3),
+  repeatability: decimal("repeatability", { precision: 8, scale: 4 }),
+  reproducibility: decimal("reproducibility", { precision: 8, scale: 4 }),
+  grrPercent: decimal("grr_percent", { precision: 8, scale: 4 }), // %GR&R (<10%=acceptable, 10-30%=marginal, >30%=unacceptable)
+  ndc: integer("ndc"), // Number of Distinct Categories (≥5 is acceptable)
+  // 判定
+  status: msaStudyStatusEnum("status").default('planned').notNull(),
+  conclusion: varchar("conclusion", { length: 50 }), // acceptable/marginal/unacceptable
+  conductedBy: integer("conducted_by"),
+  conductedAt: timestamp("conducted_at", { mode: 'string' }),
+  notes: text("notes"),
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("msa_studies_code_idx").on(table.studyCode),
+  index("msa_studies_project_idx").on(table.projectId),
+]);
+
+// MSA测量原始数据
+export const msaMeasurements = pgTable("msa_measurements", {
+  id: serial('id').primaryKey(),
+  studyId: integer("study_id").notNull(),
+  operatorId: integer("operator_id"),
+  operatorName: varchar("operator_name", { length: 100 }),
+  partNumber: integer("part_number").notNull(),
+  trialNumber: integer("trial_number").notNull(),
+  measuredValue: decimal("measured_value", { precision: 12, scale: 6 }).notNull(),
+  referenceValue: decimal("reference_value", { precision: 12, scale: 6 }),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("msa_measurements_study_idx").on(table.studyId),
+]);
+
+
+// ============ IATF 16949 Core Tool: 8D Problem Solving + CAPA ============
+
+export const eightDStatusEnum = pgEnum('eightDStatusEnum', ['open', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'closed', 'verified']);
+export const capaTypeEnum = pgEnum('capaTypeEnum', ['corrective', 'preventive']);
+export const capaStatusEnum = pgEnum('capaStatusEnum', ['open', 'investigation', 'action_planned', 'implemented', 'verified', 'closed']);
+
+// 8D报告主表
+export const eightDReports = pgTable("eight_d_reports", {
+  id: serial('id').primaryKey(),
+  reportCode: varchar("report_code", { length: 50 }).notNull(),
+  projectId: integer("project_id"),
+  title: varchar("title", { length: 300 }).notNull(),
+  problemDescription: text("problem_description"),
+  severity: varchar("severity", { length: 20 }).default('medium'), // critical/high/medium/low
+  source: varchar("source", { length: 100 }), // customer_complaint/internal_audit/supplier/field_return
+  customerId: integer("customer_id"),
+  customerName: varchar("customer_name", { length: 200 }),
+  partNumber: varchar("part_number", { length: 100 }),
+  defectQuantity: integer("defect_quantity"),
+  // D1: Team
+  teamLeaderId: integer("team_leader_id"),
+  teamMembers: text("team_members"), // JSON
+  // D2: Problem Description (detailed)
+  d2Description: text("d2_description"),
+  d2IsWhat: text("d2_is_what"),
+  d2IsNotWhat: text("d2_is_not_what"),
+  // D3: Interim Containment Actions
+  d3ContainmentActions: text("d3_containment_actions"), // JSON array
+  d3ImplementedAt: timestamp("d3_implemented_at", { mode: 'string' }),
+  // D4: Root Cause Analysis
+  d4RootCauses: text("d4_root_causes"), // JSON array
+  d4AnalysisMethod: varchar("d4_analysis_method", { length: 50 }), // 5why/fishbone/fault_tree
+  d4VerificationData: text("d4_verification_data"),
+  // D5: Permanent Corrective Actions
+  d5CorrectiveActions: text("d5_corrective_actions"), // JSON array
+  // D6: Implementation & Verification
+  d6ImplementationDate: timestamp("d6_implementation_date", { mode: 'string' }),
+  d6VerificationResult: text("d6_verification_result"),
+  d6EffectivenessData: text("d6_effectiveness_data"),
+  // D7: Prevent Recurrence
+  d7PreventionActions: text("d7_prevention_actions"), // JSON array
+  d7SystemChanges: text("d7_system_changes"),
+  // D8: Congratulate Team
+  d8LessonsLearned: text("d8_lessons_learned"),
+  d8TeamRecognition: text("d8_team_recognition"),
+  d8ClosureDate: timestamp("d8_closure_date", { mode: 'string' }),
+  // Status
+  currentStep: eightDStatusEnum("current_step").default('open').notNull(),
+  dueDate: timestamp("due_date", { mode: 'string' }),
+  closedAt: timestamp("closed_at", { mode: 'string' }),
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("eight_d_reports_code_idx").on(table.reportCode),
+  index("eight_d_reports_project_idx").on(table.projectId),
+  index("eight_d_reports_step_idx").on(table.currentStep),
+]);
+
+// CAPA记录表
+export const capaRecords = pgTable("capa_records", {
+  id: serial('id').primaryKey(),
+  capaCode: varchar("capa_code", { length: 50 }).notNull(),
+  eightDReportId: integer("eight_d_report_id"), // 可从8D发起
+  projectId: integer("project_id"),
+  capaType: capaTypeEnum("capa_type").notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  description: text("description"),
+  rootCause: text("root_cause"),
+  actionPlan: text("action_plan"), // JSON array of actions
+  responsibleId: integer("responsible_id"),
+  responsibleName: varchar("responsible_name", { length: 100 }),
+  targetDate: timestamp("target_date", { mode: 'string' }),
+  completionDate: timestamp("completion_date", { mode: 'string' }),
+  verificationMethod: text("verification_method"),
+  verificationResult: text("verification_result"),
+  effectivenessCheck: text("effectiveness_check"),
+  status: capaStatusEnum("status").default('open').notNull(),
+  closedBy: integer("closed_by"),
+  closedAt: timestamp("closed_at", { mode: 'string' }),
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("capa_records_code_idx").on(table.capaCode),
+  index("capa_records_8d_idx").on(table.eightDReportId),
+  index("capa_records_project_idx").on(table.projectId),
+]);
+
+
+// ============ Safety Rule Engine (工业安全规则) ============
+
+export const safetyRuleSeverityEnum = pgEnum('safetyRuleSeverityEnum', ['fatal', 'critical', 'warning', 'info']);
+export const safetyRuleCategoryEnum = pgEnum('safetyRuleCategoryEnum', ['physical', 'chemical', 'electrical', 'operational']);
+
+export const safetyRules = pgTable("safety_rules", {
+  id: serial('id').primaryKey(),
+  ruleCode: varchar("rule_code", { length: 50 }).notNull(),
+  name: varchar("name", { length: 200 }).notNull(),
+  category: safetyRuleCategoryEnum("category").notNull(),
+  description: text("description"),
+  materialType: varchar("material_type", { length: 100 }), // aluminum/stainless_steel/plastic/etc
+  equipmentModel: varchar("equipment_model", { length: 100 }), // GRT-SC-*/GRT-HP-* (支持通配符)
+  parameterName: varchar("parameter_name", { length: 100 }).notNull(),
+  unit: varchar("unit", { length: 20 }),
+  minValue: decimal("min_value", { precision: 12, scale: 4 }),
+  maxValue: decimal("max_value", { precision: 12, scale: 4 }),
+  forbiddenValues: text("forbidden_values"), // JSON array
+  severity: safetyRuleSeverityEnum("severity").default('warning').notNull(),
+  isActive: smallint("is_active").default(1).notNull(),
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("safety_rules_code_idx").on(table.ruleCode),
+  index("safety_rules_material_idx").on(table.materialType),
+  index("safety_rules_equipment_idx").on(table.equipmentModel),
+]);
+
+// ─── Smart Cockpit: Time Tracking Sessions ───
+export const taskTimeSessions = pgTable("task_time_sessions", {
+  id: serial('id').primaryKey(),
+  taskId: integer('task_id').notNull(),
+  projectId: integer('project_id').notNull(),
+  userId: integer('user_id').notNull(),
+  phaseCode: varchar('phase_code', { length: 10 }),
+  startedAt: timestamp('started_at', { mode: 'string' }).notNull(),
+  endedAt: timestamp('ended_at', { mode: 'string' }),
+  durationMin: integer('duration_min'),
+  notes: text('notes'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("task_time_sessions_task_idx").on(table.taskId),
+  index("task_time_sessions_user_idx").on(table.userId),
+  index("task_time_sessions_active_idx").on(table.isActive),
+  index("task_time_sessions_project_idx").on(table.projectId),
+]);
+
+// ─── Smart Cockpit: Task Prerequisites (stage-gate rules) ───
+export const taskPrerequisites = pgTable("task_prerequisites", {
+  id: serial('id').primaryKey(),
+  taskType: varchar('task_type', { length: 50 }).notNull(),
+  phaseCode: varchar('phase_code', { length: 10 }).notNull(),
+  description: text('description').notNull(),
+  checkType: varchar('check_type', { length: 30 }).notNull(),
+  requiredGateStage: varchar('required_gate_stage', { length: 10 }),
+  requiredCheckItem: varchar('required_check_item', { length: 200 }),
+  requiredTaskType: varchar('required_task_type', { length: 50 }),
+  requiredTaskStatus: varchar('required_task_status', { length: 30 }).default('done'),
+  requiredTableName: varchar('required_table_name', { length: 100 }),
+  requiredColumnName: varchar('required_column_name', { length: 100 }),
+  errorMessage: varchar('error_message', { length: 300 }).notNull(),
+  severity: varchar('severity', { length: 20 }).default('hard'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("task_prerequisites_type_idx").on(table.taskType),
+  index("task_prerequisites_phase_idx").on(table.phaseCode),
+]);
+
+// ── Testing & Template Engine enums ──
+export const testTemplateDomainEnum = pgEnum('test_template_domain', [
+  'software_uat', 'plc_test', 'fat_checklist', 'sat_checklist', 'custom'
+]);
+export const testTemplateStatusEnum = pgEnum('test_template_status', [
+  'draft', 'active', 'archived'
+]);
+export const testCasePhaseEnum = pgEnum('test_case_phase', [
+  'setup', 'execution', 'verification', 'teardown'
+]);
+export const testCaseCategoryEnum = pgEnum('test_case_category', [
+  'functional', 'performance', 'safety', 'integration', 'regression', 'acceptance'
+]);
+export const testCasePriorityEnum = pgEnum('test_case_priority', [
+  'critical', 'high', 'medium', 'low'
+]);
+export const testExecutionStatusEnum = pgEnum('test_execution_status', [
+  'planned', 'in_progress', 'paused', 'completed', 'aborted'
+]);
+export const testExecutionEnvEnum = pgEnum('test_execution_env', [
+  'dev', 'staging', 'prod', 'field', 'lab'
+]);
+export const testResultStatusEnum = pgEnum('test_result_status', [
+  'not_started', 'pass', 'fail', 'blocked', 'skipped', 'partial'
+]);
+export const testResultSeverityEnum = pgEnum('test_result_severity', [
+  'critical', 'major', 'minor', 'cosmetic'
+]);
+export const aiGenSourceEnum = pgEnum('ai_gen_source', [
+  'template_generation', 'test_suggestion', 'case_optimization', 'risk_analysis'
+]);
+
+// ── Testing & Template Engine: test_templates ──
+export const testTemplates = pgTable('test_templates', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 200 }).notNull(),
+  domain: testTemplateDomainEnum('domain').notNull(),
+  status: testTemplateStatusEnum('status').default('draft').notNull(),
+  version: integer('version').default(1).notNull(),
+  parentTemplateId: integer('parent_template_id'),
+  description: text('description'),
+  scope: text('scope'),
+  applicablePhases: json('applicable_phases').$type<string[]>(),
+  requiredRoles: json('required_roles').$type<string[]>(),
+  tags: json('tags').$type<string[]>(),
+  estimatedTotalHours: decimal('estimated_total_hours', { precision: 8, scale: 2 }),
+  passingScorePercent: integer('passing_score_percent').default(80),
+  createdBy: integer('created_by'),
+  updatedBy: integer('updated_by'),
+  createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index('test_templates_domain_idx').on(table.domain),
+  index('test_templates_status_idx').on(table.status),
+]);
+
+// ── Testing & Template Engine: test_cases ──
+export const testCases = pgTable('test_cases', {
+  id: serial('id').primaryKey(),
+  templateId: integer('template_id').references(() => testTemplates.id).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  code: varchar('code', { length: 50 }),
+  title: varchar('title', { length: 300 }).notNull(),
+  description: text('description'),
+  phase: testCasePhaseEnum('phase').default('execution').notNull(),
+  category: testCaseCategoryEnum('category').default('functional').notNull(),
+  priority: testCasePriorityEnum('priority').default('medium').notNull(),
+  preconditions: text('preconditions'),
+  steps: json('steps').$type<{ step: number; action: string; expected: string }[]>(),
+  expectedResult: text('expected_result'),
+  requiredRole: varchar('required_role', { length: 50 }),
+  skillLevel: varchar('skill_level', { length: 30 }),
+  estimatedHours: decimal('estimated_hours', { precision: 6, scale: 2 }),
+  automatable: boolean('automatable').default(false),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index('test_cases_template_idx').on(table.templateId),
+  index('test_cases_phase_idx').on(table.phase),
+  index('test_cases_priority_idx').on(table.priority),
+]);
+
+// ── Testing & Template Engine: test_executions ──
+export const testExecutions = pgTable('test_executions', {
+  id: serial('id').primaryKey(),
+  templateId: integer('template_id').references(() => testTemplates.id).notNull(),
+  projectId: integer('project_id'),
+  executionName: varchar('execution_name', { length: 200 }).notNull(),
+  status: testExecutionStatusEnum('status').default('planned').notNull(),
+  environment: testExecutionEnvEnum('environment').notNull(),
+  plannedStartDate: timestamp('planned_start_date', { mode: 'string' }),
+  plannedEndDate: timestamp('planned_end_date', { mode: 'string' }),
+  actualStartDate: timestamp('actual_start_date', { mode: 'string' }),
+  actualEndDate: timestamp('actual_end_date', { mode: 'string' }),
+  leadUserId: integer('lead_user_id'),
+  teamUserIds: json('team_user_ids').$type<number[]>(),
+  totalCases: integer('total_cases').default(0),
+  passedCases: integer('passed_cases').default(0),
+  failedCases: integer('failed_cases').default(0),
+  blockedCases: integer('blocked_cases').default(0),
+  overallScore: decimal('overall_score', { precision: 5, scale: 2 }),
+  notes: text('notes'),
+  createdBy: integer('created_by'),
+  createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index('test_executions_template_idx').on(table.templateId),
+  index('test_executions_project_idx').on(table.projectId),
+  index('test_executions_status_idx').on(table.status),
+  index('test_executions_env_idx').on(table.environment),
+]);
+
+// ── Testing & Template Engine: test_results ──
+export const testResults = pgTable('test_results', {
+  id: serial('id').primaryKey(),
+  executionId: integer('execution_id').references(() => testExecutions.id).notNull(),
+  testCaseId: integer('test_case_id').references(() => testCases.id).notNull(),
+  status: testResultStatusEnum('status').default('not_started').notNull(),
+  executedBy: integer('executed_by'),
+  executedAt: timestamp('executed_at', { mode: 'string' }),
+  actualHours: decimal('actual_hours', { precision: 6, scale: 2 }),
+  bugSeverity: testResultSeverityEnum('bug_severity'),
+  bugDescription: text('bug_description'),
+  bugTicketUrl: varchar('bug_ticket_url', { length: 500 }),
+  evidenceUrls: json('evidence_urls').$type<string[]>(),
+  notes: text('notes'),
+  retestOf: integer('retest_of'),
+  createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index('test_results_execution_idx').on(table.executionId),
+  index('test_results_case_idx').on(table.testCaseId),
+  index('test_results_status_idx').on(table.status),
+]);
+
+// ── Testing & Template Engine: ai_generation_logs ──
+export const aiGenerationLogs = pgTable('ai_generation_logs', {
+  id: serial('id').primaryKey(),
+  templateId: integer('template_id').references(() => testTemplates.id),
+  source: aiGenSourceEnum('source').notNull(),
+  promptInputConditions: json('prompt_input_conditions').$type<Record<string, unknown>>().notNull(),
+  modelUsed: varchar('model_used', { length: 100 }).notNull(),
+  modelVersion: varchar('model_version', { length: 50 }),
+  responseTokens: integer('response_tokens'),
+  promptTokens: integer('prompt_tokens'),
+  totalTokens: integer('total_tokens'),
+  generatedContent: json('generated_content').$type<Record<string, unknown>>(),
+  confidenceScore: decimal('confidence_score', { precision: 5, scale: 4 }),
+  userAccepted: boolean('user_accepted'),
+  userModifications: text('user_modifications'),
+  generatedBy: integer('generated_by'),
+  generatedAt: timestamp('generated_at', { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index('ai_gen_logs_template_idx').on(table.templateId),
+  index('ai_gen_logs_source_idx').on(table.source),
+  index('ai_gen_logs_model_idx').on(table.modelUsed),
+  index('ai_gen_logs_generated_at_idx').on(table.generatedAt),
+]);
+
+// ── Testing & Template Engine: Type Exports ──
+export type TestTemplate = InferSelectModel<typeof testTemplates>;
+export type InsertTestTemplate = InferInsertModel<typeof testTemplates>;
+export type TestCase = InferSelectModel<typeof testCases>;
+export type InsertTestCase = InferInsertModel<typeof testCases>;
+export type TestExecution = InferSelectModel<typeof testExecutions>;
+export type InsertTestExecution = InferInsertModel<typeof testExecutions>;
+export type TestResult = InferSelectModel<typeof testResults>;
+export type InsertTestResult = InferInsertModel<typeof testResults>;
+export type AiGenerationLog = InferSelectModel<typeof aiGenerationLogs>;
+export type InsertAiGenerationLog = InferInsertModel<typeof aiGenerationLogs>;

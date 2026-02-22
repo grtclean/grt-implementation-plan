@@ -3,14 +3,17 @@
  * 客户需求录入、技术可行性评估、需求分解与追踪
  */
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import {
@@ -47,21 +50,58 @@ const MOCK_REQUIREMENTS = [
 ];
 
 export default function RequirementsAnalysis() {
-  const { toast } = useToast();
   const { currentBU } = useUserProfile();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [requirements, setRequirements] = useState(MOCK_REQUIREMENTS);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    customer: "",
+    assignee: "",
+    priority: "medium",
+  });
 
-  const handleComingSoon = () => {
-    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
-  };
-
-  const filteredReqs = MOCK_REQUIREMENTS.filter(r => {
+  const filteredReqs = requirements.filter(r => {
     if (currentBU && r.bu !== currentBU) return false;
     if (searchTerm && !r.title.includes(searchTerm) && !r.customer.includes(searchTerm)) return false;
     if (activeTab !== "all" && r.status !== activeTab) return false;
     return true;
   });
+
+  const handleCreate = () => {
+    if (!formData.title.trim()) {
+      toast.error("请输入需求标题");
+      return;
+    }
+    if (!formData.customer.trim()) {
+      toast.error("请输入客户名称");
+      return;
+    }
+    if (!formData.assignee.trim()) {
+      toast.error("请输入负责人");
+      return;
+    }
+
+    const nextNum = requirements.length + 1;
+    const newId = `REQ-2026-${String(nextNum).padStart(3, "0")}`;
+    const today = new Date().toISOString().slice(0, 10);
+    const newReq = {
+      id: newId,
+      customer: formData.customer.trim(),
+      title: formData.title.trim(),
+      status: "draft" as RequirementStatus,
+      priority: formData.priority,
+      bu: currentBU || "BU3",
+      assignee: formData.assignee.trim(),
+      date: today,
+    };
+
+    setRequirements(prev => [newReq, ...prev]);
+    setShowCreateDialog(false);
+    setFormData({ title: "", customer: "", assignee: "", priority: "medium" });
+    toast.success("需求创建成功");
+  };
 
   return (
     <div className="space-y-6">
@@ -72,16 +112,16 @@ export default function RequirementsAnalysis() {
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />新建需求</Button>
+            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />新建需求</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={FileText} label="总需求" value={24} />
-        <StatCard icon={Clock} label="评审中" value={6} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={ArrowRight} label="进行中" value={8} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={CheckCircle2} label="已完成" value={10} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={FileText} label="总需求" value={requirements.length} />
+        <StatCard icon={Clock} label="评审中" value={requirements.filter(r => r.status === "reviewing").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={ArrowRight} label="进行中" value={requirements.filter(r => r.status === "in_progress").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={CheckCircle2} label="已完成" value={requirements.filter(r => r.status === "completed").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
@@ -139,6 +179,67 @@ export default function RequirementsAnalysis() {
           </Tabs>
         </CardContent>
       </Card>
+
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新建需求</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="req-title">需求标题 *</Label>
+              <Input
+                id="req-title"
+                placeholder="例如：缸体清洗线需求"
+                value={formData.title}
+                onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="req-customer">客户 *</Label>
+              <Input
+                id="req-customer"
+                placeholder="例如：上海大众"
+                value={formData.customer}
+                onChange={e => setFormData(prev => ({ ...prev, customer: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="req-assignee">负责人 *</Label>
+              <Input
+                id="req-assignee"
+                placeholder="例如：王工"
+                value={formData.assignee}
+                onChange={e => setFormData(prev => ({ ...prev, assignee: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>优先级</Label>
+              <Select value={formData.priority} onValueChange={val => setFormData(prev => ({ ...prev, priority: val }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">低</SelectItem>
+                  <SelectItem value="medium">中</SelectItem>
+                  <SelectItem value="high">高</SelectItem>
+                  <SelectItem value="urgent">紧急</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {currentBU && (
+              <div className="space-y-2">
+                <Label>事业部</Label>
+                <Input value={currentBU} disabled />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
+            <Button onClick={handleCreate}>创建</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

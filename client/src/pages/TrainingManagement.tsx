@@ -59,16 +59,16 @@ export default function TrainingManagement() {
     passingScore?: number | null;
     questions?: string | null;
     status: string;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: Date | string;
+    updatedAt: Date | string;
   };
-  
+
   type Certificate = {
     id: number;
     certificateNo: string;
     name: string;
-    issueDate: Date;
-    expiryDate?: Date | null;
+    issueDate: Date | string;
+    expiryDate?: Date | string | null;
     status: string;
   };
   

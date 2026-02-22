@@ -57,19 +57,20 @@ export default function MeetingDashboard() {
     projectPhase: "M0",
   });
 
+  const utils = trpc.useUtils();
+
   // 获取会议列表
   const { data: meetings = [], isLoading: meetingsLoading } =
-    (trpc.meeting as any).list.useQuery({
-      channelId: selectedChannel || undefined,
-      status: selectedStatus || undefined,
-      meetingType: selectedType || undefined,
+    trpc.meeting.meetings.list.useQuery({
+      channelId: selectedChannel || "00000000-0000-0000-0000-000000000000",
+      limit: 50,
     });
 
   // 获取频道列表
-  const { data: channels = [] } = (trpc as any).channels.list.useQuery();
+  const { data: channels = [] } = trpc.meeting.channels.list.useQuery();
 
   // 创建会议
-  const createMeetingMutation = (trpc.meeting as any).create.useMutation({
+  const createMeetingMutation = trpc.meeting.meetings.create.useMutation({
     onSuccess: () => {
       setIsCreateOpen(false);
       setNewMeeting({
@@ -80,11 +81,16 @@ export default function MeetingDashboard() {
         meetingType: "standup",
         projectPhase: "M0",
       });
+      utils.meeting.meetings.list.invalidate();
     },
   });
 
   // 删除会议
-  const deleteMeetingMutation = (trpc.meeting as any).delete.useMutation();
+  const deleteMeetingMutation = (trpc.meeting.meetings as any).delete?.useMutation?.({
+    onSuccess: () => {
+      utils.meeting.meetings.list.invalidate();
+    },
+  }) ?? { mutateAsync: async () => {}, isPending: false };
 
   // 过滤会议
   const filteredMeetings = useMemo(() => {
@@ -106,11 +112,10 @@ export default function MeetingDashboard() {
 
     await createMeetingMutation.mutateAsync({
       title: newMeeting.title,
-      description: newMeeting.description,
       channelId: newMeeting.channelId,
-      startTime: new Date(newMeeting.startTime),
-      meetingType: newMeeting.meetingType as any,
-      projectPhase: newMeeting.projectPhase,
+      meetingDate: newMeeting.startTime,
+      phase: newMeeting.projectPhase,
+      objective: newMeeting.description || undefined,
     });
   };
 

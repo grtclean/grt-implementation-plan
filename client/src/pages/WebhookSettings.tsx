@@ -38,13 +38,23 @@ interface WebhookLog {
   id: number;
   webhookId: number;
   eventType: string;
-  requestPayload: string;
-  responseStatus: number;
-  responseBody: string;
-  executionTimeMs: number;
-  status: "success" | "failed" | "pending";
-  errorMessage?: string;
-  createdAt: string;
+  payload: string | null;
+  response: string | null;
+  statusCode: number | null;
+  success: number;
+  errorMessage: string | null;
+  sentAt: string;
+  retryCount: number;
+  maxRetries: number;
+  nextRetryAt: string | null;
+  retryStatus: string;
+  // Computed compat fields
+  requestPayload?: string;
+  responseStatus?: number;
+  responseBody?: string;
+  executionTimeMs?: number;
+  status?: string;
+  createdAt?: string;
 }
 
 // 事件类型选项

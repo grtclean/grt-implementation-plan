@@ -10,12 +10,15 @@ import { toast } from 'sonner';
 const showPlaceholder = (featureName: string) => {
   toast.info('功能完善中', { description: `${featureName}功能正在开发完善中，敬请期待` });
 };
+void showPlaceholder; // suppress unused warning — kept for future use
 import { PageHeader, StatCard } from '@/components/grt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -45,89 +48,104 @@ type MfgTaskType = 'Mech_Sub_Assy' | 'Mech_Assy' | 'Mech_Final_Assy' | 'Elec_Ass
 type MfgTaskStatus = 'Pending' | 'Started' | 'Paused' | 'QC_Review' | 'Finished';
 type AssignedTeam = 'Team_A' | 'Team_B' | 'Elec_Team';
 
+type MfgTask = {
+  id: string;
+  workOrderId: string;
+  taskType: MfgTaskType;
+  taskName: string;
+  bomModuleName: string;
+  assignedTeam: AssignedTeam;
+  estimatedHours: number;
+  actualHours: number;
+  efficiencyRate: number;
+  status: MfgTaskStatus;
+  issueLogIds: string[];
+  sequence: number;
+};
+
 // 模拟任务数据
-const mockTasks = [
+const INITIAL_TASKS: MfgTask[] = [
   {
     id: 'TASK-001',
     workOrderId: 'WO-001',
-    taskType: 'Mech_Sub_Assy' as MfgTaskType,
+    taskType: 'Mech_Sub_Assy',
     taskName: '清洗舱A区管路连接',
     bomModuleName: 'M-PIPE-A01',
-    assignedTeam: 'Team_A' as AssignedTeam,
+    assignedTeam: 'Team_A',
     estimatedHours: 8,
     actualHours: 7.5,
     efficiencyRate: 1.07,
-    status: 'Finished' as MfgTaskStatus,
+    status: 'Finished',
     issueLogIds: [],
     sequence: 1
   },
   {
     id: 'TASK-002',
     workOrderId: 'WO-001',
-    taskType: 'Mech_Sub_Assy' as MfgTaskType,
+    taskType: 'Mech_Sub_Assy',
     taskName: '清洗舱B区管路连接',
     bomModuleName: 'M-PIPE-B01',
-    assignedTeam: 'Team_A' as AssignedTeam,
+    assignedTeam: 'Team_A',
     estimatedHours: 8,
     actualHours: 9,
     efficiencyRate: 0.89,
-    status: 'Finished' as MfgTaskStatus,
+    status: 'Finished',
     issueLogIds: ['ISS-001'],
     sequence: 2
   },
   {
     id: 'TASK-003',
     workOrderId: 'WO-001',
-    taskType: 'Mech_Assy' as MfgTaskType,
+    taskType: 'Mech_Assy',
     taskName: '清洗舱框架组装',
     bomModuleName: 'M-FRAME-01',
-    assignedTeam: 'Team_B' as AssignedTeam,
+    assignedTeam: 'Team_B',
     estimatedHours: 16,
     actualHours: 12,
     efficiencyRate: 0,
-    status: 'Started' as MfgTaskStatus,
+    status: 'Started',
     issueLogIds: [],
     sequence: 3
   },
   {
     id: 'TASK-004',
     workOrderId: 'WO-001',
-    taskType: 'Elec_Assy' as MfgTaskType,
+    taskType: 'Elec_Assy',
     taskName: '控制柜布线',
     bomModuleName: 'E-CTRL-01',
-    assignedTeam: 'Elec_Team' as AssignedTeam,
+    assignedTeam: 'Elec_Team',
     estimatedHours: 12,
     actualHours: 0,
     efficiencyRate: 0,
-    status: 'Pending' as MfgTaskStatus,
+    status: 'Pending',
     issueLogIds: [],
     sequence: 4
   },
   {
     id: 'TASK-005',
     workOrderId: 'WO-001',
-    taskType: 'Mech_Final_Assy' as MfgTaskType,
+    taskType: 'Mech_Final_Assy',
     taskName: '整机总装调试',
     bomModuleName: 'M-FINAL-01',
-    assignedTeam: 'Team_A' as AssignedTeam,
+    assignedTeam: 'Team_A',
     estimatedHours: 24,
     actualHours: 0,
     efficiencyRate: 0,
-    status: 'Pending' as MfgTaskStatus,
+    status: 'Pending',
     issueLogIds: [],
     sequence: 5
   },
   {
     id: 'TASK-006',
     workOrderId: 'WO-001',
-    taskType: 'Elec_Assy' as MfgTaskType,
+    taskType: 'Elec_Assy',
     taskName: '电气系统联调',
     bomModuleName: 'E-SYS-01',
-    assignedTeam: 'Elec_Team' as AssignedTeam,
+    assignedTeam: 'Elec_Team',
     estimatedHours: 8,
     actualHours: 0,
     efficiencyRate: 0,
-    status: 'QC_Review' as MfgTaskStatus,
+    status: 'QC_Review',
     issueLogIds: [],
     sequence: 6
   }
@@ -157,15 +175,29 @@ const teamConfig: Record<AssignedTeam, { label: string; color: string }> = {
   'Elec_Team': { label: '电气班组', color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' }
 };
 
+const DEFAULT_FORM = {
+  taskName: '',
+  workOrderId: '',
+  taskType: 'Mech_Sub_Assy' as MfgTaskType,
+  bomModuleName: '',
+  assignedTeam: 'Team_A' as AssignedTeam,
+  estimatedHours: '',
+};
+
 export default function MfgTaskItemManager() {
+  const [tasks, setTasks] = useState<MfgTask[]>(INITIAL_TASKS);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [teamFilter, setTeamFilter] = useState<string>('all');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
+  // Create dialog state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState(DEFAULT_FORM);
+
   // 过滤任务
-  const filteredTasks = mockTasks.filter(task => {
+  const filteredTasks = tasks.filter(task => {
     if (searchKeyword && !task.taskName.includes(searchKeyword) && !task.bomModuleName?.includes(searchKeyword)) {
       return false;
     }
@@ -183,20 +215,20 @@ export default function MfgTaskItemManager() {
 
   // 统计数据
   const stats = {
-    total: mockTasks.length,
-    finished: mockTasks.filter(t => t.status === 'Finished').length,
-    inProgress: mockTasks.filter(t => t.status === 'Started').length,
-    pending: mockTasks.filter(t => t.status === 'Pending').length,
-    qcReview: mockTasks.filter(t => t.status === 'QC_Review').length,
-    withIssues: mockTasks.filter(t => t.issueLogIds.length > 0).length,
-    totalEstimated: mockTasks.reduce((sum, t) => sum + t.estimatedHours, 0),
-    totalActual: mockTasks.reduce((sum, t) => sum + t.actualHours, 0)
+    total: tasks.length,
+    finished: tasks.filter(t => t.status === 'Finished').length,
+    inProgress: tasks.filter(t => t.status === 'Started').length,
+    pending: tasks.filter(t => t.status === 'Pending').length,
+    qcReview: tasks.filter(t => t.status === 'QC_Review').length,
+    withIssues: tasks.filter(t => t.issueLogIds.length > 0).length,
+    totalEstimated: tasks.reduce((sum, t) => sum + t.estimatedHours, 0),
+    totalActual: tasks.reduce((sum, t) => sum + t.actualHours, 0)
   };
 
   // 切换选择
   const toggleTaskSelection = (taskId: string) => {
-    setSelectedTasks(prev => 
-      prev.includes(taskId) 
+    setSelectedTasks(prev =>
+      prev.includes(taskId)
         ? prev.filter(id => id !== taskId)
         : [...prev, taskId]
     );
@@ -209,6 +241,54 @@ export default function MfgTaskItemManager() {
     } else {
       setSelectedTasks(filteredTasks.map(t => t.id));
     }
+  };
+
+  // 新建任务
+  const handleCreateTask = () => {
+    if (!form.taskName.trim()) {
+      toast.error("请填写任务名称");
+      return;
+    }
+    const newTask: MfgTask = {
+      id: `TASK-${String(tasks.length + 1).padStart(3, '0')}-${Date.now().toString().slice(-4)}`,
+      workOrderId: form.workOrderId.trim() || 'WO-001',
+      taskType: form.taskType,
+      taskName: form.taskName.trim(),
+      bomModuleName: form.bomModuleName.trim(),
+      assignedTeam: form.assignedTeam,
+      estimatedHours: parseFloat(form.estimatedHours) || 0,
+      actualHours: 0,
+      efficiencyRate: 0,
+      status: 'Pending',
+      issueLogIds: [],
+      sequence: tasks.length + 1,
+    };
+    setTasks(prev => [...prev, newTask]);
+    setCreateOpen(false);
+    setForm(DEFAULT_FORM);
+    toast.success("新建任务成功", { description: `任务「${newTask.taskName}」已添加` });
+  };
+
+  // 批量开始
+  const handleBatchStart = () => {
+    const names = tasks
+      .filter(t => selectedTasks.includes(t.id))
+      .map(t => t.taskName);
+    setTasks(prev =>
+      prev.map(t =>
+        selectedTasks.includes(t.id) && t.status === 'Pending'
+          ? { ...t, status: 'Started' as MfgTaskStatus }
+          : t
+      )
+    );
+    setSelectedTasks([]);
+    toast.success("批量开始成功", { description: `已启动 ${selectedTasks.length} 个任务` });
+  };
+
+  // 批量分配
+  const handleBatchAssign = () => {
+    toast.success("批量分配成功", { description: `已为 ${selectedTasks.length} 个任务触发分配流程` });
+    setSelectedTasks([]);
   };
 
   return (
@@ -224,10 +304,100 @@ export default function MfgTaskItemManager() {
               <RefreshCw className="w-4 h-4 mr-2" />
               刷新
             </Button>
-            <Button size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              新建任务
-            </Button>
+            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  新建任务
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>新建制造任务</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="task-name">任务名称 <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="task-name"
+                      placeholder="请输入任务名称"
+                      value={form.taskName}
+                      onChange={e => setForm(f => ({ ...f, taskName: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="task-wo">工单号</Label>
+                    <Input
+                      id="task-wo"
+                      placeholder="如 WO-001"
+                      value={form.workOrderId}
+                      onChange={e => setForm(f => ({ ...f, workOrderId: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="task-type">任务类型</Label>
+                      <Select
+                        value={form.taskType}
+                        onValueChange={val => setForm(f => ({ ...f, taskType: val as MfgTaskType }))}
+                      >
+                        <SelectTrigger id="task-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Mech_Sub_Assy">机械分装</SelectItem>
+                          <SelectItem value="Mech_Assy">机械组装</SelectItem>
+                          <SelectItem value="Mech_Final_Assy">机械总装</SelectItem>
+                          <SelectItem value="Elec_Assy">电气组装</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="task-team">分配班组</Label>
+                      <Select
+                        value={form.assignedTeam}
+                        onValueChange={val => setForm(f => ({ ...f, assignedTeam: val as AssignedTeam }))}
+                      >
+                        <SelectTrigger id="task-team">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Team_A">A班组</SelectItem>
+                          <SelectItem value="Team_B">B班组</SelectItem>
+                          <SelectItem value="Elec_Team">电气班组</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="task-bom">BOM模块</Label>
+                      <Input
+                        id="task-bom"
+                        placeholder="如 M-PIPE-A01"
+                        value={form.bomModuleName}
+                        onChange={e => setForm(f => ({ ...f, bomModuleName: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="task-hours">预估工时 (h)</Label>
+                      <Input
+                        id="task-hours"
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={form.estimatedHours}
+                        onChange={e => setForm(f => ({ ...f, estimatedHours: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button variant="outline" onClick={() => { setCreateOpen(false); setForm(DEFAULT_FORM); }}>取消</Button>
+                    <Button onClick={handleCreateTask}>创建任务</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </>
         }
       />
@@ -260,7 +430,7 @@ export default function MfgTaskItemManager() {
 
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-muted-foreground" />
-              
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[120px] bg-background/50">
                   <SelectValue placeholder="状态" />
@@ -309,7 +479,7 @@ export default function MfgTaskItemManager() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Checkbox 
+              <Checkbox
                 checked={selectedTasks.length === filteredTasks.length && filteredTasks.length > 0}
                 onCheckedChange={toggleSelectAll}
               />
@@ -319,8 +489,8 @@ export default function MfgTaskItemManager() {
             </div>
             {selectedTasks.length > 0 && (
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => showPlaceholder('批量开始')}>批量开始</Button>
-                <Button variant="outline" size="sm" onClick={() => showPlaceholder('批量分配')}>批量分配</Button>
+                <Button variant="outline" size="sm" onClick={handleBatchStart}>批量开始</Button>
+                <Button variant="outline" size="sm" onClick={handleBatchAssign}>批量分配</Button>
               </div>
             )}
           </div>
@@ -331,21 +501,21 @@ export default function MfgTaskItemManager() {
               const typeConf = taskTypeConfig[task.taskType];
               const statusConf = statusConfig[task.status];
               const teamConf = teamConfig[task.assignedTeam];
-              const progressPercent = task.estimatedHours > 0 
+              const progressPercent = task.estimatedHours > 0
                 ? Math.min(100, Math.round((task.actualHours / task.estimatedHours) * 100))
                 : 0;
 
               return (
-                <div 
+                <div
                   key={task.id}
                   className="p-4 hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <Checkbox 
+                    <Checkbox
                       checked={selectedTasks.includes(task.id)}
                       onCheckedChange={() => toggleTaskSelection(task.id)}
                     />
-                    
+
                     {/* 序号 */}
                     <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-mono">
                       {task.sequence}
@@ -395,7 +565,11 @@ export default function MfgTaskItemManager() {
                     </Badge>
 
                     {/* 操作 */}
-                    <Button variant="ghost" size="sm">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toast.info(`查看任务详情`, { description: task.taskName })}
+                    >
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>

@@ -80,6 +80,12 @@ export const materials = pgTable('materials', {
   maxStockLevel: integer().default(0),
   safetyStockLevel: integer().default(0),
 
+  // 采购分类 & 自动补货
+  procurementClassification: varchar({ length: 50 }).default('direct'), // direct/indirect/packaging/general
+  reorderPoint: integer().default(0),
+  reorderPrOwnerId: integer(),
+  reorderPrOwnerName: varchar({ length: 100 }),
+
   // 状态
   status: varchar({ length: 50 }).default('active').notNull(),
   isApproved: varchar({ length: 50 }).default('no').notNull(),

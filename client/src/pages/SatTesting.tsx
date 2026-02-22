@@ -2,13 +2,17 @@
  * SAT测试页面 (TX-014)
  * 现场验收测试、测试报告、缺陷跟踪
  */
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { TestTube, Plus, Building2, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
 
@@ -27,12 +31,46 @@ const MOCK_TESTS = [
 ];
 
 export default function SatTesting() {
-  const { toast } = useToast();
   const { currentBU } = useUserProfile();
-  const filtered = MOCK_TESTS.filter(t => !currentBU || t.bu === currentBU);
+  const [tests, setTests] = useState(MOCK_TESTS);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [formData, setFormData] = useState({ project: "", customer: "", totalItems: "" });
 
-  const handleComingSoon = () => {
-    toast({ title: "功能开发中", description: "该功能正在开发中，敬请期待" });
+  const filtered = tests.filter(t => !currentBU || t.bu === currentBU);
+
+  const handleCreate = () => {
+    if (!formData.project.trim()) {
+      toast.error("请输入项目名称");
+      return;
+    }
+    if (!formData.customer.trim()) {
+      toast.error("请输入客户名称");
+      return;
+    }
+    if (!formData.totalItems || Number(formData.totalItems) <= 0) {
+      toast.error("请输入有效的测试项数量");
+      return;
+    }
+
+    const totalItems = Number(formData.totalItems);
+    const newId = `SAT-${String(tests.length + 1).padStart(3, "0")}`;
+    const newTest = {
+      id: newId,
+      project: formData.project.trim(),
+      customer: formData.customer.trim(),
+      bu: currentBU || "BU3",
+      status: "待测试",
+      passRate: 0,
+      totalItems,
+      passed: 0,
+      failed: 0,
+      pending: totalItems,
+    };
+
+    setTests(prev => [newTest, ...prev]);
+    setShowCreateDialog(false);
+    setFormData({ project: "", customer: "", totalItems: "" });
+    toast.success("SAT测试计划创建成功");
   };
 
   return (
@@ -44,16 +82,16 @@ export default function SatTesting() {
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button onClick={handleComingSoon}><Plus className="h-4 w-4 mr-2" />新建测试计划</Button>
+            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />新建测试计划</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={TestTube} label="测试计划总数" value={8} />
-        <StatCard icon={Clock} label="测试中" value={3} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={CheckCircle2} label="已通过" value={4} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={AlertTriangle} label="有缺陷" value={1} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={TestTube} label="测试计划总数" value={tests.length} />
+        <StatCard icon={Clock} label="测试中" value={tests.filter(t => t.status === "测试中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label="已通过" value={tests.filter(t => t.status === "已通过").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label="有缺陷" value={tests.filter(t => t.status === "有缺陷").length} iconColor="text-red-500" iconBg="bg-red-500/10" />
       </div>
 
       <Card>
@@ -89,6 +127,55 @@ export default function SatTesting() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新建SAT测试计划</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="sat-project">项目名称 *</Label>
+              <Input
+                id="sat-project"
+                placeholder="例如：缸体清洗线"
+                value={formData.project}
+                onChange={e => setFormData(prev => ({ ...prev, project: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sat-customer">客户 *</Label>
+              <Input
+                id="sat-customer"
+                placeholder="例如：上海大众"
+                value={formData.customer}
+                onChange={e => setFormData(prev => ({ ...prev, customer: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sat-total">测试项数量 *</Label>
+              <Input
+                id="sat-total"
+                type="number"
+                min="1"
+                placeholder="例如：48"
+                value={formData.totalItems}
+                onChange={e => setFormData(prev => ({ ...prev, totalItems: e.target.value }))}
+              />
+            </div>
+            {currentBU && (
+              <div className="space-y-2">
+                <Label>事业部</Label>
+                <Input value={currentBU} disabled />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
+            <Button onClick={handleCreate}>创建</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -147,21 +147,23 @@
     {
       "id": 14,
       "title": "M3-M5 PLM & BOM Module (Phase 2)",
-      "description": "Advanced PLM features: version-controlled BOM tree, engineering change order workflow, supplier qualification matrix, PPAP document package.",
+      "description": "BOM router PostgreSQL fix (insertId→returning), PPAP auto-link to FMEA/CP/MSA documents, procedure auth normalization.",
       "milestone": "M3-M5",
       "priority": "P1",
-      "status": "pending",
-      "assignee": null,
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-23",
       "dependencies": [13]
     },
     {
       "id": 15,
       "title": "M9-M12 8D Quality Module (Phase 2)",
-      "description": "Advanced quality: SPC chart integration, control plan auto-generation, MSA study workflow, supplier corrective action tracking.",
+      "description": "MSA frontend tab (GR&R calc, measurement entry, batch import), FMEA→ControlPlan auto-generation (RPN≥80), 8D D5→CAPA auto-suggestion, procedure auth normalization across all quality routers.",
       "milestone": "M9-M12",
       "priority": "P1",
-      "status": "pending",
-      "assignee": null,
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-23",
       "dependencies": [13]
     }
   ]
