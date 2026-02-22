@@ -10,6 +10,7 @@ import {
   Maximize, Minimize, ChevronLeft, ChevronRight,
   Rocket, GitBranch, ShieldCheck, Lock, Brain,
 } from "lucide-react";
+import BrandLogo from "@/components/common/BrandLogo";
 
 // ─── Slide Data ─────────────────────────────────────────────
 
@@ -141,7 +142,7 @@ export default function MorningMeetingPresentation() {
       {/* ── Top Bar ───────────────────────────────────────── */}
       <div className="flex items-center justify-between px-6 py-3 bg-black/30 backdrop-blur-sm z-10">
         <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-[#0078d4] animate-pulse" />
+          <BrandLogo size="sm" variant="icon" theme="dark" />
           <span className="text-sm font-medium text-white/70 tracking-wide">
             GRT 晨会专栏
           </span>

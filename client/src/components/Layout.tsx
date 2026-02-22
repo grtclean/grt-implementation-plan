@@ -1,12 +1,9 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import BrandLogo from "@/components/common/BrandLogo";
 import FeedbackDialog from "@/components/FeedbackDialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,10 +14,10 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { menuConfig, type MenuGroup, type MenuItem } from "@/config/menuConfig";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import AIConversationPanel, { AIFloatingButton } from "@/components/AIConversationPanel";
+import HelpOverlay from "@/components/HelpOverlay";
 import HelpColumn from "@/components/HelpColumn";
 import LanguageSelector from "@/components/LanguageSelector";
 import { ProfileSwitcher } from "@/components/ProfileSwitcher";
@@ -36,15 +33,12 @@ import {
   HelpCircle,
   LogOut,
   Menu,
-  Moon,
-  Settings,
-  Sun,
+  PanelLeftClose,
   User,
-  X,
 } from "lucide-react";
 import { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, memo } from "react";
-import { Link, useLocation, useRoute } from "wouter";
-import { ChevronLeft, ChevronRight as ChevronRightIcon } from "lucide-react";
+import { Link, useLocation } from "wouter";
+// ChevronLeft/Right no longer needed for sidebar toggle (using PanelLeftClose/Menu)
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 // ============================================================
@@ -106,13 +100,13 @@ function SidebarMenuGroupImpl({
           });
         }}
         className={cn(
-          "flex items-center gap-3 w-full px-4 py-2.5 rounded-sm transition-colors duration-150 group cursor-pointer border border-transparent touch-feedback focus:outline-none",
+          "flex items-center gap-3 w-full px-4 py-2.5 rounded-md transition-colors duration-150 group cursor-pointer border border-transparent touch-feedback focus:outline-none",
           hasActiveItem
-            ? "bg-sidebar-accent/50 text-sidebar-foreground border-primary/20"
-            : "text-muted-foreground hover:bg-sidebar-accent/30 hover:text-sidebar-foreground"
+            ? "bg-[#f3f2f1] text-[#323130]"
+            : "text-[#605e5c] hover:bg-[#f3f2f1] hover:text-[#323130]"
         )}
       >
-        <GroupIcon className={cn("w-5 h-5", hasActiveItem ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+        <GroupIcon className={cn("w-5 h-5", hasActiveItem ? "text-[#0078d4]" : "text-[#605e5c] group-hover:text-[#323130]")} />
         <span className="font-medium tracking-wide flex-1 text-left text-sm">{groupName}</span>
         {isExpanded ? (
           <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -149,16 +143,17 @@ function SidebarMenuGroupImpl({
                 }}>
                   <div
                     className={cn(
-                      "flex items-center gap-3 px-4 py-2 rounded-sm transition-colors duration-150 cursor-pointer border border-transparent relative touch-feedback",
+                      "flex items-center gap-3 px-4 py-2 rounded-md transition-colors duration-150 cursor-pointer border border-transparent relative touch-feedback",
                       isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground border-primary/30 shadow-[inset_0_0_10px_rgba(249,115,22,0.1)]"
-                        : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:border-sidebar-border"
+                        ? "bg-[#eff6fc] text-[#0078d4]"
+                        : "text-[#605e5c] hover:bg-[#f3f2f1] hover:text-[#323130]"
                     )}
                   >
-                    <ItemIcon className={cn("w-4 h-4", isActive ? "text-primary" : "text-muted-foreground group-hover/item:text-foreground")} />
+                    {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full bg-[#0078d4]" />}
+                    <ItemIcon className={cn("w-4 h-4", isActive ? "text-[#0078d4]" : "text-[#605e5c] group-hover/item:text-[#323130]")} />
                     <span className="text-sm flex-1">{itemName}</span>
                     {item.isNew && (
-                      <span className="px-1 py-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/30 rounded leading-none">
+                      <span className="px-1 py-0.5 text-[9px] font-bold text-[#0078d4] bg-[#deecf9] rounded leading-none">
                         NEW
                       </span>
                     )}
@@ -170,7 +165,7 @@ function SidebarMenuGroupImpl({
                         {alertCount > 99 ? '99+' : alertCount}
                       </span>
                     )}
-                    {isActive && !isCompliancePage && <div className="w-1 h-1 rounded-full bg-primary shadow-[0_0_5px_var(--primary)]" />}
+                    {/* Active indicator is the blue pill on the left side */}
                   </div>
                 </a>
               </div>
@@ -238,10 +233,9 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved === 'true';
   });
-  const { language, setLanguage, t } = useLanguage();
-  const { theme, setTheme } = useTheme();
+  const { language } = useLanguage();
   const { user, logout } = useAuth();
-  const { currentUserRole, currentBU, permissions, dataScope } = useUserProfile();
+  const { currentUserRole, currentBU, permissions } = useUserProfile();
   const currentLevel = ROLE_HIERARCHY[currentUserRole] ?? 0;
   const { favoriteItems, isHidden, isFavorite, toggleFavorite } = useMenuFavorites();
 
@@ -361,10 +355,6 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
   // Language selection is now handled by LanguageSelector component
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
-
   const toggleGroup = useCallback((groupName: string) => {
     setExpandedGroups(prev =>
       prev.includes(groupName)
@@ -442,10 +432,17 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   // inline JSX in the parent, preventing unmount/remount on every re-render.
   const collapsedNavContent = () => (
     <>
-      <div className="p-3 border-b border-sidebar-border flex items-center justify-center">
-        <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.5)]">
-          <Settings className="w-5 h-5 text-primary-foreground" />
-        </div>
+      <div className="p-3 border-b border-[#edebe9] flex flex-col items-center gap-2">
+        <a href="/" className="block" title="GRT System">
+          <BrandLogo size="sm" variant="icon" />
+        </a>
+        <button
+          onClick={toggleSidebar}
+          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-[#f3f2f1] transition-colors text-[#605e5c]"
+          title="Expand sidebar"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
       </div>
 
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto overscroll-contain">
@@ -462,16 +459,16 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
                   toggleGroup(group.name);
                 }}
                 className={cn(
-                  "flex items-center justify-center w-full p-2 rounded-sm transition-colors duration-150 focus:outline-none",
+                  "flex items-center justify-center w-full p-2 rounded-md transition-colors duration-150 focus:outline-none",
                   hasActiveItem
-                    ? "bg-sidebar-accent/50 text-primary"
-                    : "text-muted-foreground hover:bg-sidebar-accent/30 hover:text-sidebar-foreground"
+                    ? "bg-[#eff6fc] text-[#0078d4]"
+                    : "text-[#605e5c] hover:bg-[#f3f2f1] hover:text-[#323130]"
                 )}
               >
                 <GroupIcon className="w-5 h-5" />
               </button>
               {/* Tooltip */}
-              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover text-popover-foreground text-sm rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap z-50 pointer-events-none">
+              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-white text-[#323130] text-sm rounded-md shadow-lg border border-[#edebe9] opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap z-50 pointer-events-none">
                 {language === 'zh' ? group.name : (language === 'de' ? group.nameDe : (language === 'fr' ? group.nameFr : group.nameEn))}
               </div>
             </div>
@@ -479,20 +476,12 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
-      <div className="p-2 border-t border-sidebar-border space-y-2">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="w-full"
-          onClick={toggleTheme}
-        >
-          {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </Button>
+      <div className="p-2 border-t border-[#edebe9] space-y-2">
         {user && (
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
-            className="w-full"
+            className="w-full text-[#605e5c] hover:text-[#323130] hover:bg-[#f3f2f1]"
             onClick={logout}
           >
             <LogOut className="w-4 h-4" />
@@ -504,15 +493,19 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
   const navContent = () => (
     <div className="flex flex-col h-full">
-      {/* 1. 固定顶部区域 - Logo (h-16 flex items-center px-4 shrink-0) */}
-      <div className="h-16 flex items-center px-4 shrink-0 border-b border-sidebar-border gap-3">
-        <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.5)]">
-          <Settings className="w-5 h-5 text-primary-foreground" />
-        </div>
-        <div>
-          <h1 className="font-heading text-xl font-bold tracking-wider text-sidebar-foreground">GRT SYSTEM</h1>
-          <p className="text-xs text-muted-foreground font-mono">V4.8.23 BUILD</p>
-        </div>
+      {/* 1. Fixed header - Logo + collapse toggle */}
+      <div className="h-16 flex items-center px-4 shrink-0 border-b border-[#edebe9] gap-3">
+        <a href="/" className="flex items-center" title="GRT System">
+          <BrandLogo size="md" variant="full" />
+        </a>
+        <div className="flex-1" />
+        <button
+          onClick={toggleSidebar}
+          className="w-8 h-8 hidden lg:flex items-center justify-center rounded-md hover:bg-[#f3f2f1] transition-colors text-[#605e5c]"
+          title="Collapse sidebar"
+        >
+          <PanelLeftClose className="w-4 h-4" />
+        </button>
       </div>
 
       {/* 当前页面指示器 - 点击菜单组名称可跳转 */}
@@ -659,38 +652,27 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         )}
       </div>
 
-      {/* 3. 固定底部区域 - p-4 border-t border-slate-700 shrink-0 bg-sidebar */}
-      <div className="shrink-0 border-t border-sidebar-border p-4 bg-sidebar space-y-3 z-10">
-        {/* 角色切换器 - Sprint 3 RBAC */}
+      {/* 3. Fixed footer - profile + user info */}
+      <div className="shrink-0 border-t border-[#edebe9] p-4 bg-white space-y-3 z-10">
+        {/* Role switcher */}
         <ProfileSwitcher />
-        
-        {/* 主题切换按钮 */}
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full border-sidebar-border bg-sidebar hover:bg-sidebar-accent text-sidebar-foreground"
-          onClick={toggleTheme}
-        >
-          {theme === "dark" ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
-          {theme === "dark" ? t("theme.light") : t("theme.dark")}
-        </Button>
-        
-        {/* 用户信息和退出按钮 */}
+
+        {/* User info and logout */}
         {user && (
-          <div className="flex items-center gap-2 pt-2 border-t border-sidebar-border/50">
-            <Avatar className="h-8 w-8 border border-sidebar-border">
-              <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
+          <div className="flex items-center gap-2 pt-2 border-t border-[#edebe9]">
+            <Avatar className="h-8 w-8 border border-[#edebe9]">
+              <AvatarFallback className="text-xs font-medium bg-[#deecf9] text-[#0078d4]">
                 {user.name?.charAt(0).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name || 'User'}</p>
-              <p className="text-xs text-muted-foreground truncate">{user.email || ''}</p>
+              <p className="text-sm font-medium text-[#323130] truncate">{user.name || 'User'}</p>
+              <p className="text-xs text-[#605e5c] truncate">{user.email || ''}</p>
             </div>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              className="h-8 w-8 text-[#605e5c] hover:text-destructive"
               onClick={logout}
               title={language === 'zh' ? '退出登录' : 'Sign out'}
             >
@@ -704,36 +686,25 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-screen bg-background flex overflow-hidden">
-      {/* Desktop Sidebar - Sprint 1 三段式布局 */}
+      {/* Desktop Sidebar - Fluent Design */}
       <aside className={cn(
-        "hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border shrink-0 z-50 relative",
+        "hidden lg:flex flex-col bg-white border-r border-[#edebe9] shrink-0 z-50 relative transition-[width] duration-200",
         sidebarCollapsed ? "w-16" : "w-72"
       )}>
-        {/* 侧边栏折叠切换按钮 */}
-        <button
-          onClick={toggleSidebar}
-          className="absolute -right-3 top-20 z-50 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
-        >
-          {sidebarCollapsed ? (
-            <ChevronRightIcon className="w-4 h-4 text-primary-foreground" />
-          ) : (
-            <ChevronLeft className="w-4 h-4 text-primary-foreground" />
-          )}
-        </button>
         {sidebarCollapsed ? collapsedNavContent() : navContent()}
       </aside>
 
-      {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-sidebar-border z-50 flex items-center px-4">
+      {/* Mobile Header - Fluent Design */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-[#edebe9] z-50 flex items-center px-4">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="mr-4">
+            <Button variant="ghost" size="icon" className="mr-4 text-[#605e5c]">
               <Menu className="w-6 h-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent 
-            side="left" 
-            className="w-72 p-0 bg-sidebar border-sidebar-border h-full"
+          <SheetContent
+            side="left"
+            className="w-72 p-0 bg-white border-[#edebe9] h-full"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -741,12 +712,9 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             {navContent()}
           </SheetContent>
         </Sheet>
-        <div className="flex items-center gap-2 flex-1">
-          <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center">
-            <Settings className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="font-heading font-bold tracking-wider">GRT SYSTEM</span>
-        </div>
+        <a href="/" className="flex items-center gap-2 flex-1" title="GRT System">
+          <BrandLogo size="sm" variant="full" />
+        </a>
         <div className="flex items-center gap-2">
           <LanguageSelector variant="compact" />
         </div>
@@ -754,27 +722,19 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Main Content - Sprint 1 flex布局，侧边栏为第一个子元素，主内容区为第二个子元素 flex-1 */}
       <main className="flex-1 pt-16 lg:pt-0 overflow-y-auto [scrollbar-gutter:stable]">
-        {/* Desktop Top Bar with Language Selector and User */}
-        <div className="hidden lg:flex items-center justify-between px-8 py-3 border-b border-border bg-background sticky top-0 z-40">
+        {/* Desktop Top Bar - Fluent Design */}
+        <div className="hidden lg:flex items-center justify-between px-8 py-3 border-b border-[#edebe9] bg-white sticky top-0 z-40">
           <TopBarSearch />
           <div className="flex items-center gap-3">
             <LanguageSelector variant="header" />
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2"
+              className="h-8 px-2 text-[#605e5c] hover:text-[#323130] hover:bg-[#f3f2f1]"
               onClick={() => setHelpPanelOpen(prev => !prev)}
               title={language === 'zh' ? '帮助 (F1)' : 'Help (F1)'}
             >
               <HelpCircle className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2"
-              onClick={toggleTheme}
-            >
-              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
             {/* User Profile Dropdown */}
             {user && (
@@ -825,6 +785,8 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         onClose={() => setHelpPanelOpen(false)}
         onOpenAI={() => setAiPanelOpen(true)}
       />
+      {/* Context-Aware Help Overlay */}
+      <HelpOverlay />
       {/* AI Floating Button and Panel */}
       <AIFloatingButton onClick={() => setAiPanelOpen(true)} isOpen={aiPanelOpen} />
       <AIConversationPanel isOpen={aiPanelOpen} onClose={() => setAiPanelOpen(false)} />

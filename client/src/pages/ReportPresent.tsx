@@ -19,6 +19,7 @@ import {
   Target,
   Minus,
 } from "lucide-react";
+import BrandLogo from "@/components/common/BrandLogo";
 
 // ─── Fullscreen Helpers ────────────────────────────────────
 
@@ -155,13 +156,16 @@ export default function ReportPresent() {
     >
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-3">
-        <button
-          onClick={() => navigate("/report-center")}
-          className="flex items-center gap-2 text-white/60 hover:text-white/90 text-sm transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          返回汇报中枢
-        </button>
+        <div className="flex items-center gap-4">
+          <BrandLogo size="sm" variant="icon" theme="dark" />
+          <button
+            onClick={() => navigate("/report-center")}
+            className="flex items-center gap-2 text-white/60 hover:text-white/90 text-sm transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            返回汇报中枢
+          </button>
+        </div>
         <div className="flex items-center gap-3">
           <span className="text-white/50 text-xs">
             {current + 1} / {total}
