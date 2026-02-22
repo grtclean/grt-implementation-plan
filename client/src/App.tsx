@@ -301,6 +301,8 @@ import FatSatExecutionDashboard from "./pages/FatSatExecutionDashboard";
 import MorningMeetingPresentation from "./pages/MorningMeetingPresentation";
 import ReportCenter from "./pages/ReportCenter";
 import ReportPresent from "./pages/ReportPresent";
+import LobbyGlobalScreen from "./pages/LobbyGlobalScreen";
+import ShopfloorMasterBoard from "./pages/ShopfloorMasterBoard";
 
 // KPI绩效管理
 const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
@@ -411,7 +413,7 @@ function LazyFallback() {
 
 // Standalone routes that should NOT have sidebar layout
 const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/404', '/oa-test', '/morning-meeting'];
-const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/'];
+const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/', '/vision/'];
 
 function Router() {
   const [location] = useLocation();
@@ -1052,6 +1054,9 @@ function Router() {
       <Route path="/report-center">
         <ProtectedRoute component={ReportCenter} />
       </Route>
+      {/* GRT Vision — Large-Screen Dashboards (standalone, no sidebar) */}
+      <Route path="/vision/lobby" component={LobbyGlobalScreen} />
+      <Route path="/vision/shopfloor" component={ShopfloorMasterBoard} />
       <Route path="/morning-meeting" component={MorningMeetingPresentation} />
       <Route path="/morning-meeting-board">
         <ProtectedRoute component={MorningMeetingBoard} />

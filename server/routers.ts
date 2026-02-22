@@ -240,6 +240,7 @@ import { supplyChainRouter } from "./routers/supply-chain.router";
 import { p2pLifecycleRouter } from "./routers/p2p-lifecycle.router";
 import { aiAgentFleetRouter } from "./routers/ai-agent-fleet.router";
 import { reportCenterRouter } from "./routers/report-center.router";
+import { visionDashboardRouter } from "./routers/vision-dashboard.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -585,6 +586,9 @@ export const appRouter = router({
 
   // Live Executive Briefing Center (动态汇报中枢)
   reportCenter: reportCenterRouter,
+
+  // GRT Vision — Large-Screen Dashboards (Lobby / Shopfloor / BU / Service)
+  visionDashboard: visionDashboardRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {
