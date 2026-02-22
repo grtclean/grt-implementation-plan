@@ -7,12 +7,17 @@ dist/
 build/
 *.dist
 
-# Environment variables
+# Environment variables — CRITICAL: Never commit secrets
 .env
 .env.local
+.env.development
+.env.test
+.env.production
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*.local
+# NOTE: .env.example and .env.*.example ARE safe to commit (no secrets)
 
 # IDE and editor files
 .vscode/
@@ -117,7 +122,6 @@ GRT-QUICK-FIX/
 grt-standalone-patch/
 
 # Error/output dumps
-*.txt
 nul
 
 # Lock files (use pnpm-lock.yaml instead)

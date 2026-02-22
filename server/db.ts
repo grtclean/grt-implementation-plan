@@ -65,10 +65,19 @@ let _db: ReturnType<typeof drizzle> | null = null;
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
+    const connUrl = process.env.DATABASE_URL;
+    // Safety: prevent dev/test from accidentally connecting to production
+    if (!ENV.isProduction && connUrl.includes("grt_prod_db")) {
+      console.error(
+        "[Database] SAFETY HALT: DATABASE_URL points to production but NODE_ENV=%s. Refusing to connect.",
+        ENV.nodeEnv
+      );
+      return null;
+    }
     try {
-      const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+      const pool = new pg.Pool({ connectionString: connUrl });
       _db = drizzle(pool);
-      console.log("[Database] PostgreSQL connected");
+      console.log("[Database] PostgreSQL connected (%s)", ENV.nodeEnv);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

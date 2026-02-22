@@ -1,10 +1,42 @@
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+/**
+ * GRT Environment Loader — 3-Tier Isolation
+ *
+ * Loading priority:
+ *   1. OS-level environment variables (highest — vault-injected in prod)
+ *   2. .env.{NODE_ENV}  (environment-specific)
+ *   3. .env             (local fallback)
+ *
+ * Defaults to "development" when NODE_ENV is unset to protect production.
+ */
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.resolve(__dirname, "..", "..");
+
+const nodeEnv = process.env.NODE_ENV || "development";
+
+// Load env-specific file, then generic .env (dotenv won't overwrite existing vars)
+dotenv.config({ path: path.resolve(rootDir, `.env.${nodeEnv}`) });
+dotenv.config({ path: path.resolve(rootDir, ".env") });
+
+// Log which environment is active (once at startup)
+console.log(`[ENV] Active environment: ${nodeEnv.toUpperCase()}`);
+if (nodeEnv === "production") {
+  console.log("[ENV] ⚠ PRODUCTION MODE — all safety guards active");
+}
+
 export const ENV = {
+  nodeEnv,
+  isProduction: nodeEnv === "production",
+  isTest: nodeEnv === "test",
+  isDevelopment: nodeEnv === "development",
   appId: process.env.VITE_APP_ID ?? "",
   cookieSecret: process.env.JWT_SECRET ?? "",
   databaseUrl: process.env.DATABASE_URL ?? "",
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
-  isProduction: process.env.NODE_ENV === "production",
   // LLM API - supports OpenAI-compatible endpoints (OpenAI, Ollama, etc.)
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? process.env.LLM_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? process.env.LLM_API_KEY ?? process.env.OPENAI_API_KEY ?? "",

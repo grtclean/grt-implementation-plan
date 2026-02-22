@@ -1,0 +1,168 @@
+{
+  "project": "GRT System — M0-M12 Implementation Plan",
+  "version": "1.2",
+  "lastUpdated": "2026-02-23",
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Async Simulator Engine v2.0",
+      "description": "Upgrade AgentEngine with realistic delays, random operator selection, streaming logs, and typewriter terminal effect",
+      "milestone": "M6-M8",
+      "priority": "P0",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-21"
+    },
+    {
+      "id": 2,
+      "title": "M3-M5 PLM / BOM Module",
+      "description": "Build Product Lifecycle Management module: BOM tree editor, design review workflow, FMEA integration, prototype tracking. Wire to existing plm.router and schema.",
+      "milestone": "M3-M5",
+      "priority": "P1",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-21"
+    },
+    {
+      "id": 3,
+      "title": "M9-M10 Quality 8D / CAPA Module",
+      "description": "Build 8D problem-solving dashboard, CAPA tracking, SAT inspection checklists. Connect to eight-d-capa.router. Add simulator agents for quality gate testing.",
+      "milestone": "M9-M10",
+      "priority": "P1",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-22",
+      "dependencies": []
+    },
+    {
+      "id": 4,
+      "title": "M0-M2 Sales CRM Enhancement",
+      "description": "Upgrade CRM pipeline: lead scoring AI, opportunity stage tracking, pre-sales questionnaire auto-fill, quotation generation. Wire to existing CRM routers.",
+      "milestone": "M0-M2",
+      "priority": "P2",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-22",
+      "dependencies": []
+    },
+    {
+      "id": 5,
+      "title": "M11-M12 After-Sales & Warranty Tracking",
+      "description": "Build warranty claim tracker, spare parts consumption dashboard, customer complaint resolution workflow, supplier penalty management.",
+      "milestone": "M11-M12",
+      "priority": "P2",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-22",
+      "dependencies": []
+    },
+    {
+      "id": 6,
+      "title": "Simulator Agent Expansion",
+      "description": "Add simulator test scenarios for all M0-M12 milestones: Sales pipeline stress test, R&D design review simulation, Quality gate 8D test, Supply chain traceability walk.",
+      "milestone": "M0-M12",
+      "priority": "P2",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-22",
+      "dependencies": [2, 3, 4, 5]
+    },
+    {
+      "id": 7,
+      "title": "OA Dynamic Form Engine",
+      "description": "Complete the OA form builder with approval workflow, multi-step routing, field validation rules, and mobile-responsive layout. Wire to oa.router.",
+      "milestone": "Cross-cutting",
+      "priority": "P2",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-22",
+      "dependencies": []
+    },
+    {
+      "id": 8,
+      "title": "Digital Twin Hub",
+      "description": "Build equipment digital twin dashboard: real-time sensor data visualization, predictive maintenance alerts, 3D model viewer placeholder. Wire to digital-twin.router.",
+      "milestone": "M6-M8",
+      "priority": "P3",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-22",
+      "dependencies": []
+    },
+    {
+      "id": 9,
+      "title": "AI Genesis Workspace",
+      "description": "Complete AI knowledge genesis: auto-generate process documentation from codebase, AI-powered SOP writer, knowledge graph builder. Wire to genesis.router.",
+      "milestone": "Cross-cutting",
+      "priority": "P3",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-22",
+      "dependencies": []
+    },
+    {
+      "id": 10,
+      "title": "Mobile Responsive Polish",
+      "description": "Ensure all key pages (Shopfloor Terminal, Simulator Dashboard, HR Matrix, OA Forms) work on tablet/mobile with touch-friendly controls.",
+      "milestone": "Cross-cutting",
+      "priority": "P3",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-22",
+      "dependencies": [1, 2, 3]
+    },
+    {
+      "id": 11,
+      "title": "M0-M12 Master Form Architecture",
+      "description": "Python ETL parser for CSV form definitions → JSON → DB upsert. MPhaseFormDirectory UI with 13-stage accordion, 25 form cards, UniversalDynamicForm rendering. Secure spawn() pipeline.",
+      "milestone": "Cross-cutting",
+      "priority": "P1",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-22",
+      "dependencies": [7]
+    },
+    {
+      "id": 12,
+      "title": "M7-M8 FAT/SAT Execution Dashboard",
+      "description": "Build comprehensive FAT/SAT test execution dashboard: test plan management, real-time test progress tracking, pass/fail analytics, customer sign-off workflow, punch list management, and certificate generation.",
+      "milestone": "M7-M8",
+      "priority": "P1",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-22",
+      "dependencies": [11]
+    },
+    {
+      "id": 13,
+      "title": "Environment Isolation & Architecture Documentation",
+      "description": "3-tier env isolation (Dev/Test/Prod), Zero-Trust 3-Server architecture doc, env-aware DB connection with production safety guards, CI/CD pipeline spec, AI DMZ Gateway design.",
+      "milestone": "Infrastructure",
+      "priority": "P0",
+      "status": "done",
+      "assignee": "Claude",
+      "completedAt": "2026-02-23",
+      "dependencies": []
+    },
+    {
+      "id": 14,
+      "title": "M3-M5 PLM & BOM Module (Phase 2)",
+      "description": "Advanced PLM features: version-controlled BOM tree, engineering change order workflow, supplier qualification matrix, PPAP document package.",
+      "milestone": "M3-M5",
+      "priority": "P1",
+      "status": "pending",
+      "assignee": null,
+      "dependencies": [13]
+    },
+    {
+      "id": 15,
+      "title": "M9-M12 8D Quality Module (Phase 2)",
+      "description": "Advanced quality: SPC chart integration, control plan auto-generation, MSA study workflow, supplier corrective action tracking.",
+      "milestone": "M9-M12",
+      "priority": "P1",
+      "status": "pending",
+      "assignee": null,
+      "dependencies": [13]
+    }
+  ]
+}
