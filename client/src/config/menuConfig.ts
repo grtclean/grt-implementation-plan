@@ -625,6 +625,8 @@ export const menuConfig: MenuGroup[] = [
       { name: "售前技术问卷", nameEn: "Pre-Sales Questionnaire", path: "/pre-sales-questionnaire", icon: ClipboardCheck, isNew: true },
       { name: "晨会看板(全屏)", nameEn: "Morning Meeting Board", path: "/morning-meeting-board", icon: LayoutDashboard, isNew: true },
       { name: "汇报中枢", nameEn: "Briefing Center", path: "/report-center", icon: Presentation, isNew: true },
+      { name: "大厅全球主屏", nameEn: "Lobby Global Screen", path: "/vision/lobby", icon: Globe, isNew: true },
+      { name: "车间生产总屏", nameEn: "Shopfloor Master Board", path: "/vision/shopfloor", icon: Factory, isNew: true },
     ],
   },
 
