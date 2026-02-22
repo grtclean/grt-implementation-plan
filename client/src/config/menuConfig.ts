@@ -89,6 +89,11 @@ import {
   CheckSquare,
   Scale,
   CalendarDays,
+  ClipboardList,
+  Briefcase,
+  Grid3X3,
+  Landmark,
+  Presentation,
   type LucideIcon,
 } from "lucide-react";
 import type { UserRole } from "@/contexts/UserProfileContext";
@@ -152,6 +157,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "实施路线图", nameEn: "Roadmap", path: "/roadmap", icon: Calendar },
       { name: "工具箱", nameEn: "Tools", path: "/tools", icon: Layers },
       { name: "角色工作台", nameEn: "Role Dashboard", path: "/dashboard", icon: LayoutDashboard },
+      { name: "任务驾驶舱", nameEn: "Task Cockpit", path: "/task-cockpit", icon: LayoutDashboard, isNew: true },
       { name: "会议智能", nameEn: "Meeting Intelligence", path: "/meeting-intelligence", icon: Video },
       { name: "个人设置", nameEn: "User Profile", path: "/user-profile", icon: UserCog },
     ],
@@ -167,6 +173,7 @@ export const menuConfig: MenuGroup[] = [
     icon: TrendingUp,
     permissionKey: "canAccessSales",
     items: [
+      { name: "销售CRM工作台", nameEn: "Sales CRM", path: "/sales-crm", icon: TrendingUp, isNew: true },
       { name: "客户管理", nameEn: "Customers", path: "/crm/customers", icon: Users, requiresBU: true },
       { name: "商机管理", nameEn: "Opportunities", path: "/crm/opportunities", icon: Target, requiresBU: true },
       { name: "联系人", nameEn: "Contacts", path: "/crm/contacts", icon: Contact },
@@ -204,7 +211,12 @@ export const menuConfig: MenuGroup[] = [
       { name: "机械设计", nameEn: "Mechanical Design", path: "/mechanical-design", icon: Cog, requiresBU: true, isNew: true },
       { name: "电气设计", nameEn: "Electrical Design", path: "/electrical-design", icon: Zap, requiresBU: true, isNew: true },
       { name: "BOM管理", nameEn: "BOM Management", path: "/bom-management", icon: Package, requiresBU: true, isNew: true },
+      { name: "PLM工作台", nameEn: "PLM Workbench", path: "/plm", icon: FileText, isNew: true },
       { name: "技术文档", nameEn: "Tech Documents", path: "/tech-documents", icon: FileText, isNew: true },
+      { name: "项目文件库", nameEn: "Project Vault", path: "/project-vault", icon: Database, isNew: true,
+        allowedRoles: ["admin", "director", "bu_gm", "bu_pm", "bu_mech", "bu_elec", "dept_manager"] },
+      { name: "数字孪生中心", nameEn: "Digital Twin Hub", path: "/digital-twin", icon: Box, isNew: true,
+        allowedRoles: ["admin", "director", "bu_gm", "bu_pm", "bu_mech", "bu_elec", "dept_manager"] },
       { name: "AI方案助手", nameEn: "AI Solution", path: "/ai/solution-assistant", icon: Bot },
       { name: "AI需求分析", nameEn: "AI Requirements", path: "/ai-requirements-analysis", icon: ClipboardCheck, isNew: true,
         allowedRoles: ["admin", "director", "bu_gm", "bu_pm", "bu_mech", "bu_elec", "dept_manager"] },
@@ -285,6 +297,8 @@ export const menuConfig: MenuGroup[] = [
       { name: "库存看板", nameEn: "Inventory Dashboard", path: "/inventory-dashboard", icon: Boxes, isNew: true },
       { name: "M8 FAT协调", nameEn: "M8 FAT Coordination", path: "/fat-coordination", icon: ClipboardCheck, isNew: true,
         allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "cs_engineer"] },
+      { name: "FAT/SAT执行", nameEn: "FAT/SAT Execution", path: "/fat-sat-execution", icon: ClipboardCheck, isNew: true,
+        allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "cs_engineer"] },
       { name: "供应商评估", nameEn: "Supplier Assessment", path: "/supplier-assessment", icon: Truck, isNew: true },
       { name: "库存优化", nameEn: "Inventory Optimization", path: "/inventory-optimization", icon: Package, isNew: true },
       { name: "质量预测", nameEn: "Quality Prediction", path: "/quality-prediction", icon: Shield, isNew: true },
@@ -317,6 +331,19 @@ export const menuConfig: MenuGroup[] = [
       { name: "工序进度大屏", nameEn: "Process Progress", path: "/process-progress", icon: Monitor, isNew: true },
       { name: "质量门禁", nameEn: "Quality Interlock", path: "/quality-interlock", icon: Shield, isNew: true },
       { name: "质检关卡", nameEn: "Quality Checkpoints", path: "/quality-checkpoints", icon: CheckCircle, isNew: true },
+      // IATF 16949 Core Tools
+      { name: "PPAP管理", nameEn: "PPAP Management", path: "/ppap", icon: FileCheck, isNew: true,
+        allowedRoles: ["admin", "director", "bu_gm", "bu_pm", "bu_mech", "dept_manager"] },
+      { name: "FMEA分析", nameEn: "FMEA Analysis", path: "/fmea", icon: Shield, isNew: true,
+        allowedRoles: ["admin", "director", "bu_gm", "bu_pm", "bu_mech", "dept_manager"] },
+      { name: "控制计划", nameEn: "Control Plan", path: "/control-plan", icon: ClipboardCheck, isNew: true,
+        allowedRoles: ["admin", "director", "bu_gm", "bu_pm", "bu_mech", "dept_manager"] },
+      { name: "8D/CAPA", nameEn: "8D/CAPA", path: "/8d-capa", icon: AlertTriangle, isNew: true,
+        allowedRoles: ["admin", "director", "bu_gm", "bu_pm", "bu_mech", "dept_manager"] },
+      { name: "MSA分析", nameEn: "MSA Analysis", path: "/msa", icon: Target, isNew: true,
+        allowedRoles: ["admin", "director", "bu_gm", "bu_pm", "bu_mech", "dept_manager"] },
+      { name: "安全规则", nameEn: "Safety Rules", path: "/safety-rules", icon: ShieldAlert, isNew: true,
+        allowedRoles: ["admin", "director", "bu_gm", "bu_pm", "bu_mech", "dept_manager"] },
       { name: "物料流转追踪", nameEn: "Material Flow", path: "/material-flow", icon: Truck, isNew: true },
       { name: "工人绩效排行", nameEn: "Worker Leaderboard", path: "/worker-performance", icon: Trophy, isNew: true, minLevel: 2 },
       { name: "工人移动端", nameEn: "Worker Mobile", path: "/worker-mobile", icon: HardHat, isNew: true },
@@ -330,6 +357,30 @@ export const menuConfig: MenuGroup[] = [
         allowedRoles: ["admin"] },
       { name: "车间终端", nameEn: "Workshop Kiosk", path: "/kiosk", icon: Monitor, isNew: true,
         allowedRoles: ["admin"] },
+      { name: "测试执行矩阵", nameEn: "Test Execution Matrix", path: "/test-execution-dashboard", icon: TestTube, isNew: true,
+        allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec", "dept_manager", "cs_engineer"] },
+    ],
+  },
+
+  // ────────────────────────────────────
+  // 5.5、供应链管理（IATF 16949 全链追溯）  // ────────────────────────────────────
+  {
+    name: "供应链管理",
+    nameEn: "Supply Chain",
+    nameDe: "Lieferkette",
+    nameFr: "Chaîne d'approvisionnement",
+    icon: Truck,
+    permissionKey: "canAccessSupplyChain",
+    items: [
+      { name: "供应链工作台", nameEn: "Supply Chain Workbench", path: "/supply-chain", icon: LayoutDashboard, isNew: true },
+      { name: "物料管理", nameEn: "Material Management", path: "/material-management", icon: Package, isNew: true },
+      { name: "采购管理", nameEn: "Procurement", path: "/procurement-management", icon: ShoppingCart, isNew: true },
+      { name: "仓库管理", nameEn: "Warehouse Mgmt", path: "/warehouse-management", icon: Warehouse, isNew: true },
+      { name: "采购工作台", nameEn: "Procurement Workbench", path: "/procurement-workbench", icon: ShoppingCart, isNew: true },
+      { name: "供应链计划", nameEn: "Supply Chain Planning", path: "/supply-chain-planning", icon: CalendarClock, isNew: true },
+      { name: "备件管理", nameEn: "Spare Parts", path: "/spare-parts", icon: Wrench, isNew: true },
+      { name: "天思ERP集成", nameEn: "Tiansi ERP", path: "/erp-integration", icon: RefreshCw, isNew: true,
+        allowedRoles: ["admin", "director", "bu_gm", "dept_manager"] },
     ],
   },
 
@@ -343,6 +394,7 @@ export const menuConfig: MenuGroup[] = [
     icon: Headphones,
     permissionKey: "canAccessCustomerService",
     items: [
+      { name: "售后保修工作台", nameEn: "After-Sales Workbench", path: "/after-sales-workbench", icon: Wrench, isNew: true },
       { name: "现场安装", nameEn: "Field Installation", path: "/field-installation", icon: Wrench, isNew: true, requiresBU: true },
       { name: "SAT测试", nameEn: "SAT Testing", path: "/sat-testing", icon: TestTube, isNew: true, requiresBU: true },
       { name: "终验收", nameEn: "Final Acceptance", path: "/final-acceptance", icon: CheckCircle, isNew: true, requiresBU: true },
@@ -453,6 +505,7 @@ export const menuConfig: MenuGroup[] = [
     items: [
       { name: "我的能力档案", nameEn: "My Capability", path: "/capability-os", icon: Brain },
       { name: "能力仪表板", nameEn: "Capability Dashboard", path: "/capability-dashboard", icon: BarChart3 },
+      { name: "能力矩阵看板", nameEn: "Capability Matrix", path: "/capability-matrix-board", icon: Grid3X3, isNew: true, minLevel: 2 },
       { name: "证据提交", nameEn: "Evidence Submit", path: "/evidence-submission", icon: FileCheck },
       { name: "能力证书", nameEn: "Certificates", path: "/capability-certificates", icon: Medal },
       { name: "能力徽章", nameEn: "Badges", path: "/capability-badges", icon: Award },
@@ -530,6 +583,10 @@ export const menuConfig: MenuGroup[] = [
       { name: "AI内容本地化", nameEn: "AI Localization", path: "/ai-content-localizer", icon: Globe, isNew: true },
       { name: "AI准确度看板", nameEn: "AI Accuracy", path: "/ai-accuracy", icon: Gauge, isNew: true,
         allowedRoles: ["admin", "director"] },
+      { name: "AI知识引擎", nameEn: "AI Genesis", path: "/ai-genesis", icon: Sparkles, isNew: true, minLevel: 3 },
+      { name: "AI助理配置中心", nameEn: "AI Assistant Provisioning", path: "/ai-assistant-provisioning", icon: UserCog,
+        isNew: true, allowedRoles: ["admin", "hr_manager"], minLevel: 4 },
+      { name: "AI军团管理", nameEn: "AI Agent Fleet", path: "/ai-agent-fleet", icon: Cpu, isNew: true },
     ],
   },
 
@@ -551,6 +608,27 @@ export const menuConfig: MenuGroup[] = [
   },
 
   // ────────────────────────────────────
+  // Smart OA 指挥中心
+  // ────────────────────────────────────
+  {
+    name: "Smart OA",
+    nameEn: "Smart OA",
+    nameDe: "Smart OA",
+    nameFr: "Smart OA",
+    icon: ClipboardList,
+    items: [
+      { name: "M0-M12表单目录", nameEn: "Form Directory", path: "/form-directory", icon: Layers, isNew: true },
+      { name: "动态表单引擎", nameEn: "Dynamic Forms", path: "/oa-forms", icon: FileText, isNew: true },
+      { name: "OA指挥中心", nameEn: "OA Command Center", path: "/oa-dashboard", icon: ClipboardCheck, isNew: true },
+      { name: "晨会看板", nameEn: "Morning Meeting", path: "/oa-dashboard?tab=meeting", icon: Calendar, isNew: true },
+      { name: "出差报告", nameEn: "Trip Reports", path: "/oa-dashboard?tab=trips", icon: Briefcase, isNew: true },
+      { name: "售前技术问卷", nameEn: "Pre-Sales Questionnaire", path: "/pre-sales-questionnaire", icon: ClipboardCheck, isNew: true },
+      { name: "晨会看板(全屏)", nameEn: "Morning Meeting Board", path: "/morning-meeting-board", icon: LayoutDashboard, isNew: true },
+      { name: "汇报中枢", nameEn: "Briefing Center", path: "/report-center", icon: Presentation, isNew: true },
+    ],
+  },
+
+  // ────────────────────────────────────
   // 十二、系统管理（admin可见）  // ────────────────────────────────────
   {
     name: "系统管理",
@@ -560,6 +638,7 @@ export const menuConfig: MenuGroup[] = [
     icon: Settings,
     allowedRoles: ["admin"],
     items: [
+      { name: "系统控制塔", nameEn: "Control Tower", path: "/system-control-tower", icon: Landmark, isNew: true },
       { name: "用户与权限", nameEn: "Users & Permissions", path: "/permissions", icon: Lock },
       { name: "菜单管理", nameEn: "Menu Management", path: "/menu-management", icon: Menu },
       { name: "组织架构", nameEn: "Organization", path: "/organization-management", icon: Building2, isNew: true },
@@ -575,7 +654,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "系统指南", nameEn: "System Guide", path: "/system-guide", icon: BookOpen },
       // 系统分析/运维工具
       { name: "简道云分析", nameEn: "Jiandaoyun", path: "/jiandaoyun", icon: Database },
-      { name: "简道云导入", nameEn: "JDY Import", path: "/jiandaoyun-import", icon: Cloud, isNew: true },
+      { name: "简道云导入", nameEn: "JDY Import", path: "/jiandaoyun-import", icon: Upload, isNew: true, allowedRoles: ["admin", "director"] },
       { name: "表单浏览器", nameEn: "Form Browser", path: "/jiandaoyun-forms", icon: Database, isNew: true },
       { name: "审批流程", nameEn: "Workflows", path: "/jiandaoyun-workflows", icon: GitBranch, isNew: true },
       { name: "知识库", nameEn: "Knowledge", path: "/jiandaoyun-knowledge", icon: BookOpen, isNew: true },
@@ -592,6 +671,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "证书模板", nameEn: "Certificates", path: "/admin/certificates", icon: Award, isNew: true },
       { name: "会议负责人", nameEn: "Meeting Owner", path: "/meeting-owner-management", icon: Video, isNew: true },
       { name: "错误日志", nameEn: "Error Logs", path: "/error-logs", icon: AlertTriangle, isNew: true },
+      { name: "仿真指挥中心", nameEn: "Simulator", path: "/simulator", icon: Zap, isNew: true },
     ],
   },
 
