@@ -65,11 +65,12 @@ export default function ReportPresent() {
     { enabled: !!params.id }
   );
 
-  const blocks = Array.isArray(report?.contentBlocks)
-    ? report.contentBlocks
-    : [];
-  const total = Math.max(blocks.length, 1);
-  const block = blocks[current] || null;
+  type SlideBlock = { type: string; title?: string; content?: string; value?: string; unit?: string; accent?: string; accentTo?: string };
+  const blocks: SlideBlock[] = Array.isArray(report?.contentBlocks) && report.contentBlocks.length > 0
+    ? (report.contentBlocks as SlideBlock[])
+    : [{ type: "title", title: report?.title || "汇报", content: "暂无内容页" }];
+  const total = blocks.length;
+  const block = blocks[current] || blocks[0];
   const Icon = block ? slideIcon(block.type || "text") : FileText;
 
   // ── Fullscreen state sync ──────────────────────────────

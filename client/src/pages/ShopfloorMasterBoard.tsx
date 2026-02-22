@@ -6,6 +6,7 @@
  * INTERNAL: Red/Black list, material shortages, plan vs actual, employee names.
  */
 import { useState, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
 import {
   DashboardModeProvider,
   useDashboardMode,
@@ -30,7 +31,7 @@ import {
   Zap,
 } from "lucide-react";
 
-// ─── Demo Data ──────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────
 
 interface StationData {
   code: string;
@@ -39,27 +40,9 @@ interface StationData {
   fpy: number;
   planQty: number;
   actualQty: number;
-  operator?: string; // hidden in EXTERNAL
-  cycleTime: number; // seconds
+  operator?: string | null;
+  cycleTime: number;
 }
-
-const STATIONS: StationData[] = [
-  { code: "T1", name: "底座组装", status: "running", fpy: 99.2, planQty: 12, actualQty: 12, operator: "张伟", cycleTime: 45 },
-  { code: "T2", name: "主轴安装", status: "running", fpy: 98.8, planQty: 12, actualQty: 11, operator: "李强", cycleTime: 62 },
-  { code: "T3", name: "液压系统", status: "alarm", fpy: 96.5, planQty: 12, actualQty: 9, operator: "王磊", cycleTime: 78 },
-  { code: "T4", name: "电气布线", status: "running", fpy: 99.5, planQty: 10, actualQty: 10, operator: "赵辉", cycleTime: 55 },
-  { code: "T5", name: "传感器校准", status: "running", fpy: 100, planQty: 10, actualQty: 10, operator: "刘洋", cycleTime: 32 },
-  { code: "T6", name: "密封检测", status: "running", fpy: 99.1, planQty: 10, actualQty: 9, operator: "陈波", cycleTime: 28 },
-  { code: "T7", name: "功能测试", status: "idle", fpy: 98.2, planQty: 8, actualQty: 7, operator: "周敏", cycleTime: 90 },
-  { code: "T8", name: "清洁度检测", status: "running", fpy: 99.8, planQty: 8, actualQty: 8, operator: "吴芳", cycleTime: 25 },
-  { code: "T9", name: "涂装/喷漆", status: "running", fpy: 97.6, planQty: 8, actualQty: 7, operator: "孙涛", cycleTime: 120 },
-  { code: "T10", name: "总装配", status: "running", fpy: 99.0, planQty: 6, actualQty: 6, operator: "杨华", cycleTime: 85 },
-  { code: "T11", name: "气密测试", status: "running", fpy: 100, planQty: 6, actualQty: 6, operator: "马丽", cycleTime: 40 },
-  { code: "T12", name: "耐压测试", status: "running", fpy: 99.4, planQty: 6, actualQty: 5, operator: "胡明", cycleTime: 55 },
-  { code: "T13", name: "FAT预检", status: "idle", fpy: 98.0, planQty: 4, actualQty: 3, operator: "林峰", cycleTime: 150 },
-  { code: "T14", name: "包装入库", status: "running", fpy: 100, planQty: 4, actualQty: 4, operator: "郑宇", cycleTime: 35 },
-  { code: "T15", name: "出库发运", status: "running", fpy: 100, planQty: 3, actualQty: 3, operator: "何杰", cycleTime: 20 },
-];
 
 interface RedBlackEntry {
   name: string;
@@ -69,14 +52,6 @@ interface RedBlackEntry {
   count: number;
 }
 
-const RED_BLACK_LIST: RedBlackEntry[] = [
-  { name: "王磊", dept: "T3液压", type: "red", reason: "连续3次密封不良", count: 3 },
-  { name: "孙涛", dept: "T9涂装", type: "red", reason: "喷涂厚度超差", count: 2 },
-  { name: "张伟", dept: "T1底座", type: "black", reason: "零缺陷连续30天", count: 30 },
-  { name: "刘洋", dept: "T5校准", type: "black", reason: "改善提案8项", count: 8 },
-  { name: "马丽", dept: "T11气密", type: "black", reason: "FPY 100% 连续60天", count: 60 },
-];
-
 interface ShortageAlert {
   station: string;
   material: string;
@@ -85,28 +60,25 @@ interface ShortageAlert {
   severity: "critical" | "warning";
 }
 
-const SHORTAGE_ALERTS: ShortageAlert[] = [
-  { station: "T3", material: "高压液压泵 (Rexroth A10VSO)", eta: "延迟3天", buyer: "沈应峰", severity: "critical" },
-  { station: "T9", material: "PU底漆 (PPG DELFLEET)", eta: "明天到货", buyer: "李思远", severity: "warning" },
-  { station: "T10", material: "O型密封圈 (Parker 2-236)", eta: "延迟1天", buyer: "沈应峰", severity: "warning" },
-];
-
 // ─── Unlock Dialog (same pattern) ───────────────────────────
 
 function UnlockDialog({ onClose }: { onClose: () => void }) {
-  const { unlockInternalMode } = useDashboardMode();
+  const { unlockInternalMode, unlockError, isUnlocking } = useDashboardMode();
   const [pin, setPin] = useState("");
-  const [error, setError] = useState(false);
+  const [localError, setLocalError] = useState(false);
 
-  function handleSubmit() {
-    if (unlockInternalMode(pin)) {
+  async function handleSubmit() {
+    const ok = await unlockInternalMode(pin);
+    if (ok) {
       onClose();
     } else {
-      setError(true);
+      setLocalError(true);
       setPin("");
-      setTimeout(() => setError(false), 2000);
+      setTimeout(() => setLocalError(false), 2000);
     }
   }
+
+  const hasError = localError || !!unlockError;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
@@ -120,15 +92,15 @@ function UnlockDialog({ onClose }: { onClose: () => void }) {
           type="password"
           value={pin}
           onChange={(e) => setPin(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+          onKeyDown={(e) => e.key === "Enter" && !isUnlocking && handleSubmit()}
           placeholder="PIN码"
           maxLength={8}
-          className={`w-full bg-gray-800 border ${error ? "border-red-500" : "border-gray-700"} rounded-lg px-4 py-3 text-white text-center text-2xl tracking-[0.5em] placeholder:text-gray-600 placeholder:text-base placeholder:tracking-normal focus:outline-none focus:border-cyan-500`}
+          className={`w-full bg-gray-800 border ${hasError ? "border-red-500" : "border-gray-700"} rounded-lg px-4 py-3 text-white text-center text-2xl tracking-[0.5em] placeholder:text-gray-600 placeholder:text-base placeholder:tracking-normal focus:outline-none focus:border-cyan-500`}
           autoFocus
         />
-        {error && <p className="text-red-400 text-sm mt-2 text-center">PIN码错误</p>}
-        <button onClick={handleSubmit} className="w-full mt-4 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg py-3 font-medium transition-colors">
-          解锁
+        {hasError && <p className="text-red-400 text-sm mt-2 text-center">{unlockError || "PIN码错误"}</p>}
+        <button onClick={handleSubmit} disabled={isUnlocking} className="w-full mt-4 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white rounded-lg py-3 font-medium transition-colors">
+          {isUnlocking ? "验证中..." : "解锁"}
         </button>
       </div>
     </div>
@@ -250,18 +222,36 @@ function ShopfloorContent() {
   const isInternal = displayMode === "INTERNAL";
   const [time, setTime] = useState(new Date());
 
+  // ── Real-time data from server ──────────────────────────
+  const { data: stationsRaw = [] } = trpc.visionDashboard.shopfloorStations.useQuery(
+    undefined,
+    { refetchInterval: 15000 }
+  );
+  const { data: redBlackData = [] } = trpc.visionDashboard.shopfloorRedBlackList.useQuery(
+    undefined,
+    { refetchInterval: 60000 }
+  );
+  const { data: shortageData = [] } = trpc.visionDashboard.shopfloorShortageAlerts.useQuery(
+    undefined,
+    { refetchInterval: 60000 }
+  );
+
+  const stationsData = stationsRaw as StationData[];
+
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  // Aggregate metrics
-  const totalPlan = STATIONS.reduce((s, st) => s + st.planQty, 0);
-  const totalActual = STATIONS.reduce((s, st) => s + st.actualQty, 0);
-  const avgFpy = (STATIONS.reduce((s, st) => s + st.fpy, 0) / STATIONS.length).toFixed(1);
-  const alarmCount = STATIONS.filter((s) => s.status === "alarm").length;
-  const runningCount = STATIONS.filter((s) => s.status === "running").length;
-  const completionRate = totalPlan > 0 ? ((totalActual / totalPlan) * 100).toFixed(1) : "0";
+  // Aggregate metrics from real data
+  const totalPlan = stationsData.reduce((s, st) => s + st.planQty, 0);
+  const totalActual = stationsData.reduce((s, st) => s + st.actualQty, 0);
+  const avgFpy = stationsData.length > 0
+    ? (stationsData.reduce((s, st) => s + st.fpy, 0) / stationsData.length).toFixed(1)
+    : "—";
+  const alarmCount = stationsData.filter((s) => s.status === "alarm").length;
+  const runningCount = stationsData.filter((s) => s.status === "running").length;
+  const completionRate = totalPlan > 0 ? ((totalActual / totalPlan) * 100).toFixed(1) : "—";
 
   return (
     <div className="relative w-full h-screen overflow-hidden select-none" style={{ background: "#0a0e1a" }}>
@@ -280,12 +270,12 @@ function ShopfloorContent() {
           {/* Headline stats */}
           <div className="flex items-center gap-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-cyan-300 font-mono">{avgFpy}%</p>
+              <p className="text-2xl font-bold text-cyan-300 font-mono">{avgFpy}{avgFpy !== "—" && "%"}</p>
               <p className="text-white/30 text-[10px]">综合FPY</p>
             </div>
             <div className="w-px h-8 bg-white/10" />
             <div className="text-center">
-              <p className="text-2xl font-bold text-green-400 font-mono">{completionRate}%</p>
+              <p className="text-2xl font-bold text-green-400 font-mono">{completionRate}{completionRate !== "—" && "%"}</p>
               <p className="text-white/30 text-[10px]">完工率</p>
             </div>
             <div className="w-px h-8 bg-white/10" />
@@ -307,17 +297,25 @@ function ShopfloorContent() {
       <div className={`flex h-[calc(100vh-60px)] ${isInternal ? "" : ""}`}>
         {/* Left: Station grid */}
         <div className={`flex-1 p-4 overflow-y-auto scrollbar-hide ${isInternal ? "" : ""}`}>
-          <div className="grid grid-cols-3 xl:grid-cols-5 gap-3">
-            {STATIONS.map((st) => (
-              <StationCard key={st.code} station={st} isInternal={isInternal} />
-            ))}
-          </div>
+          {stationsData.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Factory className="w-16 h-16 text-white/10 mb-4" />
+              <p className="text-white/30 text-lg">暂无工位数据</p>
+              <p className="text-white/20 text-sm mt-1">请在 stations 表中配置 T1-T15 工位</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 xl:grid-cols-5 gap-3">
+              {stationsData.map((st) => (
+                <StationCard key={st.code} station={st} isInternal={isInternal} />
+              ))}
+            </div>
+          )}
 
           {/* EXTERNAL: Large aggregate banner */}
           {!isInternal && (
             <div className="mt-4 grid grid-cols-4 gap-4">
               {[
-                { label: "在线工位", value: `${runningCount}/${STATIONS.length}`, icon: Zap, color: "#10b981" },
+                { label: "在线工位", value: `${runningCount}/${stationsData.length}`, icon: Zap, color: "#10b981" },
                 { label: "今日产出", value: `${totalActual}台`, icon: Package, color: "#06b6d4" },
                 { label: "质量认证", value: "IATF 16949", icon: ShieldCheck, color: "#8b5cf6" },
                 { label: "安全生产", value: "326天", icon: Star, color: "#f59e0b" },
@@ -349,7 +347,7 @@ function ShopfloorContent() {
                 红黑榜 (Red / Black List)
               </h3>
               <div className="space-y-2">
-                {RED_BLACK_LIST.map((entry, idx) => (
+                {redBlackData.map((entry, idx) => (
                   <div
                     key={idx}
                     className={`rounded-lg p-3 border ${
@@ -386,7 +384,7 @@ function ShopfloorContent() {
                 物料短缺预警
               </h3>
               <div className="space-y-2">
-                {SHORTAGE_ALERTS.map((alert, idx) => (
+                {shortageData.map((alert, idx) => (
                   <div
                     key={idx}
                     className={`rounded-lg p-3 border ${

@@ -8,6 +8,7 @@
  * CSS/SVG globe animation — no WebGL dependency for prototype.
  */
 import { useState, useEffect, useRef } from "react";
+import { trpc } from "@/lib/trpc";
 import {
   DashboardModeProvider,
   useDashboardMode,
@@ -28,36 +29,30 @@ import {
   Clock,
 } from "lucide-react";
 
-// ─── Static Demo Data ──────────────────────────────────────
+// ─── KPI Icon/Color Mapping ────────────────────────────────
 
-const EQUIPMENT_LOCATIONS = [
-  { id: 1, city: "München", country: "德国", lat: 48.1, lng: 11.6, count: 23, revenue: "€4.2M" },
-  { id: 2, city: "Stuttgart", country: "德国", lat: 48.8, lng: 9.2, count: 18, revenue: "€3.1M" },
-  { id: 3, city: "Shanghai", country: "中国", lat: 31.2, lng: 121.5, count: 45, revenue: "¥28M" },
-  { id: 4, city: "Suzhou", country: "中国", lat: 31.3, lng: 120.6, count: 32, revenue: "¥19M" },
-  { id: 5, city: "Detroit", country: "美国", lat: 42.3, lng: -83.0, count: 12, revenue: "$2.8M" },
-  { id: 6, city: "Nagoya", country: "日本", lat: 35.2, lng: 137.0, count: 8, revenue: "¥350M" },
-  { id: 7, city: "Pune", country: "印度", lat: 18.5, lng: 73.9, count: 6, revenue: "₹12Cr" },
-  { id: 8, city: "São Paulo", country: "巴西", lat: -23.5, lng: -46.6, count: 4, revenue: "R$1.5M" },
-];
-
-const HEADLINE_KPIS = [
-  { label: "全球设备运行", value: "148", unit: "台", icon: Package, color: "#00d4aa" },
-  { label: "服务国家/地区", value: "12", unit: "个", icon: Globe, color: "#0078d4" },
-  { label: "年度交付项目", value: "37", unit: "个", icon: TrendingUp, color: "#ff8c00" },
-  { label: "全球认证", value: "IATF 16949", unit: "", icon: ShieldCheck, color: "#10b981" },
-];
-
-const INTERNAL_KPIS = [
-  { label: "年度营收(YTD)", value: "¥1.82", unit: "亿", icon: DollarSign, color: "#f59e0b" },
-  { label: "在手订单", value: "¥3.15", unit: "亿", icon: BarChart3, color: "#06b6d4" },
-  { label: "逾期交付", value: "3", unit: "项", icon: AlertTriangle, color: "#ef4444" },
-  { label: "客户满意度", value: "94.2", unit: "%", icon: Users, color: "#8b5cf6" },
-];
+const KPI_CONFIG: Record<string, { icon: typeof Package; color: string }> = {
+  equipment: { icon: Package, color: "#00d4aa" },
+  stations: { icon: Globe, color: "#0078d4" },
+  projects: { icon: TrendingUp, color: "#ff8c00" },
+  cert: { icon: ShieldCheck, color: "#10b981" },
+  todayOutput: { icon: DollarSign, color: "#f59e0b" },
+  activeStations: { icon: BarChart3, color: "#06b6d4" },
+};
 
 // ─── Globe Component (CSS/SVG) ──────────────────────────────
 
-function AnimatedGlobe({ locations, showRevenue }: { locations: typeof EQUIPMENT_LOCATIONS; showRevenue: boolean }) {
+interface LocationPin {
+  id: number;
+  city: string;
+  country: string;
+  lat: number;
+  lng: number;
+  count: number;
+  revenue: string | null;
+}
+
+function AnimatedGlobe({ locations, showRevenue }: { locations: LocationPin[]; showRevenue: boolean }) {
   const [activePin, setActivePin] = useState<number | null>(null);
   const [rotation, setRotation] = useState(0);
 
@@ -68,6 +63,7 @@ function AnimatedGlobe({ locations, showRevenue }: { locations: typeof EQUIPMENT
 
   // Auto-cycle through pins
   useEffect(() => {
+    if (locations.length === 0) return;
     let idx = 0;
     const timer = setInterval(() => {
       setActivePin(locations[idx % locations.length].id);
@@ -77,7 +73,13 @@ function AnimatedGlobe({ locations, showRevenue }: { locations: typeof EQUIPMENT
   }, [locations]);
 
   // Convert lat/lng to approximate position on a flat projected globe
-  const toPosition = (lat: number, lng: number) => {
+  // When lat/lng are 0 (DB locations without geo data), distribute evenly
+  const toPosition = (lat: number, lng: number, idx: number) => {
+    if (lat === 0 && lng === 0 && locations.length > 0) {
+      const angle = (idx / locations.length) * Math.PI * 2;
+      const r = 25;
+      return { x: `${50 + Math.cos(angle) * r}%`, y: `${50 + Math.sin(angle) * r}%` };
+    }
     const x = 50 + (lng / 180) * 40;
     const y = 50 - (lat / 90) * 35;
     return { x: `${x}%`, y: `${y}%` };
@@ -131,8 +133,8 @@ function AnimatedGlobe({ locations, showRevenue }: { locations: typeof EQUIPMENT
       </div>
 
       {/* Equipment location pins */}
-      {locations.map((loc) => {
-        const pos = toPosition(loc.lat, loc.lng);
+      {locations.map((loc, locIdx) => {
+        const pos = toPosition(loc.lat, loc.lng, locIdx);
         const isActive = activePin === loc.id;
         return (
           <div
@@ -186,19 +188,22 @@ function AnimatedGlobe({ locations, showRevenue }: { locations: typeof EQUIPMENT
 // ─── Unlock Dialog ──────────────────────────────────────────
 
 function UnlockDialog({ onClose }: { onClose: () => void }) {
-  const { unlockInternalMode } = useDashboardMode();
+  const { unlockInternalMode, unlockError, isUnlocking } = useDashboardMode();
   const [pin, setPin] = useState("");
-  const [error, setError] = useState(false);
+  const [localError, setLocalError] = useState(false);
 
-  function handleSubmit() {
-    if (unlockInternalMode(pin)) {
+  async function handleSubmit() {
+    const ok = await unlockInternalMode(pin);
+    if (ok) {
       onClose();
     } else {
-      setError(true);
+      setLocalError(true);
       setPin("");
-      setTimeout(() => setError(false), 2000);
+      setTimeout(() => setLocalError(false), 2000);
     }
   }
+
+  const hasError = localError || !!unlockError;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
@@ -212,18 +217,19 @@ function UnlockDialog({ onClose }: { onClose: () => void }) {
           type="password"
           value={pin}
           onChange={(e) => setPin(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+          onKeyDown={(e) => e.key === "Enter" && !isUnlocking && handleSubmit()}
           placeholder="输入PIN码"
           maxLength={8}
-          className={`w-full bg-gray-800 border ${error ? "border-red-500" : "border-gray-700"} rounded-lg px-4 py-3 text-white text-center text-2xl tracking-[0.5em] placeholder:text-gray-600 placeholder:text-base placeholder:tracking-normal focus:outline-none focus:border-cyan-500`}
+          className={`w-full bg-gray-800 border ${hasError ? "border-red-500" : "border-gray-700"} rounded-lg px-4 py-3 text-white text-center text-2xl tracking-[0.5em] placeholder:text-gray-600 placeholder:text-base placeholder:tracking-normal focus:outline-none focus:border-cyan-500`}
           autoFocus
         />
-        {error && <p className="text-red-400 text-sm mt-2 text-center">PIN码错误</p>}
+        {hasError && <p className="text-red-400 text-sm mt-2 text-center">{unlockError || "PIN码错误"}</p>}
         <button
           onClick={handleSubmit}
-          className="w-full mt-4 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg py-3 font-medium transition-colors"
+          disabled={isUnlocking}
+          className="w-full mt-4 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white rounded-lg py-3 font-medium transition-colors"
         >
-          解锁
+          {isUnlocking ? "验证中..." : "解锁"}
         </button>
       </div>
     </div>
@@ -281,12 +287,39 @@ function LobbyContent() {
   const { displayMode } = useDashboardMode();
   const [time, setTime] = useState(new Date());
 
+  // ── Real-time data from server ──────────────────────────
+  const { data: lobbyData } = trpc.visionDashboard.lobbyData.useQuery(
+    { mode: displayMode },
+    { refetchInterval: 30000 }
+  );
+
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  const kpis = displayMode === "EXTERNAL" ? HEADLINE_KPIS : [...HEADLINE_KPIS, ...INTERNAL_KPIS];
+  // Map server KPI data to display format with icons
+  const mapKpis = (items: Array<{ key: string; label: string; value: string; unit: string }>) =>
+    items.map((kpi) => ({
+      ...kpi,
+      icon: KPI_CONFIG[kpi.key]?.icon || Package,
+      color: KPI_CONFIG[kpi.key]?.color || "#0078d4",
+    }));
+
+  const externalKpis = mapKpis(lobbyData?.externalKpis || []);
+  const internalKpis = mapKpis(lobbyData?.internalKpis || []);
+  const kpis = displayMode === "EXTERNAL" ? externalKpis : [...externalKpis, ...internalKpis];
+
+  // Equipment locations from server
+  const locations = (lobbyData?.locations || []).map((loc, idx) => ({
+    id: loc.id,
+    city: loc.city,
+    country: "",
+    lat: 0,
+    lng: 0,
+    count: loc.count,
+    revenue: null as string | null,
+  }));
 
   return (
     <div className="relative w-full h-screen overflow-hidden select-none" style={{ background: "#000d1a" }}>
@@ -312,7 +345,7 @@ function LobbyContent() {
 
       {/* Globe area */}
       <div className="absolute inset-0">
-        <AnimatedGlobe locations={EQUIPMENT_LOCATIONS} showRevenue={displayMode === "INTERNAL"} />
+        <AnimatedGlobe locations={locations} showRevenue={displayMode === "INTERNAL"} />
       </div>
 
       {/* Bottom KPI strip */}
@@ -343,21 +376,27 @@ function LobbyContent() {
           })}
         </div>
 
-        {/* Internal-only: risk alerts strip */}
+        {/* Internal-only: dynamic status strip */}
         {displayMode === "INTERNAL" && (
           <div className="mt-4 flex items-center gap-3 overflow-x-auto scrollbar-hide">
-            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-2 whitespace-nowrap">
-              <AlertTriangle className="w-4 h-4 text-red-400" />
-              <span className="text-red-300 text-sm">逾期交付: P2025-037 (日本名古屋) — 延期12天</span>
-            </div>
-            <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2 whitespace-nowrap">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
-              <span className="text-amber-300 text-sm">款项风险: P2025-022 (底特律) — 应收逾期45天 $180K</span>
-            </div>
-            <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2 whitespace-nowrap">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
-              <span className="text-amber-300 text-sm">供应商延迟: 液压泵组件 — 预计延迟5个工作日</span>
-            </div>
+            {(lobbyData?.externalKpis || []).length > 0 ? (
+              <>
+                <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 rounded-lg px-4 py-2 whitespace-nowrap">
+                  <BarChart3 className="w-4 h-4 text-cyan-400" />
+                  <span className="text-cyan-300 text-sm">内部运营模式已激活 · 显示完整数据</span>
+                </div>
+                {internalKpis.map((kpi, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2 whitespace-nowrap">
+                    <kpi.icon className="w-4 h-4 text-amber-400" />
+                    <span className="text-amber-300 text-sm">{kpi.label}: {kpi.value} {kpi.unit}</span>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-4 py-2 whitespace-nowrap">
+                <span className="text-white/30 text-sm">暂无运营数据</span>
+              </div>
+            )}
           </div>
         )}
       </div>

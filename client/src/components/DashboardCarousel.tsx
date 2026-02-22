@@ -32,7 +32,7 @@ export default function DashboardCarousel({
   const current = views[activeIndex] || views[0];
 
   useEffect(() => {
-    if (total <= 1) return;
+    if (total <= 1) return; // No auto-advance needed for 0 or 1 views
 
     function scheduleNext() {
       const duration = views[activeIndex]?.durationMs || 30000;
