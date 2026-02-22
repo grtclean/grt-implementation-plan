@@ -74,6 +74,22 @@ export {
   type LicenseValidationResult,
 } from './licenseManager';
 
+// 安装模式 & 主动安全
+export {
+  getInstallationStatus,
+  checkFeatureAccess,
+  getActiveSecurityStatus,
+  setSecurityLevel,
+  reportCriticalEvent,
+  getSecurityRateLimitMultiplier,
+  setServerPassword,
+  verifyServerPassword,
+  isPasswordConfigured,
+  addAdminNote,
+  dismissAdminNote,
+  getAdminNotes,
+} from './installation-guard';
+
 // 安全配置
 export const SECURITY_CONFIG = {
   // 密码策略

@@ -64,7 +64,7 @@ interface AssistantConfig {
   name: string;
   nameCn: string;
   description: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
   features: string[];
 }

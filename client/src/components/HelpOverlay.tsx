@@ -32,7 +32,9 @@ type ArticleCategory =
   | "FEATURE_GUIDE"
   | "FAQ"
   | "TROUBLESHOOTING"
-  | "BEST_PRACTICE";
+  | "BEST_PRACTICE"
+  | "CHANGELOG"
+  | "WALKTHROUGH";
 
 interface CategoryMeta {
   label: string;
@@ -77,6 +79,20 @@ const CATEGORY_META: Record<ArticleCategory, CategoryMeta> = {
     color: "border-purple-500",
     bgColor: "bg-purple-500/15",
     textColor: "text-purple-400",
+  },
+  CHANGELOG: {
+    label: "Changelog",
+    labelZh: "版本日志",
+    color: "border-cyan-500",
+    bgColor: "bg-cyan-500/15",
+    textColor: "text-cyan-400",
+  },
+  WALKTHROUGH: {
+    label: "Walkthrough",
+    labelZh: "操作指南",
+    color: "border-orange-500",
+    bgColor: "bg-orange-500/15",
+    textColor: "text-orange-400",
   },
 };
 

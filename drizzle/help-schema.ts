@@ -39,6 +39,8 @@ export const HELP_CATEGORIES = [
   "FAQ",
   "TROUBLESHOOTING",
   "BEST_PRACTICE",
+  "CHANGELOG",
+  "WALKTHROUGH",
 ] as const;
 
 export type HelpCategory = (typeof HELP_CATEGORIES)[number];

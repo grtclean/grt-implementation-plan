@@ -10,7 +10,7 @@ export interface HelpArticle {
   id: number | string;
   routePath: string | null;
   featureKey: string | null;
-  category: "GETTING_STARTED" | "FEATURE_GUIDE" | "FAQ" | "TROUBLESHOOTING" | "BEST_PRACTICE";
+  category: "GETTING_STARTED" | "FEATURE_GUIDE" | "FAQ" | "TROUBLESHOOTING" | "BEST_PRACTICE" | "CHANGELOG" | "WALKTHROUGH";
   title: string;
   titleZh: string;
   content: string;

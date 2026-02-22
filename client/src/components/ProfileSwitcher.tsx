@@ -45,7 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 
 // 角色图标映射 - 扩展版
-const RoleIcon: Record<UserRole, React.ElementType> = {
+const RoleIcon: Record<UserRole, React.ComponentType<{ className?: string }>> = {
   admin: Shield,
   director: Crown,
   bu_gm: Building2,

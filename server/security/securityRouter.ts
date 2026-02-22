@@ -27,7 +27,25 @@ import {
   encrypt,
   decrypt,
   SECURITY_CONFIG,
+  logSecurityEvent,
 } from "./index";
+import {
+  getInstallationStatus,
+  checkFeatureAccess,
+  getActiveSecurityStatus,
+  setSecurityLevel,
+  setServerPassword,
+  verifyServerPassword,
+  isPasswordConfigured,
+  getAdminNotes,
+  dismissAdminNote,
+  addAdminNote,
+} from "./installation-guard";
+import {
+  MODE_CONFIGS,
+  FEATURE_LABELS,
+  type ActiveSecurityLevel,
+} from "../../shared/installation-modes";
 import {
   addAlertConfig,
   updateAlertConfig,
@@ -844,6 +862,147 @@ export const securityRouter = router({
         throw new TRPCError({ code: 'BAD_REQUEST', message: '无效的模板索引' });
       }
       return result;
+    }),
+
+  // ==================== 安装模式 & 密码保护 ====================
+
+  /**
+   * 获取安装模式和系统状态（公开 — 用于初始化页面）
+   */
+  getInstallationInfo: publicProcedure.query(async () => {
+    return await getInstallationStatus();
+  }),
+
+  /**
+   * 获取所有安装模式定义
+   */
+  getInstallationModes: publicProcedure.query(() => {
+    return {
+      modes: MODE_CONFIGS,
+      featureLabels: FEATURE_LABELS,
+    };
+  }),
+
+  /**
+   * 检查功能是否可用
+   */
+  checkFeature: publicProcedure
+    .input(z.object({ featureKey: z.string() }))
+    .query(({ input }) => {
+      return checkFeatureAccess(input.featureKey);
+    }),
+
+  /**
+   * 验证服务器密码
+   */
+  verifyPassword: publicProcedure
+    .input(z.object({ password: z.string() }))
+    .mutation(({ input }) => {
+      const valid = verifyServerPassword(input.password);
+      if (!valid) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: '服务器密码错误',
+        });
+      }
+      return { success: true };
+    }),
+
+  /**
+   * 设置服务器访问密码（仅管理员）
+   */
+  setServerPassword: adminProcedure
+    .input(z.object({ password: z.string().min(8) }))
+    .mutation(async ({ input, ctx }) => {
+      setServerPassword(input.password);
+
+      await logSecurityEvent({
+        eventType: 'system.config.change',
+        severity: 'high',
+        userId: ctx.user?.id,
+        userName: ctx.user?.name,
+        ipAddress: (ctx as any).req?.ip || 'unknown',
+        action: '设置/更新服务器访问密码',
+        result: 'success',
+        details: { passwordLength: input.password.length },
+      });
+
+      return { success: true };
+    }),
+
+  /**
+   * 检查密码是否已设置
+   */
+  isPasswordSet: publicProcedure.query(() => {
+    return { configured: isPasswordConfigured() };
+  }),
+
+  // ==================== 主动安全模式 ====================
+
+  /**
+   * 获取当前安全级别状态
+   */
+  getSecurityLevel: adminProcedure.query(() => {
+    return getActiveSecurityStatus();
+  }),
+
+  /**
+   * 设置安全级别（管理员手动控制）
+   */
+  setSecurityLevel: adminProcedure
+    .input(z.object({
+      level: z.enum(['standard', 'elevated', 'lockdown']),
+      reason: z.string().min(1),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const result = await setSecurityLevel(
+        input.level as ActiveSecurityLevel,
+        ctx.user?.name || 'admin',
+        input.reason,
+      );
+      return result;
+    }),
+
+  // ==================== 管理员重要事项 ====================
+
+  /**
+   * 获取管理员重要事项
+   */
+  getAdminNotes: adminProcedure
+    .input(z.object({
+      includeDismissed: z.boolean().default(false),
+    }).optional())
+    .query(({ input }) => {
+      return getAdminNotes(input?.includeDismissed ?? false);
+    }),
+
+  /**
+   * 关闭/忽略一条管理员事项
+   */
+  dismissNote: adminProcedure
+    .input(z.object({ noteId: z.string() }))
+    .mutation(({ input }) => {
+      const success = dismissAdminNote(input.noteId);
+      if (!success) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: '事项不存在' });
+      }
+      return { success: true };
+    }),
+
+  /**
+   * 手动添加管理员事项
+   */
+  addNote: adminProcedure
+    .input(z.object({
+      category: z.enum(['security', 'license', 'system', 'update', 'action_required']),
+      severity: z.enum(['info', 'warning', 'critical']),
+      title: z.string().min(1),
+      description: z.string(),
+      actionUrl: z.string().optional(),
+      actionLabel: z.string().optional(),
+    }))
+    .mutation(({ input }) => {
+      return addAdminNote(input);
     }),
 });
 

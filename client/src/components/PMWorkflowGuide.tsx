@@ -53,7 +53,7 @@ interface StageDefinition {
   description: string;
   keyActions: string[];
   link: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   color: string;
   activeColor: string;
 }

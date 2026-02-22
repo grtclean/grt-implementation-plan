@@ -256,6 +256,8 @@ export default function SecurityDashboard() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-muted/50">
             <TabsTrigger value="overview">安全概览</TabsTrigger>
+            <TabsTrigger value="installation">安装模式</TabsTrigger>
+            <TabsTrigger value="notes">重要事项</TabsTrigger>
             <TabsTrigger value="audit">审计日志</TabsTrigger>
             <TabsTrigger value="threats">威胁检测</TabsTrigger>
             <TabsTrigger value="access">访问控制</TabsTrigger>
@@ -812,6 +814,16 @@ export default function SecurityDashboard() {
           <TabsContent value="alerts" className="space-y-4">
             <AlertConfigTab />
           </TabsContent>
+
+          {/* 安装模式 */}
+          <TabsContent value="installation" className="space-y-4">
+            <InstallationModeTab />
+          </TabsContent>
+
+          {/* 管理员重要事项 */}
+          <TabsContent value="notes" className="space-y-4">
+            <AdminNotesTab />
+          </TabsContent>
         </Tabs>
       </div>
   );
@@ -1225,6 +1237,507 @@ function AlertConfigTab() {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ===== 安装模式Tab组件 =====
+
+function InstallationModeTab() {
+  const { data: installInfo, isLoading } = trpc.security.getInstallationInfo.useQuery(undefined, {
+    refetchInterval: 60000,
+  });
+  const { data: modesData } = trpc.security.getInstallationModes.useQuery();
+  const { data: passwordStatus } = trpc.security.isPasswordSet.useQuery();
+
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [securityReason, setSecurityReason] = useState('');
+  const [showSecurityDialog, setShowSecurityDialog] = useState(false);
+  const [targetLevel, setTargetLevel] = useState<'standard' | 'elevated' | 'lockdown'>('standard');
+
+  const setPasswordMutation = trpc.security.setServerPassword.useMutation({
+    onSuccess: () => {
+      toast.success('服务器密码已设置');
+      setShowPasswordDialog(false);
+      setNewPassword('');
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const setSecurityLevelMutation = trpc.security.setSecurityLevel.useMutation({
+    onSuccess: () => {
+      toast.success('安全级别已更新');
+      setShowSecurityDialog(false);
+      setSecurityReason('');
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+
+  const modes = modesData?.modes;
+  const featureLabels = modesData?.featureLabels;
+  const currentMode = installInfo?.mode || 'community';
+  const security = installInfo?.security;
+
+  const securityLevelColors: Record<string, string> = {
+    standard: 'bg-green-500/20 text-green-400 border-green-500/30',
+    elevated: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    lockdown: 'bg-red-500/20 text-red-400 border-red-500/30',
+  };
+
+  const securityLevelLabels: Record<string, string> = {
+    standard: '标准模式',
+    elevated: '加强模式',
+    lockdown: '锁定模式',
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Current mode + Password status */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Server className="w-4 h-4" />
+              当前安装模式
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold capitalize">{modes?.[currentMode]?.name || currentMode}</div>
+            <p className="text-xs text-muted-foreground mt-1">{modes?.[currentMode]?.description}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              密码保护
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              {passwordStatus?.configured ? (
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">已设置</Badge>
+              ) : (
+                <Badge className="bg-red-500/20 text-red-400 border-red-500/30">未设置</Badge>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => setShowPasswordDialog(true)}
+            >
+              <Key className="w-3.5 h-3.5 mr-1.5" />
+              {passwordStatus?.configured ? '更新密码' : '设置密码'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              主动安全级别
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <Badge className={securityLevelColors[security?.level || 'standard']}>
+                {securityLevelLabels[security?.level || 'standard']}
+              </Badge>
+            </div>
+            {security?.activatedAt && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {security.reason} ({new Date(security.activatedAt).toLocaleString()})
+              </p>
+            )}
+            <div className="flex gap-2 mt-3">
+              {(['standard', 'elevated', 'lockdown'] as const).map((lvl) => (
+                <Button
+                  key={lvl}
+                  variant={security?.level === lvl ? 'default' : 'outline'}
+                  size="sm"
+                  className="text-xs h-7"
+                  disabled={security?.level === lvl}
+                  onClick={() => { setTargetLevel(lvl); setShowSecurityDialog(true); }}
+                >
+                  {securityLevelLabels[lvl]}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 3-Mode Comparison Table */}
+      {modes && featureLabels && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="w-5 h-5" />
+              三版本功能对比
+            </CardTitle>
+            <CardDescription>社区开源版 vs 客户授权版 vs 企业内部版</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[200px]">功能</TableHead>
+                  {(['community', 'customer', 'enterprise'] as const).map((m) => (
+                    <TableHead key={m} className="text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={m === currentMode ? 'font-bold text-primary' : ''}>
+                          {modes[m]?.name}
+                        </span>
+                        {m === currentMode && <Badge variant="default" className="text-[10px] h-4">当前</Badge>}
+                      </div>
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium">最大用户数</TableCell>
+                  <TableCell className="text-center">{modes.community?.maxUsers}</TableCell>
+                  <TableCell className="text-center">{modes.customer?.maxUsers}</TableCell>
+                  <TableCell className="text-center">不限</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">需要许可证</TableCell>
+                  <TableCell className="text-center"><XCircle className="w-4 h-4 mx-auto text-muted-foreground" /></TableCell>
+                  <TableCell className="text-center"><CheckCircle2 className="w-4 h-4 mx-auto text-green-400" /></TableCell>
+                  <TableCell className="text-center"><CheckCircle2 className="w-4 h-4 mx-auto text-green-400" /></TableCell>
+                </TableRow>
+                {Object.entries(featureLabels).map(([key, label]) => (
+                  <TableRow key={key}>
+                    <TableCell className="font-medium">{label.name}</TableCell>
+                    {(['community', 'customer', 'enterprise'] as const).map((m) => {
+                      const features = modes[m]?.features as Record<string, boolean> | undefined;
+                      const enabled = features?.[key];
+                      return (
+                        <TableCell key={m} className="text-center">
+                          {enabled
+                            ? <CheckCircle2 className="w-4 h-4 mx-auto text-green-400" />
+                            : <XCircle className="w-4 h-4 mx-auto text-muted-foreground/40" />
+                          }
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Security Policies per Mode */}
+      {security && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5" />
+              当前安全策略 ({securityLevelLabels[security.level]})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {[
+                { label: '非管理员登录', value: security.policies.blockNonAdminLogin ? '阻止' : '允许', danger: security.policies.blockNonAdminLogin },
+                { label: '全员MFA', value: security.policies.requireMFAAll ? '必须' : '可选', danger: false },
+                { label: '严格限速', value: security.policies.strictRateLimits ? '开启' : '关闭', danger: false },
+                { label: '数据导出', value: security.policies.disableExport ? '禁用' : '允许', danger: security.policies.disableExport },
+                { label: 'API访问', value: security.policies.disableAPI ? '禁用' : '允许', danger: security.policies.disableAPI },
+                { label: '强制重认证', value: security.policies.forceReauthMinutes ? `${security.policies.forceReauthMinutes}分钟` : '关闭', danger: false },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                  <span className="text-sm">{item.label}</span>
+                  <Badge variant={item.danger ? 'destructive' : 'secondary'} className="text-xs">
+                    {item.value}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>设置服务器访问密码</DialogTitle>
+            <DialogDescription>此密码保护整个服务器实例，防止未授权访问。建议使用强密码。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>新密码 (最少8位)</Label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="输入新的服务器密码..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>取消</Button>
+            <Button
+              disabled={newPassword.length < 8 || setPasswordMutation.isPending}
+              onClick={() => setPasswordMutation.mutate({ password: newPassword })}
+            >
+              {setPasswordMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Lock className="w-4 h-4 mr-1" />}
+              确认设置
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Security Level Dialog */}
+      <Dialog open={showSecurityDialog} onOpenChange={setShowSecurityDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>变更安全级别至: {securityLevelLabels[targetLevel]}</DialogTitle>
+            <DialogDescription>
+              {targetLevel === 'lockdown' && '锁定模式将阻止所有非管理员登录，禁用数据导出和API。仅在紧急情况下使用。'}
+              {targetLevel === 'elevated' && '加强模式将启用全员MFA、严格限速、禁用数据导出。'}
+              {targetLevel === 'standard' && '恢复到标准安全级别，所有功能正常可用。'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>变更原因 (必填)</Label>
+              <Input
+                value={securityReason}
+                onChange={(e) => setSecurityReason(e.target.value)}
+                placeholder="说明变更原因..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSecurityDialog(false)}>取消</Button>
+            <Button
+              variant={targetLevel === 'lockdown' ? 'destructive' : 'default'}
+              disabled={!securityReason.trim() || setSecurityLevelMutation.isPending}
+              onClick={() => setSecurityLevelMutation.mutate({ level: targetLevel, reason: securityReason })}
+            >
+              {setSecurityLevelMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Shield className="w-4 h-4 mr-1" />}
+              确认变更
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ===== 管理员重要事项Tab组件 =====
+
+function AdminNotesTab() {
+  const { data: notes, isLoading, refetch } = trpc.security.getAdminNotes.useQuery(
+    { includeDismissed: false },
+    { refetchInterval: 30000 }
+  );
+  const { data: allNotes } = trpc.security.getAdminNotes.useQuery({ includeDismissed: true });
+
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newNote, setNewNote] = useState({
+    category: 'system' as 'security' | 'license' | 'system' | 'update' | 'action_required',
+    severity: 'info' as 'info' | 'warning' | 'critical',
+    title: '',
+    description: '',
+  });
+
+  const dismissMutation = trpc.security.dismissNote.useMutation({
+    onSuccess: () => { toast.success('已忽略'); refetch(); },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const addNoteMutation = trpc.security.addNote.useMutation({
+    onSuccess: () => {
+      toast.success('事项已添加');
+      setShowAddDialog(false);
+      setNewNote({ category: 'system', severity: 'info', title: '', description: '' });
+      refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+
+  const categoryIcons: Record<string, React.ReactNode> = {
+    security: <ShieldAlert className="w-4 h-4" />,
+    license: <Key className="w-4 h-4" />,
+    system: <Server className="w-4 h-4" />,
+    update: <RefreshCw className="w-4 h-4" />,
+    action_required: <AlertCircle className="w-4 h-4" />,
+  };
+
+  const categoryLabels: Record<string, string> = {
+    security: '安全',
+    license: '许可证',
+    system: '系统',
+    update: '更新',
+    action_required: '需要操作',
+  };
+
+  const severityColors: Record<string, string> = {
+    info: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    warning: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    critical: 'bg-red-500/20 text-red-400 border-red-500/30',
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Bar */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-4 pb-3 text-center">
+            <div className="text-2xl font-bold text-red-400">
+              {notes?.filter((n) => n.severity === 'critical').length || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">紧急事项</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 text-center">
+            <div className="text-2xl font-bold text-yellow-400">
+              {notes?.filter((n) => n.severity === 'warning').length || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">警告事项</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 text-center">
+            <div className="text-2xl font-bold">{allNotes?.length || 0}</div>
+            <p className="text-xs text-muted-foreground">全部事项(含已忽略)</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Notes List */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5" />
+              管理员重要事项
+            </CardTitle>
+            <Button size="sm" variant="outline" onClick={() => setShowAddDialog(true)}>
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              添加事项
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {notes && notes.length > 0 ? (
+            notes.map((note) => (
+              <div
+                key={note.id}
+                className={`flex items-start gap-3 p-4 border rounded-lg ${
+                  note.severity === 'critical' ? 'border-red-500/30 bg-red-500/5' :
+                  note.severity === 'warning' ? 'border-yellow-500/30 bg-yellow-500/5' :
+                  'border-muted bg-muted/10'
+                }`}
+              >
+                <div className="mt-0.5">{categoryIcons[note.category]}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge className={severityColors[note.severity]} variant="outline">
+                      {categoryLabels[note.category]}
+                    </Badge>
+                    <span className="text-sm font-semibold">{note.title}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{note.description}</p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(note.timestamp).toLocaleString()}
+                    </span>
+                    {note.actionUrl && (
+                      <Button variant="link" size="sm" className="text-xs h-5 px-0" asChild>
+                        <a href={note.actionUrl}>{note.actionLabel || '查看'}</a>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-muted-foreground"
+                  onClick={() => dismissMutation.mutate({ noteId: note.id })}
+                >
+                  <XCircle className="w-4 h-4" />
+                </Button>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <CheckCircle2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>没有待处理的重要事项</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add Note Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>添加管理员事项</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>类别</Label>
+                <Select value={newNote.category} onValueChange={(v) => setNewNote((p) => ({ ...p, category: v as typeof p.category }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="security">安全</SelectItem>
+                    <SelectItem value="license">许可证</SelectItem>
+                    <SelectItem value="system">系统</SelectItem>
+                    <SelectItem value="update">更新</SelectItem>
+                    <SelectItem value="action_required">需要操作</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>严重程度</Label>
+                <Select value={newNote.severity} onValueChange={(v) => setNewNote((p) => ({ ...p, severity: v as typeof p.severity }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="info">信息</SelectItem>
+                    <SelectItem value="warning">警告</SelectItem>
+                    <SelectItem value="critical">紧急</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>标题</Label>
+              <Input value={newNote.title} onChange={(e) => setNewNote((p) => ({ ...p, title: e.target.value }))} placeholder="事项标题..." />
+            </div>
+            <div className="space-y-2">
+              <Label>描述</Label>
+              <Input value={newNote.description} onChange={(e) => setNewNote((p) => ({ ...p, description: e.target.value }))} placeholder="详细描述..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>取消</Button>
+            <Button
+              disabled={!newNote.title.trim() || addNoteMutation.isPending}
+              onClick={() => addNoteMutation.mutate(newNote)}
+            >
+              {addNoteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+              添加
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -23,7 +23,8 @@ import {
   feedback,
   aiLearningRecords,
 } from "../../drizzle/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, asc } from "drizzle-orm";
+import { helpArticles } from "../../drizzle/help-schema";
 import {
   searchDocuments,
   incrementRelevance,
@@ -230,7 +231,7 @@ export const employeeAiAssistantRouter = router({
     }),
 
   /**
-   * 发送消息
+   * 发送消息 — enhanced with conversation memory
    */
   sendMessage: protectedProcedure
     .input(SendMessageInput)
@@ -250,6 +251,28 @@ export const employeeAiAssistantRouter = router({
           content: input.message,
         });
 
+        // ── Conversation Memory: load last 50 messages from session ──
+        const pastMessages = await db
+          .select({ role: aiAssistantMessages.role, content: aiAssistantMessages.content })
+          .from(aiAssistantMessages)
+          .where(eq(aiAssistantMessages.sessionId, String(input.sessionId)))
+          .orderBy(asc(aiAssistantMessages.createdAt))
+          .limit(50);
+
+        // If >20 messages, summarize older ones for context compression
+        let historySummary = "";
+        let recentMessages = pastMessages;
+        if (pastMessages.length > 20) {
+          const olderMessages = pastMessages.slice(0, pastMessages.length - 10);
+          recentMessages = pastMessages.slice(pastMessages.length - 10);
+
+          // Build summary from older messages (simple extraction, no extra LLM call)
+          const olderText = olderMessages
+            .map((m) => `${m.role}: ${(m.content || "").slice(0, 100)}`)
+            .join("\n");
+          historySummary = `【历史摘要】以下是之前对话的要点概述:\n${olderText.slice(0, 600)}\n\n`;
+        }
+
         // RAG: 检索知识库中与用户消息相关的文档
         let knowledgeContext = "";
         let matchedDocIds: number[] = [];
@@ -266,20 +289,13 @@ export const employeeAiAssistantRouter = router({
             knowledgeContext = `基于以下知识库条目:\n\n${knowledgeEntries}\n\n`;
           }
         } catch (ragError) {
-          // RAG查询失败不应阻断LLM调用，继续使用无上下文模式
           console.error("[sendMessage] RAG search error:", ragError);
         }
-
-        // 构建用户消息（如果有知识库上下文则注入）
-        const userContent = knowledgeContext
-          ? `${knowledgeContext}请基于以上知识库信息回答用户的问题: ${input.message}`
-          : input.message;
 
         // 读取助理的 personalityConfig → 获取岗位感知系统提示词
         let systemContent =
           "你是一个专业的个人AI助手，帮助员工进行职业发展、技能提升和日常工作协助。你可以利用知识库中的技术文档来回答GRT清洗设备相关的专业问题。请以友好、专业的方式回复。";
 
-        // 获取该用户的助理记录
         const [myAssistant] = await db
           .select()
           .from(employeeAiAssistants)
@@ -293,30 +309,39 @@ export const employeeAiAssistantRouter = router({
             if (cfg.systemPrompt) {
               systemContent = cfg.systemPrompt;
             }
-            // 构建岗位上下文（会议、任务、技能评估）
             ownerContext = await buildOwnerContext(userId, cfg);
           } catch {
             // JSON解析失败 — 使用默认提示词
           }
         }
 
-        const fullSystemContent = ownerContext
-          ? `${systemContent}\n\n【当前上下文】\n${ownerContext}`
-          : systemContent;
+        const fullSystemContent = [
+          systemContent,
+          ownerContext ? `\n\n【当前上下文】\n${ownerContext}` : "",
+          historySummary ? `\n\n${historySummary}` : "",
+          knowledgeContext ? `\n\n${knowledgeContext}` : "",
+        ].join("");
+
+        // ── Build messages array with conversation history ──
+        const llmMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+          { role: "system", content: fullSystemContent },
+        ];
+
+        // Add recent conversation history for multi-turn context
+        for (const msg of recentMessages.slice(0, -1)) {
+          // Exclude the current message (last one) as we add it separately
+          if (msg.role === "user" || msg.role === "assistant") {
+            llmMessages.push({
+              role: msg.role as "user" | "assistant",
+              content: msg.content || "",
+            });
+          }
+        }
+
+        llmMessages.push({ role: "user", content: input.message });
 
         // 调用LLM获取响应
-        const llmResponse = await invokeLLM({
-          messages: [
-            {
-              role: "system",
-              content: fullSystemContent,
-            },
-            {
-              role: "user",
-              content: userContent,
-            },
-          ],
-        });
+        const llmResponse = await invokeLLM({ messages: llmMessages });
 
         // RAG: 对匹配的知识文档提升相关性分数
         for (const docId of matchedDocIds) {
@@ -347,6 +372,84 @@ export const employeeAiAssistantRouter = router({
           success: false,
           error: "发送失败",
         };
+      }
+    }),
+
+  /**
+   * 页面感知建议 — Page-Aware Suggestions
+   */
+  getPageSuggestions: publicProcedure
+    .input(
+      z.object({
+        routePath: z.string(),
+        pageContext: z.string().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      try {
+        const db = await requireDb();
+
+        // Query relevant help articles for this route
+        const articles = await db
+          .select()
+          .from(helpArticles)
+          .where(
+            and(
+              eq(helpArticles.isActive, true),
+              eq(helpArticles.routePath, input.routePath)
+            )
+          )
+          .limit(3);
+
+        // Search knowledge base for route-related content
+        let kbDocs: { title: string; content: string }[] = [];
+        try {
+          kbDocs = await searchDocuments(input.routePath, { limit: 3 });
+        } catch { /* non-fatal */ }
+
+        // Build context for LLM
+        const helpContext = articles
+          .map((a) => `${a.titleZh}: ${a.contentZh}`)
+          .join("\n");
+        const kbContext = kbDocs
+          .map((d) => `${d.title}: ${d.content.slice(0, 200)}`)
+          .join("\n");
+
+        const systemPrompt = [
+          "你是GRT企业操作系统的智能助手。",
+          "根据用户当前所在页面，生成3-5个实用建议。",
+          "每个建议包含title和description字段。",
+          "回复格式为JSON数组: [{\"title\":\"...\",\"description\":\"...\"}]",
+          `\n页面路径: ${input.routePath}`,
+          input.pageContext ? `页面上下文: ${input.pageContext}` : "",
+          helpContext ? `\n相关帮助:\n${helpContext}` : "",
+          kbContext ? `\n知识库:\n${kbContext}` : "",
+        ].filter(Boolean).join("\n");
+
+        const llmResult = await invokeLLM({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `请为当前页面 ${input.routePath} 生成操作建议` },
+          ],
+        });
+
+        const raw = llmResult.choices?.[0]?.message?.content || "[]";
+
+        // Parse JSON array from LLM response
+        let suggestions: { title: string; description: string }[] = [];
+        try {
+          const jsonMatch = raw.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            suggestions = JSON.parse(jsonMatch[0]);
+          }
+        } catch {
+          suggestions = [{ title: "查看帮助", description: "点击帮助按钮获取更多信息" }];
+        }
+
+        return suggestions.slice(0, 5);
+      } catch (error) {
+        console.error("[getPageSuggestions] Error:", error);
+        return [{ title: "查看帮助文档", description: "浏览系统帮助获取操作指引" }];
       }
     }),
 
@@ -431,7 +534,7 @@ export const employeeAiAssistantRouter = router({
   recordFeedback: protectedProcedure
     .input(
       z.object({
-        type: z.string(),
+        type: z.enum(["suggestion", "bug", "other"]),
         content: z.string(),
         rating: z.number().optional(),
       })
@@ -456,11 +559,11 @@ export const employeeAiAssistantRouter = router({
           throw new Error("助手未初始化");
         }
 
-        // 记录反馈
+        // 记录反馈 — typeEnum6: 'suggestion' | 'bug' | 'other'
         const result = await db
           .insert(feedback)
           .values({
-            type: input.type as "suggestion" | "bug" | "other",
+            type: input.type,
             content: input.content,
           })
           .returning();

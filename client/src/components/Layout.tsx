@@ -19,6 +19,8 @@ import { trpc } from "@/lib/trpc";
 import AIConversationPanel, { AIFloatingButton } from "@/components/AIConversationPanel";
 import HelpOverlay from "@/components/HelpOverlay";
 import HelpColumn from "@/components/HelpColumn";
+import CopilotBar from "@/components/CopilotBar";
+import GuidedWalkthrough from "@/components/GuidedWalkthrough";
 import LanguageSelector from "@/components/LanguageSelector";
 import { ProfileSwitcher } from "@/components/ProfileSwitcher";
 import { MenuCustomizationPanel } from "@/components/MenuCustomizationPanel";
@@ -787,6 +789,10 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       />
       {/* Context-Aware Help Overlay */}
       <HelpOverlay />
+      {/* GRT Copilot — AI Help Panel (Ctrl+/) */}
+      <CopilotBar />
+      {/* Guided Walkthrough — tooltip step-by-step overlay */}
+      <GuidedWalkthrough />
       {/* AI Floating Button and Panel */}
       <AIFloatingButton onClick={() => setAiPanelOpen(true)} isOpen={aiPanelOpen} />
       <AIConversationPanel isOpen={aiPanelOpen} onClose={() => setAiPanelOpen(false)} />
