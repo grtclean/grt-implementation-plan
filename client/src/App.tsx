@@ -298,6 +298,7 @@ import OAFormWorkbench from "./pages/OAFormWorkbench";
 import MPhaseFormDirectory from "./pages/MPhaseFormDirectory";
 import FormDetailPage from "./pages/FormDetailPage";
 import FatSatExecutionDashboard from "./pages/FatSatExecutionDashboard";
+import MorningMeetingPresentation from "./pages/MorningMeetingPresentation";
 
 // KPI绩效管理
 const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
@@ -407,7 +408,7 @@ function LazyFallback() {
 }
 
 // Standalone routes that should NOT have sidebar layout
-const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/404', '/oa-test'];
+const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/404', '/oa-test', '/morning-meeting'];
 const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/'];
 
 function Router() {
@@ -1044,6 +1045,7 @@ function Router() {
       <Route path="/pre-sales-questionnaire">
         <ProtectedRoute component={PreSalesQuestionnaireForm} />
       </Route>
+      <Route path="/morning-meeting" component={MorningMeetingPresentation} />
       <Route path="/morning-meeting-board">
         <ProtectedRoute component={MorningMeetingBoard} />
       </Route>
