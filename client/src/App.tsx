@@ -31,7 +31,6 @@ import NamingRulesManagement from "./pages/NamingRulesManagement";
 import HRMIntelligent from "./pages/HRMIntelligent";
 import AuditLogViewer from "./pages/AuditLogViewer";
 import GroupNotificationManagement from "./pages/GroupNotificationManagement";
-import AIAssistantHub from "./pages/AIAssistantHub";
 import AiAssistantHubPage from "./pages/AiAssistantHubPage";
 import DigitalAssistants from "./pages/DigitalAssistants";
 import AIEffectivenessTracking from "./pages/AIEffectivenessTracking";
@@ -160,6 +159,7 @@ import JiandaoyunFullImport from "./pages/JiandaoyunFullImport";
 import JiandaoyunFormBrowser from "./pages/JiandaoyunFormBrowser";
 import JiandaoyunWorkflowViewer from "./pages/JiandaoyunWorkflowViewer";
 import JiandaoyunKnowledgeViewer from "./pages/JiandaoyunKnowledgeViewer";
+import OrgTreePage from "./pages/OrgTreePage";
 import CertificationManagement from "./pages/CertificationManagement";
 import AnnualAgenda from "./pages/AnnualAgenda";
 import CustomerValueView from "./pages/CustomerValueView";
@@ -257,6 +257,7 @@ import TemporaryPermissions from "./pages/TemporaryPermissions";
 import PermissionBlacklist from "./pages/PermissionBlacklist";
 import MenuAnalytics from "./pages/MenuAnalytics";
 import RoleDashboard from "./pages/RoleDashboard";
+import TaskCockpitPage from "./pages/TaskCockpitPage";
 import Gamification from "./pages/Gamification";
 import IoTDashboard from "./pages/IoTDashboard";
 import RAGTrainingCenter from "./pages/RAGTrainingCenter";
@@ -264,6 +265,39 @@ import DelegationManagement from "./pages/DelegationManagement";
 import PerformanceSalaryQuery from "./pages/PerformanceSalaryQuery";
 import KioskWorkshop from "./pages/KioskWorkshop";
 import KioskQrConfirm from "./pages/KioskQrConfirm";
+import TestExecutionDashboard from "./pages/TestExecutionDashboard";
+import ProjectVault from "./pages/ProjectVault";
+import DigitalTwinHub from "./pages/DigitalTwinHub";
+import OADashboard from "./pages/OADashboard";
+import PreSalesQuestionnaireForm from "./pages/PreSalesQuestionnaireForm";
+import MorningMeetingBoard from "./pages/MorningMeetingBoard";
+import CapabilityMatrixBoard from "./pages/CapabilityMatrixBoard";
+import ShopfloorTerminal from "./pages/ShopfloorTerminal";
+import SimulatorDashboard from "./pages/SimulatorDashboard";
+import PLMWorkbench from "./pages/PLMWorkbench";
+import AIGenesisWorkspace from "./pages/AIGenesisWorkspace";
+import AiAssistantProvisioning from "./pages/AiAssistantProvisioning";
+import AIAgentFleetDashboard from "./pages/AIAgentFleetDashboard";
+import SystemControlTower from "./pages/SystemControlTower";
+import ERPIntegration from "./pages/ERPIntegration";
+import MaterialManagement from "./pages/MaterialManagement";
+import ProcurementManagement from "./pages/ProcurementManagement";
+import SupplyChainWorkbench from "./pages/SupplyChainWorkbench";
+import ProcurementWorkbench from "./pages/ProcurementWorkbench";
+import SupplyChainPlanning from "./pages/SupplyChainPlanning";
+import PPAPManagement from "./pages/PPAPManagement";
+import FMEAManagement from "./pages/FMEAManagement";
+import ControlPlanManagement from "./pages/ControlPlanManagement";
+import QualityWorkbench from "./pages/QualityWorkbench";
+import SalesCRMWorkbench from "./pages/SalesCRMWorkbench";
+import AfterSalesWorkbench from "./pages/AfterSalesWorkbench";
+import MSAManagement from "./pages/MSAManagement";
+import SafetyRuleManagement from "./pages/SafetyRuleManagement";
+import OADynamicFormTest from "./pages/OADynamicFormTest";
+import OAFormWorkbench from "./pages/OAFormWorkbench";
+import MPhaseFormDirectory from "./pages/MPhaseFormDirectory";
+import FormDetailPage from "./pages/FormDetailPage";
+import FatSatExecutionDashboard from "./pages/FatSatExecutionDashboard";
 
 // KPI绩效管理
 const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
@@ -373,7 +407,7 @@ function LazyFallback() {
 }
 
 // Standalone routes that should NOT have sidebar layout
-const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/404'];
+const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/404', '/oa-test'];
 const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/'];
 
 function Router() {
@@ -395,7 +429,9 @@ function Router() {
       <Route path={"/monitoring"} component={MonitoringDashboard} />
       <Route path={"/jiandaoyun"} component={JiandaoyunAnalysis} />
       <Route path={"/jiandaoyun-integration"} component={JiandaoyunIntegration} />
-      <Route path={"/jiandaoyun-import"} component={JiandaoyunFullImport} />
+      <Route path={"/jiandaoyun-import"}>
+        <ProtectedRoute component={JiandaoyunFullImport} />
+      </Route>
       <Route path={"/jiandaoyun-forms"} component={JiandaoyunFormBrowser} />
       <Route path={"/jiandaoyun-workflows"} component={JiandaoyunWorkflowViewer} />
       <Route path={"/jiandaoyun-knowledge"} component={JiandaoyunKnowledgeViewer} />
@@ -419,6 +455,17 @@ function Router() {
       <Route path={"/capability-certificates"} component={CapabilityCertificates} />
       <Route path={"/capability-path"} component={CapabilityPathRecommendation} />
       <Route path={"/team-capability-analysis"} component={TeamCapabilityAnalysis} />
+      <Route path={"/capability-matrix-board"} component={CapabilityMatrixBoard} />
+      <Route path={"/hr-matrix"} component={CapabilityMatrixBoard} />
+      <Route path={"/shopfloor-terminal"} component={ShopfloorTerminal} />
+      <Route path={"/simulator"} component={SimulatorDashboard} />
+      <Route path={"/plm"} component={PLMWorkbench} />
+      <Route path={"/sales-crm"} component={SalesCRMWorkbench} />
+      <Route path={"/after-sales-workbench"} component={AfterSalesWorkbench} />
+      <Route path={"/ai-genesis"} component={AIGenesisWorkspace} />
+      <Route path={"/ai-assistant-provisioning"} component={AiAssistantProvisioning} />
+      <Route path={"/ai-agent-fleet"} component={AIAgentFleetDashboard} />
+      <Route path={"/system-control-tower"} component={SystemControlTower} />
       <Route path={"/customer-portal"} component={CustomerPortal} />
       <Route path={"/login"} component={LocalLogin} />
       <Route path={"/login-success"} component={LoginSuccess} />
@@ -486,9 +533,6 @@ function Router() {
       </Route>
       <Route path={"/ai-hub"}>
         <ProtectedRoute component={AiAssistantHubPage} />
-      </Route>
-      <Route path={"/ai-assistant"}>
-        <ProtectedRoute component={AIAssistantHub} />
       </Route>
       <Route path={"/digital-assistants"}>
         <ProtectedRoute component={DigitalAssistants} />
@@ -678,6 +722,11 @@ function Router() {
       <Route path={"/fat-coordination"}>
         <ProtectedRoute component={FATCoordination} />
       </Route>
+
+      {/* M7-M8 FAT/SAT执行仪表板 */}
+      <Route path={"/fat-sat-execution"}>
+        <ProtectedRoute component={FatSatExecutionDashboard} />
+      </Route>
       
       {/* v2.5.36 M7-M9交付管理 */}
       <Route path={"/delivery-management"}>
@@ -718,6 +767,9 @@ function Router() {
       </Route>
       <Route path="/visitor-request">
         <ProtectedRoute component={VisitorRequestForm} />
+      </Route>
+      <Route path="/org-tree">
+        <ProtectedRoute component={OrgTreePage} />
       </Route>
       <Route path="/menu-management">
         <ProtectedRoute component={MenuManagement} />
@@ -965,6 +1017,36 @@ function Router() {
       {/* Workshop Kiosk Terminal (IATF 16949 / VDA 6.3) */}
       <Route path="/kiosk/qr-confirm" component={KioskQrConfirm} />
       <Route path="/kiosk" component={KioskWorkshop} />
+      <Route path="/test-execution-dashboard">
+        <ProtectedRoute component={TestExecutionDashboard} />
+      </Route>
+      <Route path="/project-vault">
+        <ProtectedRoute component={ProjectVault} />
+      </Route>
+      <Route path="/digital-twin">
+        <ProtectedRoute component={DigitalTwinHub} />
+      </Route>
+      <Route path="/oa-dashboard">
+        <ProtectedRoute component={OADashboard} />
+      </Route>
+      <Route path="/oa-test">
+        <ProtectedRoute component={OADynamicFormTest} />
+      </Route>
+      <Route path="/oa-forms">
+        <ProtectedRoute component={OAFormWorkbench} />
+      </Route>
+      <Route path="/form-directory/:id">
+        <ProtectedRoute component={FormDetailPage} />
+      </Route>
+      <Route path="/form-directory">
+        <ProtectedRoute component={MPhaseFormDirectory} />
+      </Route>
+      <Route path="/pre-sales-questionnaire">
+        <ProtectedRoute component={PreSalesQuestionnaireForm} />
+      </Route>
+      <Route path="/morning-meeting-board">
+        <ProtectedRoute component={MorningMeetingBoard} />
+      </Route>
       <Route path="/ai-accuracy">
         <ProtectedRoute component={AiAccuracyDashboard} />
       </Route>
@@ -1126,6 +1208,10 @@ function Router() {
       </Route>
       <Route path="/menu-analytics">
         <ProtectedRoute component={MenuAnalytics} />
+      </Route>
+      {/* 任务驾驶舱 */}
+      <Route path="/task-cockpit">
+        <ProtectedRoute component={TaskCockpitPage} />
       </Route>
       {/* 角色智能工作台 */}
       <Route path="/dashboard">
@@ -1379,6 +1465,44 @@ function Router() {
       </Route>
       <Route path="/perf-salary">
         <ProtectedRoute component={PerformanceSalaryQuery} />
+      </Route>
+
+      {/* Supply Chain Traceability & Quality Control */}
+      <Route path="/supply-chain">
+        <ProtectedRoute component={SupplyChainWorkbench} />
+      </Route>
+      <Route path="/erp-integration">
+        <ProtectedRoute component={ERPIntegration} />
+      </Route>
+      <Route path="/material-management">
+        <ProtectedRoute component={MaterialManagement} />
+      </Route>
+      <Route path="/procurement-management">
+        <ProtectedRoute component={ProcurementManagement} />
+      </Route>
+      <Route path="/procurement-workbench">
+        <ProtectedRoute component={ProcurementWorkbench} />
+      </Route>
+      <Route path="/supply-chain-planning">
+        <ProtectedRoute component={SupplyChainPlanning} />
+      </Route>
+      <Route path="/ppap">
+        <ProtectedRoute component={PPAPManagement} />
+      </Route>
+      <Route path="/fmea">
+        <ProtectedRoute component={FMEAManagement} />
+      </Route>
+      <Route path="/control-plan">
+        <ProtectedRoute component={ControlPlanManagement} />
+      </Route>
+      <Route path="/8d-capa">
+        <ProtectedRoute component={QualityWorkbench} />
+      </Route>
+      <Route path="/msa">
+        <ProtectedRoute component={MSAManagement} />
+      </Route>
+      <Route path="/safety-rules">
+        <ProtectedRoute component={SafetyRuleManagement} />
       </Route>
 
       <Route path={"/404"} component={NotFound} />
