@@ -1645,7 +1645,7 @@ function AdminNotesTab() {
                   'border-muted bg-muted/10'
                 }`}
               >
-                <div className="mt-0.5">{categoryIcons[note.category]}</div>
+                <div className="mt-0.5">{categoryIcons[note.category] || <AlertCircle className="w-4 h-4" />}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <Badge className={severityColors[note.severity]} variant="outline">

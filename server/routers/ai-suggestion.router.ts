@@ -144,6 +144,10 @@ export const aiSuggestionRouter = router({
     const db = await requireDb();
     const numId = typeof input === "object" ? toNum(input.suggestionId || 0) : toNum(input);
 
+    if (!numId || numId <= 0) {
+      return { success: false, data: null, error: "Invalid suggestion ID" };
+    }
+
     await db.update(aiProcessSuggestions).set({
       isApplied: 1,
       appliedAt: new Date().toISOString(),

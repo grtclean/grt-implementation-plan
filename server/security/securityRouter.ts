@@ -8,7 +8,7 @@ import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import { securityAuditLogs, ipBlacklist, userMfaConfigs, userSessions } from "../../drizzle/schema";
-import { eq, desc, and, gte, lte, sql, like } from "drizzle-orm";
+import { eq, ne, desc, and, gte, lte, sql, like } from "drizzle-orm";
 import {
   checkRateLimit,
   blockIP,
@@ -647,18 +647,22 @@ export const securityRouter = router({
    */
   terminateOtherSessions: protectedProcedure.mutation(async ({ ctx }) => {
     const db = await requireDb();
-    
-    // 获取当前会话ID（从ctx中）
-    const currentSessionId = (ctx as any).sessionId;
-    
+
+    // Exclude current session if available in context
+    const currentSessionId = (ctx as any).sessionId as number | undefined;
+
+    const conditions = [
+      eq(userSessions.userId, ctx.user!.id),
+      eq(userSessions.isActive, true),
+    ];
+    if (currentSessionId) {
+      conditions.push(ne(userSessions.id, currentSessionId));
+    }
+
     await db.update(userSessions)
       .set({ isActive: false })
-      .where(and(
-        eq(userSessions.userId, ctx.user!.id),
-        eq(userSessions.isActive, true)
-        // 排除当前会话
-      ));
-    
+      .where(and(...conditions));
+
     return { success: true };
   }),
   

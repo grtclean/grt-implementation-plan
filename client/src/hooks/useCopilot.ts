@@ -89,9 +89,18 @@ export function useCopilot() {
   // menuConfig is a static import — flatMenu never changes
   const flatMenu = useMemo(() => flattenMenu(), []);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Ref to capture latest conversation without stale closure
+  // Ref to capture latest query + conversation without stale closures
+  const queryRef = useRef(state.query);
+  queryRef.current = state.query;
   const conversationRef = useRef(state.conversation);
   conversationRef.current = state.conversation;
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, []);
 
   // tRPC
   const searchHelpQuery = trpc.help.searchHelp.useQuery(
@@ -163,7 +172,7 @@ export function useCopilot() {
   // Tier 3: LLM Q&A (on Enter)
   const askAI = useCallback(
     async (explicitQuery?: string) => {
-      const q = explicitQuery || state.query;
+      const q = explicitQuery || queryRef.current;
       if (!q.trim()) return;
 
       const userMsg: ConversationMessage = {
@@ -221,7 +230,7 @@ export function useCopilot() {
         }));
       }
     },
-    [state.query, location, askCopilotMutation]
+    [location, askCopilotMutation]
   );
 
   // Feedback

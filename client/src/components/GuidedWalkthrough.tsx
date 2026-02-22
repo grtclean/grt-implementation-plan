@@ -75,33 +75,33 @@ function calculatePosition(
   tooltipHeight: number
 ): TooltipPosition {
   const gap = 12;
-  const scrollY = window.scrollY;
-  const scrollX = window.scrollX;
+  // Both overlay and tooltip use `position: fixed`, so getBoundingClientRect()
+  // values (viewport-relative) are used directly — no scroll offset needed.
 
   switch (placement) {
     case "bottom":
       return {
-        top: target.bottom + scrollY + gap,
-        left: target.left + scrollX + target.width / 2 - tooltipWidth / 2,
+        top: target.bottom + gap,
+        left: target.left + target.width / 2 - tooltipWidth / 2,
         arrowDir: "top",
       };
     case "left":
       return {
-        top: target.top + scrollY + target.height / 2 - tooltipHeight / 2,
-        left: target.left + scrollX - tooltipWidth - gap,
+        top: target.top + target.height / 2 - tooltipHeight / 2,
+        left: target.left - tooltipWidth - gap,
         arrowDir: "right",
       };
     case "right":
       return {
-        top: target.top + scrollY + target.height / 2 - tooltipHeight / 2,
-        left: target.right + scrollX + gap,
+        top: target.top + target.height / 2 - tooltipHeight / 2,
+        left: target.right + gap,
         arrowDir: "left",
       };
     case "top":
     default:
       return {
-        top: target.top + scrollY - tooltipHeight - gap,
-        left: target.left + scrollX + target.width / 2 - tooltipWidth / 2,
+        top: target.top - tooltipHeight - gap,
+        left: target.left + target.width / 2 - tooltipWidth / 2,
         arrowDir: "bottom",
       };
   }
@@ -113,8 +113,8 @@ function SpotlightOverlay({ rect }: { rect: DOMRect | null }) {
   if (!rect) return null;
 
   const padding = 6;
-  const scrollY = window.scrollY;
-  const scrollX = window.scrollX;
+  // Parent is `fixed inset-0`, so getBoundingClientRect() values (viewport-relative) are correct
+  // No scroll offset needed for fixed-position elements
 
   return (
     <div className="fixed inset-0 z-[60] pointer-events-none">
@@ -123,8 +123,8 @@ function SpotlightOverlay({ rect }: { rect: DOMRect | null }) {
           <mask id="walkthrough-mask">
             <rect x="0" y="0" width="100%" height="100%" fill="white" />
             <rect
-              x={rect.left + scrollX - padding}
-              y={rect.top + scrollY - padding}
+              x={rect.left - padding}
+              y={rect.top - padding}
               width={rect.width + padding * 2}
               height={rect.height + padding * 2}
               rx="8"
@@ -358,8 +358,8 @@ export default function GuidedWalkthrough() {
           320,
           200
         );
-        // Clamp tooltip vertically to viewport
-        pos.top = Math.max(8, Math.min(pos.top, window.innerHeight + window.scrollY - 220));
+        // Clamp tooltip vertically to viewport (fixed position = viewport coords)
+        pos.top = Math.max(8, Math.min(pos.top, window.innerHeight - 220));
         setTooltipPos(pos);
 
         // Scroll target into view if needed
@@ -375,9 +375,10 @@ export default function GuidedWalkthrough() {
 
     // Observe only the target's parent container (not entire body) for perf
     const targetEl = document.querySelector(step.target);
-    const observeRoot = targetEl?.parentElement || document.body;
-    observerRef.current = new MutationObserver(updateRect);
-    observerRef.current.observe(observeRoot, { childList: true, subtree: true });
+    if (targetEl?.parentElement) {
+      observerRef.current = new MutationObserver(updateRect);
+      observerRef.current.observe(targetEl.parentElement, { childList: true, subtree: true });
+    }
 
     return () => {
       clearTimeout(timer);
