@@ -592,6 +592,111 @@ Always respond in the same language as the user's prompt.`;
     return { fetched: created.length, tasks: created };
   }),
 
+  // ══════════════════════════════════════════════════════════════
+  //  GitHub Actions Dispatch — Cloud Execution Engine
+  // ══════════════════════════════════════════════════════════════
+  //
+  //  This mutation triggers the `.github/workflows/claude-auto-dev.yml`
+  //  workflow via the GitHub repository_dispatch API.
+  //
+  //  HOW IT WORKS:
+  //  ─────────────
+  //  1. The CEO clicks "Trigger GitHub Actions" in the Launch Modal
+  //  2. Frontend calls cicd.triggerGitHubDispatch with the task details
+  //  3. This mutation POSTs to https://api.github.com/repos/OWNER/REPO/dispatches
+  //  4. GitHub receives the event_type "claude-task" and fires the workflow
+  //  5. The workflow runs Claude CLI in the cloud runner
+  //
+  //  AUTHENTICATION:
+  //  ───────────────
+  //  Requires a GitHub Personal Access Token (PAT) with `repo` scope.
+  //  Store it as GITHUB_TOKEN in environment variables.
+  //
+  //  API REFERENCE:
+  //  https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event
+  //
+  triggerGitHubDispatch: publicProcedure
+    .input(
+      z.object({
+        taskId: z.union([z.string(), z.number()]),
+        title: z.string().min(1),
+        scope: z.string().default("General"),
+        rules: z.string().default("Ensure build passes and no regressions"),
+      })
+    )
+    .mutation(async ({ input }) => {
+      // In production, these come from environment variables
+      const OWNER = process.env.GITHUB_OWNER || "GRT-Automation";
+      const REPO = process.env.GITHUB_REPO || "grt-implementation-plan";
+      const TOKEN = process.env.GITHUB_TOKEN || "";
+
+      // GitHub repository_dispatch endpoint
+      const url = `https://api.github.com/repos/${OWNER}/${REPO}/dispatches`;
+
+      // event_type MUST match `types: [claude-task]` in the workflow YAML
+      const body = {
+        event_type: "claude-task",
+        client_payload: {
+          task_title: input.title,
+          task_scope: input.scope,
+          task_rules: input.rules,
+          task_id: String(input.taskId),
+          triggered_at: new Date().toISOString(),
+        },
+      };
+
+      let dispatched = false;
+      let runUrl = "";
+
+      if (TOKEN) {
+        // Production: call GitHub API (returns 204 No Content on success)
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            Accept: "application/vnd.github+json",
+            Authorization: `Bearer ${TOKEN}`,
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+          body: JSON.stringify(body),
+        });
+        dispatched = response.status === 204;
+        if (!dispatched) {
+          const errorText = await response.text();
+          console.error(`[GitHub Dispatch] Failed (${response.status}): ${errorText}`);
+          throw new Error(`GitHub dispatch failed: ${response.status}`);
+        }
+        runUrl = `https://github.com/${OWNER}/${REPO}/actions`;
+        console.log(`[GitHub Dispatch] Triggered workflow for: ${input.title}`);
+      } else {
+        // Demo mode: simulate dispatch (no GITHUB_TOKEN configured)
+        console.log(`[GitHub Dispatch] [MOCK] Would POST to: ${url}`);
+        console.log(`[GitHub Dispatch] [MOCK] Payload:`, JSON.stringify(body, null, 2));
+        dispatched = true;
+        runUrl = `https://github.com/${OWNER}/${REPO}/actions`;
+      }
+
+      // Audit log (best-effort)
+      try {
+        const db = await requireDb();
+        await db.insert(cicdStageLogs).values({
+          taskId: toNum(input.taskId),
+          fromStage: "DEV",
+          toStage: "DEV",
+          action: "github_dispatch",
+          actor: "CEO",
+          note: `GitHub Actions triggered: ${input.title} [${TOKEN ? "LIVE" : "MOCK"}]`,
+        });
+      } catch { /* best-effort */ }
+
+      return {
+        success: dispatched,
+        runUrl,
+        message: TOKEN
+          ? "GitHub Actions workflow triggered successfully!"
+          : "[DEMO] GitHub dispatch simulated (set GITHUB_TOKEN for real dispatch)",
+      };
+    }),
+
   // Delete a task
   delete: publicProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();

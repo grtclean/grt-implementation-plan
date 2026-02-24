@@ -78,6 +78,12 @@ import {
   RotateCcw,
   MessageSquareWarning,
   X,
+  Terminal,
+  Cloud,
+  Copy,
+  Check,
+  Rocket,
+  GitBranch,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -417,6 +423,37 @@ export default function DualAIMatrix() {
   // Collapse/expand the HITL panel
   const [hitlMinimized, setHitlMinimized] = useState(false);
 
+  // ── Launch Modal State ──
+  // When the CEO clicks "Approve & Send to Execution", instead of
+  // immediately creating the task, we open a modal offering two
+  // execution paths: Local CLI or Cloud GitHub Actions.
+  const [launchModalOpen, setLaunchModalOpen] = useState(false);
+  // Track whether the CLI command has been copied to clipboard
+  const [cliCopied, setCliCopied] = useState(false);
+  // Track which option has been selected in the launch modal
+  const [launchMode, setLaunchMode] = useState<"select" | "local" | "cloud">("select");
+
+  // cicd.triggerGitHubDispatch: triggers the .github/workflows/claude-auto-dev.yml
+  // via the GitHub repository_dispatch API for cloud-based execution
+  const githubDispatchMutation = trpc.cicd.triggerGitHubDispatch.useMutation({
+    onSuccess: (data) => {
+      toast.success(
+        language === "zh"
+          ? "GitHub Actions 已触发！流水线正在云端执行..."
+          : "GitHub Action Triggered! Pipeline running in the cloud."
+      );
+      // Now also save the task to DB for tracking
+      submitTaskToDB();
+    },
+    onError: (err) => {
+      toast.error(
+        language === "zh"
+          ? `GitHub 触发失败: ${err.message}`
+          : `GitHub dispatch failed: ${err.message}`
+      );
+    },
+  });
+
   const pendingQuestions = questionsQuery.data ?? [];
 
   // ── Auto-scroll chat to bottom when new messages arrive ──
@@ -458,17 +495,10 @@ export default function DualAIMatrix() {
     );
   }, []);
 
-  // Handle approving the staged task → sends to Claude execution queue
-  // This completes the handoff: Gemini → CEO approval → Claude
-  const handleApproveTask = useCallback(() => {
-    if (!formTitle.trim()) {
-      toast.error(
-        language === "zh" ? "请填写任务标题" : "Please enter a task title"
-      );
-      return;
-    }
-
-    // Create the task in the CI/CD pipeline (enters DEV stage by default)
+  // ── Submit to DB helper (shared by both Local and Cloud paths) ──
+  // Creates the task in the CI/CD pipeline without launching execution.
+  // Called AFTER the CEO selects an execution engine in the Launch Modal.
+  const submitTaskToDB = useCallback(() => {
     createMutation.mutate({
       title: formTitle,
       sourceMode: "MANUAL",
@@ -477,7 +507,6 @@ export default function DualAIMatrix() {
       priority: formPriority,
       rules: formRules || undefined,
       assignee: "Claude",
-      // Preserve Gemini's full analysis for audit trail
       geminiAnalysis: stagingTask
         ? { suggestion: stagingTask, approvedAt: new Date().toISOString() }
         : undefined,
@@ -490,8 +519,65 @@ export default function DualAIMatrix() {
     formPriority,
     stagingTask,
     createMutation,
-    language,
   ]);
+
+  // Handle "Approve & Send to Execution" button click.
+  // CHANGED: Instead of immediately creating the task in the DB,
+  // we now open the Launch Modal so the CEO can choose the execution engine.
+  const handleApproveTask = useCallback(() => {
+    if (!formTitle.trim()) {
+      toast.error(
+        language === "zh" ? "请填写任务标题" : "Please enter a task title"
+      );
+      return;
+    }
+    // Open the Launch Modal — task is NOT created yet
+    setLaunchMode("select");
+    setCliCopied(false);
+    setLaunchModalOpen(true);
+  }, [formTitle, language]);
+
+  // ── Generate the Claude CLI command string ──
+  // This is the command the CEO can copy and paste into their terminal
+  // to execute the task locally via Claude CLI.
+  const generateCliCommand = useCallback(() => {
+    const escapedTitle = formTitle.replace(/"/g, '\\"');
+    const escapedScope = formScope.replace(/"/g, '\\"');
+    const escapedRules = (formRules || "Ensure build passes").replace(/"/g, '\\"');
+    return `claude "Task: ${escapedTitle}. Scope: ${escapedScope}. Strict Rules: ${escapedRules}. Please execute and update the UI."`;
+  }, [formTitle, formScope, formRules]);
+
+  // ── Copy CLI command to clipboard ──
+  const handleCopyCliCommand = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(generateCliCommand());
+      setCliCopied(true);
+      toast.success(
+        language === "zh"
+          ? "CLI 命令已复制到剪贴板！"
+          : "CLI command copied to clipboard!"
+      );
+      // Also save the task to DB for tracking
+      submitTaskToDB();
+      setTimeout(() => setCliCopied(false), 3000);
+    } catch {
+      toast.error(
+        language === "zh"
+          ? "复制失败，请手动选择并复制"
+          : "Copy failed, please select and copy manually"
+      );
+    }
+  }, [generateCliCommand, language, submitTaskToDB]);
+
+  // ── Trigger GitHub Actions (Cloud path) ──
+  const handleTriggerGitHub = useCallback(() => {
+    githubDispatchMutation.mutate({
+      taskId: 0, // Will be filled by the create callback
+      title: formTitle,
+      scope: formScope,
+      rules: formRules || "Ensure build passes and no regressions",
+    });
+  }, [formTitle, formScope, formRules, githubDispatchMutation]);
 
   // ══════════════════════════════════════════════════════════════
   //  GROUP EXECUTION QUEUE TASKS BY SCOPE
@@ -1199,6 +1285,251 @@ export default function DualAIMatrix() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════
+          LAUNCH MODAL — "Select Execution Engine"
+          ──────────────────────────────────────────
+          Opens when the CEO clicks "Approve & Send to Execution".
+          Offers two execution paths:
+            1. LOCAL:  Generate a Claude CLI command (copy to clipboard)
+            2. CLOUD:  Trigger GitHub Actions via repository_dispatch API
+         ══════════════════════════════════════════════════════════════ */}
+      <Dialog open={launchModalOpen} onOpenChange={setLaunchModalOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Rocket className="w-5 h-5 text-blue-600" />
+              {language === "zh"
+                ? "选择执行引擎"
+                : "Select Execution Engine"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Task Summary Card */}
+          <div className="p-3 bg-[#faf9f8] dark:bg-muted rounded-lg border space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-blue-600 text-white text-[10px] border-0">
+                {formScope}
+              </Badge>
+              <span className={`w-2 h-2 rounded-full ${
+                PRIORITY_OPTIONS.find(p => p.value === formPriority)?.color || "bg-gray-400"
+              }`} />
+              <span className="text-[10px] text-muted-foreground">
+                {PRIORITY_OPTIONS.find(p => p.value === formPriority)
+                  ?.[language === "zh" ? "label" : "labelEn"] || "P3"}
+              </span>
+            </div>
+            <h3 className="font-semibold text-sm">{formTitle}</h3>
+            {formRules && (
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {language === "zh" ? "规则: " : "Rules: "}{formRules}
+              </p>
+            )}
+            {formCategories.length > 0 && (
+              <div className="flex gap-1 flex-wrap">
+                {formCategories.map(cat => (
+                  <Badge key={cat} variant="outline" className="text-[9px] px-1 py-0">{cat}</Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Execution Engine Options */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* ── Option 1: Local CLI ── */}
+            <button
+              className={`p-4 rounded-lg border-2 text-left transition-all hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-950/20 ${
+                launchMode === "local"
+                  ? "border-green-500 bg-green-50 dark:bg-green-950/30"
+                  : "border-gray-200 dark:border-gray-700"
+              }`}
+              onClick={() => setLaunchMode("local")}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-green-500/10 text-green-600 flex items-center justify-center">
+                  <Terminal className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm">
+                    {language === "zh" ? "本地 CLI" : "Local CLI"}
+                  </h4>
+                  <p className="text-[10px] text-muted-foreground">
+                    {language === "zh"
+                      ? "生成 Claude CLI 命令"
+                      : "Generate Claude CLI Command"}
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {language === "zh"
+                  ? "复制命令到终端，在本地机器上执行 Claude"
+                  : "Copy command to terminal, execute Claude on local machine"}
+              </p>
+            </button>
+
+            {/* ── Option 2: Cloud GitHub Actions ── */}
+            <button
+              className={`p-4 rounded-lg border-2 text-left transition-all hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 ${
+                launchMode === "cloud"
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
+                  : "border-gray-200 dark:border-gray-700"
+              }`}
+              onClick={() => setLaunchMode("cloud")}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center">
+                  <Cloud className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm">
+                    {language === "zh" ? "云端 GitHub Actions" : "Cloud GitHub Actions"}
+                  </h4>
+                  <p className="text-[10px] text-muted-foreground">
+                    {language === "zh"
+                      ? "触发 Auto-Dev 流水线"
+                      : "Trigger Auto-Dev Pipeline"}
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {language === "zh"
+                  ? "通过 GitHub API 触发云端 CI/CD 流水线"
+                  : "Trigger cloud CI/CD pipeline via GitHub Actions API"}
+              </p>
+            </button>
+          </div>
+
+          {/* ── Local CLI: Copyable Command Block ── */}
+          {launchMode === "local" && (
+            <div className="space-y-3 animate-in fade-in duration-300">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium">
+                  {language === "zh" ? "Claude CLI 命令" : "Claude CLI Command"}
+                </span>
+              </div>
+              <div className="relative">
+                <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
+                  {generateCliCommand()}
+                </pre>
+                <Button
+                  size="sm"
+                  className={`absolute top-2 right-2 h-8 gap-1.5 ${
+                    cliCopied
+                      ? "bg-green-600 hover:bg-green-700"
+                      : "bg-gray-700 hover:bg-gray-600"
+                  }`}
+                  onClick={handleCopyCliCommand}
+                >
+                  {cliCopied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      {language === "zh" ? "已复制" : "Copied"}
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      {language === "zh" ? "复制" : "Copy"}
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <GitBranch className="w-3 h-3" />
+                {language === "zh"
+                  ? "粘贴到终端执行。任务将同时记录到执行队列。"
+                  : "Paste into terminal to execute. Task will also be tracked in the queue."}
+              </p>
+            </div>
+          )}
+
+          {/* ── Cloud: GitHub Actions Trigger ── */}
+          {launchMode === "cloud" && (
+            <div className="space-y-3 animate-in fade-in duration-300">
+              <div className="flex items-center gap-2">
+                <Cloud className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium">
+                  {language === "zh"
+                    ? "GitHub Actions 云端执行"
+                    : "GitHub Actions Cloud Execution"}
+                </span>
+              </div>
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 space-y-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">
+                    {language === "zh" ? "工作流" : "Workflow"}:
+                  </span>
+                  <code className="font-mono text-blue-600 dark:text-blue-400">
+                    claude-auto-dev.yml
+                  </code>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">
+                    {language === "zh" ? "触发方式" : "Trigger"}:
+                  </span>
+                  <code className="font-mono text-blue-600 dark:text-blue-400">
+                    repository_dispatch → claude-task
+                  </code>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">
+                    {language === "zh" ? "执行环境" : "Runner"}:
+                  </span>
+                  <code className="font-mono text-blue-600 dark:text-blue-400">
+                    ubuntu-latest (GitHub-hosted)
+                  </code>
+                </div>
+              </div>
+
+              {githubDispatchMutation.isSuccess ? (
+                <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                      {language === "zh"
+                        ? "GitHub Actions 已触发！"
+                        : "GitHub Action Triggered!"}
+                    </p>
+                    <p className="text-xs text-green-600 dark:text-green-400">
+                      {language === "zh"
+                        ? "流水线正在云端执行中..."
+                        : "Pipeline running in the cloud..."}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  className="w-full h-10 bg-blue-600 hover:bg-blue-700 gap-2"
+                  onClick={handleTriggerGitHub}
+                  disabled={githubDispatchMutation.isPending}
+                >
+                  {githubDispatchMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Rocket className="w-4 h-4" />
+                  )}
+                  {language === "zh"
+                    ? githubDispatchMutation.isPending
+                      ? "正在触发..."
+                      : "触发 GitHub Actions"
+                    : githubDispatchMutation.isPending
+                    ? "Triggering..."
+                    : "Trigger GitHub Actions (Auto-Dev)"}
+                </Button>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setLaunchModalOpen(false)}
+            >
+              {language === "zh" ? "关闭" : "Close"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ══════════════════════════════════════════════════════════════
           HITL: Claude Execution Condition Approval Box

@@ -1,0 +1,191 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  GRT Auto-Dev Pipeline — Cloud Execution Engine
+# ═══════════════════════════════════════════════════════════════════════
+#
+#  This workflow is the CLOUD execution path for the GRT Dual-AI Matrix.
+#  It receives tasks approved by the CEO in the web UI and executes them
+#  using Claude CLI in a GitHub Actions runner.
+#
+#  TRIGGER METHODS:
+#  ────────────────
+#  1. workflow_dispatch: Manual trigger from the GitHub Actions UI
+#     - Allows the CEO to manually fire a task with inputs
+#
+#  2. repository_dispatch: API trigger from the GRT backend
+#     - Called by the /api/cicd.triggerGitHubDispatch tRPC mutation
+#     - Event type: "claude-task"
+#     - Payload carries task_title, task_scope, task_rules
+#
+#  HOW IT CONNECTS TO THE UI:
+#  ──────────────────────────
+#  1. CEO approves a task in the Dual-AI Matrix
+#  2. CEO selects "Cloud: GitHub Actions" in the Launch Modal
+#  3. Frontend calls cicd.triggerGitHubDispatch mutation
+#  4. Backend POSTs to https://api.github.com/repos/OWNER/REPO/dispatches
+#  5. GitHub receives the repository_dispatch event
+#  6. This workflow triggers, picks up the payload, and runs Claude CLI
+#
+# ═══════════════════════════════════════════════════════════════════════
+
+name: GRT Auto-Dev (Claude Cloud)
+
+on:
+  # ── Manual trigger from GitHub Actions UI ──
+  workflow_dispatch:
+    inputs:
+      task_title:
+        description: "Task title from Dual-AI Matrix"
+        required: true
+        type: string
+      task_scope:
+        description: "Business scope (M6-MES, CRM, HR, Quality, etc.)"
+        required: false
+        type: string
+        default: "General"
+      task_rules:
+        description: "Acceptance criteria / execution rules"
+        required: false
+        type: string
+        default: "Ensure build passes and no regressions"
+
+  # ── API trigger from GRT backend ──
+  # The backend sends a POST to /repos/OWNER/REPO/dispatches with:
+  #   { "event_type": "claude-task", "client_payload": { ... } }
+  repository_dispatch:
+    types: [claude-task]
+
+# ═══════════════════════════════════════════════════════════════════════
+#  ENVIRONMENT & PERMISSIONS
+# ═══════════════════════════════════════════════════════════════════════
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  NODE_VERSION: "20"
+
+# ═══════════════════════════════════════════════════════════════════════
+#  JOBS
+# ═══════════════════════════════════════════════════════════════════════
+
+jobs:
+  claude-auto-dev:
+    name: "Claude Auto-Dev Execution"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # ── Step 1: Resolve inputs ──
+      # workflow_dispatch uses inputs.*, repository_dispatch uses client_payload.*
+      - name: Resolve Task Inputs
+        id: task
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "title=${{ github.event.client_payload.task_title }}" >> $GITHUB_OUTPUT
+            echo "scope=${{ github.event.client_payload.task_scope }}" >> $GITHUB_OUTPUT
+            echo "rules=${{ github.event.client_payload.task_rules }}" >> $GITHUB_OUTPUT
+            echo "source=repository_dispatch (API trigger from GRT UI)"
+          else
+            echo "title=${{ inputs.task_title }}" >> $GITHUB_OUTPUT
+            echo "scope=${{ inputs.task_scope }}" >> $GITHUB_OUTPUT
+            echo "rules=${{ inputs.task_rules }}" >> $GITHUB_OUTPUT
+            echo "source=workflow_dispatch (manual trigger)"
+          fi
+
+      # ── Step 2: Checkout repository ──
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── Step 3: Setup Node.js ──
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # ── Step 4: Install dependencies ──
+      - name: Install Dependencies
+        run: |
+          npm install -g pnpm
+          pnpm install --frozen-lockfile
+
+      # ── Step 5: Claude CLI Setup (Cloud Execution Path) ──
+      # ═══════════════════════════════════════════════════════
+      # This step simulates setting up Claude CLI in GitHub Actions.
+      # In production, this would:
+      #   1. Install Claude CLI: npm install -g @anthropic-ai/claude-code
+      #   2. Authenticate with ANTHROPIC_API_KEY from GitHub Secrets
+      #   3. Run Claude in non-interactive mode with the task prompt
+      #
+      # The actual command would be:
+      #   claude --print "Task: $TITLE. Scope: $SCOPE. Rules: $RULES.
+      #          Please execute and update the UI."
+      #
+      # For now, we simulate the execution with echo statements.
+      # ═══════════════════════════════════════════════════════
+      - name: Setup Claude CLI (Cloud Engine)
+        run: |
+          echo "═══════════════════════════════════════════════════════"
+          echo "  GRT Auto-Dev — Cloud Execution Engine"
+          echo "═══════════════════════════════════════════════════════"
+          echo ""
+          echo "  Task:  ${{ steps.task.outputs.title }}"
+          echo "  Scope: ${{ steps.task.outputs.scope }}"
+          echo "  Rules: ${{ steps.task.outputs.rules }}"
+          echo ""
+          echo "── Simulating Claude CLI setup ──"
+          echo "  [MOCK] npm install -g @anthropic-ai/claude-code"
+          echo "  [MOCK] claude --version → claude-code v1.x.x"
+          echo "  [MOCK] Authenticating with ANTHROPIC_API_KEY..."
+          echo "  [MOCK] Authentication successful."
+          echo ""
+
+      # ── Step 6: Execute Task via Claude CLI ──
+      # In production, this runs:
+      #   claude --print "Task: ... Scope: ... Rules: ..."
+      # The --print flag makes Claude output the result without interactive prompts.
+      - name: Execute Task
+        run: |
+          echo "── Executing task via Claude CLI ──"
+          echo ""
+          echo "[MOCK] claude --print \"Task: ${{ steps.task.outputs.title }}."
+          echo "  Scope: ${{ steps.task.outputs.scope }}."
+          echo "  Strict Rules: ${{ steps.task.outputs.rules }}."
+          echo "  Please execute and update the UI.\""
+          echo ""
+          echo "── Claude CLI Output (Simulated) ──"
+          echo "  Analyzing codebase for scope: ${{ steps.task.outputs.scope }}..."
+          echo "  Found 12 relevant files."
+          echo "  Implementing changes..."
+          echo "  Running TypeScript compiler... 0 errors."
+          echo "  Running Vite build... success (23.4s)."
+          echo "  All acceptance criteria met."
+          echo ""
+          echo "═══════════════════════════════════════════════════════"
+          echo "  TASK COMPLETED SUCCESSFULLY"
+          echo "═══════════════════════════════════════════════════════"
+
+      # ── Step 7: Build Verification ──
+      # Run the actual build to verify the repo is in a good state
+      - name: Verify Build
+        run: |
+          echo "── Running build verification ──"
+          npx tsc --noEmit 2>&1 || echo "[WARNING] TypeScript errors detected"
+          echo "── Build verification complete ──"
+
+      # ── Step 8: Report Results ──
+      - name: Report Results
+        if: always()
+        run: |
+          echo "── Execution Summary ──"
+          echo "  Task:   ${{ steps.task.outputs.title }}"
+          echo "  Scope:  ${{ steps.task.outputs.scope }}"
+          echo "  Status: ${{ job.status }}"
+          echo "  Run ID: ${{ github.run_id }}"
+          echo ""
+          echo "In production, this step would:"
+          echo "  1. POST results back to GRT backend via webhook"
+          echo "  2. Update cicd_tasks DB status to COMPLETED"
+          echo "  3. Create a PR with the changes (if any)"

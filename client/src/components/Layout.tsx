@@ -27,7 +27,7 @@ import { MenuCustomizationPanel } from "@/components/MenuCustomizationPanel";
 import { GlobalMenuSearch } from "@/components/GlobalMenuSearch";
 import { TopBarSearch } from "@/components/TopBarSearch";
 import { useMenuFavorites } from "@/hooks/useMenuFavorites";
-import { useUserProfile, ROLE_HIERARCHY, type UserRole } from "@/contexts/UserProfileContext";
+import { useUserProfile, ROLE_HIERARCHY, ROLE_CONFIGS, type UserRole } from "@/contexts/UserProfileContext";
 import {
   ArrowUp,
   ChevronDown,
@@ -240,6 +240,33 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   const { currentUserRole, currentBU, permissions } = useUserProfile();
   const currentLevel = ROLE_HIERARCHY[currentUserRole] ?? 0;
   const { favoriteItems, isHidden, isFavorite, toggleFavorite } = useMenuFavorites();
+
+  // ── Display Name Resolution ──
+  // Fixes "乱码" (garbled text) for usernames in sidebar and header.
+  // 1. Decodes any URI-encoded characters (e.g. %E5%BC%A0 → 张)
+  // 2. Falls back to role label when name === openId (no display name set)
+  // 3. Uses spread operator for proper CJK/emoji first-character extraction
+  const resolvedDisplayName = useMemo(() => {
+    let name = user?.name || '';
+    // Attempt to decode URI-encoded names (fixes garbled %xx sequences)
+    if (name && /%[0-9A-Fa-f]{2}/.test(name)) {
+      try { name = decodeURIComponent(name); } catch { /* keep original */ }
+    }
+    // If name is empty or equals the login ID (openId), use role label instead
+    if (!name || name === user?.openId) {
+      const roleConfig = ROLE_CONFIGS[currentUserRole];
+      return roleConfig
+        ? (language === 'zh' ? roleConfig.label : roleConfig.labelEn)
+        : (name || 'User');
+    }
+    return name;
+  }, [user?.name, user?.openId, currentUserRole, language]);
+
+  // Extract first character safely for avatar (handles CJK, emoji, surrogate pairs)
+  const avatarInitial = useMemo(() => {
+    const chars = [...(resolvedDisplayName || 'U')];
+    return (chars[0] || 'U').toUpperCase();
+  }, [resolvedDisplayName]);
 
   // 新RBAC权限过滤 - 支持 allowedRoles / minLevel / permissionKey
   const canAccessItem = useCallback((item: MenuItem): boolean => {
@@ -680,11 +707,11 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2 pt-2 border-t border-[#edebe9]">
             <Avatar className="h-8 w-8 border border-[#edebe9]">
               <AvatarFallback className="text-xs font-medium bg-[#deecf9] text-[#0078d4]">
-                {user.name?.charAt(0).toUpperCase() || 'U'}
+                {avatarInitial}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#323130] truncate">{user.name || 'User'}</p>
+              <p className="text-sm font-medium text-[#323130] truncate">{resolvedDisplayName}</p>
               <p className="text-xs text-[#605e5c] truncate">{user.email || ''}</p>
             </div>
             <Button
@@ -761,16 +788,16 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
                   <button className="flex items-center gap-2 px-2 py-1 rounded-sm hover:bg-accent transition-colors">
                     <Avatar className="h-7 w-7 border border-border">
                       <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
-                        {user.name?.charAt(0).toUpperCase() || 'U'}
+                        {avatarInitial}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium hidden xl:inline">{user.name || 'User'}</span>
+                    <span className="text-sm font-medium hidden xl:inline">{resolvedDisplayName}</span>
                     <ChevronDown className="w-3 h-3 text-muted-foreground" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <div className="px-2 py-1.5 border-b border-border">
-                    <p className="text-sm font-medium">{user.name || 'User'}</p>
+                    <p className="text-sm font-medium">{resolvedDisplayName}</p>
                     <p className="text-xs text-muted-foreground truncate">{user.email || ''}</p>
                   </div>
                   <DropdownMenuItem className="cursor-pointer">
