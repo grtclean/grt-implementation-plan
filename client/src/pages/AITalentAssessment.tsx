@@ -3,6 +3,7 @@
  * Phase F: 人才盘点 · 潜力评估 · 职业路径 · 发展建议
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ interface AssessmentResult {
 }
 
 export default function AITalentAssessment() {
+  const { t } = useLanguage();
   const [employeeName, setEmployeeName] = useState("");
   const [role, setRole] = useState(ROLES[0]);
   const [department, setDepartment] = useState(DEPARTMENTS[0]);

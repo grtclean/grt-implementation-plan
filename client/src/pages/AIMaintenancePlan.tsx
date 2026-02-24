@@ -3,6 +3,7 @@
  * Phase H: 健康评分 · 维护计划 · 备件管理 · 成本预估
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ interface MaintenanceResult {
 }
 
 export default function AIMaintenancePlan() {
+  const { t } = useLanguage();
   const [equipmentModel, setEquipmentModel] = useState("碳氢真空清洗机");
   const [installDate, setInstallDate] = useState("");
   const [operatingHours, setOperatingHours] = useState("");

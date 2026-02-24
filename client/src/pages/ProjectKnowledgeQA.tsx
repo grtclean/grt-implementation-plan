@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   MessageSquare, Send, Sparkles, BookOpen, Loader2, ChevronDown, ChevronUp,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 export default function ProjectKnowledgeQA() {
+  const { t } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [expandedSources, setExpandedSources] = useState<Set<number>>(new Set());
@@ -48,7 +50,7 @@ export default function ProjectKnowledgeQA() {
     onError: () => {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "抱歉，AI服务暂时不可用，请稍后再试。" },
+        { role: "assistant", content: t("projects.knowledge.aiUnavailable") },
       ]);
     },
   });
@@ -82,24 +84,24 @@ export default function ProjectKnowledgeQA() {
   };
 
   const categoryLabel: Record<string, string> = {
-    technical: "技术",
-    process: "工艺",
-    material: "材料",
-    standard: "标准",
-    case_study: "案例",
-    faq: "常见问题",
+    technical: t("projects.knowledge.catTechnical"),
+    process: t("projects.knowledge.catProcess"),
+    material: t("projects.knowledge.catMaterial"),
+    standard: t("projects.knowledge.catStandard"),
+    case_study: t("projects.knowledge.catCaseStudy"),
+    faq: t("projects.knowledge.catFAQ"),
   };
 
   return (
       <div className="flex flex-col h-[calc(100vh-4rem)] p-6">
         <PageHeader
           icon={MessageSquare}
-          title="项目知识库问答"
-          description="基于项目知识库的AI问答 · 引用来源追溯"
+          title={t("projects.knowledge.title")}
+          description={t("projects.knowledge.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              RAG增强
+              {t("projects.knowledge.ragEnhanced")}
             </Badge>
           }
         />
@@ -113,8 +115,8 @@ export default function ProjectKnowledgeQA() {
                 {messages.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                     <MessageSquare className="h-16 w-16 mb-4 opacity-30" />
-                    <p className="text-lg font-medium mb-2">向知识库提问</p>
-                    <p className="text-sm">输入问题或点击推荐问题开始对话</p>
+                    <p className="text-lg font-medium mb-2">{t("projects.knowledge.askKnowledgeBase")}</p>
+                    <p className="text-sm">{t("projects.knowledge.inputHintOrClick")}</p>
                   </div>
                 )}
 
@@ -138,7 +140,7 @@ export default function ProjectKnowledgeQA() {
                             className="flex items-center gap-1 text-xs opacity-70 hover:opacity-100"
                           >
                             <BookOpen className="h-3 w-3" />
-                            引用来源 ({msg.sources.length})
+                            {t("projects.knowledge.citeSources")} ({msg.sources.length})
                             {expandedSources.has(idx) ? (
                               <ChevronUp className="h-3 w-3" />
                             ) : (
@@ -157,7 +159,7 @@ export default function ProjectKnowledgeQA() {
                                   </Badge>
                                   <span className="truncate">{src.title}</span>
                                   <span className="text-muted-foreground ml-auto flex-shrink-0">
-                                    匹配 {src.matchScore}
+                                    {t("projects.knowledge.match")} {src.matchScore}
                                   </span>
                                 </div>
                               ))}
@@ -173,7 +175,7 @@ export default function ProjectKnowledgeQA() {
                   <div className="flex justify-start">
                     <div className="bg-muted rounded-lg p-3 flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      AI正在思考...
+                      {t("projects.knowledge.aiThinking")}
                     </div>
                   </div>
                 )}
@@ -185,7 +187,7 @@ export default function ProjectKnowledgeQA() {
             {/* Input bar */}
             <div className="mt-3 flex gap-2">
               <Input
-                placeholder="输入问题，如：喷嘴如何选型？"
+                placeholder={t("projects.knowledge.inputPlaceholder")}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -213,7 +215,7 @@ export default function ProjectKnowledgeQA() {
           <div className="w-64 flex-shrink-0 hidden lg:block">
             <Card>
               <CardContent className="p-4 space-y-2">
-                <p className="text-sm font-medium text-muted-foreground mb-3">推荐问题</p>
+                <p className="text-sm font-medium text-muted-foreground mb-3">{t("projects.knowledge.suggestedQuestions")}</p>
                 {SUGGESTED_QUESTIONS.map((q) => (
                   <button
                     key={q}

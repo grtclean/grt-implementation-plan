@@ -3,6 +3,7 @@
  * 生产工序定义、工序流程、工时统计
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,24 +19,25 @@ const MOCK_PROCESSES = [
 ];
 
 export default function ProcessManagement() {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Wrench}
-        title="工序管理"
-        description="生产工序定义与工时统计"
-        actions={<Button><Plus className="h-4 w-4 mr-2" />新建工序</Button>}
+        title={t("manufacturing.process.title")}
+        description={t("manufacturing.process.description")}
+        actions={<Button><Plus className="h-4 w-4 mr-2" />{t("manufacturing.processMgmt.createProcess")}</Button>}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Settings} label="工序总数" value={48} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={Clock} label="进行中" value={12} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={CheckCircle2} label="质量合格率" value="98.5%" iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={Wrench} label="平均工时" value="4.2h" iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Settings} label={t("manufacturing.process.totalProcesses")} value={48} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Clock} label={t("manufacturing.process.activeProcesses")} value={12} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label={t("manufacturing.processMgmt.qualityRate")} value="98.5%" iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Wrench} label={t("manufacturing.processMgmt.avgWorkHours")} value="4.2h" iconColor="text-primary" iconBg="bg-primary/10" />
       </div>
 
       <Card>
-        <CardHeader><CardTitle>工序列表</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("manufacturing.processMgmt.processList")}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
             {MOCK_PROCESSES.map(p => (
@@ -50,7 +52,7 @@ export default function ProcessManagement() {
                   <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{p.avgTime}</span>
                     <span className="flex items-center gap-1"><Users className="h-3 w-3" />{p.workers}人</span>
-                    {p.quality > 0 && <span>合格率: {p.quality}%</span>}
+                    {p.quality > 0 && <span>{t("manufacturing.processMgmt.qualityRate")}: {p.quality}%</span>}
                   </div>
                 </div>
                 <Badge className={p.status === "已完成" ? "bg-green-100 text-green-700" : p.status === "进行中" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}>{p.status}</Badge>

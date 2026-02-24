@@ -3,6 +3,7 @@
  * Phase G: 营收预测 · 季度拆分 · 增长驱动 · 风险评估
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ interface ForecastResult {
 }
 
 export default function AISalesForecast() {
+  const { t } = useLanguage();
   const [businessUnit, setBusinessUnit] = useState(BUS[0]);
   const [productLine, setProductLine] = useState(PRODUCTS[0]);
   const [historicalRevenue, setHistoricalRevenue] = useState("");

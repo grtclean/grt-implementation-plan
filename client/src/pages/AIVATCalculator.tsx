@@ -3,6 +3,7 @@
  * 多区域税率 · 税费明细 · 发票要求 · 合规建议
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ interface VATResult {
 }
 
 export default function AIVATCalculator() {
+  const { t } = useLanguage();
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("CNY");
   const [fromRegion, setFromRegion] = useState("CN");
@@ -66,12 +68,12 @@ export default function AIVATCalculator() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Receipt}
-          title="AI增值税/税费计算"
-          description="多区域税率 · 税费明细 · 发票要求 · 合规建议"
+          title={t("ai.vat.title")}
+          description={t("ai.vat.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI计算
+              {t("ai.vat.aiCalculate")}
             </Badge>
           }
         />
@@ -81,20 +83,20 @@ export default function AIVATCalculator() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Receipt className="h-5 w-5 text-primary" />
-              交易信息
+              {t("ai.vat.transactionInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">金额</label>
-                <Input type="number" placeholder="金额" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("ai.vat.amount")}</label>
+                <Input type="number" placeholder={t("ai.vat.amountPlaceholder")} value={amount} onChange={(e) => setAmount(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">币种</label>
+                <label className="text-sm text-muted-foreground">{t("ai.vat.currency")}</label>
                 <Select value={currency} onValueChange={(v) => setCurrency(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择币种" />
+                    <SelectValue placeholder={t("ai.vat.selectCurrency")} />
                   </SelectTrigger>
                   <SelectContent>
                     {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -104,10 +106,10 @@ export default function AIVATCalculator() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">发货地区</label>
+                <label className="text-sm text-muted-foreground">{t("ai.vat.fromRegion")}</label>
                 <Select value={fromRegion} onValueChange={(v) => setFromRegion(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择发货地区" />
+                    <SelectValue placeholder={t("ai.vat.selectFromRegion")} />
                   </SelectTrigger>
                   <SelectContent>
                     {REGIONS.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
@@ -115,10 +117,10 @@ export default function AIVATCalculator() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">目的地区</label>
+                <label className="text-sm text-muted-foreground">{t("ai.vat.toRegion")}</label>
                 <Select value={toRegion} onValueChange={(v) => setToRegion(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择目的地区" />
+                    <SelectValue placeholder={t("ai.vat.selectToRegion")} />
                   </SelectTrigger>
                   <SelectContent>
                     {REGIONS.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
@@ -128,10 +130,10 @@ export default function AIVATCalculator() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">产品类型</label>
+                <label className="text-sm text-muted-foreground">{t("ai.vat.productType")}</label>
                 <Select value={productType} onValueChange={(v) => setProductType(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择产品类型" />
+                    <SelectValue placeholder={t("ai.vat.selectProductType")} />
                   </SelectTrigger>
                   <SelectContent>
                     {PRODUCT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
@@ -139,7 +141,7 @@ export default function AIVATCalculator() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">交易类型</label>
+                <label className="text-sm text-muted-foreground">{t("ai.vat.transactionType")}</label>
                 <div className="flex items-center gap-2 h-[38px]">
                   <input
                     type="checkbox"
@@ -148,14 +150,14 @@ export default function AIVATCalculator() {
                     onChange={(e) => setIsB2B(e.target.checked)}
                     className="h-4 w-4 rounded border-gray-300"
                   />
-                  <label htmlFor="isB2B" className="text-sm">B2B交易</label>
+                  <label htmlFor="isB2B" className="text-sm">{t("ai.vat.b2bTransaction")}</label>
                 </div>
               </div>
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!amount || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI计算
+                {t("ai.vat.aiCalculate")}
               </Button>
             </div>
           </CardContent>
@@ -168,7 +170,7 @@ export default function AIVATCalculator() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground">净额</p>
+                  <p className="text-sm text-muted-foreground">{t("ai.vat.netAmount")}</p>
                   <p className="text-4xl font-bold text-blue-400">
                     {result.netAmount.toLocaleString()}
                     <span className="text-lg text-muted-foreground ml-1">{currency}</span>
@@ -177,7 +179,7 @@ export default function AIVATCalculator() {
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground">税额</p>
+                  <p className="text-sm text-muted-foreground">{t("ai.vat.taxAmount")}</p>
                   <p className="text-4xl font-bold text-yellow-400">
                     {result.taxAmount.toLocaleString()}
                     <span className="text-lg text-muted-foreground ml-1">{currency}</span>
@@ -186,7 +188,7 @@ export default function AIVATCalculator() {
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground">总额</p>
+                  <p className="text-sm text-muted-foreground">{t("ai.vat.totalAmount")}</p>
                   <p className="text-4xl font-bold text-green-400">
                     {result.totalAmount.toLocaleString()}
                     <span className="text-lg text-muted-foreground ml-1">{currency}</span>
@@ -200,7 +202,7 @@ export default function AIVATCalculator() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
                   <Badge variant="outline" className="text-lg px-4 py-2 bg-primary/10 text-primary border-primary/30">
-                    税率: {(result.taxRate * 100).toFixed(1)}%
+                    {t("ai.vat.taxRate")}: {(result.taxRate * 100).toFixed(1)}%
                   </Badge>
                   <Badge variant="outline" className="text-lg px-4 py-2 bg-blue-500/10 text-blue-400 border-blue-500/30">
                     {result.taxType}
@@ -215,7 +217,7 @@ export default function AIVATCalculator() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <TableProperties className="h-5 w-5 text-yellow-400" />
-                    税费明细
+                    {t("ai.vat.taxBreakdown")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -223,10 +225,10 @@ export default function AIVATCalculator() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-muted-foreground">项目</th>
-                          <th className="text-right py-2 font-medium text-muted-foreground">税率</th>
-                          <th className="text-right py-2 font-medium text-muted-foreground">金额</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">备注</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.vat.itemCol")}</th>
+                          <th className="text-right py-2 font-medium text-muted-foreground">{t("ai.vat.rateCol")}</th>
+                          <th className="text-right py-2 font-medium text-muted-foreground">{t("ai.vat.amountCol")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.vat.notesCol")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -251,7 +253,7 @@ export default function AIVATCalculator() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <FileText className="h-5 w-5 text-primary" />
-                    发票要求
+                    {t("ai.vat.invoiceRequirements")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -266,7 +268,7 @@ export default function AIVATCalculator() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ListChecks className="h-5 w-5 text-yellow-400" />
-                    特别说明
+                    {t("ai.vat.specialNotes")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -288,7 +290,7 @@ export default function AIVATCalculator() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Lightbulb className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("ai.vat.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

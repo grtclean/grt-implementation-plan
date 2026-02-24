@@ -14,6 +14,7 @@ import {
   Copy, Filter, Tag,
 } from "lucide-react";
 import { STAGES } from "@shared/stage-definitions";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ============================================================
 // Types & Constants
@@ -76,6 +77,7 @@ const MOCK_SOPS: SOPRecord[] = [
 // ============================================================
 
 export default function SOPLibrary() {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -104,19 +106,19 @@ export default function SOPLibrary() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={BookOpen}
-          title="SOP模板库"
-          description="标准操作流程模板管理，覆盖清洗设备全生命周期"
+          title={t("quality.sop.title")}
+          description={t("quality.sop.description")}
           actions={
             <Button onClick={() => setShowCreateDialog(!showCreateDialog)}>
-              <Plus className="w-4 h-4 mr-2" />创建SOP
+              <Plus className="w-4 h-4 mr-2" />{t("quality.sop.createSOP")}
             </Button>
           }
         />
 
         <Tabs defaultValue="list" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="list"><FileText className="w-4 h-4 mr-1" />SOP列表</TabsTrigger>
-            <TabsTrigger value="categories"><Tag className="w-4 h-4 mr-1" />分类概览</TabsTrigger>
+            <TabsTrigger value="list"><FileText className="w-4 h-4 mr-1" />{t("quality.sop.tabList")}</TabsTrigger>
+            <TabsTrigger value="categories"><Tag className="w-4 h-4 mr-1" />{t("quality.sop.tabCategories")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="list" className="space-y-4">
@@ -124,33 +126,33 @@ export default function SOPLibrary() {
             <div className="flex flex-wrap gap-3">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="搜索SOP编号或标题..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
+                <Input placeholder={t("quality.sop.search")} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
               </div>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[160px]"><Filter className="w-4 h-4 mr-1" /><SelectValue placeholder="分类" /></SelectTrigger>
+                <SelectTrigger className="w-[160px]"><Filter className="w-4 h-4 mr-1" /><SelectValue placeholder={t("quality.sop.categoryField")} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部分类</SelectItem>
+                  <SelectItem value="all">{t("quality.sop.allCategories")}</SelectItem>
                   {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]"><SelectValue placeholder="状态" /></SelectTrigger>
+                <SelectTrigger className="w-[140px]"><SelectValue placeholder={t("quality.common.status")} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部状态</SelectItem>
-                  <SelectItem value="draft">草稿</SelectItem>
-                  <SelectItem value="review">审核中</SelectItem>
-                  <SelectItem value="approved">已批准</SelectItem>
-                  <SelectItem value="archived">已归档</SelectItem>
+                  <SelectItem value="all">{t("quality.sop.allStatuses")}</SelectItem>
+                  <SelectItem value="draft">{t("quality.sop.statusDraft")}</SelectItem>
+                  <SelectItem value="review">{t("quality.sop.statusReviewing")}</SelectItem>
+                  <SelectItem value="approved">{t("quality.sop.statusApproved")}</SelectItem>
+                  <SelectItem value="archived">{t("quality.sop.statusArchived")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <p className="text-sm text-muted-foreground">共 {filteredSOPs.length} 条SOP记录</p>
+            <p className="text-sm text-muted-foreground">{filteredSOPs.length} {t("quality.sop.sopRecords")}</p>
 
             {/* SOP List */}
             <div className="space-y-3">
               {filteredSOPs.map(sop => {
-                const statusCfg = STATUS_CONFIG[sop.status];
+                const statusLabelMap: Record<SOPStatus, string> = { draft: t("quality.sop.statusDraft"), review: t("quality.sop.statusReviewing"), approved: t("quality.sop.statusApproved"), archived: t("quality.sop.statusArchived") };
                 const isExpanded = expandedId === sop.id;
                 return (
                   <Card key={sop.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setExpandedId(isExpanded ? null : sop.id)}>
@@ -160,14 +162,14 @@ export default function SOPLibrary() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-mono text-sm text-muted-foreground">{sop.code}</span>
                             <CardTitle className="text-base">{sop.title}</CardTitle>
-                            <Badge className={CATEGORY_COLORS[sop.category]}>{sop.category}</Badge>
-                            <StatusBadge color={statusColors[sop.status]}>{statusCfg.label}</StatusBadge>
+                            <Badge className={CATEGORY_COLORS[sop.category]}>{({ "清洗工艺": t("quality.sop.categoryCleaning"), "质量检测": t("quality.sop.categoryQuality"), "设备维护": t("quality.sop.categoryMaintenance"), "安全操作": t("quality.sop.categorySafety"), "客户验收": t("quality.sop.categoryAcceptance"), "包装运输": t("quality.sop.categoryPackaging") } as Record<string, string>)[sop.category] ?? sop.category}</Badge>
+                            <StatusBadge color={statusColors[sop.status]}>{statusLabelMap[sop.status]}</StatusBadge>
                             <Badge variant="outline">v{sop.version}</Badge>
                           </div>
                           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1"><User className="w-3 h-3" />{sop.author}</span>
-                            {sop.effectiveDate && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />生效: {sop.effectiveDate}</span>}
-                            <span>适用设备: {sop.equipmentModels.join(", ")}</span>
+                            {sop.effectiveDate && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{t("quality.sop.effectiveDate")} {sop.effectiveDate}</span>}
+                            <span>{t("quality.sop.applicableEquipment")} {sop.equipmentModels.join(", ")}</span>
                           </div>
                         </div>
                         {isExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
@@ -176,17 +178,17 @@ export default function SOPLibrary() {
                     {isExpanded && (
                       <CardContent className="pt-0 space-y-3" onClick={e => e.stopPropagation()}>
                         <div className="border-t pt-3">
-                          <h4 className="font-medium mb-2">操作内容</h4>
+                          <h4 className="font-medium mb-2">{t("quality.sop.operationLabel")}</h4>
                           <pre className="whitespace-pre-wrap text-sm bg-muted/50 rounded p-3">{sop.content}</pre>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <span className="text-sm text-muted-foreground mr-1">适用阶段:</span>
+                          <span className="text-sm text-muted-foreground mr-1">{t("quality.sop.phaseLabel")}:</span>
                           {sop.stages.map(s => { const stage = STAGES.find(st => st.code === s); return <Badge key={s} variant="outline" className="text-xs">{s} {stage?.name}</Badge>; })}
                         </div>
-                        {sop.approver && <p className="text-sm text-muted-foreground">审批人: {sop.approver}</p>}
+                        {sop.approver && <p className="text-sm text-muted-foreground">{t("quality.sop.approverLabel")}: {sop.approver}</p>}
                         <div className="flex gap-2 pt-2">
-                          <Button size="sm" variant="outline"><Copy className="w-3 h-3 mr-1" />创建新版本</Button>
-                          <Button size="sm" variant="outline"><Edit className="w-3 h-3 mr-1" />编辑</Button>
+                          <Button size="sm" variant="outline"><Copy className="w-3 h-3 mr-1" />{t("quality.sop.createNewVersion")}</Button>
+                          <Button size="sm" variant="outline"><Edit className="w-3 h-3 mr-1" />{t("quality.sop.edit")}</Button>
                         </div>
                       </CardContent>
                     )}
@@ -200,8 +202,8 @@ export default function SOPLibrary() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {CATEGORIES.map(cat => (
                 <Card key={cat} className="cursor-pointer hover:border-primary/50" onClick={() => { setCategoryFilter(cat); }}>
-                  <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Badge className={CATEGORY_COLORS[cat]}>{cat}</Badge></CardTitle></CardHeader>
-                  <CardContent><p className="text-2xl font-bold">{categoryCounts[cat]}</p><p className="text-sm text-muted-foreground">个SOP文档</p></CardContent>
+                  <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Badge className={CATEGORY_COLORS[cat]}>{({ "清洗工艺": t("quality.sop.categoryCleaning"), "质量检测": t("quality.sop.categoryQuality"), "设备维护": t("quality.sop.categoryMaintenance"), "安全操作": t("quality.sop.categorySafety"), "客户验收": t("quality.sop.categoryAcceptance"), "包装运输": t("quality.sop.categoryPackaging") } as Record<string, string>)[cat] ?? cat}</Badge></CardTitle></CardHeader>
+                  <CardContent><p className="text-2xl font-bold">{categoryCounts[cat]}</p><p className="text-sm text-muted-foreground">{t("quality.sop.sopCount")}</p></CardContent>
                 </Card>
               ))}
             </div>
@@ -211,28 +213,28 @@ export default function SOPLibrary() {
         {/* Create SOP Dialog - inline panel */}
         {showCreateDialog && (
           <Card className="border-primary">
-            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Plus className="w-5 h-5" />创建新SOP</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Plus className="w-5 h-5" />{t("quality.sop.createSOP")}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>标题</Label><Input placeholder="输入SOP标题" value={newSOP.title} onChange={e => setNewSOP(p => ({ ...p, title: e.target.value }))} /></div>
-                <div className="space-y-2"><Label>分类</Label>
+                <div className="space-y-2"><Label>{t("quality.sop.sopTitle")}</Label><Input placeholder={t("quality.sop.sopTitle")} value={newSOP.title} onChange={e => setNewSOP(p => ({ ...p, title: e.target.value }))} /></div>
+                <div className="space-y-2"><Label>{t("quality.sop.categoryField")}</Label>
                   <Select value={newSOP.category} onValueChange={v => setNewSOP(p => ({ ...p, category: v }))}>
-                    <SelectTrigger><SelectValue placeholder="选择分类" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t("quality.sop.categoryField")} /></SelectTrigger>
                     <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2"><Label>适用设备型号</Label>
+                <div className="space-y-2"><Label>{t("quality.sop.equipmentModel")}</Label>
                   <div className="flex flex-wrap gap-2">{EQUIPMENT_MODELS.map(m => (<Badge key={m} variant={newSOP.equipmentModels.includes(m) ? "default" : "outline"} className="cursor-pointer" onClick={() => setNewSOP(p => ({ ...p, equipmentModels: p.equipmentModels.includes(m) ? p.equipmentModels.filter(x => x !== m) : [...p.equipmentModels, m] }))}>{m}</Badge>))}</div>
                 </div>
-                <div className="space-y-2"><Label>适用阶段</Label>
+                <div className="space-y-2"><Label>{t("quality.sop.applicablePhase")}</Label>
                   <div className="flex flex-wrap gap-2">{STAGES.map(s => (<Badge key={s.code} variant={newSOP.stages.includes(s.code) ? "default" : "outline"} className="cursor-pointer" onClick={() => setNewSOP(p => ({ ...p, stages: p.stages.includes(s.code) ? p.stages.filter(x => x !== s.code) : [...p.stages, s.code] }))}>{s.code} {s.name}</Badge>))}</div>
                 </div>
               </div>
-              <div className="space-y-2"><Label>操作内容</Label><Textarea placeholder="输入SOP操作步骤..." value={newSOP.content} onChange={e => setNewSOP(p => ({ ...p, content: e.target.value }))} rows={5} /></div>
-              <div className="space-y-2"><Label>附件上传</Label><div className="border-2 border-dashed rounded-lg p-4 text-center text-muted-foreground"><AlertCircle className="w-6 h-6 mx-auto mb-2" /><p className="text-sm">拖拽文件或点击上传（功能开发中）</p></div></div>
+              <div className="space-y-2"><Label>{t("quality.sop.operationContent")}</Label><Textarea placeholder={t("quality.sop.operationContent")} value={newSOP.content} onChange={e => setNewSOP(p => ({ ...p, content: e.target.value }))} rows={5} /></div>
+              <div className="space-y-2"><Label>{t("quality.sop.attachmentUpload")}</Label><div className="border-2 border-dashed rounded-lg p-4 text-center text-muted-foreground"><AlertCircle className="w-6 h-6 mx-auto mb-2" /><p className="text-sm">{t("quality.sop.dragOrClickUpload")}</p></div></div>
               <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
-                <Button onClick={() => setShowCreateDialog(false)}>保存草稿</Button>
+                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>{t("quality.sop.cancel")}</Button>
+                <Button onClick={() => setShowCreateDialog(false)}>{t("quality.sop.saveDraft")}</Button>
               </div>
             </CardContent>
           </Card>

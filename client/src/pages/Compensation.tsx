@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Users, Calculator, Lock, FileText, TrendingUp } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // TODO: 接入 tRPC 后端接口替换
 const SALARY_OVERVIEW = [
@@ -18,36 +19,37 @@ const SALARY_OVERVIEW = [
 ];
 
 export default function Compensation() {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       <PageHeader
         icon={DollarSign}
-        title="薪酬管理"
-        description="薪资核算 · 社保公积金 · 薪酬分析"
+        title={t("hr.compensation.title")}
+        description={t("hr.compensation.desc")}
         actions={
           <>
-            <Button><Calculator className="h-4 w-4 mr-2" />生成薪资单</Button>
-            <Button variant="outline"><FileText className="h-4 w-4 mr-2" />导出报表</Button>
+            <Button><Calculator className="h-4 w-4 mr-2" />{t("hr.compensation.generatePayslip")}</Button>
+            <Button variant="outline"><FileText className="h-4 w-4 mr-2" />{t("hr.compensation.exportReport")}</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={DollarSign} label="月薪资总额" value="¥2.15M" iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={Users} label="在职人数" value={140} />
-        <StatCard icon={TrendingUp} label="人均薪资" value="¥15,360" iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={TrendingUp} label="同比增长" value="+3.1%" iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={DollarSign} label={t("hr.compensation.monthlySalaryTotal")} value="¥2.15M" iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Users} label={t("hr.compensation.activeEmployees")} value={140} />
+        <StatCard icon={TrendingUp} label={t("hr.compensation.avgSalary")} value="¥15,360" iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={TrendingUp} label={t("hr.compensation.yoyGrowth")} value="+3.1%" iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       <Card>
-        <CardHeader><CardTitle>部门薪酬概览</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("hr.compensation.deptOverview")}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
             {SALARY_OVERVIEW.map((d, i) => (
               <div key={i} className="flex items-center gap-4 p-4 rounded-lg border transition-colors">
                 <div className="flex-1">
                   <p className="font-medium">{d.dept}</p>
-                  <p className="text-sm text-muted-foreground"><Users className="inline h-3 w-3 mr-1" />{d.headcount}人 · 人均: {d.avgSalary}</p>
+                  <p className="text-sm text-muted-foreground"><Users className="inline h-3 w-3 mr-1" />{d.headcount}{t("hr.common.people")} · {t("hr.compensation.perCapita")}: {d.avgSalary}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold">{d.totalCost}</p>
@@ -58,7 +60,7 @@ export default function Compensation() {
           </div>
           <div className="mt-4 p-3 bg-muted/50 rounded-lg flex items-center gap-2 text-sm text-muted-foreground">
             <Lock className="h-4 w-4" />
-            薪酬数据仅对授权人员可见（HR经理、财务经理、总监）
+            {t("hr.compensation.accessRestriction")}
           </div>
         </CardContent>
       </Card>

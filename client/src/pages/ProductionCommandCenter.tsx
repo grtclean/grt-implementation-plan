@@ -3,6 +3,7 @@
  * 统一聚合生产制造各模块数据的综合看板
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard as GrtStatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,6 +30,7 @@ import {
 const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 export default function ProductionCommandCenter() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("process");
 
   // ── Stat card queries ──
@@ -75,17 +77,17 @@ export default function ProductionCommandCenter() {
       <div className="space-y-6">
         <PageHeader
           icon={Monitor}
-          title="生产指挥中心"
-          description="统一查看工序进度、排程执行、质量监控和工人分布"
+          title={t("manufacturing.production.commandCenterTitle")}
+          description={t("manufacturing.production.commandCenterDesc")}
         />
 
         {/* ── Stat Cards (5 metrics) ── */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <GrtStatCard icon={Factory} label="进行中工单" value={productionStatsLoading ? "..." : inProgressOrders} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-          <GrtStatCard icon={Gauge} label="设备利用率" value={productionStatsLoading ? "..." : equipUtilization} iconColor="text-green-500" iconBg="bg-green-500/10" />
-          <GrtStatCard icon={ShieldCheck} label="质量通过率" value={qcStatsLoading ? "..." : qualityPassRate} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
-          <GrtStatCard icon={Package} label="今日产出" value={productionStatsLoading ? "..." : todayOutput} iconColor="text-cyan-500" iconBg="bg-cyan-500/10" />
-          <GrtStatCard icon={Lock} label="质量锁定" value={productionStatsLoading ? "..." : qualityLockCount} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+          <GrtStatCard icon={Factory} label={t("manufacturing.production.inProgressOrders")} value={productionStatsLoading ? "..." : inProgressOrders} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <GrtStatCard icon={Gauge} label={t("manufacturing.production.equipmentUtilization")} value={productionStatsLoading ? "..." : equipUtilization} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <GrtStatCard icon={ShieldCheck} label={t("manufacturing.production.qualityPassRate")} value={qcStatsLoading ? "..." : qualityPassRate} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+          <GrtStatCard icon={Package} label={t("manufacturing.production.todayOutput")} value={productionStatsLoading ? "..." : todayOutput} iconColor="text-cyan-500" iconBg="bg-cyan-500/10" />
+          <GrtStatCard icon={Lock} label={t("manufacturing.production.qualityLock")} value={productionStatsLoading ? "..." : qualityLockCount} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
         </div>
 
         {/* ── Tab area ── */}
@@ -93,19 +95,19 @@ export default function ProductionCommandCenter() {
           <TabsList className="bg-muted/50">
             <TabsTrigger value="process">
               <ClipboardCheck className="w-4 h-4 mr-2" />
-              工序进度
+              {t("manufacturing.production.tabProcessProgress")}
             </TabsTrigger>
             <TabsTrigger value="scheduling">
               <CalendarClock className="w-4 h-4 mr-2" />
-              排程执行
+              {t("manufacturing.production.tabScheduleExecution")}
             </TabsTrigger>
             <TabsTrigger value="quality">
               <AlertTriangle className="w-4 h-4 mr-2" />
-              质量监控
+              {t("manufacturing.production.tabQualityMonitor")}
             </TabsTrigger>
             <TabsTrigger value="workers">
               <MapPin className="w-4 h-4 mr-2" />
-              工人分布
+              {t("manufacturing.production.tabWorkerDistribution")}
             </TabsTrigger>
           </TabsList>
 
@@ -217,8 +219,9 @@ function ProcessProgressTab({
   loading: boolean;
   error: boolean;
 }) {
+  const { t } = useLanguage();
   if (error) {
-    return <EmptyState message="暂无数据" />;
+    return <EmptyState message={t("manufacturing.production.noData")} />;
   }
 
   if (loading) {
@@ -254,11 +257,11 @@ function ProcessProgressTab({
   };
 
   const statusLabel: Record<string, string> = {
-    COMPLETED: "已完成",
-    IN_PROGRESS: "进行中",
-    NOT_STARTED: "未开始",
-    ON_HOLD: "暂停",
-    BLOCKED: "阻塞",
+    COMPLETED: t("manufacturing.steps.statusCompleted"),
+    IN_PROGRESS: t("manufacturing.steps.statusInProgress"),
+    NOT_STARTED: t("manufacturing.steps.statusNotStarted"),
+    ON_HOLD: t("manufacturing.production.onHold"),
+    BLOCKED: t("manufacturing.steps.statusBlocked"),
   };
 
   return (
@@ -267,25 +270,25 @@ function ProcessProgressTab({
       {stats?.summary && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">工序统计概览</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">{t("manufacturing.production.processStatsOverview")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
               <div>
                 <p className="text-2xl font-bold">{stats.summary.total}</p>
-                <p className="text-xs text-muted-foreground">工序总数</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.process.totalProcesses")}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-green-500">{stats.summary.completed}</p>
-                <p className="text-xs text-muted-foreground">已完成</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.steps.statusCompleted")}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-blue-500">{stats.summary.inProgress}</p>
-                <p className="text-xs text-muted-foreground">进行中</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.steps.statusInProgress")}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.summary.avgCompletionRate}%</p>
-                <p className="text-xs text-muted-foreground">平均完成率</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.production.avgCompletionRate")}</p>
               </div>
             </div>
           </CardContent>
@@ -329,7 +332,7 @@ function ProcessProgressTab({
         </Card>
       ))}
 
-      {projectMap.size === 0 && <EmptyState message="暂无进行中的项目工序数据" />}
+      {projectMap.size === 0 && <EmptyState message={t("manufacturing.production.noProjectProcessData")} />}
     </div>
   );
 }
@@ -350,8 +353,9 @@ function SchedulingTab({
   tasksLoading: boolean;
   error: boolean;
 }) {
+  const { t } = useLanguage();
   if (error) {
-    return <EmptyState message="暂无数据" />;
+    return <EmptyState message={t("manufacturing.production.noData")} />;
   }
 
   return (
@@ -359,7 +363,7 @@ function SchedulingTab({
       {/* Task distribution */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-muted-foreground">任务分布统计</CardTitle>
+          <CardTitle className="text-sm text-muted-foreground">{t("manufacturing.production.taskDistribution")}</CardTitle>
         </CardHeader>
         <CardContent>
           {statsLoading ? (
@@ -372,27 +376,27 @@ function SchedulingTab({
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
               <div>
                 <p className="text-2xl font-bold">{stats.tasks.total ?? 0}</p>
-                <p className="text-xs text-muted-foreground">任务总数</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.production.totalTasks")}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-yellow-500">{stats.tasks.pending ?? 0}</p>
-                <p className="text-xs text-muted-foreground">待排程</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.production.pendingSchedule")}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-blue-500">{stats.tasks.scheduled ?? 0}</p>
-                <p className="text-xs text-muted-foreground">已排程</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.production.scheduled")}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-cyan-500">{stats.tasks.in_progress ?? 0}</p>
-                <p className="text-xs text-muted-foreground">执行中</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.production.executing")}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-green-500">{stats.tasks.completed ?? 0}</p>
-                <p className="text-xs text-muted-foreground">已完成</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.steps.statusCompleted")}</p>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">暂无数据</p>
+            <p className="text-sm text-muted-foreground">{t("manufacturing.production.noData")}</p>
           )}
         </CardContent>
       </Card>
@@ -400,7 +404,7 @@ function SchedulingTab({
       {/* Task list table */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-muted-foreground">排程任务列表</CardTitle>
+          <CardTitle className="text-sm text-muted-foreground">{t("manufacturing.production.schedulingTaskList")}</CardTitle>
         </CardHeader>
         <CardContent>
           {tasksLoading ? (
@@ -414,12 +418,12 @@ function SchedulingTab({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
-                    <th className="py-2 pr-4">任务名称</th>
-                    <th className="py-2 pr-4">类型</th>
+                    <th className="py-2 pr-4">{t("manufacturing.production.taskName")}</th>
+                    <th className="py-2 pr-4">{t("manufacturing.production.taskType")}</th>
                     <th className="py-2 pr-4">BU</th>
-                    <th className="py-2 pr-4">优先级</th>
-                    <th className="py-2 pr-4">状态</th>
-                    <th className="py-2 pr-4">预估工时</th>
+                    <th className="py-2 pr-4">{t("manufacturing.production.priority")}</th>
+                    <th className="py-2 pr-4">{t("manufacturing.production.status")}</th>
+                    <th className="py-2 pr-4">{t("manufacturing.production.estimatedHours")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -451,7 +455,7 @@ function SchedulingTab({
               </table>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground py-4 text-center">暂无排程任务数据</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">{t("manufacturing.production.noSchedulingData")}</p>
           )}
         </CardContent>
       </Card>
@@ -478,8 +482,9 @@ function QualityTab({
   loading: boolean;
   error: boolean;
 }) {
+  const { t } = useLanguage();
   if (error) {
-    return <EmptyState message="暂无数据" />;
+    return <EmptyState message={t("manufacturing.production.noData")} />;
   }
 
   return (
@@ -487,7 +492,7 @@ function QualityTab({
       {/* QC Stats overview */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-muted-foreground">质检统计概览</CardTitle>
+          <CardTitle className="text-sm text-muted-foreground">{t("manufacturing.production.qcStatsOverview")}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -500,23 +505,23 @@ function QualityTab({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
               <div>
                 <p className="text-2xl font-bold">{qcStats.stats.totalRecords}</p>
-                <p className="text-xs text-muted-foreground">质检记录</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.production.qcRecords")}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-green-500">{qcStats.stats.passRate}</p>
-                <p className="text-xs text-muted-foreground">批次通过率</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.production.batchPassRate")}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-blue-500">{qcStats.stats.itemPassRate}</p>
-                <p className="text-xs text-muted-foreground">项目通过率</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.production.itemPassRate")}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-red-500">{qcStats.stats.failCount}</p>
-                <p className="text-xs text-muted-foreground">不合格批次</p>
+                <p className="text-xs text-muted-foreground">{t("manufacturing.production.failedBatches")}</p>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">暂无数据</p>
+            <p className="text-sm text-muted-foreground">{t("manufacturing.production.noData")}</p>
           )}
         </CardContent>
       </Card>
@@ -524,7 +529,7 @@ function QualityTab({
       {/* Recent quality alerts (mock data) */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-muted-foreground">近期质量预警</CardTitle>
+          <CardTitle className="text-sm text-muted-foreground">{t("manufacturing.production.recentQualityAlerts")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -572,15 +577,16 @@ function WorkerDistributionTab({
   workHoursLoading: boolean;
   error: boolean;
 }) {
+  const { t } = useLanguage();
   if (error) {
-    return <EmptyState message="暂无数据" />;
+    return <EmptyState message={t("manufacturing.production.noData")} />;
   }
 
   // Group locations by zone
   const zoneMap = new Map<string, any[]>();
   if (Array.isArray(locations)) {
     for (const loc of locations) {
-      const zone = loc.zoneName || "未知区域";
+      const zone = loc.zoneName || t("manufacturing.production.unknownZone");
       if (!zoneMap.has(zone)) {
         zoneMap.set(zone, []);
       }
@@ -595,7 +601,7 @@ function WorkerDistributionTab({
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
             <MapPin className="w-4 h-4" />
-            区域人员分布 (实时)
+            {t("manufacturing.production.zoneDistributionRealtime")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -635,7 +641,7 @@ function WorkerDistributionTab({
           ) : (
             <div className="text-center py-6">
               <Users className="w-10 h-10 mx-auto text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground">暂无实时定位数据</p>
+              <p className="text-sm text-muted-foreground">{t("manufacturing.production.noLocationData")}</p>
             </div>
           )}
         </CardContent>
@@ -644,7 +650,7 @@ function WorkerDistributionTab({
       {/* Work hours summary */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-muted-foreground">今日工时概览</CardTitle>
+          <CardTitle className="text-sm text-muted-foreground">{t("manufacturing.production.todayWorkHoursOverview")}</CardTitle>
         </CardHeader>
         <CardContent>
           {workHoursLoading ? (
@@ -658,10 +664,10 @@ function WorkerDistributionTab({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
-                    <th className="py-2 pr-4">员工</th>
-                    <th className="py-2 pr-4">有效工时</th>
-                    <th className="py-2 pr-4">总工时</th>
-                    <th className="py-2 pr-4">利用率</th>
+                    <th className="py-2 pr-4">{t("manufacturing.production.employee")}</th>
+                    <th className="py-2 pr-4">{t("manufacturing.production.effectiveHours")}</th>
+                    <th className="py-2 pr-4">{t("manufacturing.production.totalHours")}</th>
+                    <th className="py-2 pr-4">{t("manufacturing.production.utilizationRate")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -693,7 +699,7 @@ function WorkerDistributionTab({
               </table>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground py-4 text-center">暂无今日工时数据</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">{t("manufacturing.production.noWorkHoursData")}</p>
           )}
         </CardContent>
       </Card>

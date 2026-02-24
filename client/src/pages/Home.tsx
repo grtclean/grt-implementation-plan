@@ -15,41 +15,55 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { ArrowRight, CheckCircle2, Clock, Target, Zap, LogIn, AlertCircle } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useEffect } from "react";
+
+const isLocalAuth = import.meta.env.VITE_LOCAL_AUTH === "true";
 
 export default function Home() {
-  // Auth state available for future use
   const { isAuthenticated, loading } = useAuth();
-
   const { t } = useLanguage();
+  const [, navigate] = useLocation();
+
+  // In local auth mode, redirect unauthenticated users to /login immediately
+  useEffect(() => {
+    if (!loading && !isAuthenticated && isLocalAuth) {
+      navigate("/login", { replace: true });
+    }
+  }, [loading, isAuthenticated, navigate]);
+
+  // Show nothing while auth is loading or redirecting
+  if (loading || (!isAuthenticated && isLocalAuth)) {
+    return null;
+  }
 
   return (
       <div className="relative z-10 space-y-10">
-        {/* Login Prompt for Unauthenticated Users */}
-        {!loading && !isAuthenticated && (
+        {/* Login Prompt for Unauthenticated Users (OAuth mode only) */}
+        {!loading && !isAuthenticated && !isLocalAuth && (
           <Card className="border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500" />
-                <CardTitle className="text-amber-900 dark:text-amber-100">需要登录以访问完整功能</CardTitle>
+                <CardTitle className="text-amber-900 dark:text-amber-100">{t("home.loginRequired")}</CardTitle>
               </div>
               <CardDescription className="text-amber-800/70 dark:text-amber-200/70">
-                登录后您可以访问个人AI助手、项目管理、成本分析等高级功能
+                {t("home.loginBenefits")}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex gap-3">
-              <Button 
+              <Button
                 onClick={() => window.location.href = getLoginUrl()}
                 className="gap-2"
               >
                 <LogIn className="w-4 h-4" />
-                立即登录
+                {t("home.loginNow")}
               </Button>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => window.location.href = getLoginUrl()}
               >
-                使用第三方账号登录
+                {t("home.loginOAuth")}
               </Button>
             </CardContent>
           </Card>

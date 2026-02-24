@@ -303,6 +303,12 @@ import ReportCenter from "./pages/ReportCenter";
 import ReportPresent from "./pages/ReportPresent";
 import LobbyGlobalScreen from "./pages/LobbyGlobalScreen";
 import ShopfloorMasterBoard from "./pages/ShopfloorMasterBoard";
+import DualAIMatrix from "./pages/DualAIMatrix";
+import MeetingHub from "./pages/MeetingHub";
+import CrossBorderSync from "./pages/CrossBorderSync";
+import UniversalWorkspace from "./pages/UniversalWorkspace";
+import DataMigrationHub from "./pages/DataMigrationHub";
+import CustomerDigitalTwinPortal from "./pages/CustomerDigitalTwinPortal";
 
 // KPI绩效管理
 const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
@@ -471,6 +477,9 @@ function Router() {
       <Route path={"/ai-assistant-provisioning"} component={AiAssistantProvisioning} />
       <Route path={"/ai-agent-fleet"} component={AIAgentFleetDashboard} />
       <Route path={"/system-control-tower"} component={SystemControlTower} />
+      <Route path={"/workspace"} component={UniversalWorkspace} />
+      <Route path={"/data-migration"} component={DataMigrationHub} />
+      <Route path={"/customer-digital-twin"} component={CustomerDigitalTwinPortal} />
       <Route path={"/customer-portal"} component={CustomerPortal} />
       <Route path={"/login"} component={LocalLogin} />
       <Route path={"/login-success"} component={LoginSuccess} />
@@ -1517,6 +1526,19 @@ function Router() {
       </Route>
       <Route path="/safety-rules">
         <ProtectedRoute component={SafetyRuleManagement} />
+      </Route>
+
+      {/* Dual-AI Collaboration Matrix (Gemini → CEO → Claude) */}
+      <Route path="/dual-ai-matrix">
+        <ProtectedRoute component={DualAIMatrix} />
+      </Route>
+      {/* GRT Smart Meeting & AI Engagement Hub (智能会议与互动中枢) */}
+      <Route path="/meeting-hub">
+        <ProtectedRoute component={MeetingHub} />
+      </Route>
+      {/* Office 365 Encrypted Email Ferry — Cross-Border Data Sync */}
+      <Route path="/cross-border-sync">
+        <ProtectedRoute component={CrossBorderSync} />
       </Route>
 
       <Route path={"/404"} component={NotFound} />

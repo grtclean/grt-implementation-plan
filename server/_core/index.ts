@@ -146,7 +146,10 @@ async function startServer() {
     });
   });
 
-  server.listen(port, "127.0.0.1", () => {
+  // Listen on all interfaces (IPv4 + IPv6) so browsers can connect via
+  // either 127.0.0.1 or ::1 when they resolve "localhost".
+  // Omitting the host parameter makes Node listen on both IPv4 and IPv6.
+  server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
     console.log(`WebSocket collaboration available at ws://localhost:${port}/ws/collaboration`);
     console.log(`WebSocket IME live available at ws://localhost:${port}/ws/ime-live`);

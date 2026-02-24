@@ -3,6 +3,7 @@
  * BOM自动解析 · 最优拣货路线 · 缺料预警
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ interface RequisitionResult {
 }
 
 export default function WorkstationRequisition() {
+  const { t } = useLanguage();
   const [workstation, setWorkstation] = useState("");
   const [productionOrder, setProductionOrder] = useState("");
   const [bomMaterials, setBomMaterials] = useState("");
@@ -67,9 +69,9 @@ export default function WorkstationRequisition() {
 
   const statusLabel = (status: string) => {
     switch (status) {
-      case "ready": return "齐套";
-      case "partial": return "部分";
-      case "shortage": return "缺料";
+      case "ready": return t("manufacturing.requisition.statusReady");
+      case "partial": return t("manufacturing.requisition.statusPartial");
+      case "shortage": return t("manufacturing.requisition.statusShortage");
       default: return status;
     }
   };
@@ -78,12 +80,12 @@ export default function WorkstationRequisition() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Package}
-          title="智能工位领料"
-          description="BOM自动解析 · 最优拣货路线 · 缺料预警"
+          title={t("manufacturing.requisition.title")}
+          description={t("manufacturing.requisition.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI领料
+              {t("manufacturing.requisition.aiRequisition")}
             </Badge>
           }
         />
@@ -93,13 +95,13 @@ export default function WorkstationRequisition() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Package className="h-5 w-5 text-primary" />
-              领料信息
+              {t("manufacturing.requisition.requisitionInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">工位 *</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.requisition.workstation")} *</label>
                 <Input
                   placeholder="如: A3-组装工位"
                   value={workstation}
@@ -107,28 +109,28 @@ export default function WorkstationRequisition() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">生产工单号 *</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.requisition.productionOrder")} *</label>
                 <Input
-                  placeholder="生产工单号"
+                  placeholder={t("manufacturing.requisition.productionOrder")}
                   value={productionOrder}
                   onChange={(e) => setProductionOrder(e.target.value)}
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">BOM物料清单 *</label>
+              <label className="text-sm text-muted-foreground">{t("manufacturing.requisition.bomMaterials")} *</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]"
-                placeholder="BOM物料清单"
+                placeholder={t("manufacturing.requisition.bomMaterials")}
                 value={bomMaterials}
                 onChange={(e) => setBomMaterials(e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">仓库库存 *</label>
+              <label className="text-sm text-muted-foreground">{t("manufacturing.requisition.warehouseInventory")} *</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]"
-                placeholder="仓库库存"
+                placeholder={t("manufacturing.requisition.warehouseInventory")}
                 value={warehouseInventory}
                 onChange={(e) => setWarehouseInventory(e.target.value)}
               />
@@ -136,7 +138,7 @@ export default function WorkstationRequisition() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!workstation.trim() || !productionOrder.trim() || !bomMaterials.trim() || !warehouseInventory.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                智能领料
+                {t("manufacturing.requisition.smartRequisition")}
               </Button>
             </div>
           </CardContent>
@@ -150,13 +152,13 @@ export default function WorkstationRequisition() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">领料单号</p>
+                    <p className="text-sm text-muted-foreground">{t("manufacturing.requisition.requisitionNumber")}</p>
                     <Badge className="text-lg px-3 py-1 mt-1 bg-primary/20 text-primary border-primary/30">
                       {result.requisitionNumber}
                     </Badge>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-muted-foreground">目标工位</p>
+                    <p className="text-sm text-muted-foreground">{t("manufacturing.requisition.targetWorkstation")}</p>
                     <p className="text-xl font-bold">{result.workstation}</p>
                   </div>
                 </div>
@@ -169,7 +171,7 @@ export default function WorkstationRequisition() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Package className="h-5 w-5 text-primary" />
-                    领料明细 ({result.items.length})
+                    {t("manufacturing.requisition.itemDetail")} ({result.items.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -177,12 +179,12 @@ export default function WorkstationRequisition() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">物料</th>
-                          <th className="text-right py-2 pr-4">需求量</th>
-                          <th className="text-right py-2 pr-4">可用库存</th>
-                          <th className="text-right py-2 pr-4">分配量</th>
-                          <th className="text-left py-2 pr-4">状态</th>
-                          <th className="text-left py-2">库位</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.requisition.material")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.requisition.requiredQty")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.requisition.availableStock")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.requisition.allocatedQty")}</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.requisition.status")}</th>
+                          <th className="text-left py-2">{t("manufacturing.requisition.location")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -211,7 +213,7 @@ export default function WorkstationRequisition() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <MapPin className="h-5 w-5 text-primary" />
-                    最优拣货路线
+                    {t("manufacturing.requisition.optimalRoute")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -233,7 +235,7 @@ export default function WorkstationRequisition() {
                   <div className="flex items-center gap-3">
                     <Clock className="h-8 w-8 text-primary" />
                     <div>
-                      <p className="text-sm text-muted-foreground">预计拣货时间</p>
+                      <p className="text-sm text-muted-foreground">{t("manufacturing.requisition.estPickTime")}</p>
                       <p className="text-3xl font-bold text-primary">{result.estimatedPickTime}</p>
                     </div>
                   </div>
@@ -247,7 +249,7 @@ export default function WorkstationRequisition() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-red-400" />
-                    缺料预警 ({result.shortfalls.length})
+                    {t("manufacturing.requisition.shortfallAlert")} ({result.shortfalls.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -255,9 +257,9 @@ export default function WorkstationRequisition() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">物料</th>
-                          <th className="text-right py-2 pr-4">缺口数量</th>
-                          <th className="text-left py-2">处理建议</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.requisition.material")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.requisition.deficit")}</th>
+                          <th className="text-left py-2">{t("manufacturing.requisition.suggestion")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -281,7 +283,7 @@ export default function WorkstationRequisition() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-green-400" />
-                    AI建议
+                    {t("manufacturing.common.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

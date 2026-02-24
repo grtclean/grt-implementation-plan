@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,16 +83,18 @@ const mockDashboardData = {
   ]
 };
 
-// 刷新间隔选项
-const REFRESH_INTERVALS = [
-  { label: '关闭', value: 0 },
-  { label: '30秒', value: 30000 },
-  { label: '1分钟', value: 60000 },
-  { label: '5分钟', value: 300000 },
-  { label: '10分钟', value: 600000 }
-];
+// REFRESH_INTERVALS is defined inside the component to access t()
 
 export default function TravelDashboard() {
+  const { t } = useLanguage();
+
+  const REFRESH_INTERVALS = [
+    { label: t("finance.travel.refreshOff2"), value: 0 },
+    { label: t("finance.travel.refresh30s"), value: 30000 },
+    { label: t("finance.travel.refresh1m"), value: 60000 },
+    { label: t("finance.travel.refresh5m"), value: 300000 },
+    { label: t("finance.travel.refresh10m"), value: 600000 }
+  ];
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [data, setData] = useState(mockDashboardData);
@@ -140,16 +143,16 @@ export default function TravelDashboard() {
   // 获取刷新间隔标签
   const getRefreshIntervalLabel = () => {
     const interval = REFRESH_INTERVALS.find(i => i.value === refreshInterval);
-    return interval ? interval.label : '自定义';
+    return interval ? interval.label : t("finance.travel.refreshCustom");
   };
 
   // 计算上次刷新时间
   const getTimeSinceLastRefresh = () => {
     const seconds = Math.floor((currentTime.getTime() - lastRefresh.getTime()) / 1000);
-    if (seconds < 60) return `${seconds}秒前`;
+    if (seconds < 60) return `${seconds}${t("finance.travel.secsAgo")}`;
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}分钟前`;
-    return `${Math.floor(minutes / 60)}小时前`;
+    if (minutes < 60) return `${minutes}${t("finance.travel.minsAgo")}`;
+    return `${Math.floor(minutes / 60)}${t("finance.travel.hoursAgoLabel")}`;
   };
 
   // 全屏切换
@@ -177,11 +180,11 @@ export default function TravelDashboard() {
   // 获取状态文本
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'traveling': return '出行中';
-      case 'arrived': return '已到达';
-      case 'returning': return '返程中';
-      case 'completed': return '已完成';
-      default: return '未知';
+      case 'traveling': return t("finance.travel.travelingStatus");
+      case 'arrived': return t("finance.travel.arrivedStatus");
+      case 'returning': return t("finance.travel.returningStatus");
+      case 'completed': return t("finance.travel.completedStatus");
+      default: return t("finance.travel.unknownStatus");
     }
   };
 
@@ -191,7 +194,7 @@ export default function TravelDashboard() {
         <div className="flex items-center justify-between mb-6">
           <PageHeader
             icon={Globe}
-            title="出差数据大屏"
+            title={t("finance.travel.titleDashboard")}
             description="Travel Management Dashboard"
           />
 
@@ -210,9 +213,9 @@ export default function TravelDashboard() {
             <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 rounded-lg border border-slate-700">
               <div className={`w-2 h-2 rounded-full ${refreshInterval > 0 ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`} />
               <span className="text-xs text-slate-400">
-                {refreshInterval > 0 ? `自动刷新: ${getRefreshIntervalLabel()}` : '自动刷新: 关闭'}
+                {refreshInterval > 0 ? `${t("finance.travel.refreshLabel")}: ${getRefreshIntervalLabel()}` : `${t("finance.travel.refreshLabel")}: ${t("finance.travel.refreshOff2")}`}
               </span>
-              <span className="text-xs text-slate-500">| 上次: {getTimeSinceLastRefresh()}</span>
+              <span className="text-xs text-slate-500">| {t("finance.travel.lastLabel")}: {getTimeSinceLastRefresh()}</span>
             </div>
             
             {/* 刷新间隔选择器 */}
@@ -271,12 +274,12 @@ export default function TravelDashboard() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-blue-300">实时出差人数</p>
+                  <p className="text-sm text-blue-300">{t("finance.travel.realTimeTravelers")}</p>
                   <p className="text-3xl font-bold text-white mt-1">{data.travelingNow}</p>
                   <div className="flex gap-2 mt-2 text-xs">
-                    <span className="text-blue-300">国内 {data.travelingDomestic}</span>
+                    <span className="text-blue-300">{t("finance.travel.domesticCount")} {data.travelingDomestic}</span>
                     <span className="text-blue-300">|</span>
-                    <span className="text-blue-300">海外 {data.travelingInternational}</span>
+                    <span className="text-blue-300">{t("finance.travel.internationalCount")} {data.travelingInternational}</span>
                   </div>
                 </div>
                 <div className="w-14 h-14 bg-blue-500/20 rounded-full flex items-center justify-center">
@@ -291,7 +294,7 @@ export default function TravelDashboard() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-green-300">本月出差次数</p>
+                  <p className="text-sm text-green-300">{t("finance.travel.monthlyTrips")}</p>
                   <p className="text-3xl font-bold text-white mt-1">{data.monthlyTrips}</p>
                   <p className="text-xs text-green-300 mt-2">较上月 +12%</p>
                 </div>
@@ -307,7 +310,7 @@ export default function TravelDashboard() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-orange-300">本月实际费用</p>
+                  <p className="text-sm text-orange-300">{t("finance.travel.monthlyExpense")}</p>
                   <p className="text-3xl font-bold text-white mt-1">¥{(data.monthlyActual / 10000).toFixed(1)}万</p>
                   <p className="text-xs text-orange-300 mt-2">预算 ¥{(data.monthlyBudget / 10000).toFixed(1)}万</p>
                 </div>
@@ -323,7 +326,7 @@ export default function TravelDashboard() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <p className="text-sm text-purple-300">预算使用率</p>
+                  <p className="text-sm text-purple-300">{t("finance.travel.budgetUsage")}</p>
                   <p className="text-3xl font-bold text-white mt-1">{data.monthlyBudgetUsage}%</p>
                   <Progress value={data.monthlyBudgetUsage} className="mt-2 h-2 bg-purple-900" />
                 </div>
@@ -344,22 +347,22 @@ export default function TravelDashboard() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                  预算预警
+                  {t("finance.travel.budgetWarningTitle")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
                     <p className="text-2xl font-bold text-yellow-400">{data.warningCount}</p>
-                    <p className="text-xs text-yellow-300">预警</p>
+                    <p className="text-xs text-yellow-300">{t("finance.travel.warningLabel")}</p>
                   </div>
                   <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 text-center">
                     <p className="text-2xl font-bold text-orange-400">{data.exceededCount}</p>
-                    <p className="text-xs text-orange-300">超支</p>
+                    <p className="text-xs text-orange-300">{t("finance.travel.exceededLabel")}</p>
                   </div>
                   <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-center">
                     <p className="text-2xl font-bold text-red-400">{data.criticalCount}</p>
-                    <p className="text-xs text-red-300">严重</p>
+                    <p className="text-xs text-red-300">{t("finance.travel.criticalLabel")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -370,7 +373,7 @@ export default function TravelDashboard() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-blue-400" />
-                  部门费用分布
+                  {t("finance.travel.deptDistributionTitle")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -406,7 +409,7 @@ export default function TravelDashboard() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-orange-400" />
-                  出差人员分布
+                  {t("finance.travel.travellerDistTitle")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="relative h-[220px]">
@@ -464,7 +467,7 @@ export default function TravelDashboard() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Globe className="w-5 h-5 text-green-400" />
-                  热门目的地
+                  {t("finance.travel.popularDestTitle")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -490,7 +493,7 @@ export default function TravelDashboard() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Activity className="w-5 h-5 text-purple-400" />
-                  费用趋势（近6月）
+                  {t("finance.travel.expenseTrendTitle")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -520,11 +523,11 @@ export default function TravelDashboard() {
                 <div className="flex justify-center gap-6 mt-3 text-xs">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-slate-600/50 rounded" />
-                    <span className="text-slate-400">预算</span>
+                    <span className="text-slate-400">{t("finance.travel.budgetLegend")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-orange-500 rounded" />
-                    <span className="text-slate-400">实际</span>
+                    <span className="text-slate-400">{t("finance.travel.actualLegend")}</span>
                   </div>
                 </div>
               </CardContent>
@@ -535,7 +538,7 @@ export default function TravelDashboard() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Clock className="w-5 h-5 text-cyan-400" />
-                  最近动态
+                  {t("finance.travel.recentActivitiesTitle")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -566,7 +569,7 @@ export default function TravelDashboard() {
 
         {/* 底部信息 */}
         <div className="mt-6 text-center text-xs text-slate-500">
-          <p>数据每5分钟自动刷新 | 最后更新: {currentTime.toLocaleString('zh-CN')}</p>
+          <p>{t("finance.travel.autoRefreshFooter")} | {t("finance.travel.lastUpdateFooter")}: {currentTime.toLocaleString()}</p>
         </div>
       </div>
   );

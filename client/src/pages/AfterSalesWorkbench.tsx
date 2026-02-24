@@ -6,6 +6,7 @@
  * Wired to afterSales.* and supplyChain.* tRPC routers
  */
 import { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import {
   Shield, Package, MessageSquareWarning, Gavel, LayoutDashboard,
@@ -109,11 +110,11 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 /* Tab definitions */
 
 const TABS = [
-  { key: "warranty", label: "保修追踪", icon: Shield },
-  { key: "spare", label: "备件管理", icon: Package },
-  { key: "complaints", label: "客户投诉", icon: MessageSquareWarning },
-  { key: "penalties", label: "供应商处罚", icon: Gavel },
-  { key: "dashboard", label: "综合看板", icon: LayoutDashboard },
+  { key: "warranty", labelKey: "afterSales.workbench.warranty", icon: Shield },
+  { key: "spare", labelKey: "afterSales.workbench.spareParts", icon: Package },
+  { key: "complaints", labelKey: "afterSales.workbench.complaints", icon: MessageSquareWarning },
+  { key: "penalties", labelKey: "afterSales.workbench.penalties", icon: Gavel },
+  { key: "dashboard", labelKey: "afterSales.workbench.dashboard", icon: LayoutDashboard },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -121,64 +122,64 @@ type TabKey = (typeof TABS)[number]["key"];
 /* Helpers */
 
 function warrantyColor(daysRemaining: number | null | undefined): {
-  bg: string; text: string; dot: string; label: string;
+  bg: string; text: string; dot: string; labelKey: string;
 } {
   if (daysRemaining == null || daysRemaining <= 0)
-    return { bg: "bg-[#f3f2f1]", text: "text-[#a19f9d]", dot: "bg-[#a19f9d]", label: "已过期" };
+    return { bg: "bg-[#f3f2f1]", text: "text-[#a19f9d]", dot: "bg-[#a19f9d]", labelKey: "afterSales.workbench.expired" };
   if (daysRemaining < 30)
-    return { bg: "bg-[#fed9cc]", text: "text-[#d83b01]", dot: "bg-[#d83b01]", label: "即将过期" };
+    return { bg: "bg-[#fed9cc]", text: "text-[#d83b01]", dot: "bg-[#d83b01]", labelKey: "afterSales.workbench.expiringSoon" };
   if (daysRemaining <= 90)
-    return { bg: "bg-[#fff4ce]", text: "text-[#797673]", dot: "bg-[#c19c00]", label: "注意" };
-  return { bg: "bg-[#dff6dd]", text: "text-[#107c10]", dot: "bg-[#107c10]", label: "正常" };
+    return { bg: "bg-[#fff4ce]", text: "text-[#797673]", dot: "bg-[#c19c00]", labelKey: "afterSales.workbench.warrantyNotice" };
+  return { bg: "bg-[#dff6dd]", text: "text-[#107c10]", dot: "bg-[#107c10]", labelKey: "afterSales.workbench.normal" };
 }
 
-function severityBadge(severity: string | null | undefined) {
+function severityBadge(severity: string | null | undefined, t: (k: string) => string) {
   const s = (severity || "").toLowerCase();
   if (s === "critical")
-    return <span className={F.badge("bg-[#fde7e9]", "text-[#c50f1f]")}>严重</span>;
+    return <span className={F.badge("bg-[#fde7e9]", "text-[#c50f1f]")}>{t("afterSales.complaints.severityCritical")}</span>;
   if (s === "high")
-    return <span className={F.badge("bg-[#fed9cc]", "text-[#d83b01]")}>高</span>;
+    return <span className={F.badge("bg-[#fed9cc]", "text-[#d83b01]")}>{t("afterSales.complaints.severityHigh")}</span>;
   if (s === "medium")
-    return <span className={F.badge("bg-[#deecf9]", "text-[#0078d4]")}>中</span>;
-  return <span className={F.badge("bg-[#f3f2f1]", "text-[#605e5c]")}>低</span>;
+    return <span className={F.badge("bg-[#deecf9]", "text-[#0078d4]")}>{t("afterSales.complaints.severityMedium")}</span>;
+  return <span className={F.badge("bg-[#f3f2f1]", "text-[#605e5c]")}>{t("afterSales.complaints.severityLow")}</span>;
 }
 
-function complaintStatusBadge(status: string | null | undefined) {
+function complaintStatusBadge(status: string | null | undefined, t: (k: string) => string) {
   const s = (status || "").toLowerCase();
   if (s === "open")
-    return <span className={F.badge("bg-[#fed9cc]", "text-[#d83b01]")}>待处理</span>;
+    return <span className={F.badge("bg-[#fed9cc]", "text-[#d83b01]")}>{t("afterSales.complaints.open")}</span>;
   if (s === "investigating")
-    return <span className={F.badge("bg-[#deecf9]", "text-[#0078d4]")}>调查中</span>;
+    return <span className={F.badge("bg-[#deecf9]", "text-[#0078d4]")}>{t("afterSales.complaints.investigating")}</span>;
   if (s === "resolved")
-    return <span className={F.badge("bg-[#dff6dd]", "text-[#107c10]")}>已解决</span>;
+    return <span className={F.badge("bg-[#dff6dd]", "text-[#107c10]")}>{t("afterSales.complaints.resolved")}</span>;
   if (s === "closed")
-    return <span className={F.badge("bg-[#f3f2f1]", "text-[#605e5c]")}>已关闭</span>;
+    return <span className={F.badge("bg-[#f3f2f1]", "text-[#605e5c]")}>{t("afterSales.complaints.closed")}</span>;
   return <span className={F.badge("bg-[#f3f2f1]", "text-[#605e5c]")}>{status || "--"}</span>;
 }
 
-function escalationBadge(level: number | null | undefined) {
+function escalationBadge(level: number | null | undefined, t: (k: string) => string) {
   const l = level ?? 0;
-  const map: Record<number, { bg: string; text: string; label: string }> = {
-    1: { bg: "bg-[#fff4ce]", text: "text-[#797673]", label: "警告" },
-    2: { bg: "bg-[#fed9cc]", text: "text-[#d83b01]", label: "罚款" },
-    3: { bg: "bg-[#fde7e9]", text: "text-[#c50f1f]", label: "观察期" },
-    4: { bg: "bg-[#fde7e9]", text: "text-[#a80000]", label: "暂停" },
-    5: { bg: "bg-[#323130]", text: "text-white", label: "黑名单" },
+  const map: Record<number, { bg: string; text: string; labelKey: string }> = {
+    1: { bg: "bg-[#fff4ce]", text: "text-[#797673]", labelKey: "afterSales.penalties.levelWarning" },
+    2: { bg: "bg-[#fed9cc]", text: "text-[#d83b01]", labelKey: "afterSales.penalties.levelFine" },
+    3: { bg: "bg-[#fde7e9]", text: "text-[#c50f1f]", labelKey: "afterSales.penalties.levelObservation" },
+    4: { bg: "bg-[#fde7e9]", text: "text-[#a80000]", labelKey: "afterSales.penalties.levelSuspend" },
+    5: { bg: "bg-[#323130]", text: "text-white", labelKey: "afterSales.penalties.levelBlacklist" },
   };
-  const cfg = map[l] || { bg: "bg-[#f3f2f1]", text: "text-[#605e5c]", label: `L${l}` };
-  return <span className={F.badge(cfg.bg, cfg.text)}>{cfg.label}</span>;
+  const cfg = map[l] || { bg: "bg-[#f3f2f1]", text: "text-[#605e5c]", labelKey: "" };
+  return <span className={F.badge(cfg.bg, cfg.text)}>{cfg.labelKey ? t(cfg.labelKey) : `L${l}`}</span>;
 }
 
-function triggerTypeBadge(type: string | null | undefined) {
-  const t = (type || "").toLowerCase();
-  const map: Record<string, { label: string; bg: string; text: string }> = {
-    quality_reject: { label: "质量拒收", bg: "bg-[#fde7e9]", text: "text-[#c50f1f]" },
-    late_delivery: { label: "延迟交货", bg: "bg-[#fff4ce]", text: "text-[#797673]" },
-    missing_report: { label: "报告缺失", bg: "bg-[#deecf9]", text: "text-[#0078d4]" },
-    safety_violation: { label: "安全违规", bg: "bg-[#fed9cc]", text: "text-[#d83b01]" },
+function triggerTypeBadge(type: string | null | undefined, tr: (k: string) => string) {
+  const tp = (type || "").toLowerCase();
+  const map: Record<string, { labelKey: string; bg: string; text: string }> = {
+    quality_reject: { labelKey: "afterSales.penalties.triggerQuality", bg: "bg-[#fde7e9]", text: "text-[#c50f1f]" },
+    late_delivery: { labelKey: "afterSales.penalties.triggerDelivery", bg: "bg-[#fff4ce]", text: "text-[#797673]" },
+    missing_report: { labelKey: "afterSales.penalties.triggerReport", bg: "bg-[#deecf9]", text: "text-[#0078d4]" },
+    safety_violation: { labelKey: "afterSales.penalties.triggerSafety", bg: "bg-[#fed9cc]", text: "text-[#d83b01]" },
   };
-  const cfg = map[t] || { label: type || "--", bg: "bg-[#f3f2f1]", text: "text-[#605e5c]" };
-  return <span className={F.badge(cfg.bg, cfg.text)}>{cfg.label}</span>;
+  const cfg = map[tp] || { labelKey: "", bg: "bg-[#f3f2f1]", text: "text-[#605e5c]" };
+  return <span className={F.badge(cfg.bg, cfg.text)}>{cfg.labelKey ? tr(cfg.labelKey) : (type || "--")}</span>;
 }
 
 function fmtDate(d: string | null | undefined): string {
@@ -198,6 +199,7 @@ function fmtCurrency(v: number | string | null | undefined): string {
 
 /* Tab 1: Warranty Tracker (保修追踪) */
 function WarrantyTab() {
+  const { t } = useLanguage();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
 
@@ -240,10 +242,10 @@ function WarrantyTab() {
     <div className="space-y-6">
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatBox icon={Box} label="设备总数" value={stats.total} accent="#0078d4" />
-        <StatBox icon={CheckCircle2} label="保修有效" value={stats.active} accent="#107c10" />
-        <StatBox icon={AlertTriangle} label="即将到期" value={stats.expiring} accent="#c19c00" />
-        <StatBox icon={XCircle} label="已过期" value={stats.expired} accent="#d83b01" />
+        <StatBox icon={Box} label={t("afterSales.workbench.totalEquipment")} value={stats.total} accent="#0078d4" />
+        <StatBox icon={CheckCircle2} label={t("afterSales.workbench.warrantyActive")} value={stats.active} accent="#107c10" />
+        <StatBox icon={AlertTriangle} label={t("afterSales.workbench.expiringSoon")} value={stats.expiring} accent="#c19c00" />
+        <StatBox icon={XCircle} label={t("afterSales.workbench.expired")} value={stats.expired} accent="#d83b01" />
       </div>
 
       {dueSoon.length > 0 && (
@@ -251,14 +253,14 @@ function WarrantyTab() {
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-[#c19c00]" />
             <span className="text-sm font-semibold text-[#323130]">
-              {dueSoon.length} 台设备保修即将到期
+              {dueSoon.length} {t("afterSales.workbench.devicesExpiring")}
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
             {dueSoon.slice(0, 8).map((e: any, i: number) => (
               <span key={i} className="inline-flex items-center gap-1 rounded-lg bg-white border border-[#edebe9] px-2.5 py-1 text-xs text-[#323130]">
                 {e.serialNumber || e.modelName}
-                <span className="text-[#d83b01] font-semibold">{e.daysRemaining}天</span>
+                <span className="text-[#d83b01] font-semibold">{e.daysRemaining}{t("afterSales.workbench.days")}</span>
               </span>
             ))}
           </div>
@@ -268,22 +270,22 @@ function WarrantyTab() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a19f9d]" />
-          <input className={`${F.inputBase} pl-9`} placeholder="搜索序列号/型号..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className={`${F.inputBase} pl-9`} placeholder={t("afterSales.workbench.searchSerial")} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <select className={`${F.inputBase} w-auto max-w-[160px]`} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="all">全部状态</option>
-          <option value="active">保修有效</option>
-          <option value="expiring">即将到期</option>
-          <option value="expired">已过期</option>
+          <option value="all">{t("afterSales.workbench.allStatus")}</option>
+          <option value="active">{t("afterSales.workbench.active")}</option>
+          <option value="expiring">{t("afterSales.workbench.expiring")}</option>
+          <option value="expired">{t("afterSales.workbench.expired")}</option>
         </select>
         <button className={F.btnGhost} onClick={() => { equipQ.refetch(); dueSoonQ.refetch(); }}>
-          <RefreshCw className="w-4 h-4" /> 刷新
+          <RefreshCw className="w-4 h-4" /> {t("afterSales.workbench.refresh")}
         </button>
       </div>
 
       <div className="space-y-3">
         {filtered.length === 0 && (
-          <div className="text-center py-12 text-[#a19f9d] text-sm">暂无设备数据</div>
+          <div className="text-center py-12 text-[#a19f9d] text-sm">{t("afterSales.workbench.noEquipment")}</div>
         )}
         {filtered.map((eq: any, idx: number) => {
           const wc = warrantyColor(eq.daysRemaining);
@@ -294,29 +296,29 @@ function WarrantyTab() {
                   <div className="flex items-center gap-2 mb-1">
                     <div className={`w-2 h-2 rounded-full ${wc.dot}`} />
                     <span className="font-semibold text-[#323130] truncate">{eq.serialNumber || "--"}</span>
-                    <span className={`${F.badge(wc.bg, wc.text)}`}>{wc.label}</span>
+                    <span className={`${F.badge(wc.bg, wc.text)}`}>{t(wc.labelKey)}</span>
                   </div>
                   <div className="text-sm text-[#605e5c]">
-                    型号: {eq.modelName || "--"} &nbsp;|&nbsp; 运行状态: {eq.operationalStatus || "--"}
+                    {t("afterSales.workbench.model")}: {eq.modelName || "--"} &nbsp;|&nbsp; {t("afterSales.workbench.opStatus")}: {eq.operationalStatus || "--"}
                   </div>
                 </div>
                 <div className="flex items-center gap-6 text-sm text-[#605e5c]">
                   <div>
-                    <div className="text-xs text-[#a19f9d]">保修到期</div>
+                    <div className="text-xs text-[#a19f9d]">{t("afterSales.workbench.warrantyExpiry")}</div>
                     <div className="font-medium text-[#323130]">{fmtDate(eq.warrantyEndDate)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-[#a19f9d]">剩余天数</div>
+                    <div className="text-xs text-[#a19f9d]">{t("afterSales.workbench.daysRemaining")}</div>
                     <div className="font-bold" style={{ color: (eq.daysRemaining ?? -1) <= 0 ? "#a19f9d" : (eq.daysRemaining ?? 999) < 30 ? "#d83b01" : (eq.daysRemaining ?? 999) <= 90 ? "#c19c00" : "#107c10" }}>
-                      {eq.daysRemaining != null ? `${eq.daysRemaining}天` : "--"}
+                      {eq.daysRemaining != null ? `${eq.daysRemaining}${t("afterSales.workbench.days")}` : "--"}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-[#a19f9d]">上次维护</div>
+                    <div className="text-xs text-[#a19f9d]">{t("afterSales.workbench.lastMaintenance")}</div>
                     <div className="text-[#323130]">{fmtDate(eq.lastMaintenanceDate)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-[#a19f9d]">下次保养</div>
+                    <div className="text-xs text-[#a19f9d]">{t("afterSales.workbench.nextMaintenance")}</div>
                     <div className="text-[#323130]">{fmtDate(eq.nextDueDate)}</div>
                   </div>
                 </div>
@@ -331,6 +333,7 @@ function WarrantyTab() {
 
 /* Tab 2: Spare Parts */
 function SparePartsTab() {
+  const { t } = useLanguage();
   const [catFilter, setCatFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -373,9 +376,9 @@ function SparePartsTab() {
   }, [parts, lowStock]);
 
   const categories = [
-    { value: "all", label: "全部类别" }, { value: "mechanical", label: "机械件" },
-    { value: "electrical", label: "电气件" }, { value: "hydraulic", label: "液压件" },
-    { value: "pneumatic", label: "气动件" }, { value: "consumable", label: "耗材" },
+    { value: "all", label: t("afterSales.spare.allCategories") }, { value: "mechanical", label: t("afterSales.spare.mechanical") },
+    { value: "electrical", label: t("afterSales.spare.electrical") }, { value: "hydraulic", label: t("afterSales.spare.hydraulic") },
+    { value: "pneumatic", label: t("afterSales.spare.pneumatic") }, { value: "consumable", label: t("afterSales.spare.consumable") },
   ];
 
   if (partsQ.isLoading) return <Skeleton rows={5} />;
@@ -383,17 +386,17 @@ function SparePartsTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatBox icon={Package} label="备件总数" value={stats.total} accent="#0078d4" />
-        <StatBox icon={AlertTriangle} label="关键备件" value={stats.critical} accent="#d83b01" />
-        <StatBox icon={TrendingDown} label="低库存预警" value={stats.lowCount} accent="#c19c00" />
-        <StatBox icon={BarChart3} label="库存总值" value={`¥${(stats.totalValue / 10000).toFixed(1)}万`} accent="#107c10" />
+        <StatBox icon={Package} label={t("afterSales.spare.totalParts")} value={stats.total} accent="#0078d4" />
+        <StatBox icon={AlertTriangle} label={t("afterSales.spare.criticalParts")} value={stats.critical} accent="#d83b01" />
+        <StatBox icon={TrendingDown} label={t("afterSales.spare.lowStockAlert")} value={stats.lowCount} accent="#c19c00" />
+        <StatBox icon={BarChart3} label={t("afterSales.spare.inventoryValue")} value={`¥${(stats.totalValue / 10000).toFixed(1)}万`} accent="#107c10" />
       </div>
 
       {lowStock.length > 0 && (
         <div className="rounded-xl border border-[#d83b01]/30 bg-[#fed9cc]/30 px-5 py-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-[#d83b01]" />
-            <span className="text-sm font-semibold text-[#323130]">{lowStock.length} 项备件库存不足</span>
+            <span className="text-sm font-semibold text-[#323130]">{lowStock.length} {t("afterSales.spare.lowStockItems")}</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {lowStock.slice(0, 10).map((p: any, i: number) => (
@@ -409,18 +412,18 @@ function SparePartsTab() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a19f9d]" />
-          <input className={`${F.inputBase} pl-9`} placeholder="搜索物料编码/名称..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className={`${F.inputBase} pl-9`} placeholder={t("afterSales.spare.searchParts")} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <select className={`${F.inputBase} w-auto max-w-[140px]`} value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
           {categories.map((cat) => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
         </select>
         <button className={F.btnPrimary} onClick={() => setShowCreate(true)}>
-          <Plus className="w-4 h-4" /> 新建备件
+          <Plus className="w-4 h-4" /> {t("afterSales.spare.newPart")}
         </button>
       </div>
 
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.length === 0 && <div className="col-span-full text-center py-12 text-[#a19f9d] text-sm">暂无备件数据</div>}
+        {filtered.length === 0 && <div className="col-span-full text-center py-12 text-[#a19f9d] text-sm">{t("afterSales.spare.noParts")}</div>}
         {filtered.map((p: any, idx: number) => {
           const current = p.currentStock ?? 0;
           const max = p.maxStockLevel ?? 100;
@@ -433,7 +436,7 @@ function SparePartsTab() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="font-semibold text-[#323130] truncate">{p.materialName || "--"}</span>
-                    {p.isCritical && <span className={F.badge("bg-[#fde7e9]", "text-[#c50f1f]")}>关键</span>}
+                    {p.isCritical && <span className={F.badge("bg-[#fde7e9]", "text-[#c50f1f]")}>{t("afterSales.spare.critical")}</span>}
                   </div>
                   <div className="text-xs text-[#605e5c]">{p.materialCode || "--"} &middot; {p.specification || "--"}</div>
                 </div>
@@ -441,47 +444,47 @@ function SparePartsTab() {
               </div>
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className={isLow ? "text-[#d83b01] font-semibold" : "text-[#605e5c]"}>库存: {current}</span>
-                  <span className="text-[#a19f9d]">最大: {max}</span>
+                  <span className={isLow ? "text-[#d83b01] font-semibold" : "text-[#605e5c]"}>{t("afterSales.spare.stock")}: {current}</span>
+                  <span className="text-[#a19f9d]">{t("afterSales.spare.max")}: {max}</span>
                 </div>
                 <div className="h-2 rounded-full bg-[#f3f2f1] overflow-hidden">
                   <div className="h-full rounded-full transition-all" style={{ width: pct + "%", backgroundColor: isLow ? "#d83b01" : pct > 70 ? "#107c10" : "#0078d4" }} />
                 </div>
-                {isLow && <div className="text-[10px] text-[#d83b01] mt-0.5">低于补货点 ({reorder})</div>}
+                {isLow && <div className="text-[10px] text-[#d83b01] mt-0.5">{t("afterSales.spare.belowReorder")} ({reorder})</div>}
               </div>
               <div className="flex items-center justify-between text-xs text-[#605e5c]">
-                <span>单价: {fmtCurrency(p.unitPrice)}</span>
-                <span>小计: {fmtCurrency((parseFloat(p.unitPrice || 0) * current).toFixed(2))}</span>
+                <span>{t("afterSales.spare.unitPrice")}: {fmtCurrency(p.unitPrice)}</span>
+                <span>{t("afterSales.spare.subtotal")}: {fmtCurrency((parseFloat(p.unitPrice || 0) * current).toFixed(2))}</span>
               </div>
             </div>
           );
         })}
       </div>
 
-      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title="新建备件">
+      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title={t("afterSales.spare.newPart")}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div><FieldLabel>物料编码</FieldLabel><input className={F.inputBase} value={form.materialCode} onChange={(e) => setForm({ ...form, materialCode: e.target.value })} /></div>
-            <div><FieldLabel>物料名称</FieldLabel><input className={F.inputBase} value={form.materialName} onChange={(e) => setForm({ ...form, materialName: e.target.value })} /></div>
+            <div><FieldLabel>{t("afterSales.spare.materialCode")}</FieldLabel><input className={F.inputBase} value={form.materialCode} onChange={(e) => setForm({ ...form, materialCode: e.target.value })} /></div>
+            <div><FieldLabel>{t("afterSales.spare.materialName")}</FieldLabel><input className={F.inputBase} value={form.materialName} onChange={(e) => setForm({ ...form, materialName: e.target.value })} /></div>
           </div>
-          <div><FieldLabel>规格</FieldLabel><input className={F.inputBase} value={form.specification} onChange={(e) => setForm({ ...form, specification: e.target.value })} /></div>
+          <div><FieldLabel>{t("afterSales.spare.specification")}</FieldLabel><input className={F.inputBase} value={form.specification} onChange={(e) => setForm({ ...form, specification: e.target.value })} /></div>
           <div className="grid grid-cols-2 gap-4">
-            <div><FieldLabel>类别</FieldLabel><select className={F.inputBase} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="mechanical">机械件</option><option value="electrical">电气件</option><option value="hydraulic">液压件</option><option value="pneumatic">气动件</option><option value="consumable">耗材</option></select></div>
-            <div><FieldLabel>单价 (¥)</FieldLabel><input type="number" className={F.inputBase} value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: parseFloat(e.target.value) || 0 })} /></div>
+            <div><FieldLabel>{t("afterSales.spare.category")}</FieldLabel><select className={F.inputBase} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="mechanical">{t("afterSales.spare.mechanical")}</option><option value="electrical">{t("afterSales.spare.electrical")}</option><option value="hydraulic">{t("afterSales.spare.hydraulic")}</option><option value="pneumatic">{t("afterSales.spare.pneumatic")}</option><option value="consumable">{t("afterSales.spare.consumable")}</option></select></div>
+            <div><FieldLabel>{t("afterSales.spare.price")}</FieldLabel><input type="number" className={F.inputBase} value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: parseFloat(e.target.value) || 0 })} /></div>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <div><FieldLabel>最低库存</FieldLabel><input type="number" className={F.inputBase} value={form.minStockLevel} onChange={(e) => setForm({ ...form, minStockLevel: parseInt(e.target.value) || 0 })} /></div>
-            <div><FieldLabel>补货点</FieldLabel><input type="number" className={F.inputBase} value={form.reorderPoint} onChange={(e) => setForm({ ...form, reorderPoint: parseInt(e.target.value) || 0 })} /></div>
-            <div><FieldLabel>最大库存</FieldLabel><input type="number" className={F.inputBase} value={form.maxStockLevel} onChange={(e) => setForm({ ...form, maxStockLevel: parseInt(e.target.value) || 0 })} /></div>
+            <div><FieldLabel>{t("afterSales.spare.minStock")}</FieldLabel><input type="number" className={F.inputBase} value={form.minStockLevel} onChange={(e) => setForm({ ...form, minStockLevel: parseInt(e.target.value) || 0 })} /></div>
+            <div><FieldLabel>{t("afterSales.spare.reorderPoint")}</FieldLabel><input type="number" className={F.inputBase} value={form.reorderPoint} onChange={(e) => setForm({ ...form, reorderPoint: parseInt(e.target.value) || 0 })} /></div>
+            <div><FieldLabel>{t("afterSales.spare.maxStock")}</FieldLabel><input type="number" className={F.inputBase} value={form.maxStockLevel} onChange={(e) => setForm({ ...form, maxStockLevel: parseInt(e.target.value) || 0 })} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div><FieldLabel>当前库存</FieldLabel><input type="number" className={F.inputBase} value={form.currentStock} onChange={(e) => setForm({ ...form, currentStock: parseInt(e.target.value) || 0 })} /></div>
-            <div className="flex items-end pb-1"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isCritical} onChange={(e) => setForm({ ...form, isCritical: e.target.checked })} className="w-4 h-4 accent-[#0078d4]" /><span className="text-sm text-[#323130]">关键备件</span></label></div>
+            <div><FieldLabel>{t("afterSales.spare.currentStock")}</FieldLabel><input type="number" className={F.inputBase} value={form.currentStock} onChange={(e) => setForm({ ...form, currentStock: parseInt(e.target.value) || 0 })} /></div>
+            <div className="flex items-end pb-1"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isCritical} onChange={(e) => setForm({ ...form, isCritical: e.target.checked })} className="w-4 h-4 accent-[#0078d4]" /><span className="text-sm text-[#323130]">{t("afterSales.spare.isCritical")}</span></label></div>
           </div>
         </div>
         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#edebe9]">
-          <button className={F.btnSecondary} onClick={() => setShowCreate(false)}>取消</button>
-          <button className={F.btnPrimary} disabled={createM.isPending} onClick={() => createM.mutate(form as any)}>{createM.isPending ? "创建中..." : "创建"}</button>
+          <button className={F.btnSecondary} onClick={() => setShowCreate(false)}>{t("afterSales.spare.cancel")}</button>
+          <button className={F.btnPrimary} disabled={createM.isPending} onClick={() => createM.mutate(form as any)}>{createM.isPending ? t("afterSales.spare.creating") : t("afterSales.spare.create")}</button>
         </div>
       </FluentDialog>
     </div>
@@ -490,6 +493,7 @@ function SparePartsTab() {
 
 /* Tab 3: Complaints (客户投诉) */
 function ComplaintsTab() {
+  const { t } = useLanguage();
   const [sevFilter, setSevFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -519,18 +523,18 @@ function ComplaintsTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatBox icon={MessageSquareWarning} label="投诉总数" value={cStats.total ?? complaints.length} accent="#0078d4" />
-        <StatBox icon={Clock} label="待处理" value={cStats.open ?? complaints.filter((c: any) => c.status === "open").length} accent="#d83b01" />
-        <StatBox icon={AlertTriangle} label="严重" value={cStats.critical ?? complaints.filter((c: any) => c.severity === "critical").length} accent="#c50f1f" />
-        <StatBox icon={Star} label="平均满意度" value={cStats.avgSatisfaction != null ? Number(cStats.avgSatisfaction).toFixed(1) + "/10" : "--"} accent="#107c10" />
+        <StatBox icon={MessageSquareWarning} label={t("afterSales.complaints.totalComplaints")} value={cStats.total ?? complaints.length} accent="#0078d4" />
+        <StatBox icon={Clock} label={t("afterSales.complaints.pending")} value={cStats.open ?? complaints.filter((c: any) => c.status === "open").length} accent="#d83b01" />
+        <StatBox icon={AlertTriangle} label={t("afterSales.complaints.criticalCount")} value={cStats.critical ?? complaints.filter((c: any) => c.severity === "critical").length} accent="#c50f1f" />
+        <StatBox icon={Star} label={t("afterSales.complaints.avgSatisfaction")} value={cStats.avgSatisfaction != null ? Number(cStats.avgSatisfaction).toFixed(1) + "/10" : "--"} accent="#107c10" />
       </div>
 
       <div className={`${F.card} p-4`}>
-        <div className="text-sm font-semibold text-[#323130] mb-3">处理流程</div>
+        <div className="text-sm font-semibold text-[#323130] mb-3">{t("afterSales.complaints.workflow")}</div>
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
           {["open", "investigating", "resolved", "closed"].map((s, i) => {
             const count = complaints.filter((c: any) => c.status === s).length;
-            const labels: Record<string, string> = { open: "待处理", investigating: "调查中", resolved: "已解决", closed: "已关闭" };
+            const labels: Record<string, string> = { open: t("afterSales.complaints.open"), investigating: t("afterSales.complaints.investigating"), resolved: t("afterSales.complaints.resolved"), closed: t("afterSales.complaints.closed") };
             const colors: Record<string, string> = { open: "#d83b01", investigating: "#0078d4", resolved: "#107c10", closed: "#605e5c" };
             return (
               <div key={s} className="flex items-center gap-2">
@@ -548,35 +552,35 @@ function ComplaintsTab() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a19f9d]" />
-          <input className={`${F.inputBase} pl-9`} placeholder="搜索客户/描述..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className={`${F.inputBase} pl-9`} placeholder={t("afterSales.complaints.searchCustomer")} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <select className={`${F.inputBase} w-auto max-w-[130px]`} value={sevFilter} onChange={(e) => setSevFilter(e.target.value)}>
-          <option value="all">全部严重度</option><option value="critical">严重</option><option value="high">高</option><option value="medium">中</option><option value="low">低</option>
+          <option value="all">{t("afterSales.complaints.allSeverity")}</option><option value="critical">{t("afterSales.complaints.severityCritical")}</option><option value="high">{t("afterSales.complaints.severityHigh")}</option><option value="medium">{t("afterSales.complaints.severityMedium")}</option><option value="low">{t("afterSales.complaints.severityLow")}</option>
         </select>
-        <button className={F.btnPrimary} onClick={() => setShowCreate(true)}><Plus className="w-4 h-4" /> 新建投诉</button>
+        <button className={F.btnPrimary} onClick={() => setShowCreate(true)}><Plus className="w-4 h-4" /> {t("afterSales.complaints.newComplaint")}</button>
       </div>
 
       <div className="space-y-3">
-        {filtered.length === 0 && <div className="text-center py-12 text-[#a19f9d] text-sm">暂无投诉数据</div>}
+        {filtered.length === 0 && <div className="text-center py-12 text-[#a19f9d] text-sm">{t("afterSales.complaints.noData")}</div>}
         {filtered.map((c: any, idx: number) => (
           <div key={c.id ?? idx} className={`${F.card} p-4`}>
             <div className="flex flex-col md:flex-row md:items-start gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="font-semibold text-[#323130]">{c.customerName || "未知客户"}</span>
-                  {severityBadge(c.severity)}
-                  {complaintStatusBadge(c.status)}
-                  {c.eightDReportId && <span className={F.badge("bg-[#deecf9]", "text-[#0078d4]")}>8D已关联</span>}
-                  {c.capaId && <span className={F.badge("bg-[#e8def8]", "text-[#6b21a8]")}>CAPA已关联</span>}
+                  <span className="font-semibold text-[#323130]">{c.customerName || t("afterSales.complaints.unknownCustomer")}</span>
+                  {severityBadge(c.severity, t)}
+                  {complaintStatusBadge(c.status, t)}
+                  {c.eightDReportId && <span className={F.badge("bg-[#deecf9]", "text-[#0078d4]")}>{t("afterSales.complaints.eightDLinked")}</span>}
+                  {c.capaId && <span className={F.badge("bg-[#e8def8]", "text-[#6b21a8]")}>{t("afterSales.complaints.capaLinked")}</span>}
                 </div>
-                <p className="text-sm text-[#605e5c] line-clamp-2 mb-1">{c.description || "无描述"}</p>
+                <p className="text-sm text-[#605e5c] line-clamp-2 mb-1">{c.description || t("afterSales.complaints.noDescription")}</p>
                 <div className="flex items-center gap-4 text-xs text-[#a19f9d]">
-                  {c.equipmentSerialNumber && <span>设备: {c.equipmentSerialNumber}</span>}
-                  <span>创建: {fmtDate(c.createdAt)}</span>
+                  {c.equipmentSerialNumber && <span>{t("afterSales.complaints.equipment")}: {c.equipmentSerialNumber}</span>}
+                  <span>{t("afterSales.complaints.created")}: {fmtDate(c.createdAt)}</span>
                 </div>
               </div>
               <div className="flex-shrink-0 text-center">
-                <div className="text-xs text-[#a19f9d] mb-1">满意度</div>
+                <div className="text-xs text-[#a19f9d] mb-1">{t("afterSales.complaints.satisfaction")}</div>
                 {c.satisfactionScore != null ? (
                   <div className="flex items-center gap-0.5">
                     {Array.from({ length: 10 }).map((_, si) => (
@@ -591,16 +595,16 @@ function ComplaintsTab() {
         ))}
       </div>
 
-      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title="新建客户投诉">
+      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title={t("afterSales.complaints.newComplaint")}>
         <div className="space-y-4">
-          <div><FieldLabel>客户名称</FieldLabel><input className={F.inputBase} value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} placeholder="输入客户名称" /></div>
-          <div><FieldLabel>严重程度</FieldLabel><select className={F.inputBase} value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })}><option value="critical">严重</option><option value="high">高</option><option value="medium">中</option><option value="low">低</option></select></div>
-          <div><FieldLabel>设备序列号 (可选)</FieldLabel><input className={F.inputBase} value={form.equipmentSerialNumber} onChange={(e) => setForm({ ...form, equipmentSerialNumber: e.target.value })} placeholder="关联设备序列号" /></div>
-          <div><FieldLabel>问题描述</FieldLabel><textarea className={`${F.inputBase} min-h-[100px] resize-y`} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="详细描述投诉问题..." /></div>
+          <div><FieldLabel>{t("afterSales.complaints.customerName")}</FieldLabel><input className={F.inputBase} value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} placeholder={t("afterSales.complaints.customerName")} /></div>
+          <div><FieldLabel>{t("afterSales.complaints.severity")}</FieldLabel><select className={F.inputBase} value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })}><option value="critical">{t("afterSales.complaints.severityCritical")}</option><option value="high">{t("afterSales.complaints.severityHigh")}</option><option value="medium">{t("afterSales.complaints.severityMedium")}</option><option value="low">{t("afterSales.complaints.severityLow")}</option></select></div>
+          <div><FieldLabel>{t("afterSales.complaints.serialNo")}</FieldLabel><input className={F.inputBase} value={form.equipmentSerialNumber} onChange={(e) => setForm({ ...form, equipmentSerialNumber: e.target.value })} placeholder={t("afterSales.complaints.serialNoPlaceholder")} /></div>
+          <div><FieldLabel>{t("afterSales.complaints.description")}</FieldLabel><textarea className={`${F.inputBase} min-h-[100px] resize-y`} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t("afterSales.complaints.descPlaceholder")} /></div>
         </div>
         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#edebe9]">
-          <button className={F.btnSecondary} onClick={() => setShowCreate(false)}>取消</button>
-          <button className={F.btnPrimary} disabled={createM.isPending || !form.customerName || !form.description} onClick={() => createM.mutate(form as any)}>{createM.isPending ? "提交中..." : "提交投诉"}</button>
+          <button className={F.btnSecondary} onClick={() => setShowCreate(false)}>{t("afterSales.complaints.cancel")}</button>
+          <button className={F.btnPrimary} disabled={createM.isPending || !form.customerName || !form.description} onClick={() => createM.mutate(form as any)}>{createM.isPending ? t("afterSales.complaints.submitting") : t("afterSales.complaints.submit")}</button>
         </div>
       </FluentDialog>
     </div>
@@ -609,6 +613,7 @@ function ComplaintsTab() {
 
 /* Tab 4: Supplier Penalties (供应商处罚) */
 function PenaltiesTab() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
 
   const listQ = trpc.supplyChain.penalty.list.useQuery();
@@ -628,22 +633,22 @@ function PenaltiesTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatBox icon={Gavel} label="处罚总数" value={pStats.total ?? penalties.length} accent="#0078d4" />
-        <StatBox icon={Activity} label="活跃处罚" value={pStats.active ?? 0} accent="#d83b01" />
-        <StatBox icon={CheckCircle2} label="已解决" value={pStats.resolved ?? 0} accent="#107c10" />
-        <StatBox icon={Ban} label="黑名单" value={pStats.blacklisted ?? 0} accent="#323130" />
+        <StatBox icon={Gavel} label={t("afterSales.penalties.totalPenalties")} value={pStats.total ?? penalties.length} accent="#0078d4" />
+        <StatBox icon={Activity} label={t("afterSales.penalties.activePenalties")} value={pStats.active ?? 0} accent="#d83b01" />
+        <StatBox icon={CheckCircle2} label={t("afterSales.penalties.resolvedCount")} value={pStats.resolved ?? 0} accent="#107c10" />
+        <StatBox icon={Ban} label={t("afterSales.penalties.blacklisted")} value={pStats.blacklisted ?? 0} accent="#323130" />
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a19f9d]" />
-          <input className={`${F.inputBase} pl-9`} placeholder="搜索供应商/原因..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className={`${F.inputBase} pl-9`} placeholder={t("afterSales.penalties.searchSupplier")} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <button className={F.btnGhost} onClick={() => listQ.refetch()}><RefreshCw className="w-4 h-4" /> 刷新</button>
+        <button className={F.btnGhost} onClick={() => listQ.refetch()}><RefreshCw className="w-4 h-4" /> {t("afterSales.workbench.refresh")}</button>
       </div>
 
       <div className="space-y-3">
-        {filtered.length === 0 && <div className="text-center py-12 text-[#a19f9d] text-sm">暂无处罚数据</div>}
+        {filtered.length === 0 && <div className="text-center py-12 text-[#a19f9d] text-sm">{t("afterSales.penalties.noData")}</div>}
         {filtered.map((p: any, idx: number) => {
           const level = p.escalationLevel ?? p.currentLevel ?? 0;
           const isBlacklisted = level >= 5;
@@ -653,19 +658,19 @@ function PenaltiesTab() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="font-semibold text-[#323130]">{p.supplierName || `供应商 #${p.supplierId || "--"}`}</span>
-                    {escalationBadge(level)}
-                    {triggerTypeBadge(p.triggerType)}
+                    {escalationBadge(level, t)}
+                    {triggerTypeBadge(p.triggerType, t)}
                     {p.status && <span className={F.badge(p.status === "resolved" ? "bg-[#dff6dd]" : p.status === "active" ? "bg-[#fed9cc]" : "bg-[#f3f2f1]", p.status === "resolved" ? "text-[#107c10]" : p.status === "active" ? "text-[#d83b01]" : "text-[#605e5c]")}>{p.status}</span>}
                   </div>
-                  <p className="text-sm text-[#605e5c] line-clamp-2 mb-1">{p.reason || p.description || "无描述"}</p>
-                  <div className="text-xs text-[#a19f9d]">创建: {fmtDate(p.createdAt)}</div>
+                  <p className="text-sm text-[#605e5c] line-clamp-2 mb-1">{p.reason || p.description || t("afterSales.complaints.noDescription")}</p>
+                  <div className="text-xs text-[#a19f9d]">{t("afterSales.complaints.created")}: {fmtDate(p.createdAt)}</div>
                 </div>
                 <div className="flex-shrink-0">
-                  <div className="text-xs text-[#a19f9d] mb-1.5 text-center">升级级别</div>
+                  <div className="text-xs text-[#a19f9d] mb-1.5 text-center">{t("afterSales.penalties.escalationLevel")}</div>
                   <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map((step) => {
                       const stepColors: Record<number, string> = { 1: "#c19c00", 2: "#d83b01", 3: "#c50f1f", 4: "#a80000", 5: "#323130" };
-                      const stepLabels: Record<number, string> = { 1: "警告", 2: "罚款", 3: "观察", 4: "暂停", 5: "黑名单" };
+                      const stepLabels: Record<number, string> = { 1: t("afterSales.penalties.levelWarning"), 2: t("afterSales.penalties.levelFine"), 3: t("afterSales.penalties.levelObservation"), 4: t("afterSales.penalties.levelSuspend"), 5: t("afterSales.penalties.levelBlacklist") };
                       const active = step <= level;
                       return (
                         <div key={step} className="flex items-center gap-1">
@@ -690,6 +695,7 @@ function PenaltiesTab() {
 
 /* Tab 5: Dashboard (综合看板) */
 function DashboardTab() {
+  const { t } = useLanguage();
   const dashQ = trpc.supplyChain.dashboardStats.useQuery();
   const equipQ = trpc.afterSales.equipments.list.useQuery();
   const dueSoonQ = trpc.afterSales.equipments.getDueSoon.useQuery();
@@ -717,21 +723,21 @@ function DashboardTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatBox icon={Box} label="设备总数" value={equipments.length} accent="#0078d4" />
-        <StatBox icon={CalendarClock} label="保修即将到期" value={dueSoon.length} accent="#c19c00" />
-        <StatBox icon={MessageSquareWarning} label="待处理投诉" value={cStats.open ?? complaints.filter((c: any) => c.status === "open").length} accent="#d83b01" />
-        <StatBox icon={Gavel} label="活跃处罚" value={pStats.active ?? 0} accent="#c50f1f" />
-        <StatBox icon={TrendingDown} label="低库存备件" value={lowStock.length} accent="#8b5cf6" />
+        <StatBox icon={Box} label={t("afterSales.workbench.totalEquipment")} value={equipments.length} accent="#0078d4" />
+        <StatBox icon={CalendarClock} label={t("afterSales.workbench.expiringSoon")} value={dueSoon.length} accent="#c19c00" />
+        <StatBox icon={MessageSquareWarning} label={t("afterSales.dashboard.pendingComplaints")} value={cStats.open ?? complaints.filter((c: any) => c.status === "open").length} accent="#d83b01" />
+        <StatBox icon={Gavel} label={t("afterSales.penalties.activePenalties")} value={pStats.active ?? 0} accent="#c50f1f" />
+        <StatBox icon={TrendingDown} label={t("afterSales.dashboard.lowStockParts")} value={lowStock.length} accent="#8b5cf6" />
       </div>
 
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
         <div className={`${F.card} p-5`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-[#323130]">最近投诉</h3>
-            <span className="text-xs text-[#a19f9d]">最近 5 条</span>
+            <h3 className="text-sm font-semibold text-[#323130]">{t("afterSales.dashboard.recentComplaints")}</h3>
+            <span className="text-xs text-[#a19f9d]">{t("afterSales.dashboard.last5")}</span>
           </div>
           <div className="space-y-3">
-            {recentComplaints.length === 0 && <div className="text-sm text-[#a19f9d] text-center py-4">暂无投诉</div>}
+            {recentComplaints.length === 0 && <div className="text-sm text-[#a19f9d] text-center py-4">{t("afterSales.dashboard.noComplaints")}</div>}
             {recentComplaints.map((c: any, i: number) => (
               <div key={i} className="flex items-start gap-3 pb-3 border-b border-[#f3f2f1] last:border-0 last:pb-0">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: c.severity === "critical" ? "#fde7e9" : c.severity === "high" ? "#fed9cc" : "#deecf9" }}>
@@ -739,8 +745,8 @@ function DashboardTab() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-[#323130] truncate">{c.customerName || "未知客户"}</span>
-                    {severityBadge(c.severity)}{complaintStatusBadge(c.status)}
+                    <span className="text-sm font-medium text-[#323130] truncate">{c.customerName || t("afterSales.complaints.unknownCustomer")}</span>
+                    {severityBadge(c.severity, t)}{complaintStatusBadge(c.status, t)}
                   </div>
                   <p className="text-xs text-[#605e5c] line-clamp-1 mt-0.5">{c.description || "--"}</p>
                   <span className="text-[10px] text-[#a19f9d]">{fmtDate(c.createdAt)}</span>
@@ -752,11 +758,11 @@ function DashboardTab() {
 
         <div className={`${F.card} p-5`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-[#323130]">最近处罚</h3>
-            <span className="text-xs text-[#a19f9d]">最近 5 条</span>
+            <h3 className="text-sm font-semibold text-[#323130]">{t("afterSales.dashboard.recentPenalties")}</h3>
+            <span className="text-xs text-[#a19f9d]">{t("afterSales.dashboard.last5")}</span>
           </div>
           <div className="space-y-3">
-            {recentPenalties.length === 0 && <div className="text-sm text-[#a19f9d] text-center py-4">暂无处罚</div>}
+            {recentPenalties.length === 0 && <div className="text-sm text-[#a19f9d] text-center py-4">{t("afterSales.dashboard.noPenalties")}</div>}
             {recentPenalties.map((p: any, i: number) => {
               const level = p.escalationLevel ?? p.currentLevel ?? 0;
               return (
@@ -765,7 +771,7 @@ function DashboardTab() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium text-[#323130] truncate">{p.supplierName || `供应商 #${p.supplierId || "--"}`}</span>
-                      {escalationBadge(level)}{triggerTypeBadge(p.triggerType)}
+                      {escalationBadge(level, t)}{triggerTypeBadge(p.triggerType, t)}
                     </div>
                     <p className="text-xs text-[#605e5c] line-clamp-1 mt-0.5">{p.reason || p.description || "--"}</p>
                     <span className="text-[10px] text-[#a19f9d]">{fmtDate(p.createdAt)}</span>
@@ -778,11 +784,11 @@ function DashboardTab() {
 
         <div className={`${F.card} p-5`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-[#323130]">备件库存预警</h3>
-            <span className={F.badge("bg-[#fed9cc]", "text-[#d83b01]")}>{lowStock.length} 项</span>
+            <h3 className="text-sm font-semibold text-[#323130]">{t("afterSales.dashboard.spareStockAlerts")}</h3>
+            <span className={F.badge("bg-[#fed9cc]", "text-[#d83b01]")}>{lowStock.length} {t("afterSales.dashboard.items")}</span>
           </div>
           <div className="space-y-2">
-            {lowStock.length === 0 && <div className="text-sm text-[#a19f9d] text-center py-4">库存充足</div>}
+            {lowStock.length === 0 && <div className="text-sm text-[#a19f9d] text-center py-4">{t("afterSales.dashboard.stockSufficient")}</div>}
             {lowStock.slice(0, 8).map((p: any, i: number) => {
               const current = p.currentStock ?? 0; const max = p.maxStockLevel ?? 100;
               const pct = max > 0 ? Math.min((current / max) * 100, 100) : 0;
@@ -803,11 +809,11 @@ function DashboardTab() {
 
         <div className={`${F.card} p-5`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-[#323130]">保修到期时间线</h3>
-            <span className="text-xs text-[#a19f9d]">最近到期优先</span>
+            <h3 className="text-sm font-semibold text-[#323130]">{t("afterSales.dashboard.warrantyTimeline")}</h3>
+            <span className="text-xs text-[#a19f9d]">{t("afterSales.dashboard.nearestFirst")}</span>
           </div>
           <div className="space-y-2">
-            {warrantyTimeline.length === 0 && <div className="text-sm text-[#a19f9d] text-center py-4">暂无设备数据</div>}
+            {warrantyTimeline.length === 0 && <div className="text-sm text-[#a19f9d] text-center py-4">{t("afterSales.dashboard.noEquipment")}</div>}
             {warrantyTimeline.map((eq: any, i: number) => {
               const wc = warrantyColor(eq.daysRemaining);
               return (
@@ -815,7 +821,7 @@ function DashboardTab() {
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${wc.dot}`} />
                   <div className="flex-1 min-w-0"><span className="text-xs font-medium text-[#323130] truncate block">{eq.serialNumber || eq.modelName || "--"}</span></div>
                   <span className="text-xs text-[#605e5c] flex-shrink-0">{fmtDate(eq.warrantyEndDate)}</span>
-                  <span className="text-xs font-semibold flex-shrink-0 w-14 text-right" style={{ color: (eq.daysRemaining ?? 999) < 30 ? "#d83b01" : (eq.daysRemaining ?? 999) <= 90 ? "#c19c00" : "#107c10" }}>{eq.daysRemaining}天</span>
+                  <span className="text-xs font-semibold flex-shrink-0 w-14 text-right" style={{ color: (eq.daysRemaining ?? 999) < 30 ? "#d83b01" : (eq.daysRemaining ?? 999) <= 90 ? "#c19c00" : "#107c10" }}>{eq.daysRemaining}{t("afterSales.workbench.days")}</span>
                 </div>
               );
             })}
@@ -828,14 +834,15 @@ function DashboardTab() {
 
 /* Main export */
 export default function AfterSalesWorkbench() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabKey>("warranty");
 
   return (
     <div className={F.page}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#323130]">售后与保修工作台</h1>
-          <p className="text-sm text-[#605e5c] mt-1">设备保修追踪、备件管理、客户投诉处理、供应商处罚管理</p>
+          <h1 className="text-2xl font-bold text-[#323130]">{t("afterSales.workbench.title")}</h1>
+          <p className="text-sm text-[#605e5c] mt-1">{t("afterSales.workbench.desc")}</p>
         </div>
 
         <div className="border-b border-[#edebe9]">
@@ -847,7 +854,7 @@ export default function AfterSalesWorkbench() {
                 <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                   className={`flex items-center gap-2 px-5 py-3 min-h-[44px] text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${isActive ? "border-[#0078d4] text-[#0078d4]" : "border-transparent text-[#605e5c] hover:text-[#323130] hover:border-[#c8c6c4]"}`}>
                   <Icon className="w-4 h-4" />
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </button>
               );
             })}

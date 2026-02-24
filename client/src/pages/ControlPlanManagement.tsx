@@ -18,27 +18,28 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   ClipboardList, Plus, Search, Loader2, ArrowLeft,
   FileText, Layers, Star, Eye, Gauge,
 } from "lucide-react";
 
 // ─── Labels ────────────────────────────────────────────────────
-const PHASE_LABEL: Record<string, string> = {
-  prototype: "试制",
-  pre_launch: "试产",
-  production: "量产",
+const PHASE_KEY: Record<string, string> = {
+  prototype: "quality.controlPlan.phaseTrial",
+  pre_launch: "quality.controlPlan.phasePreProduction",
+  production: "quality.controlPlan.phaseProduction",
 };
 const PHASE_VARIANT: Record<string, string> = {
   prototype: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
   pre_launch: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
   production: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
 };
-const STATUS_LABEL: Record<string, string> = {
-  draft: "草稿",
-  active: "生效",
-  superseded: "已替代",
-  archived: "已归档",
+const STATUS_KEY: Record<string, string> = {
+  draft: "quality.controlPlan.statusDraft",
+  active: "quality.controlPlan.statusEffective",
+  superseded: "quality.controlPlan.statusSuperseded",
+  archived: "quality.controlPlan.statusArchived",
 };
 const STATUS_VARIANT: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
@@ -46,14 +47,23 @@ const STATUS_VARIANT: Record<string, string> = {
   superseded: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
   archived: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
 };
-const CHAR_TYPE_LABEL: Record<string, string> = { product: "产品", process: "过程" };
-const METHOD_LABEL: Record<string, string> = {
-  visual: "目视", gauge: "量具", spc: "SPC", cmm: "CMM",
-  test: "试验", audit: "审核", other: "其他",
+const CHAR_TYPE_KEY: Record<string, string> = {
+  product: "quality.controlPlan.charTypeProduct",
+  process: "quality.controlPlan.charTypeProcess",
+};
+const METHOD_KEY: Record<string, string> = {
+  visual: "quality.controlPlan.methodVisual",
+  gauge: "quality.controlPlan.methodGage",
+  spc: "quality.controlPlan.methodSPC",
+  cmm: "quality.controlPlan.methodCMM",
+  test: "quality.controlPlan.methodTest",
+  audit: "quality.controlPlan.methodAudit",
+  other: "quality.controlPlan.methodOther",
 };
 
 // ─── Main Component ────────────────────────────────────────────
 export default function ControlPlanManagement() {
+  const { t } = useLanguage();
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -91,24 +101,24 @@ export default function ControlPlanManagement() {
   // Mutations
   const createMut = trpc.controlPlan.create.useMutation({
     onSuccess: () => {
-      toast.success("控制计划已创建");
+      toast.success(t("quality.controlPlan.createSuccess"));
       setCreateOpen(false);
       resetCreateForm();
       utils.controlPlan.list.invalidate();
       utils.controlPlan.getStats.invalidate();
     },
-    onError: (e) => toast.error("创建失败: " + e.message),
+    onError: (e) => toast.error(e.message),
   });
 
   const addItemMut = trpc.controlPlan.addItem.useMutation({
     onSuccess: () => {
-      toast.success("控制项已添加");
+      toast.success(t("quality.controlPlan.addItemSuccess"));
       setAddItemOpen(false);
       resetItemForm();
       utils.controlPlan.getById.invalidate({ id: selectedPlanId! });
       utils.controlPlan.getStats.invalidate();
     },
-    onError: (e) => toast.error("添加失败: " + e.message),
+    onError: (e) => toast.error(e.message),
   });
 
   const resetCreateForm = () => {
@@ -123,7 +133,7 @@ export default function ControlPlanManagement() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fTitle.trim()) { toast.error("标题为必填项"); return; }
+    if (!fTitle.trim()) { toast.error(t("quality.controlPlan.titleRequired")); return; }
     createMut.mutate({
       title: fTitle.trim(),
       partName: fPartName.trim() || undefined,
@@ -135,7 +145,7 @@ export default function ControlPlanManagement() {
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!iCharName.trim()) { toast.error("特性名称为必填项"); return; }
+    if (!iCharName.trim()) { toast.error(t("quality.controlPlan.charNameRequired")); return; }
     addItemMut.mutate({
       controlPlanId: selectedPlanId!,
       processStep: iStep.trim() || undefined,
@@ -170,15 +180,15 @@ export default function ControlPlanManagement() {
       <div className="space-y-6">
         <PageHeader
           icon={ClipboardList}
-          title={detail?.title ?? "控制计划详情"}
+          title={detail?.title ?? t("quality.controlPlan.detailTitle")}
           description={[detail?.planCode, detail?.partName, detail?.partNumber].filter(Boolean).join(" | ")}
           actions={
             <>
               <Button variant="outline" onClick={() => setSelectedPlanId(null)}>
-                <ArrowLeft className="h-4 w-4 mr-2" />返回列表
+                <ArrowLeft className="h-4 w-4 mr-2" />{t("quality.common.back")}
               </Button>
               <Button onClick={() => setAddItemOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />添加控制项
+                <Plus className="h-4 w-4 mr-2" />{t("quality.controlPlan.addItem")}
               </Button>
             </>
           }
@@ -186,15 +196,15 @@ export default function ControlPlanManagement() {
 
         {detail && (
           <div className="flex gap-2 flex-wrap">
-            <Badge className={PHASE_VARIANT[detail.phase] ?? ""}>{PHASE_LABEL[detail.phase] ?? detail.phase}</Badge>
-            <Badge className={STATUS_VARIANT[detail.status] ?? ""}>{STATUS_LABEL[detail.status] ?? detail.status}</Badge>
+            <Badge className={PHASE_VARIANT[detail.phase] ?? ""}>{t(PHASE_KEY[detail.phase] ?? detail.phase)}</Badge>
+            <Badge className={STATUS_VARIANT[detail.status] ?? ""}>{t(STATUS_KEY[detail.status] ?? detail.status)}</Badge>
             {detail.fmeaDocumentId && <Badge variant="outline">FMEA #{detail.fmeaDocumentId}</Badge>}
           </div>
         )}
 
         <Card>
           <CardHeader>
-            <CardTitle>控制项明细 <span className="text-sm font-normal text-muted-foreground ml-2">共 {items.length} 项</span></CardTitle>
+            <CardTitle>{t("quality.controlPlan.itemDetail")} <span className="text-sm font-normal text-muted-foreground ml-2">{items.length}</span></CardTitle>
           </CardHeader>
           <CardContent>
             {detailLoading ? (
@@ -202,15 +212,15 @@ export default function ControlPlanManagement() {
             ) : items.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <FileText className="w-12 h-12 mb-3 opacity-50" />
-                <p className="font-medium">暂无控制项</p>
-                <p className="text-sm mt-1">点击"添加控制项"开始填写</p>
+                <p className="font-medium">{t("quality.controlPlan.noItems")}</p>
+                <p className="text-sm mt-1">{t("quality.controlPlan.addItemHint")}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
-                      {["#","工序","特性名称","类型","特殊特性","规格/公差","控制方法","样本量/频率","反应计划"].map((h) => (
+                      {["#", t("quality.controlPlan.processStep"), t("quality.controlPlan.charName"), t("quality.controlPlan.charType"), t("quality.controlPlan.specialChar"), t("quality.controlPlan.specification") + "/" + t("quality.controlPlan.toleranceField"), t("quality.controlPlan.controlMethod"), t("quality.controlPlan.sampleSize") + "/" + t("quality.controlPlan.sampleFreq"), t("quality.controlPlan.reactionPlan")].map((h) => (
                         <th key={h} className="py-2 pr-3">{h}</th>
                       ))}
                     </tr>
@@ -224,14 +234,14 @@ export default function ControlPlanManagement() {
                           <td className="py-2 pr-3 text-muted-foreground">{idx + 1}</td>
                           <td className="py-2 pr-3">{it.processStep || "-"}</td>
                           <td className="py-2 pr-3 font-medium">{it.characteristicName}</td>
-                          <td className="py-2 pr-3"><Badge variant="outline">{CHAR_TYPE_LABEL[it.characteristicType ?? ""] ?? "-"}</Badge></td>
+                          <td className="py-2 pr-3"><Badge variant="outline">{t(CHAR_TYPE_KEY[it.characteristicType ?? ""] ?? "-")}</Badge></td>
                           <td className="py-2 pr-3">
                             {it.specialCharacteristic
                               ? <Badge className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">{it.specialCharacteristic}</Badge>
                               : "-"}
                           </td>
                           <td className="py-2 pr-3">{spec}</td>
-                          <td className="py-2 pr-3"><Badge variant="secondary">{METHOD_LABEL[it.controlMethod ?? ""] ?? it.controlMethod}</Badge></td>
+                          <td className="py-2 pr-3"><Badge variant="secondary">{t(METHOD_KEY[it.controlMethod ?? ""] ?? it.controlMethod)}</Badge></td>
                           <td className="py-2 pr-3">{[it.sampleSize, it.sampleFrequency].filter(Boolean).join(" / ") || "-"}</td>
                           <td className="py-2 pr-3 max-w-[200px] truncate">{it.reactionPlan || "-"}</td>
                         </tr>
@@ -248,44 +258,44 @@ export default function ControlPlanManagement() {
         <Dialog open={addItemOpen} onOpenChange={(o) => { setAddItemOpen(o); if (!o) resetItemForm(); }}>
           <DialogContent className="max-w-xl">
             <DialogHeader>
-              <DialogTitle>添加控制项</DialogTitle>
-              <DialogDescription>为控制计划添加工序级质量控制项</DialogDescription>
+              <DialogTitle>{t("quality.controlPlan.addItem")}</DialogTitle>
+              <DialogDescription>{t("quality.controlPlan.addItemDesc")}</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddItem} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><Label>工序步骤</Label><Input placeholder="例: OP10 清洗" value={iStep} onChange={(e) => setIStep(e.target.value)} /></div>
-                <div className="space-y-1"><Label>特性名称 <span className="text-red-500">*</span></Label><Input placeholder="例: 清洁度" value={iCharName} onChange={(e) => setICharName(e.target.value)} required /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.processStep")}</Label><Input value={iStep} onChange={(e) => setIStep(e.target.value)} /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.charName")} <span className="text-red-500">*</span></Label><Input value={iCharName} onChange={(e) => setICharName(e.target.value)} required /></div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <Label>特性类型</Label>
+                  <Label>{t("quality.controlPlan.charType")}</Label>
                   <Select value={iCharType} onValueChange={(v) => setICharType(v as "product" | "process")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="product">产品特性</SelectItem><SelectItem value="process">过程特性</SelectItem></SelectContent>
+                    <SelectContent><SelectItem value="product">{t("quality.controlPlan.productChar")}</SelectItem><SelectItem value="process">{t("quality.controlPlan.processChar")}</SelectItem></SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1"><Label>特殊特性</Label><Input placeholder="CC / SC" value={iSpecial} onChange={(e) => setISpecial(e.target.value)} /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.specialChar")}</Label><Input placeholder="CC / SC" value={iSpecial} onChange={(e) => setISpecial(e.target.value)} /></div>
                 <div className="space-y-1">
-                  <Label>控制方法</Label>
+                  <Label>{t("quality.controlPlan.controlMethod")}</Label>
                   <Select value={iMethod} onValueChange={(v) => setIMethod(v as typeof iMethod)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{Object.entries(METHOD_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                    <SelectContent>{Object.entries(METHOD_KEY).map(([k, v]) => <SelectItem key={k} value={k}>{t(v)}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><Label>规格</Label><Input placeholder="例: 5mg/件" value={iSpec} onChange={(e) => setISpec(e.target.value)} /></div>
-                <div className="space-y-1"><Label>公差</Label><Input placeholder="例: +/-0.5" value={iTol} onChange={(e) => setITol(e.target.value)} /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.specification")}</Label><Input value={iSpec} onChange={(e) => setISpec(e.target.value)} /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.toleranceField")}</Label><Input value={iTol} onChange={(e) => setITol(e.target.value)} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><Label>样本量</Label><Input placeholder="例: 5件" value={iSize} onChange={(e) => setISize(e.target.value)} /></div>
-                <div className="space-y-1"><Label>样本频率</Label><Input placeholder="例: 每批" value={iFreq} onChange={(e) => setIFreq(e.target.value)} /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.sampleSize")}</Label><Input value={iSize} onChange={(e) => setISize(e.target.value)} /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.sampleFreq")}</Label><Input value={iFreq} onChange={(e) => setIFreq(e.target.value)} /></div>
               </div>
-              <div className="space-y-1"><Label>反应计划</Label><Input placeholder="例: 停机 + 100%全检" value={iReaction} onChange={(e) => setIReaction(e.target.value)} /></div>
+              <div className="space-y-1"><Label>{t("quality.controlPlan.reactionPlan")}</Label><Input value={iReaction} onChange={(e) => setIReaction(e.target.value)} /></div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setAddItemOpen(false)}>取消</Button>
+                <Button type="button" variant="outline" onClick={() => setAddItemOpen(false)}>{t("quality.common.cancel")}</Button>
                 <Button type="submit" disabled={addItemMut.isPending}>
-                  {addItemMut.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}添加
+                  {addItemMut.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t("quality.controlPlan.addItem")}
                 </Button>
               </DialogFooter>
             </form>
@@ -300,34 +310,34 @@ export default function ControlPlanManagement() {
     <div className="space-y-6">
       <PageHeader
         icon={ClipboardList}
-        title="控制计划管理"
-        description="IATF 16949 核心工具 — 工序级质量控制"
+        title={t("quality.controlPlan.title")}
+        description={t("quality.controlPlan.description")}
         actions={
           <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />新建控制计划
+            <Plus className="h-4 w-4 mr-2" />{t("quality.controlPlan.newPlan")}
           </Button>
         }
       />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Layers} label="控制计划总数" value={stats?.totalPlans ?? 0} />
-        <StatCard icon={FileText} label="控制项总数" value={stats?.totalItems ?? 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={Star} label="特殊特性" value={stats?.specialCharacteristics ?? 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
-        <StatCard icon={Gauge} label="SPC控制" value={stats?.byControlMethod?.spc ?? 0} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+        <StatCard icon={Layers} label={t("quality.controlPlan.totalPlans")} value={stats?.totalPlans ?? 0} />
+        <StatCard icon={FileText} label={t("quality.controlPlan.totalItems")} value={stats?.totalItems ?? 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Star} label={t("quality.controlPlan.specialChars")} value={stats?.specialCharacteristics ?? 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Gauge} label={t("quality.controlPlan.spcControl")} value={stats?.byControlMethod?.spc ?? 0} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       {/* Phase / Status breakdown */}
       <Card>
         <CardContent className="pt-4 flex flex-wrap items-center gap-4">
-          <span className="text-sm font-medium text-muted-foreground">阶段:</span>
+          <span className="text-sm font-medium text-muted-foreground">{t("quality.controlPlan.byPhase")}:</span>
           {(["prototype", "pre_launch", "production"] as const).map((ph) => (
-            <Badge key={ph} className={PHASE_VARIANT[ph]}>{PHASE_LABEL[ph]} {stats?.byPhase?.[ph] ?? 0}</Badge>
+            <Badge key={ph} className={PHASE_VARIANT[ph]}>{t(PHASE_KEY[ph])} {stats?.byPhase?.[ph] ?? 0}</Badge>
           ))}
           <span className="mx-2 text-border">|</span>
-          <span className="text-sm font-medium text-muted-foreground">状态:</span>
+          <span className="text-sm font-medium text-muted-foreground">{t("quality.controlPlan.byStatus")}:</span>
           {(["draft", "active", "superseded", "archived"] as const).map((st) => (
-            <Badge key={st} className={STATUS_VARIANT[st]}>{STATUS_LABEL[st]} {stats?.byStatus?.[st] ?? 0}</Badge>
+            <Badge key={st} className={STATUS_VARIANT[st]}>{t(STATUS_KEY[st])} {stats?.byStatus?.[st] ?? 0}</Badge>
           ))}
         </CardContent>
       </Card>
@@ -336,11 +346,11 @@ export default function ControlPlanManagement() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>控制计划列表 {listData && <span className="text-sm font-normal text-muted-foreground ml-2">共 {listData.total} 条</span>}</CardTitle>
+            <CardTitle>{t("quality.controlPlan.listTitle")} {listData && <span className="text-sm font-normal text-muted-foreground ml-2">{listData.total}</span>}</CardTitle>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="搜索编号/标题/零件..."
+                placeholder={t("quality.controlPlan.searchPlans")}
                 className="pl-9 w-64"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -354,8 +364,8 @@ export default function ControlPlanManagement() {
           ) : plans.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <ClipboardList className="w-12 h-12 mb-3 opacity-50" />
-              <p className="font-medium">暂无控制计划</p>
-              <p className="text-sm mt-1">点击"新建控制计划"创建第一份</p>
+              <p className="font-medium">{t("quality.controlPlan.noPlans")}</p>
+              <p className="text-sm mt-1">{t("quality.controlPlan.createFirstHint")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -369,8 +379,8 @@ export default function ControlPlanManagement() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono text-sm text-muted-foreground">{p.planCode}</span>
-                      <Badge className={PHASE_VARIANT[p.phase] ?? ""}>{PHASE_LABEL[p.phase] ?? p.phase}</Badge>
-                      <Badge className={STATUS_VARIANT[p.status] ?? ""}>{STATUS_LABEL[p.status] ?? p.status}</Badge>
+                      <Badge className={PHASE_VARIANT[p.phase] ?? ""}>{t(PHASE_KEY[p.phase] ?? p.phase)}</Badge>
+                      <Badge className={STATUS_VARIANT[p.status] ?? ""}>{t(STATUS_KEY[p.status] ?? p.status)}</Badge>
                     </div>
                     <p className="font-medium mt-1 truncate">{p.title}</p>
                     {(p.partName || p.partNumber) && (
@@ -393,45 +403,45 @@ export default function ControlPlanManagement() {
       <Dialog open={createOpen} onOpenChange={(o) => { setCreateOpen(o); if (!o) resetCreateForm(); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>新建控制计划</DialogTitle>
-            <DialogDescription>创建新的IATF 16949控制计划</DialogDescription>
+            <DialogTitle>{t("quality.controlPlan.newPlan")}</DialogTitle>
+            <DialogDescription>{t("quality.controlPlan.newPlanDesc")}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="space-y-2">
-              <Label>标题 <span className="text-red-500">*</span></Label>
-              <Input placeholder="例: 缸体清洗线控制计划" value={fTitle} onChange={(e) => setFTitle(e.target.value)} required />
+              <Label>{t("quality.controlPlan.planTitle")} <span className="text-red-500">*</span></Label>
+              <Input value={fTitle} onChange={(e) => setFTitle(e.target.value)} required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>零件名称</Label>
-                <Input placeholder="例: 缸体" value={fPartName} onChange={(e) => setFPartName(e.target.value)} />
+                <Label>{t("quality.controlPlan.partName")}</Label>
+                <Input value={fPartName} onChange={(e) => setFPartName(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>零件编号</Label>
-                <Input placeholder="例: P-2026-001" value={fPartNumber} onChange={(e) => setFPartNumber(e.target.value)} />
+                <Label>{t("quality.controlPlan.partNumber")}</Label>
+                <Input value={fPartNumber} onChange={(e) => setFPartNumber(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>阶段</Label>
+                <Label>{t("quality.controlPlan.phase")}</Label>
                 <Select value={fPhase} onValueChange={(v) => setFPhase(v as typeof fPhase)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="prototype">试制</SelectItem>
-                    <SelectItem value="pre_launch">试产</SelectItem>
-                    <SelectItem value="production">量产</SelectItem>
+                    <SelectItem value="prototype">{t("quality.controlPlan.phaseTrial")}</SelectItem>
+                    <SelectItem value="pre_launch">{t("quality.controlPlan.phasePreProduction")}</SelectItem>
+                    <SelectItem value="production">{t("quality.controlPlan.phaseProduction")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>关联FMEA ID</Label>
-                <Input placeholder="可选" value={fFmeaId} onChange={(e) => setFFmeaId(e.target.value)} />
+                <Label>{t("quality.controlPlan.relatedFmeaId")}</Label>
+                <Input value={fFmeaId} onChange={(e) => setFFmeaId(e.target.value)} />
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t("quality.common.cancel")}</Button>
               <Button type="submit" disabled={createMut.isPending}>
-                {createMut.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}创建
+                {createMut.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t("quality.common.create")}
               </Button>
             </DialogFooter>
           </form>

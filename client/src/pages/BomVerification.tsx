@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const ITEM_STATUS_STYLES: Record<string, { bg: string; text: string; label: stri
 };
 
 export default function BomVerification() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("records");
   const [selectedProject] = useState("PRJ-2026-001");
@@ -72,26 +74,26 @@ export default function BomVerification() {
   // Mutations
   const createMut = trpc.bomVerification.create.useMutation({
     onSuccess: (data) => {
-      toast({ title: "校验记录已创建", description: `ID: ${data.id}` });
+      toast({ title: t("manufacturing.bom.verify.recordCreated"), description: `ID: ${data.id}` });
       setShowCreateDialog(false);
       utils.bomVerification.list.invalidate();
     },
-    onError: (e) => toast({ title: "创建失败", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("manufacturing.bom.verify.createFailed"), description: e.message, variant: "destructive" }),
   });
 
   const addItemsMut = trpc.bomVerification.addItems.useMutation({
     onSuccess: () => {
-      toast({ title: "物料项已添加" });
+      toast({ title: t("manufacturing.bom.verify.itemAdded") });
       setNewItem({ materialCode: "", materialName: "", materialSpec: "", requiredQty: 1, isCritical: false });
       setShowAddItemDialog(false);
       if (selectedVerificationId) utils.bomVerification.detail.invalidate();
     },
-    onError: (e) => toast({ title: "添加失败", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("manufacturing.bom.verify.addFailed"), description: e.message, variant: "destructive" }),
   });
 
   const updateItemMut = trpc.bomVerification.updateItemStatus.useMutation({
     onSuccess: () => {
-      toast({ title: "状态已更新" });
+      toast({ title: t("manufacturing.bom.verify.statusUpdated") });
       if (selectedVerificationId) utils.bomVerification.detail.invalidate();
     },
   });
@@ -99,7 +101,7 @@ export default function BomVerification() {
   const executeMut = trpc.bomVerification.execute.useMutation({
     onSuccess: (result) => {
       toast({
-        title: result.status === 'passed' ? "校验通过" : result.status === 'failed' ? "校验不通过" : "校验未完成",
+        title: result.status === 'passed' ? t("manufacturing.bom.verify.passed") : result.status === 'failed' ? t("manufacturing.bom.verify.failed") : t("manufacturing.bom.verify.incomplete"),
         description: result.message,
         variant: result.status === 'failed' ? "destructive" : "default",
       });
@@ -107,18 +109,18 @@ export default function BomVerification() {
       utils.bomVerification.stats.invalidate();
       if (selectedVerificationId) utils.bomVerification.detail.invalidate();
     },
-    onError: (e) => toast({ title: "执行失败", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("manufacturing.bom.verify.executeFailed"), description: e.message, variant: "destructive" }),
   });
 
   const waiveMut = trpc.bomVerification.waive.useMutation({
     onSuccess: () => {
-      toast({ title: "已放行" });
+      toast({ title: t("manufacturing.bom.verify.waived") });
       setShowWaiveDialog(false);
       setWaiveReason("");
       utils.bomVerification.list.invalidate();
       utils.bomVerification.stats.invalidate();
     },
-    onError: (e) => toast({ title: "放行失败", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("manufacturing.bom.verify.waiveFailed"), description: e.message, variant: "destructive" }),
   });
 
   const records = (recordsQuery.data || []) as any[];
@@ -130,29 +132,29 @@ export default function BomVerification() {
       {/* Header */}
       <PageHeader
         icon={ClipboardCheck}
-        title="BOM校验管理"
-        description="物料流转BOM自动校验 · 校验不通过自动拦截"
+        title={t("manufacturing.bom.verify.title")}
+        description={t("manufacturing.bom.verify.description")}
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => {
               utils.bomVerification.list.invalidate();
               utils.bomVerification.stats.invalidate();
             }}>
-              <RefreshCw className="w-4 h-4 mr-1" /> 刷新
+              <RefreshCw className="w-4 h-4 mr-1" /> {t("manufacturing.common.refresh")}
             </Button>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
                 <Button size="sm">
-                  <Plus className="w-4 h-4 mr-1" /> 新建校验
+                  <Plus className="w-4 h-4 mr-1" /> {t("manufacturing.bom.verify.createNew")}
                 </Button>
               </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>新建BOM校验记录</DialogTitle>
+                <DialogTitle>{t("manufacturing.bom.verify.createRecord")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label>源工序</Label>
+                  <Label>{t("manufacturing.bom.verify.fromProcess")}</Label>
                   <Select value={createForm.fromProcess} onValueChange={v => setCreateForm(f => ({ ...f, fromProcess: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -163,7 +165,7 @@ export default function BomVerification() {
                   </Select>
                 </div>
                 <div>
-                  <Label>目标工序</Label>
+                  <Label>{t("manufacturing.bom.verify.toProcess")}</Label>
                   <Select value={createForm.toProcess} onValueChange={v => setCreateForm(f => ({ ...f, toProcess: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -175,7 +177,7 @@ export default function BomVerification() {
                 </div>
               </div>
               <DialogFooter>
-                <DialogClose asChild><Button variant="outline">取消</Button></DialogClose>
+                <DialogClose asChild><Button variant="outline">{t("manufacturing.common.cancel")}</Button></DialogClose>
                 <Button
                   disabled={createMut.isPending}
                   onClick={() => createMut.mutate({
@@ -184,7 +186,7 @@ export default function BomVerification() {
                     toProcess: createForm.toProcess,
                   })}
                 >
-                  {createMut.isPending ? "创建中..." : "创建"}
+                  {createMut.isPending ? t("manufacturing.common.creating") : t("manufacturing.common.create")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -197,31 +199,31 @@ export default function BomVerification() {
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">总校验数</p>
+            <p className="text-sm text-muted-foreground">{t("manufacturing.bom.verify.totalVerifications")}</p>
             <p className="text-2xl font-bold">{stats.summary?.total_verifications || 0}</p>
           </CardContent>
         </Card>
         <Card className="border-green-500/30">
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">通过</p>
+            <p className="text-sm text-muted-foreground">{t("manufacturing.bom.verify.passed")}</p>
             <p className="text-2xl font-bold text-green-400">{stats.summary?.passed || 0}</p>
           </CardContent>
         </Card>
         <Card className="border-red-500/30">
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">不通过</p>
+            <p className="text-sm text-muted-foreground">{t("manufacturing.bom.verify.failed")}</p>
             <p className="text-2xl font-bold text-red-400">{stats.summary?.failed || 0}</p>
           </CardContent>
         </Card>
         <Card className="border-yellow-500/30">
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">已放行</p>
+            <p className="text-sm text-muted-foreground">{t("manufacturing.bom.verify.waived")}</p>
             <p className="text-2xl font-bold text-yellow-400">{stats.summary?.waived || 0}</p>
           </CardContent>
         </Card>
         <Card className="border-blue-500/30">
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">平均通过率</p>
+            <p className="text-sm text-muted-foreground">{t("manufacturing.bom.verify.avgPassRate")}</p>
             <p className="text-2xl font-bold text-blue-400">
               {stats.summary?.avg_pass_rate ? `${Number(stats.summary.avg_pass_rate).toFixed(1)}%` : '-'}
             </p>
@@ -233,10 +235,10 @@ export default function BomVerification() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="records">
-            <ClipboardCheck className="w-4 h-4 mr-1" /> 校验记录
+            <ClipboardCheck className="w-4 h-4 mr-1" /> {t("manufacturing.bom.verify.tabRecords")}
           </TabsTrigger>
           <TabsTrigger value="stats">
-            <BarChart3 className="w-4 h-4 mr-1" /> 工序统计
+            <BarChart3 className="w-4 h-4 mr-1" /> {t("manufacturing.bom.verify.tabStats")}
           </TabsTrigger>
         </TabsList>
 
@@ -246,22 +248,22 @@ export default function BomVerification() {
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部状态</SelectItem>
-                <SelectItem value="pending">待校验</SelectItem>
-                <SelectItem value="passed">通过</SelectItem>
-                <SelectItem value="failed">不通过</SelectItem>
-                <SelectItem value="waived">已放行</SelectItem>
+                <SelectItem value="all">{t("manufacturing.common.allStatuses")}</SelectItem>
+                <SelectItem value="pending">{t("manufacturing.bom.verify.statusPending")}</SelectItem>
+                <SelectItem value="passed">{t("manufacturing.bom.verify.passed")}</SelectItem>
+                <SelectItem value="failed">{t("manufacturing.bom.verify.failed")}</SelectItem>
+                <SelectItem value="waived">{t("manufacturing.bom.verify.waived")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {recordsQuery.isLoading ? (
-            <div className="text-center py-10 text-muted-foreground">加载中...</div>
+            <div className="text-center py-10 text-muted-foreground">{t("manufacturing.common.loading")}</div>
           ) : records.length === 0 ? (
             <Card>
               <CardContent className="py-10 text-center text-muted-foreground">
                 <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>暂无校验记录</p>
+                <p>{t("manufacturing.bom.verify.noRecords")}</p>
               </CardContent>
             </Card>
           ) : (
@@ -285,12 +287,12 @@ export default function BomVerification() {
                           <Badge className={`${st.bg} ${st.text} border-0`}>{st.label}</Badge>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>共 {rec.total_items || 0} 项</span>
-                          <span>已验 {rec.verified_items || 0}</span>
+                          <span>{t("manufacturing.bom.verify.totalItems")} {rec.total_items || 0}</span>
+                          <span>{t("manufacturing.bom.verify.verifiedItems")} {rec.verified_items || 0}</span>
                           {rec.missing_items > 0 && (
-                            <span className="text-red-400">缺失 {rec.missing_items}</span>
+                            <span className="text-red-400">{t("manufacturing.bom.verify.missingItems")} {rec.missing_items}</span>
                           )}
-                          <span>通过率 {rec.pass_rate ? `${Number(rec.pass_rate).toFixed(1)}%` : '-'}</span>
+                          <span>{t("manufacturing.bom.verify.passRate")} {rec.pass_rate ? `${Number(rec.pass_rate).toFixed(1)}%` : '-'}</span>
                           <span>{rec.created_at ? new Date(Number(rec.created_at)).toLocaleDateString() : '-'}</span>
                         </div>
                       </div>
@@ -308,7 +310,7 @@ export default function BomVerification() {
             <Card>
               <CardContent className="py-10 text-center text-muted-foreground">
                 <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>暂无工序统计数据</p>
+                <p>{t("manufacturing.bom.verify.noStats")}</p>
               </CardContent>
             </Card>
           ) : (
@@ -322,16 +324,16 @@ export default function BomVerification() {
                         <ArrowRight className="w-3 h-3" />
                         <Badge variant="outline">{ps.to_process}</Badge>
                       </div>
-                      <span className="text-sm text-muted-foreground">共 {ps.total} 次</span>
+                      <span className="text-sm text-muted-foreground">{t("manufacturing.bom.verify.totalPrefix")} {ps.total} {t("manufacturing.bom.verify.timesSuffix")}</span>
                     </div>
                     <div className="flex gap-4">
                       <div className="flex items-center gap-1">
                         <CheckCircle2 className="w-4 h-4 text-green-400" />
-                        <span className="text-sm">通过 {ps.passed}</span>
+                        <span className="text-sm">{t("manufacturing.bom.verify.passed")} {ps.passed}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <XCircle className="w-4 h-4 text-red-400" />
-                        <span className="text-sm">不通过 {ps.failed}</span>
+                        <span className="text-sm">{t("manufacturing.bom.verify.failed")} {ps.failed}</span>
                       </div>
                     </div>
                     <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
@@ -353,7 +355,7 @@ export default function BomVerification() {
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              BOM校验详情
+              {t("manufacturing.bom.verify.detailTitle")}
               {detail && (
                 <Badge className={`${(STATUS_STYLES[detail.verification_status] || STATUS_STYLES.pending).bg} ${(STATUS_STYLES[detail.verification_status] || STATUS_STYLES.pending).text} border-0`}>
                   {(STATUS_STYLES[detail.verification_status] || STATUS_STYLES.pending).label}
@@ -366,36 +368,36 @@ export default function BomVerification() {
           ) : detail ? (
             <div className="space-y-4">
               <div className="flex items-center gap-4 text-sm">
-                <span>源工序: <strong>{detail.from_process} - {PROCESS_NAMES[detail.from_process]}</strong></span>
+                <span>{t("manufacturing.bom.verify.fromProcess")}: <strong>{detail.from_process} - {PROCESS_NAMES[detail.from_process]}</strong></span>
                 <ArrowRight className="w-4 h-4" />
-                <span>目标工序: <strong>{detail.to_process} - {PROCESS_NAMES[detail.to_process]}</strong></span>
+                <span>{t("manufacturing.bom.verify.toProcess")}: <strong>{detail.to_process} - {PROCESS_NAMES[detail.to_process]}</strong></span>
               </div>
 
               {/* Items list */}
               <div className="flex items-center justify-between">
-                <h3 className="font-medium">校验清单 ({(detail.items || []).length} 项)</h3>
+                <h3 className="font-medium">{t("manufacturing.bom.verify.checklist")} ({(detail.items || []).length})</h3>
                 <Button size="sm" variant="outline" onClick={() => setShowAddItemDialog(true)}>
-                  <Plus className="w-3 h-3 mr-1" /> 添加物料
+                  <Plus className="w-3 h-3 mr-1" /> {t("manufacturing.bom.verify.addMaterial")}
                 </Button>
               </div>
 
               {(detail.items || []).length === 0 ? (
                 <div className="py-6 text-center text-muted-foreground border border-dashed rounded-lg">
                   <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p>暂无校验清单项，请添加物料</p>
+                  <p>{t("manufacturing.bom.verify.noChecklistItems")}</p>
                 </div>
               ) : (
                 <div className="border rounded-lg overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50">
                       <tr>
-                        <th className="text-left p-2">物料编码</th>
-                        <th className="text-left p-2">物料名称</th>
-                        <th className="text-center p-2">需求</th>
-                        <th className="text-center p-2">实际</th>
-                        <th className="text-center p-2">关键</th>
-                        <th className="text-center p-2">状态</th>
-                        <th className="text-center p-2">操作</th>
+                        <th className="text-left p-2">{t("manufacturing.bom.verify.materialCode")}</th>
+                        <th className="text-left p-2">{t("manufacturing.bom.verify.materialName")}</th>
+                        <th className="text-center p-2">{t("manufacturing.bom.verify.required")}</th>
+                        <th className="text-center p-2">{t("manufacturing.bom.verify.actual")}</th>
+                        <th className="text-center p-2">{t("manufacturing.bom.verify.critical")}</th>
+                        <th className="text-center p-2">{t("manufacturing.bom.verify.status")}</th>
+                        <th className="text-center p-2">{t("manufacturing.bom.verify.action")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -408,7 +410,7 @@ export default function BomVerification() {
                             <td className="p-2 text-center">{item.required_qty}</td>
                             <td className="p-2 text-center">{item.actual_qty || '-'}</td>
                             <td className="p-2 text-center">
-                              {item.is_critical ? <Badge variant="destructive" className="text-xs">关键</Badge> : '-'}
+                              {item.is_critical ? <Badge variant="destructive" className="text-xs">{t("manufacturing.bom.verify.critical")}</Badge> : '-'}
                             </td>
                             <td className="p-2 text-center">
                               <Badge className={`${ist.bg} ${ist.text} border-0 text-xs`}>{ist.label}</Badge>
@@ -455,14 +457,14 @@ export default function BomVerification() {
                     disabled={executeMut.isPending}
                   >
                     {executeMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <ClipboardCheck className="w-4 h-4 mr-1" />}
-                    执行校验
+                    {t("manufacturing.bom.verify.executeVerify")}
                   </Button>
                 </div>
               )}
               {detail.verification_status === 'failed' && (
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" onClick={() => setShowWaiveDialog(true)}>
-                    <Shield className="w-4 h-4 mr-1" /> 放行
+                    <Shield className="w-4 h-4 mr-1" /> {t("manufacturing.bom.verify.waiveBtn")}
                   </Button>
                 </div>
               )}
@@ -475,26 +477,26 @@ export default function BomVerification() {
       <Dialog open={showAddItemDialog} onOpenChange={setShowAddItemDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>添加BOM校验物料</DialogTitle>
+            <DialogTitle>{t("manufacturing.bom.verify.addMaterialTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>物料编码</Label>
-                <Input value={newItem.materialCode} onChange={e => setNewItem(f => ({ ...f, materialCode: e.target.value }))} placeholder="如 MAT-001" />
+                <Label>{t("manufacturing.bom.verify.materialCode")}</Label>
+                <Input value={newItem.materialCode} onChange={e => setNewItem(f => ({ ...f, materialCode: e.target.value }))} placeholder="MAT-001" />
               </div>
               <div>
-                <Label>物料名称</Label>
-                <Input value={newItem.materialName} onChange={e => setNewItem(f => ({ ...f, materialName: e.target.value }))} placeholder="如 不锈钢螺栓" />
+                <Label>{t("manufacturing.bom.verify.materialName")}</Label>
+                <Input value={newItem.materialName} onChange={e => setNewItem(f => ({ ...f, materialName: e.target.value }))} placeholder={t("manufacturing.bom.verify.materialNamePlaceholder")} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>规格型号</Label>
-                <Input value={newItem.materialSpec} onChange={e => setNewItem(f => ({ ...f, materialSpec: e.target.value }))} placeholder="如 M8x30" />
+                <Label>{t("manufacturing.bom.verify.specification")}</Label>
+                <Input value={newItem.materialSpec} onChange={e => setNewItem(f => ({ ...f, materialSpec: e.target.value }))} placeholder="M8x30" />
               </div>
               <div>
-                <Label>需求数量</Label>
+                <Label>{t("manufacturing.bom.verify.requiredQty")}</Label>
                 <Input type="number" value={newItem.requiredQty} onChange={e => setNewItem(f => ({ ...f, requiredQty: Number(e.target.value) }))} />
               </div>
             </div>
@@ -505,11 +507,11 @@ export default function BomVerification() {
                 onChange={e => setNewItem(f => ({ ...f, isCritical: e.target.checked }))}
                 className="rounded"
               />
-              <Label>关键物料（缺失将直接导致校验不通过）</Label>
+              <Label>{t("manufacturing.bom.verify.criticalMaterial")}</Label>
             </div>
           </div>
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline">取消</Button></DialogClose>
+            <DialogClose asChild><Button variant="outline">{t("manufacturing.common.cancel")}</Button></DialogClose>
             <Button
               disabled={!newItem.materialCode || !newItem.materialName || addItemsMut.isPending || !selectedVerificationId}
               onClick={() => selectedVerificationId && addItemsMut.mutate({
@@ -525,7 +527,7 @@ export default function BomVerification() {
                 }],
               })}
             >
-              {addItemsMut.isPending ? "添加中..." : "添加"}
+              {addItemsMut.isPending ? t("manufacturing.bom.verify.adding") : t("manufacturing.bom.verify.add")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -535,27 +537,27 @@ export default function BomVerification() {
       <Dialog open={showWaiveDialog} onOpenChange={setShowWaiveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>放行确认</DialogTitle>
+            <DialogTitle>{t("manufacturing.bom.verify.waiveConfirm")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
               <p className="text-sm text-yellow-400 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
-                校验不通过的物料将被放行，请确认已知悉风险
+                {t("manufacturing.bom.verify.waiveWarning")}
               </p>
             </div>
             <div>
-              <Label>放行原因</Label>
+              <Label>{t("manufacturing.bom.verify.waiveReason")}</Label>
               <Textarea
                 value={waiveReason}
                 onChange={e => setWaiveReason(e.target.value)}
-                placeholder="说明放行原因..."
+                placeholder={t("manufacturing.bom.verify.waiveReasonPlaceholder")}
                 rows={3}
               />
             </div>
           </div>
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline">取消</Button></DialogClose>
+            <DialogClose asChild><Button variant="outline">{t("manufacturing.common.cancel")}</Button></DialogClose>
             <Button
               variant="destructive"
               disabled={!waiveReason || waiveMut.isPending || !selectedVerificationId}
@@ -564,7 +566,7 @@ export default function BomVerification() {
                 waivedReason: waiveReason,
               })}
             >
-              {waiveMut.isPending ? "放行中..." : "确认放行"}
+              {waiveMut.isPending ? t("manufacturing.bom.verify.waiving") : t("manufacturing.bom.verify.confirmWaive")}
             </Button>
           </DialogFooter>
         </DialogContent>

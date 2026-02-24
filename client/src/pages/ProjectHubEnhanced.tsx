@@ -12,6 +12,7 @@ import {
   Calendar, ChevronRight, Clock, AlertTriangle
 } from "lucide-react";
 import { PageHeader } from "@/components/grt";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // 项目模板库
 const projectTemplates = [
@@ -51,6 +52,7 @@ const milestoneReminders = [
 ];
 
 export default function ProjectHubEnhanced() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("templates");
 
   const getStatusBadge = (status: string) => {
@@ -74,26 +76,26 @@ export default function ProjectHubEnhanced() {
     <div className="space-y-6">
       <PageHeader
         icon={FolderKanban}
-        title="项目中心 (增强版)"
-        description="模板库管理、变更追踪、甘特图依赖、里程碑提醒"
+        title={t("projects.enhanced.title")}
+        description={t("projects.enhanced.description")}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-5 bg-card border border-border">
           <TabsTrigger value="templates" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />模板库
+            <FileText className="w-4 h-4" />{t("projects.enhanced.tabTemplates")}
           </TabsTrigger>
           <TabsTrigger value="changes" className="flex items-center gap-2">
-            <GitBranch className="w-4 h-4" />变更追踪
+            <GitBranch className="w-4 h-4" />{t("projects.enhanced.tabChanges")}
           </TabsTrigger>
           <TabsTrigger value="deliverables" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />交付物
+            <FileText className="w-4 h-4" />{t("projects.enhanced.tabDeliverables")}
           </TabsTrigger>
           <TabsTrigger value="gantt" className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />甘特图
+            <BarChart3 className="w-4 h-4" />{t("projects.enhanced.tabGantt")}
           </TabsTrigger>
           <TabsTrigger value="reminders" className="flex items-center gap-2">
-            <Bell className="w-4 h-4" />提醒
+            <Bell className="w-4 h-4" />{t("projects.enhanced.tabReminders")}
           </TabsTrigger>
         </TabsList>
 
@@ -101,8 +103,8 @@ export default function ProjectHubEnhanced() {
         <TabsContent value="templates" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>项目模板库</CardTitle>
-              <CardDescription>预置项目模板，快速创建新项目</CardDescription>
+              <CardTitle>{t("projects.enhanced.templateLibrary")}</CardTitle>
+              <CardDescription>{t("projects.enhanced.templateLibraryDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -110,15 +112,15 @@ export default function ProjectHubEnhanced() {
                   <div key={template.id} className="p-4 bg-muted rounded-lg border border-border hover:border-primary/50 transition-colors cursor-pointer">
                     <div className="flex items-center justify-between mb-3">
                       <FileText className="w-8 h-8 text-primary/50" />
-                      <Badge variant="outline">{template.usageCount}次使用</Badge>
+                      <Badge variant="outline">{template.usageCount}{t("projects.enhanced.timesUsed")}</Badge>
                     </div>
                     <h3 className="font-medium mb-2">{template.name}</h3>
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>{template.stages}个阶段</span>
+                      <span>{template.stages}{t("projects.enhanced.stages")}</span>
                       <span>{template.duration}</span>
                     </div>
                     <Button className="w-full mt-3" variant="outline" size="sm">
-                      使用模板
+                      {t("projects.enhanced.useTemplate")}
                     </Button>
                   </div>
                 ))}
@@ -131,8 +133,8 @@ export default function ProjectHubEnhanced() {
         <TabsContent value="changes" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>需求变更追踪</CardTitle>
-              <CardDescription>记录和管理所有需求变更请求</CardDescription>
+              <CardTitle>{t("projects.enhanced.changeTracking")}</CardTitle>
+              <CardDescription>{t("projects.enhanced.changeTrackingDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -147,9 +149,9 @@ export default function ProjectHubEnhanced() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">影响: {cr.impact}</Badge>
+                        <Badge variant="outline">{t("projects.enhanced.impact")}: {cr.impact}</Badge>
                         <Badge className={getStatusBadge(cr.status)}>
-                          {cr.status === "approved" ? "已批准" : cr.status === "pending" ? "待审核" : "已拒绝"}
+                          {cr.status === "approved" ? t("projects.enhanced.statusApproved") : cr.status === "pending" ? t("projects.enhanced.statusPending") : t("projects.enhanced.statusRejected")}
                         </Badge>
                       </div>
                     </div>
@@ -164,8 +166,8 @@ export default function ProjectHubEnhanced() {
         <TabsContent value="deliverables" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>交付物版本管理</CardTitle>
-              <CardDescription>追踪所有交付物的版本历史</CardDescription>
+              <CardTitle>{t("projects.enhanced.versionMgmt")}</CardTitle>
+              <CardDescription>{t("projects.enhanced.versionMgmtDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -176,13 +178,13 @@ export default function ProjectHubEnhanced() {
                         <FileText className="w-5 h-5 text-primary/50" />
                         <div>
                           <p className="font-medium">{d.name}</p>
-                          <p className="text-xs text-muted-foreground">更新于 {d.updatedAt}</p>
+                          <p className="text-xs text-muted-foreground">{t("projects.enhanced.updatedAt")} {d.updatedAt}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{d.version}</Badge>
                         <Badge className={getStatusBadge(d.status)}>
-                          {d.status === "approved" ? "已批准" : d.status === "review" ? "评审中" : "草稿"}
+                          {d.status === "approved" ? t("projects.enhanced.statusApproved") : d.status === "review" ? t("projects.enhanced.statusReview") : t("projects.enhanced.statusDraft")}
                         </Badge>
                       </div>
                     </div>
@@ -197,8 +199,8 @@ export default function ProjectHubEnhanced() {
         <TabsContent value="gantt" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>项目甘特图</CardTitle>
-              <CardDescription>可视化项目进度和任务依赖关系</CardDescription>
+              <CardTitle>{t("projects.enhanced.ganttTitle")}</CardTitle>
+              <CardDescription>{t("projects.enhanced.ganttDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -230,9 +232,9 @@ export default function ProjectHubEnhanced() {
                 ))}
               </div>
               <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><div className="w-3 h-3 bg-primary rounded" /> 已完成</span>
-                <span className="flex items-center gap-1"><div className="w-3 h-3 bg-primary/30 rounded" /> 计划中</span>
-                <span className="flex items-center gap-1"><div className="w-2 h-2 bg-yellow-400 rounded-full" /> 依赖点</span>
+                <span className="flex items-center gap-1"><div className="w-3 h-3 bg-primary rounded" /> {t("projects.enhanced.completed")}</span>
+                <span className="flex items-center gap-1"><div className="w-3 h-3 bg-primary/30 rounded" /> {t("projects.enhanced.planned")}</span>
+                <span className="flex items-center gap-1"><div className="w-2 h-2 bg-yellow-400 rounded-full" /> {t("projects.enhanced.dependencyPoint")}</span>
               </div>
             </CardContent>
           </Card>
@@ -242,8 +244,8 @@ export default function ProjectHubEnhanced() {
         <TabsContent value="reminders" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>里程碑提醒</CardTitle>
-              <CardDescription>即将到期的里程碑和重要节点</CardDescription>
+              <CardTitle>{t("projects.enhanced.milestoneReminders")}</CardTitle>
+              <CardDescription>{t("projects.enhanced.milestoneRemindersDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -258,11 +260,11 @@ export default function ProjectHubEnhanced() {
                         )}
                         <div>
                           <p className="font-medium">{reminder.name}</p>
-                          <p className="text-xs opacity-70">截止日期: {reminder.dueDate}</p>
+                          <p className="text-xs opacity-70">{t("projects.enhanced.dueDate")}: {reminder.dueDate}</p>
                         </div>
                       </div>
                       <Badge className={getReminderStatus(reminder.status)}>
-                        {reminder.daysLeft}天后
+                        {reminder.daysLeft}{t("projects.enhanced.daysLater")}
                       </Badge>
                     </div>
                   </div>

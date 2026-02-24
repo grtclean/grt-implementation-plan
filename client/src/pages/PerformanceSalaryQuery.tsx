@@ -12,6 +12,7 @@ import { TrendingUp, User, DollarSign, Award, BarChart3, Lock, Loader2, Eye } fr
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 function money(v: string | number | null | undefined) {
   if (v == null) return "-";
@@ -35,6 +36,7 @@ function marketBadge(mc: string | null | undefined) {
 }
 
 export default function PerformanceSalaryQuery() {
+  const { t } = useLanguage();
   const [detailId, setDetailId] = useState<number | null>(null);
 
   const profile = trpc.perfSalary.myProfile.useQuery();
@@ -53,8 +55,8 @@ export default function PerformanceSalaryQuery() {
       <div className="space-y-6">
         <PageHeader
           icon={TrendingUp}
-          title="绩效薪资查询"
-          description="查看个人绩效指标与薪资明细"
+          title={t("hr.perfSalary.title")}
+          description={t("hr.perfSalary.description")}
         />
 
         {/* 员工信息卡 */}
@@ -63,17 +65,17 @@ export default function PerformanceSalaryQuery() {
             {profile.isLoading ? (
               <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
             ) : !p ? (
-              <p className="text-muted-foreground text-center py-4">未找到员工档案</p>
+              <p className="text-muted-foreground text-center py-4">{t("hr.perfSalary.profileNotFound")}</p>
             ) : (
               <div className="flex items-center gap-6">
                 <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
                   <User className="h-7 w-7 text-primary" />
                 </div>
                 <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">姓名</span><p className="font-medium">{p.name}</p></div>
-                  <div><span className="text-muted-foreground">部门</span><p className="font-medium">{p.department}</p></div>
-                  <div><span className="text-muted-foreground">职位</span><p className="font-medium">{p.position}</p></div>
-                  <div><span className="text-muted-foreground">职级</span><p className="font-medium">{p.level || "-"}</p></div>
+                  <div><span className="text-muted-foreground">{t("hr.perfSalary.name")}</span><p className="font-medium">{p.name}</p></div>
+                  <div><span className="text-muted-foreground">{t("hr.perfSalary.department")}</span><p className="font-medium">{p.department}</p></div>
+                  <div><span className="text-muted-foreground">{t("hr.perfSalary.position")}</span><p className="font-medium">{p.position}</p></div>
+                  <div><span className="text-muted-foreground">{t("hr.perfSalary.level")}</span><p className="font-medium">{p.level || "-"}</p></div>
                 </div>
               </div>
             )}
@@ -82,9 +84,9 @@ export default function PerformanceSalaryQuery() {
 
         <Tabs defaultValue="salary">
           <TabsList>
-            <TabsTrigger value="salary">薪资详情</TabsTrigger>
-            <TabsTrigger value="grades">绩效等级</TabsTrigger>
-            <TabsTrigger value="trend">趋势分析</TabsTrigger>
+            <TabsTrigger value="salary">{t("hr.perfSalary.tab.salary")}</TabsTrigger>
+            <TabsTrigger value="grades">{t("hr.perfSalary.tab.grades")}</TabsTrigger>
+            <TabsTrigger value="trend">{t("hr.perfSalary.tab.trend")}</TabsTrigger>
           </TabsList>
 
           {/* ---- 薪资详情 ---- */}
@@ -93,21 +95,21 @@ export default function PerformanceSalaryQuery() {
             {latestRecord && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">当前薪资概览</CardTitle>
-                  <CardDescription>最近一期核算 · {formatDate(latestRecord.createdAt)}</CardDescription>
+                  <CardTitle className="text-base">{t("hr.perfSalary.currentOverview")}</CardTitle>
+                  <CardDescription>{t("hr.perfSalary.latestCalc")} · {formatDate(latestRecord.createdAt)}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    <SummaryItem icon={DollarSign} label="基本工资" value={money(latestRecord.baseSalary)} />
-                    <SummaryItem icon={Award} label="绩效工资" value={money(latestRecord.performanceSalary)} />
-                    <SummaryItem icon={DollarSign} label="奖金" value={money(latestRecord.bonus)} />
-                    <SummaryItem icon={DollarSign} label="福利" value={money(latestRecord.benefits)} />
-                    <SummaryItem icon={TrendingUp} label="月薪合计" value={money(latestRecord.monthlyTotal)} highlight />
-                    <SummaryItem icon={BarChart3} label="年薪合计" value={money(latestRecord.annualTotal)} />
+                    <SummaryItem icon={DollarSign} label={t("hr.perfSalary.baseSalary")} value={money(latestRecord.baseSalary)} />
+                    <SummaryItem icon={Award} label={t("hr.perfSalary.performanceSalary")} value={money(latestRecord.performanceSalary)} />
+                    <SummaryItem icon={DollarSign} label={t("hr.perfSalary.bonus")} value={money(latestRecord.bonus)} />
+                    <SummaryItem icon={DollarSign} label={t("hr.perfSalary.benefits")} value={money(latestRecord.benefits)} />
+                    <SummaryItem icon={TrendingUp} label={t("hr.perfSalary.monthlyTotal")} value={money(latestRecord.monthlyTotal)} highlight />
+                    <SummaryItem icon={BarChart3} label={t("hr.perfSalary.annualTotal")} value={money(latestRecord.annualTotal)} />
                   </div>
                   {latestRecord.marketComparison && (
                     <div className="mt-4 flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">市场对标:</span>
+                      <span className="text-sm text-muted-foreground">{t("hr.perfSalary.marketBenchmark")}:</span>
                       {marketBadge(latestRecord.marketComparison)}
                     </div>
                   )}
@@ -117,24 +119,24 @@ export default function PerformanceSalaryQuery() {
 
             {/* 薪资历史 */}
             <Card>
-              <CardHeader><CardTitle className="text-base">薪资历史记录</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{t("hr.perfSalary.salaryHistory")}</CardTitle></CardHeader>
               <CardContent>
                 {records.isLoading ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                 ) : !records.data?.length ? (
-                  <p className="text-muted-foreground text-center py-8">暂无薪资记录</p>
+                  <p className="text-muted-foreground text-center py-8">{t("hr.perfSalary.noSalaryRecords")}</p>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>核算编号</TableHead>
-                        <TableHead>类型</TableHead>
-                        <TableHead>职级</TableHead>
-                        <TableHead>基本工资</TableHead>
-                        <TableHead>绩效工资</TableHead>
-                        <TableHead>月薪合计</TableHead>
-                        <TableHead>日期</TableHead>
-                        <TableHead>操作</TableHead>
+                        <TableHead>{t("hr.perfSalary.calcCode")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.type")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.level")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.baseSalary")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.performanceSalary")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.monthlyTotal")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.date")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -149,7 +151,7 @@ export default function PerformanceSalaryQuery() {
                           <TableCell>{formatDate(r.createdAt)}</TableCell>
                           <TableCell>
                             <Button variant="ghost" size="sm" onClick={() => setDetailId(r.id)}>
-                              <Eye className="h-4 w-4 mr-1" />详情
+                              <Eye className="h-4 w-4 mr-1" />{t("hr.perfSalary.detail")}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -165,14 +167,14 @@ export default function PerformanceSalaryQuery() {
           <TabsContent value="grades">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">绩效等级标准</CardTitle>
-                <CardDescription>公司统一的绩效评级与系数标准</CardDescription>
+                <CardTitle className="text-base">{t("hr.perfSalary.gradeStandard")}</CardTitle>
+                <CardDescription>{t("hr.perfSalary.gradeStandardDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {grades.isLoading ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                 ) : !grades.data?.length ? (
-                  <p className="text-muted-foreground text-center py-8">暂无绩效等级数据</p>
+                  <p className="text-muted-foreground text-center py-8">{t("hr.perfSalary.noGradeData")}</p>
                 ) : (
                   <div className="grid gap-3">
                     {grades.data.map((g: any) => {
@@ -190,16 +192,16 @@ export default function PerformanceSalaryQuery() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{g.gradeName}</span>
-                              {isCurrentGrade && <Badge>当前等级</Badge>}
+                              {isCurrentGrade && <Badge>{t("hr.perfSalary.currentGrade")}</Badge>}
                             </div>
                             <p className="text-sm text-muted-foreground">{g.description || "-"}</p>
                           </div>
                           <div className="text-right text-sm">
-                            <p className="text-muted-foreground">分数区间</p>
+                            <p className="text-muted-foreground">{t("hr.perfSalary.scoreRange")}</p>
                             <p className="font-medium">{g.scoreMin} ~ {g.scoreMax}</p>
                           </div>
                           <div className="text-right text-sm">
-                            <p className="text-muted-foreground">系数</p>
+                            <p className="text-muted-foreground">{t("hr.perfSalary.coefficient")}</p>
                             <p className="font-medium">{g.coefficient}</p>
                           </div>
                         </div>
@@ -215,39 +217,39 @@ export default function PerformanceSalaryQuery() {
           <TabsContent value="trend">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">薪资趋势</CardTitle>
-                <CardDescription>最近 {trend.data?.length ?? 0} 期薪资变化</CardDescription>
+                <CardTitle className="text-base">{t("hr.perfSalary.salaryTrend")}</CardTitle>
+                <CardDescription>{t("hr.perfSalary.recentPeriods")} {trend.data?.length ?? 0}</CardDescription>
               </CardHeader>
               <CardContent>
                 {trend.isLoading ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                 ) : !trend.data?.length ? (
-                  <p className="text-muted-foreground text-center py-8">暂无趋势数据</p>
+                  <p className="text-muted-foreground text-center py-8">{t("hr.perfSalary.noTrendData")}</p>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>日期</TableHead>
-                        <TableHead>类型</TableHead>
-                        <TableHead>职级</TableHead>
-                        <TableHead>基本工资</TableHead>
-                        <TableHead>绩效工资</TableHead>
-                        <TableHead>奖金</TableHead>
-                        <TableHead>月薪合计</TableHead>
-                        <TableHead>年薪合计</TableHead>
+                        <TableHead>{t("hr.perfSalary.date")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.type")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.level")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.baseSalary")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.performanceSalary")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.bonus")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.monthlyTotal")}</TableHead>
+                        <TableHead>{t("hr.perfSalary.annualTotal")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {trend.data.map((t: any, idx: number) => (
+                      {trend.data.map((tr: any, idx: number) => (
                         <TableRow key={idx}>
-                          <TableCell>{formatDate(t.createdAt)}</TableCell>
-                          <TableCell>{t.calculationType}</TableCell>
-                          <TableCell>{t.positionGrade || "-"}</TableCell>
-                          <TableCell>{money(t.baseSalary)}</TableCell>
-                          <TableCell>{money(t.performanceSalary)}</TableCell>
-                          <TableCell>{money(t.bonus)}</TableCell>
-                          <TableCell className="font-medium">{money(t.monthlyTotal)}</TableCell>
-                          <TableCell>{money(t.annualTotal)}</TableCell>
+                          <TableCell>{formatDate(tr.createdAt)}</TableCell>
+                          <TableCell>{tr.calculationType}</TableCell>
+                          <TableCell>{tr.positionGrade || "-"}</TableCell>
+                          <TableCell>{money(tr.baseSalary)}</TableCell>
+                          <TableCell>{money(tr.performanceSalary)}</TableCell>
+                          <TableCell>{money(tr.bonus)}</TableCell>
+                          <TableCell className="font-medium">{money(tr.monthlyTotal)}</TableCell>
+                          <TableCell>{money(tr.annualTotal)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -261,38 +263,38 @@ export default function PerformanceSalaryQuery() {
         {/* 隐私提示 */}
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-2">
           <Lock className="h-3 w-3" />
-          薪酬数据仅本人可见，系统已进行严格的权限隔离
+          {t("hr.perfSalary.privacyNotice")}
         </div>
 
         {/* 薪资详情对话框 */}
         <Dialog open={detailId != null} onOpenChange={(open) => { if (!open) setDetailId(null); }}>
           <DialogContent className="sm:max-w-[520px]">
             <DialogHeader>
-              <DialogTitle>薪资详情</DialogTitle>
+              <DialogTitle>{t("hr.perfSalary.salaryDetail")}</DialogTitle>
             </DialogHeader>
             {detail.isLoading ? (
               <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
             ) : !detail.data ? (
-              <p className="text-muted-foreground text-center py-8">未找到记录</p>
+              <p className="text-muted-foreground text-center py-8">{t("hr.perfSalary.recordNotFound")}</p>
             ) : (
               <div className="space-y-3 text-sm">
-                <DetailRow label="核算编号" value={detail.data.calculationCode} />
-                <DetailRow label="部门" value={detail.data.department} />
-                <DetailRow label="职级" value={detail.data.positionGrade || "-"} />
-                <DetailRow label="类型" value={detail.data.calculationType} />
-                <DetailRow label="基本工资" value={money(detail.data.baseSalary)} />
-                <DetailRow label="绩效工资" value={money(detail.data.performanceSalary)} />
-                <DetailRow label="奖金" value={money(detail.data.bonus)} />
-                <DetailRow label="福利" value={money(detail.data.benefits)} />
-                <DetailRow label="月薪合计" value={money(detail.data.monthlyTotal)} bold />
-                <DetailRow label="年薪合计" value={money(detail.data.annualTotal)} bold />
+                <DetailRow label={t("hr.perfSalary.calcCode")} value={detail.data.calculationCode} />
+                <DetailRow label={t("hr.perfSalary.department")} value={detail.data.department} />
+                <DetailRow label={t("hr.perfSalary.level")} value={detail.data.positionGrade || "-"} />
+                <DetailRow label={t("hr.perfSalary.type")} value={detail.data.calculationType} />
+                <DetailRow label={t("hr.perfSalary.baseSalary")} value={money(detail.data.baseSalary)} />
+                <DetailRow label={t("hr.perfSalary.performanceSalary")} value={money(detail.data.performanceSalary)} />
+                <DetailRow label={t("hr.perfSalary.bonus")} value={money(detail.data.bonus)} />
+                <DetailRow label={t("hr.perfSalary.benefits")} value={money(detail.data.benefits)} />
+                <DetailRow label={t("hr.perfSalary.monthlyTotal")} value={money(detail.data.monthlyTotal)} bold />
+                <DetailRow label={t("hr.perfSalary.annualTotal")} value={money(detail.data.annualTotal)} bold />
                 {detail.data.marketComparison && (
                   <div className="flex justify-between py-1">
-                    <span className="text-muted-foreground">市场对标</span>
+                    <span className="text-muted-foreground">{t("hr.perfSalary.marketBenchmark")}</span>
                     {marketBadge(detail.data.marketComparison)}
                   </div>
                 )}
-                {detail.data.remarks && <DetailRow label="备注" value={detail.data.remarks} />}
+                {detail.data.remarks && <DetailRow label={t("hr.perfSalary.remarks")} value={detail.data.remarks} />}
               </div>
             )}
           </DialogContent>

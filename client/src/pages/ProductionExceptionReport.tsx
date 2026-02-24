@@ -3,6 +3,7 @@
  * 异常智能分类 · 自动升级 · 根因假设 · 即时措施
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,13 +15,13 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const EXCEPTION_TYPES = [
-  { value: "设备故障", label: "设备故障" },
-  { value: "质量异常", label: "质量异常" },
-  { value: "物料问题", label: "物料问题" },
-  { value: "安全事件", label: "安全事件" },
-  { value: "工艺偏差", label: "工艺偏差" },
-  { value: "人员问题", label: "人员问题" },
+const EXCEPTION_TYPE_KEYS = [
+  { value: "设备故障", labelKey: "manufacturing.exception.typeEquipmentFault" },
+  { value: "质量异常", labelKey: "manufacturing.exception.typeQualityAnomaly" },
+  { value: "物料问题", labelKey: "manufacturing.exception.typeMaterialIssue" },
+  { value: "安全事件", labelKey: "manufacturing.exception.typeSafetyIncident" },
+  { value: "工艺偏差", labelKey: "manufacturing.exception.typeProcessDeviation" },
+  { value: "人员问题", labelKey: "manufacturing.exception.typePersonnelIssue" },
 ];
 
 interface ExceptionResult {
@@ -44,6 +45,7 @@ interface ExceptionResult {
 }
 
 export default function ProductionExceptionReport() {
+  const { t } = useLanguage();
   const [exceptionType, setExceptionType] = useState("设备故障");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -80,9 +82,9 @@ export default function ProductionExceptionReport() {
 
   const severityLabel = (s: string) => {
     switch (s) {
-      case "critical": return "严重";
-      case "major": return "重要";
-      case "minor": return "轻微";
+      case "critical": return t("manufacturing.exception.severityCritical");
+      case "major": return t("manufacturing.exception.severityMajor");
+      case "minor": return t("manufacturing.exception.severityMinor");
       default: return s;
     }
   };
@@ -100,12 +102,12 @@ export default function ProductionExceptionReport() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={AlertTriangle}
-          title="生产异常上报"
-          description="异常智能分类 · 自动升级 · 根因假设 · 即时措施"
+          title={t("manufacturing.exception.title")}
+          description={t("manufacturing.exception.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI分析
+              {t("manufacturing.exception.aiBadge")}
             </Badge>
           }
         />
@@ -115,63 +117,63 @@ export default function ProductionExceptionReport() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <AlertTriangle className="h-5 w-5 text-primary" />
-              异常信息
+              {t("manufacturing.exception.infoInput")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">异常类型 *</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.exception.exceptionType")} *</label>
                 <Select value={exceptionType} onValueChange={(v) => setExceptionType(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择异常类型" />
+                    <SelectValue placeholder={t("manufacturing.exception.exceptionType")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {EXCEPTION_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    {EXCEPTION_TYPE_KEYS.map((et) => (
+                      <SelectItem key={et.value} value={et.value}>{t(et.labelKey)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">发生位置 *</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.exception.location")} *</label>
                 <Input
-                  placeholder="如: 2号车间-A3工位"
+                  placeholder={t("manufacturing.exception.locationPlaceholder")}
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">异常描述 *</label>
+              <label className="text-sm text-muted-foreground">{t("manufacturing.exception.exceptionDesc")} *</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]"
-                placeholder="描述异常情况"
+                placeholder={t("manufacturing.exception.exceptionDesc")}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">影响的生产工单（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.exception.affectedOrders")}</label>
                 <Input
-                  placeholder="影响的生产工单"
+                  placeholder={t("manufacturing.exception.affectedOrders")}
                   value={affectedOrders}
                   onChange={(e) => setAffectedOrders(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">设备编号（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.exception.equipmentId")}</label>
                 <Input
-                  placeholder="设备编号"
+                  placeholder={t("manufacturing.exception.equipmentId")}
                   value={equipmentId}
                   onChange={(e) => setEquipmentId(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">报告人姓名 *</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.exception.reporterName")} *</label>
                 <Input
-                  placeholder="报告人姓名"
+                  placeholder={t("manufacturing.exception.reporterName")}
                   value={reporterName}
                   onChange={(e) => setReporterName(e.target.value)}
                 />
@@ -180,7 +182,7 @@ export default function ProductionExceptionReport() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!description.trim() || !location.trim() || !reporterName.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                智能分析
+                {t("manufacturing.exception.analyze")}
               </Button>
             </div>
           </CardContent>
@@ -194,25 +196,25 @@ export default function ProductionExceptionReport() {
               <CardContent className="pt-6">
                 <div className="flex flex-wrap items-center gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">异常编号</p>
+                    <p className="text-sm text-muted-foreground">{t("manufacturing.exception.exceptionId")}</p>
                     <Badge className="text-lg px-3 py-1 mt-1 bg-primary/20 text-primary border-primary/30">
                       {result.exceptionId}
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">分类</p>
+                    <p className="text-sm text-muted-foreground">{t("manufacturing.exception.classification")}</p>
                     <Badge className="text-lg px-3 py-1 mt-1 bg-muted">
                       {result.classification}
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">严重性</p>
+                    <p className="text-sm text-muted-foreground">{t("manufacturing.exception.severity")}</p>
                     <Badge className={`text-lg px-3 py-1 mt-1 ${severityColor(result.severity)}`}>
                       {severityLabel(result.severity)}
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">升级级别</p>
+                    <p className="text-sm text-muted-foreground">{t("manufacturing.exception.escalationLevel")}</p>
                     <Badge className={`text-lg px-3 py-1 mt-1 ${escalationColor(result.escalationLevel)}`}>
                       {result.escalationLevel}
                     </Badge>
@@ -227,7 +229,7 @@ export default function ProductionExceptionReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Users className="h-5 w-5 text-primary" />
-                    升级通知对象
+                    {t("manufacturing.exception.escalationTargets")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -235,9 +237,9 @@ export default function ProductionExceptionReport() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">角色</th>
-                          <th className="text-left py-2 pr-4">姓名</th>
-                          <th className="text-left py-2">通知原因</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.exception.role")}</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.exception.name")}</th>
+                          <th className="text-left py-2">{t("manufacturing.exception.notifyReason")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -261,7 +263,7 @@ export default function ProductionExceptionReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Zap className="h-5 w-5 text-yellow-400" />
-                    即时措施
+                    {t("manufacturing.exception.immediateAction")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -285,7 +287,7 @@ export default function ProductionExceptionReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-orange-400" />
-                    根因假设
+                    {t("manufacturing.exception.rootCause")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -314,7 +316,7 @@ export default function ProductionExceptionReport() {
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm text-muted-foreground">影响范围</p>
+                      <p className="text-sm text-muted-foreground">{t("manufacturing.exception.impactScope")}</p>
                       <p className="font-medium mt-1">{result.impactScope}</p>
                     </div>
                   </div>
@@ -325,7 +327,7 @@ export default function ProductionExceptionReport() {
                   <div className="flex items-start gap-3">
                     <Clock className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm text-muted-foreground">预计停机时间</p>
+                      <p className="text-sm text-muted-foreground">{t("manufacturing.exception.estimatedDowntime")}</p>
                       <p className="text-2xl font-bold text-red-400 mt-1">{result.estimatedDowntime}</p>
                     </div>
                   </div>
@@ -339,7 +341,7 @@ export default function ProductionExceptionReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-green-400" />
-                    AI建议
+                    {t("manufacturing.common.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Users, Bot, Cpu, Coins, Settings, Zap,
   Play, Pause, CheckCircle2, XCircle, Send,
@@ -21,14 +22,14 @@ import {
 // ─── Types ──────────────────────────────────────────────────
 
 const TASK_TYPES = [
-  { value: "document_draft", label: "文档起草", icon: FileText },
-  { value: "data_analysis", label: "数据分析", icon: BarChart3 },
-  { value: "code_review", label: "代码审查", icon: Search },
-  { value: "report_generation", label: "报告生成", icon: FileText },
-  { value: "meeting_summary", label: "会议纪要", icon: Users },
-  { value: "email_draft", label: "邮件草拟", icon: Send },
-  { value: "risk_assessment", label: "风险评估", icon: AlertTriangle },
-  { value: "quality_inspection", label: "质量检查", icon: Shield },
+  { value: "document_draft", i18nKey: "ai.fleet.taskType.documentDraft", icon: FileText },
+  { value: "data_analysis", i18nKey: "ai.fleet.taskType.dataAnalysis", icon: BarChart3 },
+  { value: "code_review", i18nKey: "ai.fleet.taskType.codeReview", icon: Search },
+  { value: "report_generation", i18nKey: "ai.fleet.taskType.reportGeneration", icon: FileText },
+  { value: "meeting_summary", i18nKey: "ai.fleet.taskType.meetingSummary", icon: Users },
+  { value: "email_draft", i18nKey: "ai.fleet.taskType.emailDraft", icon: Send },
+  { value: "risk_assessment", i18nKey: "ai.fleet.taskType.riskAssessment", icon: AlertTriangle },
+  { value: "quality_inspection", i18nKey: "ai.fleet.taskType.qualityInspection", icon: Shield },
 ] as const;
 
 const LEVEL_COLORS: Record<number, { bg: string; border: string; text: string; badge: string; solid: string }> = {
@@ -39,22 +40,22 @@ const LEVEL_COLORS: Record<number, { bg: string; border: string; text: string; b
   5: { bg: "bg-amber-50", border: "border-amber-300", text: "text-amber-700", badge: "bg-amber-200 text-amber-800", solid: "bg-amber-500" },
 };
 
-const LEVEL_LABELS: Record<number, string> = {
-  1: "初级助理", 2: "标准助理", 3: "高级助理", 4: "资深助理", 5: "专家助理",
+const LEVEL_LABEL_KEYS: Record<number, string> = {
+  1: "ai.fleet.level.1", 2: "ai.fleet.level.2", 3: "ai.fleet.level.3", 4: "ai.fleet.level.4", 5: "ai.fleet.level.5",
 };
 
-const AUTONOMY_LABELS: Record<string, string> = {
-  supervised: "受监督", semi_autonomous: "半自主", autonomous: "全自主",
+const AUTONOMY_LABEL_KEYS: Record<string, string> = {
+  supervised: "ai.fleet.autonomy.supervised", semi_autonomous: "ai.fleet.autonomy.semiAutonomous", autonomous: "ai.fleet.autonomy.autonomous",
 };
 
-const TX_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  task_reward: { label: "任务奖励", color: "text-green-600" },
-  task_expense: { label: "任务消费", color: "text-red-600" },
-  royalty_income: { label: "版税收入", color: "text-green-600" },
-  penalty: { label: "处罚", color: "text-red-600" },
-  bonus: { label: "奖金", color: "text-green-600" },
-  transfer_in: { label: "转入", color: "text-blue-600" },
-  transfer_out: { label: "转出", color: "text-orange-600" },
+const TX_TYPE_LABELS: Record<string, { i18nKey: string; color: string }> = {
+  task_reward: { i18nKey: "ai.fleet.tx.taskReward", color: "text-green-600" },
+  task_expense: { i18nKey: "ai.fleet.tx.taskExpense", color: "text-red-600" },
+  royalty_income: { i18nKey: "ai.fleet.tx.royaltyIncome", color: "text-green-600" },
+  penalty: { i18nKey: "ai.fleet.tx.penalty", color: "text-red-600" },
+  bonus: { i18nKey: "ai.fleet.tx.bonus", color: "text-green-600" },
+  transfer_in: { i18nKey: "ai.fleet.tx.transferIn", color: "text-blue-600" },
+  transfer_out: { i18nKey: "ai.fleet.tx.transferOut", color: "text-orange-600" },
 };
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -94,6 +95,7 @@ function StatCard({ label, value, icon: Icon, color = "text-gray-800" }: {
 // ═══════════════════════════════════════════════════════════
 
 function MyFleetTab() {
+  const { t } = useLanguage();
   const fleet = trpc.aiAgentFleet.getMyFleet.useQuery();
   const provision = trpc.aiAgentFleet.provisionMyFleet.useMutation({
     onSuccess: (d) => {
@@ -120,25 +122,25 @@ function MyFleetTab() {
     <div className="space-y-6">
       {/* Summary Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Agent总数" value={summary?.totalAgents || 0} icon={Bot} color="text-[#0078d4]" />
-        <StatCard label="活跃Agent" value={summary?.activeCount || 0} icon={Zap} color="text-green-600" />
-        <StatCard label="G-Token总额" value={fmtNum(summary?.totalBalance)} icon={Coins} color="text-amber-600" />
-        <StatCard label="完成任务" value={summary?.totalTasks || 0} icon={CheckCircle2} color="text-purple-600" />
+        <StatCard label={t("ai.fleet.totalAgents")} value={summary?.totalAgents || 0} icon={Bot} color="text-[#0078d4]" />
+        <StatCard label={t("ai.fleet.activeAgents")} value={summary?.activeCount || 0} icon={Zap} color="text-green-600" />
+        <StatCard label={t("ai.fleet.gTokenTotal")} value={fmtNum(summary?.totalBalance)} icon={Coins} color="text-amber-600" />
+        <StatCard label={t("ai.fleet.completedTasks")} value={summary?.totalTasks || 0} icon={CheckCircle2} color="text-purple-600" />
       </div>
 
       {/* Deploy Button */}
       {agents.length === 0 && (
         <div className="text-center py-12 bg-white rounded-lg border border-[#edebe9]">
           <Bot className="w-16 h-16 mx-auto text-[#0078d4] mb-4" />
-          <h3 className="text-lg font-semibold text-[#323130] mb-2">尚未部署AI军团</h3>
-          <p className="text-sm text-[#605e5c] mb-4">点击下方按钮为您创建L1-L5五个等级的AI助理军团</p>
+          <h3 className="text-lg font-semibold text-[#323130] mb-2">{t("ai.fleet.notDeployed")}</h3>
+          <p className="text-sm text-[#605e5c] mb-4">{t("ai.fleet.deployDesc")}</p>
           <button
             className="px-6 py-2.5 bg-[#0078d4] text-white rounded-md hover:bg-[#106ebe] transition-colors inline-flex items-center gap-2"
             onClick={() => provision.mutate()}
             disabled={provision.isPending}
           >
             {provision.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
-            部署AI军团
+            {t("ai.fleet.deployFleet")}
           </button>
         </div>
       )}
@@ -162,7 +164,7 @@ function MyFleetTab() {
                     L{lvl}
                   </span>
                   <span className={`text-xs px-2 py-0.5 rounded ${isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                    {isActive ? "活跃" : agent.status === "paused" ? "暂停" : "未激活"}
+                    {isActive ? t("ai.fleet.active") : agent.status === "paused" ? t("ai.fleet.paused") : t("ai.fleet.inactive")}
                   </span>
                 </div>
 
@@ -173,15 +175,15 @@ function MyFleetTab() {
                 {/* Stats */}
                 <div className="space-y-1.5 text-xs text-[#605e5c]">
                   <div className="flex justify-between">
-                    <span>等级</span>
-                    <span className="font-medium">{LEVEL_LABELS[lvl]}</span>
+                    <span>{t("ai.fleet.level")}</span>
+                    <span className="font-medium">{t(LEVEL_LABEL_KEYS[lvl])}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>自主度</span>
-                    <span>{AUTONOMY_LABELS[agent.autonomyLevel] || agent.autonomyLevel}</span>
+                    <span>{t("ai.fleet.autonomy")}</span>
+                    <span>{AUTONOMY_LABEL_KEYS[agent.autonomyLevel] ? t(AUTONOMY_LABEL_KEYS[agent.autonomyLevel]) : agent.autonomyLevel}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>信誉分</span>
+                    <span>{t("ai.fleet.reputationScore")}</span>
                     <span className="font-medium">{fmtNum(agent.reputationScore)}</span>
                   </div>
                   <div className="flex justify-between">
@@ -189,7 +191,7 @@ function MyFleetTab() {
                     <span className="font-bold text-amber-600">{fmtNum(agent.gTokenBalance)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>完成任务</span>
+                    <span>{t("ai.fleet.completedTasks")}</span>
                     <span>{agent.taskCompletionCount || 0}</span>
                   </div>
                 </div>
@@ -202,7 +204,7 @@ function MyFleetTab() {
                       onClick={() => deactivate.mutate({ agentId: agent.id })}
                       disabled={deactivate.isPending}
                     >
-                      <Pause className="w-3 h-3" /> 暂停
+                      <Pause className="w-3 h-3" /> {t("ai.fleet.pause")}
                     </button>
                   ) : (
                     <button
@@ -210,7 +212,7 @@ function MyFleetTab() {
                       onClick={() => activate.mutate({ agentId: agent.id })}
                       disabled={activate.isPending}
                     >
-                      <Play className="w-3 h-3" /> 激活
+                      <Play className="w-3 h-3" /> {t("ai.fleet.activate")}
                     </button>
                   )}
                 </div>
@@ -228,6 +230,7 @@ function MyFleetTab() {
 // ═══════════════════════════════════════════════════════════
 
 function TaskExecutionTab() {
+  const { t } = useLanguage();
   const fleet = trpc.aiAgentFleet.getMyFleet.useQuery();
   const [selectedAgent, setSelectedAgent] = useState<number | null>(null);
   const [taskType, setTaskType] = useState("document_draft");
@@ -269,48 +272,48 @@ function TaskExecutionTab() {
       {/* Task Submission Form */}
       <div className="bg-white rounded-lg border border-[#edebe9] p-6">
         <h3 className="text-base font-semibold text-[#323130] mb-4 flex items-center gap-2">
-          <Brain className="w-5 h-5 text-[#0078d4]" /> 提交任务
+          <Brain className="w-5 h-5 text-[#0078d4]" /> {t("ai.fleet.submitTask")}
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Agent Select */}
           <div>
-            <label className="block text-xs font-medium text-[#605e5c] mb-1">选择Agent</label>
+            <label className="block text-xs font-medium text-[#605e5c] mb-1">{t("ai.fleet.selectAgent")}</label>
             <select
               className="w-full px-3 py-2 border border-[#8a8886] rounded text-sm focus:border-[#0078d4] focus:outline-none"
               value={selectedAgent || ""}
               onChange={(e) => setSelectedAgent(Number(e.target.value) || null)}
             >
-              <option value="">-- 请选择 --</option>
+              <option value="">{t("ai.fleet.pleaseSelect")}</option>
               {activeAgents.map((a: any) => (
                 <option key={a.id} value={a.id}>
                   L{a.level} {a.agentName}
                 </option>
               ))}
-              {activeAgents.length === 0 && <option disabled>无活跃Agent，请先激活</option>}
+              {activeAgents.length === 0 && <option disabled>{t("ai.fleet.noActiveAgent")}</option>}
             </select>
           </div>
 
           {/* Task Type */}
           <div>
-            <label className="block text-xs font-medium text-[#605e5c] mb-1">任务类型</label>
+            <label className="block text-xs font-medium text-[#605e5c] mb-1">{t("ai.fleet.taskType")}</label>
             <select
               className="w-full px-3 py-2 border border-[#8a8886] rounded text-sm focus:border-[#0078d4] focus:outline-none"
               value={taskType}
               onChange={(e) => setTaskType(e.target.value)}
             >
-              {TASK_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
+              {TASK_TYPES.map((tt) => (
+                <option key={tt.value} value={tt.value}>{t(tt.i18nKey)}</option>
               ))}
             </select>
           </div>
 
           {/* Task Title */}
           <div>
-            <label className="block text-xs font-medium text-[#605e5c] mb-1">任务标题</label>
+            <label className="block text-xs font-medium text-[#605e5c] mb-1">{t("ai.fleet.taskTitle")}</label>
             <input
               className="w-full px-3 py-2 border border-[#8a8886] rounded text-sm focus:border-[#0078d4] focus:outline-none"
-              placeholder="例如：生成本周项目周报"
+              placeholder={t("ai.fleet.taskTitlePlaceholder")}
               value={taskTitle}
               onChange={(e) => setTaskTitle(e.target.value)}
             />
@@ -319,11 +322,11 @@ function TaskExecutionTab() {
 
         {/* Task Content */}
         <div className="mb-4">
-          <label className="block text-xs font-medium text-[#605e5c] mb-1">任务描述 / 输入内容</label>
+          <label className="block text-xs font-medium text-[#605e5c] mb-1">{t("ai.fleet.taskDescription")}</label>
           <textarea
             className="w-full px-3 py-2 border border-[#8a8886] rounded text-sm focus:border-[#0078d4] focus:outline-none resize-none"
             rows={4}
-            placeholder="请提供任务的详细描述或需要处理的内容..."
+            placeholder={t("ai.fleet.taskDescPlaceholder")}
             value={taskContent}
             onChange={(e) => setTaskContent(e.target.value)}
           />
@@ -344,7 +347,7 @@ function TaskExecutionTab() {
           disabled={execute.isPending || !selectedAgent}
         >
           {execute.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          执行任务
+          {t("ai.fleet.executeTask")}
         </button>
       </div>
 
@@ -352,12 +355,12 @@ function TaskExecutionTab() {
       {showResult && showResult.output && (
         <div className="bg-white rounded-lg border border-[#edebe9] p-6">
           <h3 className="text-base font-semibold text-[#323130] mb-3 flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-600" /> 执行结果
+            <CheckCircle2 className="w-5 h-5 text-green-600" /> {t("ai.fleet.executionResult")}
           </h3>
           <div className="flex gap-4 text-xs text-[#605e5c] mb-3">
-            <span>质量分: <b>{showResult.qualityScore?.toFixed(1)}</b></span>
-            <span>耗时: <b>{showResult.durationMs}ms</b></span>
-            <span>需人审: {showResult.reviewRequired ? "是" : "否"}</span>
+            <span>{t("ai.fleet.qualityScore")}: <b>{showResult.qualityScore?.toFixed(1)}</b></span>
+            <span>{t("ai.fleet.duration")}: <b>{showResult.durationMs}ms</b></span>
+            <span>{t("ai.fleet.humanReview")}: {showResult.reviewRequired ? t("ai.fleet.yes") : t("ai.fleet.no")}</span>
           </div>
           <div className="bg-[#faf9f8] rounded p-4 text-sm text-[#323130] whitespace-pre-wrap max-h-80 overflow-y-auto">
             {showResult.output}
@@ -369,7 +372,7 @@ function TaskExecutionTab() {
       {selectedAgent && (
         <div className="bg-white rounded-lg border border-[#edebe9] p-6">
           <h3 className="text-base font-semibold text-[#323130] mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-[#605e5c]" /> 任务历史
+            <Clock className="w-5 h-5 text-[#605e5c]" /> {t("ai.fleet.taskHistory")}
           </h3>
 
           {taskHistory.isLoading ? (
@@ -381,55 +384,55 @@ function TaskExecutionTab() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[#edebe9] text-left text-xs text-[#605e5c]">
-                    <th className="py-2 pr-3">任务</th>
-                    <th className="py-2 pr-3">类型</th>
-                    <th className="py-2 pr-3">状态</th>
-                    <th className="py-2 pr-3">质量分</th>
-                    <th className="py-2 pr-3">G-Token</th>
-                    <th className="py-2 pr-3">人审</th>
-                    <th className="py-2">时间</th>
+                    <th className="py-2 pr-3">{t("ai.fleet.task")}</th>
+                    <th className="py-2 pr-3">{t("ai.fleet.type")}</th>
+                    <th className="py-2 pr-3">{t("ai.fleet.status")}</th>
+                    <th className="py-2 pr-3">{t("ai.fleet.qualityScore")}</th>
+                    <th className="py-2 pr-3">{t("ai.fleet.gToken")}</th>
+                    <th className="py-2 pr-3">{t("ai.fleet.review")}</th>
+                    <th className="py-2">{t("ai.fleet.time")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(taskHistory.data || []).map((t: any) => (
-                    <tr key={t.id} className="border-b border-[#f3f2f1] hover:bg-[#faf9f8]">
-                      <td className="py-2 pr-3 max-w-[200px] truncate">{t.taskTitle}</td>
-                      <td className="py-2 pr-3">{TASK_TYPES.find((tt) => tt.value === t.taskType)?.label || t.taskType}</td>
+                  {(taskHistory.data || []).map((tsk: any) => (
+                    <tr key={tsk.id} className="border-b border-[#f3f2f1] hover:bg-[#faf9f8]">
+                      <td className="py-2 pr-3 max-w-[200px] truncate">{tsk.taskTitle}</td>
+                      <td className="py-2 pr-3">{TASK_TYPES.find((tt) => tt.value === tsk.taskType) ? t(TASK_TYPES.find((tt) => tt.value === tsk.taskType)!.i18nKey) : tsk.taskType}</td>
                       <td className="py-2 pr-3">
                         <span className={`px-2 py-0.5 rounded text-xs ${
-                          t.status === "completed" ? "bg-green-100 text-green-700" :
-                          t.status === "failed" ? "bg-red-100 text-red-700" :
-                          t.status === "in_progress" ? "bg-blue-100 text-blue-700" :
+                          tsk.status === "completed" ? "bg-green-100 text-green-700" :
+                          tsk.status === "failed" ? "bg-red-100 text-red-700" :
+                          tsk.status === "in_progress" ? "bg-blue-100 text-blue-700" :
                           "bg-gray-100 text-gray-600"
-                        }`}>{t.status}</span>
+                        }`}>{tsk.status}</span>
                       </td>
-                      <td className="py-2 pr-3">{fmtNum(t.qualityScore)}</td>
-                      <td className="py-2 pr-3 text-amber-600 font-medium">{fmtNum(t.gTokenReward)}</td>
+                      <td className="py-2 pr-3">{fmtNum(tsk.qualityScore)}</td>
+                      <td className="py-2 pr-3 text-amber-600 font-medium">{fmtNum(tsk.gTokenReward)}</td>
                       <td className="py-2 pr-3">
-                        {t.humanReviewRequired && t.humanApproved === null ? (
+                        {tsk.humanReviewRequired && tsk.humanApproved === null ? (
                           <div className="flex gap-1">
                             <button
                               className="px-2 py-0.5 text-xs bg-green-500 text-white rounded hover:bg-green-600"
-                              onClick={() => review.mutate({ executionId: t.id, approved: true, qualityScore: 80 })}
-                            >通过</button>
+                              onClick={() => review.mutate({ executionId: tsk.id, approved: true, qualityScore: 80 })}
+                            >{t("ai.fleet.approve")}</button>
                             <button
                               className="px-2 py-0.5 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                              onClick={() => review.mutate({ executionId: t.id, approved: false, qualityScore: 30 })}
-                            >拒绝</button>
+                              onClick={() => review.mutate({ executionId: tsk.id, approved: false, qualityScore: 30 })}
+                            >{t("ai.fleet.reject")}</button>
                           </div>
-                        ) : t.humanApproved === true ? (
+                        ) : tsk.humanApproved === true ? (
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
-                        ) : t.humanApproved === false ? (
+                        ) : tsk.humanApproved === false ? (
                           <XCircle className="w-4 h-4 text-red-600" />
                         ) : (
-                          <span className="text-xs text-[#a19f9d]">自动</span>
+                          <span className="text-xs text-[#a19f9d]">{t("ai.fleet.auto")}</span>
                         )}
                       </td>
-                      <td className="py-2 text-xs text-[#605e5c]">{fmtDate(t.createdAt)}</td>
+                      <td className="py-2 text-xs text-[#605e5c]">{fmtDate(tsk.createdAt)}</td>
                     </tr>
                   ))}
                   {(!taskHistory.data || taskHistory.data.length === 0) && (
-                    <tr><td colSpan={7} className="py-8 text-center text-[#a19f9d]">暂无任务记录</td></tr>
+                    <tr><td colSpan={7} className="py-8 text-center text-[#a19f9d]">{t("ai.fleet.noTaskRecords")}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -446,6 +449,7 @@ function TaskExecutionTab() {
 // ═══════════════════════════════════════════════════════════
 
 function GTokenLedgerTab() {
+  const { t } = useLanguage();
   const fleet = trpc.aiAgentFleet.getMyFleet.useQuery();
   const summary = trpc.aiAgentFleet.getGTokenSummary.useQuery();
   const [selectedAgent, setSelectedAgent] = useState<number | null>(null);
@@ -459,18 +463,18 @@ function GTokenLedgerTab() {
     <div className="space-y-6">
       {/* Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <StatCard label="系统总余额" value={fmtNum(summary.data?.totalBalance)} icon={Coins} color="text-amber-600" />
-        <StatCard label="总收入" value={fmtNum(summary.data?.totalEarned)} icon={TrendingUp} color="text-green-600" />
-        <StatCard label="总支出" value={fmtNum(summary.data?.totalSpent)} icon={BarChart3} color="text-red-500" />
-        <StatCard label="Agent总数" value={summary.data?.totalAgents || 0} icon={Bot} color="text-[#0078d4]" />
-        <StatCard label="活跃Agent" value={summary.data?.activeAgents || 0} icon={Zap} color="text-green-600" />
-        <StatCard label="总任务" value={summary.data?.totalTasks || 0} icon={CheckCircle2} color="text-purple-600" />
+        <StatCard label={t("ai.fleet.systemBalance")} value={fmtNum(summary.data?.totalBalance)} icon={Coins} color="text-amber-600" />
+        <StatCard label={t("ai.fleet.totalIncome")} value={fmtNum(summary.data?.totalEarned)} icon={TrendingUp} color="text-green-600" />
+        <StatCard label={t("ai.fleet.totalExpense")} value={fmtNum(summary.data?.totalSpent)} icon={BarChart3} color="text-red-500" />
+        <StatCard label={t("ai.fleet.totalAgents")} value={summary.data?.totalAgents || 0} icon={Bot} color="text-[#0078d4]" />
+        <StatCard label={t("ai.fleet.activeAgents")} value={summary.data?.activeAgents || 0} icon={Zap} color="text-green-600" />
+        <StatCard label={t("ai.fleet.totalTasks")} value={summary.data?.totalTasks || 0} icon={CheckCircle2} color="text-purple-600" />
       </div>
 
       {/* Per-Agent Balance Cards */}
       {agents.length > 0 && (
         <div className="bg-white rounded-lg border border-[#edebe9] p-4">
-          <h3 className="text-sm font-semibold text-[#323130] mb-3">各Agent余额</h3>
+          <h3 className="text-sm font-semibold text-[#323130] mb-3">{t("ai.fleet.agentBalances")}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {agents.map((a: any) => {
               const colors = LEVEL_COLORS[a.level] || LEVEL_COLORS[1];
@@ -485,7 +489,7 @@ function GTokenLedgerTab() {
                     <span className="text-xs text-[#605e5c] truncate">{a.agentName}</span>
                   </div>
                   <div className="text-lg font-bold text-amber-600">{fmtNum(a.gTokenBalance)}</div>
-                  <div className="text-[10px] text-[#a19f9d]">收入 {fmtNum(a.totalEarned)} / 支出 {fmtNum(a.totalSpent)}</div>
+                  <div className="text-[10px] text-[#a19f9d]">{t("ai.fleet.income")} {fmtNum(a.totalEarned)} / {t("ai.fleet.expense")} {fmtNum(a.totalSpent)}</div>
                 </button>
               );
             })}
@@ -497,7 +501,7 @@ function GTokenLedgerTab() {
       <div className="bg-white rounded-lg border border-[#edebe9] p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold text-[#323130] flex items-center gap-2">
-            <Coins className="w-5 h-5 text-amber-500" /> 交易流水
+            <Coins className="w-5 h-5 text-amber-500" /> {t("ai.fleet.transactionHistory")}
           </h3>
           <button onClick={() => history.refetch()} className="p-1.5 hover:bg-[#f3f2f1] rounded">
             <RefreshCw className="w-4 h-4 text-[#605e5c]" />
@@ -513,24 +517,25 @@ function GTokenLedgerTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#edebe9] text-left text-xs text-[#605e5c]">
-                  <th className="py-2 pr-3">时间</th>
-                  <th className="py-2 pr-3">Agent</th>
-                  <th className="py-2 pr-3">类型</th>
-                  <th className="py-2 pr-3">金额</th>
-                  <th className="py-2 pr-3">余额</th>
-                  <th className="py-2">说明</th>
+                  <th className="py-2 pr-3">{t("ai.fleet.time")}</th>
+                  <th className="py-2 pr-3">{t("ai.fleet.agent")}</th>
+                  <th className="py-2 pr-3">{t("ai.fleet.type")}</th>
+                  <th className="py-2 pr-3">{t("ai.fleet.amount")}</th>
+                  <th className="py-2 pr-3">{t("ai.fleet.balance")}</th>
+                  <th className="py-2">{t("ai.fleet.description")}</th>
                 </tr>
               </thead>
               <tbody>
                 {(history.data || []).map((tx: any) => {
-                  const txInfo = TX_TYPE_LABELS[tx.txType] || { label: tx.txType, color: "text-gray-600" };
+                  const txMeta = TX_TYPE_LABELS[tx.txType] || { i18nKey: "", color: "text-gray-600" };
+                  const txLabel = txMeta.i18nKey ? t(txMeta.i18nKey) : tx.txType;
                   const amount = parseFloat(tx.amount || "0");
                   return (
                     <tr key={tx.id} className="border-b border-[#f3f2f1] hover:bg-[#faf9f8]">
                       <td className="py-2 pr-3 text-xs text-[#605e5c] whitespace-nowrap">{fmtDate(tx.createdAt)}</td>
                       <td className="py-2 pr-3 font-mono text-xs">{tx.agentCode || "-"}</td>
                       <td className="py-2 pr-3">
-                        <span className={`text-xs font-medium ${txInfo.color}`}>{txInfo.label}</span>
+                        <span className={`text-xs font-medium ${txMeta.color}`}>{txLabel}</span>
                       </td>
                       <td className={`py-2 pr-3 font-medium ${amount >= 0 ? "text-green-600" : "text-red-600"}`}>
                         {amount >= 0 ? "+" : ""}{fmtNum(amount)}
@@ -541,7 +546,7 @@ function GTokenLedgerTab() {
                   );
                 })}
                 {(!history.data || history.data.length === 0) && (
-                  <tr><td colSpan={6} className="py-8 text-center text-[#a19f9d]">暂无交易记录</td></tr>
+                  <tr><td colSpan={6} className="py-8 text-center text-[#a19f9d]">{t("ai.fleet.noTransactions")}</td></tr>
                 )}
               </tbody>
             </table>
@@ -557,6 +562,7 @@ function GTokenLedgerTab() {
 // ═══════════════════════════════════════════════════════════
 
 function ConfigTab() {
+  const { t } = useLanguage();
   const fleet = trpc.aiAgentFleet.getMyFleet.useQuery();
   const updateConfig = trpc.aiAgentFleet.updateAgentConfig.useMutation({
     onSuccess: (d) => {
@@ -571,11 +577,11 @@ function ConfigTab() {
     <div className="space-y-4">
       <div className="bg-white rounded-lg border border-[#edebe9] p-6">
         <h3 className="text-base font-semibold text-[#323130] mb-4 flex items-center gap-2">
-          <Settings className="w-5 h-5 text-[#605e5c]" /> Agent配置
+          <Settings className="w-5 h-5 text-[#605e5c]" /> {t("ai.fleet.agentConfig")}
         </h3>
 
         {agents.length === 0 ? (
-          <p className="text-sm text-[#a19f9d] py-8 text-center">暂无Agent，请先部署军团</p>
+          <p className="text-sm text-[#a19f9d] py-8 text-center">{t("ai.fleet.noAgentDeploy")}</p>
         ) : (
           <div className="space-y-4">
             {agents.map((agent: any) => {
@@ -591,7 +597,7 @@ function ConfigTab() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     {/* Bidding Toggle */}
                     <div>
-                      <label className="block text-xs text-[#605e5c] mb-1">竞标开关</label>
+                      <label className="block text-xs text-[#605e5c] mb-1">{t("ai.fleet.biddingToggle")}</label>
                       <button
                         className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                           agent.canBidTasks
@@ -600,13 +606,13 @@ function ConfigTab() {
                         }`}
                         onClick={() => updateConfig.mutate({ agentId: agent.id, canBidTasks: !agent.canBidTasks })}
                       >
-                        {agent.canBidTasks ? "已开启" : "已关闭"}
+                        {agent.canBidTasks ? t("ai.fleet.enabled") : t("ai.fleet.disabled")}
                       </button>
                     </div>
 
                     {/* Max Concurrent Tasks */}
                     <div>
-                      <label className="block text-xs text-[#605e5c] mb-1">最大并发</label>
+                      <label className="block text-xs text-[#605e5c] mb-1">{t("ai.fleet.maxConcurrent")}</label>
                       <select
                         className="w-full px-2 py-1.5 border border-[#8a8886] rounded text-xs"
                         value={agent.maxConcurrentTasks}
@@ -620,7 +626,7 @@ function ConfigTab() {
 
                     {/* Price Range */}
                     <div>
-                      <label className="block text-xs text-[#605e5c] mb-1">最低竞标价</label>
+                      <label className="block text-xs text-[#605e5c] mb-1">{t("ai.fleet.minBidPrice")}</label>
                       <input
                         type="number"
                         className="w-full px-2 py-1.5 border border-[#8a8886] rounded text-xs"
@@ -629,7 +635,7 @@ function ConfigTab() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-[#605e5c] mb-1">最高竞标价</label>
+                      <label className="block text-xs text-[#605e5c] mb-1">{t("ai.fleet.maxBidPrice")}</label>
                       <input
                         type="number"
                         className="w-full px-2 py-1.5 border border-[#8a8886] rounded text-xs"
@@ -641,9 +647,9 @@ function ConfigTab() {
 
                   {/* Read-only info */}
                   <div className="mt-3 grid grid-cols-3 gap-3 text-xs text-[#605e5c]">
-                    <div>自主度: <span className="font-medium">{AUTONOMY_LABELS[agent.autonomyLevel]}</span></div>
-                    <div>最大复杂度: <span className="font-medium">{agent.maxTaskComplexity}</span></div>
-                    <div>数据范围: <span className="font-medium">{agent.dataScope}</span></div>
+                    <div>{t("ai.fleet.autonomyLabel")}: <span className="font-medium">{AUTONOMY_LABEL_KEYS[agent.autonomyLevel] ? t(AUTONOMY_LABEL_KEYS[agent.autonomyLevel]) : agent.autonomyLevel}</span></div>
+                    <div>{t("ai.fleet.maxComplexity")}: <span className="font-medium">{agent.maxTaskComplexity}</span></div>
+                    <div>{t("ai.fleet.dataScope")}: <span className="font-medium">{agent.dataScope}</span></div>
                   </div>
                 </div>
               );
@@ -659,6 +665,7 @@ function ConfigTab() {
 }
 
 function FleetAnalyticsPanel() {
+  const { t } = useLanguage();
   const analytics = trpc.aiAgentFleet.getFleetAnalytics.useQuery();
 
   if (!analytics.data) return null;
@@ -668,25 +675,25 @@ function FleetAnalyticsPanel() {
   return (
     <div className="bg-white rounded-lg border border-[#edebe9] p-6">
       <h3 className="text-base font-semibold text-[#323130] mb-4 flex items-center gap-2">
-        <BarChart3 className="w-5 h-5 text-[#0078d4]" /> 全公司军团分析
+        <BarChart3 className="w-5 h-5 text-[#0078d4]" /> {t("ai.fleet.companyAnalytics")}
       </h3>
 
       <div className="grid grid-cols-3 gap-4 mb-4">
-        <StatCard label="总Agent" value={summary.totalAgents || 0} icon={Bot} color="text-[#0078d4]" />
-        <StatCard label="活跃Agent" value={summary.activeAgents || 0} icon={Zap} color="text-green-600" />
-        <StatCard label="G-Token总量" value={fmtNum(summary.totalBalance)} icon={Coins} color="text-amber-600" />
+        <StatCard label={t("ai.fleet.totalAgents")} value={summary.totalAgents || 0} icon={Bot} color="text-[#0078d4]" />
+        <StatCard label={t("ai.fleet.activeAgents")} value={summary.activeAgents || 0} icon={Zap} color="text-green-600" />
+        <StatCard label={t("ai.fleet.gTokenBalance")} value={fmtNum(summary.totalBalance)} icon={Coins} color="text-amber-600" />
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[#edebe9] text-left text-xs text-[#605e5c]">
-              <th className="py-2 pr-3">等级</th>
-              <th className="py-2 pr-3">总数</th>
-              <th className="py-2 pr-3">活跃</th>
-              <th className="py-2 pr-3">完成任务</th>
-              <th className="py-2 pr-3">平均信誉</th>
-              <th className="py-2">G-Token余额</th>
+              <th className="py-2 pr-3">{t("ai.fleet.level")}</th>
+              <th className="py-2 pr-3">{t("ai.fleet.totalAgents")}</th>
+              <th className="py-2 pr-3">{t("ai.fleet.active")}</th>
+              <th className="py-2 pr-3">{t("ai.fleet.completedTasks")}</th>
+              <th className="py-2 pr-3">{t("ai.fleet.avgReputation")}</th>
+              <th className="py-2">{t("ai.fleet.gTokenBalance")}</th>
             </tr>
           </thead>
           <tbody>
@@ -717,15 +724,16 @@ function FleetAnalyticsPanel() {
 // ═══════════════════════════════════════════════════════════
 
 const TABS = [
-  { id: "fleet", label: "我的AI军团", icon: Users },
-  { id: "tasks", label: "任务执行", icon: Brain },
-  { id: "ledger", label: "G-Token账本", icon: Coins },
-  { id: "config", label: "配置中心", icon: Settings },
+  { id: "fleet", i18nKey: "ai.fleet.tabFleet", icon: Users },
+  { id: "tasks", i18nKey: "ai.fleet.tabTasks", icon: Brain },
+  { id: "ledger", i18nKey: "ai.fleet.tabLedger", icon: Coins },
+  { id: "config", i18nKey: "ai.fleet.tabConfig", icon: Settings },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
 export default function AIAgentFleetDashboard() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabId>("fleet");
 
   return (
@@ -736,10 +744,10 @@ export default function AIAgentFleetDashboard() {
           <div className="w-8 h-8 rounded-lg bg-[#0078d4] flex items-center justify-center">
             <Cpu className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-xl font-semibold text-[#323130]">AI军团管理</h1>
+          <h1 className="text-xl font-semibold text-[#323130]">{t("ai.fleet.title")}</h1>
           <span className="text-xs text-[#605e5c] bg-[#f3f2f1] px-2 py-0.5 rounded">L1-L5 Multi-Agent Fleet</span>
         </div>
-        <p className="text-xs text-[#a19f9d] ml-11">管理您的AI助理军团、分配任务、追踪G-Token收支</p>
+        <p className="text-xs text-[#a19f9d] ml-11">{t("ai.fleet.subtitle")}</p>
       </div>
 
       {/* Tab Navigation */}
@@ -759,7 +767,7 @@ export default function AIAgentFleetDashboard() {
                 onClick={() => setActiveTab(tab.id)}
               >
                 <Icon className="w-4 h-4" />
-                {tab.label}
+                {t(tab.i18nKey)}
               </button>
             );
           })}

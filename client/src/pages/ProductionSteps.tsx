@@ -10,6 +10,7 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,6 +85,7 @@ const CONFIRM_STATUS_LABELS: Record<string, string> = {
 
 export default function ProductionSteps() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [selectedProcessCode, setSelectedProcessCode] = useState<string | null>(null);
@@ -135,18 +137,18 @@ export default function ProductionSteps() {
   // Mutations
   const createBomStepMutation = trpc.processSteps.createBomStep.useMutation({
     onSuccess: () => {
-      toast({ title: "步骤已添加", description: "BOM步骤创建成功" });
+      toast({ title: t("manufacturing.steps.stepAdded"), description: t("manufacturing.steps.bomStepCreated") });
       bomStepsQuery.refetch();
       statsQuery.refetch();
       setShowAddStepDialog(false);
       resetNewStep();
     },
-    onError: (err) => toast({ title: "创建失败", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: t("manufacturing.steps.createFailed"), description: err.message, variant: "destructive" }),
   });
 
   const updateBomStepMutation = trpc.processSteps.updateBomStep.useMutation({
     onSuccess: () => {
-      toast({ title: "步骤已更新" });
+      toast({ title: t("manufacturing.steps.stepUpdated") });
       bomStepsQuery.refetch();
       setEditingStep(null);
     },
@@ -154,7 +156,7 @@ export default function ProductionSteps() {
 
   const deleteBomStepMutation = trpc.processSteps.deleteBomStep.useMutation({
     onSuccess: () => {
-      toast({ title: "步骤已删除" });
+      toast({ title: t("manufacturing.steps.stepDeleted") });
       bomStepsQuery.refetch();
       statsQuery.refetch();
     },
@@ -162,16 +164,16 @@ export default function ProductionSteps() {
 
   const startTimeLogMutation = trpc.processSteps.startTimeLogForWorker.useMutation({
     onSuccess: () => {
-      toast({ title: "工时已开始", description: "计时已启动" });
+      toast({ title: t("manufacturing.steps.timeStarted"), description: t("manufacturing.steps.timerStarted") });
       activeTimeLogsQuery.refetch();
       bomStepsQuery.refetch();
     },
-    onError: (err) => toast({ title: "开始失败", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: t("manufacturing.steps.startFailed"), description: err.message, variant: "destructive" }),
   });
 
   const endTimeLogMutation = trpc.processSteps.endTimeLog.useMutation({
     onSuccess: (data: any) => {
-      toast({ title: "工时已结束", description: `实际工时: ${data.actualHours}小时` });
+      toast({ title: t("manufacturing.steps.timeEnded"), description: `${t("manufacturing.steps.actualHours")}: ${data.actualHours}h` });
       activeTimeLogsQuery.refetch();
       bomStepsQuery.refetch();
     },
@@ -179,7 +181,7 @@ export default function ProductionSteps() {
 
   const adoptAiPresetMutation = trpc.processSteps.adoptAiPresetAsBomStep.useMutation({
     onSuccess: () => {
-      toast({ title: "AI步骤已采纳", description: "已复制为BOM步骤" });
+      toast({ title: t("manufacturing.steps.aiAdopted"), description: t("manufacturing.steps.copiedAsBomStep") });
       bomStepsQuery.refetch();
       aiPresetsQuery.refetch();
       statsQuery.refetch();
@@ -188,7 +190,7 @@ export default function ProductionSteps() {
 
   const batchAdoptMutation = trpc.processSteps.batchAdoptAiPresets.useMutation({
     onSuccess: () => {
-      toast({ title: "批量采纳成功" });
+      toast({ title: t("manufacturing.steps.batchAdoptSuccess") });
       bomStepsQuery.refetch();
       aiPresetsQuery.refetch();
       statsQuery.refetch();
@@ -197,28 +199,28 @@ export default function ProductionSteps() {
 
   const confirmAiPresetMutation = trpc.processSteps.confirmAiPresetStep.useMutation({
     onSuccess: () => {
-      toast({ title: "确认状态已更新" });
+      toast({ title: t("manufacturing.steps.confirmStatusUpdated") });
       aiPresetsQuery.refetch();
     },
   });
 
   const generateAiPresetMutation = trpc.processSteps.generateAiPresetSteps.useMutation({
     onSuccess: (data: any) => {
-      toast({ title: "AI预设已生成", description: `生成了 ${data.steps?.length || 0} 个步骤建议` });
+      toast({ title: t("manufacturing.steps.aiPresetGenerated"), description: `${data.steps?.length || 0} ${t("manufacturing.steps.stepSuggestions")}` });
       aiPresetsQuery.refetch();
       statsQuery.refetch();
     },
-    onError: (err) => toast({ title: "AI生成失败", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: t("manufacturing.steps.aiGenerateFailed"), description: err.message, variant: "destructive" }),
   });
 
   const generateRangeMutation = trpc.processSteps.generateAiPresetsForRange.useMutation({
     onSuccess: () => {
-      toast({ title: "批量AI预设已生成" });
+      toast({ title: t("manufacturing.steps.batchAiPresetGenerated") });
       aiPresetsQuery.refetch();
       statsQuery.refetch();
       setShowAiDialog(false);
     },
-    onError: (err) => toast({ title: "批量生成失败", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: t("manufacturing.steps.batchGenerateFailed"), description: err.message, variant: "destructive" }),
   });
 
   const resetNewStep = () => {
@@ -239,7 +241,7 @@ export default function ProductionSteps() {
 
   const handleCreateBomStep = () => {
     if (!selectedProjectId || !selectedProcessCode || !selectedProcessInstanceId) {
-      toast({ title: "请先选择项目和工序", variant: "destructive" });
+      toast({ title: t("manufacturing.steps.selectProjectAndProcess"), variant: "destructive" });
       return;
     }
     const maxStep = (bomStepsQuery.data as any[])?.filter((s: any) => s.process_code === selectedProcessCode)?.length || 0;
@@ -259,7 +261,7 @@ export default function ProductionSteps() {
 
   const handleGenerateAiPreset = () => {
     if (!selectedProjectId || !selectedProcessCode || !selectedProcessInstanceId || !aiSourceProjectId) {
-      toast({ title: "请选择源项目", variant: "destructive" });
+      toast({ title: t("manufacturing.steps.selectSourceProject"), variant: "destructive" });
       return;
     }
 
@@ -310,14 +312,14 @@ export default function ProductionSteps() {
       {/* 页面标题 */}
       <PageHeader
         icon={Factory}
-        title="生产工序步骤管理"
-        description="T1-T15工序管理 · 双列编辑 · AI智慧预设 · 工时打卡"
+        title={t("manufacturing.steps.title")}
+        description={t("manufacturing.steps.description")}
         actions={
           <div className="flex items-center gap-2">
-            <Label className="text-sm whitespace-nowrap">项目ID:</Label>
+            <Label className="text-sm whitespace-nowrap">{t("manufacturing.steps.projectId")}:</Label>
             <Input
               type="number"
-              placeholder="输入项目ID"
+              placeholder={t("manufacturing.steps.enterProjectId")}
               className="w-32"
               value={selectedProjectId || ""}
               onChange={(e) => setSelectedProjectId(e.target.value ? parseInt(e.target.value) : null)}
@@ -332,7 +334,7 @@ export default function ProductionSteps() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
-              <span className="font-semibold text-blue-700 dark:text-blue-300">正在计时的工序</span>
+              <span className="font-semibold text-blue-700 dark:text-blue-300">{t("manufacturing.steps.activeTimers")}</span>
             </div>
             <div className="space-y-2">
               {activeTimeLogs.map((log: any) => (
@@ -341,7 +343,7 @@ export default function ProductionSteps() {
                     <Badge variant="outline" className="font-mono">{log.process_code}</Badge>
                     <span className="font-medium">{log.step_name}</span>
                     <span className="text-sm text-muted-foreground">
-                      开始于 {new Date(Number(log.start_time)).toLocaleTimeString()}
+                      {t("manufacturing.steps.startedAt")} {new Date(Number(log.start_time)).toLocaleTimeString()}
                     </span>
                   </div>
                   <Button
@@ -351,7 +353,7 @@ export default function ProductionSteps() {
                     disabled={endTimeLogMutation.isPending}
                   >
                     <Square className="w-4 h-4 mr-1" />
-                    结束
+                    {t("manufacturing.steps.end")}
                   </Button>
                 </div>
               ))}
@@ -363,11 +365,11 @@ export default function ProductionSteps() {
       {/* 统计概览 */}
       {selectedProjectId && statsQuery.data && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <StatCard icon={ListChecks} label="BOM步骤总数" value={(statsQuery.data as any).bomSteps.total} />
-          <StatCard icon={CheckCircle2} label="已完成" value={(statsQuery.data as any).bomSteps.completed} iconColor="text-green-500" iconBg="bg-green-500/10" />
-          <StatCard icon={Play} label="进行中" value={(statsQuery.data as any).bomSteps.inProgress} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-          <StatCard icon={Sparkles} label="AI预设步骤" value={(statsQuery.data as any).aiPresets.total} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
-          <StatCard icon={Clock} label="累计工时" value={`${(statsQuery.data as any).timeLogs.totalActualHours.toFixed(1)}h`} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
+          <StatCard icon={ListChecks} label={t("manufacturing.steps.totalBomSteps")} value={(statsQuery.data as any).bomSteps.total} />
+          <StatCard icon={CheckCircle2} label={t("manufacturing.steps.statusCompleted")} value={(statsQuery.data as any).bomSteps.completed} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Play} label={t("manufacturing.steps.statusInProgress")} value={(statsQuery.data as any).bomSteps.inProgress} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Sparkles} label={t("manufacturing.steps.aiPresetSteps")} value={(statsQuery.data as any).aiPresets.total} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+          <StatCard icon={Clock} label={t("manufacturing.steps.cumulativeHours")} value={`${(statsQuery.data as any).timeLogs.totalActualHours.toFixed(1)}h`} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
         </div>
       )}
 
@@ -406,10 +408,10 @@ export default function ProductionSteps() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-muted-foreground">
-                      {bomSteps.length} 步骤 · {aiPresets.length} AI预设
+                      {bomSteps.length} {t("manufacturing.steps.steps")} · {aiPresets.length} {t("manufacturing.steps.aiPreset")}
                     </span>
                     {bomSteps.some((s: any) => s.status === "in_progress") && (
-                      <Badge className="bg-blue-100 text-blue-700">进行中</Badge>
+                      <Badge className="bg-blue-100 text-blue-700">{t("manufacturing.steps.statusInProgress")}</Badge>
                     )}
                   </div>
                 </div>
@@ -423,10 +425,10 @@ export default function ProductionSteps() {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex gap-2">
                         <Button size="sm" onClick={() => setShowAddStepDialog(true)}>
-                          <Plus className="w-4 h-4 mr-1" /> 添加步骤
+                          <Plus className="w-4 h-4 mr-1" /> {t("manufacturing.steps.addStep")}
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => setShowAiDialog(true)}>
-                          <Brain className="w-4 h-4 mr-1" /> AI智慧预设
+                          <Brain className="w-4 h-4 mr-1" /> {t("manufacturing.steps.aiSmartPreset")}
                         </Button>
                       </div>
                       {aiPresets.filter((p: any) => p.confirm_status === "pending").length > 0 && (
@@ -441,7 +443,7 @@ export default function ProductionSteps() {
                           }}
                           disabled={batchAdoptMutation.isPending}
                         >
-                          <Sparkles className="w-4 h-4 mr-1" /> 全部借鉴采纳 ({aiPresets.filter((p: any) => p.confirm_status === "pending").length})
+                          <Sparkles className="w-4 h-4 mr-1" /> {t("manufacturing.steps.adoptAll")} ({aiPresets.filter((p: any) => p.confirm_status === "pending").length})
                         </Button>
                       )}
                     </div>
@@ -452,15 +454,15 @@ export default function ProductionSteps() {
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 mb-2">
                           <Edit className="w-4 h-4 text-primary" />
-                          <h3 className="font-semibold text-sm uppercase tracking-wider text-primary">工程师输入</h3>
-                          <Badge variant="outline" className="text-xs">{bomSteps.length} 步骤</Badge>
+                          <h3 className="font-semibold text-sm uppercase tracking-wider text-primary">{t("manufacturing.steps.engineerInput")}</h3>
+                          <Badge variant="outline" className="text-xs">{bomSteps.length} {t("manufacturing.steps.steps")}</Badge>
                         </div>
 
                         {bomSteps.length === 0 ? (
                           <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
                             <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">暂无BOM步骤</p>
-                            <p className="text-xs mt-1">点击"添加步骤"开始录入</p>
+                            <p className="text-sm">{t("manufacturing.steps.noBomSteps")}</p>
+                            <p className="text-xs mt-1">{t("manufacturing.steps.clickAddToStart")}</p>
                           </div>
                         ) : (
                           <ScrollArea className="max-h-[600px]">
@@ -477,7 +479,7 @@ export default function ProductionSteps() {
                                     startTimeLogMutation.mutate({
                                       bomStepId,
                                       workerId: user?.id || 0,
-                                      workerName: user?.name || "未知",
+                                      workerName: user?.name || t("manufacturing.steps.unknown"),
                                     });
                                   }}
                                   onEndTime={(timeLogId: number) => {
@@ -497,15 +499,15 @@ export default function ProductionSteps() {
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 mb-2">
                           <Brain className="w-4 h-4 text-purple-600" />
-                          <h3 className="font-semibold text-sm uppercase tracking-wider text-purple-600">AI智慧预设</h3>
-                          <Badge variant="outline" className="text-xs">{aiPresets.length} 建议</Badge>
+                          <h3 className="font-semibold text-sm uppercase tracking-wider text-purple-600">{t("manufacturing.steps.aiSmartPreset")}</h3>
+                          <Badge variant="outline" className="text-xs">{aiPresets.length} {t("manufacturing.steps.suggestions")}</Badge>
                         </div>
 
                         {aiPresets.length === 0 ? (
                           <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg border-purple-200 dark:border-purple-800">
                             <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-50 text-purple-400" />
-                            <p className="text-sm">暂无AI预设步骤</p>
-                            <p className="text-xs mt-1">点击"AI智慧预设"从历史项目生成</p>
+                            <p className="text-sm">{t("manufacturing.steps.noAiPresets")}</p>
+                            <p className="text-xs mt-1">{t("manufacturing.steps.clickAiPresetToGenerate")}</p>
                           </div>
                         ) : (
                           <ScrollArea className="max-h-[600px]">
@@ -536,8 +538,8 @@ export default function ProductionSteps() {
       ) : (
         <Card className="p-12 text-center">
           <Factory className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-30" />
-          <h2 className="text-xl font-semibold mb-2">请选择项目</h2>
-          <p className="text-muted-foreground">在右上角输入项目ID以查看和管理工序步骤</p>
+          <h2 className="text-xl font-semibold mb-2">{t("manufacturing.steps.selectProject")}</h2>
+          <p className="text-muted-foreground">{t("manufacturing.steps.enterProjectIdHint")}</p>
         </Card>
       )}
 
@@ -547,50 +549,50 @@ export default function ProductionSteps() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="w-5 h-5" />
-              添加BOM步骤 - {selectedProcessCode}
+              {t("manufacturing.steps.addBomStep")} - {selectedProcessCode}
             </DialogTitle>
             <DialogDescription>
-              为工序 {selectedProcessCode} 添加新的生产步骤
+              {t("manufacturing.steps.addBomStepDesc")} {selectedProcessCode}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>步骤名称 *</Label>
+              <Label>{t("manufacturing.steps.stepName")} *</Label>
               <Input
                 value={newStep.stepName}
                 onChange={(e) => setNewStep(prev => ({ ...prev, stepName: e.target.value }))}
-                placeholder="例如：底座机加工"
+                placeholder={t("manufacturing.steps.stepNamePlaceholder")}
               />
             </div>
             <div>
-              <Label>工艺要求</Label>
+              <Label>{t("manufacturing.steps.processRequirements")}</Label>
               <Textarea
                 value={newStep.processRequirements}
                 onChange={(e) => setNewStep(prev => ({ ...prev, processRequirements: e.target.value }))}
-                placeholder="例如：表面粗糙度Ra1.6，公差±0.05mm"
+                placeholder={t("manufacturing.steps.processRequirementsPlaceholder")}
                 rows={2}
               />
             </div>
             <div>
-              <Label>工艺步骤描述</Label>
+              <Label>{t("manufacturing.steps.processDescription")}</Label>
               <Textarea
                 value={newStep.processDescription}
                 onChange={(e) => setNewStep(prev => ({ ...prev, processDescription: e.target.value }))}
-                placeholder="详细描述该步骤的操作流程"
+                placeholder={t("manufacturing.steps.processDescriptionPlaceholder")}
                 rows={3}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>BOM零件参照</Label>
+                <Label>{t("manufacturing.steps.bomItemReference")}</Label>
                 <Input
                   value={newStep.bomItemReference}
                   onChange={(e) => setNewStep(prev => ({ ...prev, bomItemReference: e.target.value }))}
-                  placeholder="零件编号"
+                  placeholder={t("manufacturing.steps.partNumber")}
                 />
               </div>
               <div>
-                <Label>理论工时 (小时)</Label>
+                <Label>{t("manufacturing.steps.theoreticalHours")}</Label>
                 <Input
                   type="number"
                   step="0.5"
@@ -601,22 +603,22 @@ export default function ProductionSteps() {
               </div>
             </div>
             <div>
-              <Label>计划产线员工</Label>
+              <Label>{t("manufacturing.steps.plannedWorker")}</Label>
               <Input
                 value={newStep.plannedWorkerName}
                 onChange={(e) => setNewStep(prev => ({ ...prev, plannedWorkerName: e.target.value }))}
-                placeholder="员工姓名"
+                placeholder={t("manufacturing.steps.workerName")}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddStepDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowAddStepDialog(false)}>{t("manufacturing.common.cancel")}</Button>
             <Button
               onClick={handleCreateBomStep}
               disabled={!newStep.stepName || createBomStepMutation.isPending}
             >
               {createBomStepMutation.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
-              添加步骤
+              {t("manufacturing.steps.addStep")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -628,34 +630,34 @@ export default function ProductionSteps() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-purple-600" />
-              AI智慧预设 - 历史项目参照
+              {t("manufacturing.steps.aiPresetTitle")}
             </DialogTitle>
             <DialogDescription>
-              选择相似的历史项目，AI将根据其BOM步骤和工艺数据生成预设建议
+              {t("manufacturing.steps.aiPresetDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* 相似项目列表 */}
             <div>
-              <Label>选择参照项目</Label>
+              <Label>{t("manufacturing.steps.selectReferenceProject")}</Label>
               {similarProjectsQuery.isLoading ? (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  <span className="text-sm text-muted-foreground">正在查找相似项目...</span>
+                  <span className="text-sm text-muted-foreground">{t("manufacturing.steps.findingSimilarProjects")}</span>
                 </div>
               ) : (
                 <Select value={aiSourceProjectId} onValueChange={setAiSourceProjectId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择历史项目" />
+                    <SelectValue placeholder={t("manufacturing.steps.selectHistoricalProject")} />
                   </SelectTrigger>
                   <SelectContent>
                     {((similarProjectsQuery.data as any[]) || []).map((proj: any) => (
                       <SelectItem key={proj.id} value={String(proj.id)}>
-                        {proj.project_name} ({proj.step_count}步骤, {proj.process_codes})
+                        {proj.project_name} ({proj.step_count} {t("manufacturing.steps.steps")}, {proj.process_codes})
                       </SelectItem>
                     ))}
                     {((similarProjectsQuery.data as any[]) || []).length === 0 && (
-                      <SelectItem value="none" disabled>暂无可参照的历史项目</SelectItem>
+                      <SelectItem value="none" disabled>{t("manufacturing.steps.noHistoricalProjects")}</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
@@ -664,28 +666,28 @@ export default function ProductionSteps() {
 
             {/* 参照范围 */}
             <div>
-              <Label>参照范围</Label>
+              <Label>{t("manufacturing.steps.referenceScope")}</Label>
               <div className="flex gap-2 mt-1">
                 <Button
                   size="sm"
                   variant={aiRangeMode === "single" ? "default" : "outline"}
                   onClick={() => setAiRangeMode("single")}
                 >
-                  当前工序 ({selectedProcessCode})
+                  {t("manufacturing.steps.currentProcess")} ({selectedProcessCode})
                 </Button>
                 <Button
                   size="sm"
                   variant={aiRangeMode === "range" ? "default" : "outline"}
                   onClick={() => setAiRangeMode("range")}
                 >
-                  指定范围
+                  {t("manufacturing.steps.specifiedRange")}
                 </Button>
                 <Button
                   size="sm"
                   variant={aiRangeMode === "all" ? "default" : "outline"}
                   onClick={() => setAiRangeMode("all")}
                 >
-                  全部T步骤 (T1-T15)
+                  {t("manufacturing.steps.allTSteps")} (T1-T15)
                 </Button>
               </div>
             </div>
@@ -693,7 +695,7 @@ export default function ProductionSteps() {
             {aiRangeMode === "range" && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>起始工序</Label>
+                  <Label>{t("manufacturing.steps.startProcess")}</Label>
                   <Select value={aiRangeStart} onValueChange={setAiRangeStart}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -704,7 +706,7 @@ export default function ProductionSteps() {
                   </Select>
                 </div>
                 <div>
-                  <Label>结束工序</Label>
+                  <Label>{t("manufacturing.steps.endProcess")}</Label>
                   <Select value={aiRangeEnd} onValueChange={setAiRangeEnd}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -720,18 +722,18 @@ export default function ProductionSteps() {
             <div className="bg-muted/50 rounded-lg p-3 text-sm">
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="w-4 h-4 text-purple-500" />
-                <span className="font-medium">AI将执行以下操作：</span>
+                <span className="font-medium">{t("manufacturing.steps.aiWillPerform")}:</span>
               </div>
               <ul className="list-disc list-inside text-muted-foreground space-y-1 ml-6">
-                <li>分析历史项目的BOM步骤和工艺数据</li>
-                <li>结合当前项目的BOM清单进行匹配</li>
-                <li>生成预设步骤建议（显示在右列）</li>
-                <li>工程师可逐个确认、修改或批量采纳</li>
+                <li>{t("manufacturing.steps.aiAction1")}</li>
+                <li>{t("manufacturing.steps.aiAction2")}</li>
+                <li>{t("manufacturing.steps.aiAction3")}</li>
+                <li>{t("manufacturing.steps.aiAction4")}</li>
               </ul>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAiDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowAiDialog(false)}>{t("manufacturing.common.cancel")}</Button>
             <Button
               onClick={handleGenerateAiPreset}
               disabled={!aiSourceProjectId || generateAiPresetMutation.isPending || generateRangeMutation.isPending}
@@ -741,7 +743,7 @@ export default function ProductionSteps() {
                 ? <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                 : <Brain className="w-4 h-4 mr-1" />
               }
-              生成AI预设
+              {t("manufacturing.steps.generateAiPreset")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -752,18 +754,18 @@ export default function ProductionSteps() {
         <Dialog open={!!editingStep} onOpenChange={() => setEditingStep(null)}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>编辑步骤 - {editingStep.step_name}</DialogTitle>
+              <DialogTitle>{t("manufacturing.steps.editStep")} - {editingStep.step_name}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>步骤名称</Label>
+                <Label>{t("manufacturing.steps.stepName")}</Label>
                 <Input
                   value={editingStep.step_name}
                   onChange={(e) => setEditingStep({ ...editingStep, step_name: e.target.value })}
                 />
               </div>
               <div>
-                <Label>工艺要求</Label>
+                <Label>{t("manufacturing.steps.processRequirements")}</Label>
                 <Textarea
                   value={editingStep.process_requirements || ""}
                   onChange={(e) => setEditingStep({ ...editingStep, process_requirements: e.target.value })}
@@ -771,7 +773,7 @@ export default function ProductionSteps() {
                 />
               </div>
               <div>
-                <Label>工艺步骤描述</Label>
+                <Label>{t("manufacturing.steps.processDescription")}</Label>
                 <Textarea
                   value={editingStep.process_description || ""}
                   onChange={(e) => setEditingStep({ ...editingStep, process_description: e.target.value })}
@@ -780,14 +782,14 @@ export default function ProductionSteps() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>BOM零件参照</Label>
+                  <Label>{t("manufacturing.steps.bomItemReference")}</Label>
                   <Input
                     value={editingStep.bom_item_reference || ""}
                     onChange={(e) => setEditingStep({ ...editingStep, bom_item_reference: e.target.value })}
                   />
                 </div>
                 <div>
-                  <Label>理论工时</Label>
+                  <Label>{t("manufacturing.steps.theoreticalHours")}</Label>
                   <Input
                     type="number"
                     step="0.5"
@@ -797,29 +799,29 @@ export default function ProductionSteps() {
                 </div>
               </div>
               <div>
-                <Label>计划产线员工</Label>
+                <Label>{t("manufacturing.steps.plannedWorker")}</Label>
                 <Input
                   value={editingStep.planned_worker_name || ""}
                   onChange={(e) => setEditingStep({ ...editingStep, planned_worker_name: e.target.value })}
                 />
               </div>
               <div>
-                <Label>状态</Label>
+                <Label>{t("manufacturing.production.status")}</Label>
                 <Select
                   value={editingStep.status || "pending"}
                   onValueChange={(v) => setEditingStep({ ...editingStep, status: v })}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">待开始</SelectItem>
-                    <SelectItem value="in_progress">进行中</SelectItem>
-                    <SelectItem value="completed">已完成</SelectItem>
+                    <SelectItem value="pending">{t("manufacturing.steps.statusNotStarted")}</SelectItem>
+                    <SelectItem value="in_progress">{t("manufacturing.steps.statusInProgress")}</SelectItem>
+                    <SelectItem value="completed">{t("manufacturing.steps.statusCompleted")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditingStep(null)}>取消</Button>
+              <Button variant="outline" onClick={() => setEditingStep(null)}>{t("manufacturing.common.cancel")}</Button>
               <Button onClick={() => {
                 updateBomStepMutation.mutate({
                   id: editingStep.id,
@@ -832,7 +834,7 @@ export default function ProductionSteps() {
                   status: editingStep.status,
                 });
               }}>
-                <Save className="w-4 h-4 mr-1" /> 保存
+                <Save className="w-4 h-4 mr-1" /> {t("manufacturing.common.save")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -856,7 +858,14 @@ function BomStepCard({
   onEndTime: (timeLogId: number) => void;
   activeTimeLogs: any[]; isStarting: boolean; isEnding: boolean;
 }) {
+  const { t } = useLanguage();
   const activeLog = activeTimeLogs.find((l: any) => l.bom_step_id === step.id);
+
+  const statusLabels: Record<string, string> = {
+    pending: t("manufacturing.steps.statusNotStarted"),
+    in_progress: t("manufacturing.steps.statusInProgress"),
+    completed: t("manufacturing.steps.statusCompleted"),
+  };
 
   return (
     <div className="border rounded-lg p-3 bg-card hover:shadow-sm transition-shadow">
@@ -869,19 +878,19 @@ function BomStepCard({
         </div>
         <div className="flex items-center gap-1">
           <Badge className={`text-xs ${STATUS_COLORS[step.status] || STATUS_COLORS.pending}`}>
-            {STATUS_LABELS[step.status] || "待开始"}
+            {statusLabels[step.status] || t("manufacturing.steps.statusNotStarted")}
           </Badge>
         </div>
       </div>
 
       {step.process_requirements && (
         <div className="text-xs text-muted-foreground mb-1">
-          <span className="font-medium">工艺要求:</span> {step.process_requirements}
+          <span className="font-medium">{t("manufacturing.steps.processRequirements")}:</span> {step.process_requirements}
         </div>
       )}
       {step.process_description && (
         <div className="text-xs text-muted-foreground mb-1">
-          <span className="font-medium">步骤描述:</span> {step.process_description}
+          <span className="font-medium">{t("manufacturing.steps.processDescription")}:</span> {step.process_description}
         </div>
       )}
 
@@ -895,18 +904,18 @@ function BomStepCard({
           </span>
         )}
         {step.planned_worker_name && (
-          <span>员工: {step.planned_worker_name}</span>
+          <span>{t("manufacturing.steps.worker")}: {step.planned_worker_name}</span>
         )}
       </div>
 
-      {/* 操作按钮 */}
+      {/* Action buttons */}
       <div className="flex items-center justify-between mt-3 pt-2 border-t">
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onEdit(step)}>
-            <Edit className="w-3 h-3 mr-1" /> 编辑
+            <Edit className="w-3 h-3 mr-1" /> {t("manufacturing.common.edit")}
           </Button>
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={() => onDelete(step.id)}>
-            <Trash2 className="w-3 h-3 mr-1" /> 删除
+            <Trash2 className="w-3 h-3 mr-1" /> {t("manufacturing.common.delete")}
           </Button>
         </div>
         <div>
@@ -918,7 +927,7 @@ function BomStepCard({
               onClick={() => onEndTime(activeLog.id)}
               disabled={isEnding}
             >
-              <Square className="w-3 h-3 mr-1" /> 结束工时
+              <Square className="w-3 h-3 mr-1" /> {t("manufacturing.steps.endTime")}
             </Button>
           ) : step.status !== "completed" ? (
             <Button
@@ -928,11 +937,11 @@ function BomStepCard({
               onClick={() => onStartTime(step.id)}
               disabled={isStarting}
             >
-              <Play className="w-3 h-3 mr-1" /> 开始工时
+              <Play className="w-3 h-3 mr-1" /> {t("manufacturing.steps.startTime")}
             </Button>
           ) : (
             <Badge className="bg-green-100 text-green-700 text-xs">
-              <CheckCircle2 className="w-3 h-3 mr-1" /> 已完成
+              <CheckCircle2 className="w-3 h-3 mr-1" /> {t("manufacturing.steps.statusCompleted")}
             </Badge>
           )}
         </div>
@@ -953,6 +962,15 @@ function AiPresetCard({
   onConfirm: (id: number, status: string) => void;
   isAdopting: boolean;
 }) {
+  const { t } = useLanguage();
+
+  const confirmLabels: Record<string, string> = {
+    pending: t("manufacturing.steps.confirmPending"),
+    confirmed: t("manufacturing.steps.confirmApproved"),
+    modified: t("manufacturing.steps.confirmModified"),
+    rejected: t("manufacturing.steps.confirmRejected"),
+  };
+
   return (
     <div className="border rounded-lg p-3 bg-purple-50/50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800 hover:shadow-sm transition-shadow">
       <div className="flex items-start justify-between mb-2">
@@ -964,29 +982,29 @@ function AiPresetCard({
           <span className="font-medium text-sm">{preset.step_name}</span>
         </div>
         <Badge className={`text-xs ${CONFIRM_STATUS_COLORS[preset.confirm_status] || CONFIRM_STATUS_COLORS.pending}`}>
-          {CONFIRM_STATUS_LABELS[preset.confirm_status] || "待确认"}
+          {confirmLabels[preset.confirm_status] || t("manufacturing.steps.confirmPending")}
         </Badge>
       </div>
 
       {preset.process_requirements && (
         <div className="text-xs text-muted-foreground mb-1">
-          <span className="font-medium">工艺要求:</span> {preset.process_requirements}
+          <span className="font-medium">{t("manufacturing.steps.processRequirements")}:</span> {preset.process_requirements}
         </div>
       )}
       {preset.process_description && (
         <div className="text-xs text-muted-foreground mb-1">
-          <span className="font-medium">步骤描述:</span> {preset.process_description}
+          <span className="font-medium">{t("manufacturing.steps.processDescription")}:</span> {preset.process_description}
         </div>
       )}
 
       <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
         {preset.source_project_name && (
           <span className="flex items-center gap-1">
-            <History className="w-3 h-3" /> 参照: {preset.source_project_name}
+            <History className="w-3 h-3" /> {t("manufacturing.steps.reference")}: {preset.source_project_name}
           </span>
         )}
         {preset.match_score && (
-          <span>匹配度: {preset.match_score}%</span>
+          <span>{t("manufacturing.steps.matchScore")}: {preset.match_score}%</span>
         )}
         {preset.theoretical_hours && (
           <span className="flex items-center gap-1">
@@ -995,7 +1013,7 @@ function AiPresetCard({
         )}
       </div>
 
-      {/* 操作按钮 */}
+      {/* Action buttons */}
       {preset.confirm_status === "pending" && (
         <div className="flex items-center gap-2 mt-3 pt-2 border-t border-purple-200 dark:border-purple-800">
           <Button
@@ -1004,7 +1022,7 @@ function AiPresetCard({
             onClick={() => onAdopt(preset.id)}
             disabled={isAdopting}
           >
-            <Check className="w-3 h-3 mr-1" /> 采纳
+            <Check className="w-3 h-3 mr-1" /> {t("manufacturing.steps.adopt")}
           </Button>
           <Button
             size="sm"
@@ -1012,7 +1030,7 @@ function AiPresetCard({
             className="h-7 px-3 text-xs flex-1"
             onClick={() => onConfirm(preset.id, "modified")}
           >
-            <Edit className="w-3 h-3 mr-1" /> 修改后采纳
+            <Edit className="w-3 h-3 mr-1" /> {t("manufacturing.steps.modifyAndAdopt")}
           </Button>
           <Button
             size="sm"

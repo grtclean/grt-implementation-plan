@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { FileCheck, Loader2, Sparkles, CheckCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const STANDARDS = [
   { value: "ISO 16232", label: "ISO 16232" },
@@ -38,6 +39,7 @@ interface CertificateResult {
 }
 
 export default function ProductCertificate() {
+  const { t } = useLanguage();
   // Form state
   const [productName, setProductName] = useState("");
   const [batchNumber, setBatchNumber] = useState("");
@@ -87,12 +89,12 @@ export default function ProductCertificate() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={FileCheck}
-          title="AI产品合格证"
-          description="自动生成结构化产品合格证 · 数据校验 · 一键输出"
+          title={t("quality.certificate.title")}
+          description={t("quality.certificate.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI质检
+              {t("quality.certificate.aiBadge")}
             </Badge>
           }
         />
@@ -102,53 +104,53 @@ export default function ProductCertificate() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <FileCheck className="h-5 w-5 text-primary" />
-              合格证信息录入
+              {t("quality.certificate.sectionInput")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">产品名称 *</label>
-                <Input placeholder="如: 铝合金发动机缸体" value={productName} onChange={(e) => setProductName(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.certificate.productName")} *</label>
+                <Input placeholder={t("quality.certificate.productNamePlaceholder")} value={productName} onChange={(e) => setProductName(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">批次号 *</label>
-                <Input placeholder="如: BATCH-2026-0215-001" value={batchNumber} onChange={(e) => setBatchNumber(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.certificate.batchNo")} *</label>
+                <Input placeholder="e.g. BATCH-2026-0215-001" value={batchNumber} onChange={(e) => setBatchNumber(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">客户名称 *</label>
-                <Input placeholder="如: XX汽车有限公司" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.certificate.customerName")} *</label>
+                <Input placeholder={t("quality.certificate.customerNamePlaceholder")} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">执行标准 *</label>
+                <label className="text-sm text-muted-foreground">{t("quality.certificate.standard")} *</label>
                 <Select value={standard} onValueChange={(v) => setStandard(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择执行标准" />
+                    <SelectValue placeholder={t("quality.certificate.standard")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {STANDARDS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                    {STANDARDS.map((s) => <SelectItem key={s.value} value={s.value}>{s.value === "自定义" ? t("quality.certificate.standardCustom") : s.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">检验员</label>
-                <Input placeholder="检验员姓名（可选）" value={inspectorName} onChange={(e) => setInspectorName(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.certificate.inspector")}</label>
+                <Input placeholder={t("quality.certificate.inspector")} value={inspectorName} onChange={(e) => setInspectorName(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">检测数据 *</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="检测数据如: 尺寸公差±0.05mm, 表面粗糙度Ra0.8" value={inspectionData} onChange={(e) => setInspectionData(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("quality.certificate.testData")} *</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder={t("quality.certificate.testDataPlaceholder")} value={inspectionData} onChange={(e) => setInspectionData(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">清洁度检测结果 *</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="清洁度检测结果" value={cleanlinessResult} onChange={(e) => setCleanlinessResult(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("quality.certificate.cleanlinessResult")} *</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder={t("quality.certificate.cleanlinessResult")} value={cleanlinessResult} onChange={(e) => setCleanlinessResult(e.target.value)} />
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!productName.trim() || !batchNumber.trim() || !customerName.trim() || !inspectionData.trim() || !cleanlinessResult.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                生成合格证
+                {t("quality.certificate.generateBtn")}
               </Button>
             </div>
           </CardContent>
@@ -162,7 +164,7 @@ export default function ProductCertificate() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">合格证编号</p>
+                    <p className="text-sm text-muted-foreground">{t("quality.certificate.certNumber")}</p>
                     <p className="text-3xl font-bold text-primary">{result.certificateNumber}</p>
                   </div>
                   <Badge className={`text-2xl px-4 py-2 ${verdictColor(result.overallVerdict)}`}>
@@ -171,20 +173,20 @@ export default function ProductCertificate() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t">
                   <div>
-                    <p className="text-xs text-muted-foreground">产品名称</p>
+                    <p className="text-xs text-muted-foreground">{t("quality.certificate.certProductName")}</p>
                     <p className="text-sm font-medium">{result.productName}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">批次号</p>
+                    <p className="text-xs text-muted-foreground">{t("quality.certificate.certBatchNo")}</p>
                     <p className="text-sm font-medium">{result.batchNumber}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">有效期至</p>
+                    <p className="text-xs text-muted-foreground">{t("quality.certificate.validUntil")}</p>
                     <p className="text-sm font-medium">{result.validUntil}</p>
                   </div>
                 </div>
                 <div className="mt-3">
-                  <p className="text-xs text-muted-foreground">检测摘要</p>
+                  <p className="text-xs text-muted-foreground">{t("quality.certificate.testSummary")}</p>
                   <p className="text-sm whitespace-pre-wrap">{result.inspectionSummary}</p>
                 </div>
               </CardContent>
@@ -195,18 +197,18 @@ export default function ProductCertificate() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <FileCheck className="h-5 w-5 text-primary" />
-                  质量指标明细
+                  {t("quality.certificate.sectionMetrics")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2 font-medium text-muted-foreground">检测项</th>
-                      <th className="text-left py-2 font-medium text-muted-foreground">规格要求</th>
-                      <th className="text-left py-2 font-medium text-muted-foreground">实测值</th>
-                      <th className="text-left py-2 font-medium text-muted-foreground">单位</th>
-                      <th className="text-center py-2 font-medium text-muted-foreground">判定</th>
+                      <th className="text-left py-2 font-medium text-muted-foreground">{t("quality.certificate.headerItem")}</th>
+                      <th className="text-left py-2 font-medium text-muted-foreground">{t("quality.certificate.headerSpec")}</th>
+                      <th className="text-left py-2 font-medium text-muted-foreground">{t("quality.certificate.headerActual")}</th>
+                      <th className="text-left py-2 font-medium text-muted-foreground">{t("quality.certificate.headerUnit")}</th>
+                      <th className="text-center py-2 font-medium text-muted-foreground">{t("quality.certificate.headerVerdict")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -229,7 +231,7 @@ export default function ProductCertificate() {
             {/* Cleanliness Verdict */}
             <Card>
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-muted-foreground mb-1">清洁度判定</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">{t("quality.certificate.cleanlinessVerdict")}</p>
                 <p className="text-sm whitespace-pre-wrap">{result.cleanlinessVerdict}</p>
               </CardContent>
             </Card>
@@ -240,7 +242,7 @@ export default function ProductCertificate() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("quality.certificate.sectionAiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

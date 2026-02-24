@@ -3,6 +3,7 @@
  * 生产计划 vs 库存智能比对 · 缺料预测 · 采购建议
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ interface ShortageResult {
 }
 
 export default function MaterialShortageAlert() {
+  const { t } = useLanguage();
   const [productionPlan, setProductionPlan] = useState("");
   const [currentInventory, setCurrentInventory] = useState("");
   const [pendingOrders, setPendingOrders] = useState("");
@@ -73,9 +75,9 @@ export default function MaterialShortageAlert() {
 
   const alertLevelLabel = (level: string) => {
     switch (level) {
-      case "critical": return "紧急";
-      case "warning": return "预警";
-      case "normal": return "正常";
+      case "critical": return t("manufacturing.materialShortage.urgentLabel");
+      case "warning": return t("manufacturing.materialShortage.warningLabel");
+      case "normal": return t("manufacturing.materialShortage.normalLabel");
       default: return level;
     }
   };
@@ -92,10 +94,10 @@ export default function MaterialShortageAlert() {
 
   const urgencyLabel = (u: string) => {
     switch (u) {
-      case "critical": return "紧急";
-      case "high": return "高";
-      case "medium": return "中";
-      case "low": return "低";
+      case "critical": return t("manufacturing.materialShortage.urgentLabel");
+      case "high": return t("manufacturing.materialShortage.urgencyHigh");
+      case "medium": return t("manufacturing.materialShortage.urgencyMedium");
+      case "low": return t("manufacturing.materialShortage.urgencyLow");
       default: return u;
     }
   };
@@ -104,12 +106,12 @@ export default function MaterialShortageAlert() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={AlertTriangle}
-          title="AI缺料预警"
-          description="生产计划 vs 库存智能比对 · 缺料预测 · 采购建议"
+          title={t("manufacturing.materialShortage.aiAlertTitle")}
+          description={t("manufacturing.materialShortage.aiAlertDesc")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI预警
+              {t("manufacturing.materialShortage.aiAlert")}
             </Badge>
           }
         />
@@ -119,43 +121,43 @@ export default function MaterialShortageAlert() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <AlertTriangle className="h-5 w-5 text-primary" />
-              预警分析输入
+              {t("manufacturing.materialShortage.alertAnalysisInput")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">生产计划 *</label>
+              <label className="text-sm text-muted-foreground">{t("manufacturing.materialShortage.productionPlan")} *</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]"
-                placeholder="输入生产计划：如 GRT-V100 x 5台, GRT-W200 x 3台, 交期: 2026-03-15"
+                placeholder={t("manufacturing.materialShortage.productionPlanPlaceholder")}
                 value={productionPlan}
                 onChange={(e) => setProductionPlan(e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">当前库存快照 *</label>
+              <label className="text-sm text-muted-foreground">{t("manufacturing.materialShortage.inventorySnapshot")} *</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]"
-                placeholder="当前库存快照"
+                placeholder={t("manufacturing.materialShortage.inventorySnapshot")}
                 value={currentInventory}
                 onChange={(e) => setCurrentInventory(e.target.value)}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">在途订单（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.materialShortage.pendingOrdersOptional")}</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]"
-                  placeholder="在途订单"
+                  placeholder={t("manufacturing.materialShortage.pendingOrders")}
                   value={pendingOrders}
                   onChange={(e) => setPendingOrders(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">历史用量参考（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.materialShortage.historicalUsageOptional")}</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]"
-                  placeholder="历史用量参考"
+                  placeholder={t("manufacturing.materialShortage.historicalUsage")}
                   value={historicalUsage}
                   onChange={(e) => setHistoricalUsage(e.target.value)}
                 />
@@ -164,7 +166,7 @@ export default function MaterialShortageAlert() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!productionPlan.trim() || !currentInventory.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                缺料分析
+                {t("manufacturing.materialShortage.shortageAnalysis")}
               </Button>
             </div>
           </CardContent>
@@ -178,13 +180,13 @@ export default function MaterialShortageAlert() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">预警级别</p>
+                    <p className="text-sm text-muted-foreground">{t("manufacturing.materialShortage.alertLevel")}</p>
                     <Badge className={`text-2xl px-4 py-2 mt-2 ${alertLevelColor(result.alertLevel)}`}>
                       {alertLevelLabel(result.alertLevel)}
                     </Badge>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-muted-foreground">缺料物料数</p>
+                    <p className="text-sm text-muted-foreground">{t("manufacturing.materialShortage.shortageMaterialCount")}</p>
                     <p className="text-4xl font-bold text-primary">{result.shortageItems.length}</p>
                   </div>
                 </div>
@@ -197,7 +199,7 @@ export default function MaterialShortageAlert() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Package className="h-5 w-5 text-yellow-400" />
-                    缺料明细 ({result.shortageItems.length})
+                    {t("manufacturing.materialShortage.shortageDetails")} ({result.shortageItems.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -205,13 +207,13 @@ export default function MaterialShortageAlert() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">物料</th>
-                          <th className="text-right py-2 pr-4">当前库存</th>
-                          <th className="text-right py-2 pr-4">安全库存</th>
-                          <th className="text-right py-2 pr-4">日均用量</th>
-                          <th className="text-right py-2 pr-4">剩余天数</th>
-                          <th className="text-right py-2 pr-4">建议采购量</th>
-                          <th className="text-left py-2">紧急度</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.materialShortage.material")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.materialShortage.currentStock")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.materialShortage.safetyStock")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.materialShortage.dailyUsage")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.materialShortage.daysRemaining")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.materialShortage.suggestedQty")}</th>
+                          <th className="text-left py-2">{t("manufacturing.materialShortage.urgency")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -240,7 +242,7 @@ export default function MaterialShortageAlert() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <RefreshCw className="h-5 w-5 text-primary" />
-                  排产影响
+                  {t("manufacturing.materialShortage.schedulingImpact")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -254,7 +256,7 @@ export default function MaterialShortageAlert() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ShoppingCart className="h-5 w-5 text-primary" />
-                    采购建议
+                    {t("manufacturing.materialShortage.purchaseSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -262,11 +264,11 @@ export default function MaterialShortageAlert() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">物料</th>
-                          <th className="text-left py-2 pr-4">供应商</th>
-                          <th className="text-right py-2 pr-4">数量</th>
-                          <th className="text-left py-2 pr-4">预计交期</th>
-                          <th className="text-right py-2">预计费用</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.materialShortage.material")}</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.materialShortage.supplier")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.materialShortage.quantity")}</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.materialShortage.estimatedLeadTime")}</th>
+                          <th className="text-right py-2">{t("manufacturing.materialShortage.estimatedCost")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -292,7 +294,7 @@ export default function MaterialShortageAlert() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <RefreshCw className="h-5 w-5 text-blue-400" />
-                    替代物料
+                    {t("manufacturing.materialShortage.alternativeMaterials")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -300,9 +302,9 @@ export default function MaterialShortageAlert() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">原物料</th>
-                          <th className="text-left py-2 pr-4">替代物料</th>
-                          <th className="text-left py-2">兼容性</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.materialShortage.originalMaterial")}</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.materialShortage.altMaterial")}</th>
+                          <th className="text-left py-2">{t("manufacturing.materialShortage.compatibility")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -326,7 +328,7 @@ export default function MaterialShortageAlert() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-green-400" />
-                    AI建议
+                    {t("manufacturing.common.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

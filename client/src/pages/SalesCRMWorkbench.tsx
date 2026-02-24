@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   BarChart3, Users, Target, MessageSquare, TrendingUp, Plus, Search,
   Phone, Mail, Calendar, ChevronRight, Star, ArrowUpRight, ArrowDownRight,
@@ -9,31 +10,6 @@ import {
 
 // ── Types ──
 type TabKey = 'pipeline' | 'leads' | 'customers' | 'interactions' | 'analytics';
-
-const TABS: { key: TabKey; label: string; icon: any }[] = [
-  { key: 'pipeline', label: '机会管线', icon: Target },
-  { key: 'leads', label: '线索管理', icon: Zap },
-  { key: 'customers', label: '客户总览', icon: Users },
-  { key: 'interactions', label: '沟通记录', icon: MessageSquare },
-  { key: 'analytics', label: '销售分析', icon: BarChart3 },
-];
-
-const PIPELINE_STAGES = [
-  { key: 'lead', label: '线索', color: '#0078d4' },
-  { key: 'qualification', label: '资质审查', color: '#2b88d8' },
-  { key: 'proposal', label: '方案报价', color: '#71afe5' },
-  { key: 'negotiation', label: '商务谈判', color: '#f7630c' },
-  { key: 'closed_won', label: '赢单', color: '#107c10' },
-  { key: 'closed_lost', label: '丢单', color: '#d13438' },
-];
-
-const LEVEL_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  S: { bg: '#fff8e1', text: '#f57f17', border: '#ffe082' },
-  A: { bg: '#e3f2fd', text: '#1565c0', border: '#90caf9' },
-  B: { bg: '#e8f5e9', text: '#2e7d32', border: '#a5d6a7' },
-  C: { bg: '#f5f5f5', text: '#616161', border: '#e0e0e0' },
-  D: { bg: '#fafafa', text: '#9e9e9e', border: '#eeeeee' },
-};
 
 // ── Shared UI Primitives (Fluent Design, no shadcn) ──
 
@@ -122,12 +98,30 @@ function StatCard({ label, value, icon: Icon, trend, color = '#0078d4' }: {
   );
 }
 
+const LEVEL_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  S: { bg: '#fff8e1', text: '#f57f17', border: '#ffe082' },
+  A: { bg: '#e3f2fd', text: '#1565c0', border: '#90caf9' },
+  B: { bg: '#e8f5e9', text: '#2e7d32', border: '#a5d6a7' },
+  C: { bg: '#f5f5f5', text: '#616161', border: '#e0e0e0' },
+  D: { bg: '#fafafa', text: '#9e9e9e', border: '#eeeeee' },
+};
+
 // ── Pipeline Tab ──
 function PipelineTab() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', customerId: '', stage: 'lead', value: '', probability: '50', expectedCloseDate: '' });
+
+  const PIPELINE_STAGES = [
+    { key: 'lead', label: t("crm.workbench.stageLead"), color: '#0078d4' },
+    { key: 'qualification', label: t("crm.workbench.stageQualification"), color: '#2b88d8' },
+    { key: 'proposal', label: t("crm.workbench.stageProposal"), color: '#71afe5' },
+    { key: 'negotiation', label: t("crm.workbench.stageNegotiation"), color: '#f7630c' },
+    { key: 'closed_won', label: t("crm.workbench.stageWon"), color: '#107c10' },
+    { key: 'closed_lost', label: t("crm.workbench.stageLost"), color: '#d13438' },
+  ];
 
   const oppsQ = (trpc.crm as any).opportunities.list.useQuery({ search: search || undefined, stage: stageFilter || undefined });
   const statsQ = (trpc.crm as any).opportunities.stats.useQuery({});
@@ -146,15 +140,15 @@ function PipelineTab() {
     <div className="space-y-4">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="管线总额" value={stats ? `¥${(Number(stats.pipelineValue) / 10000).toFixed(0)}万` : '--'} icon={DollarSign} color="#0078d4" />
-        <StatCard label="机会数" value={stats?.pipelineCount ?? '--'} icon={Target} color="#f7630c" />
-        <StatCard label="赢单率" value={stats ? `${(Number(stats.winRate) * 100).toFixed(1)}%` : '--'} icon={TrendingUp} color="#107c10" />
-        <StatCard label="丢单数" value={stats?.lostCount ?? '--'} icon={XCircle} color="#d13438" />
+        <StatCard label={t("crm.workbench.pipelineTotal")} value={stats ? `¥${(Number(stats.pipelineValue) / 10000).toFixed(0)}万` : '--'} icon={DollarSign} color="#0078d4" />
+        <StatCard label={t("crm.workbench.oppCount")} value={stats?.pipelineCount ?? '--'} icon={Target} color="#f7630c" />
+        <StatCard label={t("crm.workbench.winRate")} value={stats ? `${(Number(stats.winRate) * 100).toFixed(1)}%` : '--'} icon={TrendingUp} color="#107c10" />
+        <StatCard label={t("crm.workbench.lostCount")} value={stats?.lostCount ?? '--'} icon={XCircle} color="#d13438" />
       </div>
 
       {/* Funnel */}
       <FluentCard className="p-4">
-        <h4 className="text-sm font-semibold text-[#323130] mb-3">销售漏斗</h4>
+        <h4 className="text-sm font-semibold text-[#323130] mb-3">{t("crm.workbench.salesFunnel")}</h4>
         <div className="space-y-2">
           {funnel.map((f: any) => {
             const stage = PIPELINE_STAGES.find(s => s.key === f.stage);
@@ -164,7 +158,7 @@ function PipelineTab() {
                 <span className="text-xs text-[#605e5c] w-16 shrink-0">{stage?.label || f.stage}</span>
                 <div className="flex-1 bg-[#f3f2f1] rounded-full h-6 overflow-hidden">
                   <div className="h-full rounded-full flex items-center px-2" style={{ width: `${Math.max(pct, 8)}%`, backgroundColor: stage?.color || '#0078d4' }}>
-                    <span className="text-xs text-white font-medium whitespace-nowrap">{f.count}个 / ¥{(Number(f.totalValue) / 10000).toFixed(0)}万</span>
+                    <span className="text-xs text-white font-medium whitespace-nowrap">{f.count}{t("crm.workbench.countUnit")} / ¥{(Number(f.totalValue) / 10000).toFixed(0)}万</span>
                   </div>
                 </div>
               </div>
@@ -177,13 +171,13 @@ function PipelineTab() {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#605e5c]" />
-          <FluentInput value={search} onChange={setSearch} placeholder="搜索机会..." className="pl-8" />
+          <FluentInput value={search} onChange={setSearch} placeholder={t("crm.workbench.searchOpp")} className="pl-8" />
         </div>
         <FluentSelect value={stageFilter} onChange={setStageFilter}>
-          <option value="">全部阶段</option>
+          <option value="">{t("crm.workbench.allStages")}</option>
           {PIPELINE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
         </FluentSelect>
-        <FluentButton onClick={() => setShowCreate(true)}><Plus size={14} /> 新建机会</FluentButton>
+        <FluentButton onClick={() => setShowCreate(true)}><Plus size={14} /> {t("crm.workbench.newOpp")}</FluentButton>
       </div>
 
       {/* Kanban Board */}
@@ -210,7 +204,7 @@ function PipelineTab() {
                     </div>
                   </FluentCard>
                 ))}
-                {stageOpps.length === 0 && <p className="text-xs text-[#a19f9d] text-center py-4">暂无机会</p>}
+                {stageOpps.length === 0 && <p className="text-xs text-[#a19f9d] text-center py-4">{t("crm.workbench.noOpp")}</p>}
               </div>
             </div>
           );
@@ -218,22 +212,22 @@ function PipelineTab() {
       </div>
 
       {/* Create Dialog */}
-      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title="新建销售机会">
+      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title={t("crm.workbench.newSalesOpp")}>
         <div className="space-y-3">
-          <FormField label="机会名称"><FluentInput value={form.name} onChange={v => setForm(p => ({ ...p, name: v }))} placeholder="输入机会名称" /></FormField>
-          <FormField label="客户ID"><FluentInput value={form.customerId} onChange={v => setForm(p => ({ ...p, customerId: v }))} placeholder="输入客户ID" /></FormField>
-          <FormField label="阶段">
+          <FormField label={t("crm.workbench.oppName")}><FluentInput value={form.name} onChange={v => setForm(p => ({ ...p, name: v }))} placeholder={t("crm.workbench.enterOppName")} /></FormField>
+          <FormField label={t("crm.workbench.customerId")}><FluentInput value={form.customerId} onChange={v => setForm(p => ({ ...p, customerId: v }))} placeholder={t("crm.workbench.enterCustomerId")} /></FormField>
+          <FormField label={t("crm.workbench.stage")}>
             <FluentSelect value={form.stage} onChange={v => setForm(p => ({ ...p, stage: v }))}>
               {PIPELINE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
             </FluentSelect>
           </FormField>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="金额"><FluentInput value={form.value} onChange={v => setForm(p => ({ ...p, value: v }))} placeholder="0" /></FormField>
-            <FormField label="概率%"><FluentInput value={form.probability} onChange={v => setForm(p => ({ ...p, probability: v }))} placeholder="50" /></FormField>
+            <FormField label={t("crm.workbench.amount")}><FluentInput value={form.value} onChange={v => setForm(p => ({ ...p, value: v }))} placeholder="0" /></FormField>
+            <FormField label={t("crm.workbench.probabilityPct")}><FluentInput value={form.probability} onChange={v => setForm(p => ({ ...p, probability: v }))} placeholder="50" /></FormField>
           </div>
-          <FormField label="预计关单日期"><FluentInput value={form.expectedCloseDate} onChange={v => setForm(p => ({ ...p, expectedCloseDate: v }))} placeholder="YYYY-MM-DD" /></FormField>
+          <FormField label={t("crm.workbench.expectedCloseDate")}><FluentInput value={form.expectedCloseDate} onChange={v => setForm(p => ({ ...p, expectedCloseDate: v }))} placeholder="YYYY-MM-DD" /></FormField>
           <div className="flex justify-end gap-2 pt-2">
-            <FluentButton variant="secondary" onClick={() => setShowCreate(false)}>取消</FluentButton>
+            <FluentButton variant="secondary" onClick={() => setShowCreate(false)}>{t("crm.workbench.cancel")}</FluentButton>
             <FluentButton onClick={async () => {
               try {
                 await createM.mutateAsync({
@@ -243,7 +237,7 @@ function PipelineTab() {
               } catch (err) {
                 console.error("Create opportunity failed:", err);
               }
-            }} disabled={!form.name || createM.isPending}>{createM.isPending ? '创建中...' : '创建'}</FluentButton>
+            }} disabled={!form.name || createM.isPending}>{createM.isPending ? t("crm.workbench.creating") : t("crm.workbench.create")}</FluentButton>
           </div>
         </div>
       </FluentDialog>
@@ -253,6 +247,7 @@ function PipelineTab() {
 
 // ── Leads Tab ──
 function LeadsTab() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
@@ -270,24 +265,24 @@ function LeadsTab() {
   const leads = leadsQ.data || [];
 
   const priorityColors: Record<string, string> = { high: '#d13438', medium: '#f7630c', low: '#107c10' };
-  const priorityLabels: Record<string, string> = { high: '高', medium: '中', low: '低' };
-  const statusLabels: Record<string, string> = { new: '新线索', contacted: '已联系', qualified: '已资质', converted: '已转化', lost: '已流失' };
+  const priorityLabels: Record<string, string> = { high: t("crm.leads.priority.high"), medium: t("crm.leads.priority.medium"), low: t("crm.leads.priority.low") };
+  const statusLabels: Record<string, string> = { new: t("crm.workbench.statusNew"), contacted: t("crm.workbench.statusContacted"), qualified: t("crm.workbench.statusQualified"), converted: t("crm.workbench.statusConverted"), lost: t("crm.workbench.statusLost") };
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#605e5c]" />
-          <FluentInput value={search} onChange={setSearch} placeholder="搜索线索..." className="pl-8" />
+          <FluentInput value={search} onChange={setSearch} placeholder={t("crm.workbench.searchLead")} className="pl-8" />
         </div>
         <FluentSelect value={statusFilter} onChange={setStatusFilter}>
-          <option value="">全部状态</option>
-          <option value="new">新线索</option>
-          <option value="contacted">已联系</option>
-          <option value="qualified">已资质</option>
-          <option value="converted">已转化</option>
+          <option value="">{t("crm.leads.allStatus")}</option>
+          <option value="new">{t("crm.workbench.statusNew")}</option>
+          <option value="contacted">{t("crm.workbench.statusContacted")}</option>
+          <option value="qualified">{t("crm.workbench.statusQualified")}</option>
+          <option value="converted">{t("crm.workbench.statusConverted")}</option>
         </FluentSelect>
-        <FluentButton onClick={() => setShowCreate(true)}><Plus size={14} /> 新建线索</FluentButton>
+        <FluentButton onClick={() => setShowCreate(true)}><Plus size={14} /> {t("crm.leads.newLead")}</FluentButton>
       </div>
 
       <div className="grid gap-3">
@@ -310,7 +305,7 @@ function LeadsTab() {
                 {lead.aiConfidenceScore != null && (
                   <div className="mt-2 flex items-center gap-2">
                     <Sparkles size={12} className="text-[#0078d4]" />
-                    <span className="text-xs text-[#605e5c]">AI置信度</span>
+                    <span className="text-xs text-[#605e5c]">{t("crm.workbench.aiConfidence")}</span>
                     <div className="flex-1 max-w-[120px] bg-[#f3f2f1] rounded-full h-2">
                       <div className="h-full rounded-full" style={{
                         width: `${lead.aiConfidenceScore}%`,
@@ -327,46 +322,46 @@ function LeadsTab() {
                     try { await convertM.mutateAsync({ id: lead.id }); }
                     catch (err) { console.error("Convert lead failed:", err); }
                   }}>
-                    <UserPlus size={14} /> 转化
+                    <UserPlus size={14} /> {t("crm.workbench.convert")}
                   </FluentButton>
                 )}
               </div>
             </div>
           </FluentCard>
         ))}
-        {leads.length === 0 && <p className="text-sm text-[#605e5c] text-center py-8">暂无线索数据</p>}
+        {leads.length === 0 && <p className="text-sm text-[#605e5c] text-center py-8">{t("crm.leads.noLeads")}</p>}
       </div>
 
       {/* Create Dialog */}
-      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title="新建线索">
+      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title={t("crm.leads.newLead")}>
         <div className="space-y-3">
-          <FormField label="公司名称"><FluentInput value={form.companyName} onChange={v => setForm(p => ({ ...p, companyName: v }))} placeholder="输入公司名称" /></FormField>
+          <FormField label={t("crm.workbench.companyName")}><FluentInput value={form.companyName} onChange={v => setForm(p => ({ ...p, companyName: v }))} placeholder={t("crm.workbench.enterCompanyName")} /></FormField>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="联系人"><FluentInput value={form.contactName} onChange={v => setForm(p => ({ ...p, contactName: v }))} placeholder="姓名" /></FormField>
-            <FormField label="电话"><FluentInput value={form.contactPhone} onChange={v => setForm(p => ({ ...p, contactPhone: v }))} placeholder="电话" /></FormField>
+            <FormField label={t("crm.workbench.contactPerson")}><FluentInput value={form.contactName} onChange={v => setForm(p => ({ ...p, contactName: v }))} placeholder={t("crm.contacts.name")} /></FormField>
+            <FormField label={t("crm.phone")}><FluentInput value={form.contactPhone} onChange={v => setForm(p => ({ ...p, contactPhone: v }))} placeholder={t("crm.phone")} /></FormField>
           </div>
-          <FormField label="邮箱"><FluentInput value={form.contactEmail} onChange={v => setForm(p => ({ ...p, contactEmail: v }))} placeholder="邮箱" /></FormField>
+          <FormField label={t("crm.email")}><FluentInput value={form.contactEmail} onChange={v => setForm(p => ({ ...p, contactEmail: v }))} placeholder={t("crm.email")} /></FormField>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="来源">
+            <FormField label={t("crm.workbench.source")}>
               <FluentSelect value={form.source} onChange={v => setForm(p => ({ ...p, source: v }))}>
-                <option value="website">官网</option>
-                <option value="referral">推荐</option>
-                <option value="exhibition">展会</option>
-                <option value="cold_call">陌拜</option>
-                <option value="other">其他</option>
+                <option value="website">{t("crm.workbench.sourceWebsite")}</option>
+                <option value="referral">{t("crm.workbench.sourceReferral")}</option>
+                <option value="exhibition">{t("crm.workbench.sourceExhibition")}</option>
+                <option value="cold_call">{t("crm.workbench.sourceColdCall")}</option>
+                <option value="other">{t("crm.workbench.sourceOther")}</option>
               </FluentSelect>
             </FormField>
-            <FormField label="优先级">
+            <FormField label={t("crm.workbench.priority")}>
               <FluentSelect value={form.priority} onChange={v => setForm(p => ({ ...p, priority: v }))}>
-                <option value="high">高</option>
-                <option value="medium">中</option>
-                <option value="low">低</option>
+                <option value="high">{t("crm.leads.priority.high")}</option>
+                <option value="medium">{t("crm.leads.priority.medium")}</option>
+                <option value="low">{t("crm.leads.priority.low")}</option>
               </FluentSelect>
             </FormField>
           </div>
-          <FormField label="备注"><FluentTextarea value={form.notes} onChange={v => setForm(p => ({ ...p, notes: v }))} placeholder="备注信息" /></FormField>
+          <FormField label={t("crm.remark")}><FluentTextarea value={form.notes} onChange={v => setForm(p => ({ ...p, notes: v }))} placeholder={t("crm.workbench.remarkInfo")} /></FormField>
           <div className="flex justify-end gap-2 pt-2">
-            <FluentButton variant="secondary" onClick={() => setShowCreate(false)}>取消</FluentButton>
+            <FluentButton variant="secondary" onClick={() => setShowCreate(false)}>{t("crm.workbench.cancel")}</FluentButton>
             <FluentButton onClick={async () => {
               try {
                 await createM.mutateAsync({
@@ -376,7 +371,7 @@ function LeadsTab() {
               } catch (err) {
                 console.error("Create lead failed:", err);
               }
-            }} disabled={!form.companyName || createM.isPending}>{createM.isPending ? '创建中...' : '创建'}</FluentButton>
+            }} disabled={!form.companyName || createM.isPending}>{createM.isPending ? t("crm.workbench.creating") : t("crm.workbench.create")}</FluentButton>
           </div>
         </div>
       </FluentDialog>
@@ -386,6 +381,7 @@ function LeadsTab() {
 
 // ── Customers Tab ──
 function CustomersTab() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -400,14 +396,20 @@ function CustomersTab() {
   const customers = custQ.data?.items || [];
   const stats = statsQ.data;
 
+  const typeLabelsMap: Record<string, string> = {
+    enterprise: t("crm.workbench.typeEnterprise"),
+    individual: t("crm.workbench.typeIndividual"),
+    government: t("crm.workbench.typeGovernment"),
+  };
+
   return (
     <div className="space-y-4">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="客户总数" value={stats?.total ?? '--'} icon={Building2} color="#0078d4" />
+        <StatCard label={t("crm.totalCustomers")} value={stats?.total ?? '--'} icon={Building2} color="#0078d4" />
         {(stats?.byLevel || []).slice(0, 3).map((bl: any) => {
           const lc = LEVEL_COLORS[bl.level] || LEVEL_COLORS.C;
-          return <StatCard key={bl.level} label={`${bl.level}级客户`} value={Number(bl.count) || 0} icon={Star} color={lc.text} />;
+          return <StatCard key={bl.level} label={`${bl.level}${t("crm.workbench.levelCustomer")}`} value={Number(bl.count) || 0} icon={Star} color={lc.text} />;
         })}
       </div>
 
@@ -415,17 +417,17 @@ function CustomersTab() {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#605e5c]" />
-          <FluentInput value={search} onChange={setSearch} placeholder="搜索客户..." className="pl-8" />
+          <FluentInput value={search} onChange={setSearch} placeholder={t("crm.workbench.searchCustomer")} className="pl-8" />
         </div>
         <FluentSelect value={levelFilter} onChange={setLevelFilter}>
-          <option value="">全部等级</option>
-          {['S','A','B','C','D'].map(l => <option key={l} value={l}>{l}级</option>)}
+          <option value="">{t("crm.allLevels")}</option>
+          {['S','A','B','C','D'].map(l => <option key={l} value={l}>{l}{t("crm.workbench.levelSuffix")}</option>)}
         </FluentSelect>
         <FluentSelect value={typeFilter} onChange={setTypeFilter}>
-          <option value="">全部类型</option>
-          <option value="enterprise">企业</option>
-          <option value="individual">个人</option>
-          <option value="government">政府</option>
+          <option value="">{t("crm.allTypes")}</option>
+          <option value="enterprise">{t("crm.workbench.typeEnterprise")}</option>
+          <option value="individual">{t("crm.workbench.typeIndividual")}</option>
+          <option value="government">{t("crm.workbench.typeGovernment")}</option>
         </FluentSelect>
       </div>
 
@@ -446,18 +448,18 @@ function CustomersTab() {
                     <div className="flex items-center gap-3 mt-1 text-xs text-[#605e5c]">
                       {cust.industry && <span>{cust.industry}</span>}
                       {cust.region && <span>{cust.region}</span>}
-                      {cust.type && <FluentBadge>{cust.type === 'enterprise' ? '企业' : cust.type === 'individual' ? '个人' : '政府'}</FluentBadge>}
+                      {cust.type && <FluentBadge>{typeLabelsMap[cust.type] || cust.type}</FluentBadge>}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <FluentButton variant="ghost"><Eye size={14} /> 详情</FluentButton>
+                  <FluentButton variant="ghost"><Eye size={14} /> {t("crm.workbench.details")}</FluentButton>
                 </div>
               </div>
             </FluentCard>
           );
         })}
-        {customers.length === 0 && <p className="text-sm text-[#605e5c] text-center py-8">暂无客户数据</p>}
+        {customers.length === 0 && <p className="text-sm text-[#605e5c] text-center py-8">{t("crm.noCustomers")}</p>}
       </div>
     </div>
   );
@@ -465,6 +467,7 @@ function CustomersTab() {
 
 // ── Interactions Tab ──
 function InteractionsTab() {
+  const { t } = useLanguage();
   const [typeFilter, setTypeFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ customerId: '', type: 'call', subject: '', content: '' });
@@ -481,20 +484,20 @@ function InteractionsTab() {
     call: Phone, email: Mail, meeting: Calendar, visit: Building2, other: MessageSquare,
   };
   const typeLabels: Record<string, string> = {
-    call: '电话', email: '邮件', meeting: '会议', visit: '拜访', other: '其他',
+    call: t("crm.workbench.typeCall"), email: t("crm.workbench.typeEmail"), meeting: t("crm.workbench.typeMeeting"), visit: t("crm.workbench.typeVisit"), other: t("crm.workbench.typeOther"),
   };
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <FluentSelect value={typeFilter} onChange={setTypeFilter}>
-          <option value="">全部类型</option>
-          <option value="call">电话</option>
-          <option value="email">邮件</option>
-          <option value="meeting">会议</option>
-          <option value="visit">拜访</option>
+          <option value="">{t("crm.allTypes")}</option>
+          <option value="call">{t("crm.workbench.typeCall")}</option>
+          <option value="email">{t("crm.workbench.typeEmail")}</option>
+          <option value="meeting">{t("crm.workbench.typeMeeting")}</option>
+          <option value="visit">{t("crm.workbench.typeVisit")}</option>
         </FluentSelect>
-        <FluentButton onClick={() => setShowCreate(true)}><Plus size={14} /> 新建记录</FluentButton>
+        <FluentButton onClick={() => setShowCreate(true)}><Plus size={14} /> {t("crm.workbench.newRecord")}</FluentButton>
       </div>
 
       {/* Timeline */}
@@ -521,34 +524,34 @@ function InteractionsTab() {
                   </div>
                   {item.isComplaint && (
                     <div className="mt-2 flex items-center gap-1 text-xs text-[#d13438]">
-                      <AlertTriangle size={12} /> 客户投诉
+                      <AlertTriangle size={12} /> {t("crm.workbench.customerComplaint")}
                     </div>
                   )}
                 </FluentCard>
               </div>
             );
           })}
-          {interactions.length === 0 && <p className="text-sm text-[#605e5c] text-center py-8 pl-12">暂无沟通记录</p>}
+          {interactions.length === 0 && <p className="text-sm text-[#605e5c] text-center py-8 pl-12">{t("crm.workbench.noRecords")}</p>}
         </div>
       </div>
 
       {/* Create Dialog */}
-      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title="新建沟通记录">
+      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title={t("crm.workbench.newInteraction")}>
         <div className="space-y-3">
-          <FormField label="客户ID"><FluentInput value={form.customerId} onChange={v => setForm(p => ({ ...p, customerId: v }))} placeholder="输入客户ID" /></FormField>
-          <FormField label="类型">
+          <FormField label={t("crm.workbench.customerId")}><FluentInput value={form.customerId} onChange={v => setForm(p => ({ ...p, customerId: v }))} placeholder={t("crm.workbench.enterCustomerId")} /></FormField>
+          <FormField label={t("crm.workbench.interactionType")}>
             <FluentSelect value={form.type} onChange={v => setForm(p => ({ ...p, type: v }))}>
-              <option value="call">电话</option>
-              <option value="email">邮件</option>
-              <option value="meeting">会议</option>
-              <option value="visit">拜访</option>
-              <option value="other">其他</option>
+              <option value="call">{t("crm.workbench.typeCall")}</option>
+              <option value="email">{t("crm.workbench.typeEmail")}</option>
+              <option value="meeting">{t("crm.workbench.typeMeeting")}</option>
+              <option value="visit">{t("crm.workbench.typeVisit")}</option>
+              <option value="other">{t("crm.workbench.typeOther")}</option>
             </FluentSelect>
           </FormField>
-          <FormField label="主题"><FluentInput value={form.subject} onChange={v => setForm(p => ({ ...p, subject: v }))} placeholder="输入主题" /></FormField>
-          <FormField label="内容"><FluentTextarea value={form.content} onChange={v => setForm(p => ({ ...p, content: v }))} placeholder="记录沟通内容..." /></FormField>
+          <FormField label={t("crm.workbench.subject")}><FluentInput value={form.subject} onChange={v => setForm(p => ({ ...p, subject: v }))} placeholder={t("crm.workbench.enterSubject")} /></FormField>
+          <FormField label={t("crm.workbench.content")}><FluentTextarea value={form.content} onChange={v => setForm(p => ({ ...p, content: v }))} placeholder={t("crm.workbench.recordContent")} /></FormField>
           <div className="flex justify-end gap-2 pt-2">
-            <FluentButton variant="secondary" onClick={() => setShowCreate(false)}>取消</FluentButton>
+            <FluentButton variant="secondary" onClick={() => setShowCreate(false)}>{t("crm.workbench.cancel")}</FluentButton>
             <FluentButton onClick={async () => {
               try {
                 await createM.mutateAsync({
@@ -559,7 +562,7 @@ function InteractionsTab() {
                 console.error("Create interaction failed:", err);
               }
             }} disabled={!form.subject || createM.isPending}>
-              <Send size={14} /> {createM.isPending ? '创建中...' : '创建'}
+              <Send size={14} /> {createM.isPending ? t("crm.workbench.creating") : t("crm.workbench.create")}
             </FluentButton>
           </div>
         </div>
@@ -570,6 +573,17 @@ function InteractionsTab() {
 
 // ── Analytics Tab ──
 function AnalyticsTab() {
+  const { t } = useLanguage();
+
+  const PIPELINE_STAGES = [
+    { key: 'lead', label: t("crm.workbench.stageLead"), color: '#0078d4' },
+    { key: 'qualification', label: t("crm.workbench.stageQualification"), color: '#2b88d8' },
+    { key: 'proposal', label: t("crm.workbench.stageProposal"), color: '#71afe5' },
+    { key: 'negotiation', label: t("crm.workbench.stageNegotiation"), color: '#f7630c' },
+    { key: 'closed_won', label: t("crm.workbench.stageWon"), color: '#107c10' },
+    { key: 'closed_lost', label: t("crm.workbench.stageLost"), color: '#d13438' },
+  ];
+
   const oppStatsQ = (trpc.crm as any).opportunities.stats.useQuery({});
   const custStatsQ = (trpc.crm as any).customers.stats.useQuery({});
   const funnelQ = (trpc.crm as any).opportunities.funnel.useQuery({});
@@ -581,19 +595,25 @@ function AnalyticsTab() {
   const intStats = intStatsQ.data;
   const maxFunnelVal = Math.max(...funnel.map((f: any) => Number(f.totalValue) || 0), 1);
 
+  const typeLabelsMap: Record<string, string> = {
+    enterprise: t("crm.workbench.enterpriseCustomer"),
+    individual: t("crm.workbench.individualCustomer"),
+    government: t("crm.workbench.governmentCustomer"),
+  };
+
   return (
     <div className="space-y-4">
       {/* Top Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="管线总额" value={oppStats ? `¥${(Number(oppStats.pipelineValue) / 10000).toFixed(0)}万` : '--'} icon={DollarSign} color="#0078d4" />
-        <StatCard label="赢单率" value={oppStats ? `${(Number(oppStats.winRate) * 100).toFixed(1)}%` : '--'} icon={TrendingUp} color="#107c10" />
-        <StatCard label="客户总数" value={custStats?.total ?? '--'} icon={Users} color="#f7630c" />
-        <StatCard label="沟通次数" value={intStats?.total ?? '--'} icon={MessageSquare} color="#8764b8" />
+        <StatCard label={t("crm.workbench.pipelineTotal")} value={oppStats ? `¥${(Number(oppStats.pipelineValue) / 10000).toFixed(0)}万` : '--'} icon={DollarSign} color="#0078d4" />
+        <StatCard label={t("crm.workbench.winRate")} value={oppStats ? `${(Number(oppStats.winRate) * 100).toFixed(1)}%` : '--'} icon={TrendingUp} color="#107c10" />
+        <StatCard label={t("crm.totalCustomers")} value={custStats?.total ?? '--'} icon={Users} color="#f7630c" />
+        <StatCard label={t("crm.workbench.interactionCount")} value={intStats?.total ?? '--'} icon={MessageSquare} color="#8764b8" />
       </div>
 
       {/* Pipeline Funnel Analysis */}
       <FluentCard className="p-5">
-        <h4 className="text-sm font-semibold text-[#323130] mb-4">管线漏斗分析</h4>
+        <h4 className="text-sm font-semibold text-[#323130] mb-4">{t("crm.workbench.funnelAnalysis")}</h4>
         <div className="space-y-3">
           {funnel.map((f: any, i: number) => {
             const stage = PIPELINE_STAGES.find(s => s.key === f.stage);
@@ -606,7 +626,7 @@ function AnalyticsTab() {
                     <span className="text-sm text-[#323130]">{stage?.label || f.stage}</span>
                   </div>
                   <div className="text-xs text-[#605e5c]">
-                    {f.count}个机会 · ¥{(Number(f.totalValue) / 10000).toFixed(1)}万
+                    {f.count}{t("crm.workbench.oppUnit")} · ¥{(Number(f.totalValue) / 10000).toFixed(1)}万
                   </div>
                 </div>
                 <div className="bg-[#f3f2f1] rounded-full h-5 overflow-hidden">
@@ -625,7 +645,7 @@ function AnalyticsTab() {
       {/* Customer Level Breakdown */}
       <div className="grid md:grid-cols-2 gap-4">
         <FluentCard className="p-5">
-          <h4 className="text-sm font-semibold text-[#323130] mb-3">客户等级分布</h4>
+          <h4 className="text-sm font-semibold text-[#323130] mb-3">{t("crm.workbench.levelDistribution")}</h4>
           <div className="space-y-2">
             {(custStats?.byLevel || []).map((bl: any) => {
               const lc = LEVEL_COLORS[bl.level] || LEVEL_COLORS.C;
@@ -639,8 +659,8 @@ function AnalyticsTab() {
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-[#323130]">{bl.level}级客户</span>
-                      <span className="text-[#605e5c]">{Number(bl.count) || 0}个 ({pct}%)</span>
+                      <span className="text-[#323130]">{bl.level}{t("crm.workbench.levelCustomer")}</span>
+                      <span className="text-[#605e5c]">{Number(bl.count) || 0}{t("crm.workbench.countUnit")} ({pct}%)</span>
                     </div>
                     <div className="bg-[#f3f2f1] rounded-full h-2">
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: lc.text }} />
@@ -653,12 +673,12 @@ function AnalyticsTab() {
         </FluentCard>
 
         <FluentCard className="p-5">
-          <h4 className="text-sm font-semibold text-[#323130] mb-3">客户类型分布</h4>
+          <h4 className="text-sm font-semibold text-[#323130] mb-3">{t("crm.workbench.typeDistribution")}</h4>
           <div className="space-y-3">
             {(custStats?.byType || []).map((bt: any) => {
               const total = Number(custStats?.total) || 1;
               const pct = (((Number(bt.count) || 0) / total) * 100).toFixed(1);
-              const typeLabel = bt.type === 'enterprise' ? '企业客户' : bt.type === 'individual' ? '个人客户' : bt.type === 'government' ? '政府客户' : bt.type;
+              const typeLabel = typeLabelsMap[bt.type] || bt.type;
               return (
                 <div key={bt.type} className="flex items-center justify-between">
                   <span className="text-sm text-[#323130]">{typeLabel}</span>
@@ -675,28 +695,28 @@ function AnalyticsTab() {
 
       {/* Win/Loss Summary */}
       <FluentCard className="p-5">
-        <h4 className="text-sm font-semibold text-[#323130] mb-3">赢单/丢单概览</h4>
+        <h4 className="text-sm font-semibold text-[#323130] mb-3">{t("crm.workbench.winLossOverview")}</h4>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
           <div>
             <div className="flex items-center justify-center gap-1 text-[#107c10]">
               <CheckCircle2 size={20} />
               <span className="text-2xl font-bold">{oppStats?.wonCount ?? 0}</span>
             </div>
-            <p className="text-xs text-[#605e5c] mt-1">赢单</p>
+            <p className="text-xs text-[#605e5c] mt-1">{t("crm.workbench.won")}</p>
           </div>
           <div>
             <div className="flex items-center justify-center gap-1 text-[#d13438]">
               <XCircle size={20} />
               <span className="text-2xl font-bold">{oppStats?.lostCount ?? 0}</span>
             </div>
-            <p className="text-xs text-[#605e5c] mt-1">丢单</p>
+            <p className="text-xs text-[#605e5c] mt-1">{t("crm.workbench.lost")}</p>
           </div>
           <div>
             <div className="flex items-center justify-center gap-1 text-[#0078d4]">
               <Target size={20} />
               <span className="text-2xl font-bold">{oppStats?.pipelineCount ?? 0}</span>
             </div>
-            <p className="text-xs text-[#605e5c] mt-1">进行中</p>
+            <p className="text-xs text-[#605e5c] mt-1">{t("crm.workbench.inProgress")}</p>
           </div>
         </div>
       </FluentCard>
@@ -706,7 +726,16 @@ function AnalyticsTab() {
 
 // ── Main Component ──
 export default function SalesCRMWorkbench() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabKey>('pipeline');
+
+  const TABS: { key: TabKey; label: string; icon: any }[] = [
+    { key: 'pipeline', label: t("crm.workbench.tabPipeline"), icon: Target },
+    { key: 'leads', label: t("crm.workbench.tabLeads"), icon: Zap },
+    { key: 'customers', label: t("crm.workbench.tabCustomers"), icon: Users },
+    { key: 'interactions', label: t("crm.workbench.tabInteractions"), icon: MessageSquare },
+    { key: 'analytics', label: t("crm.workbench.tabAnalytics"), icon: BarChart3 },
+  ];
 
   const TabContent = {
     pipeline: PipelineTab,
@@ -723,11 +752,11 @@ export default function SalesCRMWorkbench() {
       <div className="bg-white border-b border-[#edebe9] px-4 sm:px-6 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-[#323130]">销售CRM工作台</h1>
-            <p className="text-xs sm:text-sm text-[#605e5c] mt-0.5">客户关系管理 · 销售管线 · 线索跟踪 · 数据分析</p>
+            <h1 className="text-lg sm:text-xl font-bold text-[#323130]">{t("crm.workbench.title")}</h1>
+            <p className="text-xs sm:text-sm text-[#605e5c] mt-0.5">{t("crm.workbench.subtitle")}</p>
           </div>
           <div className="flex items-center gap-2">
-            <FluentButton variant="secondary"><RefreshCw size={14} /> 刷新</FluentButton>
+            <FluentButton variant="secondary"><RefreshCw size={14} /> {t("crm.workbench.refresh")}</FluentButton>
           </div>
         </div>
 

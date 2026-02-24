@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ============================================================
 // 类型定义
@@ -97,6 +98,7 @@ const SUCCESSOR_TYPE_LABELS: Record<string, string> = {
 // ============================================================
 
 export default function EmployeeOffboarding() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedOffboarding, setSelectedOffboarding] = useState<number | null>(null);
@@ -118,32 +120,32 @@ export default function EmployeeOffboarding() {
         {/* 页面标题 */}
         <PageHeader
           icon={UserMinus}
-          title="员工离职数据管理"
-          description="管理员工离职流程、数据保留、工作交接与绩效归属"
+          title={t("hr.offboard.title")}
+          description={t("hr.offboard.description")}
           actions={
             <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
               <Plus className="w-4 h-4" />
-              新建离职记录
+              {t("hr.offboard.createRecord")}
             </Button>
           }
         />
 
         {/* 统计概览卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <StatCard icon={Users} label="总计" value={statsQuery.data?.total || 0} />
-          <StatCard icon={FileText} label="草稿" value={statsQuery.data?.draft || 0} />
-          <StatCard icon={Clock} label="审批中" value={statsQuery.data?.inProgress || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
-          <StatCard icon={CheckCircle2} label="已完成" value={statsQuery.data?.completed || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
-          <StatCard icon={XCircle} label="已取消" value={statsQuery.data?.cancelled || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
+          <StatCard icon={Users} label={t("hr.offboard.total")} value={statsQuery.data?.total || 0} />
+          <StatCard icon={FileText} label={t("hr.offboard.draft")} value={statsQuery.data?.draft || 0} />
+          <StatCard icon={Clock} label={t("hr.offboard.inProgress")} value={statsQuery.data?.inProgress || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+          <StatCard icon={CheckCircle2} label={t("hr.offboard.completed")} value={statsQuery.data?.completed || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={XCircle} label={t("hr.offboard.cancelled")} value={statsQuery.data?.cancelled || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
         </div>
 
         {/* 主内容区 */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">离职记录</TabsTrigger>
-            <TabsTrigger value="handover">工作交接</TabsTrigger>
-            <TabsTrigger value="performance">绩效归属</TabsTrigger>
-            <TabsTrigger value="query">数据查询</TabsTrigger>
+            <TabsTrigger value="overview">{t("hr.offboard.tab.records")}</TabsTrigger>
+            <TabsTrigger value="handover">{t("hr.offboard.tab.handover")}</TabsTrigger>
+            <TabsTrigger value="performance">{t("hr.offboard.tab.performance")}</TabsTrigger>
+            <TabsTrigger value="query">{t("hr.offboard.tab.query")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -163,7 +165,7 @@ export default function EmployeeOffboarding() {
             {selectedOffboarding ? (
               <HandoverSection offboardingId={selectedOffboarding} />
             ) : (
-              <EmptyState message="请先从「离职记录」中选择一条记录" />
+              <EmptyState message={t("hr.offboard.selectRecordFirst")} />
             )}
           </TabsContent>
 
@@ -171,7 +173,7 @@ export default function EmployeeOffboarding() {
             {selectedOffboarding ? (
               <PerformanceSection offboardingId={selectedOffboarding} />
             ) : (
-              <EmptyState message="请先从「离职记录」中选择一条记录" />
+              <EmptyState message={t("hr.offboard.selectRecordFirst")} />
             )}
           </TabsContent>
 

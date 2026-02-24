@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,12 +29,12 @@ import {
 
 // ─── Helpers ────────────────────────────────────────────────────
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  draft: { label: "草稿", color: "bg-gray-500/15 text-gray-700" },
-  submitted: { label: "已提交", color: "bg-blue-500/15 text-blue-700" },
-  approved: { label: "已批准", color: "bg-green-500/15 text-green-700" },
-  rejected: { label: "已驳回", color: "bg-red-500/15 text-red-700" },
-  interim_approved: { label: "有条件批准", color: "bg-orange-500/15 text-orange-700" },
+const PPAP_STATUS_KEYS: Record<string, { key: string; color: string }> = {
+  draft: { key: "quality.ppap.statusDraft", color: "bg-gray-500/15 text-gray-700" },
+  submitted: { key: "quality.ppap.statusSubmitted", color: "bg-blue-500/15 text-blue-700" },
+  approved: { key: "quality.ppap.statusApproved", color: "bg-green-500/15 text-green-700" },
+  rejected: { key: "quality.ppap.statusRejected", color: "bg-red-500/15 text-red-700" },
+  interim_approved: { key: "quality.ppap.statusConditional", color: "bg-orange-500/15 text-orange-700" },
 };
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -44,17 +45,18 @@ const LEVEL_COLORS: Record<string, string> = {
   "5": "bg-rose-500/15 text-rose-700",
 };
 
-const ELEMENT_STATUS_MAP: Record<string, { label: string; color: string }> = {
-  not_started: { label: "未开始", color: "bg-gray-500/15 text-gray-700" },
-  in_progress: { label: "进行中", color: "bg-blue-500/15 text-blue-700" },
-  completed: { label: "已完成", color: "bg-green-500/15 text-green-700" },
-  not_applicable: { label: "不适用", color: "bg-yellow-500/15 text-yellow-700" },
-  rejected: { label: "已驳回", color: "bg-red-500/15 text-red-700" },
+const ELEM_STATUS_KEYS: Record<string, { key: string; color: string }> = {
+  not_started: { key: "quality.ppap.elemNotStarted", color: "bg-gray-500/15 text-gray-700" },
+  in_progress: { key: "quality.ppap.elemInProgress", color: "bg-blue-500/15 text-blue-700" },
+  completed: { key: "quality.ppap.elemCompleted", color: "bg-green-500/15 text-green-700" },
+  not_applicable: { key: "quality.ppap.elemNA", color: "bg-yellow-500/15 text-yellow-700" },
+  rejected: { key: "quality.ppap.elemRejected", color: "bg-red-500/15 text-red-700" },
 };
 
-function StatusBadgeInline({ status, map }: { status: string; map: Record<string, { label: string; color: string }> }) {
-  const s = map[status] ?? { label: status, color: "bg-gray-200 text-gray-700" };
-  return <Badge variant="outline" className={`${s.color} border-0 text-xs`}>{s.label}</Badge>;
+function StatusBadgeInline({ status, map }: { status: string; map: Record<string, { key: string; color: string }> }) {
+  const { t } = useLanguage();
+  const s = map[status] ?? { key: status, color: "bg-gray-200 text-gray-700" };
+  return <Badge variant="outline" className={`${s.color} border-0 text-xs`}>{t(s.key)}</Badge>;
 }
 
 function LoadingSkeleton({ rows = 3 }: { rows?: number }) {
@@ -64,6 +66,7 @@ function LoadingSkeleton({ rows = 3 }: { rows?: number }) {
 // ─── Tab 1: PPAP提交列表 ────────────────────────────────────────
 
 function SubmissionListTab({ onSelect }: { onSelect: (id: number) => void }) {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ partName: "", partNumber: "", revision: "", customerName: "", submissionLevel: "3" as string, submissionReason: "", notes: "" });
@@ -72,18 +75,18 @@ function SubmissionListTab({ onSelect }: { onSelect: (id: number) => void }) {
   const statsQ = trpc.ppap.getStats.useQuery({});
   const listQ = trpc.ppap.list.useQuery({});
   const createMut = trpc.ppap.create.useMutation({
-    onSuccess: () => { toast.success("PPAP提交已创建"); setShowCreate(false); resetForm(); utils.ppap.list.invalidate(); utils.ppap.getStats.invalidate(); },
+    onSuccess: () => { toast.success(t("quality.ppap.createSuccess")); setShowCreate(false); resetForm(); utils.ppap.list.invalidate(); utils.ppap.getStats.invalidate(); },
     onError: (e) => toast.error(e.message),
   });
   const updateMut = trpc.ppap.update.useMutation({
-    onSuccess: () => { toast.success("状态已更新"); utils.ppap.list.invalidate(); utils.ppap.getStats.invalidate(); },
+    onSuccess: () => { toast.success(t("quality.ppap.statusUpdateSuccess")); utils.ppap.list.invalidate(); utils.ppap.getStats.invalidate(); },
     onError: (e) => toast.error(e.message),
   });
 
   function resetForm() { setForm({ partName: "", partNumber: "", revision: "", customerName: "", submissionLevel: "3", submissionReason: "", notes: "" }); }
 
   function handleCreate() {
-    if (!form.partName || !form.partNumber) { toast.error("零件名称和零件号为必填项"); return; }
+    if (!form.partName || !form.partNumber) { toast.error(t("quality.ppap.partNameRequired")); return; }
     createMut.mutate({ partName: form.partName, partNumber: form.partNumber, revision: form.revision || undefined, customerName: form.customerName || undefined, submissionLevel: form.submissionLevel as "1" | "2" | "3" | "4" | "5", submissionReason: form.submissionReason || undefined, notes: form.notes || undefined });
   }
 
@@ -98,25 +101,25 @@ function SubmissionListTab({ onSelect }: { onSelect: (id: number) => void }) {
     <div className="space-y-6">
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard icon={ClipboardList} label="总提交数" value={stats?.total ?? 0} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={FileText} label="草稿" value={stats?.byStatus?.draft ?? 0} iconColor="text-gray-500" iconBg="bg-gray-500/10" />
-        <StatCard icon={Send} label="已提交" value={stats?.byStatus?.submitted ?? 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={CheckCircle2} label="已批准" value={stats?.byStatus?.approved ?? 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={XCircle} label="已驳回" value={stats?.byStatus?.rejected ?? 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={ClipboardList} label={t("quality.ppap.totalSubmissions")} value={stats?.total ?? 0} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={FileText} label={t("quality.ppap.drafts")} value={stats?.byStatus?.draft ?? 0} iconColor="text-gray-500" iconBg="bg-gray-500/10" />
+        <StatCard icon={Send} label={t("quality.ppap.submitted")} value={stats?.byStatus?.submitted ?? 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label={t("quality.ppap.approved")} value={stats?.byStatus?.approved ?? 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={XCircle} label={t("quality.ppap.rejected")} value={stats?.byStatus?.rejected ?? 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
       </div>
 
       {/* Toolbar */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="搜索零件名称 / 编号 / 客户..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder={t("quality.ppap.search")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Button onClick={() => setShowCreate(true)}><Plus className="w-4 h-4 mr-1" />新建PPAP</Button>
+        <Button onClick={() => setShowCreate(true)}><Plus className="w-4 h-4 mr-1" />{t("quality.ppap.newSubmission")}</Button>
       </div>
 
       {/* List */}
       {listQ.isLoading ? <LoadingSkeleton rows={5} /> : items.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">暂无PPAP提交记录</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">{t("quality.ppap.noSubmissions")}</CardContent></Card>
       ) : (
         <div className="space-y-2">
           {items.map((it) => (
@@ -127,7 +130,7 @@ function SubmissionListTab({ onSelect }: { onSelect: (id: number) => void }) {
                     <span className="font-semibold truncate">{it.partName}</span>
                     <Badge variant="secondary" className="text-xs font-mono">{it.partNumber}</Badge>
                     <Badge variant="outline" className={`text-xs border-0 ${LEVEL_COLORS[it.submissionLevel ?? "3"]}`}>L{it.submissionLevel}</Badge>
-                    <StatusBadgeInline status={it.status ?? "draft"} map={STATUS_MAP} />
+                    <StatusBadgeInline status={it.status ?? "draft"} map={PPAP_STATUS_KEYS} />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {it.submissionCode} {it.customerName ? `· ${it.customerName}` : ""} {it.revision ? `· Rev.${it.revision}` : ""}
@@ -136,16 +139,16 @@ function SubmissionListTab({ onSelect }: { onSelect: (id: number) => void }) {
                 <div className="flex items-center gap-2 shrink-0">
                   {it.status === "draft" && (
                     <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); updateMut.mutate({ id: it.id, status: "submitted" }); }}>
-                      <Send className="w-3.5 h-3.5 mr-1" />提交
+                      <Send className="w-3.5 h-3.5 mr-1" />{t("quality.ppap.submit")}
                     </Button>
                   )}
                   {it.status === "submitted" && (
                     <>
                       <Button size="sm" variant="outline" className="text-green-600" onClick={(e) => { e.stopPropagation(); updateMut.mutate({ id: it.id, status: "approved" }); }}>
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />批准
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />{t("quality.ppap.approve")}
                       </Button>
                       <Button size="sm" variant="outline" className="text-red-600" onClick={(e) => { e.stopPropagation(); updateMut.mutate({ id: it.id, status: "rejected" }); }}>
-                        <XCircle className="w-3.5 h-3.5 mr-1" />驳回
+                        <XCircle className="w-3.5 h-3.5 mr-1" />{t("quality.ppap.reject")}
                       </Button>
                     </>
                   )}
@@ -159,36 +162,36 @@ function SubmissionListTab({ onSelect }: { onSelect: (id: number) => void }) {
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>新建PPAP提交</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("quality.ppap.newSubmission")}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>零件名称 *</Label><Input value={form.partName} onChange={(e) => setForm({ ...form, partName: e.target.value })} placeholder="例: 左前悬挂臂" /></div>
-              <div><Label>零件号 *</Label><Input value={form.partNumber} onChange={(e) => setForm({ ...form, partNumber: e.target.value })} placeholder="例: P-12345" /></div>
+              <div><Label>{t("quality.ppap.partName")} *</Label><Input value={form.partName} onChange={(e) => setForm({ ...form, partName: e.target.value })} /></div>
+              <div><Label>{t("quality.ppap.partNumber")} *</Label><Input value={form.partNumber} onChange={(e) => setForm({ ...form, partNumber: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>版本</Label><Input value={form.revision} onChange={(e) => setForm({ ...form, revision: e.target.value })} placeholder="例: A1" /></div>
-              <div><Label>客户名称</Label><Input value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} placeholder="例: 大众汽车" /></div>
+              <div><Label>{t("quality.ppap.revision")}</Label><Input value={form.revision} onChange={(e) => setForm({ ...form, revision: e.target.value })} /></div>
+              <div><Label>{t("quality.ppap.customerName")}</Label><Input value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} /></div>
             </div>
             <div>
-              <Label>提交等级</Label>
+              <Label>{t("quality.ppap.submissionLevel")}</Label>
               <Select value={form.submissionLevel} onValueChange={(v) => setForm({ ...form, submissionLevel: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">等级1 — 仅PSW</SelectItem>
-                  <SelectItem value="2">等级2 — PSW + 有限支持数据</SelectItem>
-                  <SelectItem value="3">等级3 — PSW + 完整支持数据（默认）</SelectItem>
-                  <SelectItem value="4">等级4 — 按客户定义</SelectItem>
-                  <SelectItem value="5">等级5 — PSW + 现场审查</SelectItem>
+                  <SelectItem value="1">{t("quality.ppap.level1")}</SelectItem>
+                  <SelectItem value="2">{t("quality.ppap.level2")}</SelectItem>
+                  <SelectItem value="3">{t("quality.ppap.level3")}</SelectItem>
+                  <SelectItem value="4">{t("quality.ppap.level4")}</SelectItem>
+                  <SelectItem value="5">{t("quality.ppap.level5")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>提交原因</Label><Input value={form.submissionReason} onChange={(e) => setForm({ ...form, submissionReason: e.target.value })} placeholder="例: 新零件初始提交" /></div>
-            <div><Label>备注</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
+            <div><Label>{t("quality.ppap.submissionReason")}</Label><Input value={form.submissionReason} onChange={(e) => setForm({ ...form, submissionReason: e.target.value })} /></div>
+            <div><Label>{t("quality.ppap.remarks")}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>{t("quality.common.cancel")}</Button>
             <Button onClick={handleCreate} disabled={createMut.isPending}>
-              {createMut.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}创建
+              {createMut.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{t("quality.common.create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -200,21 +203,22 @@ function SubmissionListTab({ onSelect }: { onSelect: (id: number) => void }) {
 // ─── Tab 2: PPAP详情 ───────────────────────────────────────────
 
 function SubmissionDetailTab({ id, onBack }: { id: number; onBack: () => void }) {
+  const { t } = useLanguage();
   const utils = trpc.useUtils();
   const detailQ = trpc.ppap.getById.useQuery({ id });
   const updateElemMut = trpc.ppap.updateElement.useMutation({
-    onSuccess: () => { toast.success("元素已更新"); utils.ppap.getById.invalidate({ id }); },
+    onSuccess: () => { toast.success(t("quality.ppap.updateSuccess")); utils.ppap.getById.invalidate({ id }); },
     onError: (e) => toast.error(e.message),
   });
   const updateMut = trpc.ppap.update.useMutation({
-    onSuccess: () => { toast.success("状态已更新"); utils.ppap.getById.invalidate({ id }); utils.ppap.list.invalidate(); utils.ppap.getStats.invalidate(); },
+    onSuccess: () => { toast.success(t("quality.ppap.statusUpdateSuccess")); utils.ppap.getById.invalidate({ id }); utils.ppap.list.invalidate(); utils.ppap.getStats.invalidate(); },
     onError: (e) => toast.error(e.message),
   });
 
   const sub = detailQ.data;
 
   if (detailQ.isLoading) return <LoadingSkeleton rows={6} />;
-  if (!sub) return <Card><CardContent className="py-12 text-center text-muted-foreground">未找到PPAP记录</CardContent></Card>;
+  if (!sub) return <Card><CardContent className="py-12 text-center text-muted-foreground">{t("quality.ppap.notFound")}</CardContent></Card>;
 
   const progress = sub.progress ?? { completed: 0, total: 18, percent: 0 };
 
@@ -222,16 +226,16 @@ function SubmissionDetailTab({ id, onBack }: { id: number; onBack: () => void })
     <div className="space-y-6">
       {/* Header bar */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="w-4 h-4 mr-1" />返回列表</Button>
+        <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="w-4 h-4 mr-1" />{t("quality.ppap.backToList")}</Button>
         <div className="flex items-center gap-2">
           {sub.status === "draft" && (
-            <Button size="sm" onClick={() => updateMut.mutate({ id, status: "submitted" })}><Send className="w-4 h-4 mr-1" />提交审批</Button>
+            <Button size="sm" onClick={() => updateMut.mutate({ id, status: "submitted" })}><Send className="w-4 h-4 mr-1" />{t("quality.ppap.submitForApproval")}</Button>
           )}
           {sub.status === "submitted" && (
             <>
-              <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => updateMut.mutate({ id, status: "approved" })}><CheckCircle2 className="w-4 h-4 mr-1" />批准</Button>
-              <Button size="sm" variant="outline" className="text-orange-600" onClick={() => updateMut.mutate({ id, status: "interim_approved" })}><AlertTriangle className="w-4 h-4 mr-1" />有条件批准</Button>
-              <Button size="sm" variant="destructive" onClick={() => updateMut.mutate({ id, status: "rejected" })}><XCircle className="w-4 h-4 mr-1" />驳回</Button>
+              <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => updateMut.mutate({ id, status: "approved" })}><CheckCircle2 className="w-4 h-4 mr-1" />{t("quality.ppap.approve")}</Button>
+              <Button size="sm" variant="outline" className="text-orange-600" onClick={() => updateMut.mutate({ id, status: "interim_approved" })}><AlertTriangle className="w-4 h-4 mr-1" />{t("quality.ppap.conditionalApproval")}</Button>
+              <Button size="sm" variant="destructive" onClick={() => updateMut.mutate({ id, status: "rejected" })}><XCircle className="w-4 h-4 mr-1" />{t("quality.ppap.reject")}</Button>
             </>
           )}
         </div>
@@ -245,22 +249,22 @@ function SubmissionDetailTab({ id, onBack }: { id: number; onBack: () => void })
             {sub.partName}
             <Badge variant="secondary" className="font-mono text-xs">{sub.partNumber}</Badge>
             <Badge variant="outline" className={`text-xs border-0 ${LEVEL_COLORS[sub.submissionLevel ?? "3"]}`}>L{sub.submissionLevel}</Badge>
-            <StatusBadgeInline status={sub.status ?? "draft"} map={STATUS_MAP} />
+            <StatusBadgeInline status={sub.status ?? "draft"} map={PPAP_STATUS_KEYS} />
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
-            <div><span className="text-muted-foreground">编号:</span> {sub.submissionCode}</div>
-            <div><span className="text-muted-foreground">版本:</span> {sub.revision || "-"}</div>
-            <div><span className="text-muted-foreground">客户:</span> {sub.customerName || "-"}</div>
-            <div><span className="text-muted-foreground">原因:</span> {sub.submissionReason || "-"}</div>
+            <div><span className="text-muted-foreground">{t("quality.ppap.number")}:</span> {sub.submissionCode}</div>
+            <div><span className="text-muted-foreground">{t("quality.ppap.revision")}:</span> {sub.revision || "-"}</div>
+            <div><span className="text-muted-foreground">{t("quality.ppap.customer")}:</span> {sub.customerName || "-"}</div>
+            <div><span className="text-muted-foreground">{t("quality.ppap.reason")}:</span> {sub.submissionReason || "-"}</div>
           </div>
-          {sub.notes && <p className="text-sm text-muted-foreground mb-4">备注: {sub.notes}</p>}
+          {sub.notes && <p className="text-sm text-muted-foreground mb-4">{t("quality.ppap.remarks")}: {sub.notes}</p>}
 
           {/* Progress */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">元素完成进度</span>
+              <span className="font-medium">{t("quality.ppap.elementProgress")}</span>
               <span className="text-muted-foreground">{progress.completed} / {progress.total} ({progress.percent}%)</span>
             </div>
             <Progress value={progress.percent} className="h-3" />
@@ -270,7 +274,7 @@ function SubmissionDetailTab({ id, onBack }: { id: number; onBack: () => void })
 
       {/* 18 Elements checklist */}
       <Card>
-        <CardHeader><CardTitle className="text-base">AIAG 18元素清单</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{t("quality.ppap.elementChecklist")}</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           {(sub.elements ?? []).map((elem: any) => (
             <ElementRow key={elem.id} elem={elem} onUpdate={(status, docPath, notes) => updateElemMut.mutate({ id: elem.id, status: status as any, documentPath: docPath, reviewNotes: notes })} isPending={updateElemMut.isPending} />
@@ -284,6 +288,7 @@ function SubmissionDetailTab({ id, onBack }: { id: number; onBack: () => void })
 // ─── Element Row ────────────────────────────────────────────────
 
 function ElementRow({ elem, onUpdate, isPending }: { elem: any; onUpdate: (status: string, docPath?: string, notes?: string) => void; isPending: boolean }) {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const [docPath, setDocPath] = useState(elem.documentPath ?? "");
   const [notes, setNotes] = useState(elem.reviewNotes ?? "");
@@ -297,10 +302,10 @@ function ElementRow({ elem, onUpdate, isPending }: { elem: any; onUpdate: (statu
         <div className="flex items-center gap-3 min-w-0">
           <span className="text-xs font-mono text-muted-foreground w-6 text-right shrink-0">#{elem.elementNumber}</span>
           <span className="text-sm font-medium truncate">{elem.elementName}</span>
-          {!isRequired && <Badge variant="outline" className="text-[10px] shrink-0">可选</Badge>}
+          {!isRequired && <Badge variant="outline" className="text-[10px] shrink-0">{t("quality.ppap.optional")}</Badge>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <StatusBadgeInline status={elem.status ?? "not_started"} map={ELEMENT_STATUS_MAP} />
+          <StatusBadgeInline status={elem.status ?? "not_started"} map={ELEM_STATUS_KEYS} />
           {elem.documentPath && <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />}
         </div>
       </div>
@@ -310,23 +315,23 @@ function ElementRow({ elem, onUpdate, isPending }: { elem: any; onUpdate: (statu
             {cycleOptions.map((s) => (
               <Button key={s} size="sm" variant={elem.status === s ? "default" : "outline"} className="text-xs h-7" disabled={isPending}
                 onClick={() => onUpdate(s, docPath || undefined, notes || undefined)}>
-                {ELEMENT_STATUS_MAP[s].label}
+                {t(ELEM_STATUS_KEYS[s].key)}
               </Button>
             ))}
           </div>
           <div>
-            <Label className="text-xs">文档路径</Label>
+            <Label className="text-xs">{t("quality.ppap.docPath")}</Label>
             <div className="flex gap-2">
               <Input value={docPath} onChange={(e) => setDocPath(e.target.value)} placeholder="例: /docs/ppap/design-fmea.pdf" className="text-sm h-8" />
               <Button size="sm" variant="outline" className="h-8 shrink-0" disabled={isPending}
                 onClick={() => onUpdate(elem.status ?? "not_started", docPath || undefined, notes || undefined)}>
-                保存
+                {t("quality.ppap.save")}
               </Button>
             </div>
           </div>
           <div>
-            <Label className="text-xs">审核备注</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="text-sm" placeholder="添加审核备注..." />
+            <Label className="text-xs">{t("quality.ppap.reviewNotes")}</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="text-sm" />
           </div>
         </div>
       )}
@@ -337,6 +342,7 @@ function ElementRow({ elem, onUpdate, isPending }: { elem: any; onUpdate: (statu
 // ─── Main Component ─────────────────────────────────────────────
 
 export default function PPAPManagement() {
+  const { t } = useLanguage();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("list");
 
@@ -352,19 +358,19 @@ export default function PPAPManagement() {
 
   return (
     <div className="space-y-6 p-6">
-      <PageHeader icon={FileCheck2} title="PPAP管理" description="生产件批准流程 — AIAG 18元素管理（IATF 16949）" />
+      <PageHeader icon={FileCheck2} title={t("quality.ppap.title")} description={t("quality.ppap.description")} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="list">PPAP提交列表</TabsTrigger>
-          <TabsTrigger value="detail" disabled={!selectedId}>PPAP详情</TabsTrigger>
+          <TabsTrigger value="list">{t("quality.ppap.tabSubmissions")}</TabsTrigger>
+          <TabsTrigger value="detail" disabled={!selectedId}>{t("quality.ppap.tabDetails")}</TabsTrigger>
         </TabsList>
         <TabsContent value="list" className="mt-4">
           <SubmissionListTab onSelect={handleSelect} />
         </TabsContent>
         <TabsContent value="detail" className="mt-4">
           {selectedId ? <SubmissionDetailTab id={selectedId} onBack={handleBack} /> : (
-            <Card><CardContent className="py-12 text-center text-muted-foreground">请从列表中选择一个PPAP提交</CardContent></Card>
+            <Card><CardContent className="py-12 text-center text-muted-foreground">{t("quality.ppap.selectFromList")}</CardContent></Card>
           )}
         </TabsContent>
       </Tabs>

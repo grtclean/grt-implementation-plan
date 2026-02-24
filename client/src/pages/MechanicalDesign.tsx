@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUserProfile } from "@/contexts/UserProfileContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Cog, Plus, Upload, Building2, CheckCircle2, Clock, AlertTriangle, FileText } from "lucide-react";
 
 const statusColorMap = createStatusColorMap({
@@ -32,6 +33,7 @@ const MOCK_DESIGNS = [
 
 export default function MechanicalDesign() {
   const { currentBU } = useUserProfile();
+  const { t } = useLanguage();
   const [designs, setDesigns] = useState(MOCK_DESIGNS);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [formData, setFormData] = useState({ name: "", project: "", engineer: "" });
@@ -40,15 +42,15 @@ export default function MechanicalDesign() {
 
   const handleCreate = () => {
     if (!formData.name.trim()) {
-      toast.error("请输入设计名称");
+      toast.error(t("rnd.mechanical.enterName"));
       return;
     }
     if (!formData.project.trim()) {
-      toast.error("请输入所属项目");
+      toast.error(t("rnd.mechanical.enterProject"));
       return;
     }
     if (!formData.engineer.trim()) {
-      toast.error("请输入工程师");
+      toast.error(t("rnd.mechanical.enterEngineer"));
       return;
     }
 
@@ -67,37 +69,37 @@ export default function MechanicalDesign() {
     setDesigns(prev => [newDesign, ...prev]);
     setShowCreateDialog(false);
     setFormData({ name: "", project: "", engineer: "" });
-    toast.success("机械设计任务创建成功");
+    toast.success(t("rnd.mechanical.createSuccess"));
   };
 
   const handleUploadComingSoon = () => {
-    toast.info("上传图纸功能开发中，敬请期待");
+    toast.info(t("rnd.mechanical.uploadComingSoon"));
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Cog}
-        title="机械设计"
-        description="TX-003 · 机械结构设计与图纸管理"
+        title={t("rnd.mechanical.title")}
+        description={t("rnd.mechanical.description")}
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />新建设计</Button>
-            <Button variant="outline" onClick={handleUploadComingSoon}><Upload className="h-4 w-4 mr-2" />上传图纸</Button>
+            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />{t("rnd.mechanical.newDesign")}</Button>
+            <Button variant="outline" onClick={handleUploadComingSoon}><Upload className="h-4 w-4 mr-2" />{t("rnd.mechanical.uploadDrawing")}</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={FileText} label="总设计任务" value={designs.length} />
-        <StatCard icon={Clock} label="设计中" value={designs.filter(d => d.status === "设计中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={AlertTriangle} label="审核中" value={designs.filter(d => d.status === "审核中").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={CheckCircle2} label="已完成" value={designs.filter(d => d.status === "已审核").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={FileText} label={t("rnd.mechanical.totalTasks")} value={designs.length} />
+        <StatCard icon={Clock} label={t("rnd.mechanical.designing")} value={designs.filter(d => d.status === "设计中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={AlertTriangle} label={t("rnd.mechanical.reviewing")} value={designs.filter(d => d.status === "审核中").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={CheckCircle2} label={t("rnd.mechanical.completed")} value={designs.filter(d => d.status === "已审核").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
-        <CardHeader><CardTitle>设计任务列表</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("rnd.mechanical.taskList")}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
             {filtered.map(d => (
@@ -109,7 +111,7 @@ export default function MechanicalDesign() {
                     <Badge variant="secondary">{d.rev}</Badge>
                   </div>
                   <p className="font-medium mt-1">{d.name}</p>
-                  <p className="text-sm text-muted-foreground">项目: {d.project} · 工程师: {d.engineer}</p>
+                  <p className="text-sm text-muted-foreground">{t("rnd.mechanical.project")}: {d.project} · {t("rnd.mechanical.engineer")}: {d.engineer}</p>
                 </div>
                 <div className="text-right space-y-1">
                   <StatusBadge color={statusColorMap[d.status as keyof typeof statusColorMap] ?? 'gray'}>{d.status}</StatusBadge>
@@ -125,7 +127,7 @@ export default function MechanicalDesign() {
             {filtered.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Cog className="w-12 h-12 mb-3 opacity-50" />
-                <p className="font-medium">暂无设计任务</p>
+                <p className="font-medium">{t("rnd.mechanical.noTasks")}</p>
               </div>
             )}
           </div>
@@ -135,46 +137,46 @@ export default function MechanicalDesign() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新建机械设计</DialogTitle>
+            <DialogTitle>{t("rnd.mechanical.createTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="md-name">设计名称 *</Label>
+              <Label htmlFor="md-name">{t("rnd.mechanical.designName")} *</Label>
               <Input
                 id="md-name"
-                placeholder="例如：清洗槽体结构设计"
+                placeholder={t("rnd.mechanical.designNamePlaceholder")}
                 value={formData.name}
                 onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="md-project">所属项目 *</Label>
+              <Label htmlFor="md-project">{t("rnd.mechanical.belongProject")} *</Label>
               <Input
                 id="md-project"
-                placeholder="例如：缸体清洗线"
+                placeholder={t("rnd.mechanical.belongProjectPlaceholder")}
                 value={formData.project}
                 onChange={e => setFormData(prev => ({ ...prev, project: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="md-engineer">工程师 *</Label>
+              <Label htmlFor="md-engineer">{t("rnd.mechanical.engineerLabel")} *</Label>
               <Input
                 id="md-engineer"
-                placeholder="例如：王工"
+                placeholder={t("rnd.mechanical.engineerPlaceholder")}
                 value={formData.engineer}
                 onChange={e => setFormData(prev => ({ ...prev, engineer: e.target.value }))}
               />
             </div>
             {currentBU && (
               <div className="space-y-2">
-                <Label>事业部</Label>
+                <Label>{t("rnd.mechanical.buLabel")}</Label>
                 <Input value={currentBU} disabled />
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
-            <Button onClick={handleCreate}>创建</Button>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>{t("rnd.mechanical.cancel")}</Button>
+            <Button onClick={handleCreate}>{t("rnd.mechanical.create")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

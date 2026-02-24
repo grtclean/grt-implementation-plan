@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserProfile } from "@/contexts/UserProfileContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { BarChart3, Building2, Calendar, ChevronLeft, ChevronRight, Milestone } from "lucide-react";
 import { PageHeader } from "@/components/grt";
 
@@ -26,19 +27,20 @@ const WEEKS = Array.from({ length: 20 }, (_, i) => `W${i + 1}`);
 
 export default function GanttChart() {
   const { currentBU } = useUserProfile();
+  const { t } = useLanguage();
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
-        title="甘特图"
-        description="项目进度可视化 · 任务依赖管理"
+        title={t("projects.gantt.title")}
+        description={t("projects.gantt.description")}
         actions={<>
           {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
           <Select defaultValue="all">
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">所有项目</SelectItem>
+              <SelectItem value="all">{t("projects.gantt.allProjects")}</SelectItem>
               <SelectItem value="p1">缸体清洗线</SelectItem>
               <SelectItem value="p2">变速箱清洗</SelectItem>
             </SelectContent>
@@ -49,7 +51,7 @@ export default function GanttChart() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>项目甘特图 - 缸体清洗线</CardTitle>
+            <CardTitle>{t("projects.gantt.projectGantt")} - 缸体清洗线</CardTitle>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon"><ChevronLeft className="h-4 w-4" /></Button>
               <span className="text-sm">2026 Q1</span>
@@ -61,7 +63,7 @@ export default function GanttChart() {
           <div className="overflow-x-auto">
             {/* 时间轴头部 */}
             <div className="flex border-b pb-2 mb-2 min-w-[800px]">
-              <div className="w-40 shrink-0 text-sm font-medium text-muted-foreground">任务名称</div>
+              <div className="w-40 shrink-0 text-sm font-medium text-muted-foreground">{t("projects.gantt.taskName")}</div>
               <div className="flex-1 flex">
                 {WEEKS.map(w => (
                   <div key={w} className="flex-1 text-center text-xs text-muted-foreground">{w}</div>
@@ -87,9 +89,9 @@ export default function GanttChart() {
             </div>
           </div>
           <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Milestone className="h-3 w-3" />里程碑</span>
-            <span>总工期: 20周</span>
-            <span>整体进度: 38%</span>
+            <span className="flex items-center gap-1"><Milestone className="h-3 w-3" />{t("projects.gantt.milestone")}</span>
+            <span>{t("projects.gantt.totalDuration")}</span>
+            <span>{t("projects.gantt.overallProgress")}</span>
           </div>
         </CardContent>
       </Card>

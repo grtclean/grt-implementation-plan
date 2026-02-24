@@ -3,6 +3,7 @@
  * Phase E: OEE分析 · 瓶颈识别 · 产能优化
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ interface EfficiencyResult {
 }
 
 export default function ProductionEfficiency() {
+  const { t } = useLanguage();
   const [processStep, setProcessStep] = useState(PROCESS_STEPS[0]);
   const [plannedCycleTime, setPlannedCycleTime] = useState("");
   const [actualCycleTime, setActualCycleTime] = useState("");
@@ -72,22 +74,22 @@ export default function ProductionEfficiency() {
   };
 
   const ratingConfig: Record<string, { label: string; color: string }> = {
-    excellent: { label: "优秀", color: "bg-green-500/20 text-green-400 border-green-500/30" },
-    good: { label: "良好", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-    average: { label: "一般", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-    poor: { label: "较差", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+    excellent: { label: t("manufacturing.efficiency.ratingExcellent"), color: "bg-green-500/20 text-green-400 border-green-500/30" },
+    good: { label: t("manufacturing.efficiency.ratingGood"), color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+    average: { label: t("manufacturing.efficiency.ratingAverage"), color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+    poor: { label: t("manufacturing.efficiency.ratingPoor"), color: "bg-red-500/20 text-red-400 border-red-500/30" },
   };
 
   return (
       <div className="space-y-6 p-6">
         <PageHeader
           icon={TrendingUp}
-          title="AI生产效率分析"
-          description="OEE分析 · 瓶颈识别 · 产能优化"
+          title={t("manufacturing.efficiency.title")}
+          description={t("manufacturing.efficiency.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI分析
+              {t("manufacturing.efficiency.aiBadge")}
             </Badge>
           }
         />
@@ -97,16 +99,16 @@ export default function ProductionEfficiency() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <TrendingUp className="h-5 w-5 text-primary" />
-              生产数据
+              {t("manufacturing.efficiency.dataInput")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">工序步骤</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.efficiency.processStep")}</label>
                 <Select value={processStep} onValueChange={(v) => setProcessStep(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择工序步骤" />
+                    <SelectValue placeholder={t("manufacturing.efficiency.processStep")} />
                   </SelectTrigger>
                   <SelectContent>
                     {PROCESS_STEPS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -114,38 +116,38 @@ export default function ProductionEfficiency() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">产量(件/班)</label>
-                <Input type="number" placeholder="如: 3" value={throughput} onChange={(e) => setThroughput(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("manufacturing.efficiency.throughput")}</label>
+                <Input type="number" placeholder="3" value={throughput} onChange={(e) => setThroughput(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">计划节拍(分钟)</label>
-                <Input type="number" placeholder="如: 120" value={plannedCycleTime} onChange={(e) => setPlannedCycleTime(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("manufacturing.efficiency.plannedCycleTime")}</label>
+                <Input type="number" placeholder="120" value={plannedCycleTime} onChange={(e) => setPlannedCycleTime(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">实际节拍(分钟)</label>
-                <Input type="number" placeholder="如: 145" value={actualCycleTime} onChange={(e) => setActualCycleTime(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("manufacturing.efficiency.actualCycleTime")}</label>
+                <Input type="number" placeholder="145" value={actualCycleTime} onChange={(e) => setActualCycleTime(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">停机率(%)</label>
-                <Input type="number" placeholder="如: 15" value={downtime} onChange={(e) => setDowntime(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("manufacturing.efficiency.downtimeRate")}</label>
+                <Input type="number" placeholder="15" value={downtime} onChange={(e) => setDowntime(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">人员数量（可选）</label>
-                <Input type="number" placeholder="如: 3" value={workerCount} onChange={(e) => setWorkerCount(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("manufacturing.efficiency.workerCount")}</label>
+                <Input type="number" placeholder="3" value={workerCount} onChange={(e) => setWorkerCount(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">缺陷率(%)（可选）</label>
-                <Input type="number" placeholder="如: 2" value={defectRate} onChange={(e) => setDefectRate(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("manufacturing.efficiency.defectRate")}</label>
+                <Input type="number" placeholder="2" value={defectRate} onChange={(e) => setDefectRate(e.target.value)} />
               </div>
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!plannedCycleTime || !actualCycleTime || !throughput || !downtime || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                效率分析
+                {t("manufacturing.efficiency.analyze")}
               </Button>
             </div>
           </CardContent>
@@ -158,7 +160,7 @@ export default function ProductionEfficiency() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground">OEE综合效率</p>
+                  <p className="text-sm text-muted-foreground">{t("manufacturing.efficiency.oeeOverall")}</p>
                   <p className={`text-5xl font-bold ${oeeColor(result.oeeScore)}`}>{result.oeeScore}%</p>
                   <div className="mt-3 w-full h-2 bg-muted rounded-full overflow-hidden">
                     <div
@@ -170,7 +172,7 @@ export default function ProductionEfficiency() {
                     <Badge className={ratingConfig[result.efficiencyRating]?.color || "bg-muted"}>
                       {ratingConfig[result.efficiencyRating]?.label || result.efficiencyRating}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">行业优秀: &gt;85%</span>
+                    <span className="text-xs text-muted-foreground">{t("manufacturing.efficiency.industryExcellent")}: &gt;85%</span>
                   </div>
                 </CardContent>
               </Card>
@@ -182,7 +184,7 @@ export default function ProductionEfficiency() {
                     <div className="flex items-start gap-3 p-3 rounded bg-red-500/10 border border-red-500/20">
                       <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-medium text-red-400">瓶颈识别</p>
+                        <p className="text-sm font-medium text-red-400">{t("manufacturing.efficiency.bottleneckAnalysis")}</p>
                         <p className="text-sm text-muted-foreground">{result.bottleneckDescription}</p>
                       </div>
                     </div>
@@ -190,7 +192,7 @@ export default function ProductionEfficiency() {
                   <div className="flex items-start gap-3">
                     <Zap className="h-5 w-5 text-green-400 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-muted-foreground">预估节省</p>
+                      <p className="text-sm text-muted-foreground">{t("manufacturing.efficiency.estimatedSavings")}</p>
                       <p className="font-medium">{result.estimatedSavings}</p>
                     </div>
                   </div>
@@ -204,7 +206,7 @@ export default function ProductionEfficiency() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <TrendingUp className="h-5 w-5 text-primary" />
-                    改善领域
+                    {t("manufacturing.efficiency.improvementAreas")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -212,10 +214,10 @@ export default function ProductionEfficiency() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">领域</th>
-                          <th className="text-left py-2 pr-4">当前值</th>
-                          <th className="text-left py-2 pr-4">目标值</th>
-                          <th className="text-left py-2">影响</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.efficiency.area")}</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.efficiency.currentValue")}</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.efficiency.targetValue")}</th>
+                          <th className="text-left py-2">{t("manufacturing.efficiency.impact")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -240,7 +242,7 @@ export default function ProductionEfficiency() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-green-400" />
-                    AI建议
+                    {t("manufacturing.common.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

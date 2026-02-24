@@ -3,6 +3,7 @@
  * Phase F: 技能差距分析 · 课程推荐 · 学习路径 · 发展规划
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ interface TrainingResult {
 }
 
 export default function AITrainingRecommender() {
+  const { t } = useLanguage();
   const [role, setRole] = useState(ROLES[0]);
   const [currentSkills, setCurrentSkills] = useState("");
   const [targetSkills, setTargetSkills] = useState("");
@@ -83,25 +85,25 @@ export default function AITrainingRecommender() {
 
   const priorityLabel = (p: string) => {
     switch (p) {
-      case "high": return "高";
-      case "medium": return "中";
-      case "low": return "低";
+      case "high": return t("ai.training.priorityHigh");
+      case "medium": return t("ai.training.priorityMedium");
+      case "low": return t("ai.training.priorityLow");
       default: return p;
     }
   };
 
-  const typeLabel = (t: string) => {
-    switch (t) {
-      case "online": return "线上";
-      case "classroom": return "课堂";
-      case "OJT": return "在岗";
-      case "mentoring": return "导师";
-      default: return t;
+  const typeLabel = (tp: string) => {
+    switch (tp) {
+      case "online": return t("ai.training.typeOnline");
+      case "classroom": return t("ai.training.typeClassroom");
+      case "OJT": return t("ai.training.typeOJT");
+      case "mentoring": return t("ai.training.typeMentoring");
+      default: return tp;
     }
   };
 
-  const typeColor = (t: string) => {
-    switch (t) {
+  const typeColor = (tp: string) => {
+    switch (tp) {
       case "online": return "bg-blue-500/20 text-blue-400 border-blue-500/30";
       case "classroom": return "bg-purple-500/20 text-purple-400 border-purple-500/30";
       case "OJT": return "bg-green-500/20 text-green-400 border-green-500/30";
@@ -114,12 +116,12 @@ export default function AITrainingRecommender() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={GraduationCap}
-          title="AI培训推荐"
-          description="技能差距分析 · 课程推荐 · 学习路径 · 发展规划"
+          title={t("ai.training.title")}
+          description={t("ai.training.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI推荐
+              {t("ai.training.aiRecommend")}
             </Badge>
           }
         />
@@ -129,16 +131,16 @@ export default function AITrainingRecommender() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <GraduationCap className="h-5 w-5 text-primary" />
-              培训需求
+              {t("ai.training.trainingNeeds")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">岗位角色</label>
+                <label className="text-sm text-muted-foreground">{t("ai.training.role")}</label>
                 <Select value={role} onValueChange={(v) => setRole(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择岗位" />
+                    <SelectValue placeholder={t("ai.training.selectRole")} />
                   </SelectTrigger>
                   <SelectContent>
                     {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
@@ -146,10 +148,10 @@ export default function AITrainingRecommender() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">经验等级</label>
+                <label className="text-sm text-muted-foreground">{t("ai.training.experienceLevel")}</label>
                 <Select value={experienceLevel} onValueChange={(v) => setExperienceLevel(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择等级" />
+                    <SelectValue placeholder={t("ai.training.selectLevel")} />
                   </SelectTrigger>
                   <SelectContent>
                     {EXPERIENCE_LEVELS.map((l) => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
@@ -158,7 +160,7 @@ export default function AITrainingRecommender() {
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">当前技能</label>
+              <label className="text-sm text-muted-foreground">{t("ai.training.currentSkills")}</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px] resize-y"
                 placeholder="如: SolidWorks建模(熟练)、AutoCAD(精通)、GD&T(基础)、有限元分析(入门)"
@@ -167,7 +169,7 @@ export default function AITrainingRecommender() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">目标技能</label>
+              <label className="text-sm text-muted-foreground">{t("ai.training.targetSkills")}</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px] resize-y"
                 placeholder="如: 有限元分析(精通)、CFD仿真(熟练)、项目管理(基础)、英语技术文档"
@@ -177,25 +179,25 @@ export default function AITrainingRecommender() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">学习偏好（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.training.learningPreference")}</label>
                 <Select value={learningPreference} onValueChange={(v) => setLearningPreference(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="不指定" />
+                    <SelectValue placeholder={t("ai.training.unspecified")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">不指定</SelectItem>
+                    <SelectItem value="__none__">{t("ai.training.unspecified")}</SelectItem>
                     {LEARNING_PREFERENCES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">所属部门（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.training.department")}</label>
                 <Select value={department} onValueChange={(v) => setDepartment(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="不指定" />
+                    <SelectValue placeholder={t("ai.training.unspecified")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">不指定</SelectItem>
+                    <SelectItem value="__none__">{t("ai.training.unspecified")}</SelectItem>
                     {DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -204,7 +206,7 @@ export default function AITrainingRecommender() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!currentSkills.trim() || !targetSkills.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI推荐
+                {t("ai.training.aiRecommend")}
               </Button>
             </div>
           </CardContent>
@@ -219,7 +221,7 @@ export default function AITrainingRecommender() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Target className="h-5 w-5 text-primary" />
-                    技能差距分析
+                    {t("ai.training.skillGapAnalysis")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -227,10 +229,10 @@ export default function AITrainingRecommender() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">技能</th>
-                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">当前水平</th>
-                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">目标水平</th>
-                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">优先级</th>
+                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">{t("ai.training.skill")}</th>
+                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">{t("ai.training.currentLevel")}</th>
+                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">{t("ai.training.targetLevel")}</th>
+                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">{t("ai.training.priority")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -257,7 +259,7 @@ export default function AITrainingRecommender() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <BookOpen className="h-5 w-5 text-primary" />
-                    推荐课程
+                    {t("ai.training.recommendedCourses")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -287,14 +289,14 @@ export default function AITrainingRecommender() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <TrendingUp className="h-5 w-5 text-primary" />
-                  学习路径
+                  {t("ai.training.learningPath")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm whitespace-pre-wrap">{result.learningPath}</p>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
-                  <span>预计完成时间：{result.estimatedTime}</span>
+                  <span>{t("ai.training.estimatedTime")}{result.estimatedTime}</span>
                 </div>
               </CardContent>
             </Card>
@@ -305,7 +307,7 @@ export default function AITrainingRecommender() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Sparkles className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("ai.training.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

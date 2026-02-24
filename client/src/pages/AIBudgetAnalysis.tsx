@@ -3,6 +3,7 @@
  * Phase G: 偏差检测 · 异常评分 · 趋势分析 · 年度预测
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ interface BudgetResult {
 }
 
 export default function AIBudgetAnalysis() {
+  const { t } = useLanguage();
   const [department, setDepartment] = useState(DEPARTMENTS[0]);
   const [budgetPeriod, setBudgetPeriod] = useState("季度");
   const [allocatedBudget, setAllocatedBudget] = useState("");
@@ -64,9 +66,9 @@ export default function AIBudgetAnalysis() {
 
   const severityConfig = (severity: string) => {
     switch (severity) {
-      case "critical": return { label: "严重", color: "bg-red-500/20 text-red-400 border-red-500/30" };
-      case "warning": return { label: "预警", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
-      case "normal": return { label: "正常", color: "bg-green-500/20 text-green-400 border-green-500/30" };
+      case "critical": return { label: t("ai.budget.severityCritical"), color: "bg-red-500/20 text-red-400 border-red-500/30" };
+      case "warning": return { label: t("ai.budget.severityWarning"), color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
+      case "normal": return { label: t("ai.budget.severityNormal"), color: "bg-green-500/20 text-green-400 border-green-500/30" };
       default: return { label: severity, color: "bg-muted text-muted-foreground" };
     }
   };
@@ -81,12 +83,12 @@ export default function AIBudgetAnalysis() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Wallet}
-          title="AI预算分析"
-          description="偏差检测 · 异常评分 · 趋势分析 · 年度预测"
+          title={t("ai.budget.title")}
+          description={t("ai.budget.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI分析
+              {t("ai.budget.aiAnalysis")}
             </Badge>
           }
         />
@@ -96,16 +98,16 @@ export default function AIBudgetAnalysis() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Wallet className="h-5 w-5 text-primary" />
-              预算数据
+              {t("ai.budget.budgetData")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">部门</label>
+                <label className="text-sm text-muted-foreground">{t("ai.budget.department")}</label>
                 <Select value={department} onValueChange={(v) => setDepartment(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择部门" />
+                    <SelectValue placeholder={t("ai.budget.selectDept")} />
                   </SelectTrigger>
                   <SelectContent>
                     {DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
@@ -113,10 +115,10 @@ export default function AIBudgetAnalysis() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">预算周期</label>
+                <label className="text-sm text-muted-foreground">{t("ai.budget.budgetPeriod")}</label>
                 <Select value={budgetPeriod} onValueChange={(v) => setBudgetPeriod(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择周期" />
+                    <SelectValue placeholder={t("ai.budget.selectPeriod")} />
                   </SelectTrigger>
                   <SelectContent>
                     {BUDGET_PERIODS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
@@ -126,32 +128,32 @@ export default function AIBudgetAnalysis() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">预算金额 (万元)</label>
+                <label className="text-sm text-muted-foreground">{t("ai.budget.allocatedBudget")}</label>
                 <Input type="number" placeholder="如: 500" value={allocatedBudget} onChange={(e) => setAllocatedBudget(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">实际支出 (万元)</label>
+                <label className="text-sm text-muted-foreground">{t("ai.budget.actualSpend")}</label>
                 <Input type="number" placeholder="如: 580" value={actualSpend} onChange={(e) => setActualSpend(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">费用明细</label>
+              <label className="text-sm text-muted-foreground">{t("ai.budget.costDetails")}</label>
               <Textarea placeholder="如: 人力500万, 物料300万, 差旅80万, 设备50万" value={categories} onChange={(e) => setCategories(e.target.value)} rows={2} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">超支项目（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.budget.overrunItems")}</label>
                 <Textarea placeholder="如: 物料采购超支30万（原材料涨价）" value={overrunItems} onChange={(e) => setOverrunItems(e.target.value)} rows={2} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">对比周期（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.budget.comparisonPeriod")}</label>
                 <Input placeholder="如: 2025年同期" value={comparisonPeriod} onChange={(e) => setComparisonPeriod(e.target.value)} />
               </div>
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!allocatedBudget || !actualSpend || !categories.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI分析
+                {t("ai.budget.aiAnalysis")}
               </Button>
             </div>
           </CardContent>
@@ -164,7 +166,7 @@ export default function AIBudgetAnalysis() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground">预算偏差</p>
+                  <p className="text-sm text-muted-foreground">{t("ai.budget.budgetVariance")}</p>
                   <p className={`text-5xl font-bold ${varianceColor(result.variancePercent)}`}>
                     {result.variancePercent > 0 ? "+" : ""}{result.variancePercent.toFixed(1)}%
                   </p>
@@ -172,7 +174,7 @@ export default function AIBudgetAnalysis() {
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground">异常评分</p>
+                  <p className="text-sm text-muted-foreground">{t("ai.budget.anomalyScore")}</p>
                   <p className={`text-5xl font-bold ${anomalyScoreColor(result.anomalyScore)}`}>{result.anomalyScore}</p>
                   <div className="mt-2 w-full h-2 bg-muted rounded-full overflow-hidden">
                     <div
@@ -184,7 +186,7 @@ export default function AIBudgetAnalysis() {
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground">年底预测支出</p>
+                  <p className="text-sm text-muted-foreground">{t("ai.budget.yearEndForecast")}</p>
                   <p className="text-4xl font-bold text-primary">{result.forecastToYearEnd.toLocaleString()}<span className="text-lg text-muted-foreground ml-1">万元</span></p>
                 </CardContent>
               </Card>
@@ -196,7 +198,7 @@ export default function AIBudgetAnalysis() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    异常检测明细
+                    {t("ai.budget.anomalyDetails")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -204,12 +206,12 @@ export default function AIBudgetAnalysis() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 text-muted-foreground font-medium">科目</th>
-                          <th className="text-right py-2 text-muted-foreground font-medium">预算 (万)</th>
-                          <th className="text-right py-2 text-muted-foreground font-medium">实际 (万)</th>
-                          <th className="text-right py-2 text-muted-foreground font-medium">偏差%</th>
-                          <th className="text-center py-2 text-muted-foreground font-medium">级别</th>
-                          <th className="text-left py-2 text-muted-foreground font-medium">原因分析</th>
+                          <th className="text-left py-2 text-muted-foreground font-medium">{t("ai.budget.category")}</th>
+                          <th className="text-right py-2 text-muted-foreground font-medium">{t("ai.budget.budgetCol")}</th>
+                          <th className="text-right py-2 text-muted-foreground font-medium">{t("ai.budget.actualCol")}</th>
+                          <th className="text-right py-2 text-muted-foreground font-medium">{t("ai.budget.varianceCol")}</th>
+                          <th className="text-center py-2 text-muted-foreground font-medium">{t("ai.budget.levelCol")}</th>
+                          <th className="text-left py-2 text-muted-foreground font-medium">{t("ai.budget.causeAnalysis")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -239,7 +241,7 @@ export default function AIBudgetAnalysis() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <TrendingUp className="h-5 w-5 text-blue-400" />
-                  趋势分析
+                  {t("ai.budget.trendAnalysis")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -253,7 +255,7 @@ export default function AIBudgetAnalysis() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <BarChart3 className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("ai.budget.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

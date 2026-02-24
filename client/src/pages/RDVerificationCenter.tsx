@@ -6,6 +6,7 @@
  * pipeline visualization, stage detail drill-down.
  */
 import { useState, useMemo, useEffect } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -110,6 +111,7 @@ function StagePipeline({
 // =====================================================================
 
 function ProjectOverviewTab() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const { data: projectStages, isLoading } = trpc.projectGate.getProjectStages.useQuery({});
   const { data: stageStats } = trpc.projectGate.getStageStats.useQuery();
@@ -144,7 +146,7 @@ function ProjectOverviewTab() {
                   <div className={cn("w-3 h-3 rounded-full mb-2", cat.color)} />
                   <p className="font-medium text-sm">{cat.name}</p>
                   <p className="text-xs text-muted-foreground">{cat.stages.join(", ")}</p>
-                  <p className="text-lg font-bold mt-1">{stageCount} <span className="text-xs font-normal text-muted-foreground">项目</span></p>
+                  <p className="text-lg font-bold mt-1">{stageCount} <span className="text-xs font-normal text-muted-foreground">{t("rnd.verification.projects")}</span></p>
                 </CardContent>
               </Card>
             );
@@ -156,7 +158,7 @@ function ProjectOverviewTab() {
       {stageStats?.byStage && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Target className="w-5 h-5" />M0-M12 阶段分布</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Target className="w-5 h-5" />{t("rnd.verification.m0m12Distribution")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -170,7 +172,7 @@ function ProjectOverviewTab() {
                     <div className="w-12 font-medium text-sm">{stage.id}</div>
                     <div className="w-20 text-xs text-muted-foreground">{stage.name}</div>
                     <div className="flex-1"><Progress value={rate} className="h-2" /></div>
-                    <div className="w-16 text-right text-sm">{c} 项目</div>
+                    <div className="w-16 text-right text-sm">{c} {t("rnd.verification.projects")}</div>
                   </div>
                 );
               })}
@@ -183,20 +185,20 @@ function ProjectOverviewTab() {
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="搜索项目名称、编号..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+          <Input placeholder={t("rnd.verification.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
       </div>
 
       {/* Project pipeline cards */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><FolderKanban className="w-5 h-5" />项目进度管线</CardTitle>
-          <CardDescription>各项目在M0-M12阶段的实时进度</CardDescription>
+          <CardTitle className="flex items-center gap-2"><FolderKanban className="w-5 h-5" />{t("rnd.verification.projectPipeline")}</CardTitle>
+          <CardDescription>{t("rnd.verification.projectPipelineDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {projects.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>暂无匹配的项目</p>
+              <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>{t("rnd.verification.noMatchingProjects")}</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -211,7 +213,7 @@ function ProjectOverviewTab() {
                           <Badge variant="outline" className="text-xs">{project.currentStage}</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {project.projectNo} -- 进度: {project.stageProgress}%
+                          {project.projectNo} -- {t("rnd.verification.progress")}: {project.stageProgress}%
                         </p>
                       </div>
                       <Link href={`/pos/projects/${project.projectId}`}>
@@ -235,6 +237,7 @@ function ProjectOverviewTab() {
 // =====================================================================
 
 function GateManagementTab() {
+  const { t } = useLanguage();
   const [selectedStage, setSelectedStage] = useState("M5");
   const [selectedProject, setSelectedProject] = useState<number | undefined>(undefined);
   const { data: projectStages } = trpc.projectGate.getProjectStages.useQuery({});
@@ -245,7 +248,7 @@ function GateManagementTab() {
   const utils = trpc.useUtils();
   const updateMut = trpc.projectGate.updateChecklistItem.useMutation({
     onSuccess: () => {
-      toast.success("检查项状态已更新");
+      toast.success(t("rnd.verification.checkUpdated"));
       utils.projectGate.getGateChecklist.invalidate();
     },
     onError: (e) => toast.error(e.message),
@@ -273,7 +276,7 @@ function GateManagementTab() {
           value={selectedProject ? String(selectedProject) : ""}
           onValueChange={(v) => setSelectedProject(Number(v))}
         >
-          <SelectTrigger className="w-64"><SelectValue placeholder="选择项目..." /></SelectTrigger>
+          <SelectTrigger className="w-64"><SelectValue placeholder={t("rnd.verification.selectProject")} /></SelectTrigger>
           <SelectContent>
             {projectList.map((p: any) => (
               <SelectItem key={p.projectId} value={String(p.projectId)}>{p.projectName}</SelectItem>
@@ -317,7 +320,7 @@ function GateManagementTab() {
           <p className="text-sm text-muted-foreground">{currentStage?.description}</p>
         </div>
         <Link href="/gate-checklist-settings">
-          <Button variant="outline" size="sm"><Settings className="w-4 h-4 mr-1" />检查项配置</Button>
+          <Button variant="outline" size="sm"><Settings className="w-4 h-4 mr-1" />{t("rnd.verification.checkItemConfig")}</Button>
         </Link>
       </div>
 
@@ -325,13 +328,13 @@ function GateManagementTab() {
       <Card className="bg-muted/30">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm">阶段完成度</span>
+            <span className="text-sm">{t("rnd.verification.stageCompletion")}</span>
             <span className="text-sm font-bold">{progress}%</span>
           </div>
           <Progress value={progress} className="h-2" />
           {hasMandFail && (
             <div className="mt-2 flex items-center gap-2 text-red-400 text-sm">
-              <AlertTriangle className="w-4 h-4" />存在一票否决项未通过
+              <AlertTriangle className="w-4 h-4" />{t("rnd.verification.mandatoryFailed")}
             </div>
           )}
         </CardContent>
@@ -340,7 +343,7 @@ function GateManagementTab() {
       {/* M3 Dimensions card */}
       {selectedStage === "M3" && (
         <Card>
-          <CardHeader><CardTitle className="text-sm">M3 立项评审 - 五维度</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">{t("rnd.verification.m3Review")}</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {M3_DIMENSIONS.map((dim) => (
@@ -357,7 +360,7 @@ function GateManagementTab() {
       {/* M4 Carriages card */}
       {selectedStage === "M4" && (
         <Card>
-          <CardHeader><CardTitle className="text-sm">M4 方案冻结 - 五大车评审</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">{t("rnd.verification.m4Review")}</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {M4_CARRIAGES.map((car) => (
@@ -381,7 +384,7 @@ function GateManagementTab() {
       {!selectedProject ? (
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">
-            <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>请先选择项目</p>
+            <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>{t("rnd.verification.selectProjectFirst")}</p>
           </CardContent>
         </Card>
       ) : isLoading ? (
@@ -389,7 +392,7 @@ function GateManagementTab() {
       ) : items.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">
-            <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>该阶段暂无检查项</p>
+            <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>{t("rnd.verification.noCheckItems")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -407,7 +410,7 @@ function GateManagementTab() {
                         <span className="font-medium">{item.checkItem}</span>
                         {item.isRequired && (
                           <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/30">
-                            <Shield className="w-3 h-3 mr-1" />一票否决
+                            <Shield className="w-3 h-3 mr-1" />{t("rnd.verification.veto")}
                           </Badge>
                         )}
                         <Badge variant="outline" className={
@@ -415,7 +418,7 @@ function GateManagementTab() {
                           item.status === "FAILED" ? "bg-red-500/20 text-red-400" :
                           "bg-yellow-500/20 text-yellow-400"
                         }>
-                          {item.status === "PASSED" ? "通过" : item.status === "FAILED" ? "未通过" : "待检查"}
+                          {item.status === "PASSED" ? t("rnd.verification.statusPassed") : item.status === "FAILED" ? t("rnd.verification.statusFailed") : t("rnd.verification.statusPending")}
                         </Badge>
                       </div>
                       {item.evidence && <p className="text-xs text-muted-foreground mt-1">{item.evidence}</p>}
@@ -423,12 +426,12 @@ function GateManagementTab() {
                     <div className="flex gap-1">
                       {item.status !== "PASSED" && (
                         <Button size="sm" variant="outline" onClick={() => updateMut.mutate({ checklistId: item.id, status: "PASSED" })}>
-                          <CheckCircle className="w-3 h-3 mr-1" />通过
+                          <CheckCircle className="w-3 h-3 mr-1" />{t("rnd.verification.passBtn")}
                         </Button>
                       )}
                       {item.status !== "FAILED" && (
                         <Button size="sm" variant="ghost" className="text-red-400" onClick={() => updateMut.mutate({ checklistId: item.id, status: "FAILED" })}>
-                          <XCircle className="w-3 h-3 mr-1" />拒绝
+                          <XCircle className="w-3 h-3 mr-1" />{t("rnd.verification.rejectBtn")}
                         </Button>
                       )}
                     </div>
@@ -454,6 +457,7 @@ const AI_STAGES = [
 ];
 
 function ReviewManagementTab() {
+  const { t } = useLanguage();
   const { data: projectStages } = trpc.projectGate.getProjectStages.useQuery({});
   const { data: upcomingGates } = trpc.projectGate.getUpcomingGates.useQuery({ days: 14 });
 
@@ -481,7 +485,7 @@ function ReviewManagementTab() {
       {upcomingGates && upcomingGates.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5 text-orange-400" />即将到期的门禁 (14天内)</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5 text-orange-400" />{t("rnd.verification.upcomingGates")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -493,9 +497,9 @@ function ReviewManagementTab() {
                     <Badge>{g.currentStage}</Badge>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground">完成率: {g.completionRate}%</span>
+                    <span className="text-sm text-muted-foreground">{t("rnd.verification.completionRate")}: {g.completionRate}%</span>
                     <Badge variant={g.daysRemaining <= 3 ? "destructive" : "secondary"}>
-                      {g.daysRemaining}天
+                      {g.daysRemaining}{t("rnd.verification.days")}
                     </Badge>
                   </div>
                 </div>
@@ -508,13 +512,13 @@ function ReviewManagementTab() {
       {/* Review records */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><FileText className="w-5 h-5" />阶段门审批记录</CardTitle>
-          <CardDescription>所有项目的阶段门审批历史</CardDescription>
+          <CardTitle className="flex items-center gap-2"><FileText className="w-5 h-5" />{t("rnd.verification.gateApprovalRecords")}</CardTitle>
+          <CardDescription>{t("rnd.verification.gateApprovalRecordsDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {reviews.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>暂无审批记录</p>
+              <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>{t("rnd.verification.noApprovalRecords")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -549,8 +553,8 @@ function ReviewManagementTab() {
       {/* AI recommendations */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5" />AI推荐标准化方案</CardTitle>
-          <CardDescription>AI根据历史项目数据推荐标准化方案</CardDescription>
+          <CardTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5" />{t("rnd.verification.aiRecommendation")}</CardTitle>
+          <CardDescription>{t("rnd.verification.aiRecommendationDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -558,8 +562,8 @@ function ReviewManagementTab() {
               <div className="flex items-start gap-3">
                 <Lightbulb className="w-5 h-5 text-primary mt-0.5" />
                 <div>
-                  <h4 className="font-medium">AI推荐功能说明</h4>
-                  <p className="text-sm text-muted-foreground mt-1">系统在特定阶段门自动分析历史数据，推荐SOP、工艺流程、BOM和文档模板。</p>
+                  <h4 className="font-medium">{t("rnd.verification.aiFeatureExplain")}</h4>
+                  <p className="text-sm text-muted-foreground mt-1">{t("rnd.verification.aiFeatureExplainDesc")}</p>
                 </div>
               </div>
             </div>
@@ -572,7 +576,7 @@ function ReviewManagementTab() {
                   </div>
                   <p className="text-sm text-muted-foreground">{def.desc}</p>
                   <div className="mt-3 flex items-center gap-2 text-sm text-primary">
-                    <Sparkles className="w-4 h-4" />支持AI推荐
+                    <Sparkles className="w-4 h-4" />{t("rnd.verification.aiSupported")}
                   </div>
                 </div>
               ))}
@@ -604,36 +608,37 @@ const INITIAL_SIGNALS: PullSignal[] = [
   { id: 4, upstreamGate: "M4", triggerEvent: "方案冻结完成", targetAasId: "AAS-GRT503-PRO01", status: "pending", actionPayload: { action: "start_procurement", priority: "high" } },
 ];
 
-const SIGNAL_STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending: { label: "待触发", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: Clock },
-  triggered: { label: "已触发", color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Zap },
-  confirmed: { label: "已确认", color: "bg-green-500/20 text-green-400 border-green-500/30", icon: CheckCircle },
-  expired: { label: "已过期", color: "bg-red-500/20 text-red-400 border-red-500/30", icon: XCircle },
+const SIGNAL_STATUS_CONFIG: Record<string, { labelKey: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
+  pending: { labelKey: "rnd.verification.pendingTrigger", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: Clock },
+  triggered: { labelKey: "rnd.verification.triggered", color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Zap },
+  confirmed: { labelKey: "rnd.verification.confirmed", color: "bg-green-500/20 text-green-400 border-green-500/30", icon: CheckCircle },
+  expired: { labelKey: "rnd.verification.expired", color: "bg-red-500/20 text-red-400 border-red-500/30", icon: XCircle },
 };
 
 function PullSignalsTab() {
+  const { t } = useLanguage();
   const [signals, setSignals] = useState(INITIAL_SIGNALS);
 
   const handleTrigger = (id: number) => {
     setSignals(prev => prev.map(s => s.id === id ? { ...s, status: "triggered" as const } : s));
-    toast.success("信号已触发");
+    toast.success(t("rnd.verification.signalTriggered"));
   };
   const handleConfirm = (id: number) => {
     setSignals(prev => prev.map(s => s.id === id ? { ...s, status: "confirmed" as const } : s));
-    toast.success("信号已确认");
+    toast.success(t("rnd.verification.signalConfirmed"));
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">生产拉动信号</h3>
-          <p className="text-sm text-muted-foreground">JIT/JIS拉动信号管理 - 阶段门通过后自动触发下游流程</p>
+          <h3 className="text-lg font-semibold">{t("rnd.verification.pullSignals")}</h3>
+          <p className="text-sm text-muted-foreground">{t("rnd.verification.pullSignalsDesc")}</p>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>待触发: {signals.filter(s => s.status === "pending").length}</span>
-          <span>已触发: {signals.filter(s => s.status === "triggered").length}</span>
-          <span>已确认: {signals.filter(s => s.status === "confirmed").length}</span>
+          <span>{t("rnd.verification.pendingTrigger")}: {signals.filter(s => s.status === "pending").length}</span>
+          <span>{t("rnd.verification.triggered")}: {signals.filter(s => s.status === "triggered").length}</span>
+          <span>{t("rnd.verification.confirmed")}: {signals.filter(s => s.status === "confirmed").length}</span>
         </div>
       </div>
 
@@ -650,10 +655,10 @@ function PullSignalsTab() {
                       <Badge variant="outline" className="bg-purple-500/20 text-purple-400">{signal.upstreamGate}</Badge>
                       <ArrowRight className="w-4 h-4 text-muted-foreground" />
                       <span className="font-medium">{signal.triggerEvent}</span>
-                      <Badge variant="outline" className={sc.color}><StatusIcon className="w-3 h-3 mr-1" />{sc.label}</Badge>
+                      <Badge variant="outline" className={sc.color}><StatusIcon className="w-3 h-3 mr-1" />{t(sc.labelKey)}</Badge>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1"><Factory className="w-4 h-4" />目标: {signal.targetAasId}</span>
+                      <span className="flex items-center gap-1"><Factory className="w-4 h-4" />{t("rnd.verification.target")}: {signal.targetAasId}</span>
                     </div>
                     <div className="mt-2 p-2 bg-muted/30 rounded text-xs font-mono">
                       {JSON.stringify(signal.actionPayload, null, 2)}
@@ -661,10 +666,10 @@ function PullSignalsTab() {
                   </div>
                   <div className="flex gap-2 ml-4">
                     {signal.status === "pending" && (
-                      <Button size="sm" onClick={() => handleTrigger(signal.id)}><Zap className="w-4 h-4 mr-1" />触发</Button>
+                      <Button size="sm" onClick={() => handleTrigger(signal.id)}><Zap className="w-4 h-4 mr-1" />{t("rnd.verification.trigger")}</Button>
                     )}
                     {signal.status === "triggered" && (
-                      <Button size="sm" variant="outline" onClick={() => handleConfirm(signal.id)}><CheckCircle className="w-4 h-4 mr-1" />确认</Button>
+                      <Button size="sm" variant="outline" onClick={() => handleConfirm(signal.id)}><CheckCircle className="w-4 h-4 mr-1" />{t("rnd.verification.confirm")}</Button>
                     )}
                   </div>
                 </div>
@@ -682,6 +687,7 @@ function PullSignalsTab() {
 // =====================================================================
 
 export default function RDVerificationCenter() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("overview");
   const { data: stageStats, isLoading: statsLoading } = trpc.projectGate.getStageStats.useQuery();
 
@@ -698,20 +704,20 @@ export default function RDVerificationCenter() {
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/" className="flex items-center gap-1 hover:text-foreground transition-colors">
-          <Home className="w-4 h-4" />首页
+          <Home className="w-4 h-4" />{t("rnd.verification.home")}
         </Link>
         <ChevronRight className="w-3 h-3" />
-        <span className="text-foreground font-medium">研发验证中心</span>
+        <span className="text-foreground font-medium">{t("rnd.verification.breadcrumb")}</span>
       </nav>
 
       {/* Page Header */}
-      <PageHeader icon={Shield} title="研发验证中心" description="M0-M12阶段门禁管控、检查项配置、评审管理、拉动信号" />
+      <PageHeader icon={Shield} title={t("rnd.verification.title")} description={t("rnd.verification.description")} />
 
       {/* M0-M12 Pipeline Visualization */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
-            <Workflow className="w-4 h-4" />项目阶段进度 (M0-M12)
+            <Workflow className="w-4 h-4" />{t("rnd.verification.stageProgress")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -726,33 +732,33 @@ export default function RDVerificationCenter() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard
           icon={FolderKanban}
-          label="总项目数"
+          label={t("rnd.verification.totalProjects")}
           value={statsLoading ? "..." : totalProjects}
-          subtitle={`活跃: ${onTrack + atRisk}`}
+          subtitle={`${t("rnd.verification.active")}: ${onTrack + atRisk}`}
           iconColor="text-blue-400"
           iconBg="bg-blue-500/10"
         />
         <StatCard
           icon={Workflow}
-          label="当前阶段分布"
-          value={statsLoading ? "..." : `${stageStats?.byStage?.filter((s: any) => s.count > 0).length ?? 0} 阶段`}
-          subtitle={`平均进度: ${avgProgress}%`}
+          label={t("rnd.verification.stageDistribution")}
+          value={statsLoading ? "..." : `${stageStats?.byStage?.filter((s: any) => s.count > 0).length ?? 0} ${t("rnd.verification.stages")}`}
+          subtitle={`${t("rnd.verification.avgProgress")}: ${avgProgress}%`}
           iconColor="text-indigo-400"
           iconBg="bg-indigo-500/10"
         />
         <StatCard
           icon={CheckCircle}
-          label="门禁通过率"
+          label={t("rnd.verification.gatePassRate")}
           value={statsLoading ? "..." : `${gatePassRate}%`}
-          subtitle="已完成+在轨"
+          subtitle={t("rnd.verification.completedOnTrack")}
           iconColor="text-green-400"
           iconBg="bg-green-500/10"
         />
         <StatCard
           icon={AlertTriangle}
-          label="风险项目"
+          label={t("rnd.verification.riskProjects")}
           value={statsLoading ? "..." : atRisk + (stageStats?.byStatus?.delayed ?? 0)}
-          subtitle={`滞后: ${stageStats?.byStatus?.delayed ?? 0}`}
+          subtitle={`${t("rnd.verification.delayed")}: ${stageStats?.byStatus?.delayed ?? 0}`}
           iconColor="text-orange-400"
           iconBg="bg-orange-500/10"
         />
@@ -761,11 +767,11 @@ export default function RDVerificationCenter() {
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-muted/50">
-          <TabsTrigger value="overview"><FolderKanban className="w-4 h-4 mr-2" />项目总览</TabsTrigger>
-          <TabsTrigger value="gates"><FileCheck className="w-4 h-4 mr-2" />阶段门管理</TabsTrigger>
-          <TabsTrigger value="reviews"><ClipboardList className="w-4 h-4 mr-2" />评审管理</TabsTrigger>
-          <TabsTrigger value="signals"><Zap className="w-4 h-4 mr-2" />拉动信号</TabsTrigger>
-          <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />设置</TabsTrigger>
+          <TabsTrigger value="overview"><FolderKanban className="w-4 h-4 mr-2" />{t("rnd.verification.tabOverview")}</TabsTrigger>
+          <TabsTrigger value="gates"><FileCheck className="w-4 h-4 mr-2" />{t("rnd.verification.tabGates")}</TabsTrigger>
+          <TabsTrigger value="reviews"><ClipboardList className="w-4 h-4 mr-2" />{t("rnd.verification.tabReviews")}</TabsTrigger>
+          <TabsTrigger value="signals"><Zap className="w-4 h-4 mr-2" />{t("rnd.verification.tabSignals")}</TabsTrigger>
+          <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />{t("rnd.verification.tabSettings")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6"><ProjectOverviewTab /></TabsContent>
@@ -777,10 +783,10 @@ export default function RDVerificationCenter() {
           <Card>
             <CardContent className="p-8 text-center">
               <Settings className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">检查项配置</h3>
-              <p className="text-muted-foreground mb-4">管理门径检查清单模板、自动验证源配置和通知规则</p>
+              <h3 className="text-lg font-semibold mb-2">{t("rnd.verification.settingsTitle")}</h3>
+              <p className="text-muted-foreground mb-4">{t("rnd.verification.settingsDesc")}</p>
               <Link href="/gate-checklist-settings" className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-                  <Settings className="w-4 h-4" />打开检查项配置
+                  <Settings className="w-4 h-4" />{t("rnd.verification.openCheckConfig")}
               </Link>
             </CardContent>
           </Card>

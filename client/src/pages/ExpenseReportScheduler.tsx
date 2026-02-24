@@ -48,7 +48,7 @@ import {
 
 export default function ExpenseReportScheduler() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, tpl } = useLanguage();
   
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
   const [isAddRecipientDialogOpen, setIsAddRecipientDialogOpen] = useState(false);
@@ -73,35 +73,35 @@ export default function ExpenseReportScheduler() {
   // 更新任务
   const updateMutation = trpc.expenseReportScheduler.updateSchedule.useMutation({
     onSuccess: () => {
-      toast.success('任务已更新');
+      toast.success(t("finance.scheduler.taskUpdated"));
       refetch();
     },
     onError: (error) => {
-      toast.error('更新失败', { description: error.message });
+      toast.error(t("finance.scheduler.updateFailed"), { description: error.message });
     },
   });
 
   // 添加接收人
   const addRecipientMutation = (trpc.expenseReportScheduler as any).addRecipient.useMutation({
     onSuccess: () => {
-      toast.success('接收人已添加');
+      toast.success(t("finance.scheduler.recipientAdded"));
       setIsAddRecipientDialogOpen(false);
       setNewRecipient({ type: 'notification', target: '', name: '' });
       refetch();
     },
     onError: (error) => {
-      toast.error('添加失败', { description: error.message });
+      toast.error(t("finance.scheduler.addFailed"), { description: error.message });
     },
   });
 
   // 移除接收人
   const removeRecipientMutation = (trpc.expenseReportScheduler as any).removeRecipient.useMutation({
     onSuccess: () => {
-      toast.success('接收人已移除');
+      toast.success(t("finance.scheduler.recipientRemoved"));
       refetch();
     },
     onError: (error) => {
-      toast.error('移除失败', { description: error.message });
+      toast.error(t("finance.scheduler.removeFailed"), { description: error.message });
     },
   });
 
@@ -109,16 +109,16 @@ export default function ExpenseReportScheduler() {
   const triggerMutation = (trpc.expenseReportScheduler as any).triggerSend.useMutation({
     onSuccess: (result) => {
       if (result.success) {
-        toast.success('报表已发送', {
-          description: `成功发送到 ${result.results?.filter(r => r.success).length || 0} 个接收人`,
+        toast.success(t("finance.scheduler.reportSent"), {
+          description: tpl("finance.scheduler.sentToCount", { count: result.results?.filter(r => r.success).length || 0 }),
         });
       } else {
-        toast.error('发送失败', { description: result.error });
+        toast.error(t("finance.scheduler.sendFailed"), { description: result.error });
       }
       refetch();
     },
     onError: (error) => {
-      toast.error('发送失败', { description: error.message });
+      toast.error(t("finance.scheduler.sendFailed"), { description: error.message });
     },
   });
 
@@ -198,22 +198,22 @@ export default function ExpenseReportScheduler() {
         {/* 页面标题 */}
         <PageHeader
           icon={Clock}
-          title="报表定时发送"
-          description="配置费用对比报表的定时自动发送"
+          title={t("finance.scheduler.titleFull")}
+          description={t("finance.scheduler.descFull")}
           actions={
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw className="w-4 h-4 mr-2" />
-              刷新
+              {t("finance.scheduler.refreshBtn")}
             </Button>
           }
         />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard icon={Calendar} label="任务总数" value={stats?.totalSchedules || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-          <StatCard icon={CheckCircle2} label="已启用" value={stats?.enabledSchedules || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
-          <StatCard icon={Users} label="接收人数" value={stats?.totalRecipients || 0} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
-          <StatCard icon={Send} label="发送成功率" value={`${stats?.successRate || 0}%`} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+          <StatCard icon={Calendar} label={t("finance.scheduler.totalSchedules")} value={stats?.totalSchedules || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={CheckCircle2} label={t("finance.scheduler.enabledSchedules")} value={stats?.enabledSchedules || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Users} label={t("finance.scheduler.totalRecipients")} value={stats?.totalRecipients || 0} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+          <StatCard icon={Send} label={t("finance.scheduler.successRate")} value={`${stats?.successRate || 0}%`} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
         </div>
 
         {/* 主要内容 */}
@@ -221,11 +221,11 @@ export default function ExpenseReportScheduler() {
           <TabsList>
             <TabsTrigger value="schedules" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              任务配置
+              {t("finance.scheduler.taskConfigTab")}
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="w-4 h-4" />
-              发送历史
+              {t("finance.scheduler.historyTab")}
             </TabsTrigger>
           </TabsList>
 
@@ -258,19 +258,19 @@ export default function ExpenseReportScheduler() {
                   {/* 报表配置 */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">对比类型</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t("finance.scheduler.comparisonType")}</p>
                       <p className="text-sm font-medium">
                         {options?.comparisonTypes.find(c => c.id === schedule.reportConfig.comparisonType)?.name}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">分析维度</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t("finance.scheduler.analysisDimension")}</p>
                       <p className="text-sm font-medium">
                         {options?.dimensions.find(d => d.id === schedule.reportConfig.dimension)?.name}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">报表格式</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t("finance.scheduler.reportFormat")}</p>
                       <p className="text-sm font-medium flex items-center gap-1">
                         {schedule.reportConfig.format === 'excel' && <FileSpreadsheet className="w-4 h-4" />}
                         {schedule.reportConfig.format === 'pdf' && <FileText className="w-4 h-4" />}
@@ -279,7 +279,7 @@ export default function ExpenseReportScheduler() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Cron表达式</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t("finance.scheduler.cronExpression")}</p>
                       <p className="text-sm font-mono">{schedule.cronExpression}</p>
                     </div>
                   </div>
@@ -287,7 +287,7 @@ export default function ExpenseReportScheduler() {
                   {/* 接收人列表 */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-medium">接收人 ({schedule.recipients.length})</p>
+                      <p className="text-sm font-medium">{t("finance.scheduler.recipientsLabel")} ({schedule.recipients.length})</p>
                       <Button
                         variant="outline"
                         size="sm"
@@ -297,12 +297,12 @@ export default function ExpenseReportScheduler() {
                         }}
                       >
                         <Plus className="w-4 h-4 mr-1" />
-                        添加
+                        {t("finance.scheduler.addRecipient")}
                       </Button>
                     </div>
                     {schedule.recipients.length === 0 ? (
                       <p className="text-sm text-muted-foreground py-4 text-center border border-dashed rounded-lg">
-                        暂无接收人，请添加接收人后启用任务
+                        {t("finance.scheduler.noRecipients")}
                       </p>
                     ) : (
                       <div className="space-y-2">
@@ -322,7 +322,7 @@ export default function ExpenseReportScheduler() {
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge variant={recipient.enabled ? 'default' : 'secondary'} className="text-xs">
-                                {recipient.enabled ? '启用' : '禁用'}
+                                {recipient.enabled ? t("finance.scheduler.enabledBadge") : t("finance.scheduler.disabledBadge")}
                               </Badge>
                               <Button
                                 variant="ghost"
@@ -342,7 +342,7 @@ export default function ExpenseReportScheduler() {
                   <div className="flex items-center justify-between pt-2 border-t">
                     <div className="text-xs text-muted-foreground">
                       {schedule.lastSent && (
-                        <span>上次发送: {new Date(schedule.lastSent).toLocaleString('zh-CN')}</span>
+                        <span>{t("finance.scheduler.lastSent")}: {new Date(schedule.lastSent).toLocaleString()}</span>
                       )}
                     </div>
                     <Button
@@ -352,7 +352,7 @@ export default function ExpenseReportScheduler() {
                       disabled={schedule.recipients.length === 0 || triggerMutation.isPending}
                     >
                       <Play className="w-4 h-4 mr-1" />
-                      立即发送
+                      {t("finance.scheduler.sendNow")}
                     </Button>
                   </div>
                 </CardContent>
@@ -365,14 +365,14 @@ export default function ExpenseReportScheduler() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <History className="w-5 h-5 text-primary" />
-                  发送历史
+                  {t("finance.scheduler.sendHistory")}
                 </CardTitle>
-                <CardDescription>最近的报表发送记录</CardDescription>
+                <CardDescription>{t("finance.scheduler.recentRecords")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {!history || history.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-8 text-center">
-                    暂无发送记录
+                    {t("finance.scheduler.noHistory")}
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -390,7 +390,7 @@ export default function ExpenseReportScheduler() {
                               {schedules?.find(s => s.id === record.scheduleId)?.name || record.scheduleId}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {new Date(record.sentAt).toLocaleString('zh-CN')}
+                              {new Date(record.sentAt).toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -401,7 +401,7 @@ export default function ExpenseReportScheduler() {
                               <span className="text-muted-foreground mx-1">/</span>
                               <span className="text-red-500">{record.failed}</span>
                             </p>
-                            <p className="text-xs text-muted-foreground">成功/失败</p>
+                            <p className="text-xs text-muted-foreground">{t("finance.scheduler.successFailed")}</p>
                           </div>
                           <Badge variant="outline">
                             {record.reportConfig.format.toUpperCase()}
@@ -422,15 +422,15 @@ export default function ExpenseReportScheduler() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Plus className="w-5 h-5 text-primary" />
-                添加接收人
+                {t("finance.scheduler.addRecipientTitle")}
               </DialogTitle>
               <DialogDescription>
-                配置报表发送的接收人
+                {t("finance.scheduler.addRecipientDesc")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
-                <Label>接收方式</Label>
+                <Label>{t("finance.scheduler.deliveryMethod")}</Label>
                 <Select
                   value={newRecipient.type}
                   onValueChange={(value) => setNewRecipient({ ...newRecipient, type: value as any })}
@@ -454,17 +454,17 @@ export default function ExpenseReportScheduler() {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label>接收目标</Label>
+                <Label>{t("finance.scheduler.targetLabel")}</Label>
                 <Input
-                  placeholder={newRecipient.type === 'email' ? '邮箱地址' : newRecipient.type === 'notification' ? '用户ID' : '企业微信ID'}
+                  placeholder={newRecipient.type === 'email' ? t("finance.scheduler.targetEmailPlaceholder") : newRecipient.type === 'notification' ? t("finance.scheduler.targetNotificationPlaceholder") : t("finance.scheduler.targetWechatPlaceholder")}
                   value={newRecipient.target}
                   onChange={(e) => setNewRecipient({ ...newRecipient, target: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>备注名称（可选）</Label>
+                <Label>{t("finance.scheduler.remarkName")}</Label>
                 <Input
-                  placeholder="接收人名称"
+                  placeholder={t("finance.scheduler.recipientName")}
                   value={newRecipient.name}
                   onChange={(e) => setNewRecipient({ ...newRecipient, name: e.target.value })}
                 />
@@ -472,10 +472,10 @@ export default function ExpenseReportScheduler() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddRecipientDialogOpen(false)}>
-                取消
+                {t("finance.scheduler.cancel")}
               </Button>
               <Button onClick={handleAddRecipient} disabled={!newRecipient.target}>
-                添加
+                {t("finance.scheduler.addBtn")}
               </Button>
             </DialogFooter>
           </DialogContent>

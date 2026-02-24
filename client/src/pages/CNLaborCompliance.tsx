@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Scale, Loader2, Sparkles, AlertTriangle, CheckCircle,
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface CNOvertimeResult {
   totalOvertimeHours: number;
@@ -27,6 +28,7 @@ interface CNOvertimeResult {
 }
 
 export default function CNLaborCompliance() {
+  const { t } = useLanguage();
   const [employeeData, setEmployeeData] = useState("");
   const [month, setMonth] = useState("");
   const [overtimeRecords, setOvertimeRecords] = useState("");
@@ -59,12 +61,12 @@ export default function CNLaborCompliance() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Scale}
-          title="中国劳动法合规分析"
-          description="加班时长分析 · 36小时月度上限 · 合规预警 · 加班费计算"
+          title={t("hr.cnLabor.title")}
+          description={t("hr.cnLabor.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI合规
+              {t("hr.cnLabor.aiCompliance")}
             </Badge>
           }
         />
@@ -74,21 +76,21 @@ export default function CNLaborCompliance() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Scale className="h-5 w-5 text-primary" />
-              合规分析输入
+              {t("hr.cnLabor.inputTitle")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1">
-              <label className="text-sm text-slate-300">员工信息</label>
+              <label className="text-sm text-slate-300">{t("hr.cnLabor.employeeInfo")}</label>
               <Textarea
-                placeholder="员工姓名、入职日期、合同类型..."
+                placeholder={t("hr.cnLabor.employeeInfoPlaceholder")}
                 className="min-h-[80px] bg-slate-900 border-slate-700"
                 value={employeeData}
                 onChange={(e) => setEmployeeData(e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-slate-300">统计月份</label>
+              <label className="text-sm text-slate-300">{t("hr.cnLabor.statisticsMonth")}</label>
               <Input
                 type="text"
                 placeholder="2026-01"
@@ -98,9 +100,9 @@ export default function CNLaborCompliance() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-slate-300">加班记录</label>
+              <label className="text-sm text-slate-300">{t("hr.cnLabor.overtimeRecords")}</label>
               <Textarea
-                placeholder="加班日期、时长(小时)、类型(工作日/周末/节假日)..."
+                placeholder={t("hr.cnLabor.overtimeRecordsPlaceholder")}
                 className="min-h-[100px] bg-slate-900 border-slate-700"
                 value={overtimeRecords}
                 onChange={(e) => setOvertimeRecords(e.target.value)}
@@ -109,7 +111,7 @@ export default function CNLaborCompliance() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!employeeData.trim() || !month.trim() || !overtimeRecords.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI合规分析
+                {t("hr.cnLabor.aiAnalyze")}
               </Button>
             </div>
           </CardContent>
@@ -123,13 +125,13 @@ export default function CNLaborCompliance() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-300">合规状态</p>
+                    <p className="text-sm text-slate-300">{t("hr.cnLabor.complianceStatus")}</p>
                     <Badge className={`text-xl px-4 py-2 mt-1 ${complianceColor(result.complianceStatus)}`}>
                       {result.complianceStatus}
                     </Badge>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-slate-300">月度加班总时长 / 法定上限</p>
+                    <p className="text-sm text-slate-300">{t("hr.cnLabor.monthlyOTvsLimit")}</p>
                     <p className="text-3xl font-bold">
                       <span className={result.totalOvertimeHours > result.monthlyLimit ? "text-red-400" : "text-green-400"}>
                         {result.totalOvertimeHours}h
@@ -146,27 +148,27 @@ export default function CNLaborCompliance() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Scale className="h-5 w-5 text-primary" />
-                  加班时长明细
+                  {t("hr.cnLabor.overtimeBreakdown")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-4 rounded bg-muted/50 text-center">
-                    <p className="text-xs text-slate-300">工作日加班</p>
+                    <p className="text-xs text-slate-300">{t("hr.cnLabor.weekdayOT")}</p>
                     <p className="text-2xl font-bold mt-1">{result.weekdayOT}h</p>
                   </div>
                   <div className="p-4 rounded bg-muted/50 text-center">
-                    <p className="text-xs text-slate-300">周末加班</p>
+                    <p className="text-xs text-slate-300">{t("hr.cnLabor.weekendOT")}</p>
                     <p className="text-2xl font-bold mt-1">{result.weekendOT}h</p>
                   </div>
                   <div className="p-4 rounded bg-muted/50 text-center">
-                    <p className="text-xs text-slate-300">节假日加班</p>
+                    <p className="text-xs text-slate-300">{t("hr.cnLabor.holidayOT")}</p>
                     <p className="text-2xl font-bold mt-1">{result.holidayOT}h</p>
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-slate-800">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">应付加班费</span>
+                    <span className="text-sm text-slate-300">{t("hr.cnLabor.overtimePay")}</span>
                     <span className="text-xl font-bold text-primary">¥{result.overtimePay.toLocaleString()}</span>
                   </div>
                 </div>
@@ -179,7 +181,7 @@ export default function CNLaborCompliance() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-red-400" />
-                    违规记录 ({result.violations.length})
+                    {t("hr.cnLabor.violations")} ({result.violations.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -205,7 +207,7 @@ export default function CNLaborCompliance() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("hr.cnLabor.aiRecommendations")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

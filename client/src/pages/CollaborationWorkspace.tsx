@@ -11,6 +11,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -104,6 +105,7 @@ const mockTasks = [
 ];
 
 export default function CollaborationWorkspace() {
+  const { t } = useLanguage();
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("documents");
   const [selectedWorkspace, setSelectedWorkspace] = useState<any>(mockWorkspaces[0]);
@@ -131,14 +133,14 @@ export default function CollaborationWorkspace() {
   // tRPC 创建工作区 mutation
   const createWorkspaceMutation = trpc.workspace.create.useMutation({
     onSuccess: () => {
-      toast.success("工作区创建成功");
+      toast.success(t("rnd.collab.createSuccess"));
       setIsNewWorkspaceOpen(false);
       setNewWorkspaceName("");
       setNewWorkspaceDesc("");
       workspacesQuery.refetch();
     },
     onError: (error) => {
-      toast.error(`创建失败: ${error.message}`);
+      toast.error(`${t("rnd.collab.createFailed")}: ${error.message}`);
     },
   });
 
@@ -155,7 +157,7 @@ export default function CollaborationWorkspace() {
       setSearchQuery("");
     },
     onError: (error) => {
-      toast.error(`邀请失败: ${error.message}`);
+      toast.error(`${t("rnd.collab.inviteFailed")}: ${error.message}`);
     },
   });
 
@@ -191,13 +193,13 @@ export default function CollaborationWorkspace() {
   const handleCreateWorkspace = () => {
     console.log("handleCreateWorkspace called", { newWorkspaceName, newWorkspaceDesc });
     if (!newWorkspaceName.trim()) {
-      toast.error("请输入工作区名称");
+      toast.error(t("rnd.collab.enterWorkspaceName"));
       return;
     }
-    
+
     // 如果用户未完全认证，显示提示
     if (!isFullyAuthenticated) {
-      toast.info("演示模式：工作区已添加到本地列表（登录后可保存到服务器）");
+      toast.info(t("rnd.collab.demoWorkspaceAdded"));
       // 添加到本地模拟数据
       const newLocalWorkspace = {
         id: `WS-LOCAL-${Date.now()}`,
@@ -229,17 +231,17 @@ export default function CollaborationWorkspace() {
   // 邀请成员
   const handleInviteMember = () => {
     if (!inviteEmail.trim()) {
-      toast.error("请输入邮箱地址");
+      toast.error(t("rnd.collab.enterEmail"));
       return;
     }
-    
+
     if (!isFullyAuthenticated) {
-      toast.info("演示模式：请先登录后再邀请成员");
+      toast.info(t("rnd.collab.loginForInvite"));
       return;
     }
-    
+
     if (!selectedWorkspace?.dbId) {
-      toast.error("请先选择一个工作区");
+      toast.error(t("rnd.collab.selectWorkspaceForInvite"));
       return;
     }
     
@@ -277,10 +279,10 @@ export default function CollaborationWorkspace() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "completed": return "已完成";
-      case "in_progress": return "进行中";
-      case "pending": return "待处理";
-      default: return "未知";
+      case "completed": return t("rnd.collab.statusCompleted");
+      case "in_progress": return t("rnd.collab.statusInProgress");
+      case "pending": return t("rnd.collab.statusPending");
+      default: return t("rnd.collab.statusUnknown");
     }
   };
 
@@ -297,15 +299,15 @@ export default function CollaborationWorkspace() {
         {/* 页面标题 */}
         <PageHeader
           icon={Users}
-          title="实时协作工作台"
-          description="团队协作空间，支持多人同时编辑和实时沟通"
+          title={t("rnd.collab.title")}
+          description={t("rnd.collab.description")}
           actions={
             <>
               {/* 认证状态提示 */}
               {!isFullyAuthenticated && user && (
                 <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-400 px-3 py-1.5 rounded-md">
                   <AlertCircle className="h-4 w-4" />
-                  <span>演示模式</span>
+                  <span>{t("rnd.collab.demoMode")}</span>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -313,7 +315,7 @@ export default function CollaborationWorkspace() {
                     onClick={() => window.location.href = getLoginUrl('/collaboration')}
                   >
                     <RefreshCw className="h-3 w-3 mr-1" />
-                    刷新认证
+                    {t("rnd.collab.refreshAuth")}
                   </Button>
                 </div>
               )}
@@ -321,29 +323,29 @@ export default function CollaborationWorkspace() {
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
-                    新建工作区
+                    {t("rnd.collab.newWorkspace")}
                   </Button>
                 </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>新建协作工作区</DialogTitle>
+                  <DialogTitle>{t("rnd.collab.createWorkspaceTitle")}</DialogTitle>
                   <DialogDescription>
-                    创建一个新的团队协作空间
+                    {t("rnd.collab.createWorkspaceDesc")}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>工作区名称</Label>
-                    <Input 
-                      placeholder="输入工作区名称" 
+                    <Label>{t("rnd.collab.workspaceName")}</Label>
+                    <Input
+                      placeholder={t("rnd.collab.workspaceNamePlaceholder")} 
                       value={newWorkspaceName}
                       onChange={(e) => setNewWorkspaceName(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>描述</Label>
-                    <Textarea 
-                      placeholder="简要描述工作区用途" 
+                    <Label>{t("rnd.collab.descriptionLabel")}</Label>
+                    <Textarea
+                      placeholder={t("rnd.collab.descriptionPlaceholder")} 
                       rows={3}
                       value={newWorkspaceDesc}
                       onChange={(e) => setNewWorkspaceDesc(e.target.value)}
@@ -352,14 +354,14 @@ export default function CollaborationWorkspace() {
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsNewWorkspaceOpen(false)}>
-                    取消
+                    {t("rnd.collab.cancel")}
                   </Button>
-                  <Button 
+                  <Button
                     type="button"
                     onClick={handleCreateWorkspace}
                     disabled={createWorkspaceMutation.isPending || !newWorkspaceName.trim()}
                   >
-                    {createWorkspaceMutation.isPending ? "创建中..." : "创建"}
+                    {createWorkspaceMutation.isPending ? t("rnd.collab.creating") : t("rnd.collab.create")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -374,14 +376,14 @@ export default function CollaborationWorkspace() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <FolderOpen className="h-4 w-4" />
-                我的工作区
+                {t("rnd.collab.myWorkspaces")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {workspacesQuery.isLoading && !workspacesQuery.isError ? (
-                <div className="text-center py-4 text-muted-foreground text-sm">加载中...</div>
+                <div className="text-center py-4 text-muted-foreground text-sm">{t("rnd.collab.loadingText")}</div>
               ) : allWorkspaces.length === 0 ? (
-                <div className="text-center py-4 text-muted-foreground text-sm">暂无工作区</div>
+                <div className="text-center py-4 text-muted-foreground text-sm">{t("rnd.collab.noWorkspaces")}</div>
               ) : (
                 allWorkspaces.map(ws => (
                   <div
@@ -395,10 +397,10 @@ export default function CollaborationWorkspace() {
                   >
                     <div className="font-medium text-sm truncate flex items-center gap-2">
                       {ws.name}
-                      {ws.isReal && <Badge variant="outline" className="text-[10px] px-1 py-0">真实</Badge>}
+                      {ws.isReal && <Badge variant="outline" className="text-[10px] px-1 py-0">{t("rnd.collab.real")}</Badge>}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {ws.isReal ? `${(ws as any).memberCount || 1} 人` : `${ws.members?.filter((m: any) => m.online).length || 0} 人在线`}
+                      {ws.isReal ? `${(ws as any).memberCount || 1}${t("rnd.collab.persons")}` : `${ws.members?.filter((m: any) => m.online).length || 0}${t("rnd.collab.personsOnline")}`}
                     </div>
                   </div>
                 ))
@@ -434,22 +436,22 @@ export default function CollaborationWorkspace() {
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm">
                           <Users className="h-4 w-4 mr-2" />
-                          邀请
+                          {t("rnd.collab.invite")}
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-md">
                         <DialogHeader>
-                          <DialogTitle>邀请成员</DialogTitle>
+                          <DialogTitle>{t("rnd.collab.inviteMembers")}</DialogTitle>
                           <DialogDescription>
-                            通过邮箱邀请新成员加入工作区
+                            {t("rnd.collab.inviteMembersDesc")}
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                           {/* 搜索现有用户 */}
                           <div className="space-y-2">
-                            <Label>搜索用户</Label>
-                            <Input 
-                              placeholder="输入用户名或邮箱搜索..." 
+                            <Label>{t("rnd.collab.searchUser")}</Label>
+                            <Input
+                              placeholder={t("rnd.collab.searchUserPlaceholder")} 
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -470,7 +472,7 @@ export default function CollaborationWorkspace() {
                                         <AvatarFallback>{u.name?.[0] || u.email[0]}</AvatarFallback>
                                       </Avatar>
                                       <div>
-                                        <p className="text-sm font-medium">{u.name || '未命名'}</p>
+                                        <p className="text-sm font-medium">{u.name || t("rnd.collab.unnamed")}</p>
                                         <p className="text-xs text-muted-foreground">{u.email}</p>
                                       </div>
                                     </div>
@@ -482,10 +484,10 @@ export default function CollaborationWorkspace() {
                           
                           {/* 邮箱输入 */}
                           <div className="space-y-2">
-                            <Label>邮箱地址</Label>
-                            <Input 
+                            <Label>{t("rnd.collab.emailAddress")}</Label>
+                            <Input
                               type="email"
-                              placeholder="输入邮箱地址" 
+                              placeholder={t("rnd.collab.emailPlaceholder")} 
                               value={inviteEmail}
                               onChange={(e) => setInviteEmail(e.target.value)}
                             />
@@ -493,7 +495,7 @@ export default function CollaborationWorkspace() {
                           
                           {/* 角色选择 */}
                           <div className="space-y-2">
-                            <Label>成员角色</Label>
+                            <Label>{t("rnd.collab.memberRole")}</Label>
                             <div className="flex gap-2">
                               <Button 
                                 type="button"
@@ -501,50 +503,50 @@ export default function CollaborationWorkspace() {
                                 size="sm"
                                 onClick={() => setInviteRole('viewer')}
                               >
-                                查看者
+                                {t("rnd.collab.viewer")}
                               </Button>
-                              <Button 
+                              <Button
                                 type="button"
                                 variant={inviteRole === 'editor' ? 'default' : 'outline'}
                                 size="sm"
                                 onClick={() => setInviteRole('editor')}
                               >
-                                编辑者
+                                {t("rnd.collab.editor")}
                               </Button>
-                              <Button 
+                              <Button
                                 type="button"
                                 variant={inviteRole === 'admin' ? 'default' : 'outline'}
                                 size="sm"
                                 onClick={() => setInviteRole('admin')}
                               >
-                                管理员
+                                {t("rnd.collab.admin")}
                               </Button>
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {
-                                inviteRole === 'viewer' ? '查看者可以查看文档和消息' :
-                                inviteRole === 'editor' ? '编辑者可以编辑文档和任务' :
-                                '管理员可以管理成员和设置'
+                                inviteRole === 'viewer' ? t("rnd.collab.viewerDesc") :
+                                inviteRole === 'editor' ? t("rnd.collab.editorDesc") :
+                                t("rnd.collab.adminDesc")
                               }
                             </p>
                           </div>
                         </div>
                         <DialogFooter>
                           <Button variant="outline" onClick={() => setIsInviteOpen(false)}>
-                            取消
+                            {t("rnd.collab.cancel")}
                           </Button>
-                          <Button 
+                          <Button
                             onClick={handleInviteMember}
                             disabled={inviteMemberMutation.isPending || !inviteEmail.trim()}
                           >
-                            {inviteMemberMutation.isPending ? "邀请中..." : "发送邀请"}
+                            {inviteMemberMutation.isPending ? t("rnd.collab.inviting") : t("rnd.collab.sendInvite")}
                           </Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
                     <Button variant="outline" size="sm">
                       <Video className="h-4 w-4 mr-2" />
-                      会议
+                      {t("rnd.collab.meeting")}
                     </Button>
                   </div>
                 </div>
@@ -556,19 +558,19 @@ export default function CollaborationWorkspace() {
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="documents" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  文档
+                  {t("rnd.collab.tabDocuments")}
                 </TabsTrigger>
                 <TabsTrigger value="editor" className="flex items-center gap-2">
                   <Edit3 className="h-4 w-4" />
-                  协作编辑
+                  {t("rnd.collab.tabEditor")}
                 </TabsTrigger>
                 <TabsTrigger value="tasks" className="flex items-center gap-2">
                   <CheckSquare className="h-4 w-4" />
-                  任务
+                  {t("rnd.collab.tabTasks")}
                 </TabsTrigger>
                 <TabsTrigger value="chat" className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
-                  消息
+                  {t("rnd.collab.tabChat")}
                 </TabsTrigger>
               </TabsList>
 
@@ -577,10 +579,10 @@ export default function CollaborationWorkspace() {
                 <Card>
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">共享文档</CardTitle>
+                      <CardTitle className="text-base">{t("rnd.collab.sharedDocs")}</CardTitle>
                       <Button size="sm">
                         <Upload className="h-4 w-4 mr-2" />
-                        上传文档
+                        {t("rnd.collab.uploadDoc")}
                       </Button>
                     </div>
                   </CardHeader>
@@ -596,7 +598,7 @@ export default function CollaborationWorkspace() {
                             <div>
                               <p className="font-medium">{doc.name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {doc.updatedBy} 更新于 {doc.updatedAt}
+                                {doc.updatedBy} {t("rnd.collab.updatedBy")} {doc.updatedAt}
                               </p>
                             </div>
                           </div>
@@ -637,7 +639,7 @@ export default function CollaborationWorkspace() {
                     onSave={async (content) => {
                       console.log('Saving document:', content.substring(0, 100));
                       // TODO: 调用API保存文档
-                      toast.success('文档已保存');
+                      toast.success(t("rnd.collab.docSaved"));
                     }}
                   />
                 ) : (
@@ -645,11 +647,11 @@ export default function CollaborationWorkspace() {
                     <CardContent className="py-16 text-center">
                       <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                       <p className="text-muted-foreground">
-                        {!user ? '请先登录以使用协作编辑功能' : '请选择一个工作区开始编辑'}
+                        {!user ? t("rnd.collab.loginFirst") : t("rnd.collab.selectWorkspaceFirst")}
                       </p>
                       {!user && (
                         <Button className="mt-4" onClick={() => window.location.href = getLoginUrl()}>
-                          登录
+                          {t("rnd.collab.login")}
                         </Button>
                       )}
                     </CardContent>
@@ -662,10 +664,10 @@ export default function CollaborationWorkspace() {
                 <Card>
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">任务列表</CardTitle>
+                      <CardTitle className="text-base">{t("rnd.collab.taskList")}</CardTitle>
                       <Button size="sm">
                         <Plus className="h-4 w-4 mr-2" />
-                        新建任务
+                        {t("rnd.collab.newTask")}
                       </Button>
                     </div>
                   </CardHeader>
@@ -683,7 +685,7 @@ export default function CollaborationWorkspace() {
                                 {task.title}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                负责人: {task.assignee} · 截止: {task.dueDate}
+                                {t("rnd.collab.assignee")}: {task.assignee} · {t("rnd.collab.deadline")}: {task.dueDate}
                               </p>
                             </div>
                           </div>
@@ -699,7 +701,7 @@ export default function CollaborationWorkspace() {
               <TabsContent value="chat" className="space-y-4">
                 <Card className="h-[500px] flex flex-col">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">团队消息</CardTitle>
+                    <CardTitle className="text-base">{t("rnd.collab.teamMessages")}</CardTitle>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col">
                     <ScrollArea className="flex-1 pr-4">
@@ -723,7 +725,7 @@ export default function CollaborationWorkspace() {
                     <Separator className="my-4" />
                     <div className="flex gap-2">
                       <Input 
-                        placeholder="输入消息..." 
+                        placeholder={t("rnd.collab.messagePlaceholder")} 
                         value={messageInput}
                         onChange={e => setMessageInput(e.target.value)}
                         onKeyDown={e => {

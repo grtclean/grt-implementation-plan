@@ -3,6 +3,7 @@
  * 物料入库、出库、追踪、库存预警
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,35 +19,43 @@ const MOCK_MATERIALS = [
 ];
 
 export default function MaterialTracking() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const filtered = MOCK_MATERIALS.filter(m => !search || m.name.includes(search) || m.id.includes(search));
+
+  const statusLabels: Record<string, string> = {
+    "在库": t("supply.materialTracking.statusInStockLabel"),
+    "已领料": t("supply.materialTracking.statusIssuedLabel"),
+    "在途": t("supply.materialTracking.statusInTransitLabel"),
+    "低库存": t("supply.materialTracking.statusLowStockLabel"),
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Package}
-        title="物料追踪"
-        description="物料全流程追踪与库存管理"
+        title={t("supply.materialTracking.title")}
+        description={t("supply.materialTracking.pageDesc")}
         actions={
           <>
-            <Button>入库登记</Button>
-            <Button variant="outline">领料申请</Button>
+            <Button>{t("supply.materialTracking.receiptEntry")}</Button>
+            <Button variant="outline">{t("supply.materialTracking.materialRequest")}</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Package} label="物料种类" value="1,842" iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={BarChart3} label="库存价值" value="¥4.5M" iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={AlertTriangle} label="低库存预警" value={18} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={Truck} label="在途物料" value={23} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Package} label={t("supply.materialTracking.materialTypes")} value="1,842" iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={BarChart3} label={t("supply.materialTracking.inventoryValue")} value="¥4.5M" iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label={t("supply.materialTracking.lowStockAlert")} value={18} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Truck} label={t("supply.materialTracking.inTransitMaterials")} value={23} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>物料列表</CardTitle>
-            <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="搜索物料..." className="pl-9 w-64" value={search} onChange={e => setSearch(e.target.value)} /></div>
+            <CardTitle>{t("supply.materialTracking.materialListTitle")}</CardTitle>
+            <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder={t("supply.materialTracking.searchMaterial")} className="pl-9 w-64" value={search} onChange={e => setSearch(e.target.value)} /></div>
           </div>
         </CardHeader>
         <CardContent>
@@ -59,10 +68,10 @@ export default function MaterialTracking() {
                     <Badge variant="outline">{m.batch}</Badge>
                   </div>
                   <p className="font-medium mt-1">{m.name}</p>
-                  <p className="text-sm text-muted-foreground">库位: {m.location} · 数量: {m.qty}{m.unit} · 项目: {m.project}</p>
+                  <p className="text-sm text-muted-foreground">{t("supply.materialTracking.location")}: {m.location} · {t("supply.materialTracking.qty")}: {m.qty}{m.unit} · {t("supply.materialTracking.project")}: {m.project}</p>
                 </div>
                 <Badge className={m.status === "在库" ? "bg-green-100 text-green-700" : m.status === "在途" ? "bg-blue-100 text-blue-700" : m.status === "已领料" ? "bg-gray-100 text-gray-700" : "bg-amber-100 text-amber-700"}>
-                  {m.status === "低库存" && <AlertTriangle className="h-3 w-3 mr-1" />}{m.status}
+                  {m.status === "低库存" && <AlertTriangle className="h-3 w-3 mr-1" />}{statusLabels[m.status] ?? m.status}
                 </Badge>
               </div>
             ))}

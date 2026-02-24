@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import KioskLayout from "@/components/kiosk/KioskLayout";
 import FastIdentitySwitch from "@/components/kiosk/FastIdentitySwitch";
 import OperatorTaskQueue from "@/components/kiosk/OperatorTaskQueue";
@@ -16,6 +17,7 @@ interface SelectedTask {
 }
 
 function KioskContent() {
+  const { t } = useLanguage();
   const session = useKioskSessionContext();
   const [selectedTask, setSelectedTask] = useState<SelectedTask | null>(null);
   const [taskQueueKey, setTaskQueueKey] = useState(0);
@@ -74,8 +76,8 @@ function KioskContent() {
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center">
-              <p className="text-sm">选择任务后查看作业指导书</p>
-              <p className="text-xs mt-1">SOP · 质量要求 · 工具清单</p>
+              <p className="text-sm">{t("manufacturing.kiosk.workshop.selectTaskForSOP")}</p>
+              <p className="text-xs mt-1">{t("manufacturing.kiosk.workshop.sopInfo")}</p>
             </div>
           </div>
         )}

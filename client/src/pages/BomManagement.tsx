@@ -3,6 +3,7 @@
  * 物料清单管理、BOM版本、成本估算
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -54,6 +55,7 @@ const BU_LABELS: Record<string, string> = {
 };
 
 export default function BomManagement() {
+  const { t } = useLanguage();
   const { currentBU } = useUserProfile();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -81,14 +83,14 @@ export default function BomManagement() {
 
   const createBomMutation = trpc.bom.createBomMaster.useMutation({
     onSuccess: () => {
-      toast.success("BOM创建成功");
+      toast.success(t("manufacturing.bom.mgmt.createSuccess"));
       setCreateDialogOpen(false);
       resetForm();
       utils.bom.getBomMasters.invalidate();
       utils.bom.getStats.invalidate();
     },
     onError: (error) => {
-      toast.error("创建失败: " + error.message);
+      toast.error(t("manufacturing.bom.mgmt.createFailed") + ": " + error.message);
     },
   });
 
@@ -103,7 +105,7 @@ export default function BomManagement() {
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formProductCode.trim() || !formProductName.trim()) {
-      toast.error("产品编码和产品名称为必填项");
+      toast.error(t("manufacturing.bom.mgmt.requiredFields"));
       return;
     }
     createBomMutation.mutate({
@@ -137,32 +139,32 @@ export default function BomManagement() {
     <div className="space-y-6">
       <PageHeader
         icon={Package}
-        title="BOM管理"
-        description="TX-005 · 物料清单管理与成本估算"
+        title={t("manufacturing.bom.mgmt.title")}
+        description={t("manufacturing.bom.mgmt.description")}
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{BU_LABELS[currentBU] || currentBU}</Badge>}
-            <Button onClick={() => setCreateDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />新建BOM</Button>
-            <Button variant="outline" onClick={() => toast.info("导入功能开发中")}><Upload className="h-4 w-4 mr-2" />导入</Button>
-            <Button variant="outline" onClick={() => toast.info("导出功能开发中")}><Download className="h-4 w-4 mr-2" />导出</Button>
+            <Button onClick={() => setCreateDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />{t("manufacturing.bom.mgmt.createBom")}</Button>
+            <Button variant="outline" onClick={() => toast.info(t("manufacturing.bom.mgmt.importDev"))}><Upload className="h-4 w-4 mr-2" />{t("manufacturing.common.import")}</Button>
+            <Button variant="outline" onClick={() => toast.info(t("manufacturing.bom.mgmt.exportDev"))}><Download className="h-4 w-4 mr-2" />{t("manufacturing.common.export")}</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard icon={Layers} label="BOM总数" value={statsData?.total ?? 0} />
-        <StatCard icon={Package} label="物料种类" value={statsData?.totalItems ?? 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={DollarSign} label="已发布BOM" value={statsData?.active ?? 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Layers} label={t("manufacturing.bom.mgmt.totalBom")} value={statsData?.total ?? 0} />
+        <StatCard icon={Package} label={t("manufacturing.bom.mgmt.materialTypes")} value={statsData?.totalItems ?? 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={DollarSign} label={t("manufacturing.bom.mgmt.activeBom")} value={statsData?.active ?? 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>BOM列表 {total > 0 && <span className="text-sm font-normal text-muted-foreground ml-2">共 {total} 条</span>}</CardTitle>
+            <CardTitle>{t("manufacturing.bom.mgmt.bomList")} {total > 0 && <span className="text-sm font-normal text-muted-foreground ml-2">{t("manufacturing.bom.mgmt.totalPrefix")} {total} {t("manufacturing.bom.mgmt.totalSuffix")}</span>}</CardTitle>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="搜索产品编码/名称..."
+                placeholder={t("manufacturing.bom.mgmt.searchPlaceholder")}
                 className="pl-9 w-64"
                 value={search}
                 onChange={e => {
@@ -210,8 +212,8 @@ export default function BomManagement() {
               {items.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <Package className="w-12 h-12 mb-3 opacity-50" />
-                  <p className="font-medium">暂无BOM数据</p>
-                  <p className="text-sm mt-1">点击"新建BOM"创建第一条物料清单</p>
+                  <p className="font-medium">{t("manufacturing.bom.mgmt.noData")}</p>
+                  <p className="text-sm mt-1">{t("manufacturing.bom.mgmt.noDataHint")}</p>
                 </div>
               )}
             </div>
@@ -225,10 +227,10 @@ export default function BomManagement() {
                 disabled={page <= 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
               >
-                上一页
+                {t("manufacturing.bom.mgmt.prevPage")}
               </Button>
               <span className="text-sm text-muted-foreground">
-                第 {page} / {totalPages} 页
+                {t("manufacturing.bom.mgmt.pageOf")} {page} / {totalPages}
               </span>
               <Button
                 variant="outline"
@@ -236,7 +238,7 @@ export default function BomManagement() {
                 disabled={page >= totalPages}
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               >
-                下一页
+                {t("manufacturing.bom.mgmt.nextPage")}
               </Button>
             </div>
           )}
@@ -250,13 +252,13 @@ export default function BomManagement() {
       }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>新建BOM</DialogTitle>
-            <DialogDescription>创建新的物料清单主记录</DialogDescription>
+            <DialogTitle>{t("manufacturing.bom.mgmt.createBom")}</DialogTitle>
+            <DialogDescription>{t("manufacturing.bom.mgmt.createBomDesc")}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="productCode">产品编码 <span className="text-red-500">*</span></Label>
+                <Label htmlFor="productCode">{t("manufacturing.bom.mgmt.productCode")} <span className="text-red-500">*</span></Label>
                 <Input
                   id="productCode"
                   placeholder="例: PRD-001"
@@ -266,7 +268,7 @@ export default function BomManagement() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="productName">产品名称 <span className="text-red-500">*</span></Label>
+                <Label htmlFor="productName">{t("manufacturing.bom.mgmt.productName")} <span className="text-red-500">*</span></Label>
                 <Input
                   id="productName"
                   placeholder="例: 缸体清洗线"
@@ -279,24 +281,24 @@ export default function BomManagement() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="bomType">BOM类型</Label>
+                <Label htmlFor="bomType">{t("manufacturing.bom.mgmt.bomType")}</Label>
                 <Select value={formBomType} onValueChange={setFormBomType}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择BOM类型" />
+                    <SelectValue placeholder={t("manufacturing.bom.mgmt.selectBomType")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="manufacturing">制造BOM</SelectItem>
-                    <SelectItem value="engineering">工程BOM</SelectItem>
-                    <SelectItem value="sales">销售BOM</SelectItem>
-                    <SelectItem value="template">模板BOM</SelectItem>
+                    <SelectItem value="manufacturing">{t("manufacturing.bom.mgmt.typeMfg")}</SelectItem>
+                    <SelectItem value="engineering">{t("manufacturing.bom.mgmt.typeEng")}</SelectItem>
+                    <SelectItem value="sales">{t("manufacturing.bom.mgmt.typeSales")}</SelectItem>
+                    <SelectItem value="template">{t("manufacturing.bom.mgmt.typeTemplate")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="buCode">所属事业部</Label>
+                <Label htmlFor="buCode">{t("manufacturing.bom.mgmt.businessUnit")}</Label>
                 <Select value={formBuCode} onValueChange={setFormBuCode}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择事业部" />
+                    <SelectValue placeholder={t("manufacturing.bom.mgmt.selectBU")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="BU1">BU1 - 海外</SelectItem>
@@ -310,10 +312,10 @@ export default function BomManagement() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">描述</Label>
+              <Label htmlFor="description">{t("manufacturing.bom.mgmt.descriptionLabel")}</Label>
               <Textarea
                 id="description"
-                placeholder="BOM描述信息（可选）"
+                placeholder={t("manufacturing.bom.mgmt.descriptionPlaceholder")}
                 value={formDescription}
                 onChange={e => setFormDescription(e.target.value)}
                 rows={3}
@@ -322,11 +324,11 @@ export default function BomManagement() {
 
             <DialogFooter className="gap-2">
               <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                取消
+                {t("manufacturing.common.cancel")}
               </Button>
               <Button type="submit" disabled={createBomMutation.isPending}>
                 {createBomMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                创建BOM
+                {t("manufacturing.bom.mgmt.createBom")}
               </Button>
             </DialogFooter>
           </form>

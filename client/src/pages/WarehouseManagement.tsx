@@ -4,6 +4,7 @@
  * Wired to warehouse.router.ts (30 tRPC procedures)
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,27 +21,6 @@ import {
   Search, Package, Clock, CheckCircle2, XCircle, Eye,
 } from "lucide-react";
 
-const TYPE_LABELS: Record<string, string> = {
-  raw_material: "原材料", semi_finished: "半成品", finished_goods: "成品",
-  spare_parts: "备件", tools: "工具", quarantine: "隔离", returns: "退货",
-};
-
-const RECEIPT_STATUS: Record<string, { label: string; color: string }> = {
-  draft: { label: "待提交", color: "bg-gray-100 text-gray-700" },
-  pending_qc: { label: "质检中", color: "bg-blue-100 text-blue-700" },
-  shelved: { label: "已上架", color: "bg-green-100 text-green-700" },
-  qc_failed: { label: "质检不合格", color: "bg-red-100 text-red-700" },
-  qc_passed: { label: "质检通过", color: "bg-emerald-100 text-emerald-700" },
-};
-
-const ISSUE_STATUS: Record<string, { label: string; color: string }> = {
-  draft: { label: "草稿", color: "bg-gray-100 text-gray-700" },
-  approved: { label: "已审批", color: "bg-blue-100 text-blue-700" },
-  picking: { label: "拣货中", color: "bg-amber-100 text-amber-700" },
-  issued: { label: "已出库", color: "bg-green-100 text-green-700" },
-  cancelled: { label: "已取消", color: "bg-red-100 text-red-700" },
-};
-
 function LoadingSkeleton() {
   return (
     <div className="space-y-3">
@@ -50,18 +30,29 @@ function LoadingSkeleton() {
 }
 
 function WarehouseListTab() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const warehouseQuery = trpc.warehouse.getWarehouses.useQuery();
   const warehouses = warehouseQuery.data ?? [];
   const isLoading = warehouseQuery.isLoading;
+
+  const typeLabels: Record<string, string> = {
+    raw_material: t("supply.warehouse.typeRawMaterial"),
+    semi_finished: t("supply.warehouse.typeSemiFinished"),
+    finished_goods: t("supply.warehouse.typeFinishedGoods"),
+    spare_parts: t("supply.warehouse.typeSpareParts"),
+    tools: t("supply.warehouse.typeTools"),
+    quarantine: t("supply.warehouse.typeQuarantine"),
+    returns: t("supply.warehouse.typeReturns"),
+  };
 
   const filtered = warehouses.filter((w: any) => !search || w.warehouseName?.includes(search) || w.warehouseCode?.includes(search));
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="搜索仓库..." className="pl-9 w-64" value={search} onChange={e => setSearch(e.target.value)} /></div>
-        <Button size="sm"><Plus className="h-4 w-4 mr-1" />新建仓库</Button>
+        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder={t("supply.warehouse.searchWarehouse")} className="pl-9 w-64" value={search} onChange={e => setSearch(e.target.value)} /></div>
+        <Button size="sm"><Plus className="h-4 w-4 mr-1" />{t("supply.warehouse.newWarehouse")}</Button>
       </div>
       {isLoading ? <LoadingSkeleton /> : (
         <div className="grid gap-4 md:grid-cols-2">
@@ -72,11 +63,11 @@ function WarehouseListTab() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs text-muted-foreground">{w.warehouseCode}</span>
-                      <Badge variant="outline">{TYPE_LABELS[w.warehouseType] || w.warehouseType}</Badge>
-                      {!w.isActive && <Badge variant="destructive">停用</Badge>}
+                      <Badge variant="outline">{typeLabels[w.warehouseType] || w.warehouseType}</Badge>
+                      {!w.isActive && <Badge variant="destructive">{t("supply.warehouse.disabled")}</Badge>}
                     </div>
                     <p className="font-semibold mt-1">{w.warehouseName}</p>
-                    <p className="text-sm text-muted-foreground mt-1">地址: {w.address} | 容量: {w.totalCapacity} | 管理员: {w.managerName}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("supply.warehouse.address")}: {w.address} | {t("supply.warehouse.capacity")}: {w.totalCapacity} | {t("supply.warehouse.manager")}: {w.managerName}</p>
                   </div>
                   <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
                 </div>
@@ -84,7 +75,7 @@ function WarehouseListTab() {
             </Card>
           ))}
           {filtered.length === 0 && !isLoading && (
-            <div className="col-span-2 text-center py-8 text-muted-foreground">暂无仓库数据</div>
+            <div className="col-span-2 text-center py-8 text-muted-foreground">{t("supply.warehouse.noWarehouseData")}</div>
           )}
         </div>
       )}
@@ -93,6 +84,7 @@ function WarehouseListTab() {
 }
 
 function LocationTreeTab() {
+  const { t } = useLanguage();
   const [selectedWarehouse, setSelectedWarehouse] = useState("1");
   const [selectedZone, setSelectedZone] = useState("A");
 
@@ -107,16 +99,16 @@ function LocationTreeTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
-        <span className="text-sm font-medium">选择仓库:</span>
+        <span className="text-sm font-medium">{t("supply.warehouse.selectWarehouse")}:</span>
         <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="1">WH-001 原材料主仓</SelectItem>
-            <SelectItem value="2">WH-002 半成品暂存仓</SelectItem>
+            <SelectItem value="1">WH-001 {t("supply.warehouse.typeRawMaterial")}</SelectItem>
+            <SelectItem value="2">WH-002 {t("supply.warehouse.typeSemiFinished")}</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex gap-2 ml-4">{zones.map((z: string) => (
-          <Button key={z} variant={selectedZone === z ? "default" : "outline"} size="sm" onClick={() => setSelectedZone(z)}>{z}区</Button>
+          <Button key={z} variant={selectedZone === z ? "default" : "outline"} size="sm" onClick={() => setSelectedZone(z)}>{z}{t("supply.warehouse.zone")}</Button>
         ))}</div>
       </div>
       {isLoading ? <LoadingSkeleton /> : (
@@ -127,25 +119,26 @@ function LocationTreeTab() {
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs">{loc.locationCode}</span>
                   <Badge className={loc.isOccupied ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}>
-                    {loc.isOccupied ? "已占用" : "空闲"}
+                    {loc.isOccupied ? t("supply.warehouse.occupied") : t("supply.warehouse.available")}
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">类型: {loc.locationType}</p>
-                {loc.currentMaterialCode && <p className="text-xs mt-1">物料: {loc.currentMaterialCode}</p>}
+                <p className="text-xs text-muted-foreground mt-1">{t("supply.warehouse.type")}: {loc.locationType}</p>
+                {loc.currentMaterialCode && <p className="text-xs mt-1">{t("supply.warehouse.materialLabel")}: {loc.currentMaterialCode}</p>}
               </CardContent>
             </Card>
           ))}
         </div>
       )}
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500 inline-block" /> 空闲</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-500 inline-block" /> 已占用</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500 inline-block" /> {t("supply.warehouse.available")}</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-500 inline-block" /> {t("supply.warehouse.occupied")}</span>
       </div>
     </div>
   );
 }
 
 function ReceiptsTab() {
+  const { t } = useLanguage();
   const [showCreate, setShowCreate] = useState(false);
   const [receiptForm, setReceiptForm] = useState({ receiptType: "purchase", warehouseId: "", notes: "" });
   const receiptsQuery = trpc.warehouse.getReceipts.useQuery({});
@@ -153,8 +146,22 @@ function ReceiptsTab() {
   const isLoading = receiptsQuery.isLoading;
   const createReceiptMutation = trpc.warehouse.createReceipt.useMutation();
 
+  const receiptStatusLabels: Record<string, { label: string; color: string }> = {
+    draft: { label: t("supply.warehouse.receiptDraft"), color: "bg-gray-100 text-gray-700" },
+    pending_qc: { label: t("supply.warehouse.receiptPendingQC"), color: "bg-blue-100 text-blue-700" },
+    shelved: { label: t("supply.warehouse.receiptShelved"), color: "bg-green-100 text-green-700" },
+    qc_failed: { label: t("supply.warehouse.receiptQCFailed"), color: "bg-red-100 text-red-700" },
+    qc_passed: { label: t("supply.warehouse.receiptQCPassed"), color: "bg-emerald-100 text-emerald-700" },
+  };
+
+  const receiptTypeLabels: Record<string, string> = {
+    purchase: t("supply.warehouse.receiptTypePurchase"),
+    production: t("supply.warehouse.receiptTypeProduction"),
+    return: t("supply.warehouse.receiptTypeReturn"),
+  };
+
   const handleCreateReceipt = async () => {
-    if (!receiptForm.warehouseId) { toast.error("请选择目标仓库"); return; }
+    if (!receiptForm.warehouseId) { toast.error(t("supply.warehouse.selectTargetWarehouse")); return; }
     try {
       await createReceiptMutation.mutateAsync({
         receiptType: receiptForm.receiptType as any,
@@ -162,26 +169,26 @@ function ReceiptsTab() {
         notes: receiptForm.notes || undefined,
         items: [],
       });
-      toast.success("入库单已创建");
+      toast.success(t("supply.warehouse.receiptCreated"));
       setShowCreate(false);
       setReceiptForm({ receiptType: "purchase", warehouseId: "", notes: "" });
       receiptsQuery.refetch();
-    } catch (e: any) { toast.error(e.message || "创建失败"); }
+    } catch (e: any) { toast.error(e.message || t("supply.p2p.createFailed")); }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Select defaultValue="all"><SelectTrigger className="w-40"><SelectValue placeholder="状态筛选" /></SelectTrigger>
-          <SelectContent><SelectItem value="all">全部状态</SelectItem><SelectItem value="draft">待提交</SelectItem><SelectItem value="pending_qc">质检中</SelectItem><SelectItem value="shelved">已上架</SelectItem></SelectContent>
+        <Select defaultValue="all"><SelectTrigger className="w-40"><SelectValue placeholder={t("supply.warehouse.filterStatus")} /></SelectTrigger>
+          <SelectContent><SelectItem value="all">{t("supply.warehouse.allStatuses")}</SelectItem><SelectItem value="draft">{t("supply.warehouse.receiptDraft")}</SelectItem><SelectItem value="pending_qc">{t("supply.warehouse.receiptPendingQC")}</SelectItem><SelectItem value="shelved">{t("supply.warehouse.receiptShelved")}</SelectItem></SelectContent>
         </Select>
-        <Dialog open={showCreate} onOpenChange={setShowCreate}><DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />新建入库单</Button></DialogTrigger>
-          <DialogContent><DialogHeader><DialogTitle>新建入库单</DialogTitle></DialogHeader>
+        <Dialog open={showCreate} onOpenChange={setShowCreate}><DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />{t("supply.warehouse.newReceipt")}</Button></DialogTrigger>
+          <DialogContent><DialogHeader><DialogTitle>{t("supply.warehouse.newReceipt")}</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
-              <div><label className="text-sm font-medium">入库类型</label><Select value={receiptForm.receiptType} onValueChange={v => setReceiptForm(p => ({ ...p, receiptType: v }))}><SelectTrigger><SelectValue placeholder="选择类型" /></SelectTrigger><SelectContent><SelectItem value="purchase">采购入库</SelectItem><SelectItem value="production">生产入库</SelectItem><SelectItem value="return">退货入库</SelectItem></SelectContent></Select></div>
-              <div><label className="text-sm font-medium">目标仓库</label><Select value={receiptForm.warehouseId} onValueChange={v => setReceiptForm(p => ({ ...p, warehouseId: v }))}><SelectTrigger><SelectValue placeholder="选择仓库" /></SelectTrigger><SelectContent><SelectItem value="1">WH-001 原材料主仓</SelectItem><SelectItem value="2">WH-002 半成品暂存仓</SelectItem></SelectContent></Select></div>
-              <div><label className="text-sm font-medium">备注</label><Input placeholder="入库备注..." value={receiptForm.notes} onChange={e => setReceiptForm(p => ({ ...p, notes: e.target.value }))} /></div>
-              <Button className="w-full" onClick={handleCreateReceipt}>提交</Button>
+              <div><label className="text-sm font-medium">{t("supply.warehouse.receiptType")}</label><Select value={receiptForm.receiptType} onValueChange={v => setReceiptForm(p => ({ ...p, receiptType: v }))}><SelectTrigger><SelectValue placeholder={t("supply.warehouse.selectType")} /></SelectTrigger><SelectContent><SelectItem value="purchase">{t("supply.warehouse.receiptTypePurchase")}</SelectItem><SelectItem value="production">{t("supply.warehouse.receiptTypeProduction")}</SelectItem><SelectItem value="return">{t("supply.warehouse.receiptTypeReturn")}</SelectItem></SelectContent></Select></div>
+              <div><label className="text-sm font-medium">{t("supply.warehouse.targetWarehouse")}</label><Select value={receiptForm.warehouseId} onValueChange={v => setReceiptForm(p => ({ ...p, warehouseId: v }))}><SelectTrigger><SelectValue placeholder={t("supply.warehouse.selectWarehouse")} /></SelectTrigger><SelectContent><SelectItem value="1">WH-001 {t("supply.warehouse.typeRawMaterial")}</SelectItem><SelectItem value="2">WH-002 {t("supply.warehouse.typeSemiFinished")}</SelectItem></SelectContent></Select></div>
+              <div><label className="text-sm font-medium">{t("supply.warehouse.notes")}</label><Input placeholder={t("supply.warehouse.receiptNotes")} value={receiptForm.notes} onChange={e => setReceiptForm(p => ({ ...p, notes: e.target.value }))} /></div>
+              <Button className="w-full" onClick={handleCreateReceipt}>{t("supply.common.submit")}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -189,19 +196,19 @@ function ReceiptsTab() {
       {isLoading ? <LoadingSkeleton /> : (
         <div className="space-y-2">
           {receipts.map((r: any) => {
-            const st = RECEIPT_STATUS[r.status] || { label: r.status, color: "" };
+            const st = receiptStatusLabels[r.status] || { label: r.status, color: "" };
             return (
               <div key={r.id} className="flex items-center gap-4 p-3 rounded-lg border hover:bg-accent/50 cursor-pointer">
                 <ArrowDownToLine className="h-5 w-5 text-blue-500 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2"><span className="font-mono text-xs">{r.receiptCode}</span><Badge variant="outline">{r.receiptType === "purchase" ? "采购" : r.receiptType === "production" ? "生产" : "退货"}</Badge></div>
+                  <div className="flex items-center gap-2"><span className="font-mono text-xs">{r.receiptCode}</span><Badge variant="outline">{receiptTypeLabels[r.receiptType] || r.receiptType}</Badge></div>
                   <p className="text-sm text-muted-foreground mt-0.5">{r.warehouseName || "—"} | {r.receivedByName || "—"} | {r.createdAt}</p>
                 </div>
                 <Badge className={st.color}>{r.status === "pending_qc" && <Clock className="h-3 w-3 mr-1" />}{r.status === "qc_failed" && <XCircle className="h-3 w-3 mr-1" />}{r.status === "shelved" && <CheckCircle2 className="h-3 w-3 mr-1" />}{st.label}</Badge>
               </div>
             );
           })}
-          {receipts.length === 0 && !isLoading && <div className="text-center py-8 text-muted-foreground">暂无入库记录</div>}
+          {receipts.length === 0 && !isLoading && <div className="text-center py-8 text-muted-foreground">{t("supply.warehouse.noReceiptRecords")}</div>}
         </div>
       )}
     </div>
@@ -209,6 +216,7 @@ function ReceiptsTab() {
 }
 
 function IssuesTab() {
+  const { t } = useLanguage();
   const [showCreate, setShowCreate] = useState(false);
   const [issueForm, setIssueForm] = useState({ issueType: "production", warehouseId: "", projectCode: "" });
   const issuesQuery = trpc.warehouse.getIssues.useQuery({});
@@ -216,8 +224,22 @@ function IssuesTab() {
   const isLoading = issuesQuery.isLoading;
   const createIssueMutation = trpc.warehouse.createIssue.useMutation();
 
+  const issueStatusLabels: Record<string, { label: string; color: string }> = {
+    draft: { label: t("supply.warehouse.issueDraft"), color: "bg-gray-100 text-gray-700" },
+    approved: { label: t("supply.warehouse.issueApproved"), color: "bg-blue-100 text-blue-700" },
+    picking: { label: t("supply.warehouse.issuePicking"), color: "bg-amber-100 text-amber-700" },
+    issued: { label: t("supply.warehouse.issueIssued"), color: "bg-green-100 text-green-700" },
+    cancelled: { label: t("supply.warehouse.issueCancelled"), color: "bg-red-100 text-red-700" },
+  };
+
+  const issueTypeLabels: Record<string, string> = {
+    production: t("supply.warehouse.issueTypeProduction"),
+    sales: t("supply.warehouse.issueTypeSales"),
+    scrap: t("supply.warehouse.issueTypeScrap"),
+  };
+
   const handleCreateIssue = async () => {
-    if (!issueForm.warehouseId) { toast.error("请选择来源仓库"); return; }
+    if (!issueForm.warehouseId) { toast.error(t("supply.warehouse.selectSourceWarehouse")); return; }
     try {
       await createIssueMutation.mutateAsync({
         issueType: issueForm.issueType as any,
@@ -225,26 +247,26 @@ function IssuesTab() {
         projectCode: issueForm.projectCode || undefined,
         items: [],
       });
-      toast.success("出库单已创建");
+      toast.success(t("supply.warehouse.issueCreated"));
       setShowCreate(false);
       setIssueForm({ issueType: "production", warehouseId: "", projectCode: "" });
       issuesQuery.refetch();
-    } catch (e: any) { toast.error(e.message || "创建失败"); }
+    } catch (e: any) { toast.error(e.message || t("supply.p2p.createFailed")); }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Select defaultValue="all"><SelectTrigger className="w-40"><SelectValue placeholder="状态筛选" /></SelectTrigger>
-          <SelectContent><SelectItem value="all">全部状态</SelectItem><SelectItem value="draft">草稿</SelectItem><SelectItem value="approved">已审批</SelectItem><SelectItem value="issued">已出库</SelectItem></SelectContent>
+        <Select defaultValue="all"><SelectTrigger className="w-40"><SelectValue placeholder={t("supply.warehouse.filterStatus")} /></SelectTrigger>
+          <SelectContent><SelectItem value="all">{t("supply.warehouse.allStatuses")}</SelectItem><SelectItem value="draft">{t("supply.warehouse.issueDraft")}</SelectItem><SelectItem value="approved">{t("supply.warehouse.issueApproved")}</SelectItem><SelectItem value="issued">{t("supply.warehouse.issueIssued")}</SelectItem></SelectContent>
         </Select>
-        <Dialog open={showCreate} onOpenChange={setShowCreate}><DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />新建出库单</Button></DialogTrigger>
-          <DialogContent><DialogHeader><DialogTitle>新建出库单</DialogTitle></DialogHeader>
+        <Dialog open={showCreate} onOpenChange={setShowCreate}><DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />{t("supply.warehouse.newIssue")}</Button></DialogTrigger>
+          <DialogContent><DialogHeader><DialogTitle>{t("supply.warehouse.newIssue")}</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
-              <div><label className="text-sm font-medium">出库类型</label><Select value={issueForm.issueType} onValueChange={v => setIssueForm(p => ({ ...p, issueType: v }))}><SelectTrigger><SelectValue placeholder="选择类型" /></SelectTrigger><SelectContent><SelectItem value="production">生产领料</SelectItem><SelectItem value="sales">销售出库</SelectItem><SelectItem value="scrap">报废</SelectItem></SelectContent></Select></div>
-              <div><label className="text-sm font-medium">来源仓库</label><Select value={issueForm.warehouseId} onValueChange={v => setIssueForm(p => ({ ...p, warehouseId: v }))}><SelectTrigger><SelectValue placeholder="选择仓库" /></SelectTrigger><SelectContent><SelectItem value="1">WH-001 原材料主仓</SelectItem><SelectItem value="3">WH-003 成品仓</SelectItem></SelectContent></Select></div>
-              <div><label className="text-sm font-medium">项目编号</label><Input placeholder="PRJ-2026-XXX" value={issueForm.projectCode} onChange={e => setIssueForm(p => ({ ...p, projectCode: e.target.value }))} /></div>
-              <Button className="w-full" onClick={handleCreateIssue}>提交</Button>
+              <div><label className="text-sm font-medium">{t("supply.warehouse.issueType")}</label><Select value={issueForm.issueType} onValueChange={v => setIssueForm(p => ({ ...p, issueType: v }))}><SelectTrigger><SelectValue placeholder={t("supply.warehouse.selectType")} /></SelectTrigger><SelectContent><SelectItem value="production">{t("supply.warehouse.issueTypeProduction")}</SelectItem><SelectItem value="sales">{t("supply.warehouse.issueTypeSales")}</SelectItem><SelectItem value="scrap">{t("supply.warehouse.issueTypeScrap")}</SelectItem></SelectContent></Select></div>
+              <div><label className="text-sm font-medium">{t("supply.warehouse.sourceWarehouse")}</label><Select value={issueForm.warehouseId} onValueChange={v => setIssueForm(p => ({ ...p, warehouseId: v }))}><SelectTrigger><SelectValue placeholder={t("supply.warehouse.selectWarehouse")} /></SelectTrigger><SelectContent><SelectItem value="1">WH-001 {t("supply.warehouse.typeRawMaterial")}</SelectItem><SelectItem value="3">WH-003 {t("supply.warehouse.typeFinishedGoods")}</SelectItem></SelectContent></Select></div>
+              <div><label className="text-sm font-medium">{t("supply.warehouse.projectCode")}</label><Input placeholder="PRJ-2026-XXX" value={issueForm.projectCode} onChange={e => setIssueForm(p => ({ ...p, projectCode: e.target.value }))} /></div>
+              <Button className="w-full" onClick={handleCreateIssue}>{t("supply.common.submit")}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -252,19 +274,19 @@ function IssuesTab() {
       {isLoading ? <LoadingSkeleton /> : (
         <div className="space-y-2">
           {issues.map((iss: any) => {
-            const st = ISSUE_STATUS[iss.status] || { label: iss.status, color: "" };
+            const st = issueStatusLabels[iss.status] || { label: iss.status, color: "" };
             return (
               <div key={iss.id} className="flex items-center gap-4 p-3 rounded-lg border hover:bg-accent/50 cursor-pointer">
                 <ArrowUpFromLine className="h-5 w-5 text-orange-500 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2"><span className="font-mono text-xs">{iss.issueCode}</span><Badge variant="outline">{iss.issueType === "production" ? "生产领料" : iss.issueType === "sales" ? "销售出库" : "报废"}</Badge></div>
-                  <p className="text-sm text-muted-foreground mt-0.5">{iss.warehouseName || "—"} | {iss.issuedByName || "—"}{iss.projectCode ? ` | 项目: ${iss.projectCode}` : ""} | {iss.createdAt}</p>
+                  <div className="flex items-center gap-2"><span className="font-mono text-xs">{iss.issueCode}</span><Badge variant="outline">{issueTypeLabels[iss.issueType] || iss.issueType}</Badge></div>
+                  <p className="text-sm text-muted-foreground mt-0.5">{iss.warehouseName || "—"} | {iss.issuedByName || "—"}{iss.projectCode ? ` | ${t("supply.warehouse.projectLabel")}: ${iss.projectCode}` : ""} | {iss.createdAt}</p>
                 </div>
                 <Badge className={st.color}>{st.label}</Badge>
               </div>
             );
           })}
-          {issues.length === 0 && !isLoading && <div className="text-center py-8 text-muted-foreground">暂无出库记录</div>}
+          {issues.length === 0 && !isLoading && <div className="text-center py-8 text-muted-foreground">{t("supply.warehouse.noIssueRecords")}</div>}
         </div>
       )}
     </div>
@@ -272,20 +294,21 @@ function IssuesTab() {
 }
 
 export default function WarehouseManagement() {
+  const { t } = useLanguage();
   const statsQuery = trpc.warehouse.getWarehouseStats.useQuery();
   const stats = statsQuery.data;
 
   return (
     <div className="space-y-6">
-      <PageHeader icon={Warehouse} title="仓库管理" description="仓库、库位、入库、出库一站式管理" />
+      <PageHeader icon={Warehouse} title={t("supply.warehouse.title")} description={t("supply.warehouse.pageDesc")} />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Warehouse} label="仓库总数" value={stats?.totalWarehouses ?? "—"} />
-        <StatCard icon={MapPin} label="库位总数" value={stats?.totalLocations ?? "—"} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={Package} label="库位利用率" value={stats?.locationUtilization != null ? `${stats.locationUtilization}%` : "—"} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
-        <StatCard icon={Clock} label="待处理单据" value={(stats?.pendingReceipts ?? 0) + (stats?.pendingIssues ?? 0) || "—"} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+        <StatCard icon={Warehouse} label={t("supply.warehouse.totalWarehouses")} value={stats?.totalWarehouses ?? "—"} />
+        <StatCard icon={MapPin} label={t("supply.warehouse.totalLocations")} value={stats?.totalLocations ?? "—"} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Package} label={t("supply.warehouse.locationUtilization")} value={stats?.locationUtilization != null ? `${stats.locationUtilization}%` : "—"} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
+        <StatCard icon={Clock} label={t("supply.warehouse.pendingDocuments")} value={(stats?.pendingReceipts ?? 0) + (stats?.pendingIssues ?? 0) || "—"} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
       <Tabs defaultValue="warehouses">
-        <TabsList><TabsTrigger value="warehouses">仓库列表</TabsTrigger><TabsTrigger value="locations">库位管理</TabsTrigger><TabsTrigger value="receipts">入库管理</TabsTrigger><TabsTrigger value="issues">出库管理</TabsTrigger></TabsList>
+        <TabsList><TabsTrigger value="warehouses">{t("supply.warehouse.warehouseList")}</TabsTrigger><TabsTrigger value="locations">{t("supply.warehouse.locationManagement")}</TabsTrigger><TabsTrigger value="receipts">{t("supply.warehouse.receiptManagement")}</TabsTrigger><TabsTrigger value="issues">{t("supply.warehouse.issueManagement")}</TabsTrigger></TabsList>
         <TabsContent value="warehouses"><WarehouseListTab /></TabsContent>
         <TabsContent value="locations"><LocationTreeTab /></TabsContent>
         <TabsContent value="receipts"><ReceiptsTab /></TabsContent>

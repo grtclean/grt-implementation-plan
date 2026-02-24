@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // 类型定义
 type TripStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'cancelled';
@@ -42,33 +43,7 @@ const statusColors: Record<TripStatus, string> = {
   cancelled: 'bg-gray-400',
 };
 
-// 状态文本映射
-const statusText: Record<TripStatus, string> = {
-  draft: '草稿',
-  pending: '待审批',
-  approved: '已批准',
-  rejected: '已拒绝',
-  in_progress: '进行中',
-  completed: '已完成',
-  cancelled: '已取消',
-};
-
-// 出差类型文本
-const tripTypeText: Record<TripType, string> = {
-  domestic: '国内出差',
-  international: '国际出差',
-};
-
-// 出差目的文本
-const purposeText: Record<TripPurpose, string> = {
-  customer_visit: '客户拜访',
-  installation: '设备安装',
-  maintenance: '设备维护',
-  training: '培训',
-  meeting: '会议',
-  exhibition: '展会',
-  other: '其他',
-};
+// statusText, tripTypeText, purposeText, transportText are defined inside the component to access t()
 
 // 交通方式图标
 const transportIcons: Record<TransportMode, React.ReactNode> = {
@@ -80,18 +55,46 @@ const transportIcons: Record<TransportMode, React.ReactNode> = {
   other: <MapPin className="w-4 h-4" />,
 };
 
-// 交通方式文本
-const transportText: Record<TransportMode, string> = {
-  flight: '飞机',
-  train: '火车',
-  bus: '大巴',
-  car: '汽车',
-  ship: '轮船',
-  other: '其他',
-};
+// transportText is defined inside the component to access t()
 
 export default function TripRequest() {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
+
+  const statusText: Record<TripStatus, string> = {
+    draft: t("finance.trip.statusDraft"),
+    pending: t("finance.trip.statusPending"),
+    approved: t("finance.trip.statusApproved"),
+    rejected: t("finance.trip.statusRejected"),
+    in_progress: t("finance.trip.statusInProgress"),
+    completed: t("finance.trip.statusCompleted"),
+    cancelled: t("finance.trip.statusCancelled"),
+  };
+
+  const tripTypeText: Record<TripType, string> = {
+    domestic: t("finance.trip.domestic"),
+    international: t("finance.trip.international"),
+  };
+
+  const purposeText: Record<TripPurpose, string> = {
+    customer_visit: t("finance.trip.purposeCustomerVisit"),
+    installation: t("finance.trip.purposeInstallation"),
+    maintenance: t("finance.trip.purposeMaintenance"),
+    training: t("finance.trip.purposeTraining"),
+    meeting: t("finance.trip.purposeMeeting"),
+    exhibition: t("finance.trip.purposeExhibition"),
+    other: t("finance.trip.purposeOther"),
+  };
+
+  const transportText: Record<TransportMode, string> = {
+    flight: t("finance.trip.transportFlight"),
+    train: t("finance.trip.transportTrain"),
+    bus: t("finance.trip.transportBus"),
+    car: t("finance.trip.transportCar"),
+    ship: t("finance.trip.transportShip"),
+    other: t("finance.trip.transportOther"),
+  };
+
   const [activeTab, setActiveTab] = useState("list");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<any>(null);
@@ -142,53 +145,53 @@ export default function TripRequest() {
 
   const createMutation = trpc.tripRequest.create.useMutation({
     onSuccess: () => {
-      toast.success('出差申请创建成功');
+      toast.success(t("finance.trip.createSuccess"));
       setShowCreateDialog(false);
       resetForm();
       refetchList();
     },
     onError: (error) => {
-      toast.error(`创建失败: ${error.message}`);
+      toast.error(error.message);
     },
   });
 
   const submitMutation = trpc.tripRequest.submit.useMutation({
     onSuccess: () => {
-      toast.success('出差申请已提交审批');
+      toast.success(t("finance.trip.submitSuccess"));
       refetchList();
     },
     onError: (error) => {
-      toast.error(`提交失败: ${error.message}`);
+      toast.error(error.message);
     },
   });
 
   const cancelMutation = trpc.tripRequest.cancel.useMutation({
     onSuccess: () => {
-      toast.success('出差申请已取消');
+      toast.success(t("finance.trip.cancelSuccess"));
       refetchList();
     },
     onError: (error) => {
-      toast.error(`取消失败: ${error.message}`);
+      toast.error(error.message);
     },
   });
 
   const startMutation = trpc.tripRequest.start.useMutation({
     onSuccess: () => {
-      toast.success('出差已开始');
+      toast.success(t("finance.trip.startSuccess"));
       refetchList();
     },
     onError: (error) => {
-      toast.error(`操作失败: ${error.message}`);
+      toast.error(error.message);
     },
   });
 
   const completeMutation = trpc.tripRequest.complete.useMutation({
     onSuccess: () => {
-      toast.success('出差已完成');
+      toast.success(t("finance.trip.completeSuccess"));
       refetchList();
     },
     onError: (error) => {
-      toast.error(`操作失败: ${error.message}`);
+      toast.error(error.message);
     },
   });
 
@@ -272,7 +275,7 @@ export default function TripRequest() {
   // 提交创建
   const handleCreate = () => {
     if (!formData.departureDate || !formData.returnDate || !formData.departureCity || !formData.destinations[0]) {
-      toast.error('请填写必填字段');
+      toast.error(t("finance.trip.fillRequired"));
       return;
     }
 
@@ -302,29 +305,29 @@ export default function TripRequest() {
       {/* 页面标题 */}
       <PageHeader
         icon={Plane}
-        title="出差申请管理"
-        description="管理您的出差申请、行程安排和审批状态"
+        title={t("finance.trip.title")}
+        description={t("finance.trip.desc")}
         actions={
           <Button onClick={() => setShowCreateDialog(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            新建出差申请
+            {t("finance.trip.newTrip")}
           </Button>
         }
       />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={FileText} label="总申请数" value={(statistics as any)?.total || 0} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={Clock} label="待审批" value={(statistics as any)?.byStatus?.pending || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
-        <StatCard icon={Plane} label="进行中" value={(statistics as any)?.byStatus?.in_progress || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={DollarSign} label="预算总额" value={`¥${((statistics as any)?.totalBudget || 0).toLocaleString()}`} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={FileText} label={t("finance.trip.totalRequests")} value={(statistics as any)?.total || 0} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Clock} label={t("finance.trip.pendingApproval")} value={(statistics as any)?.byStatus?.pending || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+        <StatCard icon={Plane} label={t("finance.trip.inProgress")} value={(statistics as any)?.byStatus?.in_progress || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={DollarSign} label={t("finance.trip.budgetTotal")} value={`¥${((statistics as any)?.totalBudget || 0).toLocaleString()}`} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       {/* 出差申请列表 */}
       <Card>
         <CardHeader>
-          <CardTitle>我的出差申请</CardTitle>
-          <CardDescription>查看和管理您的所有出差申请</CardDescription>
+          <CardTitle>{t("finance.trip.myTrips")}</CardTitle>
+          <CardDescription>{t("finance.trip.myTripsDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {listLoading ? (
@@ -368,7 +371,7 @@ export default function TripRequest() {
                     </span>
                     <Button variant="outline" size="sm" onClick={() => handleViewDetail(trip)}>
                       <Eye className="w-4 h-4 mr-1" />
-                      详情
+                      {t("finance.trip.details")}
                     </Button>
                     {trip.status === 'draft' && (
                       <>
@@ -378,15 +381,15 @@ export default function TripRequest() {
                           disabled={submitMutation.isPending}
                         >
                           <Send className="w-4 h-4 mr-1" />
-                          提交
+                          {t("finance.trip.submit")}
                         </Button>
-                        <Button 
-                          variant="destructive" 
+                        <Button
+                          variant="destructive"
                           size="sm"
                           onClick={() => cancelMutation.mutate({ id: trip.id })}
                           disabled={cancelMutation.isPending}
                         >
-                          取消
+                          {t("finance.trip.cancel")}
                         </Button>
                       </>
                     )}
@@ -396,7 +399,7 @@ export default function TripRequest() {
                         onClick={() => startMutation.mutate({ id: trip.id })}
                         disabled={startMutation.isPending}
                       >
-                        开始出差
+                        {t("finance.trip.startTrip")}
                       </Button>
                     )}
                     {trip.status === 'in_progress' && (
@@ -405,7 +408,7 @@ export default function TripRequest() {
                         onClick={() => completeMutation.mutate({ id: trip.id })}
                         disabled={completeMutation.isPending}
                       >
-                        完成出差
+                        {t("finance.trip.completeTrip")}
                       </Button>
                     )}
                   </div>
@@ -415,9 +418,9 @@ export default function TripRequest() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Plane className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>暂无出差申请</p>
+              <p>{t("finance.trip.noTrips")}</p>
               <Button variant="outline" className="mt-4" onClick={() => setShowCreateDialog(true)}>
-                创建第一个出差申请
+                {t("finance.trip.createFirst")}
               </Button>
             </div>
           )}
@@ -428,21 +431,21 @@ export default function TripRequest() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>新建出差申请</DialogTitle>
-            <DialogDescription>填写出差信息和行程安排</DialogDescription>
+            <DialogTitle>{t("finance.trip.createDialog")}</DialogTitle>
+            <DialogDescription>{t("finance.trip.createDialogDesc")}</DialogDescription>
           </DialogHeader>
 
           <Tabs defaultValue="basic" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="basic">基本信息</TabsTrigger>
-              <TabsTrigger value="itinerary">行程安排</TabsTrigger>
-              <TabsTrigger value="other">其他信息</TabsTrigger>
+              <TabsTrigger value="basic">{t("finance.trip.basicInfo")}</TabsTrigger>
+              <TabsTrigger value="itinerary">{t("finance.trip.itinerary")}</TabsTrigger>
+              <TabsTrigger value="other">{t("finance.trip.otherInfo")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="basic" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>出差类型 *</Label>
+                  <Label>{t("finance.trip.tripType")} *</Label>
                   <Select 
                     value={formData.tripType} 
                     onValueChange={(v) => setFormData(prev => ({ ...prev, tripType: v as TripType }))}
@@ -451,13 +454,13 @@ export default function TripRequest() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="domestic">国内出差</SelectItem>
-                      <SelectItem value="international">国际出差</SelectItem>
+                      <SelectItem value="domestic">{t("finance.trip.domestic")}</SelectItem>
+                      <SelectItem value="international">{t("finance.trip.international")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>出差目的 *</Label>
+                  <Label>{t("finance.trip.purpose")} *</Label>
                   <Select 
                     value={formData.purpose} 
                     onValueChange={(v) => setFormData(prev => ({ ...prev, purpose: v as TripPurpose }))}
@@ -475,9 +478,9 @@ export default function TripRequest() {
               </div>
 
               <div className="space-y-2">
-                <Label>出差说明</Label>
-                <Textarea 
-                  placeholder="详细描述出差目的和计划..."
+                <Label>{t("finance.trip.purposeDescription")}</Label>
+                <Textarea
+                  placeholder={t("finance.trip.purposeDescPlaceholder")}
                   value={formData.purposeDescription}
                   onChange={(e) => setFormData(prev => ({ ...prev, purposeDescription: e.target.value }))}
                 />
@@ -485,7 +488,7 @@ export default function TripRequest() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>出发日期 *</Label>
+                  <Label>{t("finance.trip.departureDate")} *</Label>
                   <Input 
                     type="date"
                     value={formData.departureDate}
@@ -493,7 +496,7 @@ export default function TripRequest() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>返回日期 *</Label>
+                  <Label>{t("finance.trip.returnDate")} *</Label>
                   <Input 
                     type="date"
                     value={formData.returnDate}
@@ -503,16 +506,16 @@ export default function TripRequest() {
               </div>
 
               <div className="space-y-2">
-                <Label>出发城市 *</Label>
-                <Input 
-                  placeholder="例如：上海"
+                <Label>{t("finance.trip.departureCity")} *</Label>
+                <Input
+                  placeholder={t("finance.trip.departureCityPlaceholder")}
                   value={formData.departureCity}
                   onChange={(e) => setFormData(prev => ({ ...prev, departureCity: e.target.value }))}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>目的地 *</Label>
+                <Label>{t("finance.trip.destinations")} *</Label>
                 {formData.destinations.map((dest, index) => (
                   <div key={index} className="flex gap-2">
                     <Input 
@@ -529,13 +532,13 @@ export default function TripRequest() {
                 ))}
                 <Button variant="outline" size="sm" onClick={addDestination}>
                   <Plus className="w-4 h-4 mr-1" />
-                  添加目的地
+                  {t("finance.trip.addDestination")}
                 </Button>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>预估预算 *</Label>
+                  <Label>{t("finance.trip.estimatedBudget")} *</Label>
                   <Input 
                     type="number"
                     placeholder="0"
@@ -544,7 +547,7 @@ export default function TripRequest() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>货币</Label>
+                  <Label>{t("finance.trip.currencyLabel")}</Label>
                   <Select 
                     value={formData.currency} 
                     onValueChange={(v) => setFormData(prev => ({ ...prev, currency: v }))}
@@ -553,10 +556,10 @@ export default function TripRequest() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CNY">人民币 (CNY)</SelectItem>
-                      <SelectItem value="USD">美元 (USD)</SelectItem>
-                      <SelectItem value="EUR">欧元 (EUR)</SelectItem>
-                      <SelectItem value="JPY">日元 (JPY)</SelectItem>
+                      <SelectItem value="CNY">{t("finance.trip.cny")}</SelectItem>
+                      <SelectItem value="USD">{t("finance.trip.usd")}</SelectItem>
+                      <SelectItem value="EUR">{t("finance.trip.eur")}</SelectItem>
+                      <SelectItem value="JPY">{t("finance.trip.jpy")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -565,19 +568,19 @@ export default function TripRequest() {
 
             <TabsContent value="itinerary" className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">添加详细的行程安排（可选）</p>
+                <p className="text-sm text-muted-foreground">{t("finance.trip.addItineraryDesc")}</p>
                 <Button variant="outline" size="sm" onClick={addItinerary}>
                   <Plus className="w-4 h-4 mr-1" />
-                  添加行程
+                  {t("finance.trip.addItinerary")}
                 </Button>
               </div>
 
               {itineraries.length === 0 ? (
                 <div className="text-center py-8 border-2 border-dashed rounded-lg">
                   <MapPin className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-muted-foreground">暂无行程安排</p>
+                  <p className="text-muted-foreground">{t("finance.trip.noItinerary")}</p>
                   <Button variant="outline" className="mt-4" onClick={addItinerary}>
-                    添加第一段行程
+                    {t("finance.trip.addFirstItinerary")}
                   </Button>
                 </div>
               ) : (
@@ -586,7 +589,7 @@ export default function TripRequest() {
                     <Card key={index}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-sm">行程 {item.sequenceNumber}</CardTitle>
+                          <CardTitle className="text-sm">{t("finance.trip.itineraryNo")} {item.sequenceNumber}</CardTitle>
                           <Button variant="ghost" size="sm" onClick={() => removeItinerary(index)}>
                             <XCircle className="w-4 h-4" />
                           </Button>
@@ -595,14 +598,14 @@ export default function TripRequest() {
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label>出发城市</Label>
-                            <Input 
+                            <Label>{t("finance.trip.departureCityLabel")}</Label>
+                            <Input
                               value={item.departureCity}
                               onChange={(e) => updateItinerary(index, 'departureCity', e.target.value)}
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>到达城市</Label>
+                            <Label>{t("finance.trip.arrivalCity")}</Label>
                             <Input 
                               value={item.arrivalCity}
                               onChange={(e) => updateItinerary(index, 'arrivalCity', e.target.value)}
@@ -611,7 +614,7 @@ export default function TripRequest() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label>出发时间</Label>
+                            <Label>{t("finance.trip.departureTime")}</Label>
                             <Input 
                               type="datetime-local"
                               value={item.departureDate}
@@ -619,7 +622,7 @@ export default function TripRequest() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>到达时间</Label>
+                            <Label>{t("finance.trip.arrivalTime")}</Label>
                             <Input 
                               type="datetime-local"
                               value={item.arrivalDate}
@@ -629,7 +632,7 @@ export default function TripRequest() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label>交通方式</Label>
+                            <Label>{t("finance.trip.transportMode")}</Label>
                             <Select 
                               value={item.transportMode}
                               onValueChange={(v) => updateItinerary(index, 'transportMode', v)}
@@ -650,7 +653,7 @@ export default function TripRequest() {
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label>预估费用</Label>
+                            <Label>{t("finance.trip.estimatedCost")}</Label>
                             <Input 
                               type="number"
                               value={item.estimatedCost || ''}
@@ -659,9 +662,9 @@ export default function TripRequest() {
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label>住宿信息</Label>
-                          <Input 
-                            placeholder="酒店名称"
+                          <Label>{t("finance.trip.accommodation")}</Label>
+                          <Input
+                            placeholder={t("finance.trip.hotelName")}
                             value={item.accommodationName}
                             onChange={(e) => updateItinerary(index, 'accommodationName', e.target.value)}
                           />
@@ -676,17 +679,17 @@ export default function TripRequest() {
             <TabsContent value="other" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>紧急联系人</Label>
-                  <Input 
-                    placeholder="姓名"
+                  <Label>{t("finance.trip.emergencyContact")}</Label>
+                  <Input
+                    placeholder={t("finance.trip.emergencyContactPlaceholder")}
                     value={formData.emergencyContact}
                     onChange={(e) => setFormData(prev => ({ ...prev, emergencyContact: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>紧急联系电话</Label>
-                  <Input 
-                    placeholder="电话号码"
+                  <Label>{t("finance.trip.emergencyPhone")}</Label>
+                  <Input
+                    placeholder={t("finance.trip.emergencyPhonePlaceholder")}
                     value={formData.emergencyPhone}
                     onChange={(e) => setFormData(prev => ({ ...prev, emergencyPhone: e.target.value }))}
                   />
@@ -694,9 +697,9 @@ export default function TripRequest() {
               </div>
 
               <div className="space-y-2">
-                <Label>特殊要求</Label>
-                <Textarea 
-                  placeholder="如有特殊需求请在此说明..."
+                <Label>{t("finance.trip.specialRequirements")}</Label>
+                <Textarea
+                  placeholder={t("finance.trip.specialRequirementsPlaceholder")}
                   value={formData.specialRequirements}
                   onChange={(e) => setFormData(prev => ({ ...prev, specialRequirements: e.target.value }))}
                 />
@@ -706,7 +709,7 @@ export default function TripRequest() {
               {expensePolicies && expensePolicies.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-sm">费用政策参考</CardTitle>
+                    <CardTitle className="text-sm">{t("finance.trip.expensePolicy")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2 text-sm">
@@ -714,7 +717,7 @@ export default function TripRequest() {
                         <div key={policy.id} className="flex justify-between">
                           <span>{policy.policyName}</span>
                           <span className="text-muted-foreground">
-                            {policy.currency} {policy.dailyLimit}/天
+                            {policy.currency} {policy.dailyLimit}{t("finance.trip.perDay")}
                           </span>
                         </div>
                       ))}
@@ -727,11 +730,11 @@ export default function TripRequest() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-              取消
+              {t("finance.trip.cancel")}
             </Button>
             <Button onClick={handleCreate} disabled={createMutation.isPending}>
               {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              创建申请
+              {t("finance.trip.createBtn")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -741,7 +744,7 @@ export default function TripRequest() {
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>出差申请详情</DialogTitle>
+            <DialogTitle>{t("finance.trip.detailTitle")}</DialogTitle>
           </DialogHeader>
           {selectedTrip && (
             <div className="space-y-4">
@@ -754,33 +757,33 @@ export default function TripRequest() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-muted-foreground">出差类型</Label>
+                  <Label className="text-muted-foreground">{t("finance.trip.tripTypeLabel")}</Label>
                   <p>{tripTypeText[selectedTrip.tripType as TripType]}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">出差目的</Label>
+                  <Label className="text-muted-foreground">{t("finance.trip.purposeLabel")}</Label>
                   <p>{purposeText[selectedTrip.purpose as TripPurpose]}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-muted-foreground">出发日期</Label>
+                  <Label className="text-muted-foreground">{t("finance.trip.departureDate")}</Label>
                   <p>{selectedTrip.departureDate}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">返回日期</Label>
+                  <Label className="text-muted-foreground">{t("finance.trip.returnDate")}</Label>
                   <p>{selectedTrip.returnDate}</p>
                 </div>
               </div>
 
               <div>
-                <Label className="text-muted-foreground">行程</Label>
+                <Label className="text-muted-foreground">{t("finance.trip.route")}</Label>
                 <p>{selectedTrip.departureCity} → {JSON.parse(selectedTrip.destinations || '[]').join(' → ')}</p>
               </div>
 
               <div>
-                <Label className="text-muted-foreground">预估预算</Label>
+                <Label className="text-muted-foreground">{t("finance.trip.budgetLabel")}</Label>
                 <p className="text-lg font-bold">
                   {selectedTrip.currency} {Number(selectedTrip.estimatedBudget).toLocaleString()}
                 </p>
@@ -788,14 +791,14 @@ export default function TripRequest() {
 
               {selectedTrip.purposeDescription && (
                 <div>
-                  <Label className="text-muted-foreground">出差说明</Label>
+                  <Label className="text-muted-foreground">{t("finance.trip.tripDescription")}</Label>
                   <p>{selectedTrip.purposeDescription}</p>
                 </div>
               )}
 
               {selectedTrip.specialRequirements && (
                 <div>
-                  <Label className="text-muted-foreground">特殊要求</Label>
+                  <Label className="text-muted-foreground">{t("finance.trip.specialReqLabel")}</Label>
                   <p>{selectedTrip.specialRequirements}</p>
                 </div>
               )}

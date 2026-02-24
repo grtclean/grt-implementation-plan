@@ -3,6 +3,7 @@
  * 工单关闭自动推送满意度问卷 · NPS评分 · 趋势分析
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ interface SurveyResult {
 }
 
 export default function NPSSurveyAutomation() {
+  const { t } = useLanguage();
   const [ticketId, setTicketId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [serviceType, setServiceType] = useState("设备安装");
@@ -72,9 +74,9 @@ export default function NPSSurveyAutomation() {
 
   const trendLabel = (trend: string) => {
     switch (trend) {
-      case "up": return "上升趋势";
-      case "down": return "下降趋势";
-      default: return "持平";
+      case "up": return t("afterSales.nps.trendUp");
+      case "down": return t("afterSales.nps.trendDown");
+      default: return t("afterSales.nps.trendFlat");
     }
   };
 
@@ -98,11 +100,11 @@ export default function NPSSurveyAutomation() {
 
   const typeLabel = (type: string) => {
     switch (type) {
-      case "rating": return "评分";
+      case "rating": return t("afterSales.nps.typeRating");
       case "nps": return "NPS";
-      case "text": return "文本";
-      case "multiple_choice": return "多选";
-      case "single_choice": return "单选";
+      case "text": return t("afterSales.nps.typeText");
+      case "multiple_choice": return t("afterSales.nps.typeMultiple");
+      case "single_choice": return t("afterSales.nps.typeSingle");
       default: return type;
     }
   };
@@ -117,12 +119,12 @@ export default function NPSSurveyAutomation() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={MessageCircle}
-          title="NPS满意度自动化"
-          description="工单关闭自动推送满意度问卷 · NPS评分 · 趋势分析"
+          title={t("afterSales.nps.title")}
+          description={t("afterSales.nps.desc")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI问卷
+              {t("afterSales.nps.aiBadge")}
             </Badge>
           }
         />
@@ -132,26 +134,26 @@ export default function NPSSurveyAutomation() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <MessageCircle className="h-5 w-5 text-primary" />
-              工单与服务信息
+              {t("afterSales.nps.serviceInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">工单编号 *</label>
-                <Input placeholder="如: TK-2026-0456" value={ticketId} onChange={(e) => setTicketId(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("afterSales.nps.ticketId")}</label>
+                <Input placeholder={t("afterSales.nps.ticketIdPlaceholder")} value={ticketId} onChange={(e) => setTicketId(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">客户名称 *</label>
-                <Input placeholder="如: 深圳XX精密制造有限公司" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("afterSales.nps.customerName")}</label>
+                <Input placeholder={t("afterSales.nps.customerNamePlaceholder")} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">服务类型 *</label>
+                <label className="text-sm text-muted-foreground">{t("afterSales.nps.serviceType")}</label>
                 <Select value={serviceType} onValueChange={(v) => setServiceType(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择服务类型" />
+                    <SelectValue placeholder={t("afterSales.nps.selectServiceType")} />
                   </SelectTrigger>
                   <SelectContent>
                     {SERVICE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
@@ -159,22 +161,22 @@ export default function NPSSurveyAutomation() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">服务工程师 *</label>
-                <Input placeholder="如: 李工" value={engineerName} onChange={(e) => setEngineerName(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("afterSales.nps.engineerName")}</label>
+                <Input placeholder={t("afterSales.nps.engineerNamePlaceholder")} value={engineerName} onChange={(e) => setEngineerName(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">处理结果摘要 *</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="如: 更换真空泵密封圈，调整真空管路连接，设备真空度恢复至-0.095MPa，通过性能测试" value={resolutionSummary} onChange={(e) => setResolutionSummary(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("afterSales.nps.resolutionSummary")}</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder={t("afterSales.nps.resolutionSummaryPlaceholder")} value={resolutionSummary} onChange={(e) => setResolutionSummary(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">历史NPS数据（可选）</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder="历史NPS数据，如: 上季度NPS均值8.2，上月NPS均值7.8" value={historicalNPS} onChange={(e) => setHistoricalNPS(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("afterSales.nps.historicalData")}</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder={t("afterSales.nps.historicalDataPlaceholder")} value={historicalNPS} onChange={(e) => setHistoricalNPS(e.target.value)} />
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!ticketId.trim() || !customerName.trim() || !engineerName.trim() || !resolutionSummary.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                生成问卷
+                {t("afterSales.nps.generateBtn")}
               </Button>
             </div>
           </CardContent>
@@ -187,11 +189,11 @@ export default function NPSSurveyAutomation() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <Badge variant="outline" className="text-base px-3 py-1">问卷 {result.surveyId}</Badge>
-                  <span className="text-sm text-muted-foreground">客户: {result.customerName}</span>
+                  <Badge variant="outline" className="text-base px-3 py-1">{t("afterSales.nps.survey")} {result.surveyId}</Badge>
+                  <span className="text-sm text-muted-foreground">{t("afterSales.nps.customer")}: {result.customerName}</span>
                 </div>
                 <div className="p-4 rounded bg-purple-500/10 border border-purple-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">NPS核心问题</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t("afterSales.nps.coreQuestion")}</p>
                   <p className="font-medium">{result.npsQuestion}</p>
                 </div>
               </CardContent>
@@ -203,7 +205,7 @@ export default function NPSSurveyAutomation() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ListChecks className="h-5 w-5 text-primary" />
-                    问卷问题 ({result.questions.length})
+                    {t("afterSales.nps.surveyQuestions")} ({result.questions.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -238,25 +240,25 @@ export default function NPSSurveyAutomation() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BarChart3 className="h-5 w-5 text-primary" />
-                  趋势分析
+                  {t("afterSales.nps.trendAnalysis")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="p-4 rounded bg-muted/50 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">本期NPS均值</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t("afterSales.nps.currentPeriodAvg")}</p>
                     <p className={`text-3xl font-bold ${npsScoreColor(result.trendAnalysis.currentPeriodAvg)}`}>
                       {result.trendAnalysis.currentPeriodAvg}
                     </p>
                   </div>
                   <div className="p-4 rounded bg-muted/50 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">上期NPS均值</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t("afterSales.nps.previousPeriodAvg")}</p>
                     <p className={`text-3xl font-bold ${npsScoreColor(result.trendAnalysis.previousPeriodAvg)}`}>
                       {result.trendAnalysis.previousPeriodAvg}
                     </p>
                   </div>
                   <div className="p-4 rounded bg-muted/50 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">趋势</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t("afterSales.nps.trend")}</p>
                     <div className="flex items-center justify-center gap-2 mt-1">
                       {trendIcon(result.trendAnalysis.trend)}
                       <Badge className={trendColor(result.trendAnalysis.trend)}>
@@ -267,7 +269,7 @@ export default function NPSSurveyAutomation() {
                 </div>
                 {result.trendAnalysis.topIssues.length > 0 && (
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">主要问题</p>
+                    <p className="text-sm text-muted-foreground mb-2">{t("afterSales.nps.topIssues")}</p>
                     <ul className="space-y-2">
                       {result.trendAnalysis.topIssues.map((issue, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-sm">
@@ -287,7 +289,7 @@ export default function NPSSurveyAutomation() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("afterSales.nps.aiRecommendations")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

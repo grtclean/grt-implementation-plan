@@ -3,6 +3,7 @@
  * Phase F: 薪酬竞争力 · 市场对标 · 公平性分析 · 调薪建议
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ interface CompensationResult {
 }
 
 export default function AICompensationAnalysis() {
+  const { t } = useLanguage();
   const [position, setPosition] = useState("");
   const [department, setDepartment] = useState(DEPARTMENTS[0]);
   const [experienceYears, setExperienceYears] = useState("");
@@ -82,9 +84,9 @@ export default function AICompensationAnalysis() {
 
   const positionLabel = (pos: string) => {
     switch (pos) {
-      case "above": return "高于市场";
-      case "at": return "匹配市场";
-      case "below": return "低于市场";
+      case "above": return t("ai.compensation.aboveMarket");
+      case "at": return t("ai.compensation.atMarket");
+      case "below": return t("ai.compensation.belowMarket");
       default: return pos;
     }
   };
@@ -107,12 +109,12 @@ export default function AICompensationAnalysis() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={DollarSign}
-          title="AI薪酬分析"
-          description="薪酬竞争力 · 市场对标 · 公平性分析 · 调薪建议"
+          title={t("ai.compensation.title")}
+          description={t("ai.compensation.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI分析
+              {t("ai.compensation.aiAnalysis")}
             </Badge>
           }
         />
@@ -122,20 +124,20 @@ export default function AICompensationAnalysis() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <DollarSign className="h-5 w-5 text-primary" />
-              薪酬信息
+              {t("ai.compensation.compensationInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">岗位名称</label>
+                <label className="text-sm text-muted-foreground">{t("ai.compensation.positionName")}</label>
                 <Input placeholder="如: 高级机械工程师" value={position} onChange={(e) => setPosition(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">所属部门</label>
+                <label className="text-sm text-muted-foreground">{t("ai.compensation.department")}</label>
                 <Select value={department} onValueChange={(v) => setDepartment(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择部门" />
+                    <SelectValue placeholder={t("ai.compensation.selectDept")} />
                   </SelectTrigger>
                   <SelectContent>
                     {DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
@@ -145,39 +147,39 @@ export default function AICompensationAnalysis() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">工作年限</label>
+                <label className="text-sm text-muted-foreground">{t("ai.compensation.experience")}</label>
                 <Input type="number" placeholder="如: 8" value={experienceYears} onChange={(e) => setExperienceYears(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">当前年薪（万元）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.compensation.currentSalary")}</label>
                 <Input type="number" placeholder="如: 25" value={currentSalary} onChange={(e) => setCurrentSalary(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">工作地点（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.compensation.location")}</label>
                 <Input placeholder="如: 上海" value={location} onChange={(e) => setLocation(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">绩效等级（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.compensation.performanceGrade")}</label>
                 <Select value={performanceGrade || "__unspecified__"} onValueChange={(v) => setPerformanceGrade(v === "__unspecified__" ? "" : v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="不指定" />
+                    <SelectValue placeholder={t("ai.compensation.unspecified")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__unspecified__">不指定</SelectItem>
+                    <SelectItem value="__unspecified__">{t("ai.compensation.unspecified")}</SelectItem>
                     {PERFORMANCE_GRADES.map((g) => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">学历（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.compensation.education")}</label>
                 <Select value={education || "__unspecified__"} onValueChange={(v) => setEducation(v === "__unspecified__" ? "" : v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="不指定" />
+                    <SelectValue placeholder={t("ai.compensation.unspecified")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__unspecified__">不指定</SelectItem>
+                    <SelectItem value="__unspecified__">{t("ai.compensation.unspecified")}</SelectItem>
                     {EDUCATION_LEVELS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -186,7 +188,7 @@ export default function AICompensationAnalysis() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!position.trim() || !experienceYears || !currentSalary || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI分析
+                {t("ai.compensation.aiAnalysis")}
               </Button>
             </div>
           </CardContent>
@@ -200,7 +202,7 @@ export default function AICompensationAnalysis() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">竞争力评分</p>
+                    <p className="text-sm text-muted-foreground">{t("ai.compensation.competitivenessScore")}</p>
                     <p className={`text-5xl font-bold ${scoreColor(result.competitivenessScore)}`}>{result.competitivenessScore}</p>
                   </div>
                   <Badge className={`text-lg px-4 py-2 ${positionColor(result.marketPosition)}`}>
@@ -221,7 +223,7 @@ export default function AICompensationAnalysis() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BarChart3 className="h-5 w-5 text-primary" />
-                  薪酬区间（万元/年）
+                  {t("ai.compensation.salaryRange")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -244,16 +246,16 @@ export default function AICompensationAnalysis() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <div className="text-center">
-                      <p className="text-muted-foreground">最低</p>
-                      <p className="font-medium">{result.salaryRange.min}万</p>
+                      <p className="text-muted-foreground">{t("ai.compensation.minimum")}</p>
+                      <p className="font-medium">{result.salaryRange.min}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-muted-foreground">中位</p>
-                      <p className="font-medium text-blue-400">{result.salaryRange.mid}万</p>
+                      <p className="text-muted-foreground">{t("ai.compensation.median")}</p>
+                      <p className="font-medium text-blue-400">{result.salaryRange.mid}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-muted-foreground">最高</p>
-                      <p className="font-medium">{result.salaryRange.max}万</p>
+                      <p className="text-muted-foreground">{t("ai.compensation.maximum")}</p>
+                      <p className="font-medium">{result.salaryRange.max}</p>
                     </div>
                   </div>
                 </div>
@@ -265,16 +267,16 @@ export default function AICompensationAnalysis() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <TrendingUp className="h-5 w-5 text-primary" />
-                  分析详情
+                  {t("ai.compensation.analysisDetails")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">公平性分析</p>
+                  <p className="text-sm font-medium">{t("ai.compensation.equityAnalysis")}</p>
                   <p className="text-sm text-muted-foreground">{result.equityAnalysis}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">调薪建议</p>
+                  <p className="text-sm font-medium">{t("ai.compensation.adjustmentSuggestion")}</p>
                   <p className="text-sm text-muted-foreground">{result.adjustmentSuggestion}</p>
                 </div>
               </CardContent>
@@ -286,7 +288,7 @@ export default function AICompensationAnalysis() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Shield className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("ai.compensation.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

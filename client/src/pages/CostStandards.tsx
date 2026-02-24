@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ── Types inferred from backend ──
 type CostStandard = {
@@ -72,19 +73,20 @@ const APPLY_TO_LABELS: Record<string, string> = {
 
 // ── Labor Cost Tab ──
 function LaborCostTab({ items, onEdit }: { items: CostStandard[]; onEdit: (item: CostStandard) => void }) {
+  const { t } = useLanguage();
   const labor = items.filter(i => i.category === "labor");
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">按角色设置标准工时费率，适用于项目成本核算</p>
+        <p className="text-sm text-muted-foreground">{t("finance.costStd.laborDesc")}</p>
       </div>
       {labor.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">暂无人工成本标准数据</div>
+        <div className="text-center py-12 text-muted-foreground">{t("finance.costStd.noLaborData")}</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b text-left text-muted-foreground">
-              <th className="p-2">角色</th><th className="p-2">英文名</th><th className="p-2 text-right">时薪(元)</th><th className="p-2 text-right">日薪(元)</th><th className="p-2 text-right">加班倍率</th><th className="p-2">生效日期</th><th className="p-2">状态</th><th className="p-2">操作</th>
+              <th className="p-2">{t("finance.costStd.thRole")}</th><th className="p-2">{t("finance.costStd.thEnName")}</th><th className="p-2 text-right">{t("finance.costStd.thHourlyRate")}</th><th className="p-2 text-right">{t("finance.costStd.thDailyRate")}</th><th className="p-2 text-right">{t("finance.costStd.thOvertimeRate")}</th><th className="p-2">{t("finance.costStd.thEffectiveDate")}</th><th className="p-2">{t("finance.costStd.thStatus")}</th><th className="p-2">{t("finance.costStd.thActions")}</th>
             </tr></thead>
             <tbody>{labor.map(lr => (
               <tr key={lr.id} className="border-b hover:bg-accent/30">
@@ -94,7 +96,7 @@ function LaborCostTab({ items, onEdit }: { items: CostStandard[]; onEdit: (item:
                 <td className="p-2 text-right font-mono">{lr.dailyRate || "-"}</td>
                 <td className="p-2 text-right">{lr.overtimeMultiplier || "1.5"}x</td>
                 <td className="p-2 text-muted-foreground">{lr.effectiveFrom || "-"}</td>
-                <td className="p-2"><Badge className={lr.isActive !== false ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>{lr.isActive !== false ? "生效" : "停用"}</Badge></td>
+                <td className="p-2"><Badge className={lr.isActive !== false ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>{lr.isActive !== false ? t("finance.costStd.statusActive") : t("finance.costStd.statusInactive")}</Badge></td>
                 <td className="p-2"><Button variant="ghost" size="icon" onClick={() => onEdit(lr)}><Pencil className="h-3.5 w-3.5" /></Button></td>
               </tr>
             ))}</tbody>
@@ -107,14 +109,23 @@ function LaborCostTab({ items, onEdit }: { items: CostStandard[]; onEdit: (item:
 
 // ── Overhead Tab ──
 function OverheadTab({ items, onEdit }: { items: CostStandard[]; onEdit: (item: CostStandard) => void }) {
+  const { t } = useLanguage();
+  const ALLOCATION_LABELS_L: Record<string, string> = {
+    direct_labor_hours: t("finance.costStd.allocationByLaborHours"),
+    machine_hours: t("finance.costStd.allocationByMachineHours"),
+    production_units: t("finance.costStd.allocationByUnits"),
+    project_count: t("finance.costStd.allocationByProject"),
+    floor_area: t("finance.costStd.allocationByArea"),
+    revenue: t("finance.costStd.allocationByRevenue"),
+  };
   const overhead = items.filter(i => i.category === "overhead");
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">制造费用按不同分摊基准分配到项目/产品</p>
+        <p className="text-sm text-muted-foreground">{t("finance.costStd.overheadDesc")}</p>
       </div>
       {overhead.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">暂无制造费用标准数据</div>
+        <div className="text-center py-12 text-muted-foreground">{t("finance.costStd.noOverheadData")}</div>
       ) : (
         <div className="grid gap-4">
           {overhead.map(oc => (
@@ -123,11 +134,11 @@ function OverheadTab({ items, onEdit }: { items: CostStandard[]; onEdit: (item: 
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold">{oc.name}</p>
-                    <p className="text-sm text-muted-foreground mt-1">分摊方式: {ALLOCATION_LABELS[oc.allocationBase || ""] || oc.allocationBase || "-"}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("finance.costStd.allocationMethod")}: {ALLOCATION_LABELS_L[oc.allocationBase || ""] || oc.allocationBase || "-"}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-mono font-bold">{oc.monthlyAmount ? `${(Number(oc.monthlyAmount) / 10000).toFixed(1)}万/月` : "-"}</p>
-                    <p className="text-sm text-muted-foreground">费率: {oc.allocationRate || "-"} {oc.allocationUnit || ""}</p>
+                    <p className="text-lg font-mono font-bold">{oc.monthlyAmount ? `${(Number(oc.monthlyAmount) / 10000).toFixed(1)}${t("finance.costStd.perMonth")}` : "-"}</p>
+                    <p className="text-sm text-muted-foreground">{t("finance.costStd.rateLabel")}: {oc.allocationRate || "-"} {oc.allocationUnit || ""}</p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => onEdit(oc)}><Pencil className="h-4 w-4" /></Button>
                 </div>
@@ -142,26 +153,32 @@ function OverheadTab({ items, onEdit }: { items: CostStandard[]; onEdit: (item: 
 
 // ── Material Markup Tab ──
 function MaterialMarkupTab({ items, onEdit }: { items: CostStandard[]; onEdit: (item: CostStandard) => void }) {
+  const { t } = useLanguage();
+  const APPLY_TO_LABELS_L: Record<string, string> = {
+    all: t("finance.costStd.scopeAll"),
+    imported: t("finance.costStd.scopeImported"),
+    domestic: t("finance.costStd.scopeDomestic"),
+  };
   const markups = items.filter(i => i.category === "material_markup");
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">按物料类别设置加价规则，覆盖运输、仓储、关税等附加成本</p>
+        <p className="text-sm text-muted-foreground">{t("finance.costStd.markupDesc")}</p>
       </div>
       {markups.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">暂无物料加价规则数据</div>
+        <div className="text-center py-12 text-muted-foreground">{t("finance.costStd.noMarkupData")}</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b text-left text-muted-foreground">
-              <th className="p-2">物料类别</th><th className="p-2 text-right">加价比例</th><th className="p-2 text-right">最低加价(元)</th><th className="p-2">适用范围</th><th className="p-2">备注</th><th className="p-2">操作</th>
+              <th className="p-2">{t("finance.costStd.thMaterialType")}</th><th className="p-2 text-right">{t("finance.costStd.thMarkupRate")}</th><th className="p-2 text-right">{t("finance.costStd.thMinMarkup")}</th><th className="p-2">{t("finance.costStd.thScope")}</th><th className="p-2">{t("finance.costStd.thNotes")}</th><th className="p-2">{t("finance.costStd.thActions")}</th>
             </tr></thead>
             <tbody>{markups.map(mm => (
               <tr key={mm.id} className="border-b hover:bg-accent/30">
                 <td className="p-2 font-medium">{mm.name}</td>
                 <td className="p-2 text-right font-mono"><span className="flex items-center justify-end gap-1"><Percent className="h-3 w-3" />{mm.markupPercent || "-"}</span></td>
                 <td className="p-2 text-right font-mono">{mm.minMarkup || "-"}</td>
-                <td className="p-2"><Badge variant="outline">{APPLY_TO_LABELS[mm.applyTo || "all"] || mm.applyTo}</Badge></td>
+                <td className="p-2"><Badge variant="outline">{APPLY_TO_LABELS_L[mm.applyTo || "all"] || mm.applyTo}</Badge></td>
                 <td className="p-2 text-muted-foreground">{mm.description || "-"}</td>
                 <td className="p-2"><Button variant="ghost" size="icon" onClick={() => onEdit(mm)}><Pencil className="h-3.5 w-3.5" /></Button></td>
               </tr>
@@ -175,14 +192,15 @@ function MaterialMarkupTab({ items, onEdit }: { items: CostStandard[]; onEdit: (
 
 // ── Product Config Tab ──
 function ProductConfigTab({ items, onAdd, onEdit }: { items: ProductConfig[]; onAdd: () => void; onEdit: (item: ProductConfig) => void }) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">设备型号与标准BOM关联，自动计算基准成本与毛利</p>
-        <Button size="sm" onClick={onAdd}><Plus className="h-4 w-4 mr-1" />新增产品配置</Button>
+        <p className="text-sm text-muted-foreground">{t("finance.costStd.productDesc")}</p>
+        <Button size="sm" onClick={onAdd}><Plus className="h-4 w-4 mr-1" />{t("finance.costStd.newProductConfig")}</Button>
       </div>
       {items.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">暂无产品配置数据</div>
+        <div className="text-center py-12 text-muted-foreground">{t("finance.costStd.noProductData")}</div>
       ) : (
         <div className="grid gap-4">
           {items.map(pc => {
@@ -203,14 +221,14 @@ function ProductConfigTab({ items, onAdd, onEdit }: { items: ProductConfig[]; on
                       </div>
                       <p className="font-medium mt-1">{pc.productName}</p>
                       <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                        <span>物料: {(matCost / 10000).toFixed(1)}万</span>
-                        <span>人工: {(labCost / 10000).toFixed(1)}万</span>
-                        <span>制造费用: {(ovhCost / 10000).toFixed(1)}万</span>
+                        <span>{t("finance.costStd.material")}: {(matCost / 10000).toFixed(1)}万</span>
+                        <span>{t("finance.costStd.laborCost")}: {(labCost / 10000).toFixed(1)}万</span>
+                        <span>{t("finance.costStd.overheadCost")}: {(ovhCost / 10000).toFixed(1)}万</span>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold">{(price / 10000).toFixed(1)}万</p>
-                      <Badge className={margin >= 22 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}>毛利 {margin.toFixed(1)}%</Badge>
+                      <Badge className={margin >= 22 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}>{t("finance.costStd.grossMargin")} {margin.toFixed(1)}%</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -244,20 +262,21 @@ function CostStandardDialog({
     setForm(getFormDefaults(editItem, category));
   }
 
+  const { t } = useLanguage();
   const createMut = trpc.costStandards.create.useMutation({
-    onSuccess: () => { toast.success("创建成功"); utils.costStandards.list.invalidate(); onOpenChange(false); },
-    onError: (e) => toast.error(`创建失败: ${e.message}`),
+    onSuccess: () => { toast.success(t("finance.costStd.createOk")); utils.costStandards.list.invalidate(); onOpenChange(false); },
+    onError: (e) => toast.error(`${t("finance.costStd.createFail")}: ${e.message}`),
   });
   const updateMut = trpc.costStandards.update.useMutation({
-    onSuccess: () => { toast.success("更新成功"); utils.costStandards.list.invalidate(); onOpenChange(false); },
-    onError: (e) => toast.error(`更新失败: ${e.message}`),
+    onSuccess: () => { toast.success(t("finance.costStd.updateOk")); utils.costStandards.list.invalidate(); onOpenChange(false); },
+    onError: (e) => toast.error(`${t("finance.costStd.updateFail")}: ${e.message}`),
   });
 
   const saving = createMut.isPending || updateMut.isPending;
 
   const handleSave = () => {
-    if (!form.name.trim()) { toast.error("请输入名称"); return; }
-    if (!isEdit && !form.code.trim()) { toast.error("请输入编码"); return; }
+    if (!form.name.trim()) { toast.error(t("finance.costStd.nameRequired")); return; }
+    if (!isEdit && !form.code.trim()) { toast.error(t("finance.costStd.codeRequired")); return; }
 
     if (isEdit) {
       const payload: Record<string, unknown> = { id: editItem!.id };
@@ -304,45 +323,45 @@ function CostStandardDialog({
     }
   };
 
-  const categoryLabels: Record<string, string> = { labor: "人工成本", overhead: "制造费用", material_markup: "物料加价" };
+  const categoryLabels: Record<string, string> = { labor: t("finance.costStd.laborStd"), overhead: t("finance.costStd.overheadStd"), material_markup: t("finance.costStd.markupStd") };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "编辑" : "添加"}{categoryLabels[category]}标准</DialogTitle>
+          <DialogTitle>{isEdit ? t("finance.costStd.editLabel") : t("finance.costStd.addLabel")}{categoryLabels[category]}{t("finance.costStd.standard")}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-3 py-2">
           {!isEdit && (
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>编码 *</Label><Input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} placeholder="如 LBR-001" /></div>
-              <div><Label>名称 *</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+              <div><Label>{t("finance.costStd.codeLabel")} *</Label><Input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} placeholder="如 LBR-001" /></div>
+              <div><Label>{t("finance.costStd.nameLabel")} *</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
             </div>
           )}
           {isEdit && (
-            <div><Label>名称 *</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+            <div><Label>{t("finance.costStd.nameLabel")} *</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
           )}
-          <div><Label>英文名</Label><Input value={form.nameEn} onChange={e => setForm({ ...form, nameEn: e.target.value })} /></div>
+          <div><Label>{t("finance.costStd.enNameLabel")}</Label><Input value={form.nameEn} onChange={e => setForm({ ...form, nameEn: e.target.value })} /></div>
 
           {category === "labor" && (
             <>
               <div className="grid grid-cols-3 gap-3">
-                <div><Label>时薪(元)</Label><Input type="number" value={form.hourlyRate} onChange={e => setForm({ ...form, hourlyRate: e.target.value })} /></div>
-                <div><Label>日薪(元)</Label><Input type="number" value={form.dailyRate} onChange={e => setForm({ ...form, dailyRate: e.target.value })} /></div>
-                <div><Label>加班倍率</Label><Input type="number" step="0.1" value={form.overtimeMultiplier} onChange={e => setForm({ ...form, overtimeMultiplier: e.target.value })} /></div>
+                <div><Label>{t("finance.costStd.hourlyRateLabel")}</Label><Input type="number" value={form.hourlyRate} onChange={e => setForm({ ...form, hourlyRate: e.target.value })} /></div>
+                <div><Label>{t("finance.costStd.dailyRateLabel")}</Label><Input type="number" value={form.dailyRate} onChange={e => setForm({ ...form, dailyRate: e.target.value })} /></div>
+                <div><Label>{t("finance.costStd.overtimeLabel")}</Label><Input type="number" step="0.1" value={form.overtimeMultiplier} onChange={e => setForm({ ...form, overtimeMultiplier: e.target.value })} /></div>
               </div>
-              <div><Label>生效日期</Label><Input type="date" value={form.effectiveFrom} onChange={e => setForm({ ...form, effectiveFrom: e.target.value })} /></div>
+              <div><Label>{t("finance.costStd.effectiveDateLabel")}</Label><Input type="date" value={form.effectiveFrom} onChange={e => setForm({ ...form, effectiveFrom: e.target.value })} /></div>
             </>
           )}
 
           {category === "overhead" && (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>月金额(元)</Label><Input type="number" value={form.monthlyAmount} onChange={e => setForm({ ...form, monthlyAmount: e.target.value })} /></div>
+                <div><Label>{t("finance.costStd.monthlyAmountLabel")}</Label><Input type="number" value={form.monthlyAmount} onChange={e => setForm({ ...form, monthlyAmount: e.target.value })} /></div>
                 <div>
-                  <Label>分摊基准</Label>
+                  <Label>{t("finance.costStd.allocationBasis")}</Label>
                   <Select value={form.allocationBase} onValueChange={v => setForm({ ...form, allocationBase: v })}>
-                    <SelectTrigger><SelectValue placeholder="选择分摊基准" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t("finance.costStd.selectAllocation")} /></SelectTrigger>
                     <SelectContent>
                       {Object.entries(ALLOCATION_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                     </SelectContent>
@@ -350,8 +369,8 @@ function CostStandardDialog({
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>费率</Label><Input type="number" value={form.allocationRate} onChange={e => setForm({ ...form, allocationRate: e.target.value })} /></div>
-                <div><Label>单位</Label><Input value={form.allocationUnit} onChange={e => setForm({ ...form, allocationUnit: e.target.value })} placeholder="元/工时" /></div>
+                <div><Label>{t("finance.costStd.rateAmountLabel")}</Label><Input type="number" value={form.allocationRate} onChange={e => setForm({ ...form, allocationRate: e.target.value })} /></div>
+                <div><Label>{t("finance.costStd.unitLabel")}</Label><Input value={form.allocationUnit} onChange={e => setForm({ ...form, allocationUnit: e.target.value })} placeholder="元/工时" /></div>
               </div>
             </>
           )}
@@ -359,29 +378,29 @@ function CostStandardDialog({
           {category === "material_markup" && (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>加价比例(%)</Label><Input type="number" value={form.markupPercent} onChange={e => setForm({ ...form, markupPercent: e.target.value })} /></div>
-                <div><Label>最低加价(元)</Label><Input type="number" value={form.minMarkup} onChange={e => setForm({ ...form, minMarkup: e.target.value })} /></div>
+                <div><Label>{t("finance.costStd.markupPercentLabel")}</Label><Input type="number" value={form.markupPercent} onChange={e => setForm({ ...form, markupPercent: e.target.value })} /></div>
+                <div><Label>{t("finance.costStd.minMarkupLabel")}</Label><Input type="number" value={form.minMarkup} onChange={e => setForm({ ...form, minMarkup: e.target.value })} /></div>
               </div>
               <div>
-                <Label>适用范围</Label>
+                <Label>{t("finance.costStd.scopeLabel")}</Label>
                 <Select value={form.applyTo} onValueChange={v => setForm({ ...form, applyTo: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">所有</SelectItem>
-                    <SelectItem value="imported">进口</SelectItem>
-                    <SelectItem value="domestic">国产</SelectItem>
+                    <SelectItem value="all">{t("finance.costStd.scopeAll")}</SelectItem>
+                    <SelectItem value="imported">{t("finance.costStd.scopeImported")}</SelectItem>
+                    <SelectItem value="domestic">{t("finance.costStd.scopeDomestic")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>备注</Label><Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+              <div><Label>{t("finance.costStd.notesLabel")}</Label><Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
             </>
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("finance.costStd.cancel")}</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-            {isEdit ? "保存" : "创建"}
+            {isEdit ? t("finance.costStd.saveBtn") : t("finance.costStd.createBtn")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -427,20 +446,21 @@ function ProductConfigDialog({
     setForm(getPCFormDefaults(editItem));
   }
 
+  const { t } = useLanguage();
   const createMut = trpc.costStandards.createProductConfig.useMutation({
-    onSuccess: () => { toast.success("产品配置已创建"); utils.costStandards.listProductConfigs.invalidate(); onOpenChange(false); },
-    onError: (e) => toast.error(`创建失败: ${e.message}`),
+    onSuccess: () => { toast.success(t("finance.costStd.productCreated")); utils.costStandards.listProductConfigs.invalidate(); onOpenChange(false); },
+    onError: (e) => toast.error(`${t("finance.costStd.createFail")}: ${e.message}`),
   });
   const updateMut = trpc.costStandards.updateProductConfig.useMutation({
-    onSuccess: () => { toast.success("产品配置已更新"); utils.costStandards.listProductConfigs.invalidate(); onOpenChange(false); },
-    onError: (e) => toast.error(`更新失败: ${e.message}`),
+    onSuccess: () => { toast.success(t("finance.costStd.productUpdated")); utils.costStandards.listProductConfigs.invalidate(); onOpenChange(false); },
+    onError: (e) => toast.error(`${t("finance.costStd.updateFail")}: ${e.message}`),
   });
 
   const saving = createMut.isPending || updateMut.isPending;
 
   const handleSave = () => {
-    if (!form.modelCode.trim()) { toast.error("请输入设备型号"); return; }
-    if (!form.productName.trim()) { toast.error("请输入产品名称"); return; }
+    if (!form.modelCode.trim()) { toast.error(t("finance.costStd.modelRequired")); return; }
+    if (!form.productName.trim()) { toast.error(t("finance.costStd.productNameRequired")); return; }
 
     if (isEdit) {
       updateMut.mutate({
@@ -471,27 +491,27 @@ function ProductConfigDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px]">
-        <DialogHeader><DialogTitle>{isEdit ? "编辑" : "新增"}产品配置</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isEdit ? t("finance.costStd.editProductConfig") : t("finance.costStd.newProductConfigTitle")}</DialogTitle></DialogHeader>
         <div className="grid gap-3 py-2">
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>设备型号 *</Label><Input value={form.modelCode} onChange={e => setForm({ ...form, modelCode: e.target.value })} placeholder="GRT-XX-XXXX" /></div>
-            <div><Label>产品名称 *</Label><Input value={form.productName} onChange={e => setForm({ ...form, productName: e.target.value })} /></div>
+            <div><Label>{t("finance.costStd.modelCode")} *</Label><Input value={form.modelCode} onChange={e => setForm({ ...form, modelCode: e.target.value })} placeholder="GRT-XX-XXXX" /></div>
+            <div><Label>{t("finance.costStd.productName")} *</Label><Input value={form.productName} onChange={e => setForm({ ...form, productName: e.target.value })} /></div>
           </div>
-          <div><Label>关联BOM编码</Label><Input value={form.bomCode} onChange={e => setForm({ ...form, bomCode: e.target.value })} placeholder="BOM-2026-XXX" /></div>
+          <div><Label>{t("finance.costStd.bomCode")}</Label><Input value={form.bomCode} onChange={e => setForm({ ...form, bomCode: e.target.value })} placeholder="BOM-2026-XXX" /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>物料成本(元)</Label><Input type="number" value={form.materialCost} onChange={e => setForm({ ...form, materialCost: e.target.value })} /></div>
-            <div><Label>人工成本(元)</Label><Input type="number" value={form.laborCost} onChange={e => setForm({ ...form, laborCost: e.target.value })} /></div>
+            <div><Label>{t("finance.costStd.materialCostLabel")}</Label><Input type="number" value={form.materialCost} onChange={e => setForm({ ...form, materialCost: e.target.value })} /></div>
+            <div><Label>{t("finance.costStd.laborCostLabel")}</Label><Input type="number" value={form.laborCost} onChange={e => setForm({ ...form, laborCost: e.target.value })} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>制造费用(元)</Label><Input type="number" value={form.overheadCost} onChange={e => setForm({ ...form, overheadCost: e.target.value })} /></div>
-            <div><Label>基准价格(元)</Label><Input type="number" value={form.basePrice} onChange={e => setForm({ ...form, basePrice: e.target.value })} /></div>
+            <div><Label>{t("finance.costStd.overheadCostLabel")}</Label><Input type="number" value={form.overheadCost} onChange={e => setForm({ ...form, overheadCost: e.target.value })} /></div>
+            <div><Label>{t("finance.costStd.basePriceLabel")}</Label><Input type="number" value={form.basePrice} onChange={e => setForm({ ...form, basePrice: e.target.value })} /></div>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("finance.costStd.cancel")}</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-            <Save className="h-4 w-4 mr-1" />保存配置
+            <Save className="h-4 w-4 mr-1" />{t("finance.costStd.saveConfig")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -544,6 +564,7 @@ const SEED_PRODUCTS = [
 
 // ── Main Page ──
 export default function CostStandards() {
+  const { t, tpl } = useLanguage();
   const [activeTab, setActiveTab] = useState("labor");
   const [seeding, setSeeding] = useState(false);
 
@@ -604,9 +625,9 @@ export default function CostStandards() {
       }
       utils.costStandards.list.invalidate();
       utils.costStandards.listProductConfigs.invalidate();
-      toast.success(`已初始化 ${SEED_LABOR.length + SEED_OVERHEAD.length + SEED_MARKUP.length} 条标准 + ${SEED_PRODUCTS.length} 条产品配置`);
+      toast.success(tpl("finance.costStd.seedSuccess", { standards: SEED_LABOR.length + SEED_OVERHEAD.length + SEED_MARKUP.length, products: SEED_PRODUCTS.length }));
     } catch (e: any) {
-      toast.error(`初始化失败: ${e.message}`);
+      toast.error(`${t("finance.costStd.seedFailed")}: ${e.message}`);
     } finally {
       setSeeding(false);
     }
@@ -617,37 +638,37 @@ export default function CostStandards() {
       <div className="space-y-6">
         <PageHeader
           icon={Calculator}
-          title="成本标准与产品配置"
-          description="人工费率、制造费用、物料加价规则及产品基准成本管理"
+          title={t("finance.costStd.titleFull")}
+          description={t("finance.costStd.descFull")}
           actions={
             <div className="flex items-center gap-2">
               {isLoading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
               {isEmpty && (
                 <Button variant="outline" size="sm" onClick={handleSeedDefaults} disabled={seeding}>
                   {seeding ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <DatabaseZap className="h-4 w-4 mr-1" />}
-                  初始化默认标准
+                  {t("finance.costStd.initDefaults")}
                 </Button>
               )}
             </div>
           }
         />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={Users} label="人工角色" value={laborCount} />
-          <StatCard icon={Factory} label="费用类别" value={overheadCount} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-          <StatCard icon={Package} label="加价规则" value={markupCount} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
-          <StatCard icon={Settings} label="产品配置" value={products.length} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+          <StatCard icon={Users} label={t("finance.costStd.laborRoles")} value={laborCount} />
+          <StatCard icon={Factory} label={t("finance.costStd.expenseCategories")} value={overheadCount} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Package} label={t("finance.costStd.markupRules")} value={markupCount} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
+          <StatCard icon={Settings} label={t("finance.costStd.productConfigs")} value={products.length} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
         </div>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between">
             <TabsList>
-              <TabsTrigger value="labor">人工成本</TabsTrigger>
-              <TabsTrigger value="overhead">制造费用</TabsTrigger>
-              <TabsTrigger value="markup">物料加价</TabsTrigger>
-              <TabsTrigger value="products">产品配置</TabsTrigger>
+              <TabsTrigger value="labor">{t("finance.costStd.laborTab")}</TabsTrigger>
+              <TabsTrigger value="overhead">{t("finance.costStd.overheadTab")}</TabsTrigger>
+              <TabsTrigger value="markup">{t("finance.costStd.markupTab")}</TabsTrigger>
+              <TabsTrigger value="products">{t("finance.costStd.productsTab")}</TabsTrigger>
             </TabsList>
             {activeTab !== "products" && (
               <Button size="sm" onClick={() => openAdd(activeTab === "labor" ? "labor" : activeTab === "overhead" ? "overhead" : "material_markup")}>
-                <Plus className="h-4 w-4 mr-1" />添加
+                <Plus className="h-4 w-4 mr-1" />{t("finance.costStd.add")}
               </Button>
             )}
           </div>

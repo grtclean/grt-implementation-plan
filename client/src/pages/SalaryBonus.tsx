@@ -16,20 +16,22 @@ import {
   RefreshCw, Download, Plus, CheckCircle2, XCircle,
   BarChart3, Users, Loader2, FileText, Eye
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const PERIOD_TYPES: Record<string, string> = {
+const PERIOD_TYPES_ZH: Record<string, string> = {
   weekly: "周", monthly: "月", quarterly: "季", annual: "年",
 };
-const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  calculated: { bg: "bg-blue-500/20", text: "text-blue-400", label: "已计算" },
-  reviewed: { bg: "bg-yellow-500/20", text: "text-yellow-400", label: "已审核" },
-  approved: { bg: "bg-green-500/20", text: "text-green-400", label: "已批准" },
-  paid: { bg: "bg-emerald-500/20", text: "text-emerald-400", label: "已发放" },
-  rejected: { bg: "bg-red-500/20", text: "text-red-400", label: "已驳回" },
+const STATUS_STYLES: Record<string, { bg: string; text: string; labelKey: string }> = {
+  calculated: { bg: "bg-blue-500/20", text: "text-blue-400", labelKey: "salaryBonus.statusCalculated" },
+  reviewed: { bg: "bg-yellow-500/20", text: "text-yellow-400", labelKey: "salaryBonus.statusReviewed" },
+  approved: { bg: "bg-green-500/20", text: "text-green-400", labelKey: "salaryBonus.statusApproved" },
+  paid: { bg: "bg-emerald-500/20", text: "text-emerald-400", labelKey: "salaryBonus.statusPaid" },
+  rejected: { bg: "bg-red-500/20", text: "text-red-400", labelKey: "salaryBonus.statusRejected" },
 };
 
 export default function SalaryBonus() {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("records");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showBatchCalcDialog, setShowBatchCalcDialog] = useState(false);
@@ -71,33 +73,33 @@ export default function SalaryBonus() {
   const batchCalcMut = trpc.salaryBonus.batchCalculate.useMutation({
     onSuccess: (result) => {
       toast({
-        title: "批量计算完成",
-        description: `共 ${result.total} 人，成功 ${result.calculated} 人，失败 ${result.errors} 人`,
+        title: t("hr.salaryBonus.batchCalcDone"),
+        description: `${t("hr.salaryBonus.total")} ${result.total}, ${t("hr.salaryBonus.success")} ${result.calculated}, ${t("hr.salaryBonus.failed")} ${result.errors}`,
       });
       setShowBatchCalcDialog(false);
       utils.salaryBonus.list.invalidate();
       utils.salaryBonus.stats.invalidate();
     },
-    onError: (e) => toast({ title: "计算失败", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: t("hr.salaryBonus.calcFailed"), description: e.message, variant: "destructive" }),
   });
 
   const createRuleMut = trpc.salaryBonus.createRule.useMutation({
     onSuccess: () => {
-      toast({ title: "规则已创建" });
+      toast({ title: t("hr.salaryBonus.ruleCreated") });
       setShowRuleDialog(false);
       utils.salaryBonus.getRules.invalidate();
     },
-    onError: (e) => toast({ title: "创建失败", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: t("hr.salaryBonus.createFailed"), description: e.message, variant: "destructive" }),
   });
 
   const updateStatusMut = trpc.salaryBonus.updateStatus.useMutation({
     onSuccess: () => {
-      toast({ title: "状态已更新" });
+      toast({ title: t("hr.salaryBonus.statusUpdated") });
       utils.salaryBonus.list.invalidate();
       utils.salaryBonus.stats.invalidate();
       if (selectedRecordId) utils.salaryBonus.detail.invalidate();
     },
-    onError: (e) => toast({ title: "更新失败", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: t("hr.salaryBonus.updateFailed"), description: e.message, variant: "destructive" }),
   });
 
   const exportMut = trpc.salaryBonus.exportCSV.useMutation({
@@ -110,9 +112,9 @@ export default function SalaryBonus() {
       a.download = `salary_bonus_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "导出成功", description: `共 ${data.count} 条记录` });
+      toast({ title: t("hr.salaryBonus.exportSuccess"), description: `${data.count} ${t("hr.salaryBonus.records")}` });
     },
-    onError: (e) => toast({ title: "导出失败", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: t("hr.salaryBonus.exportFailed"), description: e.message, variant: "destructive" }),
   });
 
   const records = (recordsQuery.data || []) as any[];
@@ -125,32 +127,32 @@ export default function SalaryBonus() {
       {/* Header */}
       <PageHeader
         icon={DollarSign}
-        title="薪酬奖金管理"
-        description="绩效数据自动计算奖金 · 审批发放流程"
+        title={t("hr.salaryBonus.title")}
+        description={t("hr.salaryBonus.desc")}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => {
               utils.salaryBonus.list.invalidate();
               utils.salaryBonus.stats.invalidate();
             }}>
-              <RefreshCw className="w-4 h-4 mr-1" /> 刷新
+              <RefreshCw className="w-4 h-4 mr-1" /> {t("hr.salaryBonus.refresh")}
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportMut.mutate({})}>
-              <Download className="w-4 h-4 mr-1" /> 导出CSV
+              <Download className="w-4 h-4 mr-1" /> {t("hr.salaryBonus.exportCSV")}
             </Button>
             <Dialog open={showBatchCalcDialog} onOpenChange={setShowBatchCalcDialog}>
               <DialogTrigger asChild>
                 <Button size="sm">
-                  <Calculator className="w-4 h-4 mr-1" /> 批量计算
+                  <Calculator className="w-4 h-4 mr-1" /> {t("hr.salaryBonus.batchCalc")}
                 </Button>
               </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>批量计算绩效奖金</DialogTitle>
+                <DialogTitle>{t("hr.salaryBonus.batchCalcTitle")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label>计算周期</Label>
+                  <Label>{t("hr.salaryBonus.calcPeriod")}</Label>
                   <Select value={batchForm.periodType} onValueChange={v => setBatchForm(f => ({ ...f, periodType: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -163,22 +165,22 @@ export default function SalaryBonus() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>开始日期</Label>
+                    <Label>{t("hr.salaryBonus.startDate")}</Label>
                     <Input type="date" value={batchForm.periodStart}
                       onChange={e => setBatchForm(f => ({ ...f, periodStart: e.target.value }))} />
                   </div>
                   <div>
-                    <Label>结束日期</Label>
+                    <Label>{t("hr.salaryBonus.endDate")}</Label>
                     <Input type="date" value={batchForm.periodEnd}
                       onChange={e => setBatchForm(f => ({ ...f, periodEnd: e.target.value }))} />
                   </div>
                 </div>
                 <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm text-blue-400">
-                  将自动获取该期间内所有有绩效记录的员工，使用当前激活的计算规则进行奖金计算。
+                  {t("hr.salaryBonus.batchCalcHint")}
                 </div>
               </div>
               <DialogFooter>
-                <DialogClose asChild><Button variant="outline">取消</Button></DialogClose>
+                <DialogClose asChild><Button variant="outline">{t("hr.common.cancel")}</Button></DialogClose>
                 <Button
                   disabled={batchCalcMut.isPending}
                   onClick={() => batchCalcMut.mutate({
@@ -187,7 +189,7 @@ export default function SalaryBonus() {
                     periodEnd: new Date(batchForm.periodEnd).getTime(),
                   })}
                 >
-                  {batchCalcMut.isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> 计算中...</> : "开始计算"}
+                  {batchCalcMut.isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> {t("hr.salaryBonus.calculating")}</> : t("hr.salaryBonus.startCalc")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -200,13 +202,13 @@ export default function SalaryBonus() {
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">总记录数</p>
+            <p className="text-sm text-muted-foreground">{t("hr.salaryBonus.totalRecords")}</p>
             <p className="text-2xl font-bold">{stats.total_records || 0}</p>
           </CardContent>
         </Card>
         <Card className="border-emerald-500/30">
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">奖金总额</p>
+            <p className="text-sm text-muted-foreground">{t("hr.salaryBonus.totalBonus")}</p>
             <p className="text-2xl font-bold text-emerald-400">
               ¥{stats.total_bonus_amount ? Number(stats.total_bonus_amount).toLocaleString() : '0'}
             </p>
@@ -214,7 +216,7 @@ export default function SalaryBonus() {
         </Card>
         <Card className="border-blue-500/30">
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">平均奖金</p>
+            <p className="text-sm text-muted-foreground">{t("hr.salaryBonus.avgBonus")}</p>
             <p className="text-2xl font-bold text-blue-400">
               ¥{stats.avg_bonus ? Number(stats.avg_bonus).toFixed(0) : '0'}
             </p>
@@ -222,7 +224,7 @@ export default function SalaryBonus() {
         </Card>
         <Card className="border-yellow-500/30">
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">平均效率</p>
+            <p className="text-sm text-muted-foreground">{t("hr.salaryBonus.avgEfficiency")}</p>
             <p className="text-2xl font-bold text-yellow-400">
               {stats.avg_efficiency ? `${Number(stats.avg_efficiency).toFixed(1)}%` : '-'}
             </p>
@@ -230,7 +232,7 @@ export default function SalaryBonus() {
         </Card>
         <Card className="border-purple-500/30">
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">平均评分</p>
+            <p className="text-sm text-muted-foreground">{t("hr.salaryBonus.avgScore")}</p>
             <p className="text-2xl font-bold text-purple-400">
               {stats.avg_score ? Number(stats.avg_score).toFixed(1) : '-'}
             </p>
@@ -242,10 +244,10 @@ export default function SalaryBonus() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="records">
-            <FileText className="w-4 h-4 mr-1" /> 奖金记录
+            <FileText className="w-4 h-4 mr-1" /> {t("hr.salaryBonus.bonusRecords")}
           </TabsTrigger>
           <TabsTrigger value="rules">
-            <Settings className="w-4 h-4 mr-1" /> 计算规则
+            <Settings className="w-4 h-4 mr-1" /> {t("hr.salaryBonus.calcRules")}
           </TabsTrigger>
         </TabsList>
 
@@ -255,22 +257,22 @@ export default function SalaryBonus() {
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部状态</SelectItem>
-                <SelectItem value="calculated">已计算</SelectItem>
-                <SelectItem value="reviewed">已审核</SelectItem>
-                <SelectItem value="approved">已批准</SelectItem>
-                <SelectItem value="paid">已发放</SelectItem>
+                <SelectItem value="all">{t("hr.salaryBonus.allStatus")}</SelectItem>
+                <SelectItem value="calculated">{t("hr.salaryBonus.statusCalculated")}</SelectItem>
+                <SelectItem value="reviewed">{t("hr.salaryBonus.statusReviewed")}</SelectItem>
+                <SelectItem value="approved">{t("hr.salaryBonus.statusApproved")}</SelectItem>
+                <SelectItem value="paid">{t("hr.salaryBonus.statusPaid")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {recordsQuery.isLoading ? (
-            <div className="text-center py-10 text-muted-foreground">加载中...</div>
+            <div className="text-center py-10 text-muted-foreground">{t("hr.common.loading")}</div>
           ) : records.length === 0 ? (
             <Card>
               <CardContent className="py-10 text-center text-muted-foreground">
                 <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>暂无奖金记录，请先执行批量计算</p>
+                <p>{t("hr.salaryBonus.noRecords")}</p>
               </CardContent>
             </Card>
           ) : (
@@ -278,17 +280,17 @@ export default function SalaryBonus() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="text-left p-3">员工</th>
-                    <th className="text-center p-3">周期</th>
-                    <th className="text-right p-3">效率奖金</th>
-                    <th className="text-right p-3">质量奖金</th>
-                    <th className="text-right p-3">特别奖金</th>
-                    <th className="text-right p-3">扣款</th>
-                    <th className="text-right p-3 font-bold">奖金合计</th>
-                    <th className="text-center p-3">评分</th>
-                    <th className="text-center p-3">排名</th>
-                    <th className="text-center p-3">状态</th>
-                    <th className="text-center p-3">操作</th>
+                    <th className="text-left p-3">{t("hr.salaryBonus.employee")}</th>
+                    <th className="text-center p-3">{t("hr.salaryBonus.period")}</th>
+                    <th className="text-right p-3">{t("hr.salaryBonus.efficiencyBonus")}</th>
+                    <th className="text-right p-3">{t("hr.salaryBonus.qualityBonus")}</th>
+                    <th className="text-right p-3">{t("hr.salaryBonus.specialBonus")}</th>
+                    <th className="text-right p-3">{t("hr.salaryBonus.deduction")}</th>
+                    <th className="text-right p-3 font-bold">{t("hr.salaryBonus.bonusTotal")}</th>
+                    <th className="text-center p-3">{t("hr.salaryBonus.score")}</th>
+                    <th className="text-center p-3">{t("hr.salaryBonus.rank")}</th>
+                    <th className="text-center p-3">{t("hr.salaryBonus.status")}</th>
+                    <th className="text-center p-3">{t("hr.salaryBonus.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -303,7 +305,7 @@ export default function SalaryBonus() {
                           </div>
                         </td>
                         <td className="p-3 text-center">
-                          <Badge variant="outline">{PERIOD_TYPES[rec.period_type] || rec.period_type}</Badge>
+                          <Badge variant="outline">{PERIOD_TYPES_ZH[rec.period_type] || rec.period_type}</Badge>
                         </td>
                         <td className="p-3 text-right font-mono">¥{Number(rec.efficiency_bonus || 0).toFixed(0)}</td>
                         <td className="p-3 text-right font-mono">¥{Number(rec.quality_bonus || 0).toFixed(0)}</td>
@@ -331,7 +333,7 @@ export default function SalaryBonus() {
                           )}
                         </td>
                         <td className="p-3 text-center">
-                          <Badge className={`${st.bg} ${st.text} border-0 text-xs`}>{st.label}</Badge>
+                          <Badge className={`${st.bg} ${st.text} border-0 text-xs`}>{t(`hr.${st.labelKey}`)}</Badge>
                         </td>
                         <td className="p-3 text-center">
                           <div className="flex gap-1 justify-center">
@@ -340,18 +342,18 @@ export default function SalaryBonus() {
                             </Button>
                             {rec.status === 'calculated' && (
                               <Button variant="outline" size="sm" onClick={() => updateStatusMut.mutate({ recordId: rec.id, status: 'reviewed' })}>
-                                审核
+                                {t("hr.salaryBonus.review")}
                               </Button>
                             )}
                             {rec.status === 'reviewed' && (
                               <Button variant="default" size="sm" onClick={() => updateStatusMut.mutate({ recordId: rec.id, status: 'approved' })}>
-                                批准
+                                {t("hr.salaryBonus.approve")}
                               </Button>
                             )}
                             {rec.status === 'approved' && (
                               <Button variant="default" size="sm" className="bg-emerald-600 hover:bg-emerald-700"
                                 onClick={() => updateStatusMut.mutate({ recordId: rec.id, status: 'paid' })}>
-                                发放
+                                {t("hr.salaryBonus.disburse")}
                               </Button>
                             )}
                           </div>
@@ -370,68 +372,68 @@ export default function SalaryBonus() {
           <div className="flex justify-end">
             <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
               <DialogTrigger asChild>
-                <Button size="sm"><Plus className="w-4 h-4 mr-1" /> 新建规则</Button>
+                <Button size="sm"><Plus className="w-4 h-4 mr-1" /> {t("hr.salaryBonus.newRule")}</Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>新建薪酬计算规则</DialogTitle>
+                  <DialogTitle>{t("hr.salaryBonus.newRuleTitle")}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>规则名称</Label>
+                      <Label>{t("hr.salaryBonus.ruleName")}</Label>
                       <Input value={ruleForm.ruleName} onChange={e => setRuleForm(f => ({ ...f, ruleName: e.target.value }))} placeholder="如 标准月度奖金" />
                     </div>
                     <div>
-                      <Label>规则编码</Label>
+                      <Label>{t("hr.salaryBonus.ruleCode")}</Label>
                       <Input value={ruleForm.ruleCode} onChange={e => setRuleForm(f => ({ ...f, ruleCode: e.target.value }))} placeholder="如 MONTHLY_STD" />
                     </div>
                   </div>
                   <div>
-                    <Label>描述</Label>
+                    <Label>{t("hr.salaryBonus.description")}</Label>
                     <Textarea value={ruleForm.description} onChange={e => setRuleForm(f => ({ ...f, description: e.target.value }))} rows={2} />
                   </div>
 
                   <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4" /> 效率奖金参数</h4>
+                    <h4 className="font-medium mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4" /> {t("hr.salaryBonus.efficiencyParams")}</h4>
                     <div className="grid grid-cols-4 gap-3">
-                      <div><Label className="text-xs">基准金额</Label><Input type="number" value={ruleForm.efficiencyBaseAmount} onChange={e => setRuleForm(f => ({ ...f, efficiencyBaseAmount: Number(e.target.value) }))} /></div>
-                      <div><Label className="text-xs">达标线(%)</Label><Input type="number" value={ruleForm.efficiencyThreshold} onChange={e => setRuleForm(f => ({ ...f, efficiencyThreshold: Number(e.target.value) }))} /></div>
-                      <div><Label className="text-xs">最大倍数</Label><Input type="number" step="0.1" value={ruleForm.efficiencyMaxMultiplier} onChange={e => setRuleForm(f => ({ ...f, efficiencyMaxMultiplier: Number(e.target.value) }))} /></div>
-                      <div><Label className="text-xs">权重</Label><Input type="number" step="0.05" value={ruleForm.efficiencyWeight} onChange={e => setRuleForm(f => ({ ...f, efficiencyWeight: Number(e.target.value) }))} /></div>
+                      <div><Label className="text-xs">{t("hr.salaryBonus.baseAmount")}</Label><Input type="number" value={ruleForm.efficiencyBaseAmount} onChange={e => setRuleForm(f => ({ ...f, efficiencyBaseAmount: Number(e.target.value) }))} /></div>
+                      <div><Label className="text-xs">{t("hr.salaryBonus.threshold")}</Label><Input type="number" value={ruleForm.efficiencyThreshold} onChange={e => setRuleForm(f => ({ ...f, efficiencyThreshold: Number(e.target.value) }))} /></div>
+                      <div><Label className="text-xs">{t("hr.salaryBonus.maxMultiplier")}</Label><Input type="number" step="0.1" value={ruleForm.efficiencyMaxMultiplier} onChange={e => setRuleForm(f => ({ ...f, efficiencyMaxMultiplier: Number(e.target.value) }))} /></div>
+                      <div><Label className="text-xs">{t("hr.salaryBonus.weight")}</Label><Input type="number" step="0.05" value={ruleForm.efficiencyWeight} onChange={e => setRuleForm(f => ({ ...f, efficiencyWeight: Number(e.target.value) }))} /></div>
                     </div>
                   </div>
 
                   <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> 质量奖金参数</h4>
+                    <h4 className="font-medium mb-3 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> {t("hr.salaryBonus.qualityParams")}</h4>
                     <div className="grid grid-cols-4 gap-3">
-                      <div><Label className="text-xs">基准金额</Label><Input type="number" value={ruleForm.qualityBaseAmount} onChange={e => setRuleForm(f => ({ ...f, qualityBaseAmount: Number(e.target.value) }))} /></div>
-                      <div><Label className="text-xs">达标线(%)</Label><Input type="number" value={ruleForm.qualityThreshold} onChange={e => setRuleForm(f => ({ ...f, qualityThreshold: Number(e.target.value) }))} /></div>
-                      <div><Label className="text-xs">最大倍数</Label><Input type="number" step="0.1" value={ruleForm.qualityMaxMultiplier} onChange={e => setRuleForm(f => ({ ...f, qualityMaxMultiplier: Number(e.target.value) }))} /></div>
-                      <div><Label className="text-xs">权重</Label><Input type="number" step="0.05" value={ruleForm.qualityWeight} onChange={e => setRuleForm(f => ({ ...f, qualityWeight: Number(e.target.value) }))} /></div>
+                      <div><Label className="text-xs">{t("hr.salaryBonus.baseAmount")}</Label><Input type="number" value={ruleForm.qualityBaseAmount} onChange={e => setRuleForm(f => ({ ...f, qualityBaseAmount: Number(e.target.value) }))} /></div>
+                      <div><Label className="text-xs">{t("hr.salaryBonus.threshold")}</Label><Input type="number" value={ruleForm.qualityThreshold} onChange={e => setRuleForm(f => ({ ...f, qualityThreshold: Number(e.target.value) }))} /></div>
+                      <div><Label className="text-xs">{t("hr.salaryBonus.maxMultiplier")}</Label><Input type="number" step="0.1" value={ruleForm.qualityMaxMultiplier} onChange={e => setRuleForm(f => ({ ...f, qualityMaxMultiplier: Number(e.target.value) }))} /></div>
+                      <div><Label className="text-xs">{t("hr.salaryBonus.weight")}</Label><Input type="number" step="0.05" value={ruleForm.qualityWeight} onChange={e => setRuleForm(f => ({ ...f, qualityWeight: Number(e.target.value) }))} /></div>
                     </div>
                   </div>
 
                   <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3 flex items-center gap-2"><Award className="w-4 h-4" /> 排名奖金 & 处罚</h4>
+                    <h4 className="font-medium mb-3 flex items-center gap-2"><Award className="w-4 h-4" /> {t("hr.salaryBonus.rankBonusPenalty")}</h4>
                     <div className="grid grid-cols-3 gap-3">
                       <div><Label className="text-xs">Top 1 奖金</Label><Input type="number" value={ruleForm.rankTop1Bonus} onChange={e => setRuleForm(f => ({ ...f, rankTop1Bonus: Number(e.target.value) }))} /></div>
                       <div><Label className="text-xs">Top 3 奖金</Label><Input type="number" value={ruleForm.rankTop3Bonus} onChange={e => setRuleForm(f => ({ ...f, rankTop3Bonus: Number(e.target.value) }))} /></div>
                       <div><Label className="text-xs">Top 5 奖金</Label><Input type="number" value={ruleForm.rankTop5Bonus} onChange={e => setRuleForm(f => ({ ...f, rankTop5Bonus: Number(e.target.value) }))} /></div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 mt-3">
-                      <div><Label className="text-xs">缺陷扣款/个</Label><Input type="number" value={ruleForm.defectPenaltyPerCount} onChange={e => setRuleForm(f => ({ ...f, defectPenaltyPerCount: Number(e.target.value) }))} /></div>
-                      <div><Label className="text-xs">严重缺陷扣款</Label><Input type="number" value={ruleForm.criticalDefectPenalty} onChange={e => setRuleForm(f => ({ ...f, criticalDefectPenalty: Number(e.target.value) }))} /></div>
+                      <div><Label className="text-xs">{t("hr.salaryBonus.defectPenalty")}</Label><Input type="number" value={ruleForm.defectPenaltyPerCount} onChange={e => setRuleForm(f => ({ ...f, defectPenaltyPerCount: Number(e.target.value) }))} /></div>
+                      <div><Label className="text-xs">{t("hr.salaryBonus.criticalDefectPenalty")}</Label><Input type="number" value={ruleForm.criticalDefectPenalty} onChange={e => setRuleForm(f => ({ ...f, criticalDefectPenalty: Number(e.target.value) }))} /></div>
                     </div>
                   </div>
                 </div>
                 <DialogFooter>
-                  <DialogClose asChild><Button variant="outline">取消</Button></DialogClose>
+                  <DialogClose asChild><Button variant="outline">{t("hr.common.cancel")}</Button></DialogClose>
                   <Button
                     disabled={!ruleForm.ruleName || !ruleForm.ruleCode || createRuleMut.isPending}
                     onClick={() => createRuleMut.mutate(ruleForm)}
                   >
-                    {createRuleMut.isPending ? "创建中..." : "创建规则"}
+                    {createRuleMut.isPending ? t("hr.salaryBonus.creating") : t("hr.salaryBonus.createRule")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -439,12 +441,12 @@ export default function SalaryBonus() {
           </div>
 
           {rulesQuery.isLoading ? (
-            <div className="text-center py-10 text-muted-foreground">加载中...</div>
+            <div className="text-center py-10 text-muted-foreground">{t("hr.common.loading")}</div>
           ) : rules.length === 0 ? (
             <Card>
               <CardContent className="py-10 text-center text-muted-foreground">
                 <Settings className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>暂无计算规则，请先创建</p>
+                <p>{t("hr.salaryBonus.noRules")}</p>
               </CardContent>
             </Card>
           ) : (
@@ -455,35 +457,35 @@ export default function SalaryBonus() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{rule.rule_name}</CardTitle>
                       <Badge className={rule.is_active ? 'bg-emerald-500/20 text-emerald-400 border-0' : 'bg-gray-500/20 text-gray-400 border-0'}>
-                        {rule.is_active ? '激活' : '停用'}
+                        {rule.is_active ? t("hr.salaryBonus.active") : t("hr.salaryBonus.inactive")}
                       </Badge>
                     </div>
-                    <CardDescription>{rule.rule_code} · {rule.description || '无描述'}</CardDescription>
+                    <CardDescription>{rule.rule_code} · {rule.description || t("hr.salaryBonus.noDescription")}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div className="p-2 bg-muted/50 rounded">
-                        <p className="text-muted-foreground">效率基准</p>
+                        <p className="text-muted-foreground">{t("hr.salaryBonus.efficiencyBase")}</p>
                         <p className="font-bold">¥{rule.efficiency_base_amount}</p>
                       </div>
                       <div className="p-2 bg-muted/50 rounded">
-                        <p className="text-muted-foreground">质量基准</p>
+                        <p className="text-muted-foreground">{t("hr.salaryBonus.qualityBase")}</p>
                         <p className="font-bold">¥{rule.quality_base_amount}</p>
                       </div>
                       <div className="p-2 bg-muted/50 rounded">
-                        <p className="text-muted-foreground">出勤基准</p>
+                        <p className="text-muted-foreground">{t("hr.salaryBonus.attendanceBase")}</p>
                         <p className="font-bold">¥{rule.attendance_base_amount}</p>
                       </div>
                       <div className="p-2 bg-muted/50 rounded">
-                        <p className="text-muted-foreground">Top1奖金</p>
+                        <p className="text-muted-foreground">{t("hr.salaryBonus.top1Bonus")}</p>
                         <p className="font-bold text-amber-400">¥{rule.rank_top1_bonus}</p>
                       </div>
                       <div className="p-2 bg-muted/50 rounded">
-                        <p className="text-muted-foreground">缺陷扣款/个</p>
+                        <p className="text-muted-foreground">{t("hr.salaryBonus.defectPenalty")}</p>
                         <p className="font-bold text-red-400">-¥{rule.defect_penalty_per_count}</p>
                       </div>
                       <div className="p-2 bg-muted/50 rounded">
-                        <p className="text-muted-foreground">严重缺陷</p>
+                        <p className="text-muted-foreground">{t("hr.salaryBonus.criticalDefect")}</p>
                         <p className="font-bold text-red-400">-¥{rule.critical_defect_penalty}</p>
                       </div>
                     </div>
@@ -499,7 +501,7 @@ export default function SalaryBonus() {
       <Dialog open={showDetailDialog} onOpenChange={(open) => { setShowDetailDialog(open); if (!open) setSelectedRecordId(null); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>奖金详情</DialogTitle>
+            <DialogTitle>{t("hr.salaryBonus.bonusDetail")}</DialogTitle>
           </DialogHeader>
           {detailQuery.isLoading ? (
             <div className="py-10 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
@@ -511,46 +513,46 @@ export default function SalaryBonus() {
                   <p className="text-sm text-muted-foreground">{detail.worker_id}</p>
                 </div>
                 <Badge className={`${(STATUS_STYLES[detail.status] || STATUS_STYLES.calculated).bg} ${(STATUS_STYLES[detail.status] || STATUS_STYLES.calculated).text} border-0`}>
-                  {(STATUS_STYLES[detail.status] || STATUS_STYLES.calculated).label}
+                  {t((STATUS_STYLES[detail.status] || STATUS_STYLES.calculated).labelKey)}
                 </Badge>
               </div>
               <div className="border rounded-lg divide-y divide-border/50">
                 <div className="flex justify-between p-3">
-                  <span className="text-muted-foreground">效率奖金</span>
+                  <span className="text-muted-foreground">{t("hr.salaryBonus.efficiencyBonus")}</span>
                   <span className="font-mono">¥{Number(detail.efficiency_bonus || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between p-3">
-                  <span className="text-muted-foreground">质量奖金</span>
+                  <span className="text-muted-foreground">{t("hr.salaryBonus.qualityBonus")}</span>
                   <span className="font-mono">¥{Number(detail.quality_bonus || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between p-3">
-                  <span className="text-muted-foreground">出勤奖金</span>
+                  <span className="text-muted-foreground">{t("hr.salaryBonus.attendanceBonus")}</span>
                   <span className="font-mono">¥{Number(detail.attendance_bonus || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between p-3">
-                  <span className="text-muted-foreground">特别奖金</span>
+                  <span className="text-muted-foreground">{t("hr.salaryBonus.specialBonus")}</span>
                   <span className="font-mono text-emerald-400">¥{Number(detail.special_bonus || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between p-3">
-                  <span className="text-muted-foreground">处罚扣款</span>
+                  <span className="text-muted-foreground">{t("hr.salaryBonus.penaltyDeduction")}</span>
                   <span className="font-mono text-red-400">-¥{Number(detail.penalty_deduction || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between p-3 bg-muted/30 font-bold">
-                  <span>奖金合计</span>
+                  <span>{t("hr.salaryBonus.bonusTotal")}</span>
                   <span className="text-xl font-mono">¥{Number(detail.total_bonus || 0).toLocaleString()}</span>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="p-2 bg-muted/50 rounded">
-                  <p className="text-xs text-muted-foreground">效率系数</p>
+                  <p className="text-xs text-muted-foreground">{t("hr.salaryBonus.efficiencyCoeff")}</p>
                   <p className="font-bold">{Number(detail.efficiency_rate || 0).toFixed(1)}%</p>
                 </div>
                 <div className="p-2 bg-muted/50 rounded">
-                  <p className="text-xs text-muted-foreground">质量合格率</p>
+                  <p className="text-xs text-muted-foreground">{t("hr.salaryBonus.qualityPassRate")}</p>
                   <p className="font-bold">{Number(detail.quality_pass_rate || 0).toFixed(1)}%</p>
                 </div>
                 <div className="p-2 bg-muted/50 rounded">
-                  <p className="text-xs text-muted-foreground">综合评分</p>
+                  <p className="text-xs text-muted-foreground">{t("hr.salaryBonus.overallScore")}</p>
                   <p className="font-bold">{Number(detail.overall_score || 0).toFixed(1)}</p>
                 </div>
               </div>

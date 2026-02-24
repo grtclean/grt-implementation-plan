@@ -65,7 +65,7 @@ interface ForecastSummary {
 
 export default function ExpenseForecast() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, tpl } = useLanguage();
   
   const [forecastType, setForecastType] = useState<ForecastType>('monthly');
   const [dimension, setDimension] = useState<ForecastDimension>('total');
@@ -177,8 +177,8 @@ export default function ExpenseForecast() {
         {/* 页面标题 */}
         <PageHeader
           icon={Brain}
-          title="出差费用预测"
-          description="基于历史数据和AI模型预测未来出差费用"
+          title={t("finance.forecast.titleFull")}
+          description={t("finance.forecast.descFull")}
           actions={
             <Button
               variant="outline"
@@ -187,7 +187,7 @@ export default function ExpenseForecast() {
               disabled={isRefreshing || isLoading}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              刷新
+              {t("finance.forecast.refreshBtn")}
             </Button>
           }
         />
@@ -197,34 +197,34 @@ export default function ExpenseForecast() {
           <CardContent className="p-4">
             <div className="flex flex-wrap gap-4 items-center">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">预测类型:</span>
+                <span className="text-sm text-muted-foreground">{t("finance.forecast.forecastTypeLabel")}</span>
                 <Select value={forecastType} onValueChange={(v) => setForecastType(v as ForecastType)}>
                   <SelectTrigger className="w-[120px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="monthly">月度</SelectItem>
-                    <SelectItem value="quarterly">季度</SelectItem>
-                    <SelectItem value="yearly">年度</SelectItem>
+                    <SelectItem value="monthly">{t("finance.forecast.typeMonthly")}</SelectItem>
+                    <SelectItem value="quarterly">{t("finance.forecast.typeQuarterly")}</SelectItem>
+                    <SelectItem value="yearly">{t("finance.forecast.typeYearly")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">预测维度:</span>
+                <span className="text-sm text-muted-foreground">{t("finance.forecast.dimensionLabel")}</span>
                 <Select value={dimension} onValueChange={(v) => setDimension(v as ForecastDimension)}>
                   <SelectTrigger className="w-[120px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="total">总体</SelectItem>
-                    <SelectItem value="department">部门</SelectItem>
-                    <SelectItem value="category">费用类型</SelectItem>
-                    <SelectItem value="destination">目的地</SelectItem>
+                    <SelectItem value="total">{t("finance.forecast.dimTotal")}</SelectItem>
+                    <SelectItem value="department">{t("finance.forecast.dimDepartment")}</SelectItem>
+                    <SelectItem value="category">{t("finance.forecast.dimCategory")}</SelectItem>
+                    <SelectItem value="destination">{t("finance.forecast.dimDestination")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">预测期数:</span>
+                <span className="text-sm text-muted-foreground">{t("finance.forecast.periodsLabel")}</span>
                 <Select value={String(periodsAhead)} onValueChange={(v) => setPeriodsAhead(Number(v))}>
                   <SelectTrigger className="w-[80px]">
                     <SelectValue />
@@ -254,10 +254,10 @@ export default function ExpenseForecast() {
           </div>
         ) : currentForecast && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <StatCard icon={DollarSign} label="预测总额" value={`¥${currentForecast.totalPredicted?.toLocaleString()}`} iconColor="text-primary" iconBg="bg-primary/10" />
-            <StatCard icon={Target} label="平均置信度" value={`${(currentForecast.averageConfidence * 100).toFixed(1)}%`} iconColor="text-green-500" iconBg="bg-green-500/10" />
-            <StatCard icon={Calendar} label="预测期数" value={currentForecast.forecasts?.length || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-            <StatCard icon={Activity} label="生成时间" value={currentForecast.generatedAt ? new Date(currentForecast.generatedAt).toLocaleString() : '-'} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+            <StatCard icon={DollarSign} label={t("finance.forecast.totalPredicted")} value={`¥${currentForecast.totalPredicted?.toLocaleString()}`} iconColor="text-primary" iconBg="bg-primary/10" />
+            <StatCard icon={Target} label={t("finance.forecast.avgConfidence")} value={`${(currentForecast.averageConfidence * 100).toFixed(1)}%`} iconColor="text-green-500" iconBg="bg-green-500/10" />
+            <StatCard icon={Calendar} label={t("finance.forecast.forecastPeriods")} value={currentForecast.forecasts?.length || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+            <StatCard icon={Activity} label={t("finance.forecast.generatedTime")} value={currentForecast.generatedAt ? new Date(currentForecast.generatedAt).toLocaleString() : '-'} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
           </div>
         )}
 
@@ -268,10 +268,10 @@ export default function ExpenseForecast() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-primary" />
-                预测趋势
+                {t("finance.forecast.trendChart")}
               </CardTitle>
               <CardDescription>
-                {forecastType === 'monthly' ? '月度' : forecastType === 'quarterly' ? '季度' : '年度'}费用预测趋势图
+                {tpl("finance.forecast.trendChartDesc", { type: forecastType === 'monthly' ? t("finance.forecast.typeMonthly") : forecastType === 'quarterly' ? t("finance.forecast.typeQuarterly") : t("finance.forecast.typeYearly") })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -290,8 +290,8 @@ export default function ExpenseForecast() {
                         borderRadius: '8px',
                       }}
                       formatter={(value: number, name: string) => {
-                        if (name === 'predicted') return [`¥${value.toLocaleString()}`, '预测金额'];
-                        if (name === 'confidence') return [`${value.toFixed(1)}%`, '置信度'];
+                        if (name === 'predicted') return [`¥${value.toLocaleString()}`, t("finance.forecast.predictedAmount")];
+                        if (name === 'confidence') return [`${value.toFixed(1)}%`, t("finance.forecast.confidenceLabel")];
                         return [value, name];
                       }}
                     />
@@ -299,7 +299,7 @@ export default function ExpenseForecast() {
                     <Area
                       type="monotone"
                       dataKey="predicted"
-                      name="预测金额"
+                      name={t("finance.forecast.predictedAmount")}
                       stroke="hsl(var(--primary))"
                       fill="hsl(var(--primary))"
                       fillOpacity={0.2}
@@ -308,7 +308,7 @@ export default function ExpenseForecast() {
                 </ResponsiveContainer>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  暂无预测数据
+                  {t("finance.forecast.noForecastData")}
                 </div>
               )}
             </CardContent>
@@ -319,7 +319,7 @@ export default function ExpenseForecast() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Brain className="w-5 h-5 text-primary" />
-                AI分析
+                {t("finance.forecast.aiAnalysis")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -334,7 +334,7 @@ export default function ExpenseForecast() {
                   {currentForecast.aiAnalysis}
                 </p>
               ) : (
-                <p className="text-sm text-muted-foreground">暂无AI分析</p>
+                <p className="text-sm text-muted-foreground">{t("finance.forecast.noAiAnalysis")}</p>
               )}
 
               {/* 建议 */}
@@ -342,7 +342,7 @@ export default function ExpenseForecast() {
                 <div className="pt-4 border-t border-border">
                   <h4 className="text-sm font-medium flex items-center gap-2 mb-3">
                     <Lightbulb className="w-4 h-4 text-yellow-500" />
-                    建议
+                    {t("finance.forecast.recommendations")}
                   </h4>
                   <ul className="space-y-2">
                     {currentForecast.recommendations.map((rec: string, i: number) => (
@@ -361,9 +361,9 @@ export default function ExpenseForecast() {
         {/* 预测详情列表 */}
         <Card className="bg-card/50 border-border">
           <CardHeader>
-            <CardTitle className="text-lg">预测详情</CardTitle>
+            <CardTitle className="text-lg">{t("finance.forecast.detailTitle")}</CardTitle>
             <CardDescription>
-              各期预测金额、置信度和影响因素
+              {t("finance.forecast.detailDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -389,7 +389,7 @@ export default function ExpenseForecast() {
                           <Calendar className="w-4 h-4 text-muted-foreground" />
                           <span className="font-medium">{forecast.period}</span>
                           <Badge className={getConfidenceColor(forecast.confidenceLevel)}>
-                            置信度 {(forecast.confidenceLevel * 100).toFixed(0)}%
+                            {t("finance.forecast.confidenceLabel")} {(forecast.confidenceLevel * 100).toFixed(0)}%
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4">
@@ -420,7 +420,7 @@ export default function ExpenseForecast() {
             ) : (
               <div className="p-12 text-center">
                 <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">暂无预测数据</p>
+                <p className="text-muted-foreground">{t("finance.forecast.noForecastData")}</p>
               </div>
             )}
           </CardContent>
@@ -431,7 +431,7 @@ export default function ExpenseForecast() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-primary" />
-              置信度说明
+              {t("finance.forecast.confidenceNote")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -439,28 +439,28 @@ export default function ExpenseForecast() {
               <div className="p-4 bg-green-500/5 rounded-lg border border-green-500/20">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="font-medium">高置信度 (≥80%)</span>
+                  <span className="font-medium">{t("finance.forecast.highLabel")}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  历史数据稳定，预测结果可靠性高，可作为预算规划的主要参考
+                  {t("finance.forecast.highDesc")}
                 </p>
               </div>
               <div className="p-4 bg-yellow-500/5 rounded-lg border border-yellow-500/20">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <span className="font-medium">中置信度 (60-80%)</span>
+                  <span className="font-medium">{t("finance.forecast.medLabel")}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  历史数据有一定波动，预测结果仅供参考，建议结合实际情况调整
+                  {t("finance.forecast.medDesc")}
                 </p>
               </div>
               <div className="p-4 bg-red-500/5 rounded-lg border border-red-500/20">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span className="font-medium">低置信度 (&lt;60%)</span>
+                  <span className="font-medium">{t("finance.forecast.lowLabel")}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  历史数据波动较大，预测结果不确定性高，需谨慎使用
+                  {t("finance.forecast.lowDesc")}
                 </p>
               </div>
             </div>

@@ -6,6 +6,7 @@
  * INTERNAL: Red/Black list, material shortages, plan vs actual, employee names.
  */
 import { useState, useEffect } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import {
   DashboardModeProvider,
@@ -63,6 +64,7 @@ interface ShortageAlert {
 // ─── Unlock Dialog (same pattern) ───────────────────────────
 
 function UnlockDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useLanguage();
   const { unlockInternalMode, unlockError, isUnlocking } = useDashboardMode();
   const [pin, setPin] = useState("");
   const [localError, setLocalError] = useState(false);
@@ -85,22 +87,22 @@ function UnlockDialog({ onClose }: { onClose: () => void }) {
       <div className="bg-gray-900 border border-cyan-500/30 rounded-2xl p-8 w-80" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-6">
           <Lock className="w-6 h-6 text-cyan-400" />
-          <h3 className="text-white text-lg font-bold">切换内部模式</h3>
+          <h3 className="text-white text-lg font-bold">{t("manufacturing.shopfloor.switchInternal")}</h3>
         </div>
-        <p className="text-white/50 text-sm mb-4">输入管理PIN码解锁运营视图（30分钟自动恢复）</p>
+        <p className="text-white/50 text-sm mb-4">{t("manufacturing.shopfloor.pinHint")}</p>
         <input
           type="password"
           value={pin}
           onChange={(e) => setPin(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !isUnlocking && handleSubmit()}
-          placeholder="PIN码"
+          placeholder={t("manufacturing.shopfloor.pinPlaceholder")}
           maxLength={8}
           className={`w-full bg-gray-800 border ${hasError ? "border-red-500" : "border-gray-700"} rounded-lg px-4 py-3 text-white text-center text-2xl tracking-[0.5em] placeholder:text-gray-600 placeholder:text-base placeholder:tracking-normal focus:outline-none focus:border-cyan-500`}
           autoFocus
         />
-        {hasError && <p className="text-red-400 text-sm mt-2 text-center">{unlockError || "PIN码错误"}</p>}
+        {hasError && <p className="text-red-400 text-sm mt-2 text-center">{unlockError || t("manufacturing.shopfloor.pinError")}</p>}
         <button onClick={handleSubmit} disabled={isUnlocking} className="w-full mt-4 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white rounded-lg py-3 font-medium transition-colors">
-          {isUnlocking ? "验证中..." : "解锁"}
+          {isUnlocking ? t("manufacturing.shopfloor.verifying") : t("manufacturing.shopfloor.unlock")}
         </button>
       </div>
     </div>
@@ -110,6 +112,7 @@ function UnlockDialog({ onClose }: { onClose: () => void }) {
 // ─── Mode Badge ─────────────────────────────────────────────
 
 function ModeBadge() {
+  const { t } = useLanguage();
   const { displayMode, timeRemainingMs, lockExternalMode } = useDashboardMode();
   const [showUnlock, setShowUnlock] = useState(false);
   const mins = Math.ceil(timeRemainingMs / 60000);
@@ -120,10 +123,10 @@ function ModeBadge() {
         {displayMode === "INTERNAL" && (
           <>
             <span className="text-amber-400 text-xs flex items-center gap-1">
-              <Clock className="w-3 h-3" />{mins}分钟
+              <Clock className="w-3 h-3" />{mins} {t("manufacturing.shopfloor.minutes")}
             </span>
             <button onClick={lockExternalMode} className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 rounded-lg px-3 py-1.5 text-xs transition-colors">
-              <Lock className="w-3 h-3" />锁定
+              <Lock className="w-3 h-3" />{t("manufacturing.shopfloor.lock")}
             </button>
           </>
         )}
@@ -134,7 +137,7 @@ function ModeBadge() {
           }`}
         >
           {displayMode === "INTERNAL" ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-          {displayMode === "INTERNAL" ? "内部运营" : "展示模式"}
+          {displayMode === "INTERNAL" ? t("manufacturing.shopfloor.internalOps") : t("manufacturing.shopfloor.displayMode")}
         </button>
       </div>
       {showUnlock && <UnlockDialog onClose={() => setShowUnlock(false)} />}
@@ -145,9 +148,10 @@ function ModeBadge() {
 // ─── Station Card ───────────────────────────────────────────
 
 function StationCard({ station, isInternal }: { station: StationData; isInternal: boolean }) {
+  const { t } = useLanguage();
   const deviation = station.actualQty - station.planQty;
   const statusColor = station.status === "running" ? "#10b981" : station.status === "alarm" ? "#ef4444" : "#6b7280";
-  const statusLabel = station.status === "running" ? "运行中" : station.status === "alarm" ? "异常" : "待机";
+  const statusLabel = station.status === "running" ? t("manufacturing.shopfloor.running") : station.status === "alarm" ? t("manufacturing.shopfloor.alarm") : t("manufacturing.shopfloor.idle");
   const fpyColor = station.fpy >= 99 ? "#10b981" : station.fpy >= 97 ? "#f59e0b" : "#ef4444";
 
   return (
@@ -179,7 +183,7 @@ function StationCard({ station, isInternal }: { station: StationData; isInternal
       {isInternal ? (
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-white/40">计划/实际</span>
+            <span className="text-white/40">{t("manufacturing.shopfloor.planActual")}</span>
             <span className={`font-mono font-bold ${deviation >= 0 ? "text-green-400" : "text-red-400"}`}>
               {station.planQty}/{station.actualQty}
               {deviation !== 0 && (
@@ -191,11 +195,11 @@ function StationCard({ station, isInternal }: { station: StationData; isInternal
             </span>
           </div>
           <div className="flex items-center justify-between text-xs">
-            <span className="text-white/40">操作员</span>
+            <span className="text-white/40">{t("manufacturing.shopfloor.operator")}</span>
             <span className="text-cyan-300">{station.operator}</span>
           </div>
           <div className="flex items-center justify-between text-xs">
-            <span className="text-white/40">节拍</span>
+            <span className="text-white/40">{t("manufacturing.shopfloor.cycleTime")}</span>
             <span className="text-white/70 font-mono">{station.cycleTime}s</span>
           </div>
         </div>
@@ -203,9 +207,9 @@ function StationCard({ station, isInternal }: { station: StationData; isInternal
         /* EXTERNAL: Just a green check or progress */
         <div className="flex items-center gap-2 text-xs">
           {station.status === "alarm" ? (
-            <span className="text-amber-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />处理中</span>
+            <span className="text-amber-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{t("manufacturing.shopfloor.processing")}</span>
           ) : (
-            <span className="text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" />正常</span>
+            <span className="text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" />{t("manufacturing.shopfloor.normal")}</span>
           )}
         </div>
       )}
@@ -218,6 +222,7 @@ function StationCard({ station, isInternal }: { station: StationData; isInternal
 // ═══════════════════════════════════════════════════════════
 
 function ShopfloorContent() {
+  const { t } = useLanguage();
   const { displayMode } = useDashboardMode();
   const isInternal = displayMode === "INTERNAL";
   const [time, setTime] = useState(new Date());
@@ -262,7 +267,7 @@ function ShopfloorContent() {
         <div className="flex items-center gap-3">
           <Factory className="w-7 h-7 text-cyan-400" />
           <div>
-            <h1 className="text-xl font-bold text-white">GRT 车间生产总屏</h1>
+            <h1 className="text-xl font-bold text-white">{t("manufacturing.shopfloor.title")}</h1>
             <p className="text-white/30 text-xs">Shopfloor Master Board · T1-T15 Production Line</p>
           </div>
         </div>
@@ -271,17 +276,17 @@ function ShopfloorContent() {
           <div className="flex items-center gap-4">
             <div className="text-center">
               <p className="text-2xl font-bold text-cyan-300 font-mono">{avgFpy}{avgFpy !== "—" && "%"}</p>
-              <p className="text-white/30 text-[10px]">综合FPY</p>
+              <p className="text-white/30 text-[10px]">{t("manufacturing.shopfloor.overallFPY")}</p>
             </div>
             <div className="w-px h-8 bg-white/10" />
             <div className="text-center">
               <p className="text-2xl font-bold text-green-400 font-mono">{completionRate}{completionRate !== "—" && "%"}</p>
-              <p className="text-white/30 text-[10px]">完工率</p>
+              <p className="text-white/30 text-[10px]">{t("manufacturing.shopfloor.completionRate")}</p>
             </div>
             <div className="w-px h-8 bg-white/10" />
             <div className="text-center">
               <p className="text-2xl font-bold font-mono" style={{ color: alarmCount > 0 ? "#ef4444" : "#10b981" }}>{alarmCount}</p>
-              <p className="text-white/30 text-[10px]">异常工位</p>
+              <p className="text-white/30 text-[10px]">{t("manufacturing.shopfloor.alarmStations")}</p>
             </div>
           </div>
           <div className="text-right">
@@ -300,8 +305,8 @@ function ShopfloorContent() {
           {stationsData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
               <Factory className="w-16 h-16 text-white/10 mb-4" />
-              <p className="text-white/30 text-lg">暂无工位数据</p>
-              <p className="text-white/20 text-sm mt-1">请在 stations 表中配置 T1-T15 工位</p>
+              <p className="text-white/30 text-lg">{t("manufacturing.shopfloor.noStationData")}</p>
+              <p className="text-white/20 text-sm mt-1">{t("manufacturing.shopfloor.configureStations")}</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 xl:grid-cols-5 gap-3">
@@ -315,10 +320,10 @@ function ShopfloorContent() {
           {!isInternal && (
             <div className="mt-4 grid grid-cols-4 gap-4">
               {[
-                { label: "在线工位", value: `${runningCount}/${stationsData.length}`, icon: Zap, color: "#10b981" },
-                { label: "今日产出", value: `${totalActual}台`, icon: Package, color: "#06b6d4" },
-                { label: "质量认证", value: "IATF 16949", icon: ShieldCheck, color: "#8b5cf6" },
-                { label: "安全生产", value: "326天", icon: Star, color: "#f59e0b" },
+                { label: t("manufacturing.shopfloor.onlineStations"), value: `${runningCount}/${stationsData.length}`, icon: Zap, color: "#10b981" },
+                { label: t("manufacturing.shopfloor.todayOutput"), value: `${totalActual}`, icon: Package, color: "#06b6d4" },
+                { label: t("manufacturing.shopfloor.qualityCert"), value: "IATF 16949", icon: ShieldCheck, color: "#8b5cf6" },
+                { label: t("manufacturing.shopfloor.safetyDays"), value: "326", icon: Star, color: "#f59e0b" },
               ].map((kpi, idx) => {
                 const Icon = kpi.icon;
                 return (
@@ -344,7 +349,7 @@ function ShopfloorContent() {
             <div>
               <h3 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
                 <Users className="w-4 h-4 text-cyan-400" />
-                红黑榜 (Red / Black List)
+                {t("manufacturing.shopfloor.redBlackList")}
               </h3>
               <div className="space-y-2">
                 {redBlackData.map((entry, idx) => (
@@ -381,7 +386,7 @@ function ShopfloorContent() {
             <div>
               <h3 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
                 <Package className="w-4 h-4 text-amber-400" />
-                物料短缺预警
+                {t("manufacturing.shopfloor.materialShortage")}
               </h3>
               <div className="space-y-2">
                 {shortageData.map((alert, idx) => (
@@ -400,7 +405,7 @@ function ShopfloorContent() {
                       <span className={alert.severity === "critical" ? "text-red-400" : "text-amber-400"}>
                         {alert.eta}
                       </span>
-                      <span className="text-white/40">采购: {alert.buyer}</span>
+                      <span className="text-white/40">{t("manufacturing.shopfloor.buyer")}: {alert.buyer}</span>
                     </div>
                   </div>
                 ))}
@@ -411,19 +416,19 @@ function ShopfloorContent() {
             <div>
               <h3 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-blue-400" />
-                计划达成分析
+                {t("manufacturing.shopfloor.planAnalysis")}
               </h3>
               <div className="bg-white/5 border border-white/10 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-white/50 text-xs">总计划</span>
-                  <span className="text-white font-mono font-bold">{totalPlan} 台</span>
+                  <span className="text-white/50 text-xs">{t("manufacturing.shopfloor.totalPlan")}</span>
+                  <span className="text-white font-mono font-bold">{totalPlan}</span>
                 </div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-white/50 text-xs">总完成</span>
-                  <span className="text-cyan-300 font-mono font-bold">{totalActual} 台</span>
+                  <span className="text-white/50 text-xs">{t("manufacturing.shopfloor.totalCompleted")}</span>
+                  <span className="text-cyan-300 font-mono font-bold">{totalActual}</span>
                 </div>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-white/50 text-xs">达成率</span>
+                  <span className="text-white/50 text-xs">{t("manufacturing.shopfloor.achievementRate")}</span>
                   <span className={`font-mono font-bold ${Number(completionRate) >= 95 ? "text-green-400" : "text-red-400"}`}>
                     {completionRate}%
                   </span>

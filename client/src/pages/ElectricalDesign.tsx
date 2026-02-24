@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUserProfile } from "@/contexts/UserProfileContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Zap, Plus, Building2, Cpu, CheckCircle2, Clock, AlertTriangle, FileText } from "lucide-react";
 
 const statusColorMap = createStatusColorMap({
@@ -32,6 +33,7 @@ const MOCK_DESIGNS = [
 
 export default function ElectricalDesign() {
   const { currentBU } = useUserProfile();
+  const { t } = useLanguage();
   const [designs, setDesigns] = useState(MOCK_DESIGNS);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [formData, setFormData] = useState({ name: "", project: "", engineer: "" });
@@ -40,15 +42,15 @@ export default function ElectricalDesign() {
 
   const handleCreate = () => {
     if (!formData.name.trim()) {
-      toast.error("请输入设计名称");
+      toast.error(t("rnd.electrical.enterName"));
       return;
     }
     if (!formData.project.trim()) {
-      toast.error("请输入所属项目");
+      toast.error(t("rnd.electrical.enterProject"));
       return;
     }
     if (!formData.engineer.trim()) {
-      toast.error("请输入工程师");
+      toast.error(t("rnd.electrical.enterEngineer"));
       return;
     }
 
@@ -66,32 +68,32 @@ export default function ElectricalDesign() {
     setDesigns(prev => [newDesign, ...prev]);
     setShowCreateDialog(false);
     setFormData({ name: "", project: "", engineer: "" });
-    toast.success("电气设计任务创建成功");
+    toast.success(t("rnd.electrical.createSuccess"));
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Zap}
-        title="电气设计"
-        description="TX-004 · 电气控制系统设计与PLC编程"
+        title={t("rnd.electrical.title")}
+        description={t("rnd.electrical.description")}
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />新建设计</Button>
+            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />{t("rnd.electrical.newDesign")}</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={FileText} label="总设计任务" value={designs.length} />
-        <StatCard icon={Clock} label="编程中" value={designs.filter(d => d.status === "编程中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={AlertTriangle} label="审核中" value={designs.filter(d => d.status === "审核中").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={CheckCircle2} label="已完成" value={designs.filter(d => d.status === "已完成").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={FileText} label={t("rnd.electrical.totalTasks")} value={designs.length} />
+        <StatCard icon={Clock} label={t("rnd.electrical.programming")} value={designs.filter(d => d.status === "编程中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={AlertTriangle} label={t("rnd.electrical.reviewing")} value={designs.filter(d => d.status === "审核中").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={CheckCircle2} label={t("rnd.electrical.completed")} value={designs.filter(d => d.status === "已完成").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
-        <CardHeader><CardTitle>电气设计任务</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("rnd.electrical.taskList")}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
             {filtered.map(d => (
@@ -103,7 +105,7 @@ export default function ElectricalDesign() {
                     <Badge variant="outline">{d.bu}</Badge>
                   </div>
                   <p className="font-medium mt-1">{d.name}</p>
-                  <p className="text-sm text-muted-foreground">项目: {d.project} · 工程师: {d.engineer}</p>
+                  <p className="text-sm text-muted-foreground">{t("rnd.electrical.project")}: {d.project} · {t("rnd.electrical.engineer")}: {d.engineer}</p>
                 </div>
                 <div className="text-right space-y-1">
                   <StatusBadge color={statusColorMap[d.status as keyof typeof statusColorMap] ?? 'gray'}>{d.status}</StatusBadge>
@@ -119,7 +121,7 @@ export default function ElectricalDesign() {
             {filtered.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Zap className="w-12 h-12 mb-3 opacity-50" />
-                <p className="font-medium">暂无设计任务</p>
+                <p className="font-medium">{t("rnd.electrical.noTasks")}</p>
               </div>
             )}
           </div>
@@ -129,46 +131,46 @@ export default function ElectricalDesign() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新建电气设计</DialogTitle>
+            <DialogTitle>{t("rnd.electrical.createTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="ed-name">设计名称 *</Label>
+              <Label htmlFor="ed-name">{t("rnd.electrical.designName")} *</Label>
               <Input
                 id="ed-name"
-                placeholder="例如：主控PLC程序设计"
+                placeholder={t("rnd.electrical.designNamePlaceholder")}
                 value={formData.name}
                 onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ed-project">所属项目 *</Label>
+              <Label htmlFor="ed-project">{t("rnd.electrical.belongProject")} *</Label>
               <Input
                 id="ed-project"
-                placeholder="例如：缸体清洗线"
+                placeholder={t("rnd.electrical.belongProjectPlaceholder")}
                 value={formData.project}
                 onChange={e => setFormData(prev => ({ ...prev, project: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ed-engineer">工程师 *</Label>
+              <Label htmlFor="ed-engineer">{t("rnd.electrical.engineerLabel")} *</Label>
               <Input
                 id="ed-engineer"
-                placeholder="例如：陈工"
+                placeholder={t("rnd.electrical.engineerPlaceholder")}
                 value={formData.engineer}
                 onChange={e => setFormData(prev => ({ ...prev, engineer: e.target.value }))}
               />
             </div>
             {currentBU && (
               <div className="space-y-2">
-                <Label>事业部</Label>
+                <Label>{t("rnd.electrical.buLabel")}</Label>
                 <Input value={currentBU} disabled />
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
-            <Button onClick={handleCreate}>创建</Button>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>{t("rnd.electrical.cancel")}</Button>
+            <Button onClick={handleCreate}>{t("rnd.electrical.create")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

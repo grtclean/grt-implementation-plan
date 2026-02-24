@@ -241,6 +241,10 @@ import { p2pLifecycleRouter } from "./routers/p2p-lifecycle.router";
 import { aiAgentFleetRouter } from "./routers/ai-agent-fleet.router";
 import { reportCenterRouter } from "./routers/report-center.router";
 import { visionDashboardRouter } from "./routers/vision-dashboard.router";
+import { cicdRouter } from "./routers/cicd.router";
+import { smartMeetingRouter } from "./routers/smart-meeting.router";
+import { syncDispatchRouter } from "./routers/sync-dispatch.router";
+import { dataMigrationRouter } from "./routers/data-migration.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -589,6 +593,18 @@ export const appRouter = router({
 
   // GRT Vision — Large-Screen Dashboards (Lobby / Shopfloor / BU / Service)
   visionDashboard: visionDashboardRouter,
+
+  // CI/CD Pipeline Matrix (Dual-AI: Gemini strategist + Claude executor)
+  cicd: cicdRouter,
+
+  // Smart Meeting & AI Engagement Hub (智能会议与互动中枢)
+  smartMeeting: smartMeetingRouter,
+
+  // Office 365 Encrypted Email Ferry — Cross-Border Data Sync (US → China)
+  syncDispatch: syncDispatchRouter,
+
+  // Data Cleansing & Migration Hub (Legacy import with AI field mapping + sandbox isolation)
+  dataMigration: dataMigrationRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {

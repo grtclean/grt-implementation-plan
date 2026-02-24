@@ -3,6 +3,7 @@
  * 翻译本地化 · 术语管理 · 质量评分 · 文化适配
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ interface LocalizationResult {
 }
 
 export default function AIContentLocalizer() {
+  const { t } = useLanguage();
   const [content, setContent] = useState("");
   const [sourceLanguage, setSourceLanguage] = useState("zh");
   const [targetLanguage, setTargetLanguage] = useState("en");
@@ -99,12 +101,12 @@ export default function AIContentLocalizer() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Globe}
-          title="AI内容本地化"
-          description="翻译本地化 · 术语管理 · 质量评分 · 文化适配"
+          title={t("ai.localizer.title")}
+          description={t("ai.localizer.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI本地化
+              {t("ai.localizer.aiLocalize")}
             </Badge>
           }
         />
@@ -114,25 +116,25 @@ export default function AIContentLocalizer() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Globe className="h-5 w-5 text-primary" />
-              本地化设置
+              {t("ai.localizer.settings")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">内容</label>
+              <label className="text-sm text-muted-foreground">{t("ai.localizer.content")}</label>
               <Textarea
                 rows={8}
-                placeholder="输入需要本地化的内容..."
+                placeholder={t("ai.localizer.contentPlaceholder")}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">源语言</label>
+                <label className="text-sm text-muted-foreground">{t("ai.localizer.sourceLang")}</label>
                 <Select value={sourceLanguage} onValueChange={(v) => setSourceLanguage(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择源语言" />
+                    <SelectValue placeholder={t("ai.localizer.selectSourceLang")} />
                   </SelectTrigger>
                   <SelectContent>
                     {LANGUAGES.map((l) => (
@@ -142,10 +144,10 @@ export default function AIContentLocalizer() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">目标语言</label>
+                <label className="text-sm text-muted-foreground">{t("ai.localizer.targetLang")}</label>
                 <Select value={targetLanguage} onValueChange={(v) => setTargetLanguage(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择目标语言" />
+                    <SelectValue placeholder={t("ai.localizer.selectTargetLang")} />
                   </SelectTrigger>
                   <SelectContent>
                     {LANGUAGES.map((l) => (
@@ -157,10 +159,10 @@ export default function AIContentLocalizer() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">内容类型</label>
+                <label className="text-sm text-muted-foreground">{t("ai.localizer.contentType")}</label>
                 <Select value={contentType} onValueChange={(v) => setContentType(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择内容类型" />
+                    <SelectValue placeholder={t("ai.localizer.selectContentType")} />
                   </SelectTrigger>
                   <SelectContent>
                     {CONTENT_TYPES.map((ct) => (
@@ -170,10 +172,10 @@ export default function AIContentLocalizer() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">行业</label>
+                <label className="text-sm text-muted-foreground">{t("ai.localizer.industry")}</label>
                 <Select value={industry} onValueChange={(v) => setIndustry(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择行业" />
+                    <SelectValue placeholder={t("ai.localizer.selectIndustry")} />
                   </SelectTrigger>
                   <SelectContent>
                     {INDUSTRIES.map((ind) => (
@@ -186,7 +188,7 @@ export default function AIContentLocalizer() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!content.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI本地化
+                {t("ai.localizer.aiLocalize")}
               </Button>
             </div>
           </CardContent>
@@ -200,11 +202,11 @@ export default function AIContentLocalizer() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">翻译质量评分</p>
+                    <p className="text-sm text-muted-foreground">{t("ai.localizer.qualityScore")}</p>
                     <p className={`text-5xl font-bold ${qualityScoreTextColor(result.qualityScore)}`}>{result.qualityScore}</p>
                   </div>
                   <Badge className={`text-lg px-4 py-2 ${qualityScoreColor(result.qualityScore)}`}>
-                    {result.qualityScore >= 80 ? "优秀" : result.qualityScore >= 60 ? "良好" : result.qualityScore >= 40 ? "一般" : "需改进"}
+                    {result.qualityScore >= 80 ? t("ai.localizer.excellent") : result.qualityScore >= 60 ? t("ai.localizer.good") : result.qualityScore >= 40 ? t("ai.localizer.fair") : t("ai.localizer.needsImprovement")}
                   </Badge>
                 </div>
                 <div className="mt-3 w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -222,11 +224,11 @@ export default function AIContentLocalizer() {
                 <CardTitle className="flex items-center justify-between text-base">
                   <div className="flex items-center gap-2">
                     <Languages className="h-5 w-5 text-primary" />
-                    翻译结果
+                    {t("ai.localizer.translationResult")}
                   </div>
                   <Button variant="outline" size="sm" onClick={handleCopy} className="gap-1">
                     <Copy className="h-4 w-4" />
-                    复制
+                    {t("ai.localizer.copy")}
                   </Button>
                 </CardTitle>
               </CardHeader>
@@ -246,7 +248,7 @@ export default function AIContentLocalizer() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <BookOpen className="h-5 w-5 text-primary" />
-                    术语对照
+                    {t("ai.localizer.terminology")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -254,9 +256,9 @@ export default function AIContentLocalizer() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-muted-foreground">源术语</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">目标术语</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">备注</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.localizer.sourceTerm")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.localizer.targetTerm")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.localizer.notes")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -280,7 +282,7 @@ export default function AIContentLocalizer() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Globe className="h-5 w-5 text-blue-400" />
-                    文化适配说明
+                    {t("ai.localizer.culturalNotes")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -302,7 +304,7 @@ export default function AIContentLocalizer() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base text-red-400">
                     <AlertTriangle className="h-5 w-5 text-red-400" />
-                    警告 ({result.warnings.length})
+                    {t("ai.localizer.warnings")} ({result.warnings.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -324,7 +326,7 @@ export default function AIContentLocalizer() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    备选翻译
+                    {t("ai.localizer.alternatives")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

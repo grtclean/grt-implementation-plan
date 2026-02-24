@@ -3,6 +3,7 @@
  * Phase H: 可行性评估 · 产品线推荐 · 技术参数 · 风险识别
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ interface AnalysisResult {
 }
 
 export default function AIRequirementsAnalysis() {
+  const { t } = useLanguage();
   const [projectName, setProjectName] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [industry, setIndustry] = useState("汽车制造");

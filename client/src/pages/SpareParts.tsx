@@ -5,6 +5,7 @@
  */
 import { useState } from "react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
@@ -19,18 +20,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Package, Plus, Search, AlertTriangle, CheckCircle2, Truck, DollarSign } from "lucide-react";
 
 const stockStatusColorMap = createStatusColorMap({
-  "正常": "green",
-  "低库存": "orange",
-  "缺货": "red",
+  "normal": "green",
+  "low": "orange",
+  "outOfStock": "red",
 });
 
-function getStockStatus(current: number, reorder: number) {
-  if (current === 0) return "缺货";
-  if (current <= reorder) return "低库存";
-  return "正常";
+function getStockStatus(current: number, reorder: number): string {
+  if (current === 0) return "outOfStock";
+  if (current <= reorder) return "low";
+  return "normal";
 }
 
 export default function SpareParts() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [formData, setFormData] = useState({
@@ -67,11 +69,17 @@ export default function SpareParts() {
 
   const filtered = parts.filter((p: any) => !search || p.name?.includes(search) || p.model?.includes(search));
 
+  const statusLabelMap: Record<string, string> = {
+    "normal": t("supply.spareParts.statusNormalLabel"),
+    "low": t("supply.spareParts.statusLowLabel"),
+    "outOfStock": t("supply.spareParts.statusOutOfStockLabel"),
+  };
+
   const handleCreate = async () => {
-    if (!formData.name.trim()) { toast.error("请输入备件名称"); return; }
-    if (!formData.model.trim()) { toast.error("请输入型号"); return; }
-    if (!formData.stock || Number(formData.stock) < 0) { toast.error("请输入有效的库存数量"); return; }
-    if (!formData.minStock || Number(formData.minStock) < 0) { toast.error("请输入有效的最低库存"); return; }
+    if (!formData.name.trim()) { toast.error(t("supply.spareParts.enterPartName")); return; }
+    if (!formData.model.trim()) { toast.error(t("supply.spareParts.enterModel")); return; }
+    if (!formData.stock || Number(formData.stock) < 0) { toast.error(t("supply.spareParts.enterValidStock")); return; }
+    if (!formData.minStock || Number(formData.minStock) < 0) { toast.error(t("supply.spareParts.enterValidMinStock")); return; }
 
     try {
       await createMutation.mutateAsync({
@@ -86,10 +94,10 @@ export default function SpareParts() {
       });
       setShowCreateDialog(false);
       setFormData({ name: "", model: "", stock: "", minStock: "", supplier: "", price: "" });
-      toast.success("备件入库登记成功");
+      toast.success(t("supply.spareParts.registerSuccess"));
       refetch();
     } catch (e: any) {
-      toast.error(e.message || "创建失败");
+      toast.error(e.message || t("supply.p2p.createFailed"));
     }
   };
 
@@ -97,30 +105,30 @@ export default function SpareParts() {
     <div className="space-y-6">
       <PageHeader
         icon={Package}
-        title="备件管理"
-        description="备件库存管理与需求预测"
+        title={t("supply.spareParts.title")}
+        description={t("supply.spareParts.pageDesc")}
         actions={
           <>
-            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />入库登记</Button>
-            <Button variant="outline"><Truck className="h-4 w-4 mr-2" />采购申请</Button>
+            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />{t("supply.spareParts.registerEntry")}</Button>
+            <Button variant="outline"><Truck className="h-4 w-4 mr-2" />{t("supply.spareParts.purchaseRequest")}</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Package} label="备件种类" value={stats?.total ?? parts.length} />
-        <StatCard icon={DollarSign} label="库存价值" value={stats?.totalValue ? `¥${(stats.totalValue / 10000).toFixed(1)}万` : "—"} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={AlertTriangle} label="低库存预警" value={stats?.lowStock ?? parts.filter((p: any) => p.status === "低库存").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={CheckCircle2} label="关键备件" value={stats?.critical ?? 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Package} label={t("supply.spareParts.partTypes")} value={stats?.total ?? parts.length} />
+        <StatCard icon={DollarSign} label={t("supply.spareParts.inventoryValue")} value={stats?.totalValue ? `¥${(stats.totalValue / 10000).toFixed(1)}万` : "—"} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={AlertTriangle} label={t("supply.spareParts.lowStockWarning")} value={stats?.lowStock ?? parts.filter((p: any) => p.status === "low").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={CheckCircle2} label={t("supply.spareParts.criticalParts")} value={stats?.critical ?? 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>备件库存</CardTitle>
+            <CardTitle>{t("supply.spareParts.partsInventory")}</CardTitle>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="搜索备件..." className="pl-9 w-64" value={search} onChange={e => setSearch(e.target.value)} />
+              <Input placeholder={t("supply.spareParts.searchParts")} className="pl-9 w-64" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
           </div>
         </CardHeader>
@@ -137,20 +145,20 @@ export default function SpareParts() {
                       <span className="font-medium">{p.name}</span>
                       <Badge variant="secondary">{p.model}</Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">供应商: {p.supplier} · 单价: {p.price}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("supply.spareParts.supplierLabel")}: {p.supplier} · {t("supply.spareParts.unitPriceShort")}: {p.price}</p>
                   </div>
                   <div className="text-right">
                     <StatusBadge color={stockStatusColorMap[p.status as keyof typeof stockStatusColorMap] ?? "gray"}>
-                      {p.status === "低库存" && <AlertTriangle className="h-3 w-3 mr-1 inline" />}{p.status}
+                      {p.status === "low" && <AlertTriangle className="h-3 w-3 mr-1 inline" />}{statusLabelMap[p.status] ?? p.status}
                     </StatusBadge>
-                    <p className="text-sm mt-1">库存: <span className={p.stock < p.minStock ? "text-red-600 font-bold" : ""}>{p.stock}</span> / 最低: {p.minStock}</p>
+                    <p className="text-sm mt-1">{t("supply.spareParts.stockLabel")}: <span className={p.stock < p.minStock ? "text-red-600 font-bold" : ""}>{p.stock}</span> / {t("supply.spareParts.minStockLabel")}: {p.minStock}</p>
                   </div>
                 </div>
               ))}
               {filtered.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <Package className="w-12 h-12 mb-3 opacity-50" />
-                  <p className="font-medium">暂无备件数据</p>
+                  <p className="font-medium">{t("supply.spareParts.noPartsData")}</p>
                 </div>
               )}
             </div>
@@ -160,38 +168,38 @@ export default function SpareParts() {
 
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
-          <DialogHeader><DialogTitle>入库登记</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("supply.spareParts.registerEntryDialog")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="sp-name">备件名称 *</Label>
-              <Input id="sp-name" placeholder="例如：清洗喷嘴组件" value={formData.name} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} />
+              <Label htmlFor="sp-name">{t("supply.spareParts.partNameLabel")}</Label>
+              <Input id="sp-name" value={formData.name} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sp-model">型号 *</Label>
-              <Input id="sp-model" placeholder="例如：GRT-NZ-320" value={formData.model} onChange={e => setFormData(prev => ({ ...prev, model: e.target.value }))} />
+              <Label htmlFor="sp-model">{t("supply.spareParts.modelLabel")}</Label>
+              <Input id="sp-model" value={formData.model} onChange={e => setFormData(prev => ({ ...prev, model: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="sp-stock">库存数量 *</Label>
-                <Input id="sp-stock" type="number" min="0" placeholder="例如：45" value={formData.stock} onChange={e => setFormData(prev => ({ ...prev, stock: e.target.value }))} />
+                <Label htmlFor="sp-stock">{t("supply.spareParts.stockQty")}</Label>
+                <Input id="sp-stock" type="number" min="0" value={formData.stock} onChange={e => setFormData(prev => ({ ...prev, stock: e.target.value }))} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sp-min">最低库存 *</Label>
-                <Input id="sp-min" type="number" min="0" placeholder="例如：20" value={formData.minStock} onChange={e => setFormData(prev => ({ ...prev, minStock: e.target.value }))} />
+                <Label htmlFor="sp-min">{t("supply.spareParts.minStock")}</Label>
+                <Input id="sp-min" type="number" min="0" value={formData.minStock} onChange={e => setFormData(prev => ({ ...prev, minStock: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sp-supplier">供应商</Label>
-              <Input id="sp-supplier" placeholder="例如：博世" value={formData.supplier} onChange={e => setFormData(prev => ({ ...prev, supplier: e.target.value }))} />
+              <Label htmlFor="sp-supplier">{t("supply.spareParts.supplierInputLabel")}</Label>
+              <Input id="sp-supplier" value={formData.supplier} onChange={e => setFormData(prev => ({ ...prev, supplier: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sp-price">单价</Label>
-              <Input id="sp-price" placeholder="例如：1200" value={formData.price} onChange={e => setFormData(prev => ({ ...prev, price: e.target.value }))} />
+              <Label htmlFor="sp-price">{t("supply.spareParts.unitPriceInputLabel")}</Label>
+              <Input id="sp-price" value={formData.price} onChange={e => setFormData(prev => ({ ...prev, price: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
-            <Button onClick={handleCreate}>登记入库</Button>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>{t("supply.common.cancel")}</Button>
+            <Button onClick={handleCreate}>{t("supply.spareParts.registerBtn")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

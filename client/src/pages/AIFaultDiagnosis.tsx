@@ -3,6 +3,7 @@
  * Phase H: 故障诊断 · 根因分析 · 维修步骤 · 预防措施
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ interface DiagnosisResult {
 }
 
 export default function AIFaultDiagnosis() {
+  const { t } = useLanguage();
   const [equipmentModel, setEquipmentModel] = useState("碳氢真空清洗机");
   const [symptomDescription, setSymptomDescription] = useState("");
   const [errorCodes, setErrorCodes] = useState("");
@@ -68,7 +70,7 @@ export default function AIFaultDiagnosis() {
   };
 
   const urgencyLabel = (u: string) => {
-    switch (u) { case "critical": return "紧急停机"; case "high": return "高优先"; case "medium": return "中等"; case "low": return "低优先"; default: return u; }
+    switch (u) { case "critical": return t("ai.faultDiag.urgencyCritical"); case "high": return t("ai.faultDiag.urgencyHigh"); case "medium": return t("ai.faultDiag.urgencyMedium"); case "low": return t("ai.faultDiag.urgencyLow"); default: return u; }
   };
 
   const confidenceColor = (c: number) => {
@@ -82,12 +84,12 @@ export default function AIFaultDiagnosis() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Stethoscope}
-          title="AI故障诊断"
-          description="故障诊断 · 根因分析 · 维修步骤 · 预防措施"
+          title={t("ai.faultDiag.title")}
+          description={t("ai.faultDiag.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI诊断
+              {t("ai.faultDiag.aiDiagnose")}
             </Badge>
           }
         />
@@ -97,16 +99,16 @@ export default function AIFaultDiagnosis() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Stethoscope className="h-5 w-5 text-primary" />
-              故障信息
+              {t("ai.faultDiag.faultInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">设备型号</label>
+                <label className="text-sm text-muted-foreground">{t("ai.faultDiag.equipmentModel")}</label>
                 <Select value={equipmentModel} onValueChange={(v) => setEquipmentModel(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择设备型号" />
+                    <SelectValue placeholder={t("ai.faultDiag.selectModel")} />
                   </SelectTrigger>
                   <SelectContent>
                     {EQUIPMENT_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
@@ -114,32 +116,32 @@ export default function AIFaultDiagnosis() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">错误代码（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.faultDiag.errorCodes")}</label>
                 <Input placeholder="如: E-0012, ALM-VacuumLow" value={errorCodes} onChange={(e) => setErrorCodes(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">故障描述</label>
+              <label className="text-sm text-muted-foreground">{t("ai.faultDiag.symptomDescription")}</label>
               <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="如: 设备运行时真空度无法达到设定值，真空泵运行声音异常，偶尔伴有高温报警" value={symptomDescription} onChange={(e) => setSymptomDescription(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">运行工况（可选）</label>
+              <label className="text-sm text-muted-foreground">{t("ai.faultDiag.operatingConditions")}</label>
               <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder="如: 每天运行16小时，环境温度35℃，清洗介质为碳氢溶剂" value={operatingConditions} onChange={(e) => setOperatingConditions(e.target.value)} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">上次维护日期（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.faultDiag.lastMaintenanceDate")}</label>
                 <Input type="date" value={lastMaintenanceDate} onChange={(e) => setLastMaintenanceDate(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">设备年限（年，可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.faultDiag.equipmentAge")}</label>
                 <Input type="number" placeholder="如: 3" value={equipmentAge} onChange={(e) => setEquipmentAge(e.target.value)} />
               </div>
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!symptomDescription.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI诊断
+                {t("ai.faultDiag.aiDiagnose")}
               </Button>
             </div>
           </CardContent>
@@ -155,11 +157,11 @@ export default function AIFaultDiagnosis() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Badge className={urgencyColor(result.urgency)}>{urgencyLabel(result.urgency)}</Badge>
-                      <Badge className={confidenceColor(result.confidence)}>置信度 {result.confidence}%</Badge>
+                      <Badge className={confidenceColor(result.confidence)}>{t("ai.faultDiag.confidence")} {result.confidence}%</Badge>
                     </div>
                   </div>
                   <div className="p-4 rounded bg-muted/50">
-                    <p className="text-sm text-muted-foreground mb-1">诊断结论</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t("ai.faultDiag.diagnosisConclusion")}</p>
                     <p className="font-medium">{result.diagnosis}</p>
                   </div>
                 </div>
@@ -172,7 +174,7 @@ export default function AIFaultDiagnosis() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    根因分析
+                    {t("ai.faultDiag.rootCauseAnalysis")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -180,9 +182,9 @@ export default function AIFaultDiagnosis() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-muted-foreground">可能原因</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">概率</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">说明</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.faultDiag.possibleCause")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.faultDiag.probability")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.faultDiag.explanation")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -213,7 +215,7 @@ export default function AIFaultDiagnosis() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Wrench className="h-5 w-5 text-primary" />
-                    维修步骤
+                    {t("ai.faultDiag.repairSteps")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -226,8 +228,8 @@ export default function AIFaultDiagnosis() {
                         <div className="flex-1 space-y-1">
                           <p className="font-medium text-sm">{step.description}</p>
                           <div className="flex gap-4 text-xs text-muted-foreground">
-                            <span>预估时间: {step.estimatedTime}</span>
-                            <span>所需备件: {step.partsNeeded}</span>
+                            <span>{t("ai.faultDiag.estimatedTime")}: {step.estimatedTime}</span>
+                            <span>{t("ai.faultDiag.partsNeeded")}: {step.partsNeeded}</span>
                           </div>
                         </div>
                       </div>
@@ -243,7 +245,7 @@ export default function AIFaultDiagnosis() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Shield className="h-5 w-5 text-blue-400" />
-                    预防措施
+                    {t("ai.faultDiag.preventiveMeasures")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -265,7 +267,7 @@ export default function AIFaultDiagnosis() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("ai.faultDiag.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

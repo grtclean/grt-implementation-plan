@@ -3,6 +3,7 @@
  * 自动汇总当日生产数据 · 格式化输出 · 重点提示
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ interface DailyReportResult {
 }
 
 export default function ProductionDailyReport() {
+  const { t } = useLanguage();
   const [date, setDate] = useState("");
   const [productionData, setProductionData] = useState("");
   const [qualityData, setQualityData] = useState("");
@@ -82,9 +84,9 @@ export default function ProductionDailyReport() {
 
   const metricStatusLabel = (status: string) => {
     switch (status) {
-      case "above": return "超额";
-      case "on_target": return "达标";
-      case "below": return "未达标";
+      case "above": return t("manufacturing.dailyReport.exceeded");
+      case "on_target": return t("manufacturing.dailyReport.onTarget");
+      case "below": return t("manufacturing.dailyReport.belowTarget");
       default: return status;
     }
   };
@@ -101,10 +103,10 @@ export default function ProductionDailyReport() {
 
   const equipmentStatusLabel = (status: string) => {
     switch (status) {
-      case "running": return "运行中";
-      case "idle": return "空闲";
-      case "maintenance": return "维护";
-      case "fault": return "故障";
+      case "running": return t("manufacturing.dailyReport.equipmentRunning");
+      case "idle": return t("manufacturing.dailyReport.equipmentIdle");
+      case "maintenance": return t("manufacturing.dailyReport.equipmentMaintenance");
+      case "fault": return t("manufacturing.dailyReport.equipmentFault");
       default: return status;
     }
   };
@@ -120,9 +122,9 @@ export default function ProductionDailyReport() {
 
   const eventStatusLabel = (status: string) => {
     switch (status) {
-      case "resolved": return "已解决";
-      case "in_progress": return "处理中";
-      case "pending": return "待处理";
+      case "resolved": return t("manufacturing.dailyReport.issueResolved");
+      case "in_progress": return t("manufacturing.dailyReport.issueInProgress");
+      case "pending": return t("manufacturing.dailyReport.issuePending");
       default: return status;
     }
   };
@@ -131,12 +133,12 @@ export default function ProductionDailyReport() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={FileText}
-          title="AI生产日报"
-          description="自动汇总当日生产数据 · 格式化输出 · 重点提示"
+          title={t("manufacturing.dailyReport.title")}
+          description={t("manufacturing.dailyReport.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI日报
+              {t("manufacturing.dailyReport.aiBadge")}
             </Badge>
           }
         />
@@ -146,12 +148,12 @@ export default function ProductionDailyReport() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <FileText className="h-5 w-5 text-primary" />
-              日报数据
+              {t("manufacturing.dailyReport.reportData")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">日期 *</label>
+              <label className="text-sm text-muted-foreground">{t("manufacturing.dailyReport.dateLabel")} *</label>
               <Input
                 type="date"
                 value={date}
@@ -160,19 +162,19 @@ export default function ProductionDailyReport() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">生产完成数据 *</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.dailyReport.productionData")} *</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]"
-                  placeholder="生产完成数据"
+                  placeholder={t("manufacturing.dailyReport.productionData")}
                   value={productionData}
                   onChange={(e) => setProductionData(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">质量检测数据 *</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.dailyReport.qualityData")} *</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]"
-                  placeholder="质量检测数据"
+                  placeholder={t("manufacturing.dailyReport.qualityData")}
                   value={qualityData}
                   onChange={(e) => setQualityData(e.target.value)}
                 />
@@ -180,28 +182,28 @@ export default function ProductionDailyReport() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">设备运行数据（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.dailyReport.equipmentData")}</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]"
-                  placeholder="设备运行数据"
+                  placeholder={t("manufacturing.dailyReport.equipmentData")}
                   value={equipmentData}
                   onChange={(e) => setEquipmentData(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">异常事件记录（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.dailyReport.abnormalEvents")}</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]"
-                  placeholder="异常事件记录"
+                  placeholder={t("manufacturing.dailyReport.abnormalEvents")}
                   value={abnormalEvents}
                   onChange={(e) => setAbnormalEvents(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">明日计划（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("manufacturing.dailyReport.tomorrowPlan")}</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]"
-                  placeholder="明日计划"
+                  placeholder={t("manufacturing.dailyReport.tomorrowPlan")}
                   value={tomorrowPlan}
                   onChange={(e) => setTomorrowPlan(e.target.value)}
                 />
@@ -210,7 +212,7 @@ export default function ProductionDailyReport() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!date || !productionData.trim() || !qualityData.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                生成日报
+                {t("manufacturing.dailyReport.generate")}
               </Button>
             </div>
           </CardContent>
@@ -224,7 +226,7 @@ export default function ProductionDailyReport() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Calendar className="h-5 w-5 text-primary" />
-                  <p className="text-lg font-bold">生产日报 - {result.reportDate}</p>
+                  <p className="text-lg font-bold">{t("manufacturing.dailyReport.reportTitle")} - {result.reportDate}</p>
                 </div>
                 <p className="text-sm text-muted-foreground">{result.summary}</p>
               </CardContent>
@@ -236,7 +238,7 @@ export default function ProductionDailyReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <BarChart3 className="h-5 w-5 text-primary" />
-                    生产指标
+                    {t("manufacturing.dailyReport.productionMetrics")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -244,11 +246,11 @@ export default function ProductionDailyReport() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">指标</th>
-                          <th className="text-right py-2 pr-4">计划</th>
-                          <th className="text-right py-2 pr-4">实际</th>
-                          <th className="text-right py-2 pr-4">达成率</th>
-                          <th className="text-left py-2">状态</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.dailyReport.metricName")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.dailyReport.planned")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.dailyReport.actual")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.dailyReport.achievementRate")}</th>
+                          <th className="text-left py-2">{t("manufacturing.production.status")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -275,21 +277,21 @@ export default function ProductionDailyReport() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <CheckCircle className="h-5 w-5 text-primary" />
-                  质量汇总
+                  {t("manufacturing.dailyReport.qualitySummary")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">检验总数</p>
+                    <p className="text-sm text-muted-foreground">{t("manufacturing.dailyReport.totalInspected")}</p>
                     <p className="text-3xl font-bold text-primary">{result.qualitySummary.totalInspected}</p>
                   </div>
                   <div className="p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">合格率</p>
+                    <p className="text-sm text-muted-foreground">{t("manufacturing.dailyReport.passRate")}</p>
                     <p className="text-3xl font-bold text-green-400">{result.qualitySummary.passRate}</p>
                   </div>
                   <div className="p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">主要缺陷</p>
+                    <p className="text-sm text-muted-foreground">{t("manufacturing.dailyReport.mainDefects")}</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {result.qualitySummary.mainDefects.map((defect, idx) => (
                         <Badge key={idx} variant="outline" className="text-xs">{defect}</Badge>
@@ -306,7 +308,7 @@ export default function ProductionDailyReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Settings className="h-5 w-5 text-primary" />
-                    设备状态
+                    {t("manufacturing.dailyReport.equipmentStatus")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -314,10 +316,10 @@ export default function ProductionDailyReport() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">设备</th>
-                          <th className="text-left py-2 pr-4">状态</th>
-                          <th className="text-right py-2 pr-4">利用率</th>
-                          <th className="text-left py-2">问题</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.dailyReport.equipment")}</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.production.status")}</th>
+                          <th className="text-right py-2 pr-4">{t("manufacturing.production.utilizationRate")}</th>
+                          <th className="text-left py-2">{t("manufacturing.dailyReport.issues")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -344,7 +346,7 @@ export default function ProductionDailyReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    异常事件 ({result.abnormalEvents.length})
+                    {t("manufacturing.dailyReport.abnormalEvents")} ({result.abnormalEvents.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -352,10 +354,10 @@ export default function ProductionDailyReport() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">时间</th>
-                          <th className="text-left py-2 pr-4">事件</th>
-                          <th className="text-left py-2 pr-4">状态</th>
-                          <th className="text-left py-2">影响</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.dailyReport.time")}</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.dailyReport.event")}</th>
+                          <th className="text-left py-2 pr-4">{t("manufacturing.production.status")}</th>
+                          <th className="text-left py-2">{t("manufacturing.dailyReport.impact")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -382,7 +384,7 @@ export default function ProductionDailyReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Calendar className="h-5 w-5 text-primary" />
-                    明日计划
+                    {t("manufacturing.dailyReport.tomorrowPlan")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -404,7 +406,7 @@ export default function ProductionDailyReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Sparkles className="h-5 w-5 text-yellow-400" />
-                    重点提示
+                    {t("manufacturing.dailyReport.keyHighlights")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -426,7 +428,7 @@ export default function ProductionDailyReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-green-400" />
-                    AI建议
+                    {t("manufacturing.common.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

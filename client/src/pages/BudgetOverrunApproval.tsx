@@ -69,26 +69,26 @@ export default function BudgetOverrunApproval() {
   // 审批通过mutation
   const approveMutation = trpc.budgetOverrunApproval.approve.useMutation({
     onSuccess: () => {
-      toast.success('审批通过成功');
+      toast.success(t("finance.overrun.approveSuccess"));
       setIsApproveDialogOpen(false);
       setApprovalComment('');
       refetch();
     },
     onError: (error) => {
-      toast.error(`审批失败: ${error.message}`);
+      toast.error(`${t("finance.overrun.approveFailed")}: ${error.message}`);
     },
   });
 
   // 审批拒绝mutation
   const rejectMutation = trpc.budgetOverrunApproval.reject.useMutation({
     onSuccess: () => {
-      toast.success('已拒绝该申请');
+      toast.success(t("finance.overrun.rejectSuccess"));
       setIsRejectDialogOpen(false);
       setApprovalComment('');
       refetch();
     },
     onError: (error) => {
-      toast.error(`操作失败: ${error.message}`);
+      toast.error(`${t("finance.overrun.operationFailed")}: ${error.message}`);
     },
   });
 
@@ -109,7 +109,7 @@ export default function BudgetOverrunApproval() {
   const handleReject = () => {
     if (!selectedApproval) return;
     if (!approvalComment.trim()) {
-      toast.error('请填写拒绝原因');
+      toast.error(t("finance.overrun.rejectReasonRequired"));
       return;
     }
     rejectMutation.mutate({
@@ -138,13 +138,13 @@ export default function BudgetOverrunApproval() {
   const getOverrunLevelText = (level: string) => {
     switch (level) {
       case 'minor':
-        return '轻微超支 (0-20%)';
+        return t("finance.overrun.overrunMinor");
       case 'moderate':
-        return '中度超支 (20-50%)';
+        return t("finance.overrun.overrunModerate");
       case 'significant':
-        return '严重超支 (50-100%)';
+        return t("finance.overrun.overrunSignificant");
       case 'critical':
-        return '极度超支 (>100%)';
+        return t("finance.overrun.overrunCritical");
       default:
         return level;
     }
@@ -170,13 +170,13 @@ export default function BudgetOverrunApproval() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending':
-        return '待审批';
+        return t("finance.overrun.pending");
       case 'approved':
-        return '已通过';
+        return t("finance.overrun.approved");
       case 'rejected':
-        return '已拒绝';
+        return t("finance.overrun.rejected");
       case 'cancelled':
-        return '已取消';
+        return t("finance.overrun.cancelled");
       default:
         return status;
     }
@@ -195,8 +195,8 @@ export default function BudgetOverrunApproval() {
         {/* 页面标题 */}
         <PageHeader
           icon={AlertTriangle}
-          title="预算超支审批"
-          description="审批出差费用超出预算的申请"
+          title={t("finance.overrun.title")}
+          description={t("finance.overrun.desc")}
           actions={
             <Button
               variant="outline"
@@ -205,34 +205,34 @@ export default function BudgetOverrunApproval() {
               disabled={isRefreshing}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              刷新
+              {t("finance.overrun.refresh")}
             </Button>
           }
         />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard icon={Clock} label="待审批" value={stats.pending} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
-          <StatCard icon={CheckCircle2} label="已通过" value={stats.approved} iconColor="text-green-500" iconBg="bg-green-500/10" />
-          <StatCard icon={XCircle} label="已拒绝" value={stats.rejected} iconColor="text-red-500" iconBg="bg-red-500/10" />
-          <StatCard icon={FileText} label="总计" value={stats.total} />
+          <StatCard icon={Clock} label={t("finance.overrun.pending")} value={stats.pending} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+          <StatCard icon={CheckCircle2} label={t("finance.overrun.approved")} value={stats.approved} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={XCircle} label={t("finance.overrun.rejected")} value={stats.rejected} iconColor="text-red-500" iconBg="bg-red-500/10" />
+          <StatCard icon={FileText} label={t("finance.overrun.total")} value={stats.total} />
         </div>
 
         {/* 筛选和列表 */}
         <Card className="bg-card/50 border-border">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">审批列表</CardTitle>
+              <CardTitle className="text-lg">{t("finance.overrun.approvalList")}</CardTitle>
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ApprovalStatus)}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部</SelectItem>
-                  <SelectItem value="pending">待审批</SelectItem>
-                  <SelectItem value="approved">已通过</SelectItem>
-                  <SelectItem value="rejected">已拒绝</SelectItem>
-                  <SelectItem value="cancelled">已取消</SelectItem>
+                  <SelectItem value="all">{t("finance.overrun.all")}</SelectItem>
+                  <SelectItem value="pending">{t("finance.overrun.pending")}</SelectItem>
+                  <SelectItem value="approved">{t("finance.overrun.approved")}</SelectItem>
+                  <SelectItem value="rejected">{t("finance.overrun.rejected")}</SelectItem>
+                  <SelectItem value="cancelled">{t("finance.overrun.cancelled")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -290,13 +290,13 @@ export default function BudgetOverrunApproval() {
                           {getOverrunLevelText(approval.overrunLevel)}
                         </Badge>
                         <div className="text-sm">
-                          <span className="text-muted-foreground">超支: </span>
+                          <span className="text-muted-foreground">{t("finance.overrun.overrunLabel")}</span>
                           <span className="font-bold text-red-500">
                             ¥{approval.overrunAmount?.toLocaleString()} ({approval.overrunPercentage?.toFixed(1)}%)
                           </span>
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          审批进度: {approval.currentStep}/{approval.totalSteps}
+                          {t("finance.overrun.approvalProgressLabel")}{approval.currentStep}/{approval.totalSteps}
                         </div>
                       </div>
                     </div>
@@ -306,7 +306,7 @@ export default function BudgetOverrunApproval() {
             ) : (
               <div className="p-12 text-center">
                 <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">暂无审批记录</p>
+                <p className="text-muted-foreground">{t("finance.overrun.noRecords")}</p>
               </div>
             )}
           </CardContent>
@@ -318,10 +318,10 @@ export default function BudgetOverrunApproval() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-primary" />
-                预算超支审批详情
+                {t("finance.overrun.detailTitle")}
               </DialogTitle>
               <DialogDescription>
-                查看超支详情并进行审批操作
+                {t("finance.overrun.detailDesc")}
               </DialogDescription>
             </DialogHeader>
             {selectedApproval && (
@@ -329,41 +329,41 @@ export default function BudgetOverrunApproval() {
                 {/* 基本信息 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">申请人</p>
+                    <p className="text-sm text-muted-foreground">{t("finance.overrun.applicant")}</p>
                     <p className="font-medium">{selectedApproval.employeeName}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">部门</p>
+                    <p className="text-sm text-muted-foreground">{t("finance.overrun.department")}</p>
                     <p className="font-medium">{selectedApproval.department}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">出差目的地</p>
+                    <p className="text-sm text-muted-foreground">{t("finance.overrun.destination")}</p>
                     <p className="font-medium">{selectedApproval.destination}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">申请时间</p>
+                    <p className="text-sm text-muted-foreground">{t("finance.overrun.applyTime")}</p>
                     <p className="font-medium">{new Date(selectedApproval.createdAt).toLocaleString()}</p>
                   </div>
                 </div>
 
                 {/* 出差目的 */}
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">出差目的</p>
+                  <p className="text-sm text-muted-foreground">{t("finance.overrun.tripPurpose")}</p>
                   <p className="font-medium">{selectedApproval.tripPurpose}</p>
                 </div>
 
                 {/* 费用信息 */}
                 <div className="p-4 bg-muted/20 rounded-lg space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">预算金额</span>
+                    <span className="text-sm text-muted-foreground">{t("finance.overrun.budgetAmount")}</span>
                     <span className="font-medium">¥{selectedApproval.budgetAmount?.toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">实际金额</span>
+                    <span className="text-sm text-muted-foreground">{t("finance.overrun.actualAmount")}</span>
                     <span className="font-medium">¥{selectedApproval.actualAmount?.toLocaleString()}</span>
                   </div>
                   <div className="border-t border-border pt-3 flex items-center justify-between">
-                    <span className="text-sm font-medium">超支金额</span>
+                    <span className="text-sm font-medium">{t("finance.overrun.overrunAmount")}</span>
                     <span className="font-bold text-red-500">
                       ¥{selectedApproval.overrunAmount?.toLocaleString()} ({selectedApproval.overrunPercentage?.toFixed(1)}%)
                     </span>
@@ -372,7 +372,7 @@ export default function BudgetOverrunApproval() {
 
                 {/* 超支等级 */}
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">超支等级:</span>
+                  <span className="text-sm text-muted-foreground">{t("finance.overrun.overrunLevel")}:</span>
                   <Badge className={getOverrunLevelColor(selectedApproval.overrunLevel)}>
                     {getOverrunLevelText(selectedApproval.overrunLevel)}
                   </Badge>
@@ -381,14 +381,14 @@ export default function BudgetOverrunApproval() {
                 {/* 超支原因 */}
                 {selectedApproval.reason && (
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">超支原因</p>
+                    <p className="text-sm text-muted-foreground">{t("finance.overrun.overrunReason")}</p>
                     <p className="p-3 bg-muted/20 rounded-lg text-sm">{selectedApproval.reason}</p>
                   </div>
                 )}
 
                 {/* 审批进度 */}
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">审批进度</p>
+                  <p className="text-sm text-muted-foreground">{t("finance.overrun.approvalProgress")}</p>
                   <div className="flex items-center gap-2">
                     {Array.from({ length: selectedApproval.totalSteps }).map((_, i) => (
                       <div key={i} className="flex items-center">
@@ -421,7 +421,7 @@ export default function BudgetOverrunApproval() {
                     }}
                   >
                     <XCircle className="w-4 h-4 mr-2" />
-                    拒绝
+                    {t("finance.overrun.reject")}
                   </Button>
                   <Button
                     onClick={() => {
@@ -430,13 +430,13 @@ export default function BudgetOverrunApproval() {
                     }}
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
-                    通过
+                    {t("finance.overrun.approve")}
                   </Button>
                 </>
               )}
               {selectedApproval?.status !== 'pending' && (
                 <Button variant="outline" onClick={() => setIsDetailOpen(false)}>
-                  关闭
+                  {t("finance.overrun.close")}
                 </Button>
               )}
             </DialogFooter>
@@ -449,17 +449,17 @@ export default function BudgetOverrunApproval() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
-                确认通过
+                {t("finance.overrun.confirmApprove")}
               </DialogTitle>
               <DialogDescription>
-                确认通过该预算超支申请
+                {t("finance.overrun.confirmApproveDesc")}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">审批意见 (可选)</label>
+                <label className="text-sm font-medium">{t("finance.overrun.comment")}</label>
                 <Textarea
-                  placeholder="请输入审批意见..."
+                  placeholder={t("finance.overrun.commentPlaceholder")}
                   value={approvalComment}
                   onChange={(e) => setApprovalComment(e.target.value)}
                   rows={3}
@@ -468,10 +468,10 @@ export default function BudgetOverrunApproval() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsApproveDialogOpen(false)}>
-                取消
+                {t("finance.overrun.close")}
               </Button>
               <Button onClick={handleApprove} disabled={approveMutation.isPending}>
-                {approveMutation.isPending ? '处理中...' : '确认通过'}
+                {approveMutation.isPending ? t("finance.overrun.processing") : t("finance.overrun.confirmApproveBtn")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -483,17 +483,17 @@ export default function BudgetOverrunApproval() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <XCircle className="w-5 h-5 text-red-500" />
-                确认拒绝
+                {t("finance.overrun.confirmReject")}
               </DialogTitle>
               <DialogDescription>
-                确认拒绝该预算超支申请
+                {t("finance.overrun.confirmRejectDesc")}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">拒绝原因 <span className="text-red-500">*</span></label>
+                <label className="text-sm font-medium">{t("finance.overrun.rejectReason")} <span className="text-red-500">*</span></label>
                 <Textarea
-                  placeholder="请输入拒绝原因..."
+                  placeholder={t("finance.overrun.rejectPlaceholder")}
                   value={approvalComment}
                   onChange={(e) => setApprovalComment(e.target.value)}
                   rows={3}
@@ -502,10 +502,10 @@ export default function BudgetOverrunApproval() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
-                取消
+                {t("finance.overrun.close")}
               </Button>
               <Button variant="destructive" onClick={handleReject} disabled={rejectMutation.isPending}>
-                {rejectMutation.isPending ? '处理中...' : '确认拒绝'}
+                {rejectMutation.isPending ? t("finance.overrun.processing") : t("finance.overrun.confirmRejectBtn")}
               </Button>
             </DialogFooter>
           </DialogContent>

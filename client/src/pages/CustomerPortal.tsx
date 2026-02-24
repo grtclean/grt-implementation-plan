@@ -1,9 +1,9 @@
 /**
  * GRT智能系统 V3.0 - 客户门户
- * 
+ *
  * 为客户提供安全的项目状态查询入口
  * 支持ZKP验证和受控访问
- * 
+ *
  * @version 3.0.0
  * @author GRT System
  * @see RFC-036 AI-AI销售系统架构
@@ -18,11 +18,11 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Shield, 
-  Search, 
-  CheckCircle2, 
-  Clock, 
+import {
+  Shield,
+  Search,
+  CheckCircle2,
+  Clock,
   AlertTriangle,
   FileText,
   Package,
@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // 模拟项目数据类型
 interface ProjectStatus {
@@ -65,6 +66,7 @@ interface ZKPVerificationResult {
 }
 
 export default function CustomerPortal() {
+  const { t } = useLanguage();
   const { user, loading, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState("status");
   const [projectCode, setProjectCode] = useState("");
@@ -77,7 +79,7 @@ export default function CustomerPortal() {
   // 模拟项目状态查询
   const handleProjectQuery = async () => {
     if (!projectCode || !accessCode) {
-      setError("请输入项目编号和访问码");
+      setError(t("crm.portal.enterProjectAndCode"));
       return;
     }
 
@@ -91,25 +93,25 @@ export default function CustomerPortal() {
     if (accessCode === "GRT2026" || accessCode.length >= 6) {
       setProjectStatus({
         projectCode: projectCode,
-        projectName: `${projectCode} - 高压清洗设备`,
-        customerName: "示例客户公司",
-        currentPhase: "M4 - 详细设计",
+        projectName: `${projectCode} - ${t("crm.portal.sampleProjectName")}`,
+        customerName: t("crm.portal.sampleCustomer"),
+        currentPhase: t("crm.portal.samplePhase"),
         phaseProgress: 75,
         overallProgress: 35,
         status: 'on_track',
-        nextMilestone: "M5 - 设计评审",
+        nextMilestone: t("crm.portal.sampleNextMilestone"),
         nextMilestoneDate: "2026-02-15",
         lastUpdate: new Date().toISOString().split('T')[0],
         deliverables: [
-          { name: "技术方案书", status: 'completed', dueDate: "2026-01-10" },
-          { name: "3D设计图纸", status: 'in_progress', dueDate: "2026-02-01" },
-          { name: "BOM清单", status: 'pending', dueDate: "2026-02-10" },
-          { name: "电气原理图", status: 'pending', dueDate: "2026-02-15" },
+          { name: t("crm.portal.delivTechSpec"), status: 'completed', dueDate: "2026-01-10" },
+          { name: t("crm.portal.deliv3DDesign"), status: 'in_progress', dueDate: "2026-02-01" },
+          { name: t("crm.portal.delivBOM"), status: 'pending', dueDate: "2026-02-10" },
+          { name: t("crm.portal.delivElectrical"), status: 'pending', dueDate: "2026-02-15" },
         ]
       });
       setError(null);
     } else {
-      setError("访问码验证失败，请检查后重试");
+      setError(t("crm.portal.accessCodeFailed"));
       setProjectStatus(null);
     }
 
@@ -119,7 +121,7 @@ export default function CustomerPortal() {
   // 模拟ZKP验证
   const handleZKPVerification = async (capability: string) => {
     setIsVerifying(true);
-    
+
     // 模拟ZKP验证延迟
     await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -148,11 +150,21 @@ export default function CustomerPortal() {
   // 获取状态文本
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'on_track': return '按计划进行';
-      case 'at_risk': return '存在风险';
-      case 'delayed': return '已延期';
-      case 'completed': return '已完成';
-      default: return '未知';
+      case 'on_track': return t("crm.portal.statusOnTrack");
+      case 'at_risk': return t("crm.portal.statusAtRisk");
+      case 'delayed': return t("crm.portal.statusDelayed");
+      case 'completed': return t("crm.portal.statusCompleted");
+      default: return t("crm.portal.statusUnknown");
+    }
+  };
+
+  // 获取交付物状态文本
+  const getDeliverableStatusText = (status: string) => {
+    switch (status) {
+      case 'completed': return t("crm.portal.delivStatusCompleted");
+      case 'in_progress': return t("crm.portal.delivStatusInProgress");
+      case 'delivered': return t("crm.portal.delivStatusDelivered");
+      default: return t("crm.portal.delivStatusPending");
     }
   };
 
@@ -176,26 +188,26 @@ export default function CustomerPortal() {
               <Shield className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-lg font-bold">GRT 客户门户</h1>
+              <h1 className="text-lg font-bold">{t("crm.portal.headerTitle")}</h1>
               <p className="text-xs text-muted-foreground">Customer Portal</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/public">
               <Button variant="ghost" size="sm">
-                返回首页
+                {t("crm.portal.backToHome")}
               </Button>
             </Link>
             {isAuthenticated ? (
               <Badge variant="outline" className="gap-1">
                 <Unlock className="w-3 h-3" />
-                已登录
+                {t("crm.portal.loggedIn")}
               </Badge>
             ) : (
               <a href={getLoginUrl()}>
                 <Button variant="outline" size="sm" className="gap-1">
                   <Lock className="w-3 h-3" />
-                  登录
+                  {t("crm.portal.login")}
                 </Button>
               </a>
             )}
@@ -211,10 +223,10 @@ export default function CustomerPortal() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-primary" />
-                安全访问您的项目
+                {t("crm.portal.secureAccess")}
               </CardTitle>
               <CardDescription>
-                使用项目编号和专属访问码查询项目状态，所有数据传输均经过加密保护
+                {t("crm.portal.secureAccessDesc")}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -224,15 +236,15 @@ export default function CustomerPortal() {
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="status" className="gap-2">
                 <Search className="w-4 h-4" />
-                项目状态
+                {t("crm.portal.tabProjectStatus")}
               </TabsTrigger>
               <TabsTrigger value="verify" className="gap-2">
                 <Shield className="w-4 h-4" />
-                能力验证
+                {t("crm.portal.tabCapabilityVerify")}
               </TabsTrigger>
               <TabsTrigger value="documents" className="gap-2">
                 <FileText className="w-4 h-4" />
-                文档中心
+                {t("crm.portal.tabDocCenter")}
               </TabsTrigger>
             </TabsList>
 
@@ -240,34 +252,34 @@ export default function CustomerPortal() {
             <TabsContent value="status" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>项目状态查询</CardTitle>
+                  <CardTitle>{t("crm.portal.projectStatusQuery")}</CardTitle>
                   <CardDescription>
-                    输入您的项目编号和访问码以查看项目进度
+                    {t("crm.portal.projectStatusDesc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="projectCode">项目编号</Label>
+                      <Label htmlFor="projectCode">{t("crm.portal.projectCode")}</Label>
                       <Input
                         id="projectCode"
-                        placeholder="例如: GRT-2026-001"
+                        placeholder={t("crm.portal.projectCodePlaceholder")}
                         value={projectCode}
                         onChange={(e) => setProjectCode(e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="accessCode">访问码</Label>
+                      <Label htmlFor="accessCode">{t("crm.portal.accessCode")}</Label>
                       <Input
                         id="accessCode"
                         type="password"
-                        placeholder="请输入访问码"
+                        placeholder={t("crm.portal.accessCodePlaceholder")}
                         value={accessCode}
                         onChange={(e) => setAccessCode(e.target.value)}
                       />
                     </div>
                   </div>
-                  
+
                   {error && (
                     <div className="flex items-center gap-2 text-destructive text-sm">
                       <AlertTriangle className="w-4 h-4" />
@@ -275,20 +287,20 @@ export default function CustomerPortal() {
                     </div>
                   )}
 
-                  <Button 
-                    onClick={handleProjectQuery} 
+                  <Button
+                    onClick={handleProjectQuery}
                     disabled={isVerifying}
                     className="w-full md:w-auto"
                   >
                     {isVerifying ? (
                       <>
                         <Clock className="w-4 h-4 mr-2 animate-spin" />
-                        验证中...
+                        {t("crm.portal.verifying")}
                       </>
                     ) : (
                       <>
                         <Search className="w-4 h-4 mr-2" />
-                        查询项目
+                        {t("crm.portal.queryProject")}
                       </>
                     )}
                   </Button>
@@ -303,7 +315,7 @@ export default function CustomerPortal() {
                       <div>
                         <CardTitle>{projectStatus.projectName}</CardTitle>
                         <CardDescription>
-                          客户: {projectStatus.customerName} | 更新时间: {projectStatus.lastUpdate}
+                          {t("crm.portal.customer")}: {projectStatus.customerName} | {t("crm.portal.updateTime")}: {projectStatus.lastUpdate}
                         </CardDescription>
                       </div>
                       <Badge className={`${getStatusColor(projectStatus.status)} text-white`}>
@@ -316,14 +328,14 @@ export default function CustomerPortal() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span>当前阶段: {projectStatus.currentPhase}</span>
+                          <span>{t("crm.portal.currentPhase")}: {projectStatus.currentPhase}</span>
                           <span>{projectStatus.phaseProgress}%</span>
                         </div>
                         <Progress value={projectStatus.phaseProgress} className="h-2" />
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span>整体进度</span>
+                          <span>{t("crm.portal.overallProgress")}</span>
                           <span>{projectStatus.overallProgress}%</span>
                         </div>
                         <Progress value={projectStatus.overallProgress} className="h-2" />
@@ -337,7 +349,7 @@ export default function CustomerPortal() {
                           <ArrowRight className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium">下一里程碑</p>
+                          <p className="font-medium">{t("crm.portal.nextMilestone")}</p>
                           <p className="text-sm text-muted-foreground">{projectStatus.nextMilestone}</p>
                         </div>
                       </div>
@@ -346,10 +358,10 @@ export default function CustomerPortal() {
 
                     {/* 交付物清单 */}
                     <div className="space-y-3">
-                      <h4 className="font-medium">交付物清单</h4>
+                      <h4 className="font-medium">{t("crm.portal.deliverableList")}</h4>
                       <div className="space-y-2">
                         {projectStatus.deliverables.map((item, index) => (
-                          <div 
+                          <div
                             key={index}
                             className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors"
                           >
@@ -360,9 +372,7 @@ export default function CustomerPortal() {
                             <div className="flex items-center gap-3">
                               <span className="text-sm text-muted-foreground">{item.dueDate}</span>
                               <Badge variant="outline" className="capitalize">
-                                {item.status === 'completed' ? '已完成' : 
-                                 item.status === 'in_progress' ? '进行中' : 
-                                 item.status === 'delivered' ? '已交付' : '待开始'}
+                                {getDeliverableStatusText(item.status)}
                               </Badge>
                             </div>
                           </div>
@@ -380,19 +390,19 @@ export default function CustomerPortal() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Shield className="w-5 h-5 text-primary" />
-                    零知识证明验证
+                    {t("crm.portal.zkpTitle")}
                   </CardTitle>
                   <CardDescription>
-                    验证GRT的技术能力而不暴露核心工艺参数
+                    {t("crm.portal.zkpDescription")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
-                      { id: 'vda19', name: 'VDA 19.1 清洁度合规', desc: '验证清洁度检测能力' },
-                      { id: 'iso14644', name: 'ISO 14644 洁净室', desc: '验证洁净室等级达标' },
-                      { id: 'process', name: '工艺参数范围', desc: '验证工艺参数在合规范围内' },
-                      { id: 'quality', name: '质量检测能力', desc: '验证质量检测系统能力' },
+                      { id: 'vda19', name: t("crm.portal.capVDA19"), desc: t("crm.portal.capVDA19Desc") },
+                      { id: 'iso14644', name: t("crm.portal.capISO14644"), desc: t("crm.portal.capISO14644Desc") },
+                      { id: 'process', name: t("crm.portal.capProcess"), desc: t("crm.portal.capProcessDesc") },
+                      { id: 'quality', name: t("crm.portal.capQuality"), desc: t("crm.portal.capQualityDesc") },
                     ].map((capability) => (
                       <Card key={capability.id} className="border-border/50">
                         <CardContent className="p-4">
@@ -401,13 +411,13 @@ export default function CustomerPortal() {
                               <p className="font-medium">{capability.name}</p>
                               <p className="text-sm text-muted-foreground">{capability.desc}</p>
                             </div>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="outline"
                               onClick={() => handleZKPVerification(capability.id)}
                               disabled={isVerifying}
                             >
-                              验证
+                              {t("crm.portal.verify")}
                             </Button>
                           </div>
                         </CardContent>
@@ -422,11 +432,11 @@ export default function CustomerPortal() {
                         <div className="flex items-start gap-3">
                           <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
                           <div className="space-y-2 flex-1">
-                            <p className="font-medium text-green-600">验证通过</p>
+                            <p className="font-medium text-green-600">{t("crm.portal.verificationPassed")}</p>
                             <div className="text-sm space-y-1">
-                              <p><span className="text-muted-foreground">证明哈希:</span> {verificationResult.proofHash}</p>
-                              <p><span className="text-muted-foreground">验证能力:</span> {verificationResult.capability}</p>
-                              <p><span className="text-muted-foreground">有效期至:</span> {new Date(verificationResult.expiresAt).toLocaleString()}</p>
+                              <p><span className="text-muted-foreground">{t("crm.portal.proofHash")}:</span> {verificationResult.proofHash}</p>
+                              <p><span className="text-muted-foreground">{t("crm.portal.verifiedCapability")}:</span> {verificationResult.capability}</p>
+                              <p><span className="text-muted-foreground">{t("crm.portal.validUntil")}:</span> {new Date(verificationResult.expiresAt).toLocaleString()}</p>
                             </div>
                           </div>
                         </div>
@@ -441,20 +451,20 @@ export default function CustomerPortal() {
             <TabsContent value="documents" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>文档中心</CardTitle>
+                  <CardTitle>{t("crm.portal.docCenterTitle")}</CardTitle>
                   <CardDescription>
-                    访问项目相关的公开文档和资料
+                    {t("crm.portal.docCenterDesc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
-                      { name: '产品手册', type: 'PDF', size: '2.5 MB', public: true },
-                      { name: '技术规格书', type: 'PDF', size: '1.8 MB', public: true },
-                      { name: '操作指南', type: 'PDF', size: '3.2 MB', public: true },
-                      { name: '维护保养手册', type: 'PDF', size: '1.5 MB', public: false },
+                      { name: t("crm.portal.docProductManual"), type: 'PDF', size: '2.5 MB', public: true },
+                      { name: t("crm.portal.docTechSpec"), type: 'PDF', size: '1.8 MB', public: true },
+                      { name: t("crm.portal.docOperationGuide"), type: 'PDF', size: '3.2 MB', public: true },
+                      { name: t("crm.portal.docMaintenanceManual"), type: 'PDF', size: '1.5 MB', public: false },
                     ].map((doc, index) => (
-                      <div 
+                      <div
                         key={index}
                         className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors"
                       >
@@ -472,7 +482,7 @@ export default function CustomerPortal() {
                         ) : (
                           <Badge variant="outline" className="gap-1">
                             <Lock className="w-3 h-3" />
-                            需登录
+                            {t("crm.portal.loginRequired")}
                           </Badge>
                         )}
                       </div>
@@ -490,14 +500,14 @@ export default function CustomerPortal() {
                 <div className="flex items-center gap-3">
                   <Settings className="w-5 h-5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">需要帮助？</p>
+                    <p className="font-medium">{t("crm.portal.needHelp")}</p>
                     <p className="text-sm text-muted-foreground">
-                      如果您忘记访问码或遇到其他问题，请联系您的项目经理
+                      {t("crm.portal.needHelpDesc")}
                     </p>
                   </div>
                 </div>
                 <Button variant="outline" size="sm">
-                  联系我们
+                  {t("crm.portal.contactUs")}
                 </Button>
               </div>
             </CardContent>
@@ -508,7 +518,7 @@ export default function CustomerPortal() {
       {/* 页脚 */}
       <footer className="border-t border-border/50 py-6 mt-12">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2026 GRT智能系统 · 客户门户 · 所有数据均经过加密保护</p>
+          <p>{t("crm.portal.footer")}</p>
         </div>
       </footer>
     </div>

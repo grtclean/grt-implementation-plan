@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserCheck, Plus, Users, Clock, CheckCircle2, Briefcase } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const positionStatusColorMap = createStatusColorMap({
   "招聘中": "blue",
@@ -41,17 +42,19 @@ export default function Recruitment() {
     urgency: "正常",
   });
 
+  const { t } = useLanguage();
+
   const handleCreate = () => {
     if (!formData.title.trim()) {
-      toast.error("请输入职位名称");
+      toast.error(t("hr.recruit.errTitle"));
       return;
     }
     if (!formData.dept.trim()) {
-      toast.error("请输入所属部门");
+      toast.error(t("hr.recruit.errDept"));
       return;
     }
     if (!formData.salary.trim()) {
-      toast.error("请输入薪资范围");
+      toast.error(t("hr.recruit.errSalary"));
       return;
     }
 
@@ -70,27 +73,27 @@ export default function Recruitment() {
     setPositions(prev => [newPosition, ...prev]);
     setShowCreateDialog(false);
     setFormData({ title: "", dept: "", salary: "", urgency: "正常" });
-    toast.success("职位发布成功");
+    toast.success(t("hr.recruit.publishSuccess"));
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={UserCheck}
-        title="招聘管理"
-        description="职位管理 · 候选人追踪 · 面试安排"
-        actions={<Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />发布职位</Button>}
+        title={t("hr.recruit.title")}
+        description={t("hr.recruit.desc")}
+        actions={<Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />{t("hr.recruit.publishPosition")}</Button>}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Briefcase} label="开放职位" value={positions.filter(p => p.status === "招聘中").length} />
-        <StatCard icon={Users} label="候选人" value={positions.reduce((sum, p) => sum + p.applicants, 0)} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={Clock} label="面试中" value={positions.filter(p => p.status === "面试中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={CheckCircle2} label="已关闭" value={positions.filter(p => p.status === "已关闭").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Briefcase} label={t("hr.recruit.openPositions")} value={positions.filter(p => p.status === "招聘中").length} />
+        <StatCard icon={Users} label={t("hr.recruit.candidates")} value={positions.reduce((sum, p) => sum + p.applicants, 0)} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Clock} label={t("hr.recruit.interviewing")} value={positions.filter(p => p.status === "面试中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label={t("hr.recruit.closed")} value={positions.filter(p => p.status === "已关闭").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
-        <CardHeader><CardTitle>职位列表</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("hr.recruit.positionList")}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
             {positions.map(p => (
@@ -99,21 +102,21 @@ export default function Recruitment() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{p.title}</span>
-                    {p.urgency === "紧急" && <Badge variant="destructive">紧急</Badge>}
-                    {p.urgency === "高" && <Badge className="bg-amber-500">高</Badge>}
+                    {p.urgency === "紧急" && <Badge variant="destructive">{t("hr.recruit.urgent")}</Badge>}
+                    {p.urgency === "高" && <Badge className="bg-amber-500">{t("hr.recruit.high")}</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground">{p.dept} · {p.bu} · {p.salary}</p>
                 </div>
                 <div className="text-right">
                   <StatusBadge color={positionStatusColorMap[p.status as keyof typeof positionStatusColorMap] ?? "gray"}>{p.status}</StatusBadge>
-                  <p className="text-sm text-muted-foreground mt-1"><Users className="inline h-3 w-3 mr-1" />{p.applicants}位候选人</p>
+                  <p className="text-sm text-muted-foreground mt-1"><Users className="inline h-3 w-3 mr-1" />{p.applicants}{t("hr.recruit.candidateCount")}</p>
                 </div>
               </div>
             ))}
             {positions.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <UserCheck className="w-12 h-12 mb-3 opacity-50" />
-                <p className="font-medium">暂无招聘职位</p>
+                <p className="font-medium">{t("hr.recruit.noPositions")}</p>
               </div>
             )}
           </div>
@@ -123,11 +126,11 @@ export default function Recruitment() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>发布职位</DialogTitle>
+            <DialogTitle>{t("hr.recruit.publishPosition")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="rc-title">职位名称 *</Label>
+              <Label htmlFor="rc-title">{t("hr.recruit.positionName")} *</Label>
               <Input
                 id="rc-title"
                 placeholder="例如：高级机械工程师"
@@ -136,7 +139,7 @@ export default function Recruitment() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="rc-dept">所属部门 *</Label>
+              <Label htmlFor="rc-dept">{t("hr.recruit.department")} *</Label>
               <Input
                 id="rc-dept"
                 placeholder="例如：研发设计部"
@@ -145,7 +148,7 @@ export default function Recruitment() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="rc-salary">薪资范围 *</Label>
+              <Label htmlFor="rc-salary">{t("hr.recruit.salaryRange")} *</Label>
               <Input
                 id="rc-salary"
                 placeholder="例如：20-35K"
@@ -154,7 +157,7 @@ export default function Recruitment() {
               />
             </div>
             <div className="space-y-2">
-              <Label>紧急程度</Label>
+              <Label>{t("hr.recruit.urgencyLevel")}</Label>
               <Select value={formData.urgency} onValueChange={val => setFormData(prev => ({ ...prev, urgency: val }))}>
                 <SelectTrigger>
                   <SelectValue />
@@ -168,8 +171,8 @@ export default function Recruitment() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
-            <Button onClick={handleCreate}>发布</Button>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>{t("hr.common.cancel")}</Button>
+            <Button onClick={handleCreate}>{t("hr.recruit.publish")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

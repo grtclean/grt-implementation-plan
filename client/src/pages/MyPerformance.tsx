@@ -34,6 +34,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // TODO: Replace with real auth context (e.g., useUserProfile().id)
 const CURRENT_USER_ID = 1;
@@ -116,6 +117,7 @@ function StatsSkeleton() {
 
 // ── Main component ──
 export default function MyPerformance() {
+  const { t } = useLanguage();
   const { roleConfig } = useUserProfile();
 
   // ── Data fetching ──
@@ -164,7 +166,7 @@ export default function MyPerformance() {
   // Targets for the matched position
   const positionTargets = useMemo(() => {
     if (!position || !targetsData?.items) return [];
-    return targetsData.items.filter((t: any) => t.positionId === position.id);
+    return targetsData.items.filter((tgt: any) => tgt.positionId === position.id);
   }, [position, targetsData]);
 
   // Skill radar data
@@ -193,7 +195,7 @@ export default function MyPerformance() {
       reviews.length > 0
         ? reviews.reduce((s: number, r: any) => s + (Number(r.overallKpiScore) || 0), 0) / reviews.length
         : 0;
-    const signed = militaryOrder?.signatureStatus === "signed" || militaryOrder?.signatureStatus === "witnessed";
+    const isSigned = militaryOrder?.signatureStatus === "signed" || militaryOrder?.signatureStatus === "witnessed";
     const totalTargets = positionTargets.length;
     const skills = skillsData?.items ?? [];
     const skillGap =
@@ -204,7 +206,7 @@ export default function MyPerformance() {
     return {
       overallScore: latestReview ? Number(latestReview.overallKpiScore).toFixed(1) : "—",
       bonusCoeff: latestReview ? `${Number(latestReview.bonusCoefficient).toFixed(2)}x` : "—",
-      pledgeSigned: signed ? "已签署" : "待签署",
+      pledgeSigned: isSigned ? t("hr.myPerf.signed") : t("hr.myPerf.pendingSign"),
       targetCount: totalTargets,
       reviewCount: reviews.length,
       skillGap,
@@ -231,8 +233,8 @@ export default function MyPerformance() {
       {/* ────── Header ────── */}
       <PageHeader
         icon={Star}
-        title="我的岗位看板"
-        description={`岗位标准 vs 当前现实 · ${roleConfig.label}`}
+        title={t("hr.myPerf.title")}
+        description={`${t("hr.myPerf.description")} · ${roleConfig.label}`}
       />
 
       {/* ────── Stat cards ────── */}
@@ -242,30 +244,30 @@ export default function MyPerformance() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
             icon={Award}
-            label="最新KPI得分"
+            label={t("hr.myPerf.latestKpiScore")}
             value={stats.overallScore}
             iconColor="text-primary"
             iconBg="bg-primary/10"
           />
           <StatCard
             icon={TrendingUp}
-            label="奖金系数"
+            label={t("hr.myPerf.bonusCoeff")}
             value={stats.bonusCoeff}
             iconColor="text-green-500"
             iconBg="bg-green-500/10"
           />
           <StatCard
             icon={Scroll}
-            label="军令状"
+            label={t("hr.myPerf.militaryOrder")}
             value={stats.pledgeSigned}
             iconColor="text-amber-500"
             iconBg="bg-amber-500/10"
           />
           <StatCard
             icon={BrainCircuit}
-            label="能力差距项"
+            label={t("hr.myPerf.skillGap")}
             value={stats.skillGap}
-            subtitle={`共 ${skillsData?.items?.length ?? 0} 项能力`}
+            subtitle={`${skillsData?.items?.length ?? 0} ${t("hr.myPerf.skillsTotal")}`}
             iconColor="text-purple-500"
             iconBg="bg-purple-500/10"
           />
@@ -280,7 +282,7 @@ export default function MyPerformance() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
               <Swords className="h-5 w-5" />
-              {CURRENT_YEAR}年度军令状
+              {CURRENT_YEAR} {t("hr.myPerf.annualPledge")}
               <StatusBadge
                 color={
                   signatureColorMap[
@@ -289,12 +291,12 @@ export default function MyPerformance() {
                 }
               >
                 {militaryOrder.signatureStatus === "signed"
-                  ? "已签署"
+                  ? t("hr.myPerf.signed")
                   : militaryOrder.signatureStatus === "witnessed"
-                    ? "已见证"
+                    ? t("hr.myPerf.witnessed")
                     : militaryOrder.signatureStatus === "voided"
-                      ? "已作废"
-                      : "待签署"}
+                      ? t("hr.myPerf.voided")
+                      : t("hr.myPerf.pendingSign")}
               </StatusBadge>
             </CardTitle>
           </CardHeader>
@@ -303,7 +305,7 @@ export default function MyPerformance() {
 
             {commitmentTargets.length > 0 && (
               <div>
-                <p className="text-xs text-muted-foreground mb-2 font-medium">承诺目标:</p>
+                <p className="text-xs text-muted-foreground mb-2 font-medium">{t("hr.myPerf.commitmentTargets")}:</p>
                 <div className="flex flex-wrap gap-2">
                   {commitmentTargets.map((ct, i) => (
                     <Badge key={i} variant="outline" className="text-xs">
@@ -318,13 +320,13 @@ export default function MyPerformance() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-amber-500/20">
                 {militaryOrder.rewardText && (
                   <div>
-                    <p className="text-xs text-green-600 font-medium mb-1">达成奖励</p>
+                    <p className="text-xs text-green-600 font-medium mb-1">{t("hr.myPerf.reward")}</p>
                     <p className="text-sm">{militaryOrder.rewardText}</p>
                   </div>
                 )}
                 {militaryOrder.consequenceText && (
                   <div>
-                    <p className="text-xs text-red-600 font-medium mb-1">未达后果</p>
+                    <p className="text-xs text-red-600 font-medium mb-1">{t("hr.myPerf.consequence")}</p>
                     <p className="text-sm">{militaryOrder.consequenceText}</p>
                   </div>
                 )}
@@ -336,8 +338,8 @@ export default function MyPerformance() {
         <Card className="border-dashed">
           <CardContent className="py-8 text-center text-muted-foreground">
             <Swords className="h-8 w-8 mx-auto mb-2 opacity-40" />
-            <p>暂无{CURRENT_YEAR}年度军令状</p>
-            <p className="text-xs mt-1">请联系上级或HR创建您的年度承诺目标</p>
+            <p>{t("hr.myPerf.noPledge")} {CURRENT_YEAR}</p>
+            <p className="text-xs mt-1">{t("hr.myPerf.noPledgeHint")}</p>
           </CardContent>
         </Card>
       )}
@@ -348,7 +350,7 @@ export default function MyPerformance() {
         <div className="space-y-6">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Target className="h-5 w-5 text-blue-500" />
-            岗位标准
+            {t("hr.myPerf.positionStandard")}
           </h2>
 
           {posLoading ? (
@@ -369,7 +371,7 @@ export default function MyPerformance() {
                     {position.department && <Badge variant="secondary">{position.department}</Badge>}
                     {position.buCode && <Badge variant="outline">{position.buCode}</Badge>}
                     {position.headcount && (
-                      <span>编制: {position.headcount}人</span>
+                      <span>{t("hr.myPerf.headcount")}: {position.headcount}</span>
                     )}
                   </div>
                 </CardHeader>
@@ -381,7 +383,7 @@ export default function MyPerformance() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <ClipboardList className="h-4 w-4 text-blue-500" />
-                      岗位职责 & SOP
+                      {t("hr.myPerf.responsibilitiesSop")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -406,7 +408,7 @@ export default function MyPerformance() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <BrainCircuit className="h-4 w-4 text-purple-500" />
-                      核心能力要求
+                      {t("hr.myPerf.coreCompetency")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -421,7 +423,7 @@ export default function MyPerformance() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <Award className="h-4 w-4 text-amber-500" />
-                      任职标准
+                      {t("hr.myPerf.hiringStandard")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -435,8 +437,8 @@ export default function MyPerformance() {
                 <Card className="border-dashed">
                   <CardContent className="py-8 text-center text-muted-foreground">
                     <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                    <p>岗位标准尚未录入</p>
-                    <p className="text-xs mt-1">请联系HR完善岗位职责与能力要求</p>
+                    <p>{t("hr.myPerf.noStandard")}</p>
+                    <p className="text-xs mt-1">{t("hr.myPerf.noStandardHint")}</p>
                   </CardContent>
                 </Card>
               )}
@@ -445,8 +447,8 @@ export default function MyPerformance() {
             <Card className="border-dashed">
               <CardContent className="py-8 text-center text-muted-foreground">
                 <Target className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                <p>暂无匹配岗位</p>
-                <p className="text-xs mt-1">岗位数据尚未在KPI系统中录入</p>
+                <p>{t("hr.myPerf.noPosition")}</p>
+                <p className="text-xs mt-1">{t("hr.myPerf.noPositionHint")}</p>
               </CardContent>
             </Card>
           )}
@@ -456,7 +458,7 @@ export default function MyPerformance() {
         <div className="space-y-6">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-green-500" />
-            当前现实
+            {t("hr.myPerf.currentReality")}
           </h2>
 
           {/* Skill Radar Chart */}
@@ -467,9 +469,9 @@ export default function MyPerformance() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <BrainCircuit className="h-4 w-4 text-blue-500" />
-                  能力雷达图
+                  {t("hr.myPerf.skillRadar")}
                   <span className="text-xs font-normal text-muted-foreground ml-auto">
-                    蓝色=当前 / 橙色=目标 (1-5级)
+                    {t("hr.myPerf.radarLegend")}
                   </span>
                 </CardTitle>
               </CardHeader>
@@ -490,7 +492,7 @@ export default function MyPerformance() {
                       axisLine={false}
                     />
                     <Radar
-                      name="当前水平"
+                      name={t("hr.myPerf.currentLevel")}
                       dataKey="current"
                       stroke="hsl(217 91% 60%)"
                       fill="hsl(217 91% 60%)"
@@ -499,7 +501,7 @@ export default function MyPerformance() {
                       dot={{ r: 3, fill: "hsl(217 91% 60%)" }}
                     />
                     <Radar
-                      name="目标水平"
+                      name={t("hr.myPerf.targetLevel")}
                       dataKey="target"
                       stroke="hsl(25 95% 53%)"
                       fill="hsl(25 95% 53%)"
@@ -556,8 +558,8 @@ export default function MyPerformance() {
             <Card className="border-dashed">
               <CardContent className="py-8 text-center text-muted-foreground">
                 <BrainCircuit className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                <p>暂无能力评估数据</p>
-                <p className="text-xs mt-1">能力矩阵尚未录入，请联系上级填写</p>
+                <p>{t("hr.myPerf.noSkillData")}</p>
+                <p className="text-xs mt-1">{t("hr.myPerf.noSkillDataHint")}</p>
               </CardContent>
             </Card>
           )}
@@ -570,16 +572,16 @@ export default function MyPerformance() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Target className="h-4 w-4 text-green-500" />
-                  KPI目标进度 ({CURRENT_YEAR})
+                  {t("hr.myPerf.kpiProgress")} ({CURRENT_YEAR})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {positionTargets.map((t: any) => {
-                  const kpi = kpiLookup.get(t.kpiId);
-                  const kpiName = kpi?.name ?? `KPI #${t.kpiId}`;
+                {positionTargets.map((tgt: any) => {
+                  const kpi = kpiLookup.get(tgt.kpiId);
+                  const kpiName = kpi?.name ?? `KPI #${tgt.kpiId}`;
                   const unit = kpi?.unit ?? "";
-                  const targetVal = Number(t.targetValue) || 0;
-                  const weight = Number(t.weight) || 0;
+                  const targetVal = Number(tgt.targetValue) || 0;
+                  const weight = Number(tgt.weight) || 0;
 
                   // Actual value would come from reviews; for now show target info
                   const latestReview = sortedReviews.length > 0 ? sortedReviews[sortedReviews.length - 1] : null;
@@ -591,7 +593,7 @@ export default function MyPerformance() {
                           ? JSON.parse(latestReview.kpiDetailsJson)
                           : latestReview.kpiDetailsJson;
                       const match = Array.isArray(details)
-                        ? details.find((d: any) => d.kpiId === t.kpiId)
+                        ? details.find((d: any) => d.kpiId === tgt.kpiId)
                         : null;
                       if (match) actual = Number(match.actual) || 0;
                     } catch {
@@ -617,12 +619,12 @@ export default function MyPerformance() {
                                 : unit;
 
                   return (
-                    <div key={t.id} className="space-y-1.5">
+                    <div key={tgt.id} className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">{kpiName}</span>
                           <span className="text-xs text-muted-foreground">
-                            权重 {(weight * 100).toFixed(0)}%
+                            {t("hr.myPerf.weight")} {(weight * 100).toFixed(0)}%
                           </span>
                         </div>
                         <span className="text-xs text-muted-foreground">
@@ -649,8 +651,8 @@ export default function MyPerformance() {
             <Card className="border-dashed">
               <CardContent className="py-8 text-center text-muted-foreground">
                 <Target className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                <p>暂无KPI目标设定</p>
-                <p className="text-xs mt-1">请在KPI绩效管理中为岗位配置KPI指标</p>
+                <p>{t("hr.myPerf.noKpiTargets")}</p>
+                <p className="text-xs mt-1">{t("hr.myPerf.noKpiTargetsHint")}</p>
               </CardContent>
             </Card>
           )}
@@ -661,7 +663,7 @@ export default function MyPerformance() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Calendar className="h-5 w-5 text-indigo-500" />
-          月度执行
+          {t("hr.myPerf.monthlyExecution")}
         </h2>
 
         {revLoading ? (
@@ -690,13 +692,13 @@ export default function MyPerformance() {
                         color={reviewStatusColorMap[status as keyof typeof reviewStatusColorMap] ?? "gray"}
                       >
                         {status === "draft"
-                          ? "草稿"
+                          ? t("hr.myPerf.statusDraft")
                           : status === "submitted"
-                            ? "已提交"
+                            ? t("hr.myPerf.statusSubmitted")
                             : status === "reviewed"
-                              ? "已评审"
+                              ? t("hr.myPerf.statusReviewed")
                               : status === "finalized"
-                                ? "已定稿"
+                                ? t("hr.myPerf.statusFinalized")
                                 : status}
                       </StatusBadge>
                     </CardTitle>
@@ -704,27 +706,27 @@ export default function MyPerformance() {
                   <CardContent className="space-y-2">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xs text-muted-foreground">KPI得分</p>
+                        <p className="text-xs text-muted-foreground">{t("hr.myPerf.kpiScore")}</p>
                         <p className={`text-lg font-bold ${score >= 80 ? "text-green-600" : score >= 60 ? "text-amber-600" : "text-red-600"}`}>
                           {score.toFixed(1)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">奖金系数</p>
+                        <p className="text-xs text-muted-foreground">{t("hr.myPerf.bonusCoeff")}</p>
                         <p className="text-lg font-bold">{coeff.toFixed(2)}x</p>
                       </div>
                     </div>
 
                     {review.gapsText && (
                       <div>
-                        <p className="text-xs text-muted-foreground mb-0.5">差距分析</p>
+                        <p className="text-xs text-muted-foreground mb-0.5">{t("hr.myPerf.gapAnalysis")}</p>
                         <p className="text-xs line-clamp-2">{review.gapsText}</p>
                       </div>
                     )}
 
                     {review.improvementPlanText && (
                       <div>
-                        <p className="text-xs text-muted-foreground mb-0.5">改进计划</p>
+                        <p className="text-xs text-muted-foreground mb-0.5">{t("hr.myPerf.improvementPlan")}</p>
                         <p className="text-xs line-clamp-2">{review.improvementPlanText}</p>
                       </div>
                     )}
@@ -737,8 +739,8 @@ export default function MyPerformance() {
           <Card className="border-dashed">
             <CardContent className="py-8 text-center text-muted-foreground">
               <Calendar className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              <p>暂无月度考核记录</p>
-              <p className="text-xs mt-1">月度绩效考核记录将在每月评审后自动展示</p>
+              <p>{t("hr.myPerf.noReviews")}</p>
+              <p className="text-xs mt-1">{t("hr.myPerf.noReviewsHint")}</p>
             </CardContent>
           </Card>
         )}

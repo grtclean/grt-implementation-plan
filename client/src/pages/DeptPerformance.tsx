@@ -8,6 +8,7 @@ import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { BarChart3, Users, Target, DollarSign } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const gradeColorMap = createStatusColorMap({
   "A": "green",
@@ -27,24 +28,25 @@ const DEPT_KPI = [
 
 export default function DeptPerformance() {
   const { dataScope } = useUserProfile();
+  const { t } = useLanguage();
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
-        title="部门绩效"
-        description={`部门级KPI追踪与预算执行 · 数据范围: ${dataScope}`}
+        title={t("hr.deptPerf.title")}
+        description={`${t("hr.deptPerf.desc")} · ${t("hr.common.dataScope")}: ${dataScope}`}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={BarChart3} label="公司平均绩效" value="84.2" />
-        <StatCard icon={Users} label="总人数" value={140} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={Target} label="目标达成率" value="84%" iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={DollarSign} label="预算执行率" value="70%" iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={BarChart3} label={t("hr.deptPerf.companyAvg")} value="84.2" />
+        <StatCard icon={Users} label={t("hr.deptPerf.totalHeadcount")} value={140} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Target} label={t("hr.deptPerf.goalRate")} value="84%" iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={DollarSign} label={t("hr.deptPerf.budgetRate")} value="70%" iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       <Card>
-        <CardHeader><CardTitle>部门绩效汇总</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("hr.deptPerf.summary")}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
             {DEPT_KPI.map((d, i) => (
@@ -52,9 +54,9 @@ export default function DeptPerformance() {
                 <div className="flex-1">
                   <p className="font-medium">{d.dept}</p>
                   <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1"><Users className="h-3 w-3" />{d.headcount}人</span>
-                    <span className="flex items-center gap-1"><Target className="h-3 w-3" />达成{d.targetRate}%</span>
-                    <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" />预算{d.budgetUsed}%</span>
+                    <span className="flex items-center gap-1"><Users className="h-3 w-3" />{d.headcount}{t("hr.common.people")}</span>
+                    <span className="flex items-center gap-1"><Target className="h-3 w-3" />{t("hr.deptPerf.achieved")}{d.targetRate}%</span>
+                    <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" />{t("hr.deptPerf.budget")}{d.budgetUsed}%</span>
                   </div>
                 </div>
                 <StatusBadge color={gradeColorMap[d.grade as keyof typeof gradeColorMap] ?? "gray"}>{d.grade}</StatusBadge>

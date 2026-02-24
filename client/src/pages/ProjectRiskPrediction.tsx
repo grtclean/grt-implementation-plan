@@ -14,6 +14,7 @@ import {
   Sparkles, Target,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const STAGES = [
   "M0", "M1", "M2", "M3", "M4", "M5", "M6",
@@ -43,6 +44,7 @@ interface RiskResult {
 }
 
 export default function ProjectRiskPrediction() {
+  const { t } = useLanguage();
   const [projectName, setProjectName] = useState("");
   const [currentStage, setCurrentStage] = useState("M3");
   const [totalBudget, setTotalBudget] = useState("");
@@ -82,10 +84,10 @@ export default function ProjectRiskPrediction() {
 
   const riskLabel = (risk: string) => {
     switch (risk) {
-      case "critical": return "极高";
-      case "high": return "高";
-      case "medium": return "中等";
-      case "low": return "低";
+      case "critical": return t("quality.riskPred.riskCritical");
+      case "high": return t("quality.riskPred.riskHigh");
+      case "medium": return t("quality.riskPred.riskMedium");
+      case "low": return t("quality.riskPred.riskLow");
       default: return risk;
     }
   };
@@ -108,12 +110,12 @@ export default function ProjectRiskPrediction() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={ShieldAlert}
-          title="项目风险预测"
-          description="AI智能分析 · 历史数据驱动 · 早期预警"
+          title={t("quality.riskPred.title")}
+          description={t("quality.riskPred.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI预测
+              {t("quality.riskPred.aiBadge")}
             </Badge>
           }
         />
@@ -123,24 +125,24 @@ export default function ProjectRiskPrediction() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Target className="h-5 w-5 text-primary" />
-              项目参数
+              {t("quality.riskPred.projectParams")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">项目名称 *</label>
+                <label className="text-sm text-muted-foreground">{t("quality.riskPred.projectName")} *</label>
                 <Input
-                  placeholder="如: IC-2100 某客户清洗线项目"
+                  placeholder={t("quality.riskPred.projectNamePlaceholder")}
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">当前阶段 *</label>
+                <label className="text-sm text-muted-foreground">{t("quality.riskPred.currentStage")} *</label>
                 <Select value={currentStage} onValueChange={(v) => setCurrentStage(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择阶段" />
+                    <SelectValue placeholder={t("quality.riskPred.currentStage")} />
                   </SelectTrigger>
                   <SelectContent>
                     {STAGES.map((s) => (
@@ -152,46 +154,46 @@ export default function ProjectRiskPrediction() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">总预算（万元）</label>
+                <label className="text-sm text-muted-foreground">{t("quality.riskPred.totalBudget")}</label>
                 <Input
                   type="number"
-                  placeholder="如: 200"
+                  placeholder="e.g. 200"
                   value={totalBudget}
                   onChange={(e) => setTotalBudget(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">已用天数</label>
+                <label className="text-sm text-muted-foreground">{t("quality.riskPred.daysElapsed")}</label>
                 <Input
                   type="number"
-                  placeholder="如: 90"
+                  placeholder="e.g. 90"
                   value={daysElapsed}
                   onChange={(e) => setDaysElapsed(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">计划天数</label>
+                <label className="text-sm text-muted-foreground">{t("quality.riskPred.daysPlanned")}</label>
                 <Input
                   type="number"
-                  placeholder="如: 180"
+                  placeholder="e.g. 180"
                   value={daysPlanned}
                   onChange={(e) => setDaysPlanned(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">门径通过率(%)</label>
+                <label className="text-sm text-muted-foreground">{t("quality.riskPred.gatePassRate")}</label>
                 <Input
                   type="number"
-                  placeholder="如: 85"
+                  placeholder="e.g. 85"
                   value={gatePassRate}
                   onChange={(e) => setGatePassRate(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">未关闭问题数</label>
+                <label className="text-sm text-muted-foreground">{t("quality.riskPred.openIssues")}</label>
                 <Input
                   type="number"
-                  placeholder="如: 5"
+                  placeholder="e.g. 5"
                   value={openIssues}
                   onChange={(e) => setOpenIssues(e.target.value)}
                 />
@@ -207,7 +209,7 @@ export default function ProjectRiskPrediction() {
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />
                 )}
-                预测风险
+                {t("quality.riskPred.predictBtn")}
               </Button>
             </div>
           </CardContent>
@@ -220,7 +222,7 @@ export default function ProjectRiskPrediction() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground mb-2">整体风险等级</p>
+                  <p className="text-sm text-muted-foreground mb-2">{t("quality.riskPred.overallRiskLevel")}</p>
                   <Badge className={`text-lg px-4 py-2 ${riskColor(result.overallRisk)}`}>
                     {riskLabel(result.overallRisk)}
                   </Badge>
@@ -228,7 +230,7 @@ export default function ProjectRiskPrediction() {
               </Card>
               <Card>
                 <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground mb-1">风险评分</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t("quality.riskPred.riskScore")}</p>
                   <p className={`text-5xl font-bold ${scoreColor(result.riskScore)}`}>
                     {result.riskScore}
                   </p>
@@ -248,7 +250,7 @@ export default function ProjectRiskPrediction() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    风险因素分析
+                    {t("quality.riskPred.riskFactorAnalysis")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -256,11 +258,11 @@ export default function ProjectRiskPrediction() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 px-3">风险因素</th>
-                          <th className="text-left py-2 px-3">概率</th>
-                          <th className="text-left py-2 px-3">影响</th>
-                          <th className="text-left py-2 px-3">评分</th>
-                          <th className="text-left py-2 px-3">缓解措施</th>
+                          <th className="text-left py-2 px-3">{t("quality.riskPred.riskFactor")}</th>
+                          <th className="text-left py-2 px-3">{t("quality.riskPred.probability")}</th>
+                          <th className="text-left py-2 px-3">{t("quality.riskPred.impact")}</th>
+                          <th className="text-left py-2 px-3">{t("quality.riskPred.score")}</th>
+                          <th className="text-left py-2 px-3">{t("quality.riskPred.mitigation")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -294,7 +296,7 @@ export default function ProjectRiskPrediction() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <TrendingUp className="h-5 w-5 text-blue-400" />
-                    预测指标
+                    {t("quality.riskPred.predictions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -325,7 +327,7 @@ export default function ProjectRiskPrediction() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-green-400" />
-                    AI建议
+                    {t("quality.riskPred.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

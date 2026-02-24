@@ -14,8 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { trpc } from "@/lib/trpc";
-import { 
-  BarChart3, 
+import { useLanguage } from "@/contexts/LanguageContext";
+import {
+  BarChart3,
   Download, 
   TrendingUp, 
   TrendingDown,
@@ -35,6 +36,18 @@ import {
 type ReportDimension = 'department' | 'project' | 'employee' | 'expense_type' | 'destination';
 
 export default function ExpenseReport() {
+  const { t, tpl } = useLanguage();
+
+  const getDimensionLabel = (dim: ReportDimension) => {
+    switch (dim) {
+      case 'department': return t("finance.report.dimDepartment");
+      case 'project': return t("finance.report.dimProject");
+      case 'employee': return t("finance.report.dimEmployee");
+      case 'expense_type': return t("finance.report.dimExpenseType");
+      case 'destination': return t("finance.report.dimDestination");
+    }
+  };
+
   const [dateRange, setDateRange] = useState({
     startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
@@ -77,23 +90,13 @@ export default function ExpenseReport() {
     }
   };
 
-  const getDimensionLabel = (dim: ReportDimension) => {
-    switch (dim) {
-      case 'department': return '按部门';
-      case 'project': return '按项目';
-      case 'employee': return '按员工';
-      case 'expense_type': return '按费用类型';
-      case 'destination': return '按目的地';
-    }
-  };
-
   return (
       <div className="space-y-6">
         {/* 页面标题 */}
         <PageHeader
           icon={BarChart3}
-          title="出差费用统计报表"
-          description="按部门、项目、时间等维度分析出差费用"
+          title={t("finance.report.titleFull")}
+          description={t("finance.report.descFull")}
           actions={
             <Button onClick={handleExport} disabled={exportMutation.isPending}>
               {exportMutation.isPending ? (
@@ -101,7 +104,7 @@ export default function ExpenseReport() {
               ) : (
                 <Download className="w-4 h-4 mr-2" />
               )}
-              导出Excel
+              {t("finance.report.exportExcel")}
             </Button>
           }
         />
@@ -111,7 +114,7 @@ export default function ExpenseReport() {
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label>开始日期</Label>
+                <Label>{t("finance.report.startDate")}</Label>
                 <Input
                   type="date"
                   value={dateRange.startDate}
@@ -119,7 +122,7 @@ export default function ExpenseReport() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>结束日期</Label>
+                <Label>{t("finance.report.endDate")}</Label>
                 <Input
                   type="date"
                   value={dateRange.endDate}
@@ -127,24 +130,24 @@ export default function ExpenseReport() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>统计维度</Label>
+                <Label>{t("finance.report.statDimension")}</Label>
                 <Select value={dimension} onValueChange={(v) => setDimension(v as ReportDimension)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="department">按部门</SelectItem>
-                    <SelectItem value="project">按项目</SelectItem>
-                    <SelectItem value="employee">按员工</SelectItem>
-                    <SelectItem value="expense_type">按费用类型</SelectItem>
-                    <SelectItem value="destination">按目的地</SelectItem>
+                    <SelectItem value="department">{t("finance.report.dimDepartment")}</SelectItem>
+                    <SelectItem value="project">{t("finance.report.dimProject")}</SelectItem>
+                    <SelectItem value="employee">{t("finance.report.dimEmployee")}</SelectItem>
+                    <SelectItem value="expense_type">{t("finance.report.dimExpenseType")}</SelectItem>
+                    <SelectItem value="destination">{t("finance.report.dimDestination")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex items-end">
                 <Button onClick={() => refetch()} className="w-full">
                   <Calendar className="w-4 h-4 mr-2" />
-                  查询
+                  {t("finance.report.query")}
                 </Button>
               </div>
             </div>
@@ -163,7 +166,7 @@ export default function ExpenseReport() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">总预算</p>
+                      <p className="text-sm text-muted-foreground">{t("finance.report.totalBudget")}</p>
                       <p className="text-2xl font-bold">
                         ¥{report.summary.totalBudget.toLocaleString()}
                       </p>
@@ -179,7 +182,7 @@ export default function ExpenseReport() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">实际支出</p>
+                      <p className="text-sm text-muted-foreground">{t("finance.report.actualExpense")}</p>
                       <p className="text-2xl font-bold">
                         ¥{report.summary.totalActual.toLocaleString()}
                       </p>
@@ -195,7 +198,7 @@ export default function ExpenseReport() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">差异金额</p>
+                      <p className="text-sm text-muted-foreground">{t("finance.report.varianceAmount")}</p>
                       <p className={`text-2xl font-bold ${report.summary.totalVariance >= 0 ? 'text-red-600' : 'text-green-600'}`}>
                         {report.summary.totalVariance >= 0 ? '+' : ''}¥{report.summary.totalVariance.toLocaleString()}
                       </p>
@@ -215,10 +218,10 @@ export default function ExpenseReport() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">出差次数</p>
+                      <p className="text-sm text-muted-foreground">{t("finance.report.tripCount")}</p>
                       <p className="text-2xl font-bold">{report.summary.tripCount}</p>
                       <p className="text-xs text-muted-foreground">
-                        平均 ¥{report.summary.avgExpensePerTrip.toFixed(0)}/次
+                        {tpl("finance.report.avgPerTrip", { amount: report.summary.avgExpensePerTrip.toFixed(0) })}
                       </p>
                     </div>
                     <div className="p-3 bg-purple-100 rounded-full">
@@ -232,12 +235,12 @@ export default function ExpenseReport() {
             {/* 预算使用率 */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">预算使用率</CardTitle>
+                <CardTitle className="text-lg">{t("finance.report.budgetUsage")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>已使用</span>
+                    <span>{t("finance.report.used")}</span>
                     <span className={report.summary.budgetUtilization > 100 ? 'text-red-600' : ''}>
                       {report.summary.budgetUtilization.toFixed(1)}%
                     </span>
@@ -248,7 +251,7 @@ export default function ExpenseReport() {
                   />
                   {report.summary.budgetUtilization > 100 && (
                     <p className="text-sm text-red-600">
-                      ⚠️ 已超出预算 {(report.summary.budgetUtilization - 100).toFixed(1)}%
+                      {tpl("finance.report.exceededBudget", { percent: (report.summary.budgetUtilization - 100).toFixed(1) })}
                     </p>
                   )}
                 </div>
@@ -264,15 +267,15 @@ export default function ExpenseReport() {
                 </TabsTrigger>
                 <TabsTrigger value="expense_type" className="flex items-center gap-2">
                   <PieChart className="w-4 h-4" />
-                  费用类型
+                  {t("finance.report.expenseType")}
                 </TabsTrigger>
                 <TabsTrigger value="trend" className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4" />
-                  趋势分析
+                  {t("finance.report.trend")}
                 </TabsTrigger>
                 <TabsTrigger value="ranking" className="flex items-center gap-2">
                   <BarChart3 className="w-4 h-4" />
-                  部门排名
+                  {t("finance.report.departmentRanking")}
                 </TabsTrigger>
               </TabsList>
 
@@ -282,7 +285,7 @@ export default function ExpenseReport() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       {getDimensionIcon(dimension)}
-                      {getDimensionLabel(dimension)}统计
+                      {tpl("finance.report.dimStats", { dimension: getDimensionLabel(dimension) })}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -290,13 +293,13 @@ export default function ExpenseReport() {
                       <table className="w-full">
                         <thead>
                           <tr className="border-b">
-                            <th className="text-left py-3 px-4">分类</th>
-                            <th className="text-right py-3 px-4">预算</th>
-                            <th className="text-right py-3 px-4">实际支出</th>
-                            <th className="text-right py-3 px-4">差异</th>
-                            <th className="text-right py-3 px-4">差异率</th>
-                            <th className="text-right py-3 px-4">出差次数</th>
-                            <th className="text-right py-3 px-4">平均费用</th>
+                            <th className="text-left py-3 px-4">{t("finance.report.thCategory")}</th>
+                            <th className="text-right py-3 px-4">{t("finance.report.thBudget")}</th>
+                            <th className="text-right py-3 px-4">{t("finance.report.thActual")}</th>
+                            <th className="text-right py-3 px-4">{t("finance.report.thVariance")}</th>
+                            <th className="text-right py-3 px-4">{t("finance.report.thVarianceRate")}</th>
+                            <th className="text-right py-3 px-4">{t("finance.report.thTrips")}</th>
+                            <th className="text-right py-3 px-4">{t("finance.report.thAvgExpense")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -330,7 +333,7 @@ export default function ExpenseReport() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <PieChart className="w-5 h-5" />
-                      费用类型分布
+                      {t("finance.report.expenseDistribution")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -355,7 +358,7 @@ export default function ExpenseReport() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <TrendingUp className="w-5 h-5" />
-                      月度趋势
+                      {t("finance.report.monthlyTrend")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -363,11 +366,11 @@ export default function ExpenseReport() {
                       <table className="w-full">
                         <thead>
                           <tr className="border-b">
-                            <th className="text-left py-3 px-4">月份</th>
-                            <th className="text-right py-3 px-4">预算</th>
-                            <th className="text-right py-3 px-4">实际支出</th>
-                            <th className="text-right py-3 px-4">出差次数</th>
-                            <th className="text-right py-3 px-4">趋势</th>
+                            <th className="text-left py-3 px-4">{t("finance.report.thMonth")}</th>
+                            <th className="text-right py-3 px-4">{t("finance.report.thBudget")}</th>
+                            <th className="text-right py-3 px-4">{t("finance.report.thActual")}</th>
+                            <th className="text-right py-3 px-4">{t("finance.report.thTrips")}</th>
+                            <th className="text-right py-3 px-4">{t("finance.report.thTrendCol")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -404,7 +407,7 @@ export default function ExpenseReport() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <BarChart3 className="w-5 h-5" />
-                      部门费用排名
+                      {t("finance.report.deptExpenseRanking")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -425,8 +428,8 @@ export default function ExpenseReport() {
                               <span>¥{item.totalExpense.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between text-sm text-muted-foreground">
-                              <span>{item.tripCount} 次出差</span>
-                              <span>平均 ¥{item.avgExpense.toFixed(0)}/次</span>
+                              <span>{tpl("finance.report.tripsAndAvg", { count: item.tripCount })}</span>
+                              <span>{tpl("finance.report.avgLabel", { amount: item.avgExpense.toFixed(0) })}</span>
                             </div>
                           </div>
                         </div>
@@ -440,20 +443,20 @@ export default function ExpenseReport() {
             {/* 费用最高出差 */}
             <Card>
               <CardHeader>
-                <CardTitle>费用最高的出差</CardTitle>
-                <CardDescription>Top 10 出差费用排名</CardDescription>
+                <CardTitle>{t("finance.report.topExpenses")}</CardTitle>
+                <CardDescription>{t("finance.report.topExpensesDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left py-3 px-4">排名</th>
-                        <th className="text-left py-3 px-4">员工</th>
-                        <th className="text-left py-3 px-4">部门</th>
-                        <th className="text-left py-3 px-4">目的地</th>
-                        <th className="text-right py-3 px-4">金额</th>
-                        <th className="text-left py-3 px-4">出差日期</th>
+                        <th className="text-left py-3 px-4">{t("finance.report.thRank")}</th>
+                        <th className="text-left py-3 px-4">{t("finance.report.thEmployee")}</th>
+                        <th className="text-left py-3 px-4">{t("finance.report.thDepartment")}</th>
+                        <th className="text-left py-3 px-4">{t("finance.report.thDestination")}</th>
+                        <th className="text-right py-3 px-4">{t("finance.report.thAmount")}</th>
+                        <th className="text-left py-3 px-4">{t("finance.report.thTripDate")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -480,7 +483,7 @@ export default function ExpenseReport() {
         ) : (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
-              暂无数据，请调整筛选条件后重试
+              {t("finance.report.noDataRetry")}
             </CardContent>
           </Card>
         )}

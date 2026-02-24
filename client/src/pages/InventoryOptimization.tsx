@@ -3,6 +3,7 @@
  * Phase E: 安全库存 · 经济批量 · ABC分类 · 补货策略
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ interface OptimizationResult {
 }
 
 export default function InventoryOptimization() {
+  const { t } = useLanguage();
   const [materialName, setMaterialName] = useState("");
   const [currentStock, setCurrentStock] = useState("");
   const [avgDailyUsage, setAvgDailyUsage] = useState("");
@@ -53,10 +55,10 @@ export default function InventoryOptimization() {
   };
 
   const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
-    optimal: { label: "库存正常", color: "bg-green-500/20 text-green-400 border-green-500/30", icon: CheckCircle },
-    overstock: { label: "库存过剩", color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Package },
-    understock: { label: "库存不足", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: AlertTriangle },
-    critical: { label: "库存告急", color: "bg-red-500/20 text-red-400 border-red-500/30", icon: AlertTriangle },
+    optimal: { label: t("supply.inventoryOpt.optimal"), color: "bg-green-500/20 text-green-400 border-green-500/30", icon: CheckCircle },
+    overstock: { label: t("supply.inventoryOpt.overstockStatus"), color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Package },
+    understock: { label: t("supply.inventoryOpt.understockStatus"), color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: AlertTriangle },
+    critical: { label: t("supply.inventoryOpt.criticalStatus"), color: "bg-red-500/20 text-red-400 border-red-500/30", icon: AlertTriangle },
   };
 
   const abcColor = (cls: string) => {
@@ -72,12 +74,12 @@ export default function InventoryOptimization() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Package}
-          title="AI库存优化分析"
-          description="安全库存 · 经济批量 · ABC分类 · 补货策略"
+          title={t("supply.inventoryOpt.pageTitle")}
+          description={t("supply.inventoryOpt.pageDesc")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI优化
+              {t("supply.inventoryOpt.aiBadge")}
             </Badge>
           }
         />
@@ -87,57 +89,57 @@ export default function InventoryOptimization() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Package className="h-5 w-5 text-primary" />
-              物料信息
+              {t("supply.inventoryOpt.materialInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">物料名称</label>
-                <Input placeholder="如: 真空泵VP-100" value={materialName} onChange={(e) => setMaterialName(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("supply.inventoryOpt.materialNameLabel")}</label>
+                <Input value={materialName} onChange={(e) => setMaterialName(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">当前库存</label>
-                <Input type="number" placeholder="如: 50" value={currentStock} onChange={(e) => setCurrentStock(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("supply.inventoryOpt.currentStockLabel")}</label>
+                <Input type="number" value={currentStock} onChange={(e) => setCurrentStock(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">日均消耗量</label>
-                <Input type="number" placeholder="如: 2" value={avgDailyUsage} onChange={(e) => setAvgDailyUsage(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("supply.inventoryOpt.dailyUsageLabel")}</label>
+                <Input type="number" value={avgDailyUsage} onChange={(e) => setAvgDailyUsage(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">采购交期(天)</label>
-                <Input type="number" placeholder="如: 21" value={leadTimeDays} onChange={(e) => setLeadTimeDays(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("supply.inventoryOpt.leadTimeDaysLabel")}</label>
+                <Input type="number" value={leadTimeDays} onChange={(e) => setLeadTimeDays(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">单价(元)（可选）</label>
-                <Input type="number" placeholder="如: 3500" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("supply.inventoryOpt.unitCostLabel")}</label>
+                <Input type="number" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">需求波动性（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("supply.inventoryOpt.demandVariability")}</label>
                 <Select value={demandVariability} onValueChange={(v) => setDemandVariability(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="不指定" />
+                    <SelectValue placeholder={t("supply.inventoryOpt.unspecified")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">不指定</SelectItem>
-                    <SelectItem value="low">低</SelectItem>
-                    <SelectItem value="medium">中</SelectItem>
-                    <SelectItem value="high">高</SelectItem>
+                    <SelectItem value="__none__">{t("supply.inventoryOpt.unspecified")}</SelectItem>
+                    <SelectItem value="low">{t("supply.inventoryOpt.low")}</SelectItem>
+                    <SelectItem value="medium">{t("supply.inventoryOpt.medium")}</SelectItem>
+                    <SelectItem value="high">{t("supply.inventoryOpt.high")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">服务水平（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("supply.inventoryOpt.serviceLevel")}</label>
                 <Select value={serviceLevel} onValueChange={(v) => setServiceLevel(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="不指定" />
+                    <SelectValue placeholder={t("supply.inventoryOpt.unspecified")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">不指定</SelectItem>
+                    <SelectItem value="__none__">{t("supply.inventoryOpt.unspecified")}</SelectItem>
                     <SelectItem value="90%">90%</SelectItem>
                     <SelectItem value="95%">95%</SelectItem>
                     <SelectItem value="99%">99%</SelectItem>
@@ -148,7 +150,7 @@ export default function InventoryOptimization() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!materialName.trim() || !currentStock || !avgDailyUsage || !leadTimeDays || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                优化分析
+                {t("supply.inventoryOpt.optimizeBtn")}
               </Button>
             </div>
           </CardContent>
@@ -163,15 +165,15 @@ export default function InventoryOptimization() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">库存状态</p>
+                      <p className="text-sm text-muted-foreground">{t("supply.inventoryOpt.inventoryStatus")}</p>
                       <Badge className={`text-lg px-3 py-1 mt-1 ${statusConfig[result.currentStatus]?.color || "bg-muted"}`}>
                         {statusConfig[result.currentStatus]?.label || result.currentStatus}
                       </Badge>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">ABC分类</p>
+                      <p className="text-sm text-muted-foreground">{t("supply.inventoryOpt.abcClassification")}</p>
                       <Badge className={`text-lg px-3 py-1 mt-1 ${abcColor(result.abcClassification)}`}>
-                        {result.abcClassification}类
+                        {result.abcClassification}{t("supply.inventoryOpt.classLabel")}
                       </Badge>
                     </div>
                   </div>
@@ -184,7 +186,7 @@ export default function InventoryOptimization() {
                   <div className="flex items-center gap-3">
                     <TrendingUp className="h-6 w-6 text-green-400" />
                     <div>
-                      <p className="text-sm text-muted-foreground">成本优化机会</p>
+                      <p className="text-sm text-muted-foreground">{t("supply.inventoryOpt.costOptimization")}</p>
                       <p className="font-medium">{result.costSavingOpportunity}</p>
                     </div>
                   </div>
@@ -196,19 +198,19 @@ export default function InventoryOptimization() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground">再订货点</p>
+                  <p className="text-sm text-muted-foreground">{t("supply.inventoryOpt.reorderPointLabel")}</p>
                   <p className="text-4xl font-bold text-primary mt-1">{result.reorderPoint}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground">安全库存</p>
+                  <p className="text-sm text-muted-foreground">{t("supply.inventoryOpt.safetyStockLabel")}</p>
                   <p className="text-4xl font-bold text-yellow-400 mt-1">{result.safetyStock}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground">经济订货量(EOQ)</p>
+                  <p className="text-sm text-muted-foreground">{t("supply.inventoryOpt.eoqLabel")}</p>
                   <p className="text-4xl font-bold text-blue-400 mt-1">{result.economicOrderQty}</p>
                 </CardContent>
               </Card>
@@ -220,7 +222,7 @@ export default function InventoryOptimization() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-green-400" />
-                    AI建议
+                    {t("supply.inventoryOpt.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

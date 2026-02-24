@@ -6,6 +6,7 @@ type LanguageContextType = {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
+  tpl: (key: string, vars: Record<string, string | number>) => string;
   languageNames: typeof languageNames;
   languageFlags: typeof languageFlags;
   availableLanguages: Language[];
@@ -125,14 +126,23 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     return langTranslations[key] || key;
   };
 
+  const tpl = (key: string, vars: Record<string, string | number>): string => {
+    let result = t(key);
+    for (const [k, v] of Object.entries(vars)) {
+      result = result.replace(`{${k}}`, String(v));
+    }
+    return result;
+  };
+
   const availableLanguages: Language[] = ['zh', 'en', 'de', 'fr'];
 
   return (
-    <LanguageContext.Provider value={{ 
-      language, 
-      setLanguage, 
-      t, 
-      languageNames, 
+    <LanguageContext.Provider value={{
+      language,
+      setLanguage,
+      t,
+      tpl,
+      languageNames,
       languageFlags,
       availableLanguages,
       isChanging,

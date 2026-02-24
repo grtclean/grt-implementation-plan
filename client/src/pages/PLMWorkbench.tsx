@@ -8,6 +8,7 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   FileText, Upload, Eye, Send, CheckCircle, Clock, Shield, BarChart3,
   Lock, Plus, Search, Filter, ChevronRight, X,
@@ -869,16 +870,17 @@ function DesignFreezeTab() {
 // ═══════════════════════════════════════════════════════════
 
 const TABS = [
-  { key: "documents", label: "Documents", labelCn: "文档管理", icon: FileText },
-  { key: "versions", label: "Versions", labelCn: "版本历史", icon: Clock },
-  { key: "reviews", label: "Reviews", labelCn: "设计评审", icon: Shield },
-  { key: "stats", label: "Stats", labelCn: "数据概览", icon: BarChart3 },
-  { key: "freeze", label: "Design Freeze", labelCn: "设计冻结", icon: Lock },
+  { key: "documents", labelKey: "projects.plm.tabDocuments", icon: FileText },
+  { key: "versions", labelKey: "projects.plm.tabVersions", icon: Clock },
+  { key: "reviews", labelKey: "projects.plm.tabReviews", icon: Shield },
+  { key: "stats", labelKey: "projects.plm.tabStats", icon: BarChart3 },
+  { key: "freeze", labelKey: "projects.plm.tabDesignFreeze", icon: Lock },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
 
 export default function PLMWorkbench() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabKey>("documents");
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
 
@@ -891,8 +893,8 @@ export default function PLMWorkbench() {
     <div className={`flex flex-col h-full ${F.bg}`}>
       {/* Header */}
       <div className="px-6 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-[#323130]">GRT PLM</h1>
-        <p className="text-sm text-[#605e5c] mt-1">Product Lifecycle Management</p>
+        <h1 className="text-2xl font-bold text-[#323130]">{t("projects.plm.title")}</h1>
+        <p className="text-sm text-[#605e5c] mt-1">{t("projects.plm.subtitle")}</p>
       </div>
 
       {/* Tabs */}
@@ -913,8 +915,7 @@ export default function PLMWorkbench() {
                 `}
               >
                 <tab.icon className="h-4 w-4" />
-                <span>{tab.label}</span>
-                <span className="text-xs opacity-70">({tab.labelCn})</span>
+                <span>{t(tab.labelKey)}</span>
               </button>
             );
           })}

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,26 +17,29 @@ import {
   AlertTriangle, Clock, Eye, Shield, RefreshCw, Filter
 } from "lucide-react";
 
-const PROCESS_NAMES: Record<string, string> = {
-  T1: '机加工', T2: '冷作', T3: '机械部件装配', T4: '机械装配', T5: '机械总装',
-  T6: '电气装配', T7: '设备调试', T8: '跑和', T9: '包装', T10: '发货',
-  T11: '卸车', T12: '就位', T13: '水电气连接', T14: '现场调试', T15: '终验收',
+const PROCESS_NAME_KEYS: Record<string, string> = {
+  T1: 'quality.interlock.processT1', T2: 'quality.interlock.processT2', T3: 'quality.interlock.processT3',
+  T4: 'quality.interlock.processT4', T5: 'quality.interlock.processT5', T6: 'quality.interlock.processT6',
+  T7: 'quality.interlock.processT7', T8: 'quality.interlock.processT8', T9: 'quality.interlock.processT9',
+  T10: 'quality.interlock.processT10', T11: 'quality.interlock.processT11', T12: 'quality.interlock.processT12',
+  T13: 'quality.interlock.processT13', T14: 'quality.interlock.processT14', T15: 'quality.interlock.processT15',
 };
-const PROCESS_CODES = Object.keys(PROCESS_NAMES);
+const PROCESS_CODES = Object.keys(PROCESS_NAME_KEYS);
 
-const SEVERITY_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  critical: { bg: "bg-red-500/20", text: "text-red-400", label: "严重" },
-  major: { bg: "bg-orange-500/20", text: "text-orange-400", label: "重大" },
-  minor: { bg: "bg-yellow-500/20", text: "text-yellow-400", label: "轻微" },
+const SEVERITY_STYLES: Record<string, { bg: string; text: string; labelKey: string }> = {
+  critical: { bg: "bg-red-500/20", text: "text-red-400", labelKey: "quality.interlock.severityCritical" },
+  major: { bg: "bg-orange-500/20", text: "text-orange-400", labelKey: "quality.interlock.severityMajor" },
+  minor: { bg: "bg-yellow-500/20", text: "text-yellow-400", labelKey: "quality.interlock.severityMinor" },
 };
-const LOCK_STATUS_STYLES: Record<string, { bg: string; text: string; label: string; icon: any }> = {
-  locked: { bg: "bg-red-500/20", text: "text-red-400", label: "已锁定", icon: Lock },
-  unlock_requested: { bg: "bg-yellow-500/20", text: "text-yellow-400", label: "待审批", icon: Clock },
-  unlocked: { bg: "bg-green-500/20", text: "text-green-400", label: "已解锁", icon: Unlock },
-  expired: { bg: "bg-gray-500/20", text: "text-gray-400", label: "已过期", icon: Clock },
+const LOCK_STATUS_STYLES: Record<string, { bg: string; text: string; labelKey: string; icon: any }> = {
+  locked: { bg: "bg-red-500/20", text: "text-red-400", labelKey: "quality.interlock.statusLocked", icon: Lock },
+  unlock_requested: { bg: "bg-yellow-500/20", text: "text-yellow-400", labelKey: "quality.interlock.statusPending", icon: Clock },
+  unlocked: { bg: "bg-green-500/20", text: "text-green-400", labelKey: "quality.interlock.statusUnlocked", icon: Unlock },
+  expired: { bg: "bg-gray-500/20", text: "text-gray-400", labelKey: "quality.interlock.statusExpired", icon: Clock },
 };
 
 export default function QualityInterlock() {
+  const { t, tpl } = useLanguage();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("locks");
   const [selectedProject] = useState("PRJ-2026-001");
@@ -65,32 +69,32 @@ export default function QualityInterlock() {
   // Mutations
   const triggerLockMut = trpc.qualityInterlock.triggerLock.useMutation({
     onSuccess: () => {
-      toast({ title: "工序已锁定", description: "已成功触发工序锁定" });
+      toast({ title: t("quality.interlock.lockSuccess"), description: t("quality.interlock.lockSuccessDesc") });
       setShowTriggerDialog(false);
       setTriggerForm({ processCode: "T1", severity: "major", reason: "" });
       utils.qualityInterlock.getLocks.invalidate();
       utils.qualityInterlock.lockSummary.invalidate();
     },
-    onError: (e) => toast({ title: "操作失败", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: t("quality.interlock.operationFailed"), description: e.message, variant: "destructive" }),
   });
 
   const requestUnlockMut = trpc.qualityInterlock.requestUnlock.useMutation({
     onSuccess: () => {
-      toast({ title: "解锁申请已提交", description: "等待审批" });
+      toast({ title: t("quality.interlock.unlockRequestSubmitted"), description: t("quality.interlock.waitingApproval") });
       setShowUnlockDialog(false);
       setUnlockForm({ unlockReason: "" });
       utils.qualityInterlock.getLocks.invalidate();
     },
-    onError: (e) => toast({ title: "操作失败", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: t("quality.interlock.operationFailed"), description: e.message, variant: "destructive" }),
   });
 
   const approveUnlockMut = trpc.qualityInterlock.approveUnlock.useMutation({
     onSuccess: () => {
-      toast({ title: "审批完成" });
+      toast({ title: t("quality.interlock.approvalComplete") });
       utils.qualityInterlock.getLocks.invalidate();
       utils.qualityInterlock.lockSummary.invalidate();
     },
-    onError: (e) => toast({ title: "操作失败", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: t("quality.interlock.operationFailed"), description: e.message, variant: "destructive" }),
   });
 
   const markAlertReadMut = trpc.qualityInterlock.markRead.useMutation({
@@ -102,7 +106,7 @@ export default function QualityInterlock() {
 
   const markAllReadMut = trpc.qualityInterlock.markAllRead.useMutation({
     onSuccess: () => {
-      toast({ title: "已全部标记为已读" });
+      toast({ title: t("quality.interlock.allMarkedRead") });
       utils.qualityInterlock.getAlerts.invalidate();
       utils.qualityInterlock.unreadCount.invalidate();
     },
@@ -110,7 +114,7 @@ export default function QualityInterlock() {
 
   const markActionedMut = trpc.qualityInterlock.markActioned.useMutation({
     onSuccess: () => {
-      toast({ title: "已标记为已处理" });
+      toast({ title: t("quality.interlock.markedProcessed") });
       utils.qualityInterlock.getAlerts.invalidate();
     },
   });
@@ -125,8 +129,8 @@ export default function QualityInterlock() {
       {/* Header */}
       <PageHeader
         icon={ShieldAlert}
-        title="质量工序联动"
-        description="CCD缺陷自动暂停后续工序 · 质量预警通知"
+        title={t("quality.interlock.title")}
+        description={t("quality.interlock.description")}
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => {
@@ -134,53 +138,53 @@ export default function QualityInterlock() {
               utils.qualityInterlock.lockSummary.invalidate();
               utils.qualityInterlock.getAlerts.invalidate();
             }}>
-              <RefreshCw className="w-4 h-4 mr-1" /> 刷新
+              <RefreshCw className="w-4 h-4 mr-1" /> {t("quality.interlock.refresh")}
             </Button>
             <Dialog open={showTriggerDialog} onOpenChange={setShowTriggerDialog}>
               <DialogTrigger asChild>
                 <Button variant="destructive" size="sm">
-                  <Lock className="w-4 h-4 mr-1" /> 手动锁定工序
+                  <Lock className="w-4 h-4 mr-1" /> {t("quality.interlock.manualLock")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>手动触发工序锁定</DialogTitle>
+                  <DialogTitle>{t("quality.interlock.manualLockDialog")}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label>目标工序</Label>
+                    <Label>{t("quality.interlock.targetProcess")}</Label>
                     <Select value={triggerForm.processCode} onValueChange={v => setTriggerForm(f => ({ ...f, processCode: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {PROCESS_CODES.map(c => (
-                          <SelectItem key={c} value={c}>{c} - {PROCESS_NAMES[c]}</SelectItem>
+                          <SelectItem key={c} value={c}>{c} - {t(PROCESS_NAME_KEYS[c])}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label>严重程度</Label>
+                    <Label>{t("quality.interlock.severityLevel")}</Label>
                     <Select value={triggerForm.severity} onValueChange={v => setTriggerForm(f => ({ ...f, severity: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="critical">严重 (Critical)</SelectItem>
-                        <SelectItem value="major">重大 (Major)</SelectItem>
-                        <SelectItem value="minor">轻微 (Minor)</SelectItem>
+                        <SelectItem value="critical">{t("quality.interlock.severityCritical")}</SelectItem>
+                        <SelectItem value="major">{t("quality.interlock.severityMajor")}</SelectItem>
+                        <SelectItem value="minor">{t("quality.interlock.severityMinor")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label>锁定原因</Label>
+                    <Label>{t("quality.interlock.lockReason")}</Label>
                     <Textarea
                       value={triggerForm.reason}
                       onChange={e => setTriggerForm(f => ({ ...f, reason: e.target.value }))}
-                      placeholder="描述锁定原因..."
+                      placeholder={t("quality.interlock.lockReasonPlaceholder")}
                       rows={3}
                     />
                   </div>
                 </div>
                 <DialogFooter>
-                  <DialogClose asChild><Button variant="outline">取消</Button></DialogClose>
+                  <DialogClose asChild><Button variant="outline">{t("quality.interlock.cancel")}</Button></DialogClose>
                   <Button
                     variant="destructive"
                     disabled={!triggerForm.reason || triggerLockMut.isPending}
@@ -191,7 +195,7 @@ export default function QualityInterlock() {
                       reason: triggerForm.reason,
                     })}
                   >
-                    {triggerLockMut.isPending ? "锁定中..." : "确认锁定"}
+                    {triggerLockMut.isPending ? t("quality.interlock.locking") : t("quality.interlock.confirmLock")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -202,20 +206,20 @@ export default function QualityInterlock() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Lock} label="当前锁定" value={summary.activeLocks || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
-        <StatCard icon={Clock} label="待审批" value={summary.pendingUnlocks || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
-        <StatCard icon={Unlock} label="已解锁" value={summary.totalUnlocked || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={Bell} label="未读预警" value={unreadCount} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Lock} label={t("quality.interlock.currentLocks")} value={summary.activeLocks || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Clock} label={t("quality.interlock.pendingApproval")} value={summary.pendingUnlocks || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+        <StatCard icon={Unlock} label={t("quality.interlock.unlocked")} value={summary.totalUnlocked || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Bell} label={t("quality.interlock.unreadAlerts")} value={unreadCount} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="locks">
-            <Lock className="w-4 h-4 mr-1" /> 工序锁定
+            <Lock className="w-4 h-4 mr-1" /> {t("quality.interlock.tabLock")}
           </TabsTrigger>
           <TabsTrigger value="alerts">
-            <Bell className="w-4 h-4 mr-1" /> 质量预警
+            <Bell className="w-4 h-4 mr-1" /> {t("quality.interlock.tabAlerts")}
             {unreadCount > 0 && (
               <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{unreadCount}</Badge>
             )}
@@ -229,21 +233,21 @@ export default function QualityInterlock() {
             <Select value={lockStatusFilter} onValueChange={setLockStatusFilter}>
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部状态</SelectItem>
-                <SelectItem value="locked">已锁定</SelectItem>
-                <SelectItem value="unlock_requested">待审批</SelectItem>
-                <SelectItem value="unlocked">已解锁</SelectItem>
+                <SelectItem value="all">{t("quality.interlock.allStatuses")}</SelectItem>
+                <SelectItem value="locked">{t("quality.interlock.statusLocked")}</SelectItem>
+                <SelectItem value="unlock_requested">{t("quality.interlock.statusPending")}</SelectItem>
+                <SelectItem value="unlocked">{t("quality.interlock.statusUnlocked")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {locksQuery.isLoading ? (
-            <div className="text-center py-10 text-muted-foreground">加载中...</div>
+            <div className="text-center py-10 text-muted-foreground">{t("quality.common.loading")}</div>
           ) : locks.length === 0 ? (
             <Card>
               <CardContent className="py-10 text-center text-muted-foreground">
                 <Shield className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>当前没有工序锁定记录</p>
+                <p>{t("quality.interlock.noLocks")}</p>
               </CardContent>
             </Card>
           ) : (
@@ -263,20 +267,20 @@ export default function QualityInterlock() {
                           <div>
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-bold text-lg">
-                                {lock.process_code} - {PROCESS_NAMES[lock.process_code] || lock.process_code}
+                                {lock.process_code} - {PROCESS_NAME_KEYS[lock.process_code] ? t(PROCESS_NAME_KEYS[lock.process_code]) : lock.process_code}
                               </span>
                               <Badge className={`${statusStyle.bg} ${statusStyle.text} border-0`}>
-                                {statusStyle.label}
+                                {t(statusStyle.labelKey)}
                               </Badge>
                               <Badge className={`${severityStyle.bg} ${severityStyle.text} border-0`}>
-                                {severityStyle.label}
+                                {t(severityStyle.labelKey)}
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">{lock.reason}</p>
                             <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                              <span>锁定人: {lock.locked_by || '-'}</span>
-                              <span>锁定时间: {lock.locked_at ? new Date(Number(lock.locked_at)).toLocaleString() : '-'}</span>
-                              {lock.unlock_reason && <span>解锁原因: {lock.unlock_reason}</span>}
+                              <span>{t("quality.interlock.lockedBy")}: {lock.locked_by || '-'}</span>
+                              <span>{t("quality.interlock.lockTime")}: {lock.locked_at ? new Date(Number(lock.locked_at)).toLocaleString() : '-'}</span>
+                              {lock.unlock_reason && <span>{t("quality.interlock.unlockReasonLabel")}: {lock.unlock_reason}</span>}
                             </div>
                           </div>
                         </div>
@@ -287,7 +291,7 @@ export default function QualityInterlock() {
                               size="sm"
                               onClick={() => { setSelectedLockId(lock.id); setShowUnlockDialog(true); }}
                             >
-                              <Unlock className="w-3 h-3 mr-1" /> 申请解锁
+                              <Unlock className="w-3 h-3 mr-1" /> {t("quality.interlock.applyUnlock")}
                             </Button>
                           )}
                           {lock.lock_status === 'unlock_requested' && (
@@ -298,15 +302,15 @@ export default function QualityInterlock() {
                                 onClick={() => approveUnlockMut.mutate({ lockId: lock.id, approved: true })}
                                 disabled={approveUnlockMut.isPending}
                               >
-                                <CheckCircle2 className="w-3 h-3 mr-1" /> 批准
+                                <CheckCircle2 className="w-3 h-3 mr-1" /> {t("quality.interlock.approveBtn")}
                               </Button>
                               <Button
                                 variant="destructive"
                                 size="sm"
-                                onClick={() => approveUnlockMut.mutate({ lockId: lock.id, approved: false, comments: "驳回" })}
+                                onClick={() => approveUnlockMut.mutate({ lockId: lock.id, approved: false, comments: "rejected" })}
                                 disabled={approveUnlockMut.isPending}
                               >
-                                <XCircle className="w-3 h-3 mr-1" /> 驳回
+                                <XCircle className="w-3 h-3 mr-1" /> {t("quality.interlock.rejectBtn")}
                               </Button>
                             </div>
                           )}
@@ -323,21 +327,21 @@ export default function QualityInterlock() {
         {/* Alerts Tab */}
         <TabsContent value="alerts" className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">共 {alerts.length} 条预警</p>
+            <p className="text-sm text-muted-foreground">{tpl("quality.interlock.alertCount", { count: alerts.length })}</p>
             {unreadCount > 0 && (
               <Button variant="outline" size="sm" onClick={() => markAllReadMut.mutate({ projectId: selectedProject })}>
-                <BellOff className="w-3 h-3 mr-1" /> 全部已读
+                <BellOff className="w-3 h-3 mr-1" /> {t("quality.interlock.markAllRead")}
               </Button>
             )}
           </div>
 
           {alertsQuery.isLoading ? (
-            <div className="text-center py-10 text-muted-foreground">加载中...</div>
+            <div className="text-center py-10 text-muted-foreground">{t("quality.common.loading")}</div>
           ) : alerts.length === 0 ? (
             <Card>
               <CardContent className="py-10 text-center text-muted-foreground">
                 <Bell className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>暂无质量预警</p>
+                <p>{t("quality.interlock.noAlerts")}</p>
               </CardContent>
             </Card>
           ) : (
@@ -368,14 +372,14 @@ export default function QualityInterlock() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => markActionedMut.mutate({ alertId: alert.id, actionTaken: "已确认处理" })}
+                            onClick={() => markActionedMut.mutate({ alertId: alert.id, actionTaken: "confirmed" })}
                           >
-                            <CheckCircle2 className="w-3 h-3 mr-1" /> 已处理
+                            <CheckCircle2 className="w-3 h-3 mr-1" /> {t("quality.interlock.processed")}
                           </Button>
                         )}
                         {alert.is_actioned && (
                           <Badge variant="outline" className="text-green-400 border-green-500/30">
-                            <CheckCircle2 className="w-3 h-3 mr-1" /> 已处理
+                            <CheckCircle2 className="w-3 h-3 mr-1" /> {t("quality.interlock.processed")}
                           </Badge>
                         )}
                       </div>
@@ -392,21 +396,21 @@ export default function QualityInterlock() {
       <Dialog open={showUnlockDialog} onOpenChange={setShowUnlockDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>申请解锁工序</DialogTitle>
+            <DialogTitle>{t("quality.interlock.unlockDialog")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>解锁原因</Label>
+              <Label>{t("quality.interlock.unlockReason")}</Label>
               <Textarea
                 value={unlockForm.unlockReason}
                 onChange={e => setUnlockForm({ unlockReason: e.target.value })}
-                placeholder="说明解锁原因..."
+                placeholder={t("quality.interlock.unlockReasonPlaceholder")}
                 rows={3}
               />
             </div>
           </div>
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline">取消</Button></DialogClose>
+            <DialogClose asChild><Button variant="outline">{t("quality.interlock.cancel")}</Button></DialogClose>
             <Button
               disabled={!unlockForm.unlockReason || requestUnlockMut.isPending || !selectedLockId}
               onClick={() => selectedLockId && requestUnlockMut.mutate({
@@ -414,7 +418,7 @@ export default function QualityInterlock() {
                 unlockReason: unlockForm.unlockReason,
               })}
             >
-              {requestUnlockMut.isPending ? "提交中..." : "提交申请"}
+              {requestUnlockMut.isPending ? t("quality.interlock.submitting") : t("quality.interlock.submitRequest")}
             </Button>
           </DialogFooter>
         </DialogContent>

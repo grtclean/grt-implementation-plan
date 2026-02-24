@@ -3,6 +3,7 @@
  * 智能诊断引导 · 逐步排故指令 · 升级判断
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ interface RemoteAssistanceResult {
 }
 
 export default function RemoteAssistance() {
+  const { t } = useLanguage();
   const [equipmentModel, setEquipmentModel] = useState("碳氢真空清洗机");
   const [faultDescription, setFaultDescription] = useState("");
   const [customerSkillLevel, setCustomerSkillLevel] = useState("初级-需详细指导");
@@ -86,12 +88,12 @@ export default function RemoteAssistance() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Headphones}
-          title="AI远程技术支持"
-          description="智能诊断引导 · 逐步排故指令 · 升级判断"
+          title={t("afterSales.remote.title")}
+          description={t("afterSales.remote.desc")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI远程支持
+              {t("afterSales.remote.aiBadge")}
             </Badge>
           }
         />
@@ -101,16 +103,16 @@ export default function RemoteAssistance() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Headphones className="h-5 w-5 text-primary" />
-              远程支持信息
+              {t("afterSales.remote.infoTitle")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">设备型号 *</label>
+                <label className="text-sm text-muted-foreground">{t("afterSales.remote.equipmentModel")}</label>
                 <Select value={equipmentModel} onValueChange={(v) => setEquipmentModel(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择设备型号" />
+                    <SelectValue placeholder={t("afterSales.remote.selectModel")} />
                   </SelectTrigger>
                   <SelectContent>
                     {EQUIPMENT_MODELS.map((m) => (
@@ -120,10 +122,10 @@ export default function RemoteAssistance() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">客户技能水平 *</label>
+                <label className="text-sm text-muted-foreground">{t("afterSales.remote.skillLevel")}</label>
                 <Select value={customerSkillLevel} onValueChange={(v) => setCustomerSkillLevel(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择技能水平" />
+                    <SelectValue placeholder={t("afterSales.remote.selectSkill")} />
                   </SelectTrigger>
                   <SelectContent>
                     {SKILL_LEVELS.map((s) => (
@@ -134,27 +136,27 @@ export default function RemoteAssistance() {
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">故障描述 *</label>
+              <label className="text-sm text-muted-foreground">{t("afterSales.remote.faultDesc")}</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]"
-                placeholder="描述设备故障现象"
+                placeholder={t("afterSales.remote.faultDescPlaceholder")}
                 value={faultDescription}
                 onChange={(e) => setFaultDescription(e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">客户现场可用工具（可选）</label>
+              <label className="text-sm text-muted-foreground">{t("afterSales.remote.availableTools")}</label>
               <Input
-                placeholder="客户现场可用工具"
+                placeholder={t("afterSales.remote.availableToolsPlaceholder")}
                 value={availableTools}
                 onChange={(e) => setAvailableTools(e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">已尝试的排故方法（可选）</label>
+              <label className="text-sm text-muted-foreground">{t("afterSales.remote.previousAttempts")}</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]"
-                placeholder="已尝试的排故方法"
+                placeholder={t("afterSales.remote.previousAttemptsPlaceholder")}
                 value={previousAttempts}
                 onChange={(e) => setPreviousAttempts(e.target.value)}
               />
@@ -162,7 +164,7 @@ export default function RemoteAssistance() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!faultDescription.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI远程诊断
+                {t("afterSales.remote.diagnoseBtn")}
               </Button>
             </div>
           </CardContent>
@@ -179,22 +181,22 @@ export default function RemoteAssistance() {
                     {result.escalationNeeded ? (
                       <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
                         <AlertTriangle className="h-3 w-3 mr-1" />
-                        需现场派人
+                        {t("afterSales.remote.needsOnsite")}
                       </Badge>
                     ) : (
                       <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
                         <CheckCircle className="h-3 w-3 mr-1" />
-                        远程可解决
+                        {t("afterSales.remote.remoteResolvable")}
                       </Badge>
                     )}
                   </div>
                   <div className="p-4 rounded bg-muted/50">
-                    <p className="text-sm text-muted-foreground mb-1">会话摘要</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t("afterSales.remote.sessionSummary")}</p>
                     <p className="font-medium">{result.sessionSummary}</p>
                   </div>
                   {result.escalationNeeded && result.escalationReason && (
                     <div className="p-4 rounded bg-red-500/10 border border-red-500/20">
-                      <p className="text-sm text-red-400 mb-1">升级原因</p>
+                      <p className="text-sm text-red-400 mb-1">{t("afterSales.remote.escalationReason")}</p>
                       <p className="text-sm">{result.escalationReason}</p>
                     </div>
                   )}
@@ -208,7 +210,7 @@ export default function RemoteAssistance() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ListChecks className="h-5 w-5 text-primary" />
-                    诊断步骤
+                    {t("afterSales.remote.diagnosticSteps")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -234,11 +236,11 @@ export default function RemoteAssistance() {
                         {expandedSteps.has(ds.step) && (
                           <div className="px-3 pb-3 space-y-2 ml-11">
                             <div className="p-2 rounded bg-green-500/10 border border-green-500/20">
-                              <p className="text-xs text-green-400 mb-0.5">预期结果</p>
+                              <p className="text-xs text-green-400 mb-0.5">{t("afterSales.remote.expectedResult")}</p>
                               <p className="text-sm">{ds.expectedResult}</p>
                             </div>
                             <div className="p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
-                              <p className="text-xs text-yellow-400 mb-0.5">若失败则</p>
+                              <p className="text-xs text-yellow-400 mb-0.5">{t("afterSales.remote.ifFail")}</p>
                               <p className="text-sm">{ds.ifFail}</p>
                             </div>
                           </div>
@@ -256,7 +258,7 @@ export default function RemoteAssistance() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Eye className="h-5 w-5 text-blue-400" />
-                    可视化指引
+                    {t("afterSales.remote.visualGuides")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -264,10 +266,10 @@ export default function RemoteAssistance() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-muted-foreground">部件</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">位置</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">操作</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">注意事项</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.remote.thComponent")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.remote.thLocation")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.remote.thAction")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.remote.thCaution")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -292,7 +294,7 @@ export default function RemoteAssistance() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Wrench className="h-5 w-5 text-yellow-400" />
-                    需检查部件
+                    {t("afterSales.remote.partsToInspect")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -311,7 +313,7 @@ export default function RemoteAssistance() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("afterSales.remote.aiRecommendations")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

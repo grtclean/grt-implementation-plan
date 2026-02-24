@@ -6,6 +6,7 @@ import { useState, Suspense, lazy } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, StatCard } from "@/components/grt";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import {
   CheckSquare, ClipboardCheck, XCircle, Radio, BarChart3,
@@ -35,6 +36,7 @@ function TabLoading() {
 }
 
 export default function StageGateDashboard() {
+  const { t } = useLanguage();
   const [selectedProject, setSelectedProject] = useState<string>("1");
   const [activeTab, setActiveTab] = useState("overview");
   const projectId = parseInt(selectedProject);
@@ -70,12 +72,12 @@ export default function StageGateDashboard() {
       <div className="space-y-6">
         <PageHeader
           icon={CheckSquare}
-          title="门径管理"
-          description="M0-M12 阶段门禁检查与生产拉动信号管理"
+          title={t("projects.stageGate.title")}
+          description={t("projects.stageGate.description")}
           actions={
             <Select value={selectedProject} onValueChange={setSelectedProject}>
               <SelectTrigger className="w-[260px]">
-                <SelectValue placeholder="选择项目" />
+                <SelectValue placeholder={t("projects.stageGate.selectProject")} />
               </SelectTrigger>
               <SelectContent>
                 {MOCK_PROJECTS.map((p) => (
@@ -92,28 +94,28 @@ export default function StageGateDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
             icon={ClipboardCheck}
-            label="总检查项"
+            label={t("projects.stageGate.totalChecks")}
             value={statsLoading ? "..." : totalChecklists}
             iconColor="text-blue-400"
             iconBg="bg-blue-500/10"
           />
           <StatCard
             icon={CheckSquare}
-            label="已通过"
+            label={t("projects.stageGate.passed")}
             value={statsLoading ? "..." : passedChecklists}
             iconColor="text-green-400"
             iconBg="bg-green-500/10"
           />
           <StatCard
             icon={XCircle}
-            label="未通过"
+            label={t("projects.stageGate.failed")}
             value={statsLoading ? "..." : failedMandatory}
             iconColor="text-red-400"
             iconBg="bg-red-500/10"
           />
           <StatCard
             icon={Radio}
-            label="拉动信号"
+            label={t("projects.stageGate.pullSignals")}
             value={statsLoading ? "..." : totalSignals}
             iconColor="text-purple-400"
             iconBg="bg-purple-500/10"
@@ -124,16 +126,16 @@ export default function StageGateDashboard() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="overview" className="gap-1.5">
-              <LayoutDashboard className="w-4 h-4" />总览
+              <LayoutDashboard className="w-4 h-4" />{t("projects.stageGate.tabOverview")}
             </TabsTrigger>
             <TabsTrigger value="checklists" className="gap-1.5">
-              <List className="w-4 h-4" />检查项
+              <List className="w-4 h-4" />{t("projects.stageGate.tabChecklists")}
             </TabsTrigger>
             <TabsTrigger value="signals" className="gap-1.5">
-              <Zap className="w-4 h-4" />拉动信号
+              <Zap className="w-4 h-4" />{t("projects.stageGate.tabSignals")}
             </TabsTrigger>
             <TabsTrigger value="analytics" className="gap-1.5">
-              <BarChart3 className="w-4 h-4" />分析
+              <BarChart3 className="w-4 h-4" />{t("projects.stageGate.tabAnalytics")}
             </TabsTrigger>
           </TabsList>
 

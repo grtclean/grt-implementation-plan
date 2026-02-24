@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -37,21 +38,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 type ComparisonType = 'month_over_month' | 'year_over_year' | 'quarter_over_quarter';
 type ComparisonDimension = 'overall' | 'department' | 'employee' | 'expense_type' | 'destination';
 
-// 对比类型选项
-const comparisonTypes = [
-  { value: 'month_over_month', label: '月环比', icon: Calendar },
-  { value: 'year_over_year', label: '年同比', icon: BarChart3 },
-  { value: 'quarter_over_quarter', label: '季度环比', icon: PieChart },
-] as const;
-
-// 维度选项
-const dimensions = [
-  { value: 'overall', label: '总体', icon: BarChart3 },
-  { value: 'department', label: '按部门', icon: Building2 },
-  { value: 'employee', label: '按员工', icon: Users },
-  { value: 'expense_type', label: '按费用类型', icon: Receipt },
-  { value: 'destination', label: '按目的地', icon: MapPin },
-] as const;
+// comparisonTypes and dimensions are defined inside the component to access t()
 
 // 趋势图标
 function TrendIcon({ trend }: { trend?: string }) {
@@ -74,6 +61,22 @@ function getChangeColor(changeRate?: number) {
 }
 
 export default function ExpenseComparison() {
+  const { t, tpl } = useLanguage();
+
+  const comparisonTypes = [
+    { value: 'month_over_month', label: t("finance.comparison.typeMonthOverMonth"), icon: Calendar },
+    { value: 'year_over_year', label: t("finance.comparison.typeYearOverYear"), icon: BarChart3 },
+    { value: 'quarter_over_quarter', label: t("finance.comparison.typeQuarterOverQuarter"), icon: PieChart },
+  ] as const;
+
+  const dimensions = [
+    { value: 'overall', label: t("finance.comparison.dimOverall"), icon: BarChart3 },
+    { value: 'department', label: t("finance.comparison.dimDepartment"), icon: Building2 },
+    { value: 'employee', label: t("finance.comparison.dimEmployee"), icon: Users },
+    { value: 'expense_type', label: t("finance.comparison.dimExpenseType"), icon: Receipt },
+    { value: 'destination', label: t("finance.comparison.dimDestination"), icon: MapPin },
+  ] as const;
+
   const [comparisonType, setComparisonType] = useState<ComparisonType>('month_over_month');
   const [dimension, setDimension] = useState<ComparisonDimension>('overall');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -101,14 +104,14 @@ export default function ExpenseComparison() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        toast.success('导出成功', { description: `文件已下载: ${data.filename}` });
+        toast.success(t("finance.comparison.exportSuccess"), { description: tpl("finance.comparison.fileDownloaded", { filename: data.filename }) });
       } catch {
-        toast.error('导出失败', { description: '文件处理出错' });
+        toast.error(t("finance.comparison.exportFailed"), { description: t("finance.comparison.fileFailed") });
       }
       setIsExportDialogOpen(false);
     },
     onError: (error: any) => {
-      toast.error('导出失败', { description: error?.message || '未知错误' });
+      toast.error(t("finance.comparison.exportFailed"), { description: error?.message });
     },
   });
 
@@ -176,17 +179,17 @@ export default function ExpenseComparison() {
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
-        title="费用对比分析"
-        description="分析出差费用的同比、环比变化趋势"
+        title={t("finance.comparison.title")}
+        description={t("finance.comparison.desc")}
         actions={
           <>
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              刷新
+              {t("finance.comparison.refreshBtn")}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setIsExportDialogOpen(true)}>
               <Download className="w-4 h-4 mr-2" />
-              导出
+              {t("finance.comparison.exportBtn")}
             </Button>
           </>
         }
@@ -197,7 +200,7 @@ export default function ExpenseComparison() {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">对比类型:</span>
+              <span className="text-sm text-muted-foreground">{t("finance.comparison.comparisonTypeLabel")}</span>
               <Select value={comparisonType} onValueChange={(v) => setComparisonType(v as ComparisonType)}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
@@ -215,7 +218,7 @@ export default function ExpenseComparison() {
               </Select>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">分析维度:</span>
+              <span className="text-sm text-muted-foreground">{t("finance.comparison.dimensionLabel")}</span>
               <Select value={dimension} onValueChange={(v) => setDimension(v as ComparisonDimension)}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
@@ -239,10 +242,10 @@ export default function ExpenseComparison() {
       {/* 主要内容区域 */}
       <Tabs defaultValue="comparison" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="comparison">对比分析</TabsTrigger>
-          <TabsTrigger value="trend">趋势分析</TabsTrigger>
-          <TabsTrigger value="quarter">季度对比</TabsTrigger>
-          <TabsTrigger value="ai">AI分析</TabsTrigger>
+          <TabsTrigger value="comparison">{t("finance.comparison.tabComparison")}</TabsTrigger>
+          <TabsTrigger value="trend">{t("finance.comparison.tabTrend")}</TabsTrigger>
+          <TabsTrigger value="quarter">{t("finance.comparison.tabQuarter")}</TabsTrigger>
+          <TabsTrigger value="ai">{t("finance.comparison.tabAi")}</TabsTrigger>
         </TabsList>
 
         {/* 对比分析 */}
@@ -253,14 +256,14 @@ export default function ExpenseComparison() {
                 <Card className="bg-card/50 border-border">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">当期费用</span>
+                      <span className="text-sm text-muted-foreground">{t("finance.comparison.currentPeriod")}</span>
                       <TrendIcon trend={comparisonData.trend} />
                     </div>
                     <div className="text-2xl font-bold font-heading">
                       ¥{(comparisonData.currentPeriod?.totalExpense ?? 0).toLocaleString()}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {comparisonData.currentPeriod?.tripCount ?? 0} 次出差
+                      {tpl("finance.comparison.tripsCount", { count: comparisonData.currentPeriod?.tripCount ?? 0 })}
                     </div>
                   </CardContent>
                 </Card>
@@ -268,13 +271,13 @@ export default function ExpenseComparison() {
                 <Card className="bg-card/50 border-border">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">上期费用</span>
+                      <span className="text-sm text-muted-foreground">{t("finance.comparison.previousPeriod")}</span>
                     </div>
                     <div className="text-2xl font-bold font-heading">
                       ¥{(comparisonData.previousPeriod?.totalExpense ?? 0).toLocaleString()}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {comparisonData.previousPeriod?.tripCount ?? 0} 次出差
+                      {tpl("finance.comparison.tripsCount", { count: comparisonData.previousPeriod?.tripCount ?? 0 })}
                     </div>
                   </CardContent>
                 </Card>
@@ -282,7 +285,7 @@ export default function ExpenseComparison() {
                 <Card className="bg-card/50 border-border">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">变化率</span>
+                      <span className="text-sm text-muted-foreground">{t("finance.comparison.changeRate")}</span>
                       <Badge variant={(comparisonData.changeRate ?? 0) > 0 ? 'destructive' : 'default'}>
                         {(comparisonData.changeRate ?? 0) > 0 ? '+' : ''}{(comparisonData.changeRate ?? 0).toFixed(1)}%
                       </Badge>
@@ -291,7 +294,7 @@ export default function ExpenseComparison() {
                       {(comparisonData.changeAmount ?? 0) > 0 ? '+' : ''}¥{(comparisonData.changeAmount ?? 0).toLocaleString()}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      较上期{(comparisonData.changeAmount ?? 0) > 0 ? '增加' : '减少'}
+                      {(comparisonData.changeAmount ?? 0) > 0 ? t("finance.comparison.vsLastPeriodUp") : t("finance.comparison.vsLastPeriodDown")}
                     </div>
                   </CardContent>
                 </Card>
@@ -300,9 +303,9 @@ export default function ExpenseComparison() {
               {Array.isArray(comparisonData.breakdown) && comparisonData.breakdown.length > 0 && (
                 <Card className="bg-card/50 border-border">
                   <CardHeader>
-                    <CardTitle className="text-lg">分解数据</CardTitle>
+                    <CardTitle className="text-lg">{t("finance.comparison.breakdownTitle")}</CardTitle>
                     <CardDescription>
-                      按{dimensions.find(d => d.value === dimension)?.label}维度的详细对比
+                      {tpl("finance.comparison.breakdownDesc", { dimension: dimensions.find(d => d.value === dimension)?.label ?? "" })}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -310,12 +313,12 @@ export default function ExpenseComparison() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-border">
-                            <th className="text-left py-3 px-4 font-medium">名称</th>
-                            <th className="text-right py-3 px-4 font-medium">当期费用</th>
-                            <th className="text-right py-3 px-4 font-medium">上期费用</th>
-                            <th className="text-right py-3 px-4 font-medium">变化量</th>
-                            <th className="text-right py-3 px-4 font-medium">变化率</th>
-                            <th className="text-center py-3 px-4 font-medium">趋势</th>
+                            <th className="text-left py-3 px-4 font-medium">{t("finance.comparison.thName")}</th>
+                            <th className="text-right py-3 px-4 font-medium">{t("finance.comparison.thCurrentPeriod")}</th>
+                            <th className="text-right py-3 px-4 font-medium">{t("finance.comparison.thPreviousPeriod")}</th>
+                            <th className="text-right py-3 px-4 font-medium">{t("finance.comparison.thChangeAmount")}</th>
+                            <th className="text-right py-3 px-4 font-medium">{t("finance.comparison.thChangeRate")}</th>
+                            <th className="text-center py-3 px-4 font-medium">{t("finance.comparison.thTrend")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -346,7 +349,7 @@ export default function ExpenseComparison() {
             <Card className="bg-card/50 border-border">
               <CardContent className="p-12 text-center">
                 <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">暂无对比数据</p>
+                <p className="text-muted-foreground">{t("finance.comparison.noData")}</p>
               </CardContent>
             </Card>
           )}
@@ -358,9 +361,9 @@ export default function ExpenseComparison() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                月度费用趋势
+                {t("finance.comparison.monthlyTrend")}
               </CardTitle>
-              <CardDescription>近12个月的出差费用变化趋势</CardDescription>
+              <CardDescription>{t("finance.comparison.monthlyTrendDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               {Array.isArray(trendData) && trendData.length > 0 ? (
@@ -381,7 +384,7 @@ export default function ExpenseComparison() {
                           ¥{(item.totalExpense || 0).toLocaleString()}
                         </div>
                         <div className="w-16 text-right text-xs text-muted-foreground">
-                          {item.tripCount || 0}次
+                          {item.tripCount || 0}{t("finance.comparison.tripsLabel")}
                         </div>
                       </div>
                     );
@@ -390,7 +393,7 @@ export default function ExpenseComparison() {
               ) : (
                 <div className="p-12 text-center">
                   <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">暂无趋势数据</p>
+                  <p className="text-muted-foreground">{t("finance.comparison.noTrendData")}</p>
                 </div>
               )}
             </CardContent>
@@ -403,9 +406,9 @@ export default function ExpenseComparison() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <PieChart className="w-5 h-5 text-primary" />
-                季度费用对比
+                {t("finance.comparison.quarterTitle")}
               </CardTitle>
-              <CardDescription>近4个季度的费用对比分析</CardDescription>
+              <CardDescription>{t("finance.comparison.quarterDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               {Array.isArray(quarterData) && quarterData.length > 0 ? (
@@ -419,11 +422,11 @@ export default function ExpenseComparison() {
                         </div>
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-xs text-muted-foreground">
-                            {quarter.tripCount || 0} 次出差
+                            {tpl("finance.comparison.tripsCount", { count: quarter.tripCount || 0 })}
                           </span>
                           {quarter.yoyChange != null && (
                             <Badge variant={quarter.yoyChange > 0 ? 'destructive' : 'default'} className="text-xs">
-                              同比 {quarter.yoyChange > 0 ? '+' : ''}{quarter.yoyChange.toFixed(1)}%
+                              {t("finance.comparison.yoy")} {quarter.yoyChange > 0 ? '+' : ''}{quarter.yoyChange.toFixed(1)}%
                             </Badge>
                           )}
                         </div>
@@ -434,7 +437,7 @@ export default function ExpenseComparison() {
               ) : (
                 <div className="p-12 text-center">
                   <PieChart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">暂无季度数据</p>
+                  <p className="text-muted-foreground">{t("finance.comparison.noQuarterData")}</p>
                 </div>
               )}
             </CardContent>
@@ -447,9 +450,9 @@ export default function ExpenseComparison() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Brain className="w-5 h-5 text-primary" />
-                AI智能分析
+                {t("finance.comparison.aiTitle")}
               </CardTitle>
-              <CardDescription>基于数据的AI分析结论和建议</CardDescription>
+              <CardDescription>{t("finance.comparison.aiDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               {comparisonData?.aiAnalysis ? (
@@ -461,9 +464,9 @@ export default function ExpenseComparison() {
               ) : (
                 <div className="p-12 text-center">
                   <Brain className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">暂无AI分析结果</p>
+                  <p className="text-muted-foreground">{t("finance.comparison.noAiData")}</p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    选择对比类型和维度后，系统将自动生成分析结论
+                    {t("finance.comparison.aiHint")}
                   </p>
                 </div>
               )}
@@ -478,13 +481,13 @@ export default function ExpenseComparison() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Download className="w-5 h-5 text-primary" />
-              导出费用对比报表
+              {t("finance.comparison.exportDialogTitle")}
             </DialogTitle>
-            <DialogDescription>选择导出格式和内容选项</DialogDescription>
+            <DialogDescription>{t("finance.comparison.exportDialogDesc")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-3">
-              <Label>导出格式</Label>
+              <Label>{t("finance.comparison.exportFormat")}</Label>
               <div className="grid grid-cols-3 gap-3">
                 {(['excel', 'pdf', 'txt'] as const).map((fmt) => (
                   <Button
@@ -500,7 +503,7 @@ export default function ExpenseComparison() {
             </div>
 
             <div className="space-y-3">
-              <Label>导出内容</Label>
+              <Label>{t("finance.comparison.exportContent")}</Label>
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -509,7 +512,7 @@ export default function ExpenseComparison() {
                     onCheckedChange={(checked) => setIncludeCharts(checked as boolean)}
                   />
                   <label htmlFor="includeCharts" className="text-sm font-medium leading-none">
-                    包含趋势数据
+                    {t("finance.comparison.includeTrend")}
                   </label>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -519,14 +522,14 @@ export default function ExpenseComparison() {
                     onCheckedChange={(checked) => setIncludeAiAnalysis(checked as boolean)}
                   />
                   <label htmlFor="includeAiAnalysis" className="text-sm font-medium leading-none">
-                    包含AI分析结果
+                    {t("finance.comparison.includeAi")}
                   </label>
                 </div>
               </div>
             </div>
 
             <div className="p-3 bg-muted/50 rounded-lg text-sm">
-              <div className="text-muted-foreground mb-2">当前筛选条件:</div>
+              <div className="text-muted-foreground mb-2">{t("finance.comparison.currentFilters")}</div>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">
                   {comparisonTypes.find(ct => ct.value === comparisonType)?.label ?? comparisonType}
@@ -538,12 +541,12 @@ export default function ExpenseComparison() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>{t("finance.comparison.cancelBtn")}</Button>
             <Button onClick={handleExport} disabled={isExporting}>
               {isExporting ? (
-                <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />导出中...</>
+                <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />{t("finance.comparison.exporting")}</>
               ) : (
-                <><Download className="w-4 h-4 mr-2" />导出报表</>
+                <><Download className="w-4 h-4 mr-2" />{t("finance.comparison.exportReport")}</>
               )}
             </Button>
           </DialogFooter>

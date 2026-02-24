@@ -12,6 +12,7 @@ import {
   DollarSign, Award, AlertTriangle, RefreshCw, Calendar,
   ArrowUp, ArrowDown, Minus, Target
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // Period helpers
 const getPeriodRange = (type: string) => {
@@ -44,6 +45,7 @@ const PROCESS_NAMES: Record<string, string> = {
 };
 
 export default function SalaryReport() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [periodType, setPeriodType] = useState("monthly");
@@ -96,20 +98,20 @@ export default function SalaryReport() {
       {/* Header */}
       <PageHeader
         icon={BarChart3}
-        title="薪酬报表可视化分析"
-        description="月度奖金分布 · 部门对比 · 绩效-薪酬相关性 · 趋势分析"
+        title={t("hr.salaryReport.title")}
+        description={t("hr.salaryReport.description")}
         actions={
           <div className="flex gap-2 items-center">
             <Select value={periodType} onValueChange={setPeriodType}>
               <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="weekly">周报</SelectItem>
-                <SelectItem value="monthly">月报</SelectItem>
-                <SelectItem value="quarterly">季报</SelectItem>
+                <SelectItem value="weekly">{t("hr.salaryReport.weekly")}</SelectItem>
+                <SelectItem value="monthly">{t("hr.salaryReport.monthly")}</SelectItem>
+                <SelectItem value="quarterly">{t("hr.salaryReport.quarterly")}</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" onClick={refetchAll}>
-              <RefreshCw className="w-4 h-4 mr-2" /> 刷新
+              <RefreshCw className="w-4 h-4 mr-2" /> {t("hr.salaryReport.refresh")}
             </Button>
           </div>
         }
@@ -117,20 +119,20 @@ export default function SalaryReport() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <StatCard icon={Users} label="员工数" value={summary.unique_workers ?? 0} iconColor="text-violet-400" iconBg="bg-violet-500/20" />
-        <StatCard icon={DollarSign} label="奖金总额" value={`¥${Number(summary.total_bonus_amount || 0).toLocaleString()}`} iconColor="text-green-400" iconBg="bg-green-500/20" />
-        <StatCard icon={Target} label="平均奖金" value={`¥${Number(summary.avg_bonus || 0).toFixed(0)}`} iconColor="text-blue-400" iconBg="bg-blue-500/20" />
-        <StatCard icon={TrendingUp} label="平均评分" value={Number(summary.avg_score || 0).toFixed(1)} iconColor="text-primary" iconBg="bg-primary/20" />
-        <StatCard icon={AlertTriangle} label="处罚总额" value={`¥${Number(summary.total_penalties || 0).toLocaleString()}`} iconColor="text-red-400" iconBg="bg-red-500/20" />
+        <StatCard icon={Users} label={t("hr.salaryReport.employeeCount")} value={summary.unique_workers ?? 0} iconColor="text-violet-400" iconBg="bg-violet-500/20" />
+        <StatCard icon={DollarSign} label={t("hr.salaryReport.totalBonus")} value={`¥${Number(summary.total_bonus_amount || 0).toLocaleString()}`} iconColor="text-green-400" iconBg="bg-green-500/20" />
+        <StatCard icon={Target} label={t("hr.salaryReport.avgBonus")} value={`¥${Number(summary.avg_bonus || 0).toFixed(0)}`} iconColor="text-blue-400" iconBg="bg-blue-500/20" />
+        <StatCard icon={TrendingUp} label={t("hr.salaryReport.avgScore")} value={Number(summary.avg_score || 0).toFixed(1)} iconColor="text-primary" iconBg="bg-primary/20" />
+        <StatCard icon={AlertTriangle} label={t("hr.salaryReport.totalPenalties")} value={`¥${Number(summary.total_penalties || 0).toLocaleString()}`} iconColor="text-red-400" iconBg="bg-red-500/20" />
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-secondary/50">
-          <TabsTrigger value="dashboard"><PieChart className="w-4 h-4 mr-1" /> 奖金分布</TabsTrigger>
-          <TabsTrigger value="process"><BarChart3 className="w-4 h-4 mr-1" /> 工序对比</TabsTrigger>
-          <TabsTrigger value="correlation"><ScatterChart className="w-4 h-4 mr-1" /> 相关性分析</TabsTrigger>
-          <TabsTrigger value="trend"><TrendingUp className="w-4 h-4 mr-1" /> 趋势分析</TabsTrigger>
+          <TabsTrigger value="dashboard"><PieChart className="w-4 h-4 mr-1" /> {t("hr.salaryReport.tab.distribution")}</TabsTrigger>
+          <TabsTrigger value="process"><BarChart3 className="w-4 h-4 mr-1" /> {t("hr.salaryReport.tab.process")}</TabsTrigger>
+          <TabsTrigger value="correlation"><ScatterChart className="w-4 h-4 mr-1" /> {t("hr.salaryReport.tab.correlation")}</TabsTrigger>
+          <TabsTrigger value="trend"><TrendingUp className="w-4 h-4 mr-1" /> {t("hr.salaryReport.tab.trend")}</TabsTrigger>
         </TabsList>
 
         {/* Bonus Distribution Tab */}
@@ -139,12 +141,12 @@ export default function SalaryReport() {
             {/* Distribution Chart (Bar) */}
             <Card className="bg-card/50 border-border">
               <CardHeader>
-                <CardTitle className="text-base">奖金区间分布</CardTitle>
-                <CardDescription>各奖金区间的员工人数分布</CardDescription>
+                <CardTitle className="text-base">{t("hr.salaryReport.bonusRange")}</CardTitle>
+                <CardDescription>{t("hr.salaryReport.bonusRangeDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {distribution.distribution.length === 0 ? (
-                  <div className="h-48 flex items-center justify-center text-muted-foreground">暂无数据</div>
+                  <div className="h-48 flex items-center justify-center text-muted-foreground">{t("hr.salaryReport.noData")}</div>
                 ) : (
                   <div className="space-y-3">
                     {distribution.distribution.map((d: any, i: number) => {
@@ -173,20 +175,20 @@ export default function SalaryReport() {
             {/* Composition (Pie-like) */}
             <Card className="bg-card/50 border-border">
               <CardHeader>
-                <CardTitle className="text-base">奖金组成占比</CardTitle>
-                <CardDescription>各类奖金在总额中的占比</CardDescription>
+                <CardTitle className="text-base">{t("hr.salaryReport.bonusComposition")}</CardTitle>
+                <CardDescription>{t("hr.salaryReport.bonusCompositionDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {!distribution.composition.grand_total ? (
-                  <div className="h-48 flex items-center justify-center text-muted-foreground">暂无数据</div>
+                  <div className="h-48 flex items-center justify-center text-muted-foreground">{t("hr.salaryReport.noData")}</div>
                 ) : (
                   <div className="space-y-3">
                     {[
-                      { label: '效率奖金', value: distribution.composition.total_efficiency, color: 'bg-blue-500', textColor: 'text-blue-400' },
-                      { label: '质量奖金', value: distribution.composition.total_quality, color: 'bg-green-500', textColor: 'text-green-400' },
-                      { label: '出勤奖金', value: distribution.composition.total_attendance, color: 'bg-yellow-500', textColor: 'text-yellow-400' },
-                      { label: '特别奖金', value: distribution.composition.total_special, color: 'bg-violet-500', textColor: 'text-violet-400' },
-                      { label: '处罚扣款', value: distribution.composition.total_penalty, color: 'bg-red-500', textColor: 'text-red-400' },
+                      { label: t("hr.salaryReport.efficiencyBonus"), value: distribution.composition.total_efficiency, color: 'bg-blue-500', textColor: 'text-blue-400' },
+                      { label: t("hr.salaryReport.qualityBonus"), value: distribution.composition.total_quality, color: 'bg-green-500', textColor: 'text-green-400' },
+                      { label: t("hr.salaryReport.attendanceBonus"), value: distribution.composition.total_attendance, color: 'bg-yellow-500', textColor: 'text-yellow-400' },
+                      { label: t("hr.salaryReport.specialBonus"), value: distribution.composition.total_special, color: 'bg-violet-500', textColor: 'text-violet-400' },
+                      { label: t("hr.salaryReport.penaltyDeduction"), value: distribution.composition.total_penalty, color: 'bg-red-500', textColor: 'text-red-400' },
                     ].map((item, i) => {
                       const total = Number(distribution.composition.grand_total) || 1;
                       const pct = (Number(item.value || 0) / total * 100);
@@ -216,12 +218,12 @@ export default function SalaryReport() {
             <Card className="bg-card/50 border-border">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Award className="w-4 h-4 text-yellow-400" /> Top 10 奖金排行
+                  <Award className="w-4 h-4 text-yellow-400" /> {t("hr.salaryReport.top10")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {distribution.topWorkers.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">暂无数据</p>
+                  <p className="text-muted-foreground text-sm">{t("hr.salaryReport.noData")}</p>
                 ) : (
                   <div className="space-y-2">
                     {distribution.topWorkers.map((w: any, i: number) => (
@@ -244,12 +246,12 @@ export default function SalaryReport() {
             <Card className="bg-card/50 border-border">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-red-400" /> Bottom 10 奖金排行
+                  <AlertTriangle className="w-4 h-4 text-red-400" /> {t("hr.salaryReport.bottom10")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {distribution.bottomWorkers.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">暂无数据</p>
+                  <p className="text-muted-foreground text-sm">{t("hr.salaryReport.noData")}</p>
                 ) : (
                   <div className="space-y-2">
                     {distribution.bottomWorkers.map((w: any, i: number) => (
@@ -272,14 +274,14 @@ export default function SalaryReport() {
         <TabsContent value="process" className="space-y-4">
           <Card className="bg-card/50 border-border">
             <CardHeader>
-              <CardTitle className="text-base">工序薪酬对比分析</CardTitle>
+              <CardTitle className="text-base">{t("hr.salaryReport.processComparison")}</CardTitle>
               <CardDescription>
                 各工序平均奖金对比 · 总体平均: ¥{processData.overallAvgBonus}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {processData.processStats.length === 0 ? (
-                <div className="h-48 flex items-center justify-center text-muted-foreground">暂无数据</div>
+                <div className="h-48 flex items-center justify-center text-muted-foreground">{t("hr.salaryReport.noData")}</div>
               ) : (
                 <div className="space-y-4">
                   {processData.processStats.map((ps: any, i: number) => {
@@ -325,13 +327,13 @@ export default function SalaryReport() {
         {/* Correlation Tab */}
         <TabsContent value="correlation" className="space-y-4">
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-sm text-muted-foreground">分析维度:</span>
+            <span className="text-sm text-muted-foreground">{t("hr.salaryReport.analysisDimension")}:</span>
             <Select value={correlationMetric} onValueChange={(v: any) => setCorrelationMetric(v)}>
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="overall">综合评分</SelectItem>
-                <SelectItem value="efficiency">效率指标</SelectItem>
-                <SelectItem value="quality">质量指标</SelectItem>
+                <SelectItem value="overall">{t("hr.salaryReport.overallScore")}</SelectItem>
+                <SelectItem value="efficiency">{t("hr.salaryReport.efficiencyMetric")}</SelectItem>
+                <SelectItem value="quality">{t("hr.salaryReport.qualityMetric")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -339,7 +341,7 @@ export default function SalaryReport() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="bg-card/50 border-border">
               <CardContent className="p-4 text-center">
-                <p className="text-xs text-muted-foreground font-mono mb-1">相关系数</p>
+                <p className="text-xs text-muted-foreground font-mono mb-1">{t("hr.salaryReport.correlationCoeff")}</p>
                 <p className="text-3xl font-bold">{correlation.correlation?.coefficient ?? 'N/A'}</p>
                 <Badge className={`mt-2 ${
                   correlation.correlation?.strength === '强相关' ? 'bg-green-500/20 text-green-400' :
@@ -352,19 +354,19 @@ export default function SalaryReport() {
             </Card>
             <Card className="bg-card/50 border-border">
               <CardContent className="p-4 text-center">
-                <p className="text-xs text-muted-foreground font-mono mb-1">R² 决定系数</p>
+                <p className="text-xs text-muted-foreground font-mono mb-1">{t("hr.salaryReport.rSquared")}</p>
                 <p className="text-3xl font-bold">{correlation.regression?.rSquared ?? 'N/A'}</p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  回归方程: y = {correlation.regression?.slope ?? 0}x + {correlation.regression?.intercept ?? 0}
+                  {t("hr.salaryReport.regressionEquation")}: y = {correlation.regression?.slope ?? 0}x + {correlation.regression?.intercept ?? 0}
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-card/50 border-border">
               <CardContent className="p-4 text-center">
-                <p className="text-xs text-muted-foreground font-mono mb-1">数据点数</p>
+                <p className="text-xs text-muted-foreground font-mono mb-1">{t("hr.salaryReport.dataPoints")}</p>
                 <p className="text-3xl font-bold">{correlation.dataPoints ?? 0}</p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  分析维度: {correlationMetric === 'overall' ? '综合评分' : correlationMetric === 'efficiency' ? '效率指标' : '质量指标'}
+                  {t("hr.salaryReport.analysisDimension")}: {correlationMetric === 'overall' ? t("hr.salaryReport.overallScore") : correlationMetric === 'efficiency' ? t("hr.salaryReport.efficiencyMetric") : t("hr.salaryReport.qualityMetric")}
                 </p>
               </CardContent>
             </Card>
@@ -373,14 +375,14 @@ export default function SalaryReport() {
           {/* Scatter Plot (text-based) */}
           <Card className="bg-card/50 border-border">
             <CardHeader>
-              <CardTitle className="text-base">绩效-薪酬散点分布</CardTitle>
+              <CardTitle className="text-base">{t("hr.salaryReport.scatterTitle")}</CardTitle>
               <CardDescription>
-                X轴: {correlationMetric === 'overall' ? '综合评分' : correlationMetric === 'efficiency' ? '效率指标' : '质量指标'} · Y轴: 奖金金额
+                {t("hr.salaryReport.xAxis")}: {correlationMetric === 'overall' ? t("hr.salaryReport.overallScore") : correlationMetric === 'efficiency' ? t("hr.salaryReport.efficiencyMetric") : t("hr.salaryReport.qualityMetric")} · {t("hr.salaryReport.yAxis")}: {t("hr.salaryReport.bonusAmount")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {correlation.scatterData.length === 0 ? (
-                <div className="h-48 flex items-center justify-center text-muted-foreground">暂无数据</div>
+                <div className="h-48 flex items-center justify-center text-muted-foreground">{t("hr.salaryReport.noData")}</div>
               ) : (
                 <div className="space-y-2 max-h-80 overflow-auto">
                   {correlation.scatterData.map((d: any, i: number) => (
@@ -395,7 +397,7 @@ export default function SalaryReport() {
                       </div>
                       <div className="flex items-center gap-4 text-xs">
                         <span className="text-muted-foreground">
-                          {correlationMetric === 'overall' ? '评分' : correlationMetric === 'efficiency' ? '效率' : '质量'}: <strong className="text-foreground">{d.x.toFixed(1)}</strong>
+                          {correlationMetric === 'overall' ? t("hr.salaryReport.score") : correlationMetric === 'efficiency' ? t("hr.salaryReport.efficiency") : t("hr.salaryReport.quality")}: <strong className="text-foreground">{d.x.toFixed(1)}</strong>
                         </span>
                         <span className="font-bold text-green-400">¥{d.y.toLocaleString()}</span>
                       </div>
@@ -411,14 +413,14 @@ export default function SalaryReport() {
         <TabsContent value="trend" className="space-y-4">
           <Card className="bg-card/50 border-border">
             <CardHeader>
-              <CardTitle className="text-base">薪酬趋势分析</CardTitle>
+              <CardTitle className="text-base">{t("hr.salaryReport.trendAnalysis")}</CardTitle>
               <CardDescription>
-                {periodType === 'weekly' ? '周度' : periodType === 'monthly' ? '月度' : '季度'}趋势 · 最近{trend.periodsCount}个周期
+                {periodType === 'weekly' ? t("hr.salaryReport.weeklyTrend") : periodType === 'monthly' ? t("hr.salaryReport.monthlyTrend") : t("hr.salaryReport.quarterlyTrend")} · {t("hr.salaryReport.recentPeriods")} {trend.periodsCount}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {trend.trend.length === 0 ? (
-                <div className="h-48 flex items-center justify-center text-muted-foreground">暂无数据</div>
+                <div className="h-48 flex items-center justify-center text-muted-foreground">{t("hr.salaryReport.noData")}</div>
               ) : (
                 <div className="space-y-3">
                   {trend.trend.map((t: any, i: number) => {
@@ -465,20 +467,20 @@ export default function SalaryReport() {
           {/* Status Distribution */}
           <Card className="bg-card/50 border-border">
             <CardHeader>
-              <CardTitle className="text-base">薪酬状态分布</CardTitle>
+              <CardTitle className="text-base">{t("hr.salaryReport.statusDistribution")}</CardTitle>
             </CardHeader>
             <CardContent>
               {dashboard.statusDistribution.length === 0 ? (
-                <div className="h-24 flex items-center justify-center text-muted-foreground">暂无数据</div>
+                <div className="h-24 flex items-center justify-center text-muted-foreground">{t("hr.salaryReport.noData")}</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {dashboard.statusDistribution.map((s: any, i: number) => {
                     const statusMap: Record<string, { bg: string; text: string; label: string }> = {
-                      calculated: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: '待审核' },
-                      reviewed: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: '已审核' },
-                      approved: { bg: 'bg-green-500/20', text: 'text-green-400', label: '已批准' },
-                      paid: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: '已发放' },
-                      rejected: { bg: 'bg-red-500/20', text: 'text-red-400', label: '已驳回' },
+                      calculated: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: t("hr.salaryReport.status.pendingReview") },
+                      reviewed: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: t("hr.salaryReport.status.reviewed") },
+                      approved: { bg: 'bg-green-500/20', text: 'text-green-400', label: t("hr.salaryReport.status.approved") },
+                      paid: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: t("hr.salaryReport.status.paid") },
+                      rejected: { bg: 'bg-red-500/20', text: 'text-red-400', label: t("hr.salaryReport.status.rejected") },
                     };
                     const style = statusMap[s.status] || { bg: 'bg-gray-500/20', text: 'text-gray-400', label: s.status };
                     return (

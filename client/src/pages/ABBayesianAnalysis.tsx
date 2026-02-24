@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,6 +112,7 @@ const mockTests: BayesianTest[] = [
 ];
 
 export default function ABBayesianAnalysis() {
+  const { t } = useLanguage();
   const [tests, setTests] = useState<BayesianTest[]>(mockTests);
   const [selectedTest, setSelectedTest] = useState<BayesianTest | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -170,34 +172,34 @@ export default function ABBayesianAnalysis() {
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
-        title="A/B测试贝叶斯分析"
-        description="使用贝叶斯统计方法分析实验结果"
+        title={t("ai.abBayes.title")}
+        description={t("ai.abBayes.description")}
         actions={
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              创建测试
+              {t("ai.abBayes.createTest")}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>创建新测试</DialogTitle>
-              <DialogDescription>创建一个新的A/B测试进行贝叶斯分析</DialogDescription>
+              <DialogTitle>{t("ai.abBayes.createNewTest")}</DialogTitle>
+              <DialogDescription>{t("ai.abBayes.createNewTestDesc")}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>测试名称</Label>
-                <Input 
+                <Label>{t("ai.abBayes.testName")}</Label>
+                <Input
                   value={newTestName}
                   onChange={(e) => setNewTestName(e.target.value)}
-                  placeholder="输入测试名称"
+                  placeholder={t("ai.abBayes.testNamePlaceholder")}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
-              <Button onClick={handleCreateTest} disabled={!newTestName}>创建</Button>
+              <Button variant="outline" onClick={() => setShowCreateDialog(false)}>{t("ai.abBayes.cancel")}</Button>
+              <Button onClick={handleCreateTest} disabled={!newTestName}>{t("ai.abBayes.create")}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -206,16 +208,16 @@ export default function ABBayesianAnalysis() {
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={BarChart3} label="测试总数" value={stats.totalTests} iconColor="text-muted-foreground" iconBg="bg-muted" />
-        <StatCard icon={Activity} label="进行中" value={stats.runningTests} iconColor="text-blue-500" iconBg="bg-blue-50" />
-        <StatCard icon={CheckCircle} label="已得出结论" value={stats.conclusiveTests} iconColor="text-green-500" iconBg="bg-green-50" />
-        <StatCard icon={Target} label="平均胜出概率" value={formatProbability(stats.averageWinProbability)} iconColor="text-purple-500" iconBg="bg-purple-50" />
+        <StatCard icon={BarChart3} label={t("ai.abBayes.totalTests")} value={stats.totalTests} iconColor="text-muted-foreground" iconBg="bg-muted" />
+        <StatCard icon={Activity} label={t("ai.abBayes.running")} value={stats.runningTests} iconColor="text-blue-500" iconBg="bg-blue-50" />
+        <StatCard icon={CheckCircle} label={t("ai.abBayes.concluded")} value={stats.conclusiveTests} iconColor="text-green-500" iconBg="bg-green-50" />
+        <StatCard icon={Target} label={t("ai.abBayes.avgWinProb")} value={formatProbability(stats.averageWinProbability)} iconColor="text-purple-500" iconBg="bg-purple-50" />
       </div>
 
       <Tabs defaultValue="tests" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="tests">测试列表</TabsTrigger>
-          <TabsTrigger value="analysis">分析详情</TabsTrigger>
+          <TabsTrigger value="tests">{t("ai.abBayes.testList")}</TabsTrigger>
+          <TabsTrigger value="analysis">{t("ai.abBayes.analysisDetails")}</TabsTrigger>
         </TabsList>
 
         {/* 测试列表 */}
@@ -227,16 +229,16 @@ export default function ABBayesianAnalysis() {
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-lg">{test.name}</CardTitle>
                     <Badge variant={test.status === 'running' ? 'default' : test.isConclusive ? 'secondary' : 'outline'}>
-                      {test.status === 'running' ? '进行中' : test.isConclusive ? '已结论' : '已完成'}
+                      {test.status === 'running' ? t("ai.abBayes.statusRunning") : test.isConclusive ? t("ai.abBayes.statusConcluded") : t("ai.abBayes.statusCompleted")}
                     </Badge>
                   </div>
                   <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleRunAnalysis(test.id); }}>
                     <Play className="h-3 w-3 mr-1" />
-                    运行分析
+                    {t("ai.abBayes.runAnalysis")}
                   </Button>
                 </div>
                 <CardDescription>
-                  {test.variants.length} 个变体 · 上次分析: {new Date(test.lastAnalyzedAt).toLocaleString()}
+                  {test.variants.length} {t("ai.abBayes.variantsCount")} · {t("ai.abBayes.lastAnalysis")}: {new Date(test.lastAnalyzedAt).toLocaleString()}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -247,7 +249,7 @@ export default function ABBayesianAnalysis() {
                         <span className="flex items-center gap-2">
                           {wp.variantName}
                           {test.recommendedVariant === wp.variantId && (
-                            <Badge variant="default" className="text-xs">推荐</Badge>
+                            <Badge variant="default" className="text-xs">{t("ai.abBayes.recommend")}</Badge>
                           )}
                         </span>
                         <span className="flex items-center gap-4">
@@ -266,7 +268,7 @@ export default function ABBayesianAnalysis() {
                   <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     <span className="text-sm text-green-700 dark:text-green-400">
-                      测试已得出结论，推荐采用: {test.winProbabilities.find(wp => wp.variantId === test.recommendedVariant)?.variantName}
+                      {t("ai.abBayes.testConcluded")} {test.winProbabilities.find(wp => wp.variantId === test.recommendedVariant)?.variantName}
                     </span>
                   </div>
                 )}
@@ -275,7 +277,7 @@ export default function ABBayesianAnalysis() {
                   <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg flex items-center gap-2">
                     <Clock className="h-4 w-4 text-yellow-600" />
                     <span className="text-sm text-yellow-700 dark:text-yellow-400">
-                      需要更多数据才能得出统计显著结论
+                      {t("ai.abBayes.needMoreData")}
                     </span>
                   </div>
                 )}
@@ -291,21 +293,21 @@ export default function ABBayesianAnalysis() {
               <Card>
                 <CardHeader>
                   <CardTitle>{selectedTest.name}</CardTitle>
-                  <CardDescription>贝叶斯分析详情</CardDescription>
+                  <CardDescription>{t("ai.abBayes.bayesianDetails")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* 变体数据 */}
                   <div>
-                    <h3 className="font-medium mb-3">变体数据</h3>
+                    <h3 className="font-medium mb-3">{t("ai.abBayes.variantData")}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {selectedTest.variants.map((variant) => (
                         <Card key={variant.id}>
                           <CardContent className="p-4">
                             <h4 className="font-medium">{variant.name}</h4>
                             <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                              <p>访客: {variant.visitors.toLocaleString()}</p>
-                              <p>转化: {variant.conversions.toLocaleString()}</p>
-                              <p>转化率: {((variant.conversions / variant.visitors) * 100).toFixed(2)}%</p>
+                              <p>{t("ai.abBayes.visitors")}: {variant.visitors.toLocaleString()}</p>
+                              <p>{t("ai.abBayes.conversions")}: {variant.conversions.toLocaleString()}</p>
+                              <p>{t("ai.abBayes.conversionRate")}: {((variant.conversions / variant.visitors) * 100).toFixed(2)}%</p>
                             </div>
                           </CardContent>
                         </Card>
@@ -315,26 +317,26 @@ export default function ABBayesianAnalysis() {
 
                   {/* 胜出概率 */}
                   <div>
-                    <h3 className="font-medium mb-3">胜出概率分析</h3>
+                    <h3 className="font-medium mb-3">{t("ai.abBayes.winProbAnalysis")}</h3>
                     <div className="space-y-4">
                       {selectedTest.winProbabilities.map((wp) => (
                         <div key={wp.variantId} className="p-4 border rounded-lg">
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-medium">{wp.variantName}</span>
                             <Badge variant={wp.probability >= 0.95 ? 'default' : 'secondary'}>
-                              胜出概率: {formatProbability(wp.probability)}
+                              {t("ai.abBayes.winProb")}: {formatProbability(wp.probability)}
                             </Badge>
                           </div>
                           <Progress value={wp.probability * 100} className="h-3 mb-2" />
                           <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                             <div>
-                              <span>相对提升: </span>
+                              <span>{t("ai.abBayes.relativeUplift")}: </span>
                               <span className={wp.relativeUplift >= 0 ? 'text-green-600' : 'text-red-600'}>
                                 {formatUplift(wp.relativeUplift)}
                               </span>
                             </div>
                             <div>
-                              <span>预期损失: </span>
+                              <span>{t("ai.abBayes.expectedLoss")}: </span>
                               <span>{(wp.expectedLoss * 100).toFixed(3)}%</span>
                             </div>
                           </div>
@@ -345,26 +347,26 @@ export default function ABBayesianAnalysis() {
 
                   {/* 结论 */}
                   <div>
-                    <h3 className="font-medium mb-3">分析结论</h3>
+                    <h3 className="font-medium mb-3">{t("ai.abBayes.analysisConclusion")}</h3>
                     {selectedTest.isConclusive ? (
                       <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <CheckCircle className="h-5 w-5 text-green-600" />
-                          <span className="font-medium text-green-700 dark:text-green-400">统计显著</span>
+                          <span className="font-medium text-green-700 dark:text-green-400">{t("ai.abBayes.statisticallySignificant")}</span>
                         </div>
                         <p className="text-sm text-green-700 dark:text-green-400">
-                          根据贝叶斯分析，推荐采用 "{selectedTest.winProbabilities.find(wp => wp.variantId === selectedTest.recommendedVariant)?.variantName}"，
-                          其胜出概率超过95%。
+                          {t("ai.abBayes.bayesianRecommend")} "{selectedTest.winProbabilities.find(wp => wp.variantId === selectedTest.recommendedVariant)?.variantName}"，
+                          {t("ai.abBayes.winProbAbove95")}
                         </p>
                       </div>
                     ) : (
                       <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                          <span className="font-medium text-yellow-700 dark:text-yellow-400">尚未达到统计显著</span>
+                          <span className="font-medium text-yellow-700 dark:text-yellow-400">{t("ai.abBayes.notYetSignificant")}</span>
                         </div>
                         <p className="text-sm text-yellow-700 dark:text-yellow-400">
-                          当前数据不足以得出统计显著结论。建议继续收集数据，直到某个变体的胜出概率超过95%。
+                          {t("ai.abBayes.insufficientData")}
                         </p>
                       </div>
                     )}
@@ -376,7 +378,7 @@ export default function ABBayesianAnalysis() {
             <Card>
               <CardContent className="p-8 text-center text-muted-foreground">
                 <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>请从测试列表中选择一个测试查看详细分析</p>
+                <p>{t("ai.abBayes.selectTestPrompt")}</p>
               </CardContent>
             </Card>
           )}

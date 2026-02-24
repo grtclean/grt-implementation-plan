@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { CheckCircle2, Loader2, AlertCircle, Monitor } from "lucide-react";
 
 /**
@@ -8,6 +9,7 @@ import { CheckCircle2, Loader2, AlertCircle, Monitor } from "lucide-react";
  * URL: /kiosk/qr-confirm?s={sessionId}
  */
 export default function KioskQrConfirm() {
+  const { t } = useLanguage();
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get("s") || "";
 
@@ -74,12 +76,12 @@ export default function KioskQrConfirm() {
         setSuccess(true);
         setOperatorName(data.operatorName || trimmed);
       } else {
-        setError(data?.error || "验证失败，请重试");
+        setError(data?.error || t("manufacturing.kiosk.qr.verifyFailed"));
         setEmployeeId("");
         inputRef.current?.focus();
       }
     } catch {
-      setError("网络错误，请重试");
+      setError(t("manufacturing.kiosk.qr.networkError"));
     } finally {
       setLoading(false);
     }
@@ -93,8 +95,8 @@ export default function KioskQrConfirm() {
           <div className="w-16 h-16 mx-auto bg-red-500/10 rounded-full flex items-center justify-center">
             <AlertCircle className="w-8 h-8 text-red-400" />
           </div>
-          <h1 className="text-xl font-bold text-red-400">二维码已失效</h1>
-          <p className="text-sm text-gray-400">请返回工位终端重新生成二维码</p>
+          <h1 className="text-xl font-bold text-red-400">{t("manufacturing.kiosk.qr.expired")}</h1>
+          <p className="text-sm text-gray-400">{t("manufacturing.kiosk.qr.regenerate")}</p>
         </div>
       </MobileShell>
     );
@@ -119,9 +121,9 @@ export default function KioskQrConfirm() {
           <div className="w-20 h-20 mx-auto bg-green-500/10 rounded-full flex items-center justify-center">
             <CheckCircle2 className="w-10 h-10 text-green-400" />
           </div>
-          <h1 className="text-xl font-bold text-green-400">登录成功</h1>
+          <h1 className="text-xl font-bold text-green-400">{t("manufacturing.kiosk.qr.loginSuccess")}</h1>
           <p className="text-lg font-medium text-white">{operatorName}</p>
-          <p className="text-sm text-gray-400">请返回工位终端继续操作</p>
+          <p className="text-sm text-gray-400">{t("manufacturing.kiosk.qr.returnToTerminal")}</p>
         </div>
       </MobileShell>
     );
@@ -136,10 +138,10 @@ export default function KioskQrConfirm() {
           <div className="w-14 h-14 mx-auto bg-blue-500/10 rounded-full flex items-center justify-center">
             <Monitor className="w-7 h-7 text-blue-400" />
           </div>
-          <h1 className="text-xl font-bold text-white">工位登录确认</h1>
+          <h1 className="text-xl font-bold text-white">{t("manufacturing.kiosk.qr.loginConfirm")}</h1>
           {stationId && (
             <p className="text-sm text-gray-400">
-              登录到工位 <span className="font-mono text-blue-400">{stationId}</span>
+              {t("manufacturing.kiosk.qr.loginToStation")} <span className="font-mono text-blue-400">{stationId}</span>
             </p>
           )}
         </div>
@@ -147,7 +149,7 @@ export default function KioskQrConfirm() {
         {/* Form */}
         <form onSubmit={handleConfirm} className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-2">请输入您的工号</label>
+            <label className="block text-sm text-gray-400 mb-2">{t("manufacturing.kiosk.qr.enterEmployeeId")}</label>
             <input
               ref={inputRef}
               type="text"
@@ -156,7 +158,7 @@ export default function KioskQrConfirm() {
                 setEmployeeId(e.target.value);
                 setError(null);
               }}
-              placeholder="工号 / 姓名"
+              placeholder={t("manufacturing.kiosk.qr.idPlaceholder")}
               className="w-full h-14 text-xl text-center font-mono bg-gray-800 border-2 border-gray-600 rounded-xl px-4 text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder:text-gray-500"
               autoComplete="off"
               autoCorrect="off"
@@ -181,10 +183,10 @@ export default function KioskQrConfirm() {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                验证中...
+                {t("manufacturing.kiosk.qr.verifying")}
               </>
             ) : (
-              "确认登录"
+              t("manufacturing.kiosk.qr.confirmLogin")
             )}
           </button>
         </form>

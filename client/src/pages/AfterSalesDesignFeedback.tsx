@@ -3,6 +3,7 @@
  * 售后故障模式识别 · 设计改进建议 · 不改进成本评估
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ interface DesignFeedbackResult {
 }
 
 export default function AfterSalesDesignFeedback() {
+  const { t, tpl } = useLanguage();
   const [period, setPeriod] = useState("");
   const [faultRecords, setFaultRecords] = useState("");
   const [equipmentModels, setEquipmentModels] = useState("");
@@ -56,11 +58,11 @@ export default function AfterSalesDesignFeedback() {
   const priorityBadge = (priority: string) => {
     switch (priority) {
       case "high":
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">高</Badge>;
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{t("afterSales.designFeedback.priorityHigh")}</Badge>;
       case "medium":
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">中</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{t("afterSales.designFeedback.priorityMedium")}</Badge>;
       case "low":
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">低</Badge>;
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">{t("afterSales.designFeedback.priorityLow")}</Badge>;
       default:
         return <Badge variant="outline">{priority}</Badge>;
     }
@@ -70,12 +72,12 @@ export default function AfterSalesDesignFeedback() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={GitBranch}
-          title="售后→研发设计反馈"
-          description="售后故障模式识别 · 设计改进建议 · 不改进成本评估"
+          title={t("afterSales.designFeedback.title")}
+          description={t("afterSales.designFeedback.desc")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI分析
+              {t("afterSales.designFeedback.aiBadge")}
             </Badge>
           }
         />
@@ -85,7 +87,7 @@ export default function AfterSalesDesignFeedback() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <GitBranch className="h-5 w-5 text-primary" />
-              故障分析参数
+              {t("afterSales.designFeedback.paramsTitle")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

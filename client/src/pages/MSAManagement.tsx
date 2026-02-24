@@ -17,31 +17,32 @@ import {
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Ruler, Plus, Search, BarChart3, CheckCircle2, AlertTriangle,
   XCircle, Calculator, Loader2, ArrowLeft, Activity,
 } from "lucide-react";
 
-const STUDY_TYPE_LABELS: Record<string, string> = {
+const STUDY_TYPE_KEYS: Record<string, string> = {
   gage_rr: "GR&R",
-  bias: "偏倚",
-  linearity: "线性",
-  stability: "稳定性",
-  attribute_agreement: "属性一致性",
+  bias: "quality.msa.studyTypeBias",
+  linearity: "quality.msa.studyTypeLinearity",
+  stability: "quality.msa.studyTypeStability",
+  attribute_agreement: "quality.msa.studyTypeAttribute",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  planned: "已计划",
-  in_progress: "进行中",
-  completed: "已完成",
-  failed: "不通过",
-  archived: "已归档",
+const STATUS_KEYS: Record<string, string> = {
+  planned: "quality.msa.statusPlanned",
+  in_progress: "quality.msa.statusInProgress",
+  completed: "quality.msa.statusCompleted",
+  failed: "quality.msa.statusFailed",
+  archived: "quality.msa.statusArchived",
 };
 
-const CONCLUSION_CFG: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
-  acceptable: { label: "可接受", color: "text-green-500 bg-green-500/10 border-green-500/30", icon: CheckCircle2 },
-  marginal: { label: "临界", color: "text-amber-500 bg-amber-500/10 border-amber-500/30", icon: AlertTriangle },
-  unacceptable: { label: "不可接受", color: "text-red-500 bg-red-500/10 border-red-500/30", icon: XCircle },
+const CONCLUSION_KEYS: Record<string, { key: string; color: string; icon: typeof CheckCircle2 }> = {
+  acceptable: { key: "quality.msa.conclusionAcceptable", color: "text-green-500 bg-green-500/10 border-green-500/30", icon: CheckCircle2 },
+  marginal: { key: "quality.msa.conclusionMarginal", color: "text-amber-500 bg-amber-500/10 border-amber-500/30", icon: AlertTriangle },
+  unacceptable: { key: "quality.msa.conclusionUnacceptable", color: "text-red-500 bg-red-500/10 border-red-500/30", icon: XCircle },
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -53,13 +54,14 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 function ConclusionBadge({ conclusion }: { conclusion: string | null }) {
-  if (!conclusion) return <Badge variant="outline" className="text-xs">待分析</Badge>;
-  const cfg = CONCLUSION_CFG[conclusion];
+  const { t } = useLanguage();
+  if (!conclusion) return <Badge variant="outline" className="text-xs">{t("quality.msa.pendingAnalysis")}</Badge>;
+  const cfg = CONCLUSION_KEYS[conclusion];
   if (!cfg) return <Badge variant="outline" className="text-xs">{conclusion}</Badge>;
   const Icon = cfg.icon;
   return (
     <Badge variant="outline" className={`text-xs ${cfg.color}`}>
-      <Icon className="w-3 h-3 mr-1" />{cfg.label}
+      <Icon className="w-3 h-3 mr-1" />{t(cfg.key)}
     </Badge>
   );
 }
@@ -72,6 +74,7 @@ function GrrDisplay({ value }: { value: string | null }) {
 }
 
 export default function MSAManagement() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -98,13 +101,13 @@ export default function MSAManagement() {
 
   const createMutation = trpc.msa.create.useMutation({
     onSuccess: () => {
-      toast.success("MSA研究已创建");
+      toast.success(t("quality.msa.createSuccess"));
       setCreateOpen(false);
       resetForm();
       utils.msa.list.invalidate();
       utils.msa.getStats.invalidate();
     },
-    onError: (e) => toast.error("创建失败: " + e.message),
+    onError: (e) => toast.error(e.message),
   });
 
   const calcMutation = trpc.msa.calculateGRR.useMutation({
@@ -118,7 +121,7 @@ export default function MSAManagement() {
         toast.error(res.message);
       }
     },
-    onError: (e) => toast.error("计算失败: " + e.message),
+    onError: (e) => toast.error(e.message),
   });
 
   const resetForm = () => {
@@ -137,7 +140,7 @@ export default function MSAManagement() {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formGaugeName.trim()) {
-      toast.error("量具名称为必填项");
+      toast.error(t("quality.msa.gageNameRequired"));
       return;
     }
     createMutation.mutate({
@@ -152,6 +155,11 @@ export default function MSAManagement() {
       numParts: parseInt(formParts) || 10,
       numTrials: parseInt(formTrials) || 3,
     });
+  };
+
+  const studyTypeLabel = (key: string) => {
+    const k = STUDY_TYPE_KEYS[key];
+    return k?.startsWith("quality.") ? t(k) : k ?? key;
   };
 
   const items = (listData?.items ?? []).filter((s) => {
@@ -171,11 +179,11 @@ export default function MSAManagement() {
       <div className="space-y-6">
         <PageHeader
           icon={BarChart3}
-          title="GR&R结果"
-          description={`${detail.studyCode} · ${STUDY_TYPE_LABELS[detail.studyType] ?? detail.studyType}`}
+          title={t("quality.msa.grrResults")}
+          description={`${detail.studyCode} · ${studyTypeLabel(detail.studyType)}`}
           actions={
             <Button variant="outline" onClick={() => setSelectedId(null)}>
-              <ArrowLeft className="h-4 w-4 mr-2" />返回列表
+              <ArrowLeft className="h-4 w-4 mr-2" />{t("quality.msa.backToList")}
             </Button>
           }
         />
@@ -195,12 +203,12 @@ export default function MSAManagement() {
               <p className={`text-3xl font-bold font-mono ${(detail.ndc ?? 0) >= 5 ? "text-green-500" : "text-red-500"}`}>
                 {detail.ndc ?? "--"}
               </p>
-              <p className="text-xs text-muted-foreground">{">=5 可接受"}</p>
+              <p className="text-xs text-muted-foreground">{t("quality.msa.ndcAcceptable")}</p>
             </CardContent>
           </Card>
           <Card className="bg-card/50">
             <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground mb-1">重复性</p>
+              <p className="text-sm text-muted-foreground mb-1">{t("quality.msa.repeatability")}</p>
               <p className="text-2xl font-mono font-semibold">
                 {detail.repeatability ? parseFloat(detail.repeatability).toFixed(4) : "--"}
               </p>
@@ -208,7 +216,7 @@ export default function MSAManagement() {
           </Card>
           <Card className="bg-card/50">
             <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground mb-1">再现性</p>
+              <p className="text-sm text-muted-foreground mb-1">{t("quality.msa.reproducibility")}</p>
               <p className="text-2xl font-mono font-semibold">
                 {detail.reproducibility ? parseFloat(detail.reproducibility).toFixed(4) : "--"}
               </p>
@@ -218,27 +226,27 @@ export default function MSAManagement() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">研究信息</CardTitle>
+            <CardTitle className="text-base">{t("quality.msa.studyInfo")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-              <div><span className="text-muted-foreground">量具：</span>{detail.gaugeName}</div>
-              {detail.gaugeId && <div><span className="text-muted-foreground">量具编号：</span>{detail.gaugeId}</div>}
-              {detail.partName && <div><span className="text-muted-foreground">零件：</span>{detail.partName}</div>}
-              {detail.characteristicName && <div><span className="text-muted-foreground">特性：</span>{detail.characteristicName}</div>}
-              {detail.specification && <div><span className="text-muted-foreground">规格：</span>{detail.specification}</div>}
-              {detail.tolerance && <div><span className="text-muted-foreground">公差：</span>{detail.tolerance}</div>}
-              <div><span className="text-muted-foreground">操作员：</span>{detail.numOperators}</div>
-              <div><span className="text-muted-foreground">零件数：</span>{detail.numParts}</div>
-              <div><span className="text-muted-foreground">重复次数：</span>{detail.numTrials}</div>
+              <div><span className="text-muted-foreground">{t("quality.msa.gage")}:</span> {detail.gaugeName}</div>
+              {detail.gaugeId && <div><span className="text-muted-foreground">{t("quality.msa.gageId")}:</span> {detail.gaugeId}</div>}
+              {detail.partName && <div><span className="text-muted-foreground">{t("quality.msa.part")}:</span> {detail.partName}</div>}
+              {detail.characteristicName && <div><span className="text-muted-foreground">{t("quality.msa.characteristic")}:</span> {detail.characteristicName}</div>}
+              {detail.specification && <div><span className="text-muted-foreground">{t("quality.msa.specification")}:</span> {detail.specification}</div>}
+              {detail.tolerance && <div><span className="text-muted-foreground">{t("quality.msa.tolerance")}:</span> {detail.tolerance}</div>}
+              <div><span className="text-muted-foreground">{t("quality.msa.operators")}:</span> {detail.numOperators}</div>
+              <div><span className="text-muted-foreground">{t("quality.msa.parts")}:</span> {detail.numParts}</div>
+              <div><span className="text-muted-foreground">{t("quality.msa.trials")}:</span> {detail.numTrials}</div>
             </div>
 
             <div className="flex items-center gap-3 pt-2 border-t">
-              <span className="text-sm text-muted-foreground">结论：</span>
+              <span className="text-sm text-muted-foreground">{t("quality.msa.conclusion")}:</span>
               <ConclusionBadge conclusion={detail.conclusion} />
               {grr !== null && (
                 <span className="text-xs text-muted-foreground ml-auto">
-                  {"<10% 可接受 | 10-30% 临界 | >30% 不可接受"}
+                  {t("quality.msa.grrCriteria")}
                 </span>
               )}
             </div>
@@ -253,10 +261,10 @@ export default function MSAManagement() {
                 ) : (
                   <Calculator className="h-4 w-4 mr-2" />
                 )}
-                计算GR&R
+                {t("quality.msa.calculateGRR")}
               </Button>
               <span className="text-xs text-muted-foreground">
-                需先录入测量数据，共 {detail.measurements?.length ?? 0} 条
+                {t("quality.msa.measurementCount")}: {detail.measurements?.length ?? 0}
               </span>
             </div>
           </CardContent>
@@ -269,33 +277,33 @@ export default function MSAManagement() {
     <div className="space-y-6">
       <PageHeader
         icon={Ruler}
-        title="MSA管理"
-        description="测量系统分析 · IATF 16949"
+        title={t("quality.msa.title")}
+        description={t("quality.msa.description")}
         actions={
           <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />新建MSA研究
+            <Plus className="h-4 w-4 mr-2" />{t("quality.msa.newStudy")}
           </Button>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Ruler} label="研究总数" value={stats?.total ?? 0} />
-        <StatCard icon={BarChart3} label="GR&R研究" value={stats?.byType?.gage_rr ?? 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={CheckCircle2} label="可接受" value={stats?.byConclusion?.acceptable ?? 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={AlertTriangle} label="不可接受" value={stats?.byConclusion?.unacceptable ?? 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Ruler} label={t("quality.msa.totalStudies")} value={stats?.total ?? 0} />
+        <StatCard icon={BarChart3} label={t("quality.msa.grrStudies")} value={stats?.byType?.gage_rr ?? 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label={t("quality.msa.acceptable")} value={stats?.byConclusion?.acceptable ?? 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label={t("quality.msa.unacceptable")} value={stats?.byConclusion?.unacceptable ?? 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>
-              MSA研究列表
-              {listData && <span className="text-sm font-normal text-muted-foreground ml-2">共 {listData.total} 条</span>}
+              {t("quality.msa.studyList")}
+              {listData && <span className="text-sm font-normal text-muted-foreground ml-2">{listData.total}</span>}
             </CardTitle>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="搜索编号/量具/零件..."
+                placeholder={t("quality.msa.searchStudies")}
                 className="pl-9 w-64"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -311,7 +319,7 @@ export default function MSAManagement() {
           ) : items.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Ruler className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>暂无MSA研究</p>
+              <p>{t("quality.msa.noStudies")}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -325,15 +333,15 @@ export default function MSAManagement() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono text-sm text-muted-foreground">{s.studyCode}</span>
-                      <Badge variant="secondary">{STUDY_TYPE_LABELS[s.studyType] ?? s.studyType}</Badge>
+                      <Badge variant="secondary">{studyTypeLabel(s.studyType)}</Badge>
                       <Badge variant="outline" className={`text-xs ${STATUS_COLORS[s.status] ?? ""}`}>
-                        {STATUS_LABELS[s.status] ?? s.status}
+                        {t(STATUS_KEYS[s.status] ?? s.status)}
                       </Badge>
                       <ConclusionBadge conclusion={s.conclusion} />
                     </div>
                     <p className="font-medium mt-1 truncate">{s.gaugeName}{s.gaugeId ? ` (${s.gaugeId})` : ""}</p>
                     <p className="text-sm text-muted-foreground truncate">
-                      {[s.partName, s.characteristicName, s.specification].filter(Boolean).join(" · ") || "未填写零件信息"}
+                      {[s.partName, s.characteristicName, s.specification].filter(Boolean).join(" · ") || t("quality.msa.noPartInfo")}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
@@ -353,69 +361,69 @@ export default function MSAManagement() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>新建MSA研究</DialogTitle>
+            <DialogTitle>{t("quality.msa.newStudy")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="space-y-2">
-              <Label>研究类型</Label>
+              <Label>{t("quality.msa.studyType")}</Label>
               <Select value={formType} onValueChange={setFormType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(STUDY_TYPE_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  {Object.entries(STUDY_TYPE_KEYS).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.startsWith("quality.") ? t(v) : v}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>量具名称 *</Label>
-                <Input value={formGaugeName} onChange={(e) => setFormGaugeName(e.target.value)} placeholder="卡尺 / 千分尺..." />
+                <Label>{t("quality.msa.gageName")} *</Label>
+                <Input value={formGaugeName} onChange={(e) => setFormGaugeName(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>量具编号</Label>
-                <Input value={formGaugeId} onChange={(e) => setFormGaugeId(e.target.value)} placeholder="可选" />
+                <Label>{t("quality.msa.gageId")}</Label>
+                <Input value={formGaugeId} onChange={(e) => setFormGaugeId(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>零件名称</Label>
+                <Label>{t("quality.msa.partName")}</Label>
                 <Input value={formPartName} onChange={(e) => setFormPartName(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>特性名称</Label>
+                <Label>{t("quality.msa.characteristicName")}</Label>
                 <Input value={formCharacteristic} onChange={(e) => setFormCharacteristic(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>规格</Label>
+                <Label>{t("quality.msa.specification")}</Label>
                 <Input value={formSpec} onChange={(e) => setFormSpec(e.target.value)} placeholder="10.00 +/- 0.05" />
               </div>
               <div className="space-y-2">
-                <Label>公差</Label>
+                <Label>{t("quality.msa.tolerance")}</Label>
                 <Input value={formTolerance} onChange={(e) => setFormTolerance(e.target.value)} placeholder="0.10" />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>操作员数</Label>
+                <Label>{t("quality.msa.operatorCount")}</Label>
                 <Input type="number" min={1} value={formOperators} onChange={(e) => setFormOperators(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>零件数</Label>
+                <Label>{t("quality.msa.partCount")}</Label>
                 <Input type="number" min={1} value={formParts} onChange={(e) => setFormParts(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>重复次数</Label>
+                <Label>{t("quality.msa.trialCount")}</Label>
                 <Input type="number" min={1} value={formTrials} onChange={(e) => setFormTrials(e.target.value)} />
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t("quality.common.cancel")}</Button>
               <Button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                创建
+                {t("quality.common.create")}
               </Button>
             </DialogFooter>
           </form>

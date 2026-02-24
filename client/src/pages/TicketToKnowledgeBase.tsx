@@ -3,6 +3,7 @@
  * 一键将已解决工单转化为知识库文章 · 自动提取关键字和标签
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ interface KBResult {
 }
 
 export default function TicketToKnowledgeBase() {
+  const { t } = useLanguage();
   const [ticketId, setTicketId] = useState("");
   const [ticketTitle, setTicketTitle] = useState("");
   const [faultDescription, setFaultDescription] = useState("");
@@ -74,12 +76,12 @@ export default function TicketToKnowledgeBase() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={BookOpen}
-          title="工单→知识库转化"
-          description="一键将已解决工单转化为知识库文章 · 自动提取关键字和标签"
+          title={t("afterSales.kb.title")}
+          description={t("afterSales.kb.desc")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI转化
+              {t("afterSales.kb.aiConvert")}
             </Badge>
           }
         />
@@ -89,34 +91,34 @@ export default function TicketToKnowledgeBase() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <BookOpen className="h-5 w-5 text-primary" />
-              工单信息
+              {t("afterSales.kb.ticketInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">工单编号 *</label>
-                <Input placeholder="如: TK-2026-0123" value={ticketId} onChange={(e) => setTicketId(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("afterSales.kb.ticketId")}</label>
+                <Input placeholder={t("afterSales.kb.ticketIdPlaceholder")} value={ticketId} onChange={(e) => setTicketId(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">工单标题 *</label>
-                <Input placeholder="如: 碳氢清洗机真空度不达标" value={ticketTitle} onChange={(e) => setTicketTitle(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("afterSales.kb.ticketTitle")}</label>
+                <Input placeholder={t("afterSales.kb.ticketTitlePlaceholder")} value={ticketTitle} onChange={(e) => setTicketTitle(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">故障描述 *</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="如: 设备启动后真空泵运转正常，但真空度始终无法达到-0.095MPa的设定值，最高只能达到-0.06MPa" value={faultDescription} onChange={(e) => setFaultDescription(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("afterSales.kb.faultDesc")}</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder={t("afterSales.kb.faultDescPlaceholder")} value={faultDescription} onChange={(e) => setFaultDescription(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">解决方案 *</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="如: 检查发现真空管路密封圈老化，更换密封圈后真空度恢复正常" value={resolution} onChange={(e) => setResolution(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("afterSales.kb.resolution")}</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder={t("afterSales.kb.resolutionPlaceholder")} value={resolution} onChange={(e) => setResolution(e.target.value)} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">设备型号 *</label>
+                <label className="text-sm text-muted-foreground">{t("afterSales.kb.equipmentModel")}</label>
                 <Select value={equipmentModel} onValueChange={(v) => setEquipmentModel(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择设备型号" />
+                    <SelectValue placeholder={t("afterSales.kb.selectModel")} />
                   </SelectTrigger>
                   <SelectContent>
                     {EQUIPMENT_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
@@ -124,14 +126,14 @@ export default function TicketToKnowledgeBase() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">处理人（可选）</label>
-                <Input placeholder="如: 张工" value={resolvedBy} onChange={(e) => setResolvedBy(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("afterSales.kb.resolvedBy")}</label>
+                <Input placeholder={t("afterSales.kb.resolvedByPlaceholder")} value={resolvedBy} onChange={(e) => setResolvedBy(e.target.value)} />
               </div>
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!ticketId.trim() || !ticketTitle.trim() || !faultDescription.trim() || !resolution.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI转化
+                {t("afterSales.kb.aiConvert")}
               </Button>
             </div>
           </CardContent>
@@ -146,8 +148,8 @@ export default function TicketToKnowledgeBase() {
                 <h2 className="text-xl font-bold mb-2">{result.articleTitle}</h2>
                 <p className="text-sm text-muted-foreground mb-4">{result.summary}</p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge className={difficultyColor(result.difficulty)}>难度: {result.difficulty}</Badge>
-                  <Badge variant="outline">预计耗时: {result.estimatedTime}</Badge>
+                  <Badge className={difficultyColor(result.difficulty)}>{t("afterSales.kb.difficulty")}: {result.difficulty}</Badge>
+                  <Badge variant="outline">{t("afterSales.kb.estimatedTime")}: {result.estimatedTime}</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -158,7 +160,7 @@ export default function TicketToKnowledgeBase() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    故障症状
+                    {t("afterSales.kb.symptoms")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -179,7 +181,7 @@ export default function TicketToKnowledgeBase() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Lightbulb className="h-5 w-5 text-orange-400" />
-                  根本原因
+                  {t("afterSales.kb.rootCause")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -195,7 +197,7 @@ export default function TicketToKnowledgeBase() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Wrench className="h-5 w-5 text-primary" />
-                    解决步骤
+                    {t("afterSales.kb.solutionSteps")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -208,7 +210,7 @@ export default function TicketToKnowledgeBase() {
                         <div className="flex-1 space-y-1">
                           <p className="font-medium text-sm">{step.description}</p>
                           {step.notes && (
-                            <p className="text-xs text-muted-foreground">备注: {step.notes}</p>
+                            <p className="text-xs text-muted-foreground">{t("afterSales.kb.notes")}: {step.notes}</p>
                           )}
                         </div>
                       </div>
@@ -224,7 +226,7 @@ export default function TicketToKnowledgeBase() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Shield className="h-5 w-5 text-blue-400" />
-                    预防建议
+                    {t("afterSales.kb.preventionTips")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -245,7 +247,7 @@ export default function TicketToKnowledgeBase() {
               <CardContent className="pt-6">
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">标签</p>
+                    <p className="text-sm text-muted-foreground mb-2">{t("afterSales.kb.tags")}</p>
                     <div className="flex flex-wrap gap-2">
                       {result.tags.map((tag, idx) => (
                         <Badge key={idx} variant="secondary">{tag}</Badge>
@@ -253,7 +255,7 @@ export default function TicketToKnowledgeBase() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">适用设备</p>
+                    <p className="text-sm text-muted-foreground mb-2">{t("afterSales.kb.applicableModels")}</p>
                     <div className="flex flex-wrap gap-2">
                       {result.applicableModels.map((model, idx) => (
                         <Badge key={idx} variant="outline">{model}</Badge>
@@ -270,7 +272,7 @@ export default function TicketToKnowledgeBase() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("afterSales.kb.aiRecommendations")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

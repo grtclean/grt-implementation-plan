@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // 招聘阶段映射
 const stageLabels: Record<string, { label: string; color: string }> = {
@@ -42,6 +43,7 @@ const phaseLabels: Record<string, { label: string; days: string }> = {
 };
 
 export default function HRLifecycle() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("dashboard");
   
   // 获取统计数据
@@ -73,24 +75,24 @@ export default function HRLifecycle() {
       <div className="space-y-6">
         <PageHeader
           icon={Users}
-          title="HR链路管理"
-          description="试点B：招聘入职→30/60/90考核→转正评估全流程管理"
+          title={t("hr.lifecycle.title")}
+          description={t("hr.lifecycle.description")}
           actions={
             <Button
               onClick={() => initProfileMutation.mutate()}
               disabled={initProfileMutation.isPending}
             >
               <UserPlus className="w-4 h-4 mr-2" />
-              初始化岗位画像
+              {t("hr.lifecycle.initProfile")}
             </Button>
           }
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={Users} label="候选人总数" value={stats?.totalCandidates || 0} subtitle="招聘漏斗中的候选人" />
-          <StatCard icon={ClipboardCheck} label="活跃入职计划" value={stats?.activeOnboardingPlans || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" subtitle="正在进行的入职培训" />
-          <StatCard icon={Award} label="待审批转正" value={stats?.pendingProbationReviews || 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" subtitle="等待HR审批" />
-          <StatCard icon={Target} label="平均转正评分" value={`${stats?.avgProbationScore || 0}分`} iconColor="text-green-500" iconBg="bg-green-500/10" subtitle="综合能力评估" />
+          <StatCard icon={Users} label={t("hr.lifecycle.totalCandidates")} value={stats?.totalCandidates || 0} subtitle={t("hr.lifecycle.candidatesInFunnel")} />
+          <StatCard icon={ClipboardCheck} label={t("hr.lifecycle.activeOnboarding")} value={stats?.activeOnboardingPlans || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" subtitle={t("hr.lifecycle.ongoingTraining")} />
+          <StatCard icon={Award} label={t("hr.lifecycle.pendingProbation")} value={stats?.pendingProbationReviews || 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" subtitle={t("hr.lifecycle.awaitingHR")} />
+          <StatCard icon={Target} label={t("hr.lifecycle.avgProbationScore")} value={`${stats?.avgProbationScore || 0}${t("hr.lifecycle.points")}`} iconColor="text-green-500" iconBg="bg-green-500/10" subtitle={t("hr.lifecycle.comprehensiveAssessment")} />
         </div>
 
         {/* 主要内容区域 */}
@@ -98,19 +100,19 @@ export default function HRLifecycle() {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="dashboard">
               <Target className="w-4 h-4 mr-2" />
-              总览
+              {t("hr.lifecycle.tab.overview")}
             </TabsTrigger>
             <TabsTrigger value="recruitment">
               <UserPlus className="w-4 h-4 mr-2" />
-              招聘管理
+              {t("hr.lifecycle.tab.recruitment")}
             </TabsTrigger>
             <TabsTrigger value="onboarding">
               <GraduationCap className="w-4 h-4 mr-2" />
-              入职培训
+              {t("hr.lifecycle.tab.onboarding")}
             </TabsTrigger>
             <TabsTrigger value="probation">
               <Award className="w-4 h-4 mr-2" />
-              转正评估
+              {t("hr.lifecycle.tab.probation")}
             </TabsTrigger>
           </TabsList>
 
@@ -122,13 +124,13 @@ export default function HRLifecycle() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Briefcase className="w-5 h-5" />
-                    岗位画像
+                    {t("hr.lifecycle.jobProfile")}
                   </CardTitle>
-                  <CardDescription>目标岗位：销售与项目工程师</CardDescription>
+                  <CardDescription>{t("hr.lifecycle.targetPosition")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {profilesLoading ? (
-                    <div className="text-center py-4 text-muted-foreground">加载中...</div>
+                    <div className="text-center py-4 text-muted-foreground">{t("hr.lifecycle.loading")}</div>
                   ) : jobProfiles && jobProfiles.length > 0 ? (
                     <div className="space-y-3">
                       {jobProfiles.map((profile: any) => (
@@ -141,7 +143,7 @@ export default function HRLifecycle() {
                               </div>
                             </div>
                             <Badge variant={profile.is_active ? "default" : "secondary"}>
-                              {profile.is_active ? '启用' : '停用'}
+                              {profile.is_active ? t("hr.lifecycle.enabled") : t("hr.lifecycle.disabled")}
                             </Badge>
                           </div>
                         </div>
@@ -149,7 +151,7 @@ export default function HRLifecycle() {
                     </div>
                   ) : (
                     <div className="text-center py-4 text-muted-foreground">
-                      暂无岗位画像，请点击"初始化岗位画像"按钮
+                      {t("hr.lifecycle.noProfileData")}
                     </div>
                   )}
                 </CardContent>
@@ -160,9 +162,9 @@ export default function HRLifecycle() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5" />
-                    招聘漏斗
+                    {t("hr.lifecycle.recruitmentFunnel")}
                   </CardTitle>
-                  <CardDescription>各阶段候选人分布</CardDescription>
+                  <CardDescription>{t("hr.lifecycle.candidateDistribution")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {stats?.candidatesByStage && Object.keys(stats.candidatesByStage).length > 0 ? (
@@ -179,7 +181,7 @@ export default function HRLifecycle() {
                     </div>
                   ) : (
                     <div className="text-center py-4 text-muted-foreground">
-                      暂无候选人数据
+                      {t("hr.lifecycle.noCandidateData")}
                     </div>
                   )}
                 </CardContent>
@@ -191,13 +193,13 @@ export default function HRLifecycle() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <GraduationCap className="w-5 h-5" />
-                  入职培训进度
+                  {t("hr.lifecycle.onboardingProgress")}
                 </CardTitle>
-                <CardDescription>30/60/90天入职计划执行情况</CardDescription>
+                <CardDescription>{t("hr.lifecycle.onboardingProgressDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {plansLoading ? (
-                  <div className="text-center py-4 text-muted-foreground">加载中...</div>
+                  <div className="text-center py-4 text-muted-foreground">{t("hr.lifecycle.loading")}</div>
                 ) : onboardingPlans && onboardingPlans.length > 0 ? (
                   <div className="space-y-4">
                     {onboardingPlans.filter((p: any) => p.status === 'active').slice(0, 5).map((plan: any) => (
@@ -235,7 +237,7 @@ export default function HRLifecycle() {
                   </div>
                 ) : (
                   <div className="text-center py-4 text-muted-foreground">
-                    暂无活跃的入职计划
+                    {t("hr.lifecycle.noActivePlans")}
                   </div>
                 )}
               </CardContent>
@@ -246,12 +248,12 @@ export default function HRLifecycle() {
           <TabsContent value="recruitment" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>候选人列表</CardTitle>
-                <CardDescription>招聘漏斗中的所有候选人</CardDescription>
+                <CardTitle>{t("hr.lifecycle.candidateList")}</CardTitle>
+                <CardDescription>{t("hr.lifecycle.candidateListDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {candidatesLoading ? (
-                  <div className="text-center py-4 text-muted-foreground">加载中...</div>
+                  <div className="text-center py-4 text-muted-foreground">{t("hr.lifecycle.loading")}</div>
                 ) : candidates && candidates.length > 0 ? (
                   <div className="space-y-3">
                     {candidates.map((candidate: any) => (
@@ -281,8 +283,8 @@ export default function HRLifecycle() {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>暂无候选人</p>
-                    <p className="text-sm">添加候选人开始招聘流程</p>
+                    <p>{t("hr.lifecycle.noCandidates")}</p>
+                    <p className="text-sm">{t("hr.lifecycle.addCandidateHint")}</p>
                   </div>
                 )}
               </CardContent>
@@ -293,12 +295,12 @@ export default function HRLifecycle() {
           <TabsContent value="onboarding" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>入职计划列表</CardTitle>
-                <CardDescription>30/60/90天入职培训计划</CardDescription>
+                <CardTitle>{t("hr.lifecycle.onboardingPlanList")}</CardTitle>
+                <CardDescription>{t("hr.lifecycle.onboardingPlanListDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {plansLoading ? (
-                  <div className="text-center py-4 text-muted-foreground">加载中...</div>
+                  <div className="text-center py-4 text-muted-foreground">{t("hr.lifecycle.loading")}</div>
                 ) : onboardingPlans && onboardingPlans.length > 0 ? (
                   <div className="space-y-3">
                     {onboardingPlans.map((plan: any) => (
@@ -311,15 +313,15 @@ export default function HRLifecycle() {
                             <div>
                               <div className="font-medium">{plan.employee_name}</div>
                               <div className="text-sm text-muted-foreground">
-                                {plan.plan_code} · 入职日期: {plan.start_date}
+                                {plan.plan_code} · {t("hr.lifecycle.onboardingDate")}: {plan.start_date}
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant={plan.status === 'active' ? 'default' : 'secondary'}>
-                              {plan.status === 'active' ? '进行中' : 
-                               plan.status === 'completed' ? '已完成' : 
-                               plan.status === 'extended' ? '已延期' : '已终止'}
+                              {plan.status === 'active' ? t("hr.lifecycle.statusActive") :
+                               plan.status === 'completed' ? t("hr.lifecycle.statusCompleted") :
+                               plan.status === 'extended' ? t("hr.lifecycle.statusExtended") : t("hr.lifecycle.statusTerminated")}
                             </Badge>
                             <Badge variant="outline">
                               {phaseLabels[plan.current_phase]?.label}
@@ -331,19 +333,19 @@ export default function HRLifecycle() {
                             <div className="text-2xl font-bold text-primary">
                               {plan.phase_30_completion_rate || 0}%
                             </div>
-                            <div className="text-xs text-muted-foreground">30天完成率</div>
+                            <div className="text-xs text-muted-foreground">{t("hr.lifecycle.completion30")}</div>
                           </div>
                           <div className="text-center p-3 bg-muted/50 rounded-lg">
                             <div className="text-2xl font-bold text-primary">
                               {plan.phase_60_completion_rate || 0}%
                             </div>
-                            <div className="text-xs text-muted-foreground">60天完成率</div>
+                            <div className="text-xs text-muted-foreground">{t("hr.lifecycle.completion60")}</div>
                           </div>
                           <div className="text-center p-3 bg-muted/50 rounded-lg">
                             <div className="text-2xl font-bold text-primary">
                               {plan.phase_90_completion_rate || 0}%
                             </div>
-                            <div className="text-xs text-muted-foreground">90天完成率</div>
+                            <div className="text-xs text-muted-foreground">{t("hr.lifecycle.completion90")}</div>
                           </div>
                         </div>
                       </div>
@@ -352,8 +354,8 @@ export default function HRLifecycle() {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <ClipboardCheck className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>暂无入职计划</p>
-                    <p className="text-sm">候选人接受Offer后自动创建入职计划</p>
+                    <p>{t("hr.lifecycle.noOnboardingPlans")}</p>
+                    <p className="text-sm">{t("hr.lifecycle.onboardingPlanHint")}</p>
                   </div>
                 )}
               </CardContent>
@@ -364,12 +366,12 @@ export default function HRLifecycle() {
           <TabsContent value="probation" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>转正评估列表</CardTitle>
-                <CardDescription>90天入职期满后的转正评估</CardDescription>
+                <CardTitle>{t("hr.lifecycle.probationList")}</CardTitle>
+                <CardDescription>{t("hr.lifecycle.probationListDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {reviewsLoading ? (
-                  <div className="text-center py-4 text-muted-foreground">加载中...</div>
+                  <div className="text-center py-4 text-muted-foreground">{t("hr.lifecycle.loading")}</div>
                 ) : probationReviews && probationReviews.length > 0 ? (
                   <div className="space-y-3">
                     {probationReviews.map((review: any) => (
@@ -382,21 +384,21 @@ export default function HRLifecycle() {
                             <div>
                               <div className="font-medium">{review.employee_name}</div>
                               <div className="text-sm text-muted-foreground">
-                                {review.review_code} · 评估日期: {review.review_date}
+                                {review.review_code} · {t("hr.lifecycle.reviewDate")}: {review.review_date}
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="text-right">
-                              <div className="text-2xl font-bold">{review.overall_score}分</div>
-                              <div className="text-xs text-muted-foreground">综合评分</div>
+                              <div className="text-2xl font-bold">{review.overall_score}{t("hr.lifecycle.points")}</div>
+                              <div className="text-xs text-muted-foreground">{t("hr.lifecycle.overallScore")}</div>
                             </div>
                             <Badge variant={
                               review.result === 'pass' ? 'default' :
                               review.result === 'extend' ? 'secondary' : 'destructive'
                             }>
-                              {review.result === 'pass' ? '通过' :
-                               review.result === 'extend' ? '延期' : '不通过'}
+                              {review.result === 'pass' ? t("hr.lifecycle.resultPass") :
+                               review.result === 'extend' ? t("hr.lifecycle.resultExtend") : t("hr.lifecycle.resultFail")}
                             </Badge>
                             {review.hr_approval ? (
                               <CheckCircle2 className="w-5 h-5 text-green-500" />
@@ -411,8 +413,8 @@ export default function HRLifecycle() {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Award className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>暂无转正评估</p>
-                    <p className="text-sm">员工完成90天入职期后进入转正评估</p>
+                    <p>{t("hr.lifecycle.noProbationReviews")}</p>
+                    <p className="text-sm">{t("hr.lifecycle.probationReviewHint")}</p>
                   </div>
                 )}
               </CardContent>

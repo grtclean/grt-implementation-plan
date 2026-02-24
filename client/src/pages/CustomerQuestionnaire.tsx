@@ -17,13 +17,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { 
-  FileText, 
-  Building2, 
-  Package, 
-  Beaker, 
-  Settings2, 
-  Truck, 
+import {
+  FileText,
+  Building2,
+  Package,
+  Beaker,
+  Settings2,
+  Truck,
   DollarSign,
   Sparkles,
   Save,
@@ -31,36 +31,6 @@ import {
   ChevronRight,
   ChevronLeft
 } from "lucide-react";
-
-// 材料类型选项
-const MATERIAL_TYPES = [
-  { id: "STEEL", label: "钢材 (Steel)", labelEn: "Steel" },
-  { id: "ALUMINUM", label: "铝材 (Aluminum)", labelEn: "Aluminum" },
-  { id: "NON_FERROUS", label: "有色金属 (Non-ferrous)", labelEn: "Non-ferrous Metals" },
-  { id: "CASTING", label: "铸件 (Casting)", labelEn: "Casting" },
-  { id: "PLASTIC", label: "塑料 (Plastic)", labelEn: "Plastic" },
-  { id: "OTHER", label: "其他 (Other)", labelEn: "Other" },
-];
-
-// 污染类型选项
-const CONTAMINATION_TYPES = [
-  { id: "COOLANT", label: "冷却液 (Coolant)", labelEn: "Coolant" },
-  { id: "CHIPS", label: "切屑 (Chips)", labelEn: "Chips" },
-  { id: "BURRS", label: "毛刺 (Burrs)", labelEn: "Burrs" },
-  { id: "OIL", label: "油污 (Oil)", labelEn: "Oil" },
-  { id: "GREASE", label: "油脂 (Grease)", labelEn: "Grease" },
-  { id: "DUST", label: "灰尘 (Dust)", labelEn: "Dust" },
-  { id: "OTHER", label: "其他 (Other)", labelEn: "Other" },
-];
-
-// 质量控制方法
-const QC_METHODS = [
-  { id: "SPRAY_TEST", label: "喷淋测试 (Spray Test)", labelEn: "Spray Test" },
-  { id: "INK_TEST", label: "油墨测试 (Ink Test)", labelEn: "Ink Test" },
-  { id: "ULTRASONIC_TEST", label: "超声波测试 (Ultrasonic)", labelEn: "Ultrasonic Test" },
-  { id: "VISUAL", label: "目视检查 (Visual)", labelEn: "Visual Inspection" },
-  { id: "OTHER", label: "其他 (Other)", labelEn: "Other" },
-];
 
 export default function CustomerQuestionnaire() {
   const { t, language } = useLanguage();
@@ -122,6 +92,36 @@ export default function CustomerQuestionnaire() {
     additionalRequirements: "",
   });
 
+  // 材料类型选项
+  const MATERIAL_TYPES = [
+    { id: "STEEL", label: t("crm.quest.materialSteel") },
+    { id: "ALUMINUM", label: t("crm.quest.materialAluminum") },
+    { id: "NON_FERROUS", label: t("crm.quest.materialNonFerrous") },
+    { id: "CASTING", label: t("crm.quest.materialCasting") },
+    { id: "PLASTIC", label: t("crm.quest.materialPlastic") },
+    { id: "OTHER", label: t("crm.quest.materialOther") },
+  ];
+
+  // 污染类型选项
+  const CONTAMINATION_TYPES = [
+    { id: "COOLANT", label: t("crm.quest.contCoolant") },
+    { id: "CHIPS", label: t("crm.quest.contChips") },
+    { id: "BURRS", label: t("crm.quest.contBurrs") },
+    { id: "OIL", label: t("crm.quest.contOil") },
+    { id: "GREASE", label: t("crm.quest.contGrease") },
+    { id: "DUST", label: t("crm.quest.contDust") },
+    { id: "OTHER", label: t("crm.quest.contOther") },
+  ];
+
+  // 质量控制方法
+  const QC_METHODS = [
+    { id: "SPRAY_TEST", label: t("crm.quest.qcSprayTest") },
+    { id: "INK_TEST", label: t("crm.quest.qcInkTest") },
+    { id: "ULTRASONIC_TEST", label: t("crm.quest.qcUltrasonicTest") },
+    { id: "VISUAL", label: t("crm.quest.qcVisual") },
+    { id: "OTHER", label: t("crm.quest.qcOther") },
+  ];
+
   const totalSteps = 7;
   const progress = (currentStep / totalSteps) * 100;
 
@@ -132,24 +132,24 @@ export default function CustomerQuestionnaire() {
   const handleCheckboxChange = (field: string, value: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
-      [field]: checked 
+      [field]: checked
         ? [...(prev[field as keyof typeof prev] as string[]), value]
         : (prev[field as keyof typeof prev] as string[]).filter(v => v !== value)
     }));
   };
 
   const handleSaveDraft = () => {
-    toast.success("问卷草稿已保存");
+    toast.success(t("crm.quest.draftSaved"));
   };
 
   const handleSubmit = () => {
-    toast.success("问卷已提交，我们将尽快与您联系");
+    toast.success(t("crm.quest.submitted"));
   };
 
   const handleAIRecommend = () => {
-    toast.info("AI正在分析您的需求，生成方案推荐...");
+    toast.info(t("crm.quest.aiAnalyzing"));
     setTimeout(() => {
-      toast.success("AI方案推荐已生成，请查看推荐结果");
+      toast.success(t("crm.quest.aiRecommendReady"));
     }, 2000);
   };
 
@@ -160,25 +160,25 @@ export default function CustomerQuestionnaire() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="contactPerson">联系人 *</Label>
+                <Label htmlFor="contactPerson">{t("crm.quest.contactPerson")} *</Label>
                 <Input
                   id="contactPerson"
                   value={formData.contactPerson}
                   onChange={(e) => handleInputChange("contactPerson", e.target.value)}
-                  placeholder="请输入联系人姓名"
+                  placeholder={t("crm.quest.contactPersonPlaceholder")}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="company">公司名称 *</Label>
+                <Label htmlFor="company">{t("crm.quest.companyName")} *</Label>
                 <Input
                   id="company"
                   value={formData.company}
                   onChange={(e) => handleInputChange("company", e.target.value)}
-                  placeholder="请输入公司名称"
+                  placeholder={t("crm.quest.companyPlaceholder")}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">电子邮箱 *</Label>
+                <Label htmlFor="email">{t("crm.quest.email")} *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -188,7 +188,7 @@ export default function CustomerQuestionnaire() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">联系电话</Label>
+                <Label htmlFor="phone">{t("crm.quest.phone")}</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
@@ -197,26 +197,26 @@ export default function CustomerQuestionnaire() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="quoteType">询价类型 *</Label>
+                <Label htmlFor="quoteType">{t("crm.quest.quoteType")} *</Label>
                 <Select value={formData.quoteType} onValueChange={(v) => handleInputChange("quoteType", v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="请选择询价类型" />
+                    <SelectValue placeholder={t("crm.quest.selectQuoteType")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="NEW_PROJECT">新项目</SelectItem>
-                    <SelectItem value="REPLACEMENT">设备更换</SelectItem>
-                    <SelectItem value="UPGRADE">设备升级</SelectItem>
-                    <SelectItem value="CONSULTATION">技术咨询</SelectItem>
+                    <SelectItem value="NEW_PROJECT">{t("crm.quest.quoteNewProject")}</SelectItem>
+                    <SelectItem value="REPLACEMENT">{t("crm.quest.quoteReplacement")}</SelectItem>
+                    <SelectItem value="UPGRADE">{t("crm.quest.quoteUpgrade")}</SelectItem>
+                    <SelectItem value="CONSULTATION">{t("crm.quest.quoteConsultation")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="projectName">项目名称</Label>
+                <Label htmlFor="projectName">{t("crm.quest.projectName")}</Label>
                 <Input
                   id="projectName"
                   value={formData.projectName}
                   onChange={(e) => handleInputChange("projectName", e.target.value)}
-                  placeholder="请输入项目名称"
+                  placeholder={t("crm.quest.projectNamePlaceholder")}
                 />
               </div>
             </div>
@@ -227,38 +227,38 @@ export default function CustomerQuestionnaire() {
         return (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="partName">零件名称 *</Label>
+              <Label htmlFor="partName">{t("crm.quest.partName")} *</Label>
               <Input
                 id="partName"
                 value={formData.partName}
                 onChange={(e) => handleInputChange("partName", e.target.value)}
-                placeholder="请输入零件名称"
+                placeholder={t("crm.quest.partNamePlaceholder")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="partDescription">零件描述</Label>
+              <Label htmlFor="partDescription">{t("crm.quest.partDescription")}</Label>
               <Textarea
                 id="partDescription"
                 value={formData.partDescription}
                 onChange={(e) => handleInputChange("partDescription", e.target.value)}
-                placeholder="请描述零件的特征、用途等信息"
+                placeholder={t("crm.quest.partDescPlaceholder")}
                 rows={4}
               />
             </div>
             <div className="space-y-2">
-              <Label>材料类型 *</Label>
+              <Label>{t("crm.quest.materialType")} *</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {MATERIAL_TYPES.map((type) => (
                   <div key={type.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={`material-${type.id}`}
                       checked={formData.materialTypes.includes(type.id)}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         handleCheckboxChange("materialTypes", type.id, checked as boolean)
                       }
                     />
                     <Label htmlFor={`material-${type.id}`} className="text-sm">
-                      {language === "zh" ? type.label : type.labelEn}
+                      {type.label}
                     </Label>
                   </div>
                 ))}
@@ -268,7 +268,7 @@ export default function CustomerQuestionnaire() {
                   className="mt-2"
                   value={formData.materialOther}
                   onChange={(e) => handleInputChange("materialOther", e.target.value)}
-                  placeholder="请说明其他材料类型"
+                  placeholder={t("crm.quest.specifyOtherMaterial")}
                 />
               )}
             </div>
@@ -280,75 +280,35 @@ export default function CustomerQuestionnaire() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>重量范围 (kg)</Label>
+                <Label>{t("crm.quest.weightRange")} (kg)</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={formData.partWeightMin}
-                    onChange={(e) => handleInputChange("partWeightMin", e.target.value)}
-                    placeholder="最小"
-                  />
+                  <Input type="number" value={formData.partWeightMin} onChange={(e) => handleInputChange("partWeightMin", e.target.value)} placeholder={t("crm.quest.min")} />
                   <span>-</span>
-                  <Input
-                    type="number"
-                    value={formData.partWeightMax}
-                    onChange={(e) => handleInputChange("partWeightMax", e.target.value)}
-                    placeholder="最大"
-                  />
+                  <Input type="number" value={formData.partWeightMax} onChange={(e) => handleInputChange("partWeightMax", e.target.value)} placeholder={t("crm.quest.max")} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>长度范围 (mm)</Label>
+                <Label>{t("crm.quest.lengthRange")} (mm)</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={formData.partLengthMin}
-                    onChange={(e) => handleInputChange("partLengthMin", e.target.value)}
-                    placeholder="最小"
-                  />
+                  <Input type="number" value={formData.partLengthMin} onChange={(e) => handleInputChange("partLengthMin", e.target.value)} placeholder={t("crm.quest.min")} />
                   <span>-</span>
-                  <Input
-                    type="number"
-                    value={formData.partLengthMax}
-                    onChange={(e) => handleInputChange("partLengthMax", e.target.value)}
-                    placeholder="最大"
-                  />
+                  <Input type="number" value={formData.partLengthMax} onChange={(e) => handleInputChange("partLengthMax", e.target.value)} placeholder={t("crm.quest.max")} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>宽度范围 (mm)</Label>
+                <Label>{t("crm.quest.widthRange")} (mm)</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={formData.partWidthMin}
-                    onChange={(e) => handleInputChange("partWidthMin", e.target.value)}
-                    placeholder="最小"
-                  />
+                  <Input type="number" value={formData.partWidthMin} onChange={(e) => handleInputChange("partWidthMin", e.target.value)} placeholder={t("crm.quest.min")} />
                   <span>-</span>
-                  <Input
-                    type="number"
-                    value={formData.partWidthMax}
-                    onChange={(e) => handleInputChange("partWidthMax", e.target.value)}
-                    placeholder="最大"
-                  />
+                  <Input type="number" value={formData.partWidthMax} onChange={(e) => handleInputChange("partWidthMax", e.target.value)} placeholder={t("crm.quest.max")} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>高度范围 (mm)</Label>
+                <Label>{t("crm.quest.heightRange")} (mm)</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={formData.partHeightMin}
-                    onChange={(e) => handleInputChange("partHeightMin", e.target.value)}
-                    placeholder="最小"
-                  />
+                  <Input type="number" value={formData.partHeightMin} onChange={(e) => handleInputChange("partHeightMin", e.target.value)} placeholder={t("crm.quest.min")} />
                   <span>-</span>
-                  <Input
-                    type="number"
-                    value={formData.partHeightMax}
-                    onChange={(e) => handleInputChange("partHeightMax", e.target.value)}
-                    placeholder="最大"
-                  />
+                  <Input type="number" value={formData.partHeightMax} onChange={(e) => handleInputChange("partHeightMax", e.target.value)} placeholder={t("crm.quest.max")} />
                 </div>
               </div>
             </div>
@@ -359,34 +319,34 @@ export default function CustomerQuestionnaire() {
         return (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label>清洗介质类型 *</Label>
+              <Label>{t("crm.quest.cleaningMedium")} *</Label>
               <Select value={formData.cleaningProductType} onValueChange={(v) => handleInputChange("cleaningProductType", v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="请选择清洗介质" />
+                  <SelectValue placeholder={t("crm.quest.selectCleaningMedium")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="WATER_BASED">水基清洗剂</SelectItem>
-                  <SelectItem value="ACIDIC">酸性清洗剂</SelectItem>
-                  <SelectItem value="MODIFIED_ALCOHOL">改性醇</SelectItem>
-                  <SelectItem value="HYDROCARBON">碳氢化合物</SelectItem>
-                  <SelectItem value="OTHER">其他</SelectItem>
+                  <SelectItem value="WATER_BASED">{t("crm.quest.mediumWaterBased")}</SelectItem>
+                  <SelectItem value="ACIDIC">{t("crm.quest.mediumAcidic")}</SelectItem>
+                  <SelectItem value="MODIFIED_ALCOHOL">{t("crm.quest.mediumModifiedAlcohol")}</SelectItem>
+                  <SelectItem value="HYDROCARBON">{t("crm.quest.mediumHydrocarbon")}</SelectItem>
+                  <SelectItem value="OTHER">{t("crm.quest.mediumOther")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>污染类型 *</Label>
+              <Label>{t("crm.quest.contaminationType")} *</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {CONTAMINATION_TYPES.map((type) => (
                   <div key={type.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={`contamination-${type.id}`}
                       checked={formData.contaminationTypes.includes(type.id)}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         handleCheckboxChange("contaminationTypes", type.id, checked as boolean)
                       }
                     />
                     <Label htmlFor={`contamination-${type.id}`} className="text-sm">
-                      {language === "zh" ? type.label : type.labelEn}
+                      {type.label}
                     </Label>
                   </div>
                 ))}
@@ -400,61 +360,47 @@ export default function CustomerQuestionnaire() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>清洗前温度 (°C)</Label>
-                <Input
-                  type="number"
-                  value={formData.partTempBefore}
-                  onChange={(e) => handleInputChange("partTempBefore", e.target.value)}
-                  placeholder="例如: 25"
-                />
+                <Label>{t("crm.quest.tempBefore")} (°C)</Label>
+                <Input type="number" value={formData.partTempBefore} onChange={(e) => handleInputChange("partTempBefore", e.target.value)} placeholder={t("crm.quest.tempExample")} />
               </div>
               <div className="space-y-2">
-                <Label>清洗后温度 (°C)</Label>
-                <Input
-                  type="number"
-                  value={formData.partTempAfter}
-                  onChange={(e) => handleInputChange("partTempAfter", e.target.value)}
-                  placeholder="例如: 40"
-                />
+                <Label>{t("crm.quest.tempAfter")} (°C)</Label>
+                <Input type="number" value={formData.partTempAfter} onChange={(e) => handleInputChange("partTempAfter", e.target.value)} placeholder={t("crm.quest.tempAfterExample")} />
               </div>
               <div className="space-y-2">
-                <Label>干燥等级</Label>
+                <Label>{t("crm.quest.dryingLevel")}</Label>
                 <Select value={formData.dryingLevel} onValueChange={(v) => handleInputChange("dryingLevel", v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="请选择干燥等级" />
+                    <SelectValue placeholder={t("crm.quest.selectDryingLevel")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="LEVEL_0">Level 0 - 无要求</SelectItem>
-                    <SelectItem value="LEVEL_1">Level 1 - 表面干燥</SelectItem>
-                    <SelectItem value="LEVEL_2">Level 2 - 完全干燥</SelectItem>
-                    <SelectItem value="LEVEL_3">Level 3 - 深度干燥</SelectItem>
-                    <SelectItem value="LEVEL_4">Level 4 - 真空干燥</SelectItem>
+                    <SelectItem value="LEVEL_0">{t("crm.quest.dryLevel0")}</SelectItem>
+                    <SelectItem value="LEVEL_1">{t("crm.quest.dryLevel1")}</SelectItem>
+                    <SelectItem value="LEVEL_2">{t("crm.quest.dryLevel2")}</SelectItem>
+                    <SelectItem value="LEVEL_3">{t("crm.quest.dryLevel3")}</SelectItem>
+                    <SelectItem value="LEVEL_4">{t("crm.quest.dryLevel4")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>清洁度标准</Label>
-                <Input
-                  value={formData.cleanlinessStandard}
-                  onChange={(e) => handleInputChange("cleanlinessStandard", e.target.value)}
-                  placeholder="例如: VDA 19.1, ISO 16232"
-                />
+                <Label>{t("crm.quest.cleanlinessStandard")}</Label>
+                <Input value={formData.cleanlinessStandard} onChange={(e) => handleInputChange("cleanlinessStandard", e.target.value)} placeholder={t("crm.quest.cleanlinessPlaceholder")} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>质量控制方法</Label>
+              <Label>{t("crm.quest.qcMethods")}</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {QC_METHODS.map((method) => (
                   <div key={method.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={`qc-${method.id}`}
                       checked={formData.qualityControlMethods.includes(method.id)}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         handleCheckboxChange("qualityControlMethods", method.id, checked as boolean)
                       }
                     />
                     <Label htmlFor={`qc-${method.id}`} className="text-sm">
-                      {language === "zh" ? method.label : method.labelEn}
+                      {method.label}
                     </Label>
                   </div>
                 ))}
@@ -468,68 +414,48 @@ export default function CustomerQuestionnaire() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>日产量 (件/天)</Label>
-                <Input
-                  type="number"
-                  value={formData.dailyPartQuantity}
-                  onChange={(e) => handleInputChange("dailyPartQuantity", e.target.value)}
-                  placeholder="例如: 1000"
-                />
+                <Label>{t("crm.quest.dailyOutput")}</Label>
+                <Input type="number" value={formData.dailyPartQuantity} onChange={(e) => handleInputChange("dailyPartQuantity", e.target.value)} placeholder={t("crm.quest.dailyOutputExample")} />
               </div>
               <div className="space-y-2">
-                <Label>节拍时间 (秒/件)</Label>
-                <Input
-                  type="number"
-                  value={formData.cycleTimeSeconds}
-                  onChange={(e) => handleInputChange("cycleTimeSeconds", e.target.value)}
-                  placeholder="例如: 60"
-                />
+                <Label>{t("crm.quest.cycleTime")}</Label>
+                <Input type="number" value={formData.cycleTimeSeconds} onChange={(e) => handleInputChange("cycleTimeSeconds", e.target.value)} placeholder={t("crm.quest.cycleTimeExample")} />
               </div>
               <div className="space-y-2">
-                <Label>年产量</Label>
-                <Input
-                  type="number"
-                  value={formData.annualVolume}
-                  onChange={(e) => handleInputChange("annualVolume", e.target.value)}
-                  placeholder="例如: 250000"
-                />
+                <Label>{t("crm.quest.annualVolume")}</Label>
+                <Input type="number" value={formData.annualVolume} onChange={(e) => handleInputChange("annualVolume", e.target.value)} placeholder={t("crm.quest.annualVolumeExample")} />
               </div>
               <div className="space-y-2">
-                <Label>OEE目标 (%)</Label>
-                <Input
-                  type="number"
-                  value={formData.oeeTarget}
-                  onChange={(e) => handleInputChange("oeeTarget", e.target.value)}
-                  placeholder="例如: 85"
-                />
+                <Label>{t("crm.quest.oeeTarget")} (%)</Label>
+                <Input type="number" value={formData.oeeTarget} onChange={(e) => handleInputChange("oeeTarget", e.target.value)} placeholder={t("crm.quest.oeeExample")} />
               </div>
               <div className="space-y-2">
-                <Label>班次模式</Label>
+                <Label>{t("crm.quest.shiftPattern")}</Label>
                 <Select value={formData.shiftPattern} onValueChange={(v) => handleInputChange("shiftPattern", v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="请选择班次模式" />
+                    <SelectValue placeholder={t("crm.quest.selectShiftPattern")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ONE_SHIFT">单班制</SelectItem>
-                    <SelectItem value="TWO_SHIFT">两班制</SelectItem>
-                    <SelectItem value="THREE_SHIFT">三班制</SelectItem>
-                    <SelectItem value="CONTINUOUS">连续生产</SelectItem>
+                    <SelectItem value="ONE_SHIFT">{t("crm.quest.shiftOne")}</SelectItem>
+                    <SelectItem value="TWO_SHIFT">{t("crm.quest.shiftTwo")}</SelectItem>
+                    <SelectItem value="THREE_SHIFT">{t("crm.quest.shiftThree")}</SelectItem>
+                    <SelectItem value="CONTINUOUS">{t("crm.quest.shiftContinuous")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>上下料方式</Label>
+                <Label>{t("crm.quest.loadingMethod")}</Label>
                 <Select value={formData.loadingMethod} onValueChange={(v) => handleInputChange("loadingMethod", v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="请选择上下料方式" />
+                    <SelectValue placeholder={t("crm.quest.selectLoadingMethod")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MANUAL">人工上下料</SelectItem>
-                    <SelectItem value="AUTO_CHAIN">自动链条</SelectItem>
-                    <SelectItem value="ROBOT">机器人</SelectItem>
-                    <SelectItem value="GANTRY">龙门架</SelectItem>
-                    <SelectItem value="CONVEYOR">输送带</SelectItem>
-                    <SelectItem value="OTHER">其他</SelectItem>
+                    <SelectItem value="MANUAL">{t("crm.quest.loadManual")}</SelectItem>
+                    <SelectItem value="AUTO_CHAIN">{t("crm.quest.loadAutoChain")}</SelectItem>
+                    <SelectItem value="ROBOT">{t("crm.quest.loadRobot")}</SelectItem>
+                    <SelectItem value="GANTRY">{t("crm.quest.loadGantry")}</SelectItem>
+                    <SelectItem value="CONVEYOR">{t("crm.quest.loadConveyor")}</SelectItem>
+                    <SelectItem value="OTHER">{t("crm.quest.loadOther")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -542,57 +468,27 @@ export default function CustomerQuestionnaire() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>可用空间 - 长度 (mm)</Label>
-                <Input
-                  type="number"
-                  value={formData.availableSpaceLength}
-                  onChange={(e) => handleInputChange("availableSpaceLength", e.target.value)}
-                  placeholder="例如: 10000"
-                />
+                <Label>{t("crm.quest.spaceLength")} (mm)</Label>
+                <Input type="number" value={formData.availableSpaceLength} onChange={(e) => handleInputChange("availableSpaceLength", e.target.value)} placeholder={t("crm.quest.spaceLengthExample")} />
               </div>
               <div className="space-y-2">
-                <Label>可用空间 - 宽度 (mm)</Label>
-                <Input
-                  type="number"
-                  value={formData.availableSpaceWidth}
-                  onChange={(e) => handleInputChange("availableSpaceWidth", e.target.value)}
-                  placeholder="例如: 5000"
-                />
+                <Label>{t("crm.quest.spaceWidth")} (mm)</Label>
+                <Input type="number" value={formData.availableSpaceWidth} onChange={(e) => handleInputChange("availableSpaceWidth", e.target.value)} placeholder={t("crm.quest.spaceWidthExample")} />
               </div>
               <div className="space-y-2">
-                <Label>可用空间 - 高度 (mm)</Label>
-                <Input
-                  type="number"
-                  value={formData.availableSpaceHeight}
-                  onChange={(e) => handleInputChange("availableSpaceHeight", e.target.value)}
-                  placeholder="例如: 4000"
-                />
+                <Label>{t("crm.quest.spaceHeight")} (mm)</Label>
+                <Input type="number" value={formData.availableSpaceHeight} onChange={(e) => handleInputChange("availableSpaceHeight", e.target.value)} placeholder={t("crm.quest.spaceHeightExample")} />
               </div>
               <div className="space-y-2">
-                <Label>噪音限制 (dB)</Label>
-                <Input
-                  type="number"
-                  value={formData.noiseLimit}
-                  onChange={(e) => handleInputChange("noiseLimit", e.target.value)}
-                  placeholder="例如: 80"
-                />
+                <Label>{t("crm.quest.noiseLimit")} (dB)</Label>
+                <Input type="number" value={formData.noiseLimit} onChange={(e) => handleInputChange("noiseLimit", e.target.value)} placeholder={t("crm.quest.noiseExample")} />
               </div>
               <div className="space-y-2">
-                <Label>预算范围</Label>
+                <Label>{t("crm.quest.budgetRange")}</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={formData.investmentBudgetMin}
-                    onChange={(e) => handleInputChange("investmentBudgetMin", e.target.value)}
-                    placeholder="最小"
-                  />
+                  <Input type="number" value={formData.investmentBudgetMin} onChange={(e) => handleInputChange("investmentBudgetMin", e.target.value)} placeholder={t("crm.quest.min")} />
                   <span>-</span>
-                  <Input
-                    type="number"
-                    value={formData.investmentBudgetMax}
-                    onChange={(e) => handleInputChange("investmentBudgetMax", e.target.value)}
-                    placeholder="最大"
-                  />
+                  <Input type="number" value={formData.investmentBudgetMax} onChange={(e) => handleInputChange("investmentBudgetMax", e.target.value)} placeholder={t("crm.quest.max")} />
                   <Select value={formData.budgetCurrency} onValueChange={(v) => handleInputChange("budgetCurrency", v)}>
                     <SelectTrigger className="w-24">
                       <SelectValue />
@@ -606,22 +502,13 @@ export default function CustomerQuestionnaire() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>期望交付时间</Label>
-                <Input
-                  value={formData.projectTimeline}
-                  onChange={(e) => handleInputChange("projectTimeline", e.target.value)}
-                  placeholder="例如: 2024年Q2"
-                />
+                <Label>{t("crm.quest.expectedDelivery")}</Label>
+                <Input value={formData.projectTimeline} onChange={(e) => handleInputChange("projectTimeline", e.target.value)} placeholder={t("crm.quest.expectedDeliveryExample")} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>其他要求</Label>
-              <Textarea
-                value={formData.additionalRequirements}
-                onChange={(e) => handleInputChange("additionalRequirements", e.target.value)}
-                placeholder="请填写其他特殊要求或说明..."
-                rows={4}
-              />
+              <Label>{t("crm.quest.otherRequirements")}</Label>
+              <Textarea value={formData.additionalRequirements} onChange={(e) => handleInputChange("additionalRequirements", e.target.value)} placeholder={t("crm.quest.otherReqPlaceholder")} rows={4} />
             </div>
           </div>
         );
@@ -632,13 +519,13 @@ export default function CustomerQuestionnaire() {
   };
 
   const stepTitles = [
-    { icon: Building2, title: "基本信息", titleEn: "Basic Info" },
-    { icon: Package, title: "零件信息", titleEn: "Part Info" },
-    { icon: Settings2, title: "零件规格", titleEn: "Specifications" },
-    { icon: Beaker, title: "清洗要求", titleEn: "Cleaning Requirements" },
-    { icon: FileText, title: "质量要求", titleEn: "Quality Requirements" },
-    { icon: Truck, title: "产能要求", titleEn: "Capacity Requirements" },
-    { icon: DollarSign, title: "场地与预算", titleEn: "Site & Budget" },
+    { icon: Building2, title: t("crm.quest.stepBasicInfo") },
+    { icon: Package, title: t("crm.quest.stepPartInfo") },
+    { icon: Settings2, title: t("crm.quest.stepSpecs") },
+    { icon: Beaker, title: t("crm.quest.stepCleaningReq") },
+    { icon: FileText, title: t("crm.quest.stepQualityReq") },
+    { icon: Truck, title: t("crm.quest.stepCapacityReq") },
+    { icon: DollarSign, title: t("crm.quest.stepSiteBudget") },
   ];
 
   return (
@@ -646,17 +533,17 @@ export default function CustomerQuestionnaire() {
         {/* 页面标题 */}
         <PageHeader
           icon={FileText}
-          title="客户需求问卷"
-          description="零件清洗设备需求调查表 - 基于GRTclean标准问卷"
+          title={t("crm.quest.title")}
+          description={t("crm.quest.description")}
           actions={
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={handleSaveDraft}>
                 <Save className="w-4 h-4 mr-2" />
-                保存草稿
+                {t("crm.quest.saveDraft")}
               </Button>
               <Button variant="default" onClick={handleAIRecommend}>
                 <Sparkles className="w-4 h-4 mr-2" />
-                AI方案推荐
+                {t("crm.quest.aiRecommend")}
               </Button>
             </div>
           }
@@ -667,7 +554,7 @@ export default function CustomerQuestionnaire() {
           <CardContent className="pt-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">问卷进度</span>
+                <span className="text-muted-foreground">{t("crm.quest.progress")}</span>
                 <span className="font-medium">{currentStep} / {totalSteps}</span>
               </div>
               <Progress value={progress} className="h-2" />
@@ -685,13 +572,13 @@ export default function CustomerQuestionnaire() {
                       onClick={() => setCurrentStep(index + 1)}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                        isActive ? "border-primary bg-primary/10" : 
+                        isActive ? "border-primary bg-primary/10" :
                         isCompleted ? "border-green-500 bg-green-500/10" : "border-muted"
                       }`}>
                         <StepIcon className="w-4 h-4" />
                       </div>
                       <span className="text-xs mt-1 hidden md:block">
-                        {language === "zh" ? step.title : step.titleEn}
+                        {step.title}
                       </span>
                     </div>
                   );
@@ -709,12 +596,10 @@ export default function CustomerQuestionnaire() {
                 const StepIcon = stepTitles[currentStep - 1].icon;
                 return <StepIcon className="w-5 h-5" />;
               })()}
-              {language === "zh" 
-                ? stepTitles[currentStep - 1].title 
-                : stepTitles[currentStep - 1].titleEn}
+              {stepTitles[currentStep - 1].title}
             </CardTitle>
             <CardDescription>
-              请填写以下信息，带 * 的为必填项
+              {t("crm.quest.requiredFields")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -730,19 +615,19 @@ export default function CustomerQuestionnaire() {
             disabled={currentStep === 1}
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
-            上一步
+            {t("crm.quest.prevStep")}
           </Button>
           {currentStep < totalSteps ? (
             <Button
               onClick={() => setCurrentStep(prev => Math.min(totalSteps, prev + 1))}
             >
-              下一步
+              {t("crm.quest.nextStep")}
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
             <Button onClick={handleSubmit}>
               <Send className="w-4 h-4 mr-2" />
-              提交问卷
+              {t("crm.quest.submitQuestionnaire")}
             </Button>
           )}
         </div>

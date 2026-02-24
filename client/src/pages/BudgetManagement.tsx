@@ -21,6 +21,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { useCallback, useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 
 // ── Types ──
@@ -34,11 +35,6 @@ interface BudgetStandard {
   transport: number;
   other: number;
 }
-
-// ── Display labels ──
-const REGION_LABELS: Record<string, string> = { domestic: "国内", apac: "亚太", emea: "欧美" };
-const TIER_LABELS: Record<string, string> = { tier1: "一线城市", tier2: "二线城市", tier3: "三线城市" };
-const LEVEL_LABELS: Record<string, string> = { staff: "员工", manager: "经理", director: "总监" };
 
 // ── Default standards (used to seed localStorage on first visit) ──
 const DEFAULT_STANDARDS: BudgetStandard[] = [
@@ -73,7 +69,13 @@ const WARNING_PROJECTS = [
 ];
 
 export default function BudgetManagement() {
+  const { t, tpl } = useLanguage();
   const [activeTab, setActiveTab] = useState("dashboard");
+
+  // ── Display labels (need t()) ──
+  const REGION_LABELS: Record<string, string> = { domestic: t("finance.budgetMgmt.regionDomestic"), apac: t("finance.budgetMgmt.regionApac"), emea: t("finance.budgetMgmt.regionEmea") };
+  const TIER_LABELS: Record<string, string> = { tier1: t("finance.budgetMgmt.tierTier1"), tier2: t("finance.budgetMgmt.tierTier2"), tier3: t("finance.budgetMgmt.tierTier3") };
+  const LEVEL_LABELS: Record<string, string> = { staff: t("finance.budgetMgmt.levelStaff"), manager: t("finance.budgetMgmt.levelManager"), director: t("finance.budgetMgmt.levelDirector") };
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [standardDialogOpen, setStandardDialogOpen] = useState(false);
   const [editingStandard, setEditingStandard] = useState<BudgetStandard | null>(null);
@@ -137,14 +139,14 @@ export default function BudgetManagement() {
           : s
       );
       persistStandards(updated);
-      toast.success("预算标准已更新");
+      toast.success(t("finance.budgetMgmt.updateSuccess"));
     } else {
       const newStandard: BudgetStandard = {
         id: Date.now().toString(),
         ...standardForm,
       };
       persistStandards([...budgetStandards, newStandard]);
-      toast.success("预算标准已创建");
+      toast.success(t("finance.budgetMgmt.createSuccess"));
     }
     setStandardDialogOpen(false);
   };
@@ -152,7 +154,7 @@ export default function BudgetManagement() {
   // Delete standard
   const handleDeleteStandard = (id: string) => {
     persistStandards(budgetStandards.filter(s => s.id !== id));
-    toast.success("已删除");
+    toast.success(t("finance.budgetMgmt.deleteSuccess"));
   };
 
   // Calculate budget using standards or fallback rates
@@ -187,9 +189,9 @@ export default function BudgetManagement() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "exceeded": return "超支";
-      case "warning": return "预警";
-      default: return "正常";
+      case "exceeded": return t("finance.budgetMgmt.statusExceeded");
+      case "warning": return t("finance.budgetMgmt.statusWarning");
+      default: return t("finance.budgetMgmt.statusNormal");
     }
   };
 
@@ -198,82 +200,82 @@ export default function BudgetManagement() {
       <div className="space-y-6">
         <PageHeader
           icon={DollarSign}
-          title="出差费用预算管理"
-          description="管理预算标准、计算预算和监控预警"
+          title={t("finance.budgetMgmt.title")}
+          description={t("finance.budgetMgmt.desc")}
           actions={
             <>
               <Dialog open={calculatorOpen} onOpenChange={setCalculatorOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" className="gap-2">
                     <Calculator className="w-4 h-4" />
-                    预算计算器
+                    {t("finance.budgetMgmt.calculator")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[500px]">
                   <DialogHeader>
-                    <DialogTitle>出差预算计算器</DialogTitle>
-                    <DialogDescription>输入出差信息，自动计算预算金额</DialogDescription>
+                    <DialogTitle>{t("finance.budgetMgmt.calculatorTitle")}</DialogTitle>
+                    <DialogDescription>{t("finance.budgetMgmt.calculatorDesc")}</DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>出差区域</Label>
+                        <Label>{t("finance.budgetMgmt.travelRegion")}</Label>
                         <Select value={calcForm.region} onValueChange={(v) => setCalcForm({...calcForm, region: v})}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="domestic">国内</SelectItem>
-                            <SelectItem value="apac">亚太</SelectItem>
-                            <SelectItem value="emea">欧美</SelectItem>
+                            <SelectItem value="domestic">{t("finance.budgetMgmt.regionDomestic")}</SelectItem>
+                            <SelectItem value="apac">{t("finance.budgetMgmt.regionApac")}</SelectItem>
+                            <SelectItem value="emea">{t("finance.budgetMgmt.regionEmea")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>城市等级</Label>
+                        <Label>{t("finance.budgetMgmt.cityTier")}</Label>
                         <Select value={calcForm.cityTier} onValueChange={(v) => setCalcForm({...calcForm, cityTier: v})}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="tier1">一线城市</SelectItem>
-                            <SelectItem value="tier2">二线城市</SelectItem>
-                            <SelectItem value="tier3">三线城市</SelectItem>
+                            <SelectItem value="tier1">{t("finance.budgetMgmt.tierTier1")}</SelectItem>
+                            <SelectItem value="tier2">{t("finance.budgetMgmt.tierTier2")}</SelectItem>
+                            <SelectItem value="tier3">{t("finance.budgetMgmt.tierTier3")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>员工级别</Label>
+                        <Label>{t("finance.budgetMgmt.employeeLevel")}</Label>
                         <Select value={calcForm.employeeLevel} onValueChange={(v) => setCalcForm({...calcForm, employeeLevel: v})}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="staff">普通员工</SelectItem>
-                            <SelectItem value="manager">经理</SelectItem>
-                            <SelectItem value="director">总监</SelectItem>
+                            <SelectItem value="staff">{t("finance.budgetMgmt.levelStaff")}</SelectItem>
+                            <SelectItem value="manager">{t("finance.budgetMgmt.levelManager")}</SelectItem>
+                            <SelectItem value="director">{t("finance.budgetMgmt.levelDirector")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>出差天数</Label>
+                        <Label>{t("finance.budgetMgmt.travelDays")}</Label>
                         <Input type="number" min={1} max={30} value={calcForm.days} onChange={(e) => setCalcForm({...calcForm, days: parseInt(e.target.value) || 1})} />
                       </div>
                     </div>
                     <div className="border rounded-lg p-4 bg-muted/50">
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">预计预算总额</span>
+                        <span className="text-muted-foreground">{t("finance.budgetMgmt.estimatedTotal")}</span>
                         <span className="text-2xl font-bold text-primary">¥{calculateBudget().toLocaleString()}</span>
                       </div>
                       <div className="mt-2 text-xs text-muted-foreground">
-                        日均标准: ¥{(calculateBudget() / calcForm.days).toFixed(0)}/天
+                        {t("finance.budgetMgmt.dailyRate")}: ¥{(calculateBudget() / calcForm.days).toFixed(0)}{t("finance.budgetMgmt.perDay")}
                       </div>
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setCalculatorOpen(false)}>关闭</Button>
+                    <Button variant="outline" onClick={() => setCalculatorOpen(false)}>{t("finance.budgetMgmt.close")}</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
               <Button className="gap-2" onClick={openCreateDialog}>
                 <Plus className="w-4 h-4" />
-                新建预算标准
+                {t("finance.budgetMgmt.newStandard")}
               </Button>
             </>
           }
@@ -281,17 +283,17 @@ export default function BudgetManagement() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={DollarSign} label="标准条目数" value={budgetStandards.length} />
-          <StatCard icon={TrendingUp} label="日均标准总和" value={`¥${totalBudget.toLocaleString()}`} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-          <StatCard icon={TrendingDown} label="覆盖区域" value={new Set(budgetStandards.map(s => s.region)).size} iconColor="text-green-500" iconBg="bg-green-500/10" />
-          <StatCard icon={AlertTriangle} label="预警项目" value={warningCount} subtitle={`${exceededCount}个已超支`} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+          <StatCard icon={DollarSign} label={t("finance.budgetMgmt.standardCount")} value={budgetStandards.length} />
+          <StatCard icon={TrendingUp} label={t("finance.budgetMgmt.dailyTotalSum")} value={`¥${totalBudget.toLocaleString()}`} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={TrendingDown} label={t("finance.budgetMgmt.coverRegions")} value={new Set(budgetStandards.map(s => s.region)).size} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={AlertTriangle} label={t("finance.budgetMgmt.warningProjects")} value={warningCount} subtitle={tpl("finance.budgetMgmt.exceededCount", { count: exceededCount })} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
-            <TabsTrigger value="dashboard" className="gap-2"><PieChart className="w-4 h-4" />预警仪表盘</TabsTrigger>
-            <TabsTrigger value="standards" className="gap-2"><Settings className="w-4 h-4" />预算标准</TabsTrigger>
-            <TabsTrigger value="analysis" className="gap-2"><FileText className="w-4 h-4" />对比分析</TabsTrigger>
+            <TabsTrigger value="dashboard" className="gap-2"><PieChart className="w-4 h-4" />{t("finance.budgetMgmt.dashboardTab")}</TabsTrigger>
+            <TabsTrigger value="standards" className="gap-2"><Settings className="w-4 h-4" />{t("finance.budgetMgmt.standardsTab")}</TabsTrigger>
+            <TabsTrigger value="analysis" className="gap-2"><FileText className="w-4 h-4" />{t("finance.budgetMgmt.analysisTab")}</TabsTrigger>
           </TabsList>
 
           {/* Dashboard */}
@@ -299,10 +301,10 @@ export default function BudgetManagement() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>预算预警项目</span>
-                  <Button variant="ghost" size="sm" className="gap-2"><RefreshCw className="w-4 h-4" />刷新</Button>
+                  <span>{t("finance.budgetMgmt.warningProjectsList")}</span>
+                  <Button variant="ghost" size="sm" className="gap-2"><RefreshCw className="w-4 h-4" />{t("finance.budgetMgmt.refresh")}</Button>
                 </CardTitle>
-                <CardDescription>显示预算使用率超过80%或已超支的项目</CardDescription>
+                <CardDescription>{t("finance.budgetMgmt.warningProjectsDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -312,13 +314,13 @@ export default function BudgetManagement() {
                         <div className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(project.status)}`}>{getStatusText(project.status)}</div>
                         <div>
                           <p className="font-medium">{project.name}</p>
-                          <p className="text-sm text-muted-foreground">预算: ¥{project.budget.toLocaleString()} | 实际: ¥{project.actual.toLocaleString()}</p>
+                          <p className="text-sm text-muted-foreground">{t("finance.budgetMgmt.budgetLabel")}: ¥{project.budget.toLocaleString()} | {t("finance.budgetMgmt.actualLabel")}: ¥{project.actual.toLocaleString()}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
                           <p className={`text-lg font-bold ${project.rate > 100 ? 'text-red-500' : project.rate > 90 ? 'text-yellow-500' : 'text-green-500'}`}>{project.rate}%</p>
-                          <p className="text-xs text-muted-foreground">使用率</p>
+                          <p className="text-xs text-muted-foreground">{t("finance.budgetMgmt.usageRate")}</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </div>
@@ -330,13 +332,13 @@ export default function BudgetManagement() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
-                <CardHeader><CardTitle>预算使用率分布</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t("finance.budgetMgmt.usageDistribution")}</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {[
-                      { label: "正常 (0-80%)", color: "bg-green-500", width: "60%", count: "12个" },
-                      { label: "预警 (80-100%)", color: "bg-yellow-500", width: "20%", count: `${warningCount}个` },
-                      { label: "超支 (>100%)", color: "bg-red-500", width: "5%", count: `${exceededCount}个` },
+                      { label: t("finance.budgetMgmt.normalRange"), color: "bg-green-500", width: "60%", count: "12" },
+                      { label: t("finance.budgetMgmt.warningRange"), color: "bg-yellow-500", width: "20%", count: `${warningCount}` },
+                      { label: t("finance.budgetMgmt.exceededRange"), color: "bg-red-500", width: "5%", count: `${exceededCount}` },
                     ].map((item) => (
                       <div key={item.label} className="flex items-center justify-between">
                         <span className="text-sm">{item.label}</span>
@@ -353,7 +355,7 @@ export default function BudgetManagement() {
               </Card>
 
               <Card>
-                <CardHeader><CardTitle>本月预算趋势</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t("finance.budgetMgmt.monthlyTrend")}</CardTitle></CardHeader>
                 <CardContent>
                   <div className="h-[150px] flex items-end justify-between gap-2">
                     {[65, 72, 68, 75, 71, 78, 82].map((value, index) => (
@@ -373,27 +375,27 @@ export default function BudgetManagement() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>预算标准配置</span>
-                  <Button size="sm" className="gap-2" onClick={openCreateDialog}><Plus className="w-4 h-4" />添加标准</Button>
+                  <span>{t("finance.budgetMgmt.standardsConfig")}</span>
+                  <Button size="sm" className="gap-2" onClick={openCreateDialog}><Plus className="w-4 h-4" />{t("finance.budgetMgmt.addStandard")}</Button>
                 </CardTitle>
-                <CardDescription>按区域、城市等级和员工级别设置每日预算标准 (数据存储在本地)</CardDescription>
+                <CardDescription>{t("finance.budgetMgmt.standardsConfigDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {budgetStandards.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">暂无预算标准，点击"添加标准"创建</div>
+                  <div className="text-center py-12 text-muted-foreground">{t("finance.budgetMgmt.noStandards")}</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-3 px-4 font-medium">区域</th>
-                          <th className="text-left py-3 px-4 font-medium">城市等级</th>
-                          <th className="text-left py-3 px-4 font-medium">员工级别</th>
-                          <th className="text-right py-3 px-4 font-medium">住宿</th>
-                          <th className="text-right py-3 px-4 font-medium">餐饮</th>
-                          <th className="text-right py-3 px-4 font-medium">交通</th>
-                          <th className="text-right py-3 px-4 font-medium">日均合计</th>
-                          <th className="text-center py-3 px-4 font-medium">操作</th>
+                          <th className="text-left py-3 px-4 font-medium">{t("finance.budgetMgmt.thRegion")}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t("finance.budgetMgmt.thCityTier")}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t("finance.budgetMgmt.thEmployeeLevel")}</th>
+                          <th className="text-right py-3 px-4 font-medium">{t("finance.budgetMgmt.thAccommodation")}</th>
+                          <th className="text-right py-3 px-4 font-medium">{t("finance.budgetMgmt.thMeal")}</th>
+                          <th className="text-right py-3 px-4 font-medium">{t("finance.budgetMgmt.thTransport")}</th>
+                          <th className="text-right py-3 px-4 font-medium">{t("finance.budgetMgmt.thDailyTotal")}</th>
+                          <th className="text-center py-3 px-4 font-medium">{t("finance.budgetMgmt.thActions")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -432,13 +434,13 @@ export default function BudgetManagement() {
           <TabsContent value="analysis" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>预算与实际对比分析</CardTitle>
-                <CardDescription>按部门和项目类型分析预算执行情况</CardDescription>
+                <CardTitle>{t("finance.budgetMgmt.comparisonTitle")}</CardTitle>
+                <CardDescription>{t("finance.budgetMgmt.comparisonDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
                   <div>
-                    <h4 className="font-medium mb-4">按部门对比</h4>
+                    <h4 className="font-medium mb-4">{t("finance.budgetMgmt.byDepartment")}</h4>
                     <div className="space-y-3">
                       {[
                         { name: "销售部", budget: 50000, actual: 48500, variance: -1500 },
@@ -465,28 +467,28 @@ export default function BudgetManagement() {
                   </div>
 
                   <div>
-                    <h4 className="font-medium mb-4">按费用类型对比</h4>
+                    <h4 className="font-medium mb-4">{t("finance.budgetMgmt.byExpenseType")}</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {[
-                        { name: "住宿", budget: 45000, actual: 42000 },
-                        { name: "交通", budget: 35000, actual: 38000 },
-                        { name: "餐饮", budget: 25000, actual: 23500 },
-                        { name: "其他", budget: 20000, actual: 16000 },
+                        { name: t("finance.budgetMgmt.accommodation"), budget: 45000, actual: 42000 },
+                        { name: t("finance.budgetMgmt.transport"), budget: 35000, actual: 38000 },
+                        { name: t("finance.budgetMgmt.meal"), budget: 25000, actual: 23500 },
+                        { name: t("finance.budgetMgmt.other"), budget: 20000, actual: 16000 },
                       ].map((type, index) => (
                         <Card key={index}>
                           <CardContent className="p-4">
                             <p className="font-medium mb-2">{type.name}</p>
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between">
-                                <span className="text-muted-foreground">预算</span>
+                                <span className="text-muted-foreground">{t("finance.budgetMgmt.budgetLabel")}</span>
                                 <span>¥{type.budget.toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-muted-foreground">实际</span>
+                                <span className="text-muted-foreground">{t("finance.budgetMgmt.actualLabel")}</span>
                                 <span>¥{type.actual.toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between pt-1 border-t">
-                                <span className="text-muted-foreground">差异</span>
+                                <span className="text-muted-foreground">{t("finance.budgetMgmt.variance")}</span>
                                 <span className={type.actual > type.budget ? 'text-red-500' : 'text-green-500'}>
                                   {type.actual > type.budget ? '+' : ''}{(type.actual - type.budget).toLocaleString()}
                                 </span>
@@ -508,72 +510,72 @@ export default function BudgetManagement() {
       <Dialog open={standardDialogOpen} onOpenChange={setStandardDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingStandard ? "编辑预算标准" : "添加预算标准"}</DialogTitle>
-            <DialogDescription>设置不同区域、城市等级和员工级别的预算标准</DialogDescription>
+            <DialogTitle>{editingStandard ? t("finance.budgetMgmt.editStandard") : t("finance.budgetMgmt.addStandardTitle")}</DialogTitle>
+            <DialogDescription>{t("finance.budgetMgmt.standardDialogDesc")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>区域</Label>
+                <Label>{t("finance.budgetMgmt.regionLabel")}</Label>
                 <Select value={standardForm.region} onValueChange={(v) => setStandardForm({...standardForm, region: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="domestic">国内</SelectItem>
-                    <SelectItem value="apac">亚太</SelectItem>
-                    <SelectItem value="emea">欧美</SelectItem>
+                    <SelectItem value="domestic">{t("finance.budgetMgmt.regionDomestic")}</SelectItem>
+                    <SelectItem value="apac">{t("finance.budgetMgmt.regionApac")}</SelectItem>
+                    <SelectItem value="emea">{t("finance.budgetMgmt.regionEmea")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>城市等级</Label>
+                <Label>{t("finance.budgetMgmt.cityTier")}</Label>
                 <Select value={standardForm.cityTier} onValueChange={(v) => setStandardForm({...standardForm, cityTier: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="tier1">一线城市</SelectItem>
-                    <SelectItem value="tier2">二线城市</SelectItem>
-                    <SelectItem value="tier3">三线城市</SelectItem>
+                    <SelectItem value="tier1">{t("finance.budgetMgmt.tierTier1")}</SelectItem>
+                    <SelectItem value="tier2">{t("finance.budgetMgmt.tierTier2")}</SelectItem>
+                    <SelectItem value="tier3">{t("finance.budgetMgmt.tierTier3")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>员工级别</Label>
+                <Label>{t("finance.budgetMgmt.employeeLevel")}</Label>
                 <Select value={standardForm.employeeLevel} onValueChange={(v) => setStandardForm({...standardForm, employeeLevel: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="staff">普通员工</SelectItem>
-                    <SelectItem value="manager">经理</SelectItem>
-                    <SelectItem value="director">总监</SelectItem>
+                    <SelectItem value="staff">{t("finance.budgetMgmt.levelStaff")}</SelectItem>
+                    <SelectItem value="manager">{t("finance.budgetMgmt.levelManager")}</SelectItem>
+                    <SelectItem value="director">{t("finance.budgetMgmt.levelDirector")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>住宿标准 (元/天)</Label>
+                <Label>{t("finance.budgetMgmt.accommodationStd")}</Label>
                 <Input type="number" value={standardForm.accommodation} onChange={(e) => setStandardForm({...standardForm, accommodation: parseInt(e.target.value) || 0})} />
               </div>
               <div className="space-y-2">
-                <Label>餐饮标准 (元/天)</Label>
+                <Label>{t("finance.budgetMgmt.mealStd")}</Label>
                 <Input type="number" value={standardForm.meal} onChange={(e) => setStandardForm({...standardForm, meal: parseInt(e.target.value) || 0})} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>交通标准 (元/天)</Label>
+                <Label>{t("finance.budgetMgmt.transportStd")}</Label>
                 <Input type="number" value={standardForm.transport} onChange={(e) => setStandardForm({...standardForm, transport: parseInt(e.target.value) || 0})} />
               </div>
               <div className="space-y-2">
-                <Label>其他标准 (元/天)</Label>
+                <Label>{t("finance.budgetMgmt.otherStd")}</Label>
                 <Input type="number" value={standardForm.other} onChange={(e) => setStandardForm({...standardForm, other: parseInt(e.target.value) || 0})} />
               </div>
             </div>
             <div className="border rounded-lg p-3 bg-muted/50 text-sm">
-              日均合计: <span className="font-bold">¥{(standardForm.accommodation + standardForm.meal + standardForm.transport + standardForm.other).toLocaleString()}</span>
+              {t("finance.budgetMgmt.dailyTotal")}: <span className="font-bold">¥{(standardForm.accommodation + standardForm.meal + standardForm.transport + standardForm.other).toLocaleString()}</span>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setStandardDialogOpen(false)}>取消</Button>
-            <Button onClick={handleSaveStandard}>{editingStandard ? "保存" : "创建"}</Button>
+            <Button variant="outline" onClick={() => setStandardDialogOpen(false)}>{t("finance.budgetMgmt.cancel")}</Button>
+            <Button onClick={handleSaveStandard}>{editingStandard ? t("finance.budgetMgmt.save") : t("finance.budgetMgmt.create")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

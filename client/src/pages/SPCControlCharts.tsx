@@ -1,6 +1,6 @@
 /**
- * SPC统计过程控制 (SPC Control Charts)
- * US-008: 控制图分析 · Cp/Cpk计算 · 过程能力评估 · 异常模式识别
+ * SPC Statistical Process Control (SPC Control Charts)
+ * US-008: Control chart analysis, Cp/Cpk calculation, process capability, anomaly pattern recognition
  */
 import { useState } from "react";
 import { PageHeader } from "@/components/grt";
@@ -9,17 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   BarChart3, Loader2, Sparkles, AlertTriangle, CheckCircle, TrendingUp,
 } from "lucide-react";
 
-const CHART_TYPES = [
-  { value: "X-bar-R", label: "X-bar-R 控制图" },
-  { value: "X-bar-S", label: "X-bar-S 控制图" },
-  { value: "Individual-MR", label: "Individual-MR 控制图" },
-  { value: "p-chart", label: "p 控制图" },
-  { value: "c-chart", label: "c 控制图" },
+const CHART_TYPE_KEYS = [
+  { value: "X-bar-R", key: "quality.spc.chartXbarR" },
+  { value: "X-bar-S", key: "quality.spc.chartXbarS" },
+  { value: "Individual-MR", key: "quality.spc.chartIMR" },
+  { value: "p-chart", key: "quality.spc.chartP" },
+  { value: "c-chart", key: "quality.spc.chartC" },
 ];
 
 interface SPCResult {
@@ -58,6 +59,7 @@ interface SPCResult {
 }
 
 export default function SPCControlCharts() {
+  const { t } = useLanguage();
   // Form state
   const [processName, setProcessName] = useState("");
   const [measurementParameter, setMeasurementParameter] = useState("");
@@ -93,8 +95,8 @@ export default function SPCControlCharts() {
   };
 
   const cpkBadgeColor = (capability: string) => {
-    if (capability.includes("充足") || capability.includes("优")) return "bg-green-500/20 text-green-400 border-green-500/30";
-    if (capability.includes("临界") || capability.includes("一般")) return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+    if (capability.includes("充足") || capability.includes("优") || capability.includes("Adequate") || capability.includes("Excellent")) return "bg-green-500/20 text-green-400 border-green-500/30";
+    if (capability.includes("临界") || capability.includes("一般") || capability.includes("Marginal")) return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
     return "bg-red-500/20 text-red-400 border-red-500/30";
   };
 
@@ -102,12 +104,12 @@ export default function SPCControlCharts() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={BarChart3}
-          title="SPC统计过程控制"
-          description="控制图分析 · Cp/Cpk计算 · 过程能力评估 · 异常模式识别"
+          title={t("quality.spc.title")}
+          description={t("quality.spc.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI质检
+              {t("quality.spc.aiBadge")}
             </Badge>
           }
         />
@@ -117,41 +119,41 @@ export default function SPCControlCharts() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <BarChart3 className="h-5 w-5 text-primary" />
-              过程数据输入
+              {t("quality.spc.sectionInput")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">过程名称 *</label>
-                <Input placeholder="如: CNC内径加工" value={processName} onChange={(e) => setProcessName(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.spc.processName")} *</label>
+                <Input placeholder={t("quality.spc.processNamePlaceholder")} value={processName} onChange={(e) => setProcessName(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">测量参数 *</label>
-                <Input placeholder="如: 内径尺寸" value={measurementParameter} onChange={(e) => setMeasurementParameter(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.spc.measureParam")} *</label>
+                <Input placeholder={t("quality.spc.measureParamPlaceholder")} value={measurementParameter} onChange={(e) => setMeasurementParameter(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">规格要求 *</label>
-                <Input placeholder="如: 10.00±0.05" value={specification} onChange={(e) => setSpecification(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.spc.specRequirement")} *</label>
+                <Input placeholder={t("quality.spc.specPlaceholder")} value={specification} onChange={(e) => setSpecification(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">样本数据 *</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="样本数据，逗号分隔: 10.02, 10.05, 9.98, 10.01..." value={sampleData} onChange={(e) => setSampleData(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("quality.spc.sampleData")} *</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder={t("quality.spc.sampleDataPlaceholder")} value={sampleData} onChange={(e) => setSampleData(e.target.value)} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">子组大小（默认5）</label>
+                <label className="text-sm text-muted-foreground">{t("quality.spc.subgroupSize")}</label>
                 <Input type="number" placeholder="5" value={subgroupSize} onChange={(e) => setSubgroupSize(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">控制图类型</label>
+                <label className="text-sm text-muted-foreground">{t("quality.spc.chartType")}</label>
                 <Select value={chartType} onValueChange={(v) => setChartType(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择控制图类型" />
+                    <SelectValue placeholder={t("quality.spc.selectChartType")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {CHART_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    {CHART_TYPE_KEYS.map((ct) => <SelectItem key={ct.value} value={ct.value}>{t(ct.key)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -159,7 +161,7 @@ export default function SPCControlCharts() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!processName.trim() || !measurementParameter.trim() || !sampleData.trim() || !specification.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                SPC分析
+                {t("quality.spc.analyze")}
               </Button>
             </div>
           </CardContent>
@@ -173,7 +175,7 @@ export default function SPCControlCharts() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">过程能力指数 Cpk</p>
+                    <p className="text-sm text-muted-foreground">{t("quality.spc.sectionCapability")} Cpk</p>
                     <p className={`text-5xl font-bold ${cpkColor(result.cpk)}`}>{result.cpk.toFixed(2)}</p>
                   </div>
                   <Badge className={`text-lg px-4 py-2 ${cpkBadgeColor(result.processCapability)}`}>
@@ -202,29 +204,29 @@ export default function SPCControlCharts() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <TrendingUp className="h-5 w-5 text-primary" />
-                  控制限与规格限
+                  {t("quality.spc.sectionLimits")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-center">
-                    <p className="text-xs text-muted-foreground">UCL (上控制限)</p>
+                    <p className="text-xs text-muted-foreground">{t("quality.spc.ucl")}</p>
                     <p className="text-lg font-bold text-red-400">{result.controlLimits.ucl.toFixed(4)}</p>
                   </div>
                   <div className="p-3 rounded bg-muted/50 text-center">
-                    <p className="text-xs text-muted-foreground">USL (上规格限)</p>
+                    <p className="text-xs text-muted-foreground">{t("quality.spc.usl")}</p>
                     <p className="text-lg font-bold">{result.controlLimits.usl.toFixed(4)}</p>
                   </div>
                   <div className="p-3 rounded bg-green-500/10 border border-green-500/20 text-center">
-                    <p className="text-xs text-muted-foreground">CL (中心线)</p>
+                    <p className="text-xs text-muted-foreground">{t("quality.spc.cl")}</p>
                     <p className="text-lg font-bold text-green-400">{result.controlLimits.cl.toFixed(4)}</p>
                   </div>
                   <div className="p-3 rounded bg-muted/50 text-center">
-                    <p className="text-xs text-muted-foreground">LSL (下规格限)</p>
+                    <p className="text-xs text-muted-foreground">{t("quality.spc.lsl")}</p>
                     <p className="text-lg font-bold">{result.controlLimits.lsl.toFixed(4)}</p>
                   </div>
                   <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-center">
-                    <p className="text-xs text-muted-foreground">LCL (下控制限)</p>
+                    <p className="text-xs text-muted-foreground">{t("quality.spc.lcl")}</p>
                     <p className="text-lg font-bold text-red-400">{result.controlLimits.lcl.toFixed(4)}</p>
                   </div>
                 </div>
@@ -237,7 +239,7 @@ export default function SPCControlCharts() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <BarChart3 className="h-5 w-5 text-primary" />
-                    数据点分布
+                    {t("quality.spc.sectionDistribution")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -276,17 +278,17 @@ export default function SPCControlCharts() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-red-400" />
-                    失控点
+                    {t("quality.spc.sectionOOC")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left py-2 font-medium text-muted-foreground">数据点</th>
-                        <th className="text-left py-2 font-medium text-muted-foreground">测量值</th>
-                        <th className="text-left py-2 font-medium text-muted-foreground">违反规则</th>
-                        <th className="text-left py-2 font-medium text-muted-foreground">说明</th>
+                        <th className="text-left py-2 font-medium text-muted-foreground">{t("quality.spc.headerDataPoint")}</th>
+                        <th className="text-left py-2 font-medium text-muted-foreground">{t("quality.spc.headerValue")}</th>
+                        <th className="text-left py-2 font-medium text-muted-foreground">{t("quality.spc.headerViolation")}</th>
+                        <th className="text-left py-2 font-medium text-muted-foreground">{t("quality.spc.headerExplanation")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -312,7 +314,7 @@ export default function SPCControlCharts() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <TrendingUp className="h-5 w-5 text-yellow-400" />
-                    异常模式识别
+                    {t("quality.spc.sectionPatterns")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -321,7 +323,7 @@ export default function SPCControlCharts() {
                       <li key={idx} className="p-3 rounded bg-yellow-500/5 border border-yellow-500/20">
                         <div className="flex items-center gap-2 mb-1">
                           <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{p.pattern}</Badge>
-                          <span className="text-xs text-muted-foreground">数据点 {p.startPoint} - {p.endPoint}</span>
+                          <span className="text-xs text-muted-foreground">{t("quality.spc.dataPointRange")} {p.startPoint} - {p.endPoint}</span>
                         </div>
                         <p className="text-sm">{p.description}</p>
                       </li>
@@ -337,7 +339,7 @@ export default function SPCControlCharts() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("quality.spc.sectionAiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

@@ -3,6 +3,7 @@
  * Phase D: AI驱动 · 变更链追溯 · 影响范围评估
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,10 +18,10 @@ import {
 } from "lucide-react";
 
 const CHANGE_TYPES = [
-  { value: "design_change", label: "设计变更" },
-  { value: "bom_change", label: "BOM变更" },
-  { value: "process_change", label: "工艺变更" },
-  { value: "supplier_change", label: "供应商变更" },
+  { value: "design_change", labelKey: "projects.impact.designChange" },
+  { value: "bom_change", labelKey: "projects.impact.bomChange" },
+  { value: "process_change", labelKey: "projects.impact.processChange" },
+  { value: "supplier_change", labelKey: "projects.impact.supplierChange" },
 ];
 
 interface ImpactArea {
@@ -52,6 +53,7 @@ const AREA_ICONS: Record<string, typeof Package> = {
 };
 
 export default function ChangeImpactAnalysis() {
+  const { t } = useLanguage();
   const [changeType, setChangeType] = useState("design_change");
   const [changeDescription, setChangeDescription] = useState("");
   const [affectedComponent, setAffectedComponent] = useState("");
@@ -84,9 +86,9 @@ export default function ChangeImpactAnalysis() {
 
   const severityLabel = (severity: string) => {
     switch (severity) {
-      case "high": return "高";
-      case "medium": return "中";
-      case "low": return "低";
+      case "high": return t("projects.impact.severityHigh");
+      case "medium": return t("projects.impact.severityMedium");
+      case "low": return t("projects.impact.severityLow");
       default: return severity;
     }
   };
@@ -109,12 +111,12 @@ export default function ChangeImpactAnalysis() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={GitBranch}
-          title="工程变更影响分析"
-          description="AI驱动 · 变更链追溯 · 影响范围评估"
+          title={t("projects.impact.title")}
+          description={t("projects.impact.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI分析
+              {t("projects.impact.aiAnalysis")}
             </Badge>
           }
         />
@@ -124,44 +126,44 @@ export default function ChangeImpactAnalysis() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <GitBranch className="h-5 w-5 text-primary" />
-              变更信息
+              {t("projects.impact.changeInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">变更类型</label>
+                <label className="text-sm text-muted-foreground">{t("projects.impact.changeType")}</label>
                 <Select value={changeType} onValueChange={(v) => setChangeType(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择变更类型" />
+                    <SelectValue placeholder={t("projects.impact.selectChangeType")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {CHANGE_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    {CHANGE_TYPES.map((ct) => (
+                      <SelectItem key={ct.value} value={ct.value}>{t(ct.labelKey)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">影响组件（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("projects.impact.affectedComponent")}</label>
                 <Input
-                  placeholder="如: 清洗泵、超声波振板..."
+                  placeholder={t("projects.impact.affectedComponentPlaceholder")}
                   value={affectedComponent}
                   onChange={(e) => setAffectedComponent(e.target.value)}
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">变更描述</label>
+              <label className="text-sm text-muted-foreground">{t("projects.impact.changeDescription")}</label>
               <Textarea
-                placeholder="描述变更内容，例如：将清洗腔体材质从304不锈钢变更为316L不锈钢，以满足客户耐腐蚀要求..."
+                placeholder={t("projects.impact.changeDescPlaceholder")}
                 value={changeDescription}
                 onChange={(e) => setChangeDescription(e.target.value)}
                 rows={3}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">关联项目（可选）</label>
+              <label className="text-sm text-muted-foreground">{t("projects.impact.relatedProject")}</label>
               <Input
                 placeholder="如: IC-2000"
                 value={projectId}
@@ -178,7 +180,7 @@ export default function ChangeImpactAnalysis() {
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />
                 )}
-                分析影响
+                {t("projects.impact.analyzeImpact")}
               </Button>
             </div>
           </CardContent>
@@ -192,7 +194,7 @@ export default function ChangeImpactAnalysis() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">风险评分</p>
+                    <p className="text-sm text-muted-foreground">{t("projects.impact.riskScore")}</p>
                     <p className={`text-5xl font-bold ${riskColor(result.riskScore)}`}>
                       {result.riskScore}
                     </p>
@@ -200,7 +202,7 @@ export default function ChangeImpactAnalysis() {
                   <div className="flex items-center gap-3">
                     <Clock className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">预估工作量</p>
+                      <p className="text-sm text-muted-foreground">{t("projects.impact.estimatedEffort")}</p>
                       <p className="font-medium">{result.estimatedEffort}</p>
                     </div>
                   </div>
@@ -241,7 +243,7 @@ export default function ChangeImpactAnalysis() {
             {result.affectedItems.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">受影响项目</CardTitle>
+                  <CardTitle className="text-base">{t("projects.impact.affectedItems")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -263,7 +265,7 @@ export default function ChangeImpactAnalysis() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-green-400" />
-                    AI建议
+                    {t("projects.impact.aiRecommendations")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

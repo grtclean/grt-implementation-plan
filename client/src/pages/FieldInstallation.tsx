@@ -3,6 +3,7 @@
  * 设备安装进度、安装团队调度、现场问题记录
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
@@ -30,6 +31,7 @@ const MOCK_INSTALLATIONS = [
 ];
 
 export default function FieldInstallation() {
+  const { t } = useLanguage();
   const { currentBU } = useUserProfile();
   const [installations, setInstallations] = useState(MOCK_INSTALLATIONS);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -46,27 +48,27 @@ export default function FieldInstallation() {
 
   const handleCreate = () => {
     if (!formData.project.trim()) {
-      toast.error("请输入项目名称");
+      toast.error(t("afterSales.install.fillProject"));
       return;
     }
     if (!formData.customer.trim()) {
-      toast.error("请输入客户名称");
+      toast.error(t("afterSales.install.fillCustomer"));
       return;
     }
     if (!formData.location.trim()) {
-      toast.error("请输入安装地点");
+      toast.error(t("afterSales.install.fillLocation"));
       return;
     }
     if (!formData.team.trim()) {
-      toast.error("请输入安装团队");
+      toast.error(t("afterSales.install.fillTeam"));
       return;
     }
     if (!formData.startDate) {
-      toast.error("请选择开始日期");
+      toast.error(t("afterSales.install.fillStart"));
       return;
     }
     if (!formData.endDate) {
-      toast.error("请选择结束日期");
+      toast.error(t("afterSales.install.fillEnd"));
       return;
     }
 
@@ -87,32 +89,32 @@ export default function FieldInstallation() {
     setInstallations(prev => [newInstallation, ...prev]);
     setShowCreateDialog(false);
     setFormData({ project: "", customer: "", location: "", team: "", startDate: "", endDate: "" });
-    toast.success("安装任务创建成功");
+    toast.success(t("afterSales.install.createSuccess"));
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Wrench}
-        title="现场安装"
-        description="TX-013 · 设备安装进度管理与团队调度"
+        title={t("afterSales.install.title")}
+        description={t("afterSales.install.desc")}
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />新建安装任务</Button>
+            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />{t("afterSales.install.newTask")}</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Wrench} label="总安装任务" value={installations.length} />
-        <StatCard icon={Truck} label="进行中" value={installations.filter(i => i.status === "安装中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={Clock} label="待出发" value={installations.filter(i => i.status === "待出发").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={CheckCircle2} label="已完成" value={installations.filter(i => i.status === "已完成").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Wrench} label={t("afterSales.install.totalTasks")} value={installations.length} />
+        <StatCard icon={Truck} label={t("afterSales.install.inProgress")} value={installations.filter(i => i.status === "安装中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Clock} label={t("afterSales.install.waiting")} value={installations.filter(i => i.status === "待出发").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={CheckCircle2} label={t("afterSales.install.completed")} value={installations.filter(i => i.status === "已完成").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
-        <CardHeader><CardTitle>安装任务列表</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("afterSales.install.taskList")}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
             {filtered.map(ins => (
@@ -140,7 +142,7 @@ export default function FieldInstallation() {
             {filtered.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Wrench className="w-12 h-12 mb-3 opacity-50" />
-                <p className="font-medium">暂无安装任务</p>
+                <p className="font-medium">{t("afterSales.install.noTasks")}</p>
               </div>
             )}
           </div>
@@ -150,11 +152,11 @@ export default function FieldInstallation() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新建安装任务</DialogTitle>
+            <DialogTitle>{t("afterSales.install.dialogTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="fi-project">项目名称 *</Label>
+              <Label htmlFor="fi-project">{t("afterSales.install.projectName")}</Label>
               <Input
                 id="fi-project"
                 placeholder="例如：缸体清洗线"
@@ -163,7 +165,7 @@ export default function FieldInstallation() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="fi-customer">客户 *</Label>
+              <Label htmlFor="fi-customer">{t("afterSales.install.customer")}</Label>
               <Input
                 id="fi-customer"
                 placeholder="例如：上海大众"
@@ -172,7 +174,7 @@ export default function FieldInstallation() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="fi-location">安装地点 *</Label>
+              <Label htmlFor="fi-location">{t("afterSales.install.location")}</Label>
               <Input
                 id="fi-location"
                 placeholder="例如：上海安亭工厂"
@@ -181,7 +183,7 @@ export default function FieldInstallation() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="fi-team">安装团队 *</Label>
+              <Label htmlFor="fi-team">{t("afterSales.install.team")}</Label>
               <Input
                 id="fi-team"
                 placeholder="例如：安装A组"
@@ -191,7 +193,7 @@ export default function FieldInstallation() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="fi-start">开始日期 *</Label>
+                <Label htmlFor="fi-start">{t("afterSales.install.startDate")}</Label>
                 <Input
                   id="fi-start"
                   type="date"
@@ -200,7 +202,7 @@ export default function FieldInstallation() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="fi-end">结束日期 *</Label>
+                <Label htmlFor="fi-end">{t("afterSales.install.endDate")}</Label>
                 <Input
                   id="fi-end"
                   type="date"
@@ -211,8 +213,8 @@ export default function FieldInstallation() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
-            <Button onClick={handleCreate}>创建</Button>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>{t("afterSales.install.cancel")}</Button>
+            <Button onClick={handleCreate}>{t("afterSales.install.create")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

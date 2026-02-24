@@ -83,6 +83,7 @@ import {
   Percent,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ============================================================================
 // 类型定义
@@ -799,6 +800,7 @@ function PerformancePieChart({ data, total }: PieChartProps) {
 // ============================================================================
 
 export default function EmployeeIntelligentPerformance() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("overview");
   const [periodType, setPeriodType] = useState<"day" | "week" | "month" | "quarter" | "year">("month");
   const [selectedEmployee, setSelectedEmployee] = useState<string>(mockEmployeeData.id);
@@ -826,31 +828,31 @@ export default function EmployeeIntelligentPerformance() {
 
   // 绩效分布数据
   const performanceDistribution = [
-    { label: "优秀", value: 12, color: "#22c55e" },
-    { label: "良好", value: 25, color: "#3b82f6" },
-    { label: "满意", value: 35, color: "#eab308" },
-    { label: "待改进", value: 8, color: "#f97316" },
+    { label: t("hr.intellPerf.gradeExcellent"), value: 12, color: "#22c55e" },
+    { label: t("hr.intellPerf.gradeGood"), value: 25, color: "#3b82f6" },
+    { label: t("hr.intellPerf.gradeSatisfactory"), value: 35, color: "#eab308" },
+    { label: t("hr.intellPerf.gradeNeedsImprove"), value: 8, color: "#f97316" },
   ];
 
   // 对话角度分布数据
   const conversationAngleDistribution = [
-    { label: "正向激励", value: 8, color: "#22c55e" },
-    { label: "问题指出", value: 3, color: "#f97316" },
-    { label: "技术指导", value: 2, color: "#3b82f6" },
-    { label: "学习交流", value: 1, color: "#eab308" },
+    { label: t("hr.intellPerf.positiveMotivation"), value: 8, color: "#22c55e" },
+    { label: t("hr.intellPerf.issuePointing"), value: 3, color: "#f97316" },
+    { label: t("hr.intellPerf.techGuidance"), value: 2, color: "#3b82f6" },
+    { label: t("hr.intellPerf.learningExchange"), value: 1, color: "#eab308" },
   ];
 
   return (
       <>
       <FeatureGuide
         featureId="employee-intelligent-performance"
-        title="员工智能绩效"
-        description="综合展示员工日周月季年绩效、工作计划、会议表现、项目表现、员工询问、红黑榜等，包含丰富的图表可视化"
+        title={t("hr.intellPerf.title")}
+        description={t("hr.intellPerf.featureGuideDesc")}
         steps={[
-          { title: "绩效总览", description: "查看综合绩效评分和排名" },
-          { title: "图表分析", description: "通过雷达图、趋势图、热力图等深入分析" },
-          { title: "历史趋势", description: "分析绩效历史趋势和变化" },
-          { title: "对比分析", description: "多维度对比和优化建议" },
+          { title: t("hr.intellPerf.tab.overview"), description: t("hr.intellPerf.guide.overviewDesc") },
+          { title: t("hr.intellPerf.tab.charts"), description: t("hr.intellPerf.guide.chartsDesc") },
+          { title: t("hr.intellPerf.guide.historyTrend"), description: t("hr.intellPerf.guide.historyTrendDesc") },
+          { title: t("hr.intellPerf.comparison"), description: t("hr.intellPerf.guide.comparisonDesc") },
         ]}
       />
 
@@ -858,21 +860,21 @@ export default function EmployeeIntelligentPerformance() {
         {/* Header */}
         <PageHeader
           icon={User}
-          title="员工智能绩效"
-          description="综合绩效评估与智能分析"
+          title={t("hr.intellPerf.title")}
+          description={t("hr.intellPerf.description")}
           actions={
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setIsComparisonDialogOpen(true)}>
                 <ActivityIcon className="w-4 h-4 mr-2" />
-                对比分析
+                {t("hr.intellPerf.comparison")}
               </Button>
               <Button variant="outline">
                 <Download className="w-4 h-4 mr-2" />
-                导出报告
+                {t("hr.intellPerf.exportReport")}
               </Button>
               <Button>
                 <Sparkles className="w-4 h-4 mr-2" />
-                AI分析
+                {t("hr.intellPerf.aiAnalysis")}
               </Button>
             </div>
           }
@@ -881,8 +883,8 @@ export default function EmployeeIntelligentPerformance() {
         {/* 员工选择 */}
         <Card className="bg-card/50 border-border">
           <CardHeader>
-            <CardTitle>员工信息</CardTitle>
-            <CardDescription>选择要查看绩效的员工</CardDescription>
+            <CardTitle>{t("hr.intellPerf.employeeInfo")}</CardTitle>
+            <CardDescription>{t("hr.intellPerf.selectEmployee")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
@@ -900,11 +902,11 @@ export default function EmployeeIntelligentPerformance() {
               <div className="text-sm text-muted-foreground">
                 <div className="flex items-center gap-2 mb-1">
                   <Building2 className="w-4 h-4" />
-                  <span>入职: {currentEmployee.joinDate}</span>
+                  <span>{t("hr.intellPerf.joinDate")}: {currentEmployee.joinDate}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <UserPlus className="w-4 h-4" />
-                  <span>主管: {currentEmployee.manager}</span>
+                  <span>{t("hr.intellPerf.manager")}: {currentEmployee.manager}</span>
                 </div>
               </div>
             </div>
@@ -916,35 +918,35 @@ export default function EmployeeIntelligentPerformance() {
           <TabsList className="bg-card/50 border border-border flex-wrap">
             <TabsTrigger value="overview">
               <BarChart3 className="w-4 h-4 mr-2" />
-              绩效总览
+              {t("hr.intellPerf.tab.overview")}
             </TabsTrigger>
             <TabsTrigger value="charts">
               <ChartLine className="w-4 h-4 mr-2" />
-              图表分析
+              {t("hr.intellPerf.tab.charts")}
             </TabsTrigger>
             <TabsTrigger value="work-plan">
               <Calendar className="w-4 h-4 mr-2" />
-              工作计划
+              {t("hr.intellPerf.tab.workPlan")}
             </TabsTrigger>
             <TabsTrigger value="meeting">
               <Video className="w-4 h-4 mr-2" />
-              会议表现
+              {t("hr.intellPerf.tab.meeting")}
             </TabsTrigger>
             <TabsTrigger value="project">
               <Briefcase className="w-4 h-4 mr-2" />
-              项目表现
+              {t("hr.intellPerf.tab.project")}
             </TabsTrigger>
             <TabsTrigger value="inquiry">
               <MessageSquare className="w-4 h-4 mr-2" />
-              员工询问
+              {t("hr.intellPerf.tab.inquiry")}
             </TabsTrigger>
             <TabsTrigger value="conversation">
               <Mic className="w-4 h-4 mr-2" />
-              对话记录
+              {t("hr.intellPerf.tab.conversation")}
             </TabsTrigger>
             <TabsTrigger value="leaderboard">
               <Trophy className="w-4 h-4 mr-2" />
-              红黑榜
+              {t("hr.intellPerf.tab.leaderboard")}
             </TabsTrigger>
           </TabsList>
 
@@ -955,16 +957,16 @@ export default function EmployeeIntelligentPerformance() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="day">日绩效</SelectItem>
-                <SelectItem value="week">周绩效</SelectItem>
-                <SelectItem value="month">月绩效</SelectItem>
-                <SelectItem value="quarter">季绩效</SelectItem>
-                <SelectItem value="year">年绩效</SelectItem>
+                <SelectItem value="day">{t("hr.intellPerf.daily")}</SelectItem>
+                <SelectItem value="week">{t("hr.intellPerf.weekly")}</SelectItem>
+                <SelectItem value="month">{t("hr.intellPerf.monthly")}</SelectItem>
+                <SelectItem value="quarter">{t("hr.intellPerf.quarterly")}</SelectItem>
+                <SelectItem value="year">{t("hr.intellPerf.yearly")}</SelectItem>
               </SelectContent>
             </Select>
             {currentMetric && (
               <div className="text-sm text-muted-foreground">
-                统计周期: {periodTypeLabels[periodType]} ({currentMetric.periodValue})
+                {t("hr.intellPerf.statPeriod")}: {periodTypeLabels[periodType]} ({currentMetric.periodValue})
               </div>
             )}
           </div>
@@ -979,35 +981,35 @@ export default function EmployeeIntelligentPerformance() {
                       <span className="text-4xl font-bold">{currentMetric?.totalScore || 0}</span>
                     </div>
                     <div className="text-sm font-medium mb-1">{scoreLevelLabels[currentMetric?.scoreLevel || "satisfactory"]}</div>
-                    {currentMetric?.ranking && <div className="text-xs text-muted-foreground">排名第 {currentMetric.ranking}</div>}
+                    {currentMetric?.ranking && <div className="text-xs text-muted-foreground">{t("hr.intellPerf.rankNo")} {currentMetric.ranking}</div>}
                   </div>
                 </CardContent>
               </Card>
               <Card className="bg-card/50 border-border">
                 <CardContent className="p-4">
-                  <div className="text-sm text-muted-foreground mb-2">工作计划</div>
+                  <div className="text-sm text-muted-foreground mb-2">{t("hr.intellPerf.workPlan")}</div>
                   <div className="text-2xl font-bold">
                     {currentMetric?.breakdown[0]?.score || 0}
                   </div>
-                  <div className="text-xs text-muted-foreground">权重 {currentMetric?.breakdown[0]?.weight}%</div>
+                  <div className="text-xs text-muted-foreground">{t("hr.intellPerf.weight")} {currentMetric?.breakdown[0]?.weight}%</div>
                 </CardContent>
               </Card>
               <Card className="bg-card/50 border-border">
                 <CardContent className="p-4">
-                  <div className="text-sm text-muted-foreground mb-2">会议表现</div>
+                  <div className="text-sm text-muted-foreground mb-2">{t("hr.intellPerf.meetingPerf")}</div>
                   <div className="text-2xl font-bold">
                     {currentMetric?.breakdown[1]?.score || 0}
                   </div>
-                  <div className="text-xs text-muted-foreground">权重 {currentMetric?.breakdown[1]?.weight}%</div>
+                  <div className="text-xs text-muted-foreground">{t("hr.intellPerf.weight")} {currentMetric?.breakdown[1]?.weight}%</div>
                 </CardContent>
               </Card>
               <Card className="bg-card/50 border-border">
                 <CardContent className="p-4">
-                  <div className="text-sm text-muted-foreground mb-2">项目表现</div>
+                  <div className="text-sm text-muted-foreground mb-2">{t("hr.intellPerf.projectPerf")}</div>
                   <div className="text-2xl font-bold">
                     {currentMetric?.breakdown[2]?.score || 0}
                   </div>
-                  <div className="text-xs text-muted-foreground">权重 {currentMetric?.breakdown[2]?.weight}%</div>
+                  <div className="text-xs text-muted-foreground">{t("hr.intellPerf.weight")} {currentMetric?.breakdown[2]?.weight}%</div>
                 </CardContent>
               </Card>
             </div>
@@ -1017,13 +1019,13 @@ export default function EmployeeIntelligentPerformance() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Bot className="w-5 h-5 text-purple-400" />
-                  AI 智能分析
+                  {t("hr.intellPerf.aiSmartAnalysis")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm mb-4">{currentMetric?.aiAnalysis}</p>
                 <div>
-                  <div className="text-sm font-medium mb-2">改进建议:</div>
+                  <div className="text-sm font-medium mb-2">{t("hr.intellPerf.improveSuggestions")}:</div>
                   <div className="space-y-2">
                     {currentMetric?.aiSuggestions.map((suggestion, idx) => (
                       <div key={idx} className="flex items-start gap-2 p-2 bg-white/50 rounded-lg">
@@ -1045,7 +1047,7 @@ export default function EmployeeIntelligentPerformance() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <RadarIcon className="w-5 h-5 text-primary" />
-                    绩效维度雷达图
+                    {t("hr.intellPerf.radarChart")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1054,7 +1056,7 @@ export default function EmployeeIntelligentPerformance() {
                     {currentMetric?.breakdown.map((b, idx) => (
                       <div key={idx} className="p-2 bg-muted/50 rounded-lg">
                         <div className="text-muted-foreground mb-1">{b.category}</div>
-                        <div className="font-bold">{b.score}分</div>
+                        <div className="font-bold">{b.score}{t("hr.intellPerf.points")}</div>
                       </div>
                     ))}
                   </div>
@@ -1066,7 +1068,7 @@ export default function EmployeeIntelligentPerformance() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ChartLine className="w-5 h-5 text-blue-400" />
-                    绩效趋势图
+                    {t("hr.intellPerf.trendChart")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1079,7 +1081,7 @@ export default function EmployeeIntelligentPerformance() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Grid3x3 className="w-5 h-5 text-orange-400" />
-                    维度热力图
+                    {t("hr.intellPerf.heatmap")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1096,7 +1098,7 @@ export default function EmployeeIntelligentPerformance() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <PieChart className="w-5 h-5 text-green-400" />
-                    绩效等级分布
+                    {t("hr.intellPerf.gradeDistribution")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1108,7 +1110,7 @@ export default function EmployeeIntelligentPerformance() {
             {/* 历史趋势 */}
             <Card className="bg-card/50 border-border">
               <CardHeader>
-                <CardTitle>月度绩效历史</CardTitle>
+                <CardTitle>{t("hr.intellPerf.monthlyHistory")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -1141,7 +1143,7 @@ export default function EmployeeIntelligentPerformance() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="bg-card/50 border-border">
                 <CardHeader>
-                  <CardTitle>计划执行概览</CardTitle>
+                  <CardTitle>{t("hr.intellPerf.planExecutionOverview")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -1150,18 +1152,18 @@ export default function EmployeeIntelligentPerformance() {
                         <div className="font-medium mb-3">{output.planTitle}</div>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">及时性</span>
-                            <span className="font-medium">{output.timelinessScore}分</span>
+                            <span className="text-sm text-muted-foreground">{t("hr.intellPerf.timeliness")}</span>
+                            <span className="font-medium">{output.timelinessScore}{t("hr.intellPerf.points")}</span>
                           </div>
                           <Progress value={output.timelinessScore} className="h-2" />
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">质量</span>
-                            <span className="font-medium">{output.qualityScore}分</span>
+                            <span className="text-sm text-muted-foreground">{t("hr.intellPerf.quality")}</span>
+                            <span className="font-medium">{output.qualityScore}{t("hr.intellPerf.points")}</span>
                           </div>
                           <Progress value={output.qualityScore} className="h-2" />
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">客户反馈</span>
-                            <span className="font-medium">{output.customerFeedbackScore}分</span>
+                            <span className="text-sm text-muted-foreground">{t("hr.intellPerf.customerFeedback")}</span>
+                            <span className="font-medium">{output.customerFeedbackScore}{t("hr.intellPerf.points")}</span>
                           </div>
                           <Progress value={output.customerFeedbackScore} className="h-2" />
                         </div>
@@ -1173,7 +1175,7 @@ export default function EmployeeIntelligentPerformance() {
 
               <Card className="bg-card/50 border-border">
                 <CardHeader>
-                  <CardTitle>任务统计</CardTitle>
+                  <CardTitle>{t("hr.intellPerf.taskStats")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {mockWorkPlanOutputs.map((output) => (
@@ -1181,15 +1183,15 @@ export default function EmployeeIntelligentPerformance() {
                       <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
                           <div className="text-2xl font-bold text-green-400">{output.completedTasks}</div>
-                          <div className="text-xs text-muted-foreground">已完成</div>
+                          <div className="text-xs text-muted-foreground">{t("hr.intellPerf.completed")}</div>
                         </div>
                         <div>
                           <div className="text-2xl font-bold text-blue-400">{output.totalTasks}</div>
-                          <div className="text-xs text-muted-foreground">总任务</div>
+                          <div className="text-xs text-muted-foreground">{t("hr.intellPerf.totalTasks")}</div>
                         </div>
                         <div>
                           <div className="text-2xl font-bold text-red-400">{output.overdueTasks}</div>
-                          <div className="text-xs text-muted-foreground">逾期任务</div>
+                          <div className="text-xs text-muted-foreground">{t("hr.intellPerf.overdueTasks")}</div>
                         </div>
                       </div>
                     </div>
@@ -1201,8 +1203,8 @@ export default function EmployeeIntelligentPerformance() {
             {/* 客户评价 */}
             <Card className="bg-card/50 border-border">
               <CardHeader>
-                <CardTitle>客户评价</CardTitle>
-                <CardDescription>来自客户的最新评价</CardDescription>
+                <CardTitle>{t("hr.intellPerf.customerRatings")}</CardTitle>
+                <CardDescription>{t("hr.intellPerf.customerRatingsDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -1244,17 +1246,17 @@ export default function EmployeeIntelligentPerformance() {
                           </div>
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            <span>{perf.duration}分钟</span>
+                            <span>{perf.duration}{t("hr.intellPerf.minutes")}</span>
                           </div>
                         </div>
                       </div>
                       <Badge variant="outline">
-                        {perf.role === "presenter" ? "主讲人" : perf.role === "facilitator" ? "主持人" : "参与者"}
+                        {perf.role === "presenter" ? t("hr.intellPerf.presenter") : perf.role === "facilitator" ? t("hr.intellPerf.facilitator") : t("hr.intellPerf.participant")}
                       </Badge>
                     </div>
 
                     <div className="mb-3">
-                      <div className="text-sm text-muted-foreground mb-2">绩效评分</div>
+                      <div className="text-sm text-muted-foreground mb-2">{t("hr.intellPerf.perfScore")}</div>
                       <div className="flex items-center gap-4">
                         <div className="text-3xl font-bold">{perf.performanceScore}</div>
                         <Badge className={scoreLevelColors[perf.performanceScore >= 90 ? "excellent" : perf.performanceScore >= 80 ? "good" : "satisfactory"]}>
@@ -1265,29 +1267,29 @@ export default function EmployeeIntelligentPerformance() {
 
                     <div className="space-y-2 mb-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">技术清晰度</span>
+                        <span className="text-muted-foreground">{t("hr.intellPerf.techClarity")}</span>
                         <Progress value={perf.technicalClarity} className="w-32 h-2" />
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">主动性</span>
+                        <span className="text-muted-foreground">{t("hr.intellPerf.proactivity")}</span>
                         <Progress value={perf.proactivity} className="w-32 h-2" />
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">沟通能力</span>
+                        <span className="text-muted-foreground">{t("hr.intellPerf.commSkill")}</span>
                         <Progress value={perf.communicationSkill} className="w-32 h-2" />
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">问题解决</span>
+                        <span className="text-muted-foreground">{t("hr.intellPerf.problemSolving")}</span>
                         <Progress value={perf.problemSolving} className="w-32 h-2" />
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>行动项: {perf.actionItemsCompleted}/{perf.totalActionItems}</span>
+                      <span>{t("hr.intellPerf.actionItems")}: {perf.actionItemsCompleted}/{perf.totalActionItems}</span>
                       {perf.minutesGenerated && (
                         <Badge className="bg-green-500/20 text-green-400">
                           <FileCheck className="w-3 h-3 mr-1" />
-                          已生成纪要
+                          {t("hr.intellPerf.minutesGenerated")}
                         </Badge>
                       )}
                     </div>
@@ -1296,14 +1298,14 @@ export default function EmployeeIntelligentPerformance() {
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm" className="w-full mt-3">
                           <Eye className="w-4 h-4 mr-1" />
-                          查看AI反馈
+                          {t("hr.intellPerf.viewAiFeedback")}
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
                           <DialogTitle className="flex items-center gap-2">
                             <Bot className="w-5 h-5 text-purple-400" />
-                            AI 会议反馈
+                            {t("hr.intellPerf.aiMeetingFeedback")}
                           </DialogTitle>
                         </DialogHeader>
                         <div className="py-4">
@@ -1311,7 +1313,7 @@ export default function EmployeeIntelligentPerformance() {
                         </div>
                         <DialogFooter>
                           <Button variant="outline" onClick={() => setIsPerformanceDialogOpen(false)}>
-                            关闭
+                            {t("hr.intellPerf.close")}
                           </Button>
                         </DialogFooter>
                       </DialogContent>
@@ -1337,14 +1339,14 @@ export default function EmployeeIntelligentPerformance() {
                       perf.status === "completed" ? "bg-green-500/20 text-green-400" :
                       "bg-yellow-500/20 text-yellow-400"
                     }>
-                      {perf.status === "active" ? "进行中" : perf.status === "completed" ? "已完成" : "延期"}
+                      {perf.status === "active" ? t("hr.intellPerf.inProgress") : perf.status === "completed" ? t("hr.intellPerf.completedStatus") : t("hr.intellPerf.delayed")}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="mb-4">
                     <div className="flex items-center justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">项目进度</span>
+                      <span className="text-muted-foreground">{t("hr.intellPerf.projectProgress")}</span>
                       <span className="font-medium">{perf.progress}%</span>
                     </div>
                     <Progress value={perf.progress} className="h-3" />
@@ -1352,17 +1354,17 @@ export default function EmployeeIntelligentPerformance() {
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                      <div className="text-sm text-muted-foreground mb-1">任务完成率</div>
+                      <div className="text-sm text-muted-foreground mb-1">{t("hr.intellPerf.taskCompletionRate")}</div>
                       <div className="text-2xl font-bold">{perf.tasksCompleted}/{perf.totalTasks}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-muted-foreground mb-1">综合评分</div>
+                      <div className="text-sm text-muted-foreground mb-1">{t("hr.intellPerf.overallScore")}</div>
                       <div className="text-2xl font-bold text-green-400">{perf.overallScore}</div>
                     </div>
                   </div>
 
                   <div className="mb-4">
-                    <div className="text-sm font-medium mb-2">里程碑</div>
+                    <div className="text-sm font-medium mb-2">{t("hr.intellPerf.milestones")}</div>
                     <div className="space-y-2">
                       {perf.milestones.map((milestone) => (
                         <div key={milestone.id} className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
@@ -1370,8 +1372,8 @@ export default function EmployeeIntelligentPerformance() {
                           <div className="flex-1">
                             <div className="text-sm">{milestone.name}</div>
                             <div className="text-xs text-muted-foreground">
-                              {milestone.completedAt && `完成: ${new Date(milestone.completedAt).toLocaleDateString()}`}
-                              {!milestone.completedAt && `目标: ${new Date(milestone.targetDate).toLocaleDateString()}`}
+                              {milestone.completedAt && `${t("hr.intellPerf.completedAt")}: ${new Date(milestone.completedAt).toLocaleDateString()}`}
+                              {!milestone.completedAt && `${t("hr.intellPerf.targetDate")}: ${new Date(milestone.targetDate).toLocaleDateString()}`}
                             </div>
                           </div>
                           {milestone.score > 0 && (
@@ -1391,7 +1393,7 @@ export default function EmployeeIntelligentPerformance() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="bg-card/50 border-border">
                 <CardHeader>
-                  <CardTitle>最近询问</CardTitle>
+                  <CardTitle>{t("hr.intellPerf.recentInquiries")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -1404,26 +1406,26 @@ export default function EmployeeIntelligentPerformance() {
                             </Avatar>
                             <div>
                               <div className="font-medium text-sm">{inquiry.inquirerName}</div>
-                              <div className="text-xs text-muted-foreground">{inquiry.inquirerType === "customer" ? "客户" : "同事"}</div>
+                              <div className="text-xs text-muted-foreground">{inquiry.inquirerType === "customer" ? t("hr.intellPerf.customer") : t("hr.intellPerf.colleague")}</div>
                             </div>
                           </div>
                           <Badge className={
                             inquiry.status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
                             inquiry.status === "responded" ? "bg-blue-500/20 text-blue-400" : "bg-green-500/20 text-green-400"
                           }>
-                            {inquiry.status === "pending" ? "待处理" : inquiry.status === "responded" ? "已回复" : "已解决"}
+                            {inquiry.status === "pending" ? t("hr.intellPerf.pending") : inquiry.status === "responded" ? t("hr.intellPerf.responded") : t("hr.intellPerf.resolved")}
                           </Badge>
                         </div>
                         <div className="mb-2">
                           <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                            <Badge variant="outline">{inquiry.category === "question" ? "问题" : inquiry.category === "feedback" ? "反馈" : "其他"}</Badge>
+                            <Badge variant="outline">{inquiry.category === "question" ? t("hr.intellPerf.question") : inquiry.category === "feedback" ? t("hr.intellPerf.feedback") : t("hr.intellPerf.other")}</Badge>
                             <span>{new Date(inquiry.timestamp).toLocaleString()}</span>
                           </div>
                           <p className="text-sm">{inquiry.content}</p>
                         </div>
                         {inquiry.responseTime && (
                           <div className="text-xs text-muted-foreground">
-                            响应时间: {inquiry.responseTime} 小时
+                            {t("hr.intellPerf.responseTime")}: {inquiry.responseTime} {t("hr.intellPerf.hours")}
                           </div>
                         )}
                       </div>
@@ -1434,7 +1436,7 @@ export default function EmployeeIntelligentPerformance() {
 
               <Card className="bg-card/50 border-border">
                 <CardHeader>
-                  <CardTitle>AI 建议回复</CardTitle>
+                  <CardTitle>{t("hr.intellPerf.aiSuggestedReply")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -1444,12 +1446,12 @@ export default function EmployeeIntelligentPerformance() {
                         <div key={inquiry.id} className="p-3 bg-purple-500/10 rounded-lg">
                           <div className="flex items-start gap-2 mb-2">
                             <Bot className="w-5 h-5 text-purple-400 flex-shrink-0" />
-                            <span className="text-sm font-medium">AI 建议回复:</span>
+                            <span className="text-sm font-medium">{t("hr.intellPerf.aiSuggestedReply")}:</span>
                           </div>
                           <p className="text-sm text-muted-foreground">{inquiry.aiSuggestedResponse}</p>
                           <div className="flex gap-2 mt-2">
-                            <Button size="sm">采纳</Button>
-                            <Button size="sm" variant="outline">编辑</Button>
+                            <Button size="sm">{t("hr.intellPerf.adopt")}</Button>
+                            <Button size="sm" variant="outline">{t("hr.intellPerf.edit")}</Button>
                           </div>
                         </div>
                       ))}
@@ -1463,8 +1465,8 @@ export default function EmployeeIntelligentPerformance() {
           <TabsContent value="conversation" className="space-y-4">
             <Card className="bg-card/50 border-border">
               <CardHeader>
-                <CardTitle>对话记录</CardTitle>
-                <CardDescription>与该员工相关的所有沟通记录</CardDescription>
+                <CardTitle>{t("hr.intellPerf.conversationRecords")}</CardTitle>
+                <CardDescription>{t("hr.intellPerf.conversationRecordsDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -1492,17 +1494,17 @@ export default function EmployeeIntelligentPerformance() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Bot className="w-5 h-5 text-purple-400" />
-                    AI 对话分析
+                    {t("hr.intellPerf.aiConversationAnalysis")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="p-3 bg-white/50 rounded-lg">
-                      <div className="text-sm font-medium mb-2">对话角度分布</div>
+                      <div className="text-sm font-medium mb-2">{t("hr.intellPerf.angleDistribution")}</div>
                       <PerformancePieChart data={conversationAngleDistribution} />
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      建议增加更多正向激励类型的对话，与员工保持积极沟通。
+                      {t("hr.intellPerf.aiConversationSuggestion")}
                     </p>
                   </div>
                 </CardContent>
@@ -1510,22 +1512,22 @@ export default function EmployeeIntelligentPerformance() {
 
               <Card className="bg-card/50 border-border">
                 <CardHeader>
-                  <CardTitle>对话统计</CardTitle>
+                  <CardTitle>{t("hr.intellPerf.conversationStats")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="p-3 bg-muted/50 rounded-lg">
-                      <div className="text-sm text-muted-foreground mb-1">平均对话时长</div>
-                      <div className="text-3xl font-bold">45 分钟</div>
+                      <div className="text-sm text-muted-foreground mb-1">{t("hr.intellPerf.avgDuration")}</div>
+                      <div className="text-3xl font-bold">45 {t("hr.intellPerf.minutes")}</div>
                     </div>
                     <div className="p-3 bg-muted/50 rounded-lg">
-                      <div className="text-sm text-muted-foreground mb-1">对话类型分布</div>
+                      <div className="text-sm text-muted-foreground mb-1">{t("hr.intellPerf.convTypeDistribution")}</div>
                       <div className="space-y-2">
                         {[
-                          { type: "绩效讨论", count: 4 },
-                          { type: "反馈", count: 3 },
-                          { type: "指导", count: 2 },
-                          { type: "学习", count: 1 },
+                          { type: t("hr.intellPerf.perfDiscussion"), count: 4 },
+                          { type: t("hr.intellPerf.feedback"), count: 3 },
+                          { type: t("hr.intellPerf.coaching"), count: 2 },
+                          { type: t("hr.intellPerf.learning"), count: 1 },
                         ].map((item, idx) => (
                           <div key={idx} className="flex items-center justify-between">
                             <span className="text-sm">{item.type}</span>
@@ -1544,14 +1546,14 @@ export default function EmployeeIntelligentPerformance() {
           <TabsContent value="leaderboard" className="space-y-4">
             <Card className="bg-card/50 border-border">
               <CardHeader>
-                <CardTitle>红黑榜</CardTitle>
-                <CardDescription>基于综合绩效评分的排名</CardDescription>
+                <CardTitle>{t("hr.intellPerf.leaderboard")}</CardTitle>
+                <CardDescription>{t("hr.intellPerf.leaderboardDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg">
                     <Trophy className="w-5 h-5 text-yellow-500" />
-                    <span className="font-medium">红榜 - Top 5</span>
+                    <span className="font-medium">{t("hr.intellPerf.topBoard")} - Top 5</span>
                   </div>
                   {mockLeaderboard.slice(0, 5).map((item, index) => (
                     <div key={item.id} className="flex items-center justify-between p-3 border-b last:border-0 hover:bg-muted/50 transition-colors">
@@ -1582,7 +1584,7 @@ export default function EmployeeIntelligentPerformance() {
                   ))}
                 <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-gray-500/20 to-red-500/20 rounded-lg mt-4">
                   <AlertTriangle className="w-5 h-5 text-red-400" />
-                  <span className="font-medium">黑榜 - Last 5</span>
+                  <span className="font-medium">{t("hr.intellPerf.bottomBoard")} - Last 5</span>
                 </div>
                 {mockLeaderboard.slice().reverse().slice(0, 5).map((item, index) => (
                   <div key={item.id} className="flex items-center justify-between p-3 border-b last:border-0 hover:bg-muted/50 transition-colors">
@@ -1616,15 +1618,15 @@ export default function EmployeeIntelligentPerformance() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ActivityIcon className="w-5 h-5 text-primary" />
-              员工对比分析
+              {t("hr.intellPerf.comparisonAnalysis")}
             </DialogTitle>
             <DialogDescription>
-              选择多个员工进行绩效对比分析
+              {t("hr.intellPerf.comparisonAnalysisDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <div className="mb-4">
-              <Label>选择对比员工</Label>
+              <Label>{t("hr.intellPerf.selectCompareEmployees")}</Label>
               <div className="flex gap-2 mt-2">
                 {mockLeaderboard.slice(0, 5).map((emp) => (
                   <div key={emp.id} className="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-muted/50">
@@ -1643,10 +1645,10 @@ export default function EmployeeIntelligentPerformance() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">对比维度</CardTitle>
+                  <CardTitle className="text-base">{t("hr.intellPerf.compareDimensions")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {["工作计划", "会议表现", "项目表现", "客户反馈"].map((dim) => (
+                  {[t("hr.intellPerf.workPlan"), t("hr.intellPerf.meetingPerf"), t("hr.intellPerf.projectPerf"), t("hr.intellPerf.customerFeedback")].map((dim) => (
                     <div key={dim} className="flex items-center gap-2">
                       <Checkbox id={`dim-${dim}`} defaultChecked />
                       <label htmlFor={`dim-${dim}`} className="text-sm cursor-pointer">{dim}</label>
@@ -1656,14 +1658,19 @@ export default function EmployeeIntelligentPerformance() {
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">对比周期</CardTitle>
+                  <CardTitle className="text-base">{t("hr.intellPerf.comparePeriod")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <RadioGroup defaultValue="本月">
-                    {["本月", "上月", "季度", "年度"].map((period) => (
-                      <div key={period} className="flex items-center gap-2">
-                        <RadioGroupItem value={period} id={`period-${period}`} />
-                        <Label htmlFor={`period-${period}`} className="cursor-pointer">{period}</Label>
+                  <RadioGroup defaultValue="thisMonth">
+                    {[
+                      { value: "thisMonth", label: t("hr.intellPerf.thisMonth") },
+                      { value: "lastMonth", label: t("hr.intellPerf.lastMonth") },
+                      { value: "quarter", label: t("hr.intellPerf.quarterPeriod") },
+                      { value: "annual", label: t("hr.intellPerf.annualPeriod") },
+                    ].map((item) => (
+                      <div key={item.value} className="flex items-center gap-2">
+                        <RadioGroupItem value={item.value} id={`period-${item.value}`} />
+                        <Label htmlFor={`period-${item.value}`} className="cursor-pointer">{item.label}</Label>
                       </div>
                     ))}
                   </RadioGroup>
@@ -1673,11 +1680,11 @@ export default function EmployeeIntelligentPerformance() {
 
             <div className="flex justify-end gap-2 mt-4">
               <Button variant="outline" onClick={() => setIsComparisonDialogOpen(false)}>
-                取消
+                {t("hr.intellPerf.cancel")}
               </Button>
               <Button>
                 <ActivityIcon className="w-4 h-4 mr-2" />
-                生成对比报告
+                {t("hr.intellPerf.generateCompareReport")}
               </Button>
             </div>
           </div>

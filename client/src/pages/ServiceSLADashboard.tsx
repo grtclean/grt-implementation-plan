@@ -3,6 +3,7 @@
  * SLA达标率分析 · 工程师效能 · 改进建议
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ interface SLAResult {
 }
 
 export default function ServiceSLADashboard() {
+  const { t } = useLanguage();
   const [period, setPeriod] = useState("");
   const [ticketData, setTicketData] = useState("");
   const [slaTargets, setSlaTargets] = useState("");
@@ -83,11 +85,11 @@ export default function ServiceSLADashboard() {
   const statusBadge = (status: string) => {
     switch (status) {
       case "met":
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">达标</Badge>;
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">{t("afterSales.sla.statusMet")}</Badge>;
       case "at_risk":
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">风险</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{t("afterSales.sla.statusAtRisk")}</Badge>;
       case "missed":
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">未达标</Badge>;
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{t("afterSales.sla.statusMissed")}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -126,12 +128,12 @@ export default function ServiceSLADashboard() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Gauge}
-          title="服务SLA分析仪表板"
-          description="SLA达标率分析 · 工程师效能 · 改进建议"
+          title={t("afterSales.sla.title")}
+          description={t("afterSales.sla.desc")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI分析
+              {t("afterSales.sla.aiAnalysis")}
             </Badge>
           }
         />
@@ -141,43 +143,43 @@ export default function ServiceSLADashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Gauge className="h-5 w-5 text-primary" />
-              SLA分析参数
+              {t("afterSales.sla.params")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">分析周期 *</label>
+                <label className="text-sm text-muted-foreground">{t("afterSales.sla.periodLabel")}</label>
                 <Input
-                  placeholder="如: 2026年Q1"
+                  placeholder={t("afterSales.sla.periodPlaceholder")}
                   value={period}
                   onChange={(e) => setPeriod(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">SLA目标 *</label>
+                <label className="text-sm text-muted-foreground">{t("afterSales.sla.targetsLabel")}</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]"
-                  placeholder="SLA目标: P1响应2h/解决24h, P2响应4h/解决48h..."
+                  placeholder={t("afterSales.sla.targetsPlaceholder")}
                   value={slaTargets}
                   onChange={(e) => setSlaTargets(e.target.value)}
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">工单数据汇总 *</label>
+              <label className="text-sm text-muted-foreground">{t("afterSales.sla.ticketDataLabel")}</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]"
-                placeholder="工单数据汇总"
+                placeholder={t("afterSales.sla.ticketDataPlaceholder")}
                 value={ticketData}
                 onChange={(e) => setTicketData(e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">工程师数据（可选）</label>
+              <label className="text-sm text-muted-foreground">{t("afterSales.sla.engineerDataLabel")}</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]"
-                placeholder="工程师数据"
+                placeholder={t("afterSales.sla.engineerDataPlaceholder")}
                 value={engineerData}
                 onChange={(e) => setEngineerData(e.target.value)}
               />
@@ -185,7 +187,7 @@ export default function ServiceSLADashboard() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!period.trim() || !ticketData.trim() || !slaTargets.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI分析SLA
+                {t("afterSales.sla.analyzeBtn")}
               </Button>
             </div>
           </CardContent>
@@ -198,15 +200,15 @@ export default function ServiceSLADashboard() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center space-y-3">
-                  <p className="text-sm text-muted-foreground">整体SLA达标率</p>
+                  <p className="text-sm text-muted-foreground">{t("afterSales.sla.overallRate")}</p>
                   <div className={`text-6xl font-bold ${slaRateColor(result.overallSLARate)}`}>
                     {result.overallSLARate}%
                   </div>
                   <Badge className={slaRateBg(result.overallSLARate)}>
-                    {result.overallSLARate >= 95 ? "优秀" : result.overallSLARate >= 85 ? "需改进" : "不达标"}
+                    {result.overallSLARate >= 95 ? t("afterSales.sla.excellent") : result.overallSLARate >= 85 ? t("afterSales.sla.needsImprovement") : t("afterSales.sla.belowTarget")}
                   </Badge>
                   <div className="p-4 rounded bg-muted/50 w-full mt-4">
-                    <p className="text-sm text-muted-foreground mb-1">周期摘要</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t("afterSales.sla.periodSummary")}</p>
                     <p className="text-sm">{result.periodSummary}</p>
                   </div>
                 </div>
@@ -219,7 +221,7 @@ export default function ServiceSLADashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <BarChart3 className="h-5 w-5 text-primary" />
-                    SLA指标明细
+                    {t("afterSales.sla.metricsDetail")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -227,11 +229,11 @@ export default function ServiceSLADashboard() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-muted-foreground">指标</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">目标</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">实际</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">状态</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">趋势</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.sla.thMetric")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.sla.thTarget")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.sla.thActual")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.sla.thStatus")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.sla.thTrend")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -256,34 +258,34 @@ export default function ServiceSLADashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Clock className="h-5 w-5 text-blue-400" />
-                  工单统计
+                  {t("afterSales.sla.ticketStats")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   <div className="p-3 rounded bg-muted/50 text-center">
                     <p className="text-2xl font-bold">{result.ticketAnalysis.total}</p>
-                    <p className="text-xs text-muted-foreground">总工单</p>
+                    <p className="text-xs text-muted-foreground">{t("afterSales.sla.totalTickets")}</p>
                   </div>
                   <div className="p-3 rounded bg-green-500/10 text-center">
                     <p className="text-2xl font-bold text-green-400">{result.ticketAnalysis.resolved}</p>
-                    <p className="text-xs text-muted-foreground">已解决</p>
+                    <p className="text-xs text-muted-foreground">{t("afterSales.sla.resolved")}</p>
                   </div>
                   <div className="p-3 rounded bg-blue-500/10 text-center">
                     <p className="text-2xl font-bold text-blue-400">{result.ticketAnalysis.pending}</p>
-                    <p className="text-xs text-muted-foreground">处理中</p>
+                    <p className="text-xs text-muted-foreground">{t("afterSales.sla.processing")}</p>
                   </div>
                   <div className="p-3 rounded bg-red-500/10 text-center">
                     <p className="text-2xl font-bold text-red-400">{result.ticketAnalysis.overdue}</p>
-                    <p className="text-xs text-muted-foreground">超时</p>
+                    <p className="text-xs text-muted-foreground">{t("afterSales.sla.overdue")}</p>
                   </div>
                   <div className="p-3 rounded bg-muted/50 text-center">
                     <p className="text-2xl font-bold">{result.ticketAnalysis.avgResponseHours}h</p>
-                    <p className="text-xs text-muted-foreground">平均响应</p>
+                    <p className="text-xs text-muted-foreground">{t("afterSales.sla.avgResponse")}</p>
                   </div>
                   <div className="p-3 rounded bg-muted/50 text-center">
                     <p className="text-2xl font-bold">{result.ticketAnalysis.avgResolutionHours}h</p>
-                    <p className="text-xs text-muted-foreground">平均解决</p>
+                    <p className="text-xs text-muted-foreground">{t("afterSales.sla.avgResolution")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -295,7 +297,7 @@ export default function ServiceSLADashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    高频问题
+                    {t("afterSales.sla.topIssues")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -303,9 +305,9 @@ export default function ServiceSLADashboard() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-muted-foreground">问题类别</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">工单数</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">平均解决时间</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.sla.thCategory")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.sla.thTicketCount")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.sla.thAvgResTime")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -329,7 +331,7 @@ export default function ServiceSLADashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Users className="h-5 w-5 text-primary" />
-                    工程师效能
+                    {t("afterSales.sla.engineerPerformance")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -337,10 +339,10 @@ export default function ServiceSLADashboard() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-muted-foreground">工程师</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">处理工单</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">评分</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">SLA合规</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.sla.thEngineer")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.sla.thTicketsHandled")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.sla.thRating")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("afterSales.sla.thSLACompliance")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -365,7 +367,7 @@ export default function ServiceSLADashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("afterSales.sla.aiRecommendations")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

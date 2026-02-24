@@ -3,6 +3,7 @@
  * 自动汇总月度质量指标 · 缺陷Pareto · NCR趋势 · 管理层报告
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ interface QualityMonthlyReportResult {
 }
 
 export default function QualityMonthlyReport() {
+  const { t } = useLanguage();
   const [month, setMonth] = useState("");
   const [inspectionData, setInspectionData] = useState("");
   const [defectData, setDefectData] = useState("");
@@ -89,9 +91,9 @@ export default function QualityMonthlyReport() {
 
   const statusLabel = (status: string) => {
     switch (status) {
-      case "met": return "达标";
-      case "at_risk": return "风险";
-      case "missed": return "未达标";
+      case "met": return t("quality.monthlyReport.statusMet");
+      case "at_risk": return t("quality.monthlyReport.statusRisk");
+      case "missed": return t("quality.monthlyReport.statusNotMet");
       default: return status;
     }
   };
@@ -122,12 +124,12 @@ export default function QualityMonthlyReport() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={BarChart3}
-          title="AI质量月报"
-          description="自动汇总月度质量指标 · 缺陷Pareto · NCR趋势 · 管理层报告"
+          title={t("quality.monthlyReport.title")}
+          description={t("quality.monthlyReport.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI月报
+              {t("quality.monthlyReport.aiBadge")}
             </Badge>
           }
         />
@@ -137,33 +139,33 @@ export default function QualityMonthlyReport() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <BarChart3 className="h-5 w-5 text-primary" />
-              月报数据
+              {t("quality.monthlyReport.reportData")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">月份 *</label>
+              <label className="text-sm text-muted-foreground">{t("quality.monthlyReport.monthLabel")} *</label>
               <Input
-                placeholder="如: 2026年2月"
+                placeholder="e.g. 2026-02"
                 value={month}
                 onChange={(e) => setMonth(e.target.value)}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">检验数据汇总 *</label>
+                <label className="text-sm text-muted-foreground">{t("quality.monthlyReport.inspectionSummary")} *</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]"
-                  placeholder="检验数据汇总"
+                  placeholder={t("quality.monthlyReport.inspectionSummary")}
                   value={inspectionData}
                   onChange={(e) => setInspectionData(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">缺陷数据 *</label>
+                <label className="text-sm text-muted-foreground">{t("quality.monthlyReport.defectData")} *</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]"
-                  placeholder="缺陷数据"
+                  placeholder={t("quality.monthlyReport.defectData")}
                   value={defectData}
                   onChange={(e) => setDefectData(e.target.value)}
                 />
@@ -171,28 +173,28 @@ export default function QualityMonthlyReport() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">NCR数据（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("quality.monthlyReport.ncrData")}</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]"
-                  placeholder="NCR数据"
+                  placeholder={t("quality.monthlyReport.ncrData")}
                   value={ncrData}
                   onChange={(e) => setNcrData(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">客户投诉数据（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("quality.monthlyReport.complaintData")}</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]"
-                  placeholder="客户投诉数据"
+                  placeholder={t("quality.monthlyReport.complaintData")}
                   value={customerComplaints}
                   onChange={(e) => setCustomerComplaints(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">上月数据（可选，用于环比）</label>
+                <label className="text-sm text-muted-foreground">{t("quality.monthlyReport.lastMonthData")}</label>
                 <textarea
                   className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]"
-                  placeholder="上月数据(用于环比)"
+                  placeholder={t("quality.monthlyReport.lastMonthData")}
                   value={previousMonthData}
                   onChange={(e) => setPreviousMonthData(e.target.value)}
                 />
@@ -201,7 +203,7 @@ export default function QualityMonthlyReport() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!month.trim() || !inspectionData.trim() || !defectData.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                生成月报
+                {t("quality.monthlyReport.generate")}
               </Button>
             </div>
           </CardContent>
@@ -215,7 +217,7 @@ export default function QualityMonthlyReport() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="h-5 w-5 text-primary" />
-                  <p className="text-lg font-bold">质量月报 - {result.reportMonth}</p>
+                  <p className="text-lg font-bold">{t("quality.monthlyReport.reportTitle")} - {result.reportMonth}</p>
                 </div>
                 <p className="text-sm text-muted-foreground">{result.executiveSummary}</p>
               </CardContent>
@@ -225,7 +227,7 @@ export default function QualityMonthlyReport() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-center flex-col py-4">
-                  <p className="text-sm text-muted-foreground mb-2">整体合格率</p>
+                  <p className="text-sm text-muted-foreground mb-2">{t("quality.monthlyReport.overallYield")}</p>
                   <p className={`text-6xl font-bold ${passRateColor(result.overallPassRate)}`}>
                     {result.overallPassRate}%
                   </p>
@@ -239,7 +241,7 @@ export default function QualityMonthlyReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <BarChart3 className="h-5 w-5 text-primary" />
-                    质量指标
+                    {t("quality.monthlyReport.qualityMetrics")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -247,11 +249,11 @@ export default function QualityMonthlyReport() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">指标</th>
-                          <th className="text-right py-2 pr-4">实际值</th>
-                          <th className="text-right py-2 pr-4">目标值</th>
-                          <th className="text-left py-2 pr-4">状态</th>
-                          <th className="text-center py-2">趋势</th>
+                          <th className="text-left py-2 pr-4">{t("quality.monthlyReport.headerMetric")}</th>
+                          <th className="text-right py-2 pr-4">{t("quality.monthlyReport.headerActual")}</th>
+                          <th className="text-right py-2 pr-4">{t("quality.monthlyReport.headerTarget")}</th>
+                          <th className="text-left py-2 pr-4">{t("quality.monthlyReport.headerStatus")}</th>
+                          <th className="text-center py-2">{t("quality.monthlyReport.headerTrend")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -279,7 +281,7 @@ export default function QualityMonthlyReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    缺陷Pareto分析
+                    {t("quality.monthlyReport.defectPareto")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -287,10 +289,10 @@ export default function QualityMonthlyReport() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">缺陷类型</th>
-                          <th className="text-right py-2 pr-4">数量</th>
-                          <th className="text-left py-2 pr-4 w-1/3">占比</th>
-                          <th className="text-right py-2">累计占比</th>
+                          <th className="text-left py-2 pr-4">{t("quality.monthlyReport.headerDefectType")}</th>
+                          <th className="text-right py-2 pr-4">{t("quality.monthlyReport.headerCount")}</th>
+                          <th className="text-left py-2 pr-4 w-1/3">{t("quality.monthlyReport.headerRatio")}</th>
+                          <th className="text-right py-2">{t("quality.monthlyReport.headerCumulative")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -324,25 +326,25 @@ export default function QualityMonthlyReport() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <ClipboardList className="h-5 w-5 text-primary" />
-                  NCR汇总
+                  {t("quality.monthlyReport.ncrSummary")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">NCR总数</p>
+                    <p className="text-sm text-muted-foreground">{t("quality.monthlyReport.ncrTotal")}</p>
                     <p className="text-3xl font-bold text-primary">{result.ncrSummary.total}</p>
                   </div>
                   <div className="p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">开放中</p>
+                    <p className="text-sm text-muted-foreground">{t("quality.monthlyReport.ncrOpen")}</p>
                     <p className="text-3xl font-bold text-yellow-400">{result.ncrSummary.open}</p>
                   </div>
                   <div className="p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">已关闭</p>
+                    <p className="text-sm text-muted-foreground">{t("quality.monthlyReport.ncrClosed")}</p>
                     <p className="text-3xl font-bold text-green-400">{result.ncrSummary.closed}</p>
                   </div>
                   <div className="p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">平均关闭时间</p>
+                    <p className="text-sm text-muted-foreground">{t("quality.monthlyReport.ncrAvgCloseTime")}</p>
                     <p className="text-2xl font-bold text-blue-400">{result.ncrSummary.avgClosureTime}</p>
                   </div>
                 </div>
@@ -353,7 +355,7 @@ export default function QualityMonthlyReport() {
             {result.customerComplaintSummary && (
               <Card>
                 <CardContent className="pt-6">
-                  <p className="text-sm font-medium text-muted-foreground mb-2">客户投诉汇总</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">{t("quality.monthlyReport.complaintSummary")}</p>
                   <p className="text-sm">{result.customerComplaintSummary}</p>
                 </CardContent>
               </Card>
@@ -365,7 +367,7 @@ export default function QualityMonthlyReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ArrowUpDown className="h-5 w-5 text-primary" />
-                    环比对比
+                    {t("quality.monthlyReport.momComparison")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -373,10 +375,10 @@ export default function QualityMonthlyReport() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">指标</th>
-                          <th className="text-right py-2 pr-4">本月</th>
-                          <th className="text-right py-2 pr-4">上月</th>
-                          <th className="text-right py-2">变化</th>
+                          <th className="text-left py-2 pr-4">{t("quality.monthlyReport.headerMetric")}</th>
+                          <th className="text-right py-2 pr-4">{t("quality.monthlyReport.headerThisMonth")}</th>
+                          <th className="text-right py-2 pr-4">{t("quality.monthlyReport.headerLastMonth")}</th>
+                          <th className="text-right py-2">{t("quality.monthlyReport.headerChange")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -403,7 +405,7 @@ export default function QualityMonthlyReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ClipboardList className="h-5 w-5 text-primary" />
-                    行动项
+                    {t("quality.monthlyReport.actionItems")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -411,9 +413,9 @@ export default function QualityMonthlyReport() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">事项</th>
-                          <th className="text-left py-2 pr-4">负责人</th>
-                          <th className="text-left py-2">截止日期</th>
+                          <th className="text-left py-2 pr-4">{t("quality.monthlyReport.headerItem")}</th>
+                          <th className="text-left py-2 pr-4">{t("quality.monthlyReport.headerResponsible")}</th>
+                          <th className="text-left py-2">{t("quality.monthlyReport.headerDeadline")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -437,7 +439,7 @@ export default function QualityMonthlyReport() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-green-400" />
-                    AI建议
+                    {t("quality.monthlyReport.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

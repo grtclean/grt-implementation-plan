@@ -10,24 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Ticket, Loader2, Sparkles, AlertTriangle, CheckCircle, Clock, Wrench,
   Package, BookOpen,
 } from "lucide-react";
-
-const EQUIPMENT_MODELS = [
-  { value: "碳氢真空清洗机", label: "碳氢真空清洗机" },
-  { value: "水基清洗线", label: "水基清洗线" },
-  { value: "超声波清洗机", label: "超声波清洗机" },
-  { value: "定制设备", label: "定制设备" },
-];
-
-const URGENCY_LEVELS = [
-  { value: "紧急-停机", label: "紧急 — 设备停机/安全问题" },
-  { value: "高-性能下降", label: "高 — 性能严重下降" },
-  { value: "普通-功能受限", label: "普通 — 功能部分受限" },
-  { value: "低-咨询", label: "低 — 咨询/非紧急" },
-];
 
 interface TriageResult {
   ticketCategory: string;
@@ -43,6 +30,7 @@ interface TriageResult {
 }
 
 export default function CustomerRepairPortal() {
+  const { t } = useLanguage();
   const [customerName, setCustomerName] = useState("");
   const [equipmentModel, setEquipmentModel] = useState("碳氢真空清洗机");
   const [serialNumber, setSerialNumber] = useState("");
@@ -51,6 +39,20 @@ export default function CustomerRepairPortal() {
   const [operatingEnvironment, setOperatingEnvironment] = useState("");
   const [urgencyLevel, setUrgencyLevel] = useState("普通-功能受限");
   const [result, setResult] = useState<TriageResult | null>(null);
+
+  const EQUIPMENT_MODELS = [
+    { value: "碳氢真空清洗机", label: t("crm.repair.modelHydrocarbon") },
+    { value: "水基清洗线", label: t("crm.repair.modelWaterBased") },
+    { value: "超声波清洗机", label: t("crm.repair.modelUltrasonic") },
+    { value: "定制设备", label: t("crm.repair.modelCustom") },
+  ];
+
+  const URGENCY_LEVELS = [
+    { value: "紧急-停机", label: t("crm.repair.urgencyEmergency") },
+    { value: "高-性能下降", label: t("crm.repair.urgencyHigh") },
+    { value: "普通-功能受限", label: t("crm.repair.urgencyNormal") },
+    { value: "低-咨询", label: t("crm.repair.urgencyLow") },
+  ];
 
   const mutation = trpc.customerRepair.triage.useMutation({
     onSuccess: (data) => setResult(data as TriageResult),
@@ -89,26 +91,26 @@ export default function CustomerRepairPortal() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Ticket}
-          title="客户自助报修"
-          description="在线报修 · AI智能分诊 · 自助排查 · 工单自动创建"
-          actions={<Badge variant="outline" className="gap-1"><Sparkles className="h-3 w-3" />AI分诊</Badge>}
+          title={t("crm.repair.title")}
+          description={t("crm.repair.description")}
+          actions={<Badge variant="outline" className="gap-1"><Sparkles className="h-3 w-3" />{t("crm.repair.aiTriage")}</Badge>}
         />
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Ticket className="h-5 w-5 text-primary" />报修信息</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base"><Ticket className="h-5 w-5 text-primary" />{t("crm.repair.repairInfo")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">客户名称</label>
-                <Input placeholder="如: XX汽车零部件有限公司" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("crm.repair.customerName")}</label>
+                <Input placeholder={t("crm.repair.customerPlaceholder")} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">设备型号</label>
+                <label className="text-sm text-muted-foreground">{t("crm.repair.equipmentModel")}</label>
                 <Select value={equipmentModel} onValueChange={(v) => setEquipmentModel(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择设备型号" />
+                    <SelectValue placeholder={t("crm.repair.selectModel")} />
                   </SelectTrigger>
                   <SelectContent>
                     {EQUIPMENT_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
@@ -118,14 +120,14 @@ export default function CustomerRepairPortal() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">设备序列号（可选）</label>
-                <Input placeholder="如: GRT-VHC-2024-0158" value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("crm.repair.serialNumber")}</label>
+                <Input placeholder={t("crm.repair.serialPlaceholder")} value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">紧急程度</label>
+                <label className="text-sm text-muted-foreground">{t("crm.repair.urgencyLevel")}</label>
                 <Select value={urgencyLevel} onValueChange={(v) => setUrgencyLevel(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择紧急程度" />
+                    <SelectValue placeholder={t("crm.repair.selectUrgency")} />
                   </SelectTrigger>
                   <SelectContent>
                     {URGENCY_LEVELS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
@@ -134,23 +136,23 @@ export default function CustomerRepairPortal() {
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">故障描述</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[100px]" placeholder="请详细描述故障现象：&#10;1. 什么时候开始的？&#10;2. 有什么表现（异响/报警/效果差等）？&#10;3. 是否有规律（持续/间歇/特定条件触发）？" value={faultDescription} onChange={(e) => setFaultDescription(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("crm.repair.faultDescription")}</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[100px]" placeholder={t("crm.repair.faultPlaceholder")} value={faultDescription} onChange={(e) => setFaultDescription(e.target.value)} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">错误代码（可选）</label>
-                <Input placeholder="如: E-0012, ALM-VacuumLow" value={errorCodes} onChange={(e) => setErrorCodes(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("crm.repair.errorCodes")}</label>
+                <Input placeholder={t("crm.repair.errorCodesPlaceholder")} value={errorCodes} onChange={(e) => setErrorCodes(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">运行环境（可选）</label>
-                <Input placeholder="如: 环境温度35℃，连续运行" value={operatingEnvironment} onChange={(e) => setOperatingEnvironment(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("crm.repair.operatingEnv")}</label>
+                <Input placeholder={t("crm.repair.operatingEnvPlaceholder")} value={operatingEnvironment} onChange={(e) => setOperatingEnvironment(e.target.value)} />
               </div>
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!customerName.trim() || !faultDescription.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                提交报修 & AI分诊
+                {t("crm.repair.submitAndTriage")}
               </Button>
             </div>
           </CardContent>
@@ -167,12 +169,12 @@ export default function CustomerRepairPortal() {
                     <Badge variant="outline">{result.ticketCategory}</Badge>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 justify-end"><Clock className="h-3 w-3" />预计响应</p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 justify-end"><Clock className="h-3 w-3" />{t("crm.repair.estimatedResponse")}</p>
                     <p className="font-medium">{result.estimatedResponseTime}</p>
                   </div>
                 </div>
                 <div className="mt-3 p-3 rounded bg-muted/50">
-                  <p className="text-sm"><span className="text-muted-foreground">建议处置: </span>{result.recommendedAction}</p>
+                  <p className="text-sm"><span className="text-muted-foreground">{t("crm.repair.recommendedAction")}: </span>{result.recommendedAction}</p>
                 </div>
               </CardContent>
             </Card>
@@ -180,7 +182,7 @@ export default function CustomerRepairPortal() {
             {/* Possible Causes */}
             {result.possibleCauses.length > 0 && (
               <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><AlertTriangle className="h-5 w-5 text-yellow-400" />可能原因</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><AlertTriangle className="h-5 w-5 text-yellow-400" />{t("crm.repair.possibleCauses")}</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {result.possibleCauses.map((c, i) => (
@@ -202,7 +204,7 @@ export default function CustomerRepairPortal() {
             {/* Self-Help Steps */}
             {result.selfHelpSteps.length > 0 && (
               <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Wrench className="h-5 w-5 text-blue-400" />自助排查步骤</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Wrench className="h-5 w-5 text-blue-400" />{t("crm.repair.selfHelpSteps")}</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {result.selfHelpSteps.map((s, i) => (
@@ -219,14 +221,14 @@ export default function CustomerRepairPortal() {
             {/* Knowledge Base Matches */}
             {result.knowledgeBaseMatches.length > 0 && (
               <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><BookOpen className="h-5 w-5 text-primary" />相关知识库</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><BookOpen className="h-5 w-5 text-primary" />{t("crm.repair.knowledgeBase")}</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {result.knowledgeBaseMatches.map((kb, i) => (
                       <div key={i} className="p-3 rounded bg-muted/50">
                         <div className="flex items-center justify-between">
                           <p className="font-medium text-sm">{kb.title}</p>
-                          <Badge variant="outline" className="text-xs">匹配度 {kb.relevance}%</Badge>
+                          <Badge variant="outline" className="text-xs">{t("crm.repair.matchRate")} {kb.relevance}%</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">{kb.summary}</p>
                       </div>
@@ -239,7 +241,7 @@ export default function CustomerRepairPortal() {
             {/* Spare Parts */}
             {result.spareParts.length > 0 && (
               <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Package className="h-5 w-5 text-orange-400" />可能需要的备件</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Package className="h-5 w-5 text-orange-400" />{t("crm.repair.spareParts")}</CardTitle></CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {result.spareParts.map((sp, i) => (
@@ -253,7 +255,7 @@ export default function CustomerRepairPortal() {
             {/* Recommendations */}
             {result.recommendations.length > 0 && (
               <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CheckCircle className="h-5 w-5 text-primary" />AI建议</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CheckCircle className="h-5 w-5 text-primary" />{t("crm.repair.aiRecommendations")}</CardTitle></CardHeader>
                 <CardContent>
                   <ul className="space-y-2">{result.recommendations.map((r, i) => (<li key={i} className="flex items-start gap-2 text-sm"><span className="text-primary font-medium flex-shrink-0">{i + 1}.</span><span>{r}</span></li>))}</ul>
                 </CardContent>

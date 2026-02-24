@@ -23,6 +23,7 @@ import {
   XCircle
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   LineChart,
   Line,
@@ -37,6 +38,7 @@ import {
 } from "recharts";
 
 export default function EmployeeTimeDetails() {
+  const { t } = useLanguage();
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const employeeId = parseInt(params.id || "0", 10);
@@ -58,13 +60,13 @@ export default function EmployeeTimeDetails() {
     return (
         <div className="flex flex-col items-center justify-center h-96 gap-4">
           <XCircle className="w-16 h-16 text-destructive" />
-          <h2 className="text-xl font-semibold">员工数据加载失败</h2>
+          <h2 className="text-xl font-semibold">{t("hr.timeDetails.loadFailed")}</h2>
           <p className="text-muted-foreground">
-            {error?.message || "未找到该员工信息"}
+            {error?.message || t("hr.timeDetails.employeeNotFound")}
           </p>
           <Button onClick={() => setLocation("/compliance-dashboard")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            返回合规仪表板
+            {t("hr.timeDetails.backToDashboard")}
           </Button>
         </div>
     );
@@ -86,17 +88,17 @@ export default function EmployeeTimeDetails() {
   const getComplianceBadge = (flag: string) => {
     switch (flag) {
       case "COMPLIANT":
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">合规</Badge>;
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">{t("hr.timeDetails.compliant")}</Badge>;
       case "VIOLATION_10H_LIMIT":
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">超10小时</Badge>;
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{t("hr.timeDetails.over10h")}</Badge>;
       case "VIOLATION_REST_PERIOD":
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">休息不足</Badge>;
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{t("hr.timeDetails.restInsufficient")}</Badge>;
       case "EXEMPTION_AT_RISK":
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">豁免风险</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{t("hr.timeDetails.exemptionRisk")}</Badge>;
       case "OVERTIME_WARNING":
-        return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">加班预警</Badge>;
+        return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">{t("hr.timeDetails.overtimeWarning")}</Badge>;
       default:
-        return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30">待审核</Badge>;
+        return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30">{t("hr.timeDetails.pendingReview")}</Badge>;
     }
   };
 
@@ -104,11 +106,11 @@ export default function EmployeeTimeDetails() {
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
       case "critical":
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">严重</Badge>;
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{t("hr.timeDetails.critical")}</Badge>;
       case "warning":
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">警告</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{t("hr.timeDetails.warning")}</Badge>;
       default:
-        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">提示</Badge>;
+        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">{t("hr.timeDetails.info")}</Badge>;
     }
   };
 
@@ -116,13 +118,13 @@ export default function EmployeeTimeDetails() {
   const getAlertStatusBadge = (status: string) => {
     switch (status) {
       case "open":
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">待处理</Badge>;
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{t("hr.timeDetails.pending")}</Badge>;
       case "acknowledged":
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">已确认</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{t("hr.timeDetails.acknowledged")}</Badge>;
       case "resolved":
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">已解决</Badge>;
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">{t("hr.timeDetails.resolved")}</Badge>;
       case "escalated":
-        return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">已升级</Badge>;
+        return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">{t("hr.timeDetails.escalated")}</Badge>;
       default:
         return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30">{status}</Badge>;
     }
@@ -133,8 +135,8 @@ export default function EmployeeTimeDetails() {
         {/* 页面标题 */}
         <PageHeader
           icon={Clock}
-          title="员工工时详情"
-          description="查看员工的完整工时记录和合规状态"
+          title={t("hr.timeDetails.title")}
+          description={t("hr.timeDetails.description")}
         />
 
         {/* 员工基本信息卡片 */}
@@ -157,7 +159,7 @@ export default function EmployeeTimeDetails() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm text-muted-foreground">员工编号</div>
+                <div className="text-sm text-muted-foreground">{t("hr.timeDetails.employeeNumber")}</div>
                 <div className="font-mono text-lg">{employee.employeeNumber}</div>
               </div>
             </div>
@@ -167,21 +169,21 @@ export default function EmployeeTimeDetails() {
               <div className="p-4 rounded-lg bg-background/50 border border-border">
                 <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                   <Clock className="w-4 h-4" />
-                  本周工时
+                  {t("hr.timeDetails.weeklyHours")}
                 </div>
                 <div className="text-2xl font-bold">{stats.totalHoursThisWeek.toFixed(1)}h</div>
               </div>
               <div className="p-4 rounded-lg bg-background/50 border border-border">
                 <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                   <AlertTriangle className="w-4 h-4" />
-                  待处理预警
+                  {t("hr.timeDetails.openAlerts")}
                 </div>
                 <div className="text-2xl font-bold text-red-400">{stats.openAlerts}</div>
               </div>
               <div className="p-4 rounded-lg bg-background/50 border border-border">
                 <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                   <CheckCircle2 className="w-4 h-4" />
-                  已解决预警
+                  {t("hr.timeDetails.resolvedAlerts")}
                 </div>
                 <div className="text-2xl font-bold text-green-400">{stats.resolvedAlerts}</div>
               </div>
@@ -192,7 +194,7 @@ export default function EmployeeTimeDetails() {
                   ) : (
                     <TrendingDown className="w-4 h-4 text-red-400" />
                   )}
-                  合规率
+                  {t("hr.timeDetails.complianceRate")}
                 </div>
                 <div className={`text-2xl font-bold ${stats.complianceRate >= 80 ? 'text-green-400' : 'text-red-400'}`}>
                   {stats.complianceRate}%
@@ -208,9 +210,9 @@ export default function EmployeeTimeDetails() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                周工时趋势
+                {t("hr.timeDetails.weeklyTrend")}
               </CardTitle>
-              <CardDescription>最近8周的工时变化趋势</CardDescription>
+              <CardDescription>{t("hr.timeDetails.weeklyTrendDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -235,8 +237,8 @@ export default function EmployeeTimeDetails() {
                       labelFormatter={(value) => formatDate(value)}
                     />
                     <Legend />
-                    <Bar dataKey="regularHours" name="正常工时" fill="hsl(var(--primary))" stackId="hours" />
-                    <Bar dataKey="overtimeHours" name="加班工时" fill="#f97316" stackId="hours" />
+                    <Bar dataKey="regularHours" name={t("hr.timeDetails.regularHours")} fill="hsl(var(--primary))" stackId="hours" />
+                    <Bar dataKey="overtimeHours" name={t("hr.timeDetails.overtimeHours")} fill="#f97316" stackId="hours" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -249,11 +251,11 @@ export default function EmployeeTimeDetails() {
           <TabsList className="bg-card/50 border border-border">
             <TabsTrigger value="timeEntries" className="data-[state=active]:bg-primary/20">
               <Clock className="w-4 h-4 mr-2" />
-              工时记录
+              {t("hr.timeDetails.timeEntries")}
             </TabsTrigger>
             <TabsTrigger value="alerts" className="data-[state=active]:bg-primary/20">
               <AlertTriangle className="w-4 h-4 mr-2" />
-              预警记录
+              {t("hr.timeDetails.alertRecords")}
             </TabsTrigger>
           </TabsList>
 
@@ -263,28 +265,28 @@ export default function EmployeeTimeDetails() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-primary" />
-                  工时记录
+                  {t("hr.timeDetails.timeEntries")}
                 </CardTitle>
-                <CardDescription>最近100条工时记录</CardDescription>
+                <CardDescription>{t("hr.timeDetails.timeEntriesDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border border-border overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead>日期</TableHead>
-                        <TableHead>正常工时</TableHead>
-                        <TableHead>加班工时</TableHead>
-                        <TableHead>总工时</TableHead>
-                        <TableHead>合规状态</TableHead>
-                        <TableHead>审批状态</TableHead>
+                        <TableHead>{t("hr.timeDetails.date")}</TableHead>
+                        <TableHead>{t("hr.timeDetails.regularHours")}</TableHead>
+                        <TableHead>{t("hr.timeDetails.overtimeHours")}</TableHead>
+                        <TableHead>{t("hr.timeDetails.totalHours")}</TableHead>
+                        <TableHead>{t("hr.timeDetails.complianceStatus")}</TableHead>
+                        <TableHead>{t("hr.timeDetails.approvalStatus")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {timeEntries.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            暂无工时记录
+                            {t("hr.timeDetails.noTimeEntries")}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -299,11 +301,11 @@ export default function EmployeeTimeDetails() {
                             <TableCell>{getComplianceBadge(entry.complianceFlag || 'PENDING_REVIEW')}</TableCell>
                             <TableCell>
                               {entry.supervisorApproval === 'approved' ? (
-                                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">已批准</Badge>
+                                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">{t("hr.timeDetails.approved")}</Badge>
                               ) : entry.supervisorApproval === 'rejected' ? (
-                                <Badge className="bg-red-500/20 text-red-400 border-red-500/30">已拒绝</Badge>
+                                <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{t("hr.timeDetails.rejected")}</Badge>
                               ) : (
-                                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">待审批</Badge>
+                                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{t("hr.timeDetails.pendingApproval")}</Badge>
                               )}
                             </TableCell>
                           </TableRow>
@@ -322,27 +324,27 @@ export default function EmployeeTimeDetails() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-primary" />
-                  预警记录
+                  {t("hr.timeDetails.alertRecords")}
                 </CardTitle>
-                <CardDescription>最近50条合规预警记录</CardDescription>
+                <CardDescription>{t("hr.timeDetails.alertRecordsDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border border-border overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead>时间</TableHead>
-                        <TableHead>类型</TableHead>
-                        <TableHead>严重程度</TableHead>
-                        <TableHead>描述</TableHead>
-                        <TableHead>状态</TableHead>
+                        <TableHead>{t("hr.timeDetails.time")}</TableHead>
+                        <TableHead>{t("hr.timeDetails.type")}</TableHead>
+                        <TableHead>{t("hr.timeDetails.severity")}</TableHead>
+                        <TableHead>{t("hr.timeDetails.descriptionCol")}</TableHead>
+                        <TableHead>{t("hr.timeDetails.status")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {alerts.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                            暂无预警记录
+                            {t("hr.timeDetails.noAlertRecords")}
                           </TableCell>
                         </TableRow>
                       ) : (

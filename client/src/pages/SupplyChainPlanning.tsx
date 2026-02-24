@@ -7,6 +7,7 @@
  * Area 3: Supply Chain Delivery Plan (供应链交付计划)
  */
 import { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,26 +57,29 @@ function todayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: "草稿",
-  active: "进行中",
-  on_hold: "暂停",
-  completed: "已完成",
-  cancelled: "已取消",
-  sent: "已发送",
-  confirmed: "已确认",
-  partially_received: "部分收货",
-  received: "已收货",
-  pending: "待处理",
-  qc_pending: "待质检",
-  qc_passed: "质检通过",
-  qc_failed: "质检不通过",
-  warehouse_confirmed: "已入库",
-  rejected: "已拒绝",
-  signed: "已签署",
-  expired: "已过期",
-  terminated: "已终止",
-};
+function useStatusLabels() {
+  const { t } = useLanguage();
+  return {
+    draft: t("supply.planning.statusDraft"),
+    active: t("supply.planning.statusActive"),
+    on_hold: t("supply.planning.statusOnHold"),
+    completed: t("supply.planning.statusCompleted"),
+    cancelled: t("supply.planning.statusCancelled"),
+    sent: t("supply.planning.statusSent"),
+    confirmed: t("supply.planning.statusConfirmed"),
+    partially_received: t("supply.planning.statusPartiallyReceived"),
+    received: t("supply.planning.statusReceived"),
+    pending: t("supply.planning.statusPending"),
+    qc_pending: t("supply.planning.statusQCPending"),
+    qc_passed: t("supply.planning.statusQCPassed"),
+    qc_failed: t("supply.planning.statusQCFailed"),
+    warehouse_confirmed: t("supply.planning.statusWarehouseConfirmed"),
+    rejected: t("supply.planning.statusRejected"),
+    signed: t("supply.planning.statusSigned"),
+    expired: t("supply.planning.statusExpired"),
+    terminated: t("supply.planning.statusTerminated"),
+  } as Record<string, string>;
+}
 
 function statusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
   if (["completed", "received", "qc_passed", "warehouse_confirmed", "signed", "active"].includes(status)) return "default";
@@ -94,6 +98,8 @@ function projectProgressColor(percent: number): string {
 // ─── Area 1: Company Project Plan ─────────────────────────────
 
 function CompanyProjectPlan() {
+  const { t, tpl } = useLanguage();
+  const STATUS_LABELS = useStatusLabels();
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState("");
   const projectsQuery = trpc.project.list.useQuery();
@@ -143,8 +149,8 @@ function CompanyProjectPlan() {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <FolderKanban className="w-5 h-5 text-blue-500" />
-            公司级项目计划
-            <Badge variant="outline" className="ml-2">{stats.total} 个项目</Badge>
+            {t("supply.planning.companyProjectPlan")}
+            <Badge variant="outline" className="ml-2">{stats.total} {t("supply.planning.projectsUnit")}</Badge>
           </CardTitle>
           {collapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
         </div>
@@ -158,28 +164,28 @@ function CompanyProjectPlan() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard
                   icon={FolderKanban}
-                  label="项目总数"
+                  label={t("supply.planning.totalProjects")}
                   value={stats.total}
                   iconColor="text-blue-500"
                   iconBg="bg-blue-500/10"
                 />
                 <StatCard
                   icon={Target}
-                  label="进行中"
+                  label={t("supply.planning.statusActive")}
                   value={stats.active}
                   iconColor="text-green-500"
                   iconBg="bg-green-500/10"
                 />
                 <StatCard
                   icon={AlertTriangle}
-                  label="超期风险"
+                  label={t("supply.planning.overdueRisk")}
                   value={stats.atRisk}
                   iconColor="text-red-500"
                   iconBg="bg-red-500/10"
                 />
                 <StatCard
                   icon={TrendingUp}
-                  label="完成率"
+                  label={t("supply.planning.completionRate")}
                   value={`${stats.completionRate}%`}
                   iconColor="text-purple-500"
                   iconBg="bg-purple-500/10"
@@ -190,7 +196,7 @@ function CompanyProjectPlan() {
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="搜索项目名称或编号..."
+                    placeholder={t("supply.planning.searchProjectName")}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="pl-9"
@@ -201,16 +207,16 @@ function CompanyProjectPlan() {
                   size="sm"
                   onClick={() => {
                     projectsQuery.refetch();
-                    toast.success("项目数据已刷新");
+                    toast.success(t("supply.planning.projectDataRefreshed"));
                   }}
                 >
-                  刷新
+                  {t("supply.planning.refresh")}
                 </Button>
               </div>
 
               <div className="space-y-3">
                 {projects.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">暂无项目数据</div>
+                  <div className="text-center py-8 text-muted-foreground">{t("supply.planning.noProjectData")}</div>
                 )}
                 {projects.map((project) => {
                   const overdue = isOverdue(project);
@@ -243,11 +249,11 @@ function CompanyProjectPlan() {
                             {overdue && (
                               <Badge variant="destructive" className="gap-1">
                                 <AlertTriangle className="w-3 h-3" />
-                                超期
+                                {t("supply.planning.overdue")}
                               </Badge>
                             )}
                             {project.priority === "critical" && (
-                              <Badge variant="destructive" className="text-xs">紧急</Badge>
+                              <Badge variant="destructive" className="text-xs">{t("supply.planning.urgent")}</Badge>
                             )}
                           </div>
                           <h4 className="font-medium truncate">{project.name}</h4>
@@ -259,23 +265,23 @@ function CompanyProjectPlan() {
                             {totalDays !== null && (
                               <span className="flex items-center gap-1">
                                 <Timer className="w-3.5 h-3.5" />
-                                {totalDays} 天
+                                {tpl("supply.planning.days", { count: totalDays })}
                               </span>
                             )}
                             {project.currentPhase && (
                               <span className="flex items-center gap-1">
                                 <CircleDot className="w-3.5 h-3.5" />
-                                阶段: {project.currentPhase}
+                                {t("supply.planning.phase")}: {project.currentPhase}
                               </span>
                             )}
                           </div>
                         </div>
                         <div className="w-32 text-right shrink-0">
-                          <div className="text-sm font-medium mb-1">完成 {percent}%</div>
+                          <div className="text-sm font-medium mb-1">{tpl("supply.planning.completed", { percent })}</div>
                           <Progress value={percent} className="h-2" />
                           {timeProgress > 0 && (
                             <div className="text-xs text-muted-foreground mt-1">
-                              时间进度: {timeProgress}%
+                              {tpl("supply.planning.timeProgress", { percent: timeProgress })}
                             </div>
                           )}
                         </div>
@@ -295,6 +301,8 @@ function CompanyProjectPlan() {
 // ─── Area 2: Production Delivery Plan ─────────────────────────
 
 function ProductionDeliveryPlan() {
+  const { t, tpl } = useLanguage();
+  const STATUS_LABELS = useStatusLabels();
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState("");
   const posQuery = trpc.procurement.getPurchaseOrders.useQuery({
@@ -358,19 +366,19 @@ function ProductionDeliveryPlan() {
     if (po.actualDeliveryDate) {
       const diff = daysBetween(po.expectedDeliveryDate, po.actualDeliveryDate);
       if (diff === null) return { days: null, label: "—", color: "text-muted-foreground" };
-      if (diff <= 0) return { days: diff, label: `提前 ${Math.abs(diff)} 天`, color: "text-green-600" };
-      if (diff <= 3) return { days: diff, label: `延迟 ${diff} 天`, color: "text-amber-600" };
-      return { days: diff, label: `延迟 ${diff} 天`, color: "text-red-600" };
+      if (diff <= 0) return { days: diff, label: tpl("supply.planning.earlyDays", { count: Math.abs(diff) }), color: "text-green-600" };
+      if (diff <= 3) return { days: diff, label: tpl("supply.planning.delayedDays", { count: diff }), color: "text-amber-600" };
+      return { days: diff, label: tpl("supply.planning.delayedDays", { count: diff }), color: "text-red-600" };
     }
     if (po.expectedDeliveryDate < today) {
       const diff = daysBetween(po.expectedDeliveryDate, today);
       if (diff !== null && diff > 0)
-        return { days: diff, label: `超期 ${diff} 天`, color: "text-red-600" };
+        return { days: diff, label: tpl("supply.planning.overdueDays", { count: diff }), color: "text-red-600" };
     }
     const daysUntil = daysBetween(today, po.expectedDeliveryDate);
     if (daysUntil !== null && daysUntil <= 3 && daysUntil >= 0)
-      return { days: daysUntil, label: `${daysUntil} 天内到期`, color: "text-amber-600" };
-    return { days: null, label: "待交付", color: "text-muted-foreground" };
+      return { days: daysUntil, label: tpl("supply.planning.dueSoon", { count: daysUntil }), color: "text-amber-600" };
+    return { days: null, label: t("supply.planning.pendingDelivery"), color: "text-muted-foreground" };
   }
 
   function deliveryStatusBadge(po: {
@@ -379,24 +387,24 @@ function ProductionDeliveryPlan() {
     status: string;
   }) {
     if (po.status === "received" || po.status === "partially_received") {
-      return <Badge variant="default">已收货</Badge>;
+      return <Badge variant="default">{t("supply.planning.received")}</Badge>;
     }
     if (po.status === "cancelled") {
-      return <Badge variant="destructive">已取消</Badge>;
+      return <Badge variant="destructive">{t("supply.planning.cancelled")}</Badge>;
     }
     if (po.actualDeliveryDate) {
       const diff = daysBetween(po.expectedDeliveryDate, po.actualDeliveryDate);
-      if (diff !== null && diff <= 0) return <Badge className="bg-green-600">准时</Badge>;
-      return <Badge variant="destructive">延迟</Badge>;
+      if (diff !== null && diff <= 0) return <Badge className="bg-green-600">{t("supply.planning.onTime")}</Badge>;
+      return <Badge variant="destructive">{t("supply.planning.delayed")}</Badge>;
     }
     if (po.expectedDeliveryDate < today) {
-      return <Badge variant="destructive">超期未交</Badge>;
+      return <Badge variant="destructive">{t("supply.planning.overdueNotDelivered")}</Badge>;
     }
     const daysUntil = daysBetween(today, po.expectedDeliveryDate);
     if (daysUntil !== null && daysUntil <= 3) {
-      return <Badge className="bg-amber-500 text-white">即将到期</Badge>;
+      return <Badge className="bg-amber-500 text-white">{t("supply.planning.expiringLabel")}</Badge>;
     }
-    return <Badge variant="outline">待交付</Badge>;
+    return <Badge variant="outline">{t("supply.planning.pendingDelivery")}</Badge>;
   }
 
   return (
@@ -408,8 +416,8 @@ function ProductionDeliveryPlan() {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Factory className="w-5 h-5 text-orange-500" />
-            生产交付计划
-            <Badge variant="outline" className="ml-2">{stats.total} 笔订单</Badge>
+            {t("supply.planning.productionDeliveryPlan")}
+            <Badge variant="outline" className="ml-2">{tpl("supply.planning.orderCount", { count: stats.total })}</Badge>
           </CardTitle>
           {collapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
         </div>
@@ -423,28 +431,28 @@ function ProductionDeliveryPlan() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard
                   icon={Package}
-                  label="订单总数"
+                  label={t("supply.planning.orderTotal")}
                   value={stats.total}
                   iconColor="text-blue-500"
                   iconBg="bg-blue-500/10"
                 />
                 <StatCard
                   icon={CheckCircle2}
-                  label="准时率"
+                  label={t("supply.planning.onTimeRate")}
                   value={`${stats.onTimeRate}%`}
                   iconColor="text-green-500"
                   iconBg="bg-green-500/10"
                 />
                 <StatCard
                   icon={AlertTriangle}
-                  label="延迟订单"
+                  label={t("supply.planning.delayedOrders")}
                   value={stats.delayed}
                   iconColor="text-red-500"
                   iconBg="bg-red-500/10"
                 />
                 <StatCard
                   icon={CalendarDays}
-                  label="本月交付"
+                  label={t("supply.planning.monthlyDelivery")}
                   value={stats.thisMonth}
                   iconColor="text-purple-500"
                   iconBg="bg-purple-500/10"
@@ -455,7 +463,7 @@ function ProductionDeliveryPlan() {
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="搜索PO编号、物料或供应商..."
+                    placeholder={t("supply.planning.searchPoMaterialSupplier")}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="pl-9"
@@ -466,10 +474,10 @@ function ProductionDeliveryPlan() {
                   size="sm"
                   onClick={() => {
                     posQuery.refetch();
-                    toast.success("采购订单已刷新");
+                    toast.success(t("supply.planning.purchaseOrderRefreshed"));
                   }}
                 >
-                  刷新
+                  {t("supply.planning.refresh")}
                 </Button>
               </div>
 
@@ -477,20 +485,20 @@ function ProductionDeliveryPlan() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 px-3 font-medium">PO编号</th>
-                      <th className="py-2 px-3 font-medium">物料</th>
-                      <th className="py-2 px-3 font-medium">供应商</th>
-                      <th className="py-2 px-3 font-medium">计划交期</th>
-                      <th className="py-2 px-3 font-medium">实际交期</th>
-                      <th className="py-2 px-3 font-medium">状态</th>
-                      <th className="py-2 px-3 font-medium text-right">偏差</th>
+                      <th className="py-2 px-3 font-medium">{t("supply.planning.thPoNumber")}</th>
+                      <th className="py-2 px-3 font-medium">{t("supply.planning.thMaterial")}</th>
+                      <th className="py-2 px-3 font-medium">{t("supply.planning.thSupplier")}</th>
+                      <th className="py-2 px-3 font-medium">{t("supply.planning.thPlannedDelivery")}</th>
+                      <th className="py-2 px-3 font-medium">{t("supply.planning.thActualDelivery")}</th>
+                      <th className="py-2 px-3 font-medium">{t("supply.planning.thStatus")}</th>
+                      <th className="py-2 px-3 font-medium text-right">{t("supply.planning.thVariance")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredPOs.length === 0 && (
                       <tr>
                         <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                          暂无采购订单数据
+                          {t("supply.planning.noPurchaseOrderData")}
                         </td>
                       </tr>
                     )}
@@ -527,6 +535,8 @@ function ProductionDeliveryPlan() {
 // ─── Area 3: Supply Chain Delivery Plan ───────────────────────
 
 function SupplyChainDeliveryPlan() {
+  const { t, tpl } = useLanguage();
+  const STATUS_LABELS = useStatusLabels();
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState("");
   const deliveryQuery = trpc.p2p.delivery.list.useQuery();
@@ -601,24 +611,24 @@ function SupplyChainDeliveryPlan() {
     status: string | null;
   }): { icon: typeof CheckCircle2; label: string; color: string } {
     if (!delivery.poNumber || !poMap.has(delivery.poNumber)) {
-      return { icon: ArrowRightLeft, label: "未关联PO", color: "text-muted-foreground" };
+      return { icon: ArrowRightLeft, label: t("supply.planning.notLinkedPo"), color: "text-muted-foreground" };
     }
     const po = poMap.get(delivery.poNumber)!;
     if (delivery.receivedAt && po.expectedDeliveryDate) {
       const diff = daysBetween(po.expectedDeliveryDate, delivery.receivedAt);
-      if (diff === null) return { icon: Clock, label: "无法计算", color: "text-muted-foreground" };
-      if (diff <= 0) return { icon: CheckCircle2, label: `提前 ${Math.abs(diff)} 天到货`, color: "text-green-600" };
-      if (diff <= 2) return { icon: Clock, label: `延迟 ${diff} 天`, color: "text-amber-600" };
-      return { icon: AlertTriangle, label: `严重延迟 ${diff} 天`, color: "text-red-600" };
+      if (diff === null) return { icon: Clock, label: t("supply.planning.cannotCalculate"), color: "text-muted-foreground" };
+      if (diff <= 0) return { icon: CheckCircle2, label: tpl("supply.planning.earlyDeliveryDays", { count: Math.abs(diff) }), color: "text-green-600" };
+      if (diff <= 2) return { icon: Clock, label: tpl("supply.planning.delayedDays", { count: diff }), color: "text-amber-600" };
+      return { icon: AlertTriangle, label: tpl("supply.planning.severeDelayDays", { count: diff }), color: "text-red-600" };
     }
     if (po.expectedDeliveryDate < today) {
-      return { icon: AlertTriangle, label: "超期未到货", color: "text-red-600" };
+      return { icon: AlertTriangle, label: t("supply.planning.overdueNotArrived"), color: "text-red-600" };
     }
     const daysUntil = daysBetween(today, po.expectedDeliveryDate);
     if (daysUntil !== null && daysUntil <= 3) {
-      return { icon: Timer, label: `${daysUntil} 天内到期`, color: "text-amber-600" };
+      return { icon: Timer, label: tpl("supply.planning.dueSoonDays", { count: daysUntil }), color: "text-amber-600" };
     }
-    return { icon: Clock, label: "等待到货", color: "text-muted-foreground" };
+    return { icon: Clock, label: t("supply.planning.waitingForDelivery"), color: "text-muted-foreground" };
   }
 
   const isLoading = deliveryQuery.isLoading || agreementsQuery.isLoading || posQuery.isLoading;
@@ -632,8 +642,8 @@ function SupplyChainDeliveryPlan() {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Truck className="w-5 h-5 text-green-500" />
-            供应链交付计划
-            <Badge variant="outline" className="ml-2">{stats.totalDeliveries} 条到货</Badge>
+            {t("supply.planning.supplyChainDeliveryPlan")}
+            <Badge variant="outline" className="ml-2">{tpl("supply.planning.deliveryCount", { count: stats.totalDeliveries })}</Badge>
           </CardTitle>
           {collapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
         </div>
@@ -647,28 +657,28 @@ function SupplyChainDeliveryPlan() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard
                   icon={Package}
-                  label="待处理到货"
+                  label={t("supply.planning.pendingDeliveries")}
                   value={stats.pending}
                   iconColor="text-blue-500"
                   iconBg="bg-blue-500/10"
                 />
                 <StatCard
                   icon={FileText}
-                  label="框架协议"
+                  label={t("supply.planning.frameworkAgreements")}
                   value={stats.activeAgreements}
                   iconColor="text-indigo-500"
                   iconBg="bg-indigo-500/10"
                 />
                 <StatCard
                   icon={AlertTriangle}
-                  label="交付风险"
+                  label={t("supply.planning.deliveryRisk")}
                   value={stats.riskCount}
                   iconColor="text-red-500"
                   iconBg="bg-red-500/10"
                 />
                 <StatCard
                   icon={BarChart3}
-                  label="到货总数"
+                  label={t("supply.planning.totalDeliveryCount")}
                   value={stats.totalDeliveries}
                   iconColor="text-emerald-500"
                   iconBg="bg-emerald-500/10"
@@ -679,7 +689,7 @@ function SupplyChainDeliveryPlan() {
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="搜索到货单号、物料或供应商..."
+                    placeholder={t("supply.planning.searchDelivery")}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="pl-9"
@@ -691,16 +701,16 @@ function SupplyChainDeliveryPlan() {
                   onClick={() => {
                     deliveryQuery.refetch();
                     agreementsQuery.refetch();
-                    toast.success("供应链数据已刷新");
+                    toast.success(t("supply.planning.supplyChainRefreshed"));
                   }}
                 >
-                  刷新
+                  {t("supply.planning.refresh")}
                 </Button>
               </div>
 
               <div className="space-y-3">
                 {deliveries.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">暂无到货登记数据</div>
+                  <div className="text-center py-8 text-muted-foreground">{t("supply.planning.noDeliveryData")}</div>
                 )}
                 {deliveries.map((delivery) => {
                   const alignment = getAlignmentInfo(delivery as any);
@@ -733,7 +743,7 @@ function SupplyChainDeliveryPlan() {
                           </div>
                           <div className="flex items-center gap-4">
                             <h4 className="font-medium">
-                              {delivery.materialName ?? "未指定物料"}
+                              {delivery.materialName ?? t("supply.planning.unspecifiedMaterial")}
                             </h4>
                             {delivery.supplierName && (
                               <span className="text-sm text-muted-foreground">
@@ -745,19 +755,19 @@ function SupplyChainDeliveryPlan() {
                             {delivery.deliveredQuantity && (
                               <span className="flex items-center gap-1">
                                 <Package className="w-3.5 h-3.5" />
-                                数量: {delivery.deliveredQuantity} {delivery.unit ?? ""}
+                                {t("supply.planning.quantityLabel")}: {delivery.deliveredQuantity} {delivery.unit ?? ""}
                               </span>
                             )}
                             {delivery.receivedAt && (
                               <span className="flex items-center gap-1">
                                 <CalendarDays className="w-3.5 h-3.5" />
-                                到货: {formatDate(delivery.receivedAt)}
+                                {t("supply.planning.deliveredAt")}: {formatDate(delivery.receivedAt)}
                               </span>
                             )}
                             {linkedPO && (
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3.5 h-3.5" />
-                                PO交期: {formatDate(linkedPO.expectedDeliveryDate)}
+                                {t("supply.planning.poDeliveryDate")}: {formatDate(linkedPO.expectedDeliveryDate)}
                               </span>
                             )}
                           </div>
@@ -769,7 +779,7 @@ function SupplyChainDeliveryPlan() {
                           </div>
                           {delivery.trackingNumber && (
                             <div className="text-xs text-muted-foreground mt-1">
-                              物流: {delivery.trackingNumber}
+                              {t("supply.planning.logistics")}: {delivery.trackingNumber}
                             </div>
                           )}
                         </div>
@@ -783,7 +793,7 @@ function SupplyChainDeliveryPlan() {
                 <div className="mt-6">
                   <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4" />
-                    有效框架协议
+                    {t("supply.planning.validFrameworkAgreements")}
                   </h4>
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {(agreementsQuery.data?.items ?? [])
@@ -807,11 +817,11 @@ function SupplyChainDeliveryPlan() {
                                   variant={isExpiring ? "destructive" : "default"}
                                   className="text-xs"
                                 >
-                                  {isExpiring ? "即将到期" : STATUS_LABELS[agreement.status ?? "draft"] ?? agreement.status}
+                                  {isExpiring ? t("supply.planning.expiringBadge") : STATUS_LABELS[agreement.status ?? "draft"] ?? agreement.status}
                                 </Badge>
                               </div>
                               <div className="font-medium text-sm truncate">
-                                {agreement.title ?? agreement.supplierName ?? "未命名协议"}
+                                {agreement.title ?? agreement.supplierName ?? t("supply.planning.unnamedAgreement")}
                               </div>
                               <div className="text-xs text-muted-foreground mt-1">
                                 {formatDate(String(agreement.startDate))} → {formatDate(String(agreement.endDate))}
@@ -819,7 +829,7 @@ function SupplyChainDeliveryPlan() {
                               {budget > 0 && (
                                 <div className="mt-2">
                                   <div className="flex justify-between text-xs mb-1">
-                                    <span>预算使用</span>
+                                    <span>{t("supply.planning.budgetUsage")}</span>
                                     <span>{utilization}%</span>
                                   </div>
                                   <Progress value={utilization} className="h-1.5" />
@@ -846,12 +856,13 @@ function SupplyChainDeliveryPlan() {
 // ─── Main Page ────────────────────────────────────────────────
 
 export default function SupplyChainPlanning() {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       <PageHeader
         icon={CalendarClock}
-        title="供应链计划"
-        description="项目→生产→供应链 三级计划联动与风险预警"
+        title={t("supply.planning.title")}
+        description={t("supply.planning.fullDesc")}
       />
       <CompanyProjectPlan />
       <ProductionDeliveryPlan />

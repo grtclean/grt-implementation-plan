@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   CalendarDays, Loader2, Sparkles, CheckCircle, AlertTriangle, Clock, Calendar, ListChecks,
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const REGIONS = [
   { value: "CN", label: "中国" },
@@ -31,6 +32,7 @@ interface WorkingDaysResult {
 }
 
 export default function WorkingDaysCalculator() {
+  const { t } = useLanguage();
   const [startDate, setStartDate] = useState("");
   const [estimatedDays, setEstimatedDays] = useState("");
   const [region, setRegion] = useState("CN");
@@ -56,12 +58,12 @@ export default function WorkingDaysCalculator() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={CalendarDays}
-          title="工作日计算器"
-          description="节假日感知 · 多地区支持 · 缓冲天数 · 关键时段预警"
+          title={t("hr.workDays.title")}
+          description={t("hr.workDays.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI计算
+              {t("hr.workDays.aiCalculate")}
             </Badge>
           }
         />
@@ -71,13 +73,13 @@ export default function WorkingDaysCalculator() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <CalendarDays className="h-5 w-5 text-primary" />
-              计算参数
+              {t("hr.workDays.calcParams")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">开始日期 *</label>
+                <label className="text-sm text-muted-foreground">{t("hr.workDays.startDate")} *</label>
                 <Input
                   type="date"
                   value={startDate}
@@ -85,10 +87,10 @@ export default function WorkingDaysCalculator() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">所需工作日 *</label>
+                <label className="text-sm text-muted-foreground">{t("hr.workDays.requiredDays")} *</label>
                 <Input
                   type="number"
-                  placeholder="所需工作日"
+                  placeholder={t("hr.workDays.requiredDays")}
                   value={estimatedDays}
                   onChange={(e) => setEstimatedDays(e.target.value)}
                 />
@@ -96,10 +98,10 @@ export default function WorkingDaysCalculator() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">地区</label>
+                <label className="text-sm text-muted-foreground">{t("hr.workDays.region")}</label>
                 <Select value={region} onValueChange={(v) => setRegion(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择地区" />
+                    <SelectValue placeholder={t("hr.workDays.selectRegion")} />
                   </SelectTrigger>
                   <SelectContent>
                     {REGIONS.map((r) => (
@@ -109,7 +111,7 @@ export default function WorkingDaysCalculator() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">缓冲选项</label>
+                <label className="text-sm text-muted-foreground">{t("hr.workDays.bufferOption")}</label>
                 <div className="flex items-center gap-2 h-[38px]">
                   <input
                     type="checkbox"
@@ -118,14 +120,14 @@ export default function WorkingDaysCalculator() {
                     onChange={(e) => setIncludeBuffer(e.target.checked)}
                     className="h-4 w-4 rounded border-gray-600 bg-background"
                   />
-                  <label htmlFor="includeBuffer" className="text-sm">包含10%缓冲天数</label>
+                  <label htmlFor="includeBuffer" className="text-sm">{t("hr.workDays.includeBuffer")}</label>
                 </div>
               </div>
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!startDate || !estimatedDays || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                计算工作日
+                {t("hr.workDays.calculate")}
               </Button>
             </div>
           </CardContent>
@@ -139,7 +141,7 @@ export default function WorkingDaysCalculator() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-2">
                   <Calendar className="h-6 w-6 text-primary" />
-                  <p className="text-sm text-muted-foreground">预计完成日期</p>
+                  <p className="text-sm text-muted-foreground">{t("hr.workDays.estimatedEndDate")}</p>
                 </div>
                 <p className="text-4xl font-bold text-primary">{result.endDate}</p>
               </CardContent>
@@ -150,7 +152,7 @@ export default function WorkingDaysCalculator() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="p-4 bg-muted/30 rounded-lg text-center">
-                    <p className="text-sm text-muted-foreground">工作日</p>
+                    <p className="text-sm text-muted-foreground">{t("hr.workDays.workingDays")}</p>
                     <p className="text-3xl font-bold text-primary">{result.workingDays}</p>
                   </div>
                 </CardContent>
@@ -158,7 +160,7 @@ export default function WorkingDaysCalculator() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="p-4 bg-muted/30 rounded-lg text-center">
-                    <p className="text-sm text-muted-foreground">日历天数</p>
+                    <p className="text-sm text-muted-foreground">{t("hr.workDays.calendarDays")}</p>
                     <p className="text-3xl font-bold">{result.calendarDays}</p>
                   </div>
                 </CardContent>
@@ -167,7 +169,7 @@ export default function WorkingDaysCalculator() {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="p-4 bg-muted/30 rounded-lg text-center">
-                      <p className="text-sm text-muted-foreground">缓冲天数</p>
+                      <p className="text-sm text-muted-foreground">{t("hr.workDays.bufferDays")}</p>
                       <p className="text-3xl font-bold text-yellow-400">{result.bufferDays}</p>
                     </div>
                   </CardContent>
@@ -181,7 +183,7 @@ export default function WorkingDaysCalculator() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CalendarDays className="h-5 w-5 text-primary" />
-                    期间节假日 ({result.holidaysEncountered.length})
+                    {t("hr.workDays.holidays")} ({result.holidaysEncountered.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -189,8 +191,8 @@ export default function WorkingDaysCalculator() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
-                          <th className="text-left py-2 pr-4">日期</th>
-                          <th className="text-left py-2">节假日名称</th>
+                          <th className="text-left py-2 pr-4">{t("hr.workDays.dateCol")}</th>
+                          <th className="text-left py-2">{t("hr.workDays.holidayName")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -213,7 +215,7 @@ export default function WorkingDaysCalculator() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    关键时段预警 ({result.criticalPeriods.length})
+                    {t("hr.workDays.criticalPeriods")} ({result.criticalPeriods.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -223,7 +225,7 @@ export default function WorkingDaysCalculator() {
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-yellow-400 flex-shrink-0" />
                           <span className="font-medium text-sm">{cp.period}</span>
-                          <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">注意</Badge>
+                          <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">{t("hr.workDays.caution")}</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground ml-6">{cp.reason}</p>
                       </div>
@@ -239,7 +241,7 @@ export default function WorkingDaysCalculator() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-green-400" />
-                    AI建议
+                    {t("hr.workDays.aiRecommendations")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

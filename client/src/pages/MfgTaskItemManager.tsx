@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from 'sonner';
 
 const showPlaceholder = (featureName: string) => {
@@ -185,6 +186,7 @@ const DEFAULT_FORM = {
 };
 
 export default function MfgTaskItemManager() {
+  const { t } = useLanguage();
   const [tasks, setTasks] = useState<MfgTask[]>(INITIAL_TASKS);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -246,7 +248,7 @@ export default function MfgTaskItemManager() {
   // 新建任务
   const handleCreateTask = () => {
     if (!form.taskName.trim()) {
-      toast.error("请填写任务名称");
+      toast.error(t("manufacturing.mfgTask.taskNameRequired"));
       return;
     }
     const newTask: MfgTask = {
@@ -266,7 +268,7 @@ export default function MfgTaskItemManager() {
     setTasks(prev => [...prev, newTask]);
     setCreateOpen(false);
     setForm(DEFAULT_FORM);
-    toast.success("新建任务成功", { description: `任务「${newTask.taskName}」已添加` });
+    toast.success(t("manufacturing.mfgTask.createSuccess"), { description: newTask.taskName });
   };
 
   // 批量开始
@@ -282,12 +284,12 @@ export default function MfgTaskItemManager() {
       )
     );
     setSelectedTasks([]);
-    toast.success("批量开始成功", { description: `已启动 ${selectedTasks.length} 个任务` });
+    toast.success(t("manufacturing.mfgTask.batchStartSuccess"), { description: `${selectedTasks.length}` });
   };
 
   // 批量分配
   const handleBatchAssign = () => {
-    toast.success("批量分配成功", { description: `已为 ${selectedTasks.length} 个任务触发分配流程` });
+    toast.success(t("manufacturing.mfgTask.batchAssignSuccess"), { description: `${selectedTasks.length}` });
     setSelectedTasks([]);
   };
 
@@ -296,37 +298,37 @@ export default function MfgTaskItemManager() {
       {/* 页面标题 */}
       <PageHeader
         icon={Wrench}
-        title="制造任务管理"
-        description="工序级原子任务追踪与管理"
+        title={t("manufacturing.mfgTask.title")}
+        description={t("manufacturing.mfgTask.description")}
         actions={
           <>
             <Button variant="outline" size="sm">
               <RefreshCw className="w-4 h-4 mr-2" />
-              刷新
+              {t("manufacturing.common.refresh")}
             </Button>
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
               <DialogTrigger asChild>
                 <Button size="sm">
                   <Plus className="w-4 h-4 mr-2" />
-                  新建任务
+                  {t("manufacturing.mfgTask.createTask")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                  <DialogTitle>新建制造任务</DialogTitle>
+                  <DialogTitle>{t("manufacturing.mfgTask.createMfgTask")}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-2">
                   <div className="space-y-2">
-                    <Label htmlFor="task-name">任务名称 <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="task-name">{t("manufacturing.mfgTask.taskName")} <span className="text-red-500">*</span></Label>
                     <Input
                       id="task-name"
-                      placeholder="请输入任务名称"
+                      placeholder={t("manufacturing.mfgTask.taskNamePlaceholder")}
                       value={form.taskName}
                       onChange={e => setForm(f => ({ ...f, taskName: e.target.value }))}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="task-wo">工单号</Label>
+                    <Label htmlFor="task-wo">{t("manufacturing.mfgTask.workOrderId")}</Label>
                     <Input
                       id="task-wo"
                       placeholder="如 WO-001"
@@ -336,7 +338,7 @@ export default function MfgTaskItemManager() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="task-type">任务类型</Label>
+                      <Label htmlFor="task-type">{t("manufacturing.mfgTask.taskType")}</Label>
                       <Select
                         value={form.taskType}
                         onValueChange={val => setForm(f => ({ ...f, taskType: val as MfgTaskType }))}
@@ -353,7 +355,7 @@ export default function MfgTaskItemManager() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="task-team">分配班组</Label>
+                      <Label htmlFor="task-team">{t("manufacturing.mfgTask.assignTeam")}</Label>
                       <Select
                         value={form.assignedTeam}
                         onValueChange={val => setForm(f => ({ ...f, assignedTeam: val as AssignedTeam }))}
@@ -371,7 +373,7 @@ export default function MfgTaskItemManager() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="task-bom">BOM模块</Label>
+                      <Label htmlFor="task-bom">{t("manufacturing.mfgTask.bomModule")}</Label>
                       <Input
                         id="task-bom"
                         placeholder="如 M-PIPE-A01"
@@ -380,7 +382,7 @@ export default function MfgTaskItemManager() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="task-hours">预估工时 (h)</Label>
+                      <Label htmlFor="task-hours">{t("manufacturing.mfgTask.estimatedHours")}</Label>
                       <Input
                         id="task-hours"
                         type="number"
@@ -392,8 +394,8 @@ export default function MfgTaskItemManager() {
                     </div>
                   </div>
                   <div className="flex justify-end gap-2 pt-2">
-                    <Button variant="outline" onClick={() => { setCreateOpen(false); setForm(DEFAULT_FORM); }}>取消</Button>
-                    <Button onClick={handleCreateTask}>创建任务</Button>
+                    <Button variant="outline" onClick={() => { setCreateOpen(false); setForm(DEFAULT_FORM); }}>{t("manufacturing.common.cancel")}</Button>
+                    <Button onClick={handleCreateTask}>{t("manufacturing.mfgTask.createTask")}</Button>
                   </div>
                 </div>
               </DialogContent>
@@ -404,14 +406,14 @@ export default function MfgTaskItemManager() {
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-        <StatCard icon={ClipboardCheck} label="总任务" value={stats.total} />
-        <StatCard icon={CheckCircle2} label="已完成" value={stats.finished} iconColor="text-emerald-500" iconBg="bg-emerald-500/10" />
-        <StatCard icon={Play} label="进行中" value={stats.inProgress} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={Clock} label="待开始" value={stats.pending} iconColor="text-gray-400" iconBg="bg-gray-500/10" />
-        <StatCard icon={Search} label="质检中" value={stats.qcReview} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={AlertTriangle} label="有异常" value={stats.withIssues} iconColor="text-red-500" iconBg="bg-red-500/10" />
-        <StatCard icon={Timer} label="预估工时" value={`${stats.totalEstimated}h`} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={Timer} label="实际工时" value={`${stats.totalActual}h`} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+        <StatCard icon={ClipboardCheck} label={t("manufacturing.mfgTask.totalTasks")} value={stats.total} />
+        <StatCard icon={CheckCircle2} label={t("manufacturing.mfgTask.finished")} value={stats.finished} iconColor="text-emerald-500" iconBg="bg-emerald-500/10" />
+        <StatCard icon={Play} label={t("manufacturing.mfgTask.inProgress")} value={stats.inProgress} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Clock} label={t("manufacturing.mfgTask.pending")} value={stats.pending} iconColor="text-gray-400" iconBg="bg-gray-500/10" />
+        <StatCard icon={Search} label={t("manufacturing.mfgTask.qcReview")} value={stats.qcReview} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={AlertTriangle} label={t("manufacturing.mfgTask.withIssues")} value={stats.withIssues} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Timer} label={t("manufacturing.mfgTask.estHours")} value={`${stats.totalEstimated}h`} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Timer} label={t("manufacturing.mfgTask.actualHours")} value={`${stats.totalActual}h`} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       {/* 过滤器 */}
@@ -421,7 +423,7 @@ export default function MfgTaskItemManager() {
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Search className="w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="搜索任务名称或BOM模块..."
+                placeholder={t("manufacturing.mfgTask.searchPlaceholder")}
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 className="bg-background/50"
@@ -484,13 +486,13 @@ export default function MfgTaskItemManager() {
                 onCheckedChange={toggleSelectAll}
               />
               <span className="text-sm text-muted-foreground">
-                已选择 {selectedTasks.length} 项
+                {t("manufacturing.mfgTask.selected")} {selectedTasks.length}
               </span>
             </div>
             {selectedTasks.length > 0 && (
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleBatchStart}>批量开始</Button>
-                <Button variant="outline" size="sm" onClick={handleBatchAssign}>批量分配</Button>
+                <Button variant="outline" size="sm" onClick={handleBatchStart}>{t("manufacturing.mfgTask.batchStart")}</Button>
+                <Button variant="outline" size="sm" onClick={handleBatchAssign}>{t("manufacturing.mfgTask.batchAssign")}</Button>
               </div>
             )}
           </div>
@@ -529,7 +531,7 @@ export default function MfgTaskItemManager() {
                         {task.issueLogIds.length > 0 && (
                           <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
                             <AlertCircle className="w-3 h-3 mr-1" />
-                            {task.issueLogIds.length}个异常
+                            {task.issueLogIds.length} {t("manufacturing.mfgTask.issues")}
                           </Badge>
                         )}
                       </div>
@@ -553,7 +555,7 @@ export default function MfgTaskItemManager() {
                       </div>
                       {task.efficiencyRate > 0 && (
                         <div className={`text-xs ${task.efficiencyRate >= 1 ? 'text-green-500' : 'text-yellow-500'}`}>
-                          效率: {(task.efficiencyRate * 100).toFixed(0)}%
+                          {t("manufacturing.mfgTask.efficiency")}: {(task.efficiencyRate * 100).toFixed(0)}%
                         </div>
                       )}
                     </div>
@@ -580,7 +582,7 @@ export default function MfgTaskItemManager() {
             {filteredTasks.length === 0 && (
               <div className="p-8 text-center">
                 <Wrench className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">暂无符合条件的任务</p>
+                <p className="text-muted-foreground">{t("manufacturing.mfgTask.noMatchingTasks")}</p>
               </div>
             )}
           </div>

@@ -4,6 +4,7 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,20 +54,21 @@ const priorityColors: Record<string, string> = {
   P3: "bg-blue-500",
 };
 
-const statusLabels: Record<string, string> = {
-  draft: "草稿",
-  submitted: "已提交",
-  under_review: "审批中",
-  approved: "已批准",
-  rejected: "已拒绝",
-  scheduled: "已排期",
-  deployed: "已部署",
-  closed: "已关闭",
-  cancelled: "已取消",
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  draft: "projects.change.statusDraft",
+  submitted: "projects.change.statusSubmitted",
+  under_review: "projects.change.statusUnderReview",
+  approved: "projects.change.statusApproved",
+  rejected: "projects.change.statusRejectedLabel",
+  scheduled: "projects.change.statusScheduled",
+  deployed: "projects.change.statusDeployed",
+  closed: "projects.change.statusClosed",
+  cancelled: "projects.change.statusCancelled",
 };
 
 export default function ChangeManagement() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("requests");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedCR, setSelectedCR] = useState<string | null>(null);
@@ -99,34 +101,34 @@ export default function ChangeManagement() {
   // Mutations
   const createCRMutation = (trpc.changeManagement as any).createChangeRequest.useMutation({
     onSuccess: () => {
-      toast.success("变更请求已创建");
+      toast.success(t("projects.change.crCreated"));
       setIsCreateDialogOpen(false);
       refetchCRs();
       resetForm();
     },
     onError: (error) => {
-      toast.error("创建失败: " + error.message);
+      toast.error(t("projects.change.createFailed") + ": " + error.message);
     },
   });
 
   const submitCRMutation = (trpc.changeManagement as any).submitChangeRequest.useMutation({
     onSuccess: () => {
-      toast.success("变更请求已提交审批");
+      toast.success(t("projects.change.crSubmitted"));
       refetchCRs();
     },
     onError: (error) => {
-      toast.error("提交失败: " + error.message);
+      toast.error(t("projects.change.submitFailed") + ": " + error.message);
     },
   });
 
   const approvalMutation = (trpc.changeManagement as any).submitApprovalDecision.useMutation({
     onSuccess: () => {
-      toast.success("审批决策已提交");
+      toast.success(t("projects.change.decisionSubmitted"));
       refetchApprovals();
       refetchCRs();
     },
     onError: (error) => {
-      toast.error("审批失败: " + error.message);
+      toast.error(t("projects.change.decisionFailed") + ": " + error.message);
     },
   });
 
@@ -157,7 +159,7 @@ export default function ChangeManagement() {
     approvalMutation.mutate({
       approvalId,
       decision,
-      comments: decision === "approved" ? "同意" : "不同意",
+      comments: decision === "approved" ? t("projects.change.agree") : t("projects.change.disagree"),
     });
   };
 
@@ -166,35 +168,35 @@ export default function ChangeManagement() {
         {/* 页面标题 */}
         <PageHeader
           icon={GitBranch}
-          title="变更治理中心"
-          description="CR→CAB→Release→Ack 全闭环管理"
+          title={t("projects.change.title")}
+          description={t("projects.change.description")}
           actions={
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
-                  新建变更请求
+                  {t("projects.change.newCR")}
                 </Button>
               </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>新建变更请求 (CR)</DialogTitle>
+                <DialogTitle>{t("projects.change.newCRTitle")}</DialogTitle>
                 <DialogDescription>
-                  填写变更请求信息，提交后将进入CAB审批流程
+                  {t("projects.change.newCRDesc")}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="title">变更标题 *</Label>
+                  <Label htmlFor="title">{t("projects.change.changeTitle")} *</Label>
                   <Input
                     id="title"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="简要描述变更内容"
+                    placeholder={t("projects.change.changeTitlePlaceholder")}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="priority">优先级 *</Label>
+                  <Label htmlFor="priority">{t("projects.change.priorityLabel")} *</Label>
                   <Select
                     value={formData.priority}
                     onValueChange={(v) => setFormData({ ...formData, priority: v as any })}
@@ -203,73 +205,73 @@ export default function ChangeManagement() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="P0">P0 - 紧急</SelectItem>
-                      <SelectItem value="P1">P1 - 高</SelectItem>
-                      <SelectItem value="P2">P2 - 中</SelectItem>
-                      <SelectItem value="P3">P3 - 低</SelectItem>
+                      <SelectItem value="P0">P0 - {t("projects.priority.critical")}</SelectItem>
+                      <SelectItem value="P1">P1 - {t("projects.priority.high")}</SelectItem>
+                      <SelectItem value="P2">P2 - {t("projects.priority.medium")}</SelectItem>
+                      <SelectItem value="P3">P3 - {t("projects.priority.low")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="description">详细描述 *</Label>
+                  <Label htmlFor="description">{t("projects.change.detailedDescription")} *</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="详细说明变更内容、原因和预期效果"
+                    placeholder={t("projects.change.detailedDescPlaceholder")}
                     rows={4}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="affectedSystems">影响系统（逗号分隔）</Label>
+                  <Label htmlFor="affectedSystems">{t("projects.change.affectedSystems")}</Label>
                   <Input
                     id="affectedSystems"
                     value={formData.affectedSystems}
                     onChange={(e) => setFormData({ ...formData, affectedSystems: e.target.value })}
-                    placeholder="如：CRM, ERP, 财务系统"
+                    placeholder={t("projects.change.affectedSystemsPlaceholder")}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="impactAssessment">影响评估 *</Label>
+                  <Label htmlFor="impactAssessment">{t("projects.change.impactAssessment")} *</Label>
                   <Textarea
                     id="impactAssessment"
                     value={formData.impactAssessment}
                     onChange={(e) => setFormData({ ...formData, impactAssessment: e.target.value })}
-                    placeholder="评估变更对业务和系统的影响"
+                    placeholder={t("projects.change.impactAssessmentPlaceholder")}
                     rows={3}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="rollbackPlan">回滚方案 *</Label>
+                  <Label htmlFor="rollbackPlan">{t("projects.change.rollbackPlan")} *</Label>
                   <Textarea
                     id="rollbackPlan"
                     value={formData.rollbackPlan}
                     onChange={(e) => setFormData({ ...formData, rollbackPlan: e.target.value })}
-                    placeholder="如果变更失败，如何回滚到之前状态"
+                    placeholder={t("projects.change.rollbackPlanPlaceholder")}
                     rows={3}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="testPlan">测试计划 *</Label>
+                  <Label htmlFor="testPlan">{t("projects.change.testPlan")} *</Label>
                   <Textarea
                     id="testPlan"
                     value={formData.testPlan}
                     onChange={(e) => setFormData({ ...formData, testPlan: e.target.value })}
-                    placeholder="变更前后的测试验证计划"
+                    placeholder={t("projects.change.testPlanPlaceholder")}
                     rows={3}
                   />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  取消
+                  {t("projects.change.cancel")}
                 </Button>
-                <Button 
+                <Button
                   onClick={handleCreateCR}
                   disabled={createCRMutation.isPending || !formData.title || !formData.description}
                 >
                   {createCRMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  创建
+                  {t("projects.change.createBtn")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -281,42 +283,42 @@ export default function ChangeManagement() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">变更请求总数</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("projects.change.totalCRs")}</CardTitle>
               <FileText className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.totalCRs || 0}</div>
-              <p className="text-xs text-muted-foreground">所有CR记录</p>
+              <p className="text-xs text-muted-foreground">{t("projects.change.allCRRecords")}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">待审批</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("projects.change.pendingApproval")}</CardTitle>
               <Clock className="w-4 h-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-500">{stats?.pendingApproval || 0}</div>
-              <p className="text-xs text-muted-foreground">等待CAB审批</p>
+              <p className="text-xs text-muted-foreground">{t("projects.change.awaitingCAB")}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">本月已部署</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("projects.change.deployedThisMonth")}</CardTitle>
               <CheckCircle2 className="w-4 h-4 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-500">{stats?.deployedThisMonth || 0}</div>
-              <p className="text-xs text-muted-foreground">成功上线</p>
+              <p className="text-xs text-muted-foreground">{t("projects.change.successfullyLaunched")}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">确认率</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("projects.change.ackRate")}</CardTitle>
               <Users className="w-4 h-4 text-blue-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-500">{stats?.ackRate || 0}%</div>
-              <p className="text-xs text-muted-foreground">目标 ≥90%</p>
+              <p className="text-xs text-muted-foreground">{t("projects.change.targetAbove90")}</p>
             </CardContent>
           </Card>
         </div>
@@ -326,26 +328,26 @@ export default function ChangeManagement() {
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
-              变更请求
+              {t("projects.change.tabRequests")}
             </TabsTrigger>
             <TabsTrigger value="approvals" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              我的审批
+              {t("projects.change.tabApprovals")}
               {pendingApprovals && pendingApprovals.length > 0 && (
                 <Badge variant="destructive" className="ml-1">{pendingApprovals.length}</Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="releases" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
-              发布管理
+              {t("projects.change.tabReleases")}
             </TabsTrigger>
             <TabsTrigger value="cab" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              CAB成员
+              {t("projects.change.tabCAB")}
             </TabsTrigger>
             <TabsTrigger value="audit" className="flex items-center gap-2">
               <RefreshCw className="w-4 h-4" />
-              审计日志
+              {t("projects.change.tabAudit")}
             </TabsTrigger>
           </TabsList>
 
@@ -353,8 +355,8 @@ export default function ChangeManagement() {
           <TabsContent value="requests" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>变更请求列表</CardTitle>
-                <CardDescription>所有变更请求的状态和进度</CardDescription>
+                <CardTitle>{t("projects.change.crList")}</CardTitle>
+                <CardDescription>{t("projects.change.crListDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {crLoading ? (
@@ -363,7 +365,7 @@ export default function ChangeManagement() {
                   </div>
                 ) : crList?.items.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    暂无变更请求，点击右上角按钮创建
+                    {t("projects.change.noCRsHint")}
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -381,7 +383,7 @@ export default function ChangeManagement() {
                         </div>
                         <div className="flex items-center gap-4">
                           <Badge variant="outline" className={statusColors[cr.status]}>
-                            {statusLabels[cr.status]}
+                            {t(STATUS_LABEL_KEYS[cr.status] || cr.status)}
                           </Badge>
                           <div className="text-sm text-muted-foreground">
                             {cr.requesterName}
@@ -393,7 +395,7 @@ export default function ChangeManagement() {
                               disabled={submitCRMutation.isPending}
                             >
                               <Send className="w-4 h-4 mr-1" />
-                              提交审批
+                              {t("projects.change.submitApproval")}
                             </Button>
                           )}
                         </div>
@@ -409,14 +411,14 @@ export default function ChangeManagement() {
           <TabsContent value="approvals" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>待我审批</CardTitle>
-                <CardDescription>需要您审批的变更请求</CardDescription>
+                <CardTitle>{t("projects.change.pendingMyApproval")}</CardTitle>
+                <CardDescription>{t("projects.change.pendingMyApprovalDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {!pendingApprovals || pendingApprovals.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <CheckCircle2 className="w-12 h-12 mx-auto mb-2 text-green-500" />
-                    暂无待审批项
+                    {t("projects.change.noPendingApprovals")}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -436,13 +438,13 @@ export default function ChangeManagement() {
                             </div>
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            申请人: {changeRequest.requesterName}
+                            {t("projects.change.applicant")}: {changeRequest.requesterName}
                           </div>
                         </div>
                         <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
-                          <div><strong>描述:</strong> {changeRequest.description}</div>
-                          <div><strong>影响评估:</strong> {changeRequest.impactAssessment}</div>
-                          <div><strong>回滚方案:</strong> {changeRequest.rollbackPlan}</div>
+                          <div><strong>{t("projects.change.descriptionLabel")}</strong> {changeRequest.description}</div>
+                          <div><strong>{t("projects.change.impactLabel")}</strong> {changeRequest.impactAssessment}</div>
+                          <div><strong>{t("projects.change.rollbackLabel")}</strong> {changeRequest.rollbackPlan}</div>
                         </div>
                         <div className="flex gap-2 justify-end">
                           <Button
@@ -451,14 +453,14 @@ export default function ChangeManagement() {
                             disabled={approvalMutation.isPending}
                           >
                             <XCircle className="w-4 h-4 mr-1 text-red-500" />
-                            拒绝
+                            {t("projects.change.rejectBtn")}
                           </Button>
                           <Button
                             onClick={() => handleApproval(approval.id, "approved")}
                             disabled={approvalMutation.isPending}
                           >
                             <CheckCircle2 className="w-4 h-4 mr-1" />
-                            批准
+                            {t("projects.change.approveBtn")}
                           </Button>
                         </div>
                       </div>
@@ -473,13 +475,13 @@ export default function ChangeManagement() {
           <TabsContent value="releases" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>发布列表</CardTitle>
-                <CardDescription>已创建的发布版本</CardDescription>
+                <CardTitle>{t("projects.change.releaseList")}</CardTitle>
+                <CardDescription>{t("projects.change.releaseListDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {!releases || releases.items.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    暂无发布记录
+                    {t("projects.change.noReleases")}
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -491,7 +493,7 @@ export default function ChangeManagement() {
                         <div>
                           <div className="font-medium">{release.releaseNumber}</div>
                           <div className="text-sm text-muted-foreground">
-                            版本: {release.version} | 包含 {release.changeRequestIds.length} 个CR
+                            {t("projects.change.version")}: {release.version} | {release.changeRequestIds.length} {t("projects.change.containsCRs")}
                           </div>
                         </div>
                         <Badge variant="outline">{release.status}</Badge>
@@ -507,14 +509,14 @@ export default function ChangeManagement() {
           <TabsContent value="cab" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>CAB成员配置</CardTitle>
-                <CardDescription>变更顾问委员会成员列表</CardDescription>
+                <CardTitle>{t("projects.change.cabConfig")}</CardTitle>
+                <CardDescription>{t("projects.change.cabConfigDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {!cabMembers || cabMembers.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <AlertTriangle className="w-12 h-12 mx-auto mb-2 text-yellow-500" />
-                    尚未配置CAB成员
+                    {t("projects.change.noCABMembers")}
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -534,13 +536,13 @@ export default function ChangeManagement() {
                         </div>
                         <div className="flex items-center gap-2">
                           {member.isMandatory && (
-                            <Badge variant="destructive">必须</Badge>
+                            <Badge variant="destructive">{t("projects.change.mandatory")}</Badge>
                           )}
                           <Badge variant="outline">
                             {member.priorityLevels.join(", ")}
                           </Badge>
                           <Badge variant={member.isActive ? "default" : "secondary"}>
-                            {member.isActive ? "启用" : "禁用"}
+                            {member.isActive ? t("projects.change.enabled") : t("projects.change.disabled")}
                           </Badge>
                         </div>
                       </div>
@@ -555,13 +557,13 @@ export default function ChangeManagement() {
           <TabsContent value="audit" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>审计日志</CardTitle>
-                <CardDescription>变更治理操作记录</CardDescription>
+                <CardTitle>{t("projects.change.auditLog")}</CardTitle>
+                <CardDescription>{t("projects.change.auditLogDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {!auditLogs || auditLogs.items.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    暂无审计日志
+                    {t("projects.change.noAuditLogs")}
                   </div>
                 ) : (
                   <div className="space-y-2">

@@ -3,6 +3,7 @@
  * Phase H: 设计评分 · 问题识别 · 合规检查 · 材料兼容性
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ interface ReviewResult {
 }
 
 export default function AIDesignReview() {
+  const { t } = useLanguage();
   const [projectName, setProjectName] = useState("");
   const [designPhase, setDesignPhase] = useState("概念设计");
   const [designDescription, setDesignDescription] = useState("");
@@ -85,7 +87,7 @@ export default function AIDesignReview() {
   };
 
   const severityLabel = (s: string) => {
-    switch (s) { case "high": return "高"; case "medium": return "中"; case "low": return "低"; default: return s; }
+    switch (s) { case "high": return t("ai.designReview.severityHigh"); case "medium": return t("ai.designReview.severityMedium"); case "low": return t("ai.designReview.severityLow"); default: return s; }
   };
 
   const statusColor = (status: string) => {
@@ -98,19 +100,19 @@ export default function AIDesignReview() {
   };
 
   const statusLabel = (s: string) => {
-    switch (s) { case "pass": return "通过"; case "fail": return "不通过"; case "pending": return "待验证"; default: return s; }
+    switch (s) { case "pass": return t("ai.designReview.statusPass"); case "fail": return t("ai.designReview.statusFail"); case "pending": return t("ai.designReview.statusPending"); default: return s; }
   };
 
   return (
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Shield}
-          title="AI设计审查"
-          description="设计评分 · 问题识别 · 合规检查 · 材料兼容性"
+          title={t("ai.designReview.title")}
+          description={t("ai.designReview.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI审查
+              {t("ai.designReview.aiReview")}
             </Badge>
           }
         />
@@ -120,20 +122,20 @@ export default function AIDesignReview() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Shield className="h-5 w-5 text-primary" />
-              设计信息
+              {t("ai.designReview.designInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">项目名称</label>
+                <label className="text-sm text-muted-foreground">{t("ai.designReview.projectName")}</label>
                 <Input placeholder="如: XX超声波清洗机项目" value={projectName} onChange={(e) => setProjectName(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">设计阶段</label>
+                <label className="text-sm text-muted-foreground">{t("ai.designReview.designPhase")}</label>
                 <Select value={designPhase} onValueChange={(v) => setDesignPhase(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择设计阶段" />
+                    <SelectValue placeholder={t("ai.designReview.selectPhase")} />
                   </SelectTrigger>
                   <SelectContent>
                     {DESIGN_PHASES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
@@ -142,31 +144,31 @@ export default function AIDesignReview() {
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">设计描述</label>
+              <label className="text-sm text-muted-foreground">{t("ai.designReview.designDescription")}</label>
               <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="如: 三槽超声波清洗机，含清洗、漂洗、干燥功能，PLC自动控制" value={designDescription} onChange={(e) => setDesignDescription(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">关键参数</label>
+              <label className="text-sm text-muted-foreground">{t("ai.designReview.keyParameters")}</label>
               <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder="如: 清洗槽尺寸800×600×500mm，超声频率28/40kHz，功率3000W，温度范围20-80℃" value={keyParameters} onChange={(e) => setKeyParameters(e.target.value)} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">使用材料（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.designReview.materialsUsed")}</label>
                 <Input placeholder="如: 304不锈钢，钛合金振板" value={materialsUsed} onChange={(e) => setMaterialsUsed(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">标准要求（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.designReview.standardsRequired")}</label>
                 <Input placeholder="如: CE, UL" value={standardsRequired} onChange={(e) => setStandardsRequired(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">历史问题（可选）</label>
+              <label className="text-sm text-muted-foreground">{t("ai.designReview.previousIssues")}</label>
               <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder="如: 上一代产品存在密封泄漏问题" value={previousIssues} onChange={(e) => setPreviousIssues(e.target.value)} />
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!projectName.trim() || !designDescription.trim() || !keyParameters.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI审查
+                {t("ai.designReview.aiReview")}
               </Button>
             </div>
           </CardContent>
@@ -180,10 +182,10 @@ export default function AIDesignReview() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">设计评分</p>
+                    <p className="text-sm text-muted-foreground">{t("ai.designReview.designScore")}</p>
                     <p className={`text-5xl font-bold ${scoreColor(result.overallScore)}`}>{result.overallScore}</p>
                   </div>
-                  <Badge className={`text-2xl px-4 py-2 ${gradeColor(result.grade)}`}>{result.grade}级</Badge>
+                  <Badge className={`text-2xl px-4 py-2 ${gradeColor(result.grade)}`}>{result.grade}{t("ai.designReview.grade")}</Badge>
                 </div>
                 <div className="mt-3 w-full h-2 bg-muted rounded-full overflow-hidden">
                   <div
@@ -191,7 +193,7 @@ export default function AIDesignReview() {
                     style={{ width: `${result.overallScore}%` }}
                   />
                 </div>
-                <p className="text-sm text-muted-foreground mt-2">材料兼容性: {result.materialCompatibility}</p>
+                <p className="text-sm text-muted-foreground mt-2">{t("ai.designReview.materialCompatibility")}: {result.materialCompatibility}</p>
               </CardContent>
             </Card>
 
@@ -201,7 +203,7 @@ export default function AIDesignReview() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    发现问题 ({result.issues.length})
+                    {t("ai.designReview.issuesFound")} ({result.issues.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -209,10 +211,10 @@ export default function AIDesignReview() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-muted-foreground">问题</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">严重性</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">类别</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">建议</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.designReview.issueCol")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.designReview.severityCol")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.designReview.categoryCol")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.designReview.suggestionCol")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -237,7 +239,7 @@ export default function AIDesignReview() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <FileText className="h-5 w-5 text-primary" />
-                    合规检查
+                    {t("ai.designReview.complianceCheck")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -245,9 +247,9 @@ export default function AIDesignReview() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-muted-foreground">标准</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">状态</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">备注</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.designReview.standardCol")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.designReview.statusCol")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("ai.designReview.notesCol")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -271,7 +273,7 @@ export default function AIDesignReview() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("ai.designReview.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

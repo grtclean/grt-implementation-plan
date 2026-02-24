@@ -3,6 +3,7 @@
  * 最终验收管理、签收确认、验收报告
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
@@ -30,6 +31,7 @@ const MOCK_ACCEPTANCES = [
 ];
 
 export default function FinalAcceptance() {
+  const { t } = useLanguage();
   const { currentBU } = useUserProfile();
   const [acceptances, setAcceptances] = useState(MOCK_ACCEPTANCES);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -39,15 +41,15 @@ export default function FinalAcceptance() {
 
   const handleCreate = () => {
     if (!formData.project.trim()) {
-      toast.error("请输入项目名称");
+      toast.error(t("afterSales.acceptance.fillProject"));
       return;
     }
     if (!formData.customer.trim()) {
-      toast.error("请输入客户名称");
+      toast.error(t("afterSales.acceptance.fillCustomer"));
       return;
     }
     if (!formData.date) {
-      toast.error("请选择验收日期");
+      toast.error(t("afterSales.acceptance.fillDate"));
       return;
     }
 
@@ -66,31 +68,31 @@ export default function FinalAcceptance() {
     setAcceptances(prev => [newAcceptance, ...prev]);
     setShowCreateDialog(false);
     setFormData({ project: "", customer: "", date: "" });
-    toast.success("验收单创建成功");
+    toast.success(t("afterSales.acceptance.createSuccess"));
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={CheckCircle}
-        title="终验收"
-        description="TX-015 · 设备最终验收与签收管理"
+        title={t("afterSales.acceptance.title")}
+        description={t("afterSales.acceptance.desc")}
         actions={
           <>
             {currentBU && <Badge variant="outline"><Building2 className="h-3 w-3 mr-1" />{currentBU}</Badge>}
-            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />创建验收单</Button>
+            <Button onClick={() => setShowCreateDialog(true)}><Plus className="h-4 w-4 mr-2" />{t("afterSales.acceptance.newAcceptance")}</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={CheckCircle2} label="已验收" value={acceptances.filter(a => a.status === "已验收").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={Clock} label="验收中" value={acceptances.filter(a => a.status === "验收中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={Award} label="待验收" value={acceptances.filter(a => a.status === "待验收").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={CheckCircle2} label={t("afterSales.acceptance.accepted")} value={acceptances.filter(a => a.status === "已验收").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Clock} label={t("afterSales.acceptance.inProgress")} value={acceptances.filter(a => a.status === "验收中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Award} label={t("afterSales.acceptance.pending")} value={acceptances.filter(a => a.status === "待验收").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       <Card>
-        <CardHeader><CardTitle>验收列表</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("afterSales.acceptance.acceptanceList")}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
             {filtered.map(a => (
@@ -102,18 +104,18 @@ export default function FinalAcceptance() {
                     <Badge variant="outline">{a.bu}</Badge>
                   </div>
                   <p className="font-medium mt-1">{a.project} - {a.customer}</p>
-                  <p className="text-sm text-muted-foreground">计划日期: {a.date} · 签收人: {a.signedBy}</p>
+                  <p className="text-sm text-muted-foreground">{t("afterSales.acceptance.plannedDate")}: {a.date} · {t("afterSales.acceptance.signedBy")}: {a.signedBy}</p>
                 </div>
                 <div className="text-right">
                   <StatusBadge color={statusColorMap[a.status as keyof typeof statusColorMap] ?? "gray"}>{a.status}</StatusBadge>
-                  {a.score > 0 && <p className="text-lg font-bold mt-1">{a.score}分</p>}
+                  {a.score > 0 && <p className="text-lg font-bold mt-1">{a.score}{t("afterSales.acceptance.points")}</p>}
                 </div>
               </div>
             ))}
             {filtered.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <CheckCircle className="w-12 h-12 mb-3 opacity-50" />
-                <p className="font-medium">暂无验收记录</p>
+                <p className="font-medium">{t("afterSales.acceptance.noRecords")}</p>
               </div>
             )}
           </div>
@@ -123,11 +125,11 @@ export default function FinalAcceptance() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>创建验收单</DialogTitle>
+            <DialogTitle>{t("afterSales.acceptance.dialogTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="fa-project">项目名称 *</Label>
+              <Label htmlFor="fa-project">{t("afterSales.acceptance.projectName")}</Label>
               <Input
                 id="fa-project"
                 placeholder="例如：半导体清洗设备"
@@ -136,7 +138,7 @@ export default function FinalAcceptance() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="fa-customer">客户 *</Label>
+              <Label htmlFor="fa-customer">{t("afterSales.acceptance.customer")}</Label>
               <Input
                 id="fa-customer"
                 placeholder="例如：英飞凌"
@@ -145,7 +147,7 @@ export default function FinalAcceptance() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="fa-date">验收日期 *</Label>
+              <Label htmlFor="fa-date">{t("afterSales.acceptance.acceptanceDate")}</Label>
               <Input
                 id="fa-date"
                 type="date"
@@ -155,14 +157,14 @@ export default function FinalAcceptance() {
             </div>
             {currentBU && (
               <div className="space-y-2">
-                <Label>事业部</Label>
+                <Label>{t("afterSales.acceptance.bu")}</Label>
                 <Input value={currentBU} disabled />
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
-            <Button onClick={handleCreate}>创建</Button>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>{t("afterSales.acceptance.cancel")}</Button>
+            <Button onClick={handleCreate}>{t("afterSales.acceptance.create")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

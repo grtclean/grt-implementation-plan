@@ -3,9 +3,10 @@
  */
 import { useState } from "react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const showPlaceholder = (featureName: string) => {
-  toast.info('功能完善中', { description: `${featureName}功能正在开发完善中，敬请期待` });
+const showPlaceholder = (featureName: string, t: (key: string) => string) => {
+  toast.info(t("projects.hub.featureWip"), { description: `${featureName}${t("projects.hub.featureWipDesc")}` });
 };
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -54,6 +55,7 @@ const STAGE_OPTIONS = ["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9
 const DEFAULT_FORM = { name: "", customer: "", stage: "M0", pmName: "" };
 
 export default function ProjectHub() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("projects");
   const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
   const [deliverables, setDeliverables] = useState<Deliverable[]>(INITIAL_DELIVERABLES);
@@ -73,7 +75,7 @@ export default function ProjectHub() {
 
   const handleCreateProject = () => {
     if (!form.name.trim() || !form.customer.trim() || !form.pmName.trim()) {
-      toast.error("请填写必填字段", { description: "项目名称、客户名称和项目经理不能为空" });
+      toast.error(t("projects.hub.fillRequired"), { description: t("projects.hub.fillRequiredDesc") });
       return;
     }
     const newProject: Project = {
@@ -88,62 +90,62 @@ export default function ProjectHub() {
     setProjects(prev => [newProject, ...prev]);
     setCreateOpen(false);
     setForm(DEFAULT_FORM);
-    toast.success("新建项目成功", { description: `项目「${newProject.name}」已创建` });
+    toast.success(t("projects.createSuccess"), { description: `${t("projects.hub.projectCreatedDesc")}${newProject.name}` });
   };
 
   const handleApprove = (del: Deliverable) => {
     setDeliverables(prev =>
       prev.map(d => d.id === del.id ? { ...d, status: "approved" } : d)
     );
-    toast.success("审批通过", { description: `「${del.name}」已批准` });
+    toast.success(t("projects.hub.approved"), { description: `${del.name} ${t("projects.hub.approvedDesc")}` });
   };
 
   const handleReject = (del: Deliverable) => {
     setDeliverables(prev =>
       prev.map(d => d.id === del.id ? { ...d, status: "rejected" } : d)
     );
-    toast.success("已驳回", { description: `「${del.name}」已驳回` });
+    toast.success(t("projects.hub.rejected"), { description: `${del.name} ${t("projects.hub.rejectedDesc")}` });
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={FolderKanban}
-        title="项目中心"
-        description="项目全生命周期管理、M0-M12状态追踪"
+        title={t("projects.hub.title")}
+        description={t("projects.hub.description")}
         actions={
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4 mr-2" />新建项目</Button>
+              <Button size="sm"><Plus className="w-4 h-4 mr-2" />{t("projects.new")}</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[480px]">
               <DialogHeader>
-                <DialogTitle>新建项目</DialogTitle>
+                <DialogTitle>{t("projects.new")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <Label htmlFor="proj-name">项目名称 <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="proj-name">{t("projects.name")} <span className="text-red-500">*</span></Label>
                   <Input
                     id="proj-name"
-                    placeholder="请输入项目名称"
+                    placeholder={t("projects.enterName")}
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="proj-customer">客户名称 <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="proj-customer">{t("projects.hub.customerName")} <span className="text-red-500">*</span></Label>
                   <Input
                     id="proj-customer"
-                    placeholder="请输入客户名称"
+                    placeholder={t("projects.hub.enterCustomer")}
                     value={form.customer}
                     onChange={e => setForm(f => ({ ...f, customer: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="proj-stage">当前阶段</Label>
+                  <Label htmlFor="proj-stage">{t("projects.hub.currentStage")}</Label>
                   <Select value={form.stage} onValueChange={val => setForm(f => ({ ...f, stage: val }))}>
                     <SelectTrigger id="proj-stage">
-                      <SelectValue placeholder="选择阶段" />
+                      <SelectValue placeholder={t("projects.hub.selectStage")} />
                     </SelectTrigger>
                     <SelectContent>
                       {STAGE_OPTIONS.map(s => (
@@ -153,17 +155,17 @@ export default function ProjectHub() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="proj-pm">项目经理 <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="proj-pm">{t("projects.hub.projectManager")} <span className="text-red-500">*</span></Label>
                   <Input
                     id="proj-pm"
-                    placeholder="请输入项目经理姓名"
+                    placeholder={t("projects.hub.enterPM")}
                     value={form.pmName}
                     onChange={e => setForm(f => ({ ...f, pmName: e.target.value }))}
                   />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="outline" onClick={() => { setCreateOpen(false); setForm(DEFAULT_FORM); }}>取消</Button>
-                  <Button onClick={handleCreateProject}>创建项目</Button>
+                  <Button variant="outline" onClick={() => { setCreateOpen(false); setForm(DEFAULT_FORM); }}>{t("projects.hub.cancel")}</Button>
+                  <Button onClick={handleCreateProject}>{t("projects.create")}</Button>
                 </div>
               </div>
             </DialogContent>
@@ -172,19 +174,19 @@ export default function ProjectHub() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={FolderKanban} label="进行中项目" value={12} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={CheckCircle2} label="按计划进行" value={8} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={AlertTriangle} label="风险项目" value={3} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
-        <StatCard icon={CheckSquare} label="待审批交付物" value={5} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={FolderKanban} label={t("projects.hub.activeProjects")} value={12} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={CheckCircle2} label={t("projects.hub.onTrack")} value={8} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label={t("projects.hub.atRisk")} value={3} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+        <StatCard icon={CheckSquare} label={t("projects.hub.pendingDeliverables")} value={5} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-5 bg-card border border-border">
-          <TabsTrigger value="projects"><FolderKanban className="w-4 h-4 mr-2" />项目列表</TabsTrigger>
-          <TabsTrigger value="requirements"><FileText className="w-4 h-4 mr-2" />需求规格</TabsTrigger>
-          <TabsTrigger value="deliverables"><CheckSquare className="w-4 h-4 mr-2" />交付审批</TabsTrigger>
-          <TabsTrigger value="gantt"><BarChart3 className="w-4 h-4 mr-2" />甘特图</TabsTrigger>
-          <TabsTrigger value="commissioning"><Clock className="w-4 h-4 mr-2" />调试记录</TabsTrigger>
+          <TabsTrigger value="projects"><FolderKanban className="w-4 h-4 mr-2" />{t("projects.hub.tabProjects")}</TabsTrigger>
+          <TabsTrigger value="requirements"><FileText className="w-4 h-4 mr-2" />{t("projects.hub.tabRequirements")}</TabsTrigger>
+          <TabsTrigger value="deliverables"><CheckSquare className="w-4 h-4 mr-2" />{t("projects.hub.tabDeliverables")}</TabsTrigger>
+          <TabsTrigger value="gantt"><BarChart3 className="w-4 h-4 mr-2" />{t("projects.hub.tabGantt")}</TabsTrigger>
+          <TabsTrigger value="commissioning"><Clock className="w-4 h-4 mr-2" />{t("projects.hub.tabCommissioning")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="projects" className="space-y-4">
@@ -195,7 +197,7 @@ export default function ProjectHub() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{project.name}</CardTitle>
                     <Badge className={getStatusColor(project.status)}>
-                      {project.status === "on_track" ? "正常" : project.status === "at_risk" ? "风险" : "延期"}
+                      {project.status === "on_track" ? t("projects.hub.statusOnTrack") : project.status === "at_risk" ? t("projects.hub.statusAtRisk") : t("projects.hub.statusDelayed")}
                     </Badge>
                   </div>
                   <CardDescription>{project.customer} · PM: {project.pmName}</CardDescription>
@@ -203,7 +205,7 @@ export default function ProjectHub() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span>当前阶段: <Badge variant="outline">{project.stage}</Badge></span>
+                      <span>{t("projects.hub.currentStage")}: <Badge variant="outline">{project.stage}</Badge></span>
                       <span>{project.progress}%</span>
                     </div>
                     <Progress value={project.progress} className="h-2" />
@@ -216,16 +218,16 @@ export default function ProjectHub() {
 
         <TabsContent value="requirements" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>技术需求规格</CardTitle><CardDescription>零件特征、工艺约束、VDA标准</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("projects.hub.techRequirements")}</CardTitle><CardDescription>{t("projects.hub.techRequirementsDesc")}</CardDescription></CardHeader>
             <CardContent>
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">[需求规格编辑器 - 结构化需求录入]</div>
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">[{t("projects.hub.requirementsEditor")}]</div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="deliverables" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>交付物审批</CardTitle><CardDescription>设计文档、BOM、PPAP等交付物审批流程</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("projects.hub.deliverableApproval")}</CardTitle><CardDescription>{t("projects.hub.deliverableApprovalDesc")}</CardDescription></CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {deliverables.map((del) => (
@@ -234,17 +236,17 @@ export default function ProjectHub() {
                       <FileText className="w-8 h-8 text-primary/50" />
                       <div>
                         <p className="font-medium">{del.name}</p>
-                        <p className="text-sm text-muted-foreground">审批人: {del.reviewer}</p>
+                        <p className="text-sm text-muted-foreground">{t("projects.hub.reviewer")}: {del.reviewer}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className={getStatusColor(del.status)}>
-                        {del.status === "approved" ? "已批准" : del.status === "pending" ? "待审批" : "已驳回"}
+                        {del.status === "approved" ? t("projects.hub.statusApproved") : del.status === "pending" ? t("projects.hub.statusPending") : t("projects.hub.statusRejected")}
                       </Badge>
                       {del.status === "pending" && (
                         <div className="flex gap-1">
-                          <Button size="sm" variant="default" onClick={() => handleApprove(del)}>批准</Button>
-                          <Button size="sm" variant="outline" onClick={() => handleReject(del)}>驳回</Button>
+                          <Button size="sm" variant="default" onClick={() => handleApprove(del)}>{t("projects.hub.approve")}</Button>
+                          <Button size="sm" variant="outline" onClick={() => handleReject(del)}>{t("projects.hub.reject")}</Button>
                         </div>
                       )}
                     </div>
@@ -257,18 +259,18 @@ export default function ProjectHub() {
 
         <TabsContent value="gantt" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>项目甘特图</CardTitle><CardDescription>M0-M12阶段时间线可视化</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("projects.hub.ganttChart")}</CardTitle><CardDescription>{t("projects.hub.ganttChartDesc")}</CardDescription></CardHeader>
             <CardContent>
-              <div className="h-[400px] flex items-center justify-center text-muted-foreground">[甘特图 - 项目时间线和里程碑]</div>
+              <div className="h-[400px] flex items-center justify-center text-muted-foreground">[{t("projects.hub.ganttPlaceholder")}]</div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="commissioning" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>调试与验收记录</CardTitle><CardDescription>牙膏测试、周期时间、颗粒计数</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("projects.hub.commissioningRecords")}</CardTitle><CardDescription>{t("projects.hub.commissioningDesc")}</CardDescription></CardHeader>
             <CardContent>
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">[调试记录表单 - FAT/SAT验收数据]</div>
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">[{t("projects.hub.commissioningPlaceholder")}]</div>
             </CardContent>
           </Card>
         </TabsContent>

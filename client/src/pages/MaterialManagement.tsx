@@ -3,6 +3,7 @@
  */
 
 import { useState } from 'react';
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ interface LocalMaterial {
 }
 
 export default function MaterialManagement() {
+  const { t, tpl } = useLanguage();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -56,7 +58,7 @@ export default function MaterialManagement() {
 
   const handleCreateSubmit = () => {
     if (!formMaterialCode || !formMaterialName) {
-      toast({ title: '请填写必填项', description: '物料编码和物料名称为必填项', variant: 'destructive' });
+      toast({ title: t("supply.material.fillRequired"), description: t("supply.material.codeNameRequired"), variant: 'destructive' });
       return;
     }
     const newMaterial: LocalMaterial = {
@@ -72,12 +74,12 @@ export default function MaterialManagement() {
     setLocalMaterials((prev) => [newMaterial, ...prev]);
     setCreateOpen(false);
     resetForm();
-    toast({ title: '新增成功', description: `物料 "${newMaterial.materialName}" 已添加` });
+    toast({ title: t("supply.material.addSuccess"), description: tpl("supply.material.materialAdded", { name: newMaterial.materialName }) });
   };
 
   const handleDeleteMaterial = (material: LocalMaterial) => {
     setLocalMaterials((prev) => prev.filter((m) => m.id !== material.id));
-    toast({ title: '已删除', description: `物料 "${material.materialName}" 已删除` });
+    toast({ title: t("supply.material.deleted"), description: tpl("supply.material.materialDeleted", { name: material.materialName }) });
   };
 
   // 获取物料列表
@@ -98,17 +100,17 @@ export default function MaterialManagement() {
       {/* 页面标题 */}
       <PageHeader
         icon={Package}
-        title="物料管理"
-        description="管理工业清洗设备物料编码和库存"
+        title={t("supply.material.pageTitle")}
+        description={t("supply.material.pageDesc")}
         actions={
           <>
             <Button variant="outline" size="sm">
               <Download className="w-4 h-4 mr-2" />
-              导出
+              {t("supply.material.export")}
             </Button>
             <Button size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              新增物料
+              {t("supply.material.addMaterial")}
             </Button>
           </>
         }
@@ -116,27 +118,27 @@ export default function MaterialManagement() {
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Package} label="总物料数" value={statsData?.totalMaterials || 0} subtitle="活跃物料" iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={AlertTriangle} label="库存不足" value={statsData?.lowStockMaterials || 0} subtitle="需要补货" iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={XCircle} label="缺货物料" value={statsData?.outOfStockMaterials || 0} subtitle="紧急采购" iconColor="text-red-500" iconBg="bg-red-500/10" />
-        <StatCard icon={BarChart3} label="库存总值" value={`¥${(statsData?.totalInventoryValue || 0).toLocaleString()}`} subtitle="评估价值" iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Package} label={t("supply.material.totalMaterials")} value={statsData?.totalMaterials || 0} subtitle={t("supply.material.activeMaterials")} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={AlertTriangle} label={t("supply.material.lowStock")} value={statsData?.lowStockMaterials || 0} subtitle={t("supply.material.needReorder")} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={XCircle} label={t("supply.material.outOfStock")} value={statsData?.outOfStockMaterials || 0} subtitle={t("supply.material.urgentPurchase")} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={BarChart3} label={t("supply.material.inventoryValue")} value={`¥${(statsData?.totalInventoryValue || 0).toLocaleString()}`} subtitle={t("supply.material.estimatedValue")} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       {/* 选项卡 */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="list">物料列表</TabsTrigger>
-          <TabsTrigger value="categories">物料分类</TabsTrigger>
-          <TabsTrigger value="import">导入物料</TabsTrigger>
-          <TabsTrigger value="coding">编码规则</TabsTrigger>
+          <TabsTrigger value="list">{t("supply.material.tabMaterialList")}</TabsTrigger>
+          <TabsTrigger value="categories">{t("supply.material.tabCategories")}</TabsTrigger>
+          <TabsTrigger value="import">{t("supply.material.tabImport")}</TabsTrigger>
+          <TabsTrigger value="coding">{t("supply.material.tabCodingRules")}</TabsTrigger>
         </TabsList>
 
         {/* 物料列表标签页 */}
         <TabsContent value="list" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>物料列表</CardTitle>
-              <CardDescription>查看和管理所有物料信息</CardDescription>
+              <CardTitle>{t("supply.material.tabMaterialList")}</CardTitle>
+              <CardDescription>{t("supply.material.materialListDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               {/* 搜索和筛选 */}
@@ -144,7 +146,7 @@ export default function MaterialManagement() {
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="搜索物料编码或名称..."
+                    placeholder={t("supply.material.searchMaterial")}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -152,10 +154,10 @@ export default function MaterialManagement() {
                 </div>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                   <SelectTrigger className="w-48">
-                    <SelectValue placeholder="选择物料分类" />
+                    <SelectValue placeholder={t("supply.material.selectCategory")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">全部分类</SelectItem>
+                    <SelectItem value="">{t("supply.material.allCategories")}</SelectItem>
                     {categoriesData?.categories?.map((cat: any) => (
                       <SelectItem key={cat.id} value={cat.categoryCode}>
                         {cat.categoryName}
@@ -170,21 +172,21 @@ export default function MaterialManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>物料编码</TableHead>
-                      <TableHead>物料名称</TableHead>
-                      <TableHead>分类</TableHead>
-                      <TableHead>规格</TableHead>
-                      <TableHead>库存</TableHead>
-                      <TableHead>单价</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>操作</TableHead>
+                      <TableHead>{t("supply.material.colMaterialCode")}</TableHead>
+                      <TableHead>{t("supply.material.colMaterialName")}</TableHead>
+                      <TableHead>{t("supply.material.colCategory")}</TableHead>
+                      <TableHead>{t("supply.material.colSpec")}</TableHead>
+                      <TableHead>{t("supply.material.colStock")}</TableHead>
+                      <TableHead>{t("supply.material.colUnitPrice")}</TableHead>
+                      <TableHead>{t("supply.material.colStatus")}</TableHead>
+                      <TableHead>{t("supply.material.colOperation")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                          加载中...
+                          {t("supply.common.loading")}
                         </TableCell>
                       </TableRow>
                     ) : (() => {
@@ -194,7 +196,7 @@ export default function MaterialManagement() {
                         return (
                           <TableRow>
                             <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                              暂无物料数据
+                              {t("supply.material.noMaterialData")}
                             </TableCell>
                           </TableRow>
                         );
@@ -213,7 +215,7 @@ export default function MaterialManagement() {
                                 ? 'bg-green-100 text-green-800'
                                 : 'bg-gray-100 text-gray-800'
                             }`}>
-                              {material.status === 'active' ? '活跃' : '停用'}
+                              {material.status === 'active' ? t("supply.material.statusActive") : t("supply.material.statusInactive")}
                             </span>
                           </TableCell>
                           <TableCell>
@@ -221,7 +223,7 @@ export default function MaterialManagement() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => toast({ title: '编辑物料', description: `正在编辑 "${material.materialName}"` })}
+                                onClick={() => toast({ title: t("supply.material.editMaterial"), description: tpl("supply.material.editingMaterial", { name: material.materialName }) })}
                               >
                                 <Edit2 className="w-4 h-4" />
                               </Button>
@@ -232,7 +234,7 @@ export default function MaterialManagement() {
                                   if (String(material.id).startsWith('local_')) {
                                     handleDeleteMaterial(material as LocalMaterial);
                                   } else {
-                                    toast({ title: '删除', description: `物料 "${material.materialName}" 删除功能即将上线` });
+                                    toast({ title: t("supply.material.deleteTitle"), description: tpl("supply.material.deleteComingSoon", { name: material.materialName }) });
                                   }
                                 }}
                               >
@@ -254,16 +256,15 @@ export default function MaterialManagement() {
         <TabsContent value="categories" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>物料分类管理</CardTitle>
-              <CardDescription>管理物料的分类体系</CardDescription>
+              <CardTitle>{t("supply.material.categoryManagement")}</CardTitle>
+              <CardDescription>{t("supply.material.categoryManagementDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Button onClick={() => toast({ title: '功能即将上线', description: '新增分类功能即将上线' })}>
+                <Button onClick={() => toast({ title: t("supply.material.comingSoon"), description: t("supply.material.addCategoryComingSoon") })}>
                   <Plus className="w-4 h-4 mr-2" />
-                  新增分类
+                  {t("supply.material.addCategory")}
                 </Button>
-                {/* 分类列表将在这里显示 */}
               </div>
             </CardContent>
           </Card>
@@ -273,17 +274,17 @@ export default function MaterialManagement() {
         <TabsContent value="import" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>导入物料</CardTitle>
-              <CardDescription>从天思ERP或Excel导入物料数据</CardDescription>
+              <CardTitle>{t("supply.material.tabImport")}</CardTitle>
+              <CardDescription>{t("supply.material.importDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="border-2 border-dashed rounded-lg p-8 text-center">
                   <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mb-2">拖拽文件到此处或点击选择</p>
-                  <p className="text-xs text-muted-foreground">支持 Excel、CSV 格式</p>
+                  <p className="text-sm text-muted-foreground mb-2">{t("supply.material.dropFilesHere")}</p>
+                  <p className="text-xs text-muted-foreground">{t("supply.material.supportedFormats")}</p>
                 </div>
-                <Button className="w-full" onClick={() => toast({ title: '功能即将上线', description: '导入功能即将上线' })}>导入物料</Button>
+                <Button className="w-full" onClick={() => toast({ title: t("supply.material.comingSoon"), description: t("supply.material.importComingSoon") })}>{t("supply.material.importMaterials")}</Button>
               </div>
             </CardContent>
           </Card>
@@ -293,25 +294,25 @@ export default function MaterialManagement() {
         <TabsContent value="coding" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>物料编码规则</CardTitle>
-              <CardDescription>查看和管理物料编码体系</CardDescription>
+              <CardTitle>{t("supply.material.codingRules")}</CardTitle>
+              <CardDescription>{t("supply.material.codingRulesDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-sm mb-2">编码格式</h3>
-                  <p className="text-sm text-muted-foreground font-mono">大类-中类-规格-序号</p>
-                  <p className="text-sm text-muted-foreground mt-2">示例: UC-PMP-DN50-0001</p>
+                  <h3 className="font-semibold text-sm mb-2">{t("supply.material.codingFormat")}</h3>
+                  <p className="text-sm text-muted-foreground font-mono">{t("supply.material.codingPattern")}</p>
+                  <p className="text-sm text-muted-foreground mt-2">{t("supply.material.codingExample")}</p>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-sm">物料大类</h3>
+                  <h3 className="font-semibold text-sm">{t("supply.material.majorCategories")}</h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>• UC - 超声波清洗设备</div>
-                    <div>• SP - 喷淋清洗设备</div>
-                    <div>• VP - 真空清洗设备</div>
-                    <div>• DG - 脱脂清洗设备</div>
-                    <div>• PMP - 泵类</div>
-                    <div>• VLV - 阀门</div>
+                    <div>• UC - {t("supply.material.catUltrasonic")}</div>
+                    <div>• SP - {t("supply.material.catSpray")}</div>
+                    <div>• VP - {t("supply.material.catVacuum")}</div>
+                    <div>• DG - {t("supply.material.catDegrease")}</div>
+                    <div>• PMP - {t("supply.material.catPump")}</div>
+                    <div>• VLV - {t("supply.material.catValve")}</div>
                   </div>
                 </div>
               </div>
@@ -324,48 +325,47 @@ export default function MaterialManagement() {
       <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) resetForm(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>新增物料</DialogTitle>
-            <DialogDescription>填写物料基本信息，物料编码和物料名称为必填项。</DialogDescription>
+            <DialogTitle>{t("supply.material.addMaterial")}</DialogTitle>
+            <DialogDescription>{t("supply.material.addMaterialDesc")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="materialCode">物料编码 *</Label>
+              <Label htmlFor="materialCode">{t("supply.material.colMaterialCode")} *</Label>
               <Input
                 id="materialCode"
-                placeholder="如 UC-PMP-DN50-0001"
+                placeholder="UC-PMP-DN50-0001"
                 value={formMaterialCode}
                 onChange={(e) => setFormMaterialCode(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="materialName">物料名称 *</Label>
+              <Label htmlFor="materialName">{t("supply.material.colMaterialName")} *</Label>
               <Input
                 id="materialName"
-                placeholder="如 离心泵 DN50"
                 value={formMaterialName}
                 onChange={(e) => setFormMaterialName(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="categoryCode">分类编码</Label>
+              <Label htmlFor="categoryCode">{t("supply.material.colCategory")}</Label>
               <Input
                 id="categoryCode"
-                placeholder="如 PMP"
+                placeholder="PMP"
                 value={formCategoryCode}
                 onChange={(e) => setFormCategoryCode(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="specificationCode">规格编码</Label>
+              <Label htmlFor="specificationCode">{t("supply.material.colSpec")}</Label>
               <Input
                 id="specificationCode"
-                placeholder="如 DN50"
+                placeholder="DN50"
                 value={formSpecificationCode}
                 onChange={(e) => setFormSpecificationCode(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="quantityOnHand">库存数量</Label>
+              <Label htmlFor="quantityOnHand">{t("supply.material.colStock")}</Label>
               <Input
                 id="quantityOnHand"
                 type="number"
@@ -375,7 +375,7 @@ export default function MaterialManagement() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="standardCost">标准成本 (¥)</Label>
+              <Label htmlFor="standardCost">{t("supply.material.standardCost")}</Label>
               <Input
                 id="standardCost"
                 type="number"
@@ -386,8 +386,8 @@ export default function MaterialManagement() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setCreateOpen(false); resetForm(); }}>取消</Button>
-            <Button onClick={handleCreateSubmit}>确认新增</Button>
+            <Button variant="outline" onClick={() => { setCreateOpen(false); resetForm(); }}>{t("supply.common.cancel")}</Button>
+            <Button onClick={handleCreateSubmit}>{t("supply.material.confirmAdd")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

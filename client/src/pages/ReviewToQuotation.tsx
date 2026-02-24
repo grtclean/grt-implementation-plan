@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   FileCheck, Loader2, Sparkles, CheckCircle, AlertTriangle, FileText,
   ArrowRight, ClipboardList,
@@ -30,6 +31,7 @@ interface QuotationResult {
 }
 
 export default function ReviewToQuotation() {
+  const { t } = useLanguage();
   const [reviewId, setReviewId] = useState("");
   const [projectName, setProjectName] = useState("");
   const [reviewConclusions, setReviewConclusions] = useState("");
@@ -71,12 +73,12 @@ export default function ReviewToQuotation() {
       <div className="space-y-6">
         <PageHeader
           icon={FileCheck}
-          title="评审→报价关联"
-          description="技术评审结论自动填入报价模板 · 参数映射 · 缺失提醒"
+          title={t("crm.review.title")}
+          description={t("crm.review.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI关联
+              {t("crm.review.aiLink")}
             </Badge>
           }
         />
@@ -86,36 +88,36 @@ export default function ReviewToQuotation() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <FileCheck className="h-5 w-5 text-primary" />
-              评审信息
+              {t("crm.review.reviewInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">评审编号 *</label>
-                <Input placeholder="如: REV-2026-0078" value={reviewId} onChange={(e) => setReviewId(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("crm.review.reviewId")} *</label>
+                <Input placeholder={t("crm.review.reviewIdPlaceholder")} value={reviewId} onChange={(e) => setReviewId(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">项目名称 *</label>
-                <Input placeholder="如: XX精密零件清洗线项目" value={projectName} onChange={(e) => setProjectName(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("crm.review.projectName")} *</label>
+                <Input placeholder={t("crm.review.projectNamePlaceholder")} value={projectName} onChange={(e) => setProjectName(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">评审结论 *</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="如: 评审通过，建议采用三槽碳氢真空清洗方案，含预清洗、精密清洗、真空干燥三个阶段，产能满足客户每天500件的需求" value={reviewConclusions} onChange={(e) => setReviewConclusions(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("crm.review.conclusions")} *</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder={t("crm.review.conclusionsPlaceholder")} value={reviewConclusions} onChange={(e) => setReviewConclusions(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">技术参数 *</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="如: 清洗槽尺寸1200×800×600mm，超声功率5000W，频率28kHz/40kHz双频，真空度-0.095MPa，干燥温度60-80℃" value={technicalParameters} onChange={(e) => setTechnicalParameters(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("crm.review.techParams")} *</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder={t("crm.review.techParamsPlaceholder")} value={technicalParameters} onChange={(e) => setTechnicalParameters(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">已批准规格（可选）</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder="如: 材质304不锈钢，PLC品牌西门子S7-1500，触摸屏12寸，远程监控模块" value={approvedSpecs} onChange={(e) => setApprovedSpecs(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("crm.review.approvedSpecs")}</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder={t("crm.review.approvedSpecsPlaceholder")} value={approvedSpecs} onChange={(e) => setApprovedSpecs(e.target.value)} />
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!reviewId.trim() || !projectName.trim() || !reviewConclusions.trim() || !technicalParameters.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI生成报价
+                {t("crm.review.aiGenerateQuote")}
               </Button>
             </div>
           </CardContent>
@@ -129,36 +131,36 @@ export default function ReviewToQuotation() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <FileText className="h-5 w-5 text-primary" />
-                  报价草稿
+                  {t("crm.review.quoteDraft")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-muted-foreground">项目名称</p>
+                    <p className="text-xs text-muted-foreground">{t("crm.review.projectName")}</p>
                     <p className="text-sm font-medium">{result.quotationDraft.projectName}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">产品线</p>
+                    <p className="text-xs text-muted-foreground">{t("crm.review.productLine")}</p>
                     <Badge variant="outline">{result.quotationDraft.productLine}</Badge>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">配置方案</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t("crm.review.configPlan")}</p>
                   <p className="text-sm">{result.quotationDraft.configuration}</p>
                 </div>
 
                 {/* Specifications Table */}
                 {result.quotationDraft.specifications.length > 0 && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-2">技术规格</p>
+                    <p className="text-xs text-muted-foreground mb-2">{t("crm.review.techSpecs")}</p>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b">
-                            <th className="text-left py-2 font-medium text-muted-foreground">参数</th>
-                            <th className="text-left py-2 font-medium text-muted-foreground">值</th>
-                            <th className="text-left py-2 font-medium text-muted-foreground">来源</th>
+                            <th className="text-left py-2 font-medium text-muted-foreground">{t("crm.review.parameter")}</th>
+                            <th className="text-left py-2 font-medium text-muted-foreground">{t("crm.review.value")}</th>
+                            <th className="text-left py-2 font-medium text-muted-foreground">{t("crm.review.source")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -177,15 +179,15 @@ export default function ReviewToQuotation() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                   <div className="p-3 rounded bg-muted/50">
-                    <p className="text-xs text-muted-foreground">预估价格</p>
+                    <p className="text-xs text-muted-foreground">{t("crm.review.estimatedPrice")}</p>
                     <p className="text-lg font-bold text-primary">{result.quotationDraft.estimatedPrice}</p>
                   </div>
                   <div className="p-3 rounded bg-muted/50">
-                    <p className="text-xs text-muted-foreground">交货周期</p>
+                    <p className="text-xs text-muted-foreground">{t("crm.review.deliveryCycle")}</p>
                     <p className="text-lg font-bold">{result.quotationDraft.deliveryTime}</p>
                   </div>
                   <div className="p-3 rounded bg-muted/50">
-                    <p className="text-xs text-muted-foreground">质保期</p>
+                    <p className="text-xs text-muted-foreground">{t("crm.review.warrantyPeriod")}</p>
                     <p className="text-lg font-bold">{result.quotationDraft.warranty}</p>
                   </div>
                 </div>
@@ -198,7 +200,7 @@ export default function ReviewToQuotation() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ClipboardList className="h-5 w-5 text-primary" />
-                    参数映射 ({result.mappedParameters.length})
+                    {t("crm.review.paramMapping")} ({result.mappedParameters.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -206,11 +208,11 @@ export default function ReviewToQuotation() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-muted-foreground">评审参数</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("crm.review.reviewParam")}</th>
                           <th className="text-left py-2 font-medium text-muted-foreground"></th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">报价字段</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">值</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">置信度</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("crm.review.quoteField")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("crm.review.value")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("crm.review.confidence")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -248,7 +250,7 @@ export default function ReviewToQuotation() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-red-400" />
-                    缺失信息 ({result.missingInfo.length})
+                    {t("crm.review.missingInfo")} ({result.missingInfo.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -270,7 +272,7 @@ export default function ReviewToQuotation() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("crm.review.aiRecommendations")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

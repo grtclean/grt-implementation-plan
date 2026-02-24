@@ -10,19 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Target, Loader2, Sparkles, CheckCircle, AlertTriangle, FileText,
   Users, Clock,
 } from "lucide-react";
-
-const INDUSTRIES = [
-  { value: "汽车制造", label: "汽车制造" },
-  { value: "半导体", label: "半导体" },
-  { value: "精密加工", label: "精密加工" },
-  { value: "食品医药", label: "食品医药" },
-  { value: "航空航天", label: "航空航天" },
-  { value: "工业通用", label: "工业通用" },
-];
 
 interface ConversionResult {
   requirementDoc: {
@@ -48,6 +40,7 @@ interface ConversionResult {
 }
 
 export default function OpportunityConversion() {
+  const { t } = useLanguage();
   const [opportunityName, setOpportunityName] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [industry, setIndustry] = useState("汽车制造");
@@ -55,6 +48,15 @@ export default function OpportunityConversion() {
   const [budget, setBudget] = useState("");
   const [notes, setNotes] = useState("");
   const [result, setResult] = useState<ConversionResult | null>(null);
+
+  const INDUSTRIES = [
+    { value: "汽车制造", label: t("crm.conv.industryAuto") },
+    { value: "半导体", label: t("crm.conv.industrySemiconductor") },
+    { value: "精密加工", label: t("crm.conv.industryPrecision") },
+    { value: "食品医药", label: t("crm.conv.industryFoodPharma") },
+    { value: "航空航天", label: t("crm.conv.industryAerospace") },
+    { value: "工业通用", label: t("crm.conv.industryGeneral") },
+  ];
 
   const mutation = trpc.serviceSalesAdvanced.convertOpportunity.useMutation({
     onSuccess: (data) => setResult(data as ConversionResult),
@@ -76,11 +78,11 @@ export default function OpportunityConversion() {
   const riskLevelBadge = (level: string) => {
     switch (level) {
       case "high":
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">高</Badge>;
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{t("crm.conv.riskHigh")}</Badge>;
       case "medium":
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">中</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{t("crm.conv.riskMedium")}</Badge>;
       case "low":
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">低</Badge>;
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">{t("crm.conv.riskLow")}</Badge>;
       default:
         return <Badge variant="outline">{level}</Badge>;
     }
@@ -90,12 +92,12 @@ export default function OpportunityConversion() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Target}
-          title="商机→需求转化"
-          description="商机信息自动转化为结构化技术需求文档"
+          title={t("crm.conv.title")}
+          description={t("crm.conv.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI转化
+              {t("crm.conv.aiConversion")}
             </Badge>
           }
         />
@@ -105,23 +107,23 @@ export default function OpportunityConversion() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Target className="h-5 w-5 text-primary" />
-              商机信息
+              {t("crm.conv.opportunityInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">商机名称 *</label>
+                <label className="text-sm text-muted-foreground">{t("crm.conv.oppName")} *</label>
                 <Input
-                  placeholder="商机名称"
+                  placeholder={t("crm.conv.oppName")}
                   value={opportunityName}
                   onChange={(e) => setOpportunityName(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">客户名称 *</label>
+                <label className="text-sm text-muted-foreground">{t("crm.conv.customerName")} *</label>
                 <Input
-                  placeholder="客户名称"
+                  placeholder={t("crm.conv.customerName")}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                 />
@@ -129,10 +131,10 @@ export default function OpportunityConversion() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">行业 *</label>
+                <label className="text-sm text-muted-foreground">{t("crm.conv.industry")} *</label>
                 <Select value={industry} onValueChange={(v) => setIndustry(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择行业" />
+                    <SelectValue placeholder={t("crm.conv.selectIndustry")} />
                   </SelectTrigger>
                   <SelectContent>
                     {INDUSTRIES.map((ind) => (
@@ -142,27 +144,27 @@ export default function OpportunityConversion() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">预算范围（万元，可选）</label>
+                <label className="text-sm text-muted-foreground">{t("crm.conv.budgetRange")}</label>
                 <Input
-                  placeholder="预算范围(万元)"
+                  placeholder={t("crm.conv.budgetPlaceholder")}
                   value={budget}
                   onChange={(e) => setBudget(e.target.value)}
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">产品兴趣 *</label>
+              <label className="text-sm text-muted-foreground">{t("crm.conv.productInterest")} *</label>
               <Input
-                placeholder="如: 碳氢真空清洗机 + 超声波预清洗"
+                placeholder={t("crm.conv.productPlaceholder")}
                 value={productInterest}
                 onChange={(e) => setProductInterest(e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">补充说明（可选）</label>
+              <label className="text-sm text-muted-foreground">{t("crm.conv.notes")}</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]"
-                placeholder="补充说明"
+                placeholder={t("crm.conv.notes")}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
@@ -170,7 +172,7 @@ export default function OpportunityConversion() {
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!opportunityName.trim() || !customerName.trim() || !productInterest.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI转化需求
+                {t("crm.conv.aiConvertRequirement")}
               </Button>
             </div>
           </CardContent>
@@ -184,7 +186,7 @@ export default function OpportunityConversion() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <FileText className="h-5 w-5 text-primary" />
-                  技术需求文档
+                  {t("crm.conv.techRequirementDoc")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -193,11 +195,11 @@ export default function OpportunityConversion() {
                 </div>
                 <div className="space-y-3">
                   <div className="p-3 rounded bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">客户画像</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t("crm.conv.customerProfile")}</p>
                     <p className="text-sm">{result.requirementDoc.customerProfile}</p>
                   </div>
                   <div className="p-3 rounded bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">技术需求</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t("crm.conv.techRequirements")}</p>
                     <ul className="space-y-1">
                       {result.requirementDoc.technicalRequirements.map((req, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-sm">
@@ -209,19 +211,19 @@ export default function OpportunityConversion() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="p-3 rounded bg-muted/50">
-                      <p className="text-xs text-muted-foreground mb-1">清洁度标准</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t("crm.conv.cleanlinessStandard")}</p>
                       <p className="text-sm font-medium">{result.requirementDoc.cleanlinessSpec}</p>
                     </div>
                     <div className="p-3 rounded bg-muted/50">
-                      <p className="text-xs text-muted-foreground mb-1">产能要求</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t("crm.conv.throughputRequirement")}</p>
                       <p className="text-sm font-medium">{result.requirementDoc.throughputSpec}</p>
                     </div>
                     <div className="p-3 rounded bg-muted/50">
-                      <p className="text-xs text-muted-foreground mb-1">预算范围</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t("crm.conv.budgetRange")}</p>
                       <p className="text-sm font-medium">{result.requirementDoc.budgetRange}</p>
                     </div>
                     <div className="p-3 rounded bg-muted/50">
-                      <p className="text-xs text-muted-foreground mb-1">交付时间</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t("crm.conv.deliveryTime")}</p>
                       <p className="text-sm font-medium">{result.requirementDoc.timeline}</p>
                     </div>
                   </div>
@@ -235,7 +237,7 @@ export default function OpportunityConversion() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    风险评估
+                    {t("crm.conv.riskAssessment")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -243,9 +245,9 @@ export default function OpportunityConversion() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-muted-foreground">风险</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">级别</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">缓解措施</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("crm.conv.risk")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("crm.conv.level")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("crm.conv.mitigation")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -269,7 +271,7 @@ export default function OpportunityConversion() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Users className="h-5 w-5 text-blue-400" />
-                    建议团队
+                    {t("crm.conv.suggestedTeam")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -277,8 +279,8 @@ export default function OpportunityConversion() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-muted-foreground">角色</th>
-                          <th className="text-left py-2 font-medium text-muted-foreground">职责</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("crm.conv.role")}</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">{t("crm.conv.responsibility")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -300,7 +302,7 @@ export default function OpportunityConversion() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
                   <Clock className="h-5 w-5 text-primary" />
-                  <span className="text-sm text-muted-foreground">预估工作量:</span>
+                  <span className="text-sm text-muted-foreground">{t("crm.conv.estimatedEffort")}:</span>
                   <Badge className="bg-primary/20 text-primary border-primary/30 text-base px-3 py-1">
                     {result.estimatedEffort}
                   </Badge>
@@ -314,7 +316,7 @@ export default function OpportunityConversion() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("crm.conv.aiRecommendations")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

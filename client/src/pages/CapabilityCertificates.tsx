@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // 能力域配置
 const DOMAINS = [
@@ -60,7 +61,7 @@ const MOCK_CERTIFICATES = [
 ];
 
 export default function CapabilityCertificates() {
-  // 使用sonner toast
+  const { t } = useLanguage();
   const [verifyNumber, setVerifyNumber] = useState("");
   const [verifyResult, setVerifyResult] = useState<any>(null);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -82,19 +83,19 @@ export default function CapabilityCertificates() {
   // 生成证书
   const generateMutation = trpc.capabilityOs.generateCertificate.useMutation({
     onSuccess: (data) => {
-      toast.success(`证书生成成功，编号: ${(data as any).certificateNumber}`);
+      toast.success(`${t("quality.capCert.generateSuccess")}: ${(data as any).certificateNumber}`);
       certificatesQuery.refetch();
       setSelectedDomain(null);
     },
     onError: (error) => {
-      toast.error(`证书生成失败: ${error.message}`);
+      toast.error(`${t("quality.capCert.generateFailed")}: ${error.message}`);
     },
   });
 
   // 验证证书
   const handleVerify = async () => {
     if (!verifyNumber.trim()) {
-      toast.error("请输入证书编号");
+      toast.error(t("quality.capCert.enterCertNumber"));
       return;
     }
 
@@ -126,12 +127,12 @@ export default function CapabilityCertificates() {
   const copyShareLink = (certificateNumber: string) => {
     const shareUrl = `${window.location.origin}/verify-certificate?number=${certificateNumber}`;
     navigator.clipboard.writeText(shareUrl);
-    toast.success("分享链接已复制到剪贴板");
+    toast.success(t("quality.capCert.shareLinkCopied"));
   };
 
   // 下载证书
   const downloadCertificate = (cert: any) => {
-    toast.info(`正在下载证书 ${cert.certificateNumber}`);
+    toast.info(`${t("quality.capCert.downloading")} ${cert.certificateNumber}`);
     // 实际实现中会调用后端生成PDF并下载
   };
 
@@ -157,23 +158,23 @@ export default function CapabilityCertificates() {
       <div className="space-y-6">
         <PageHeader
           icon={Award}
-          title="能力证书中心"
-          description="Capability Certificate Center"
+          title={t("quality.capCert.title")}
+          description={t("quality.capCert.description")}
         />
 
         <Tabs defaultValue="my-certificates" className="space-y-4">
           <TabsList>
             <TabsTrigger value="my-certificates" className="gap-2">
               <Award className="h-4 w-4" />
-              我的证书
+              {t("quality.capCert.tabMyCerts")}
             </TabsTrigger>
             <TabsTrigger value="generate" className="gap-2">
               <Shield className="h-4 w-4" />
-              申请证书
+              {t("quality.capCert.tabApply")}
             </TabsTrigger>
             <TabsTrigger value="verify" className="gap-2">
               <Search className="h-4 w-4" />
-              验证证书
+              {t("quality.capCert.tabVerify")}
             </TabsTrigger>
           </TabsList>
 
@@ -184,12 +185,12 @@ export default function CapabilityCertificates() {
                 <Card className="col-span-2">
                   <CardContent className="flex flex-col items-center justify-center py-12">
                     <Award className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">暂无证书</h3>
+                    <h3 className="text-lg font-semibold mb-2">{t("quality.capCert.noCerts")}</h3>
                     <p className="text-muted-foreground text-center mb-4">
-                      当您的能力等级达到L3及以上时，可以申请能力证书
+                      {t("quality.capCert.noCertsHint")}
                     </p>
                     <Button variant="outline" asChild>
-                      <Link href="#generate">去申请证书</Link>
+                      <Link href="#generate">{t("quality.capCert.goApply")}</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -218,7 +219,7 @@ export default function CapabilityCertificates() {
                         <div className="flex items-center gap-3">
                           <Award className="h-8 w-8" style={{ color: domain?.color }} />
                           <div>
-                            <CardTitle>{cert.domainName}能力证书</CardTitle>
+                            <CardTitle>{cert.domainName} {t("quality.capCert.certSuffix")}</CardTitle>
                             <CardDescription>{cert.certificateNumber}</CardDescription>
                           </div>
                         </div>
@@ -227,19 +228,19 @@ export default function CapabilityCertificates() {
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <p className="text-muted-foreground">持证人</p>
+                            <p className="text-muted-foreground">{t("quality.capCert.holder")}</p>
                             <p className="font-medium">{cert.userName}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">能力等级</p>
+                            <p className="text-muted-foreground">{t("quality.capCert.capabilityLevel")}</p>
                             <p className="font-medium">Level {cert.level}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">颁发日期</p>
+                            <p className="text-muted-foreground">{t("quality.capCert.issueDate")}</p>
                             <p className="font-medium">{cert.issueDate}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">有效期至</p>
+                            <p className="text-muted-foreground">{t("quality.capCert.validUntil")}</p>
                             <p className="font-medium">{cert.expiryDate}</p>
                           </div>
                         </div>
@@ -248,12 +249,12 @@ export default function CapabilityCertificates() {
                           {cert.status === "valid" ? (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-xs">
                               <CheckCircle2 className="h-3 w-3" />
-                              有效
+                              {t("quality.capCert.statusValid")}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/10 text-red-500 text-xs">
                               <XCircle className="h-3 w-3" />
-                              已过期
+                              {t("quality.capCert.statusExpired")}
                             </span>
                           )}
                         </div>
@@ -266,7 +267,7 @@ export default function CapabilityCertificates() {
                             onClick={() => downloadCertificate(cert)}
                           >
                             <Download className="h-4 w-4" />
-                            下载PDF
+                            {t("quality.capCert.downloadPdf")}
                           </Button>
                           <Button
                             variant="outline"
@@ -275,7 +276,7 @@ export default function CapabilityCertificates() {
                             onClick={() => copyShareLink(cert.certificateNumber)}
                           >
                             <Share2 className="h-4 w-4" />
-                            分享
+                            {t("quality.capCert.share")}
                           </Button>
                         </div>
                       </CardContent>
@@ -290,16 +291,16 @@ export default function CapabilityCertificates() {
           <TabsContent value="generate">
             <Card>
               <CardHeader>
-                <CardTitle>申请能力证书</CardTitle>
-                <CardDescription>当您的能力等级达到L3及以上时，可以申请对应能力域的证书</CardDescription>
+                <CardTitle>{t("quality.capCert.applyTitle")}</CardTitle>
+                <CardDescription>{t("quality.capCert.applyDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {eligibleDomains.length === 0 ? (
                   <div className="text-center py-8">
                     <Shield className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">暂无可申请的证书</h3>
+                    <h3 className="text-lg font-semibold mb-2">{t("quality.capCert.noEligible")}</h3>
                     <p className="text-muted-foreground">
-                      您需要在至少一个能力域达到L3等级才能申请证书
+                      {t("quality.capCert.noEligibleHint")}
                     </p>
                   </div>
                 ) : (
@@ -341,14 +342,14 @@ export default function CapabilityCertificates() {
                                   onClick={() => setSelectedDomain(domain.code)}
                                 >
                                   <Award className="h-4 w-4" />
-                                  申请证书
+                                  {t("quality.capCert.tabApply")}
                                 </Button>
                               </DialogTrigger>
                               <DialogContent>
                                 <DialogHeader>
-                                  <DialogTitle>确认申请证书</DialogTitle>
+                                  <DialogTitle>{t("quality.capCert.confirmApply")}</DialogTitle>
                                   <DialogDescription>
-                                    您即将申请 {domain.name} L{domain.level} 能力证书
+                                    {t("quality.capCert.confirmApplyDesc")} {domain.name} L{domain.level}
                                   </DialogDescription>
                                 </DialogHeader>
                                 <div className="space-y-4 py-4">
@@ -361,14 +362,14 @@ export default function CapabilityCertificates() {
                                         {domain.code}
                                       </div>
                                       <div>
-                                        <p className="font-semibold">{domain.name}能力证书</p>
+                                        <p className="font-semibold">{domain.name} {t("quality.capCert.certSuffix")}</p>
                                         <p className="text-sm text-muted-foreground">Level {domain.level}</p>
                                       </div>
                                     </div>
                                     <ul className="text-sm text-muted-foreground space-y-1">
-                                      <li>• 证书有效期为1年</li>
-                                      <li>• 证书可用于内部晋升和外部展示</li>
-                                      <li>• 证书编号可用于在线验证</li>
+                                      <li>• {t("quality.capCert.validityNote")}</li>
+                                      <li>• {t("quality.capCert.usageNote")}</li>
+                                      <li>• {t("quality.capCert.verifyNote")}</li>
                                     </ul>
                                   </div>
                                   <Button
@@ -379,12 +380,12 @@ export default function CapabilityCertificates() {
                                     {isGenerating ? (
                                       <>
                                         <Loader2 className="h-4 w-4 animate-spin" />
-                                        生成中...
+                                        {t("quality.capCert.generating")}
                                       </>
                                     ) : (
                                       <>
                                         <Award className="h-4 w-4" />
-                                        确认申请
+                                        {t("quality.capCert.confirmBtn")}
                                       </>
                                     )}
                                   </Button>
@@ -405,13 +406,13 @@ export default function CapabilityCertificates() {
           <TabsContent value="verify">
             <Card>
               <CardHeader>
-                <CardTitle>验证证书真伪</CardTitle>
-                <CardDescription>输入证书编号验证证书的真实性和有效性</CardDescription>
+                <CardTitle>{t("quality.capCert.verifyTitle")}</CardTitle>
+                <CardDescription>{t("quality.capCert.verifyDesc")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="请输入证书编号，如 GRT-T-2026-001234"
+                    placeholder={t("quality.capCert.verifyPlaceholder")}
                     value={verifyNumber}
                     onChange={(e) => setVerifyNumber(e.target.value)}
                     className="flex-1"
@@ -420,12 +421,12 @@ export default function CapabilityCertificates() {
                     {isVerifying ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        验证中
+                        {t("quality.capCert.verifying")}
                       </>
                     ) : (
                       <>
                         <Search className="h-4 w-4" />
-                        验证
+                        {t("quality.capCert.verifyBtn")}
                       </>
                     )}
                   </Button>
@@ -443,31 +444,31 @@ export default function CapabilityCertificates() {
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-green-500">
                           <CheckCircle2 className="h-5 w-5" />
-                          <span className="font-semibold">证书有效</span>
+                          <span className="font-semibold">{t("quality.capCert.certValid")}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <p className="text-muted-foreground">证书编号</p>
+                            <p className="text-muted-foreground">{t("quality.capCert.certNumber")}</p>
                             <p className="font-medium">{verifyResult.certificateNumber}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">持证人</p>
+                            <p className="text-muted-foreground">{t("quality.capCert.holder")}</p>
                             <p className="font-medium">{verifyResult.userName}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">能力域</p>
+                            <p className="text-muted-foreground">{t("quality.capCert.domain")}</p>
                             <p className="font-medium">{verifyResult.domainName}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">能力等级</p>
+                            <p className="text-muted-foreground">{t("quality.capCert.capabilityLevel")}</p>
                             <p className="font-medium">Level {verifyResult.level}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">颁发日期</p>
+                            <p className="text-muted-foreground">{t("quality.capCert.issueDate")}</p>
                             <p className="font-medium">{verifyResult.issueDate}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">有效期至</p>
+                            <p className="text-muted-foreground">{t("quality.capCert.validUntil")}</p>
                             <p className="font-medium">{verifyResult.expiryDate}</p>
                           </div>
                         </div>
@@ -475,7 +476,7 @@ export default function CapabilityCertificates() {
                     ) : (
                       <div className="flex items-center gap-2 text-red-500">
                         <XCircle className="h-5 w-5" />
-                        <span className="font-semibold">证书无效或不存在</span>
+                        <span className="font-semibold">{t("quality.capCert.certInvalid")}</span>
                       </div>
                     )}
                   </div>

@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Shield, Plus, AlertTriangle, CheckCircle2, XCircle,
   ChevronRight, ClipboardList, FileSearch, Target,
@@ -18,32 +19,33 @@ import {
 const D_STEPS = ["open", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "closed", "verified"] as const;
 type DStep = (typeof D_STEPS)[number];
 
-const D_LABELS: Record<string, string> = {
-  open: "立项", D1: "团队", D2: "描述", D3: "围堵", D4: "根因",
-  D5: "纠正", D6: "验证", D7: "预防", D8: "总结", closed: "关闭", verified: "已验证",
+const D_LABEL_KEYS: Record<string, string> = {
+  open: "quality.eightDCapa.dInitiation", D1: "quality.eightDCapa.dTeam", D2: "quality.eightDCapa.dDescription", D3: "quality.eightDCapa.dContainment", D4: "quality.eightDCapa.dRootCause",
+  D5: "quality.eightDCapa.dCorrective", D6: "quality.eightDCapa.dVerification", D7: "quality.eightDCapa.dPrevention", D8: "quality.eightDCapa.dSummary", closed: "quality.eightDCapa.dClosed", verified: "quality.eightDCapa.dVerified",
 };
 
-const SEVERITY_STYLES: Record<string, { label: string; bg: string }> = {
-  critical: { label: "严重", bg: "bg-[#fed9cc] text-[#d83b01]" },
-  high:     { label: "高",   bg: "bg-[#fff4ce] text-[#797673]" },
-  medium:   { label: "中",   bg: "bg-[#deecf9] text-[#0078d4]" },
-  low:      { label: "低",   bg: "bg-[#f3f2f1] text-[#605e5c]" },
+const SEVERITY_KEYS: Record<string, { key: string; bg: string }> = {
+  critical: { key: "quality.eightDCapa.severityCritical", bg: "bg-[#fed9cc] text-[#d83b01]" },
+  high:     { key: "quality.eightDCapa.severityHigh",     bg: "bg-[#fff4ce] text-[#797673]" },
+  medium:   { key: "quality.eightDCapa.severityMedium",   bg: "bg-[#deecf9] text-[#0078d4]" },
+  low:      { key: "quality.eightDCapa.severityLow",      bg: "bg-[#f3f2f1] text-[#605e5c]" },
 };
 
-const CAPA_STATUS_STYLES: Record<string, { label: string; bg: string }> = {
-  open:           { label: "待处理", bg: "bg-[#f3f2f1] text-[#605e5c]" },
-  investigation:  { label: "调查中", bg: "bg-[#deecf9] text-[#0078d4]" },
-  action_planned: { label: "已计划", bg: "bg-[#fff4ce] text-[#797673]" },
-  implemented:    { label: "已实施", bg: "bg-[#fed9cc] text-[#d83b01]" },
-  verified:       { label: "已验证", bg: "bg-[#dff6dd] text-[#107c10]" },
-  closed:         { label: "已关闭", bg: "bg-[#c8e6c9] text-[#0b6a0b]" },
+const CAPA_STATUS_KEYS: Record<string, { key: string; bg: string }> = {
+  open:           { key: "quality.eightDCapa.capaPending",       bg: "bg-[#f3f2f1] text-[#605e5c]" },
+  investigation:  { key: "quality.eightDCapa.capaInvestigating", bg: "bg-[#deecf9] text-[#0078d4]" },
+  action_planned: { key: "quality.eightDCapa.capaPlanned",       bg: "bg-[#fff4ce] text-[#797673]" },
+  implemented:    { key: "quality.eightDCapa.capaImplemented",   bg: "bg-[#fed9cc] text-[#d83b01]" },
+  verified:       { key: "quality.eightDCapa.capaVerified",      bg: "bg-[#dff6dd] text-[#107c10]" },
+  closed:         { key: "quality.eightDCapa.capaClosed",        bg: "bg-[#c8e6c9] text-[#0b6a0b]" },
 };
 
 const CAPA_STATUS_ORDER = ["open", "investigation", "action_planned", "implemented", "verified", "closed"] as const;
-const ANALYSIS_METHODS = [
-  { value: "5why", label: "5-Why" },
-  { value: "fishbone", label: "鱼骨图 (Ishikawa)" },
-  { value: "fault_tree", label: "故障树 (FTA)" },
+
+const ANALYSIS_METHOD_KEYS = [
+  { value: "5why", key: "5-Why" },
+  { value: "fishbone", key: "quality.workbench.fishbone" },
+  { value: "fault_tree", key: "quality.workbench.faultTree" },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -59,6 +61,10 @@ function parseJsonArray(val: string | null | undefined): string[] {
 
 function stepIndex(step: string): number {
   return D_STEPS.indexOf(step as DStep);
+}
+
+function analysisMethodLabel(t: (k: string) => string, key: string): string {
+  return key.startsWith("quality.") ? t(key) : key;
 }
 
 // ─── Skeleton Loading ─────────────────────────────────────────
@@ -123,6 +129,7 @@ function InlineSelect({ value, onChange, options, placeholder, className }: {
 
 // ─── Step Progress Bar (horizontal 11-node) ───────────────────
 function StepProgressBar({ currentStep }: { currentStep: string }) {
+  const { t } = useLanguage();
   const idx = stepIndex(currentStep);
   return (
     <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide pb-1">
@@ -133,7 +140,7 @@ function StepProgressBar({ currentStep }: { currentStep: string }) {
         return (
           <div key={step} className="flex items-center">
             <div className={`flex items-center justify-center min-w-[28px] h-6 px-1.5 rounded-full text-[10px] font-semibold ${bg}`}>
-              {D_LABELS[step]}
+              {t(D_LABEL_KEYS[step])}
             </div>
             {i < D_STEPS.length - 1 && (
               <div className={`w-3 h-0.5 ${i < idx ? "bg-[#107c10]" : "bg-[#edebe9]"}`} />
@@ -147,6 +154,7 @@ function StepProgressBar({ currentStep }: { currentStep: string }) {
 
 // ─── Vertical Timeline ────────────────────────────────────────
 function VerticalTimeline({ currentStep, onClickStep }: { currentStep: string; onClickStep: (step: DStep) => void }) {
+  const { t } = useLanguage();
   const idx = stepIndex(currentStep);
   return (
     <div className="space-y-0">
@@ -172,7 +180,7 @@ function VerticalTimeline({ currentStep, onClickStep }: { currentStep: string; o
               onClick={() => onClickStep(step)}
               className={`text-sm ${textColor} pb-4 text-left hover:underline`}
             >
-              {step}: {D_LABELS[step]}
+              {step}: {t(D_LABEL_KEYS[step])}
             </button>
           </div>
         );
@@ -185,6 +193,7 @@ function VerticalTimeline({ currentStep, onClickStep }: { currentStep: string; o
 // TAB 1: 8D Reports
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }) {
+  const { t } = useLanguage();
   const [severity, setSeverity] = useState("");
   const [step, setStep] = useState("");
   const [search, setSearch] = useState("");
@@ -225,10 +234,10 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "8D Total", value: stats?.eightD.total ?? "-", icon: ClipboardList, color: "text-[#0078d4]" },
-          { label: "Open", value: stats?.eightD.open ?? "-", icon: Clock, color: "text-[#d83b01]" },
-          { label: "Closed", value: stats?.eightD.closed ?? "-", icon: CheckCircle2, color: "text-[#107c10]" },
-          { label: "Critical", value: stats?.eightD.bySeverity?.critical ?? "-", icon: AlertTriangle, color: "text-[#d83b01]" },
+          { label: t("quality.eightDCapa.total8D"), value: stats?.eightD.total ?? "-", icon: ClipboardList, color: "text-[#0078d4]" },
+          { label: t("quality.eightDCapa.inProgress"), value: stats?.eightD.open ?? "-", icon: Clock, color: "text-[#d83b01]" },
+          { label: t("quality.eightDCapa.closed"), value: stats?.eightD.closed ?? "-", icon: CheckCircle2, color: "text-[#107c10]" },
+          { label: t("quality.eightDCapa.critical"), value: stats?.eightD.bySeverity?.critical ?? "-", icon: AlertTriangle, color: "text-[#d83b01]" },
         ].map((c) => (
           <div key={c.label} className="bg-white rounded-lg border border-[#edebe9] shadow-sm p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -244,24 +253,24 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
       <div className="flex flex-wrap items-center gap-3">
         <InlineSelect
           value={severity} onChange={setSeverity} className="w-36"
-          placeholder="Severity"
+          placeholder={t("quality.eightDCapa.severityLevel")}
           options={[
-            { value: "critical", label: "Critical" },
-            { value: "high", label: "High" },
-            { value: "medium", label: "Medium" },
-            { value: "low", label: "Low" },
+            { value: "critical", label: t("quality.eightDCapa.severityCritical") },
+            { value: "high", label: t("quality.eightDCapa.severityHigh") },
+            { value: "medium", label: t("quality.eightDCapa.severityMedium") },
+            { value: "low", label: t("quality.eightDCapa.severityLow") },
           ]}
         />
         <InlineSelect
           value={step} onChange={setStep} className="w-40"
-          placeholder="Step"
-          options={D_STEPS.map((s) => ({ value: s, label: `${s} - ${D_LABELS[s]}` }))}
+          placeholder={t("quality.workbench.stepFilter")}
+          options={D_STEPS.map((s) => ({ value: s, label: `${s} - ${t(D_LABEL_KEYS[s])}` }))}
         />
         <div className="relative flex-1 min-w-[180px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a19f9d]" />
           <input
             type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search reports..."
+            placeholder={t("quality.common.search") + "..."}
             className="w-full h-9 pl-9 pr-3 bg-white border border-[#8a8886] rounded-md text-sm text-[#323130] focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
           />
         </div>
@@ -269,7 +278,7 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
           onClick={() => setShowCreate(true)}
           className="h-9 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-sm font-medium rounded-md flex items-center gap-1.5"
         >
-          <Plus size={14} /> 新建8D
+          <Plus size={14} /> {t("quality.eightDCapa.new8D")}
         </button>
       </div>
 
@@ -281,18 +290,18 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
             <thead>
               <tr className="bg-[#f3f2f1]">
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Report Code</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Title</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Severity</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Current Step</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Source</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Due Date</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.eightDCapa.reportTitle")}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.eightDCapa.severityLevel")}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.workbench.currentStep")}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.eightDCapa.source")}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.eightDCapa.targetCloseDate")}</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12 text-[#a19f9d]">No 8D reports found</td></tr>
+                <tr><td colSpan={6} className="text-center py-12 text-[#a19f9d]">{t("quality.eightDCapa.no8D")}</td></tr>
               ) : filtered.map((r) => {
-                const sev = SEVERITY_STYLES[r.severity ?? "medium"];
+                const sev = SEVERITY_KEYS[r.severity ?? "medium"];
                 return (
                   <tr
                     key={r.id}
@@ -302,7 +311,7 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
                     <td className="px-4 py-3 font-mono text-xs text-[#0078d4]">{r.reportCode}</td>
                     <td className="px-4 py-3 text-[#323130] font-medium max-w-[260px] truncate">{r.title}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${sev.bg}`}>{sev.label}</span>
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${sev.bg}`}>{t(sev.key)}</span>
                     </td>
                     <td className="px-4 py-3">
                       <StepProgressBar currentStep={r.currentStep} />
@@ -319,17 +328,17 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
       )}
 
       {/* Create 8D Dialog */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="新建 8D 报告" wide>
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t("quality.workbench.new8DDialog")} wide>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#323130] mb-1">Title *</label>
+            <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.reportTitle")} *</label>
             <input
               type="text" value={cf.title} onChange={(e) => setCf({ ...cf, title: e.target.value })}
               className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#323130] mb-1">Problem Description</label>
+            <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.problemDesc")}</label>
             <textarea
               value={cf.problemDescription} onChange={(e) => setCf({ ...cf, problemDescription: e.target.value })}
               rows={3}
@@ -338,18 +347,18 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Severity</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.severityLevel")}</label>
               <InlineSelect value={cf.severity} onChange={(v) => setCf({ ...cf, severity: v })}
                 options={[
-                  { value: "critical", label: "Critical" },
-                  { value: "high", label: "High" },
-                  { value: "medium", label: "Medium" },
-                  { value: "low", label: "Low" },
+                  { value: "critical", label: t("quality.eightDCapa.severityCritical") },
+                  { value: "high", label: t("quality.eightDCapa.severityHigh") },
+                  { value: "medium", label: t("quality.eightDCapa.severityMedium") },
+                  { value: "low", label: t("quality.eightDCapa.severityLow") },
                 ]}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Source</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.source")}</label>
               <input
                 type="text" value={cf.source} onChange={(e) => setCf({ ...cf, source: e.target.value })}
                 placeholder="customer_complaint / internal_audit / ..."
@@ -359,14 +368,14 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Customer Name</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.customerName")}</label>
               <input
                 type="text" value={cf.customerName} onChange={(e) => setCf({ ...cf, customerName: e.target.value })}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Part Number</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.partNumber")}</label>
               <input
                 type="text" value={cf.partNumber} onChange={(e) => setCf({ ...cf, partNumber: e.target.value })}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
@@ -375,14 +384,14 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Defect Quantity</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.workbench.defectQuantity")}</label>
               <input
                 type="number" value={cf.defectQuantity || ""} onChange={(e) => setCf({ ...cf, defectQuantity: parseInt(e.target.value) || 0 })}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Due Date</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.targetCloseDate")}</label>
               <input
                 type="date" value={cf.dueDate} onChange={(e) => setCf({ ...cf, dueDate: e.target.value })}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
@@ -392,7 +401,7 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
           <div className="flex justify-end gap-3 pt-2 border-t border-[#edebe9]">
             <button onClick={() => setShowCreate(false)}
               className="h-9 px-4 text-sm text-[#323130] border border-[#8a8886] rounded-md hover:bg-[#f3f2f1]">
-              Cancel
+              {t("quality.common.cancel")}
             </button>
             <button
               disabled={!cf.title || createMut.isPending}
@@ -409,7 +418,7 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
               className="h-9 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-sm font-medium rounded-md flex items-center gap-1.5 disabled:opacity-50"
             >
               {createMut.isPending && <Loader2 size={14} className="animate-spin" />}
-              Create
+              {t("quality.common.create")}
             </button>
           </div>
         </div>
@@ -422,6 +431,7 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
 // TAB 2: 8D Detail
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void }) {
+  const { t } = useLanguage();
   const detailQ = trpc.eightDCapa.get8D.useQuery({ id: reportId });
   const updateMut = trpc.eightDCapa.update8DStep.useMutation({
     onSuccess: (res) => {
@@ -449,8 +459,8 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
     return (
       <div className="text-center py-16">
         <XCircle size={40} className="mx-auto text-[#a19f9d] mb-3" />
-        <p className="text-[#605e5c]">Report not found</p>
-        <button onClick={onBack} className="mt-3 text-sm text-[#0078d4] hover:underline">Back to list</button>
+        <p className="text-[#605e5c]">{t("quality.workbench.reportNotFound")}</p>
+        <button onClick={onBack} className="mt-3 text-sm text-[#0078d4] hover:underline">{t("quality.common.back")}</button>
       </div>
     );
   }
@@ -574,7 +584,7 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
       case "D2":
         return (
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-[#323130]">Problem Description (Is / Is Not Analysis)</label>
+            <label className="block text-sm font-medium text-[#323130]">{t("quality.eightDCapa.problemDesc")} (Is / Is Not Analysis)</label>
             <textarea value={d2Desc} onChange={(e) => setD2Desc(e.target.value)} rows={4} placeholder="Detailed problem description..."
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
@@ -582,7 +592,7 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
       case "D3":
         return (
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-[#323130]">Containment Actions (one per line)</label>
+            <label className="block text-sm font-medium text-[#323130]">{t("quality.workbench.containmentActions")}</label>
             <textarea value={d3Actions} onChange={(e) => setD3Actions(e.target.value)} rows={4} placeholder="Action 1&#10;Action 2..."
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
@@ -590,18 +600,18 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
       case "D4":
         return (
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-[#323130]">Root Causes (one per line)</label>
+            <label className="block text-sm font-medium text-[#323130]">{t("quality.workbench.rootCauses")}</label>
             <textarea value={d4Causes} onChange={(e) => setD4Causes(e.target.value)} rows={3} placeholder="Root cause 1&#10;Root cause 2..."
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
-            <label className="block text-sm font-medium text-[#323130]">Analysis Method</label>
-            <InlineSelect value={d4Method} onChange={setD4Method} placeholder="Select method"
-              options={ANALYSIS_METHODS} />
+            <label className="block text-sm font-medium text-[#323130]">{t("quality.workbench.analysisMethod")}</label>
+            <InlineSelect value={d4Method} onChange={setD4Method} placeholder={t("quality.workbench.selectMethod")}
+              options={ANALYSIS_METHOD_KEYS.map((m) => ({ value: m.value, label: analysisMethodLabel(t, m.key) }))} />
           </div>
         );
       case "D5":
         return (
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-[#323130]">Corrective Actions (one per line)</label>
+            <label className="block text-sm font-medium text-[#323130]">{t("quality.workbench.correctiveActions")}</label>
             <textarea value={d5Actions} onChange={(e) => setD5Actions(e.target.value)} rows={4} placeholder="Action 1&#10;Action 2..."
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
@@ -609,7 +619,7 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
       case "D6":
         return (
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-[#323130]">Verification Result</label>
+            <label className="block text-sm font-medium text-[#323130]">{t("quality.workbench.verificationResult")}</label>
             <textarea value={d6Result} onChange={(e) => setD6Result(e.target.value)} rows={4} placeholder="Describe verification outcome..."
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
@@ -617,7 +627,7 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
       case "D7":
         return (
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-[#323130]">Prevention Actions (one per line)</label>
+            <label className="block text-sm font-medium text-[#323130]">{t("quality.workbench.preventionActions")}</label>
             <textarea value={d7Actions} onChange={(e) => setD7Actions(e.target.value)} rows={4} placeholder="Prevention 1&#10;Prevention 2..."
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
@@ -625,7 +635,7 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
       case "D8":
         return (
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-[#323130]">Lessons Learned</label>
+            <label className="block text-sm font-medium text-[#323130]">{t("quality.workbench.lessonsLearned")}</label>
             <textarea value={d8Lessons} onChange={(e) => setD8Lessons(e.target.value)} rows={4} placeholder="Key lessons and team recognition..."
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
@@ -635,29 +645,29 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
     }
   }
 
-  const sev = SEVERITY_STYLES[report.severity ?? "medium"];
+  const sev = SEVERITY_KEYS[report.severity ?? "medium"];
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="text-sm text-[#0078d4] hover:underline flex items-center gap-1">
-          <ChevronRight size={14} className="rotate-180" /> Back
+          <ChevronRight size={14} className="rotate-180" /> {t("quality.common.back")}
         </button>
         <span className="text-xs text-[#a19f9d]">|</span>
         <span className="font-mono text-sm text-[#0078d4]">{report.reportCode}</span>
-        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${sev.bg}`}>{sev.label}</span>
+        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${sev.bg}`}>{t(sev.key)}</span>
       </div>
 
       <div className="bg-white rounded-lg border border-[#edebe9] shadow-sm p-5">
         <h2 className="text-lg font-semibold text-[#323130] mb-1">{report.title}</h2>
         {report.problemDescription && <p className="text-sm text-[#605e5c] mb-3">{report.problemDescription}</p>}
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#605e5c] mb-4">
-          {report.customerName && <span>Customer: {report.customerName}</span>}
-          {report.partNumber && <span>Part: {report.partNumber}</span>}
+          {report.customerName && <span>{t("quality.eightDCapa.customerLabel")} {report.customerName}</span>}
+          {report.partNumber && <span>{t("quality.eightDCapa.partLabel")} {report.partNumber}</span>}
           {report.defectQuantity != null && <span>Qty: {report.defectQuantity}</span>}
-          <span>Due: {fmtDate(report.dueDate)}</span>
-          <span>Source: {report.source || "-"}</span>
+          <span>{t("quality.eightDCapa.targetCloseDate")}: {fmtDate(report.dueDate)}</span>
+          <span>{t("quality.eightDCapa.source")}: {report.source || "-"}</span>
         </div>
         <StepProgressBar currentStep={report.currentStep} />
       </div>
@@ -672,7 +682,7 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
         {/* Step Content */}
         <div className="bg-white rounded-lg border border-[#edebe9] shadow-sm p-5 space-y-4">
           <h3 className="text-base font-semibold text-[#323130]">
-            {activeStep}: {D_LABELS[activeStep]}
+            {activeStep}: {t(D_LABEL_KEYS[activeStep])}
           </h3>
 
           {/* Show existing data for this step */}
@@ -688,13 +698,13 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
                 <button onClick={handleSaveStep} disabled={updateMut.isPending}
                   className="h-9 px-4 text-sm text-[#323130] border border-[#8a8886] rounded-md hover:bg-[#f3f2f1] flex items-center gap-1.5 disabled:opacity-50">
                   {updateMut.isPending && <Loader2 size={14} className="animate-spin" />}
-                  Save Step Data
+                  {t("quality.workbench.saveStepData")}
                 </button>
                 {nextStep && (
                   <button onClick={handleAdvance} disabled={updateMut.isPending}
                     className="h-9 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-sm font-medium rounded-md flex items-center gap-1.5 disabled:opacity-50">
                     {updateMut.isPending && <Loader2 size={14} className="animate-spin" />}
-                    <ArrowRight size={14} /> 推进到下一步 ({nextStep})
+                    <ArrowRight size={14} /> {t("quality.workbench.advanceNext")} ({nextStep})
                   </button>
                 )}
               </>
@@ -704,17 +714,17 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
           {/* Linked CAPAs */}
           {report.capas && report.capas.length > 0 && (
             <div className="pt-3 border-t border-[#edebe9]">
-              <h4 className="text-sm font-semibold text-[#605e5c] mb-2">Linked CAPA Records</h4>
+              <h4 className="text-sm font-semibold text-[#605e5c] mb-2">{t("quality.workbench.linkedCapas")}</h4>
               <div className="space-y-2">
                 {report.capas.map((c) => {
-                  const st = CAPA_STATUS_STYLES[c.status ?? "open"];
+                  const st = CAPA_STATUS_KEYS[c.status ?? "open"];
                   return (
                     <div key={c.id} className="flex items-center justify-between p-2 bg-[#faf9f8] rounded border border-[#edebe9]">
                       <div>
                         <span className="font-mono text-xs text-[#0078d4] mr-2">{c.capaCode}</span>
                         <span className="text-sm text-[#323130]">{c.title}</span>
                       </div>
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${st.bg}`}>{st.label}</span>
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${st.bg}`}>{t(st.key)}</span>
                     </div>
                   );
                 })}
@@ -731,6 +741,7 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
 // TAB 3: CAPA Tracker
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function CapaTab() {
+  const { t } = useLanguage();
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -774,23 +785,23 @@ function CapaTab() {
       <div className="flex flex-wrap items-center gap-3">
         <InlineSelect
           value={typeFilter} onChange={setTypeFilter} className="w-40"
-          placeholder="All Types"
+          placeholder={t("quality.workbench.allTypes")}
           options={[
-            { value: "corrective", label: "Corrective" },
-            { value: "preventive", label: "Preventive" },
+            { value: "corrective", label: t("quality.eightDCapa.typeCorrective") },
+            { value: "preventive", label: t("quality.eightDCapa.typePreventive") },
           ]}
         />
         <InlineSelect
           value={statusFilter} onChange={setStatusFilter} className="w-44"
-          placeholder="All Statuses"
-          options={CAPA_STATUS_ORDER.map((s) => ({ value: s, label: CAPA_STATUS_STYLES[s].label }))}
+          placeholder={t("quality.workbench.allStatuses")}
+          options={CAPA_STATUS_ORDER.map((s) => ({ value: s, label: t(CAPA_STATUS_KEYS[s].key) }))}
         />
         <div className="flex-1" />
         <button
           onClick={() => setShowCreate(true)}
           className="h-9 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-sm font-medium rounded-md flex items-center gap-1.5"
         >
-          <Plus size={14} /> 新建CAPA
+          <Plus size={14} /> {t("quality.eightDCapa.newCAPA")}
         </button>
       </div>
 
@@ -802,20 +813,20 @@ function CapaTab() {
             <thead>
               <tr className="bg-[#f3f2f1]">
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">CAPA Code</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Title</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Type</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Status</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Responsible</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Target Date</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.eightDCapa.reportTitle")}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.eightDCapa.capaType")}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.common.status")}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.eightDCapa.capaResponsible")}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.eightDCapa.capaTargetDate")}</th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12 text-[#a19f9d]">No CAPA records found</td></tr>
+                <tr><td colSpan={6} className="text-center py-12 text-[#a19f9d]">{t("quality.eightDCapa.noCAPA")}</td></tr>
               ) : items.map((c) => {
-                const st = CAPA_STATUS_STYLES[c.status ?? "open"];
+                const st = CAPA_STATUS_KEYS[c.status ?? "open"];
                 const typeBg = c.capaType === "corrective" ? "bg-[#deecf9] text-[#0078d4]" : "bg-[#dff6dd] text-[#107c10]";
-                const typeLabel = c.capaType === "corrective" ? "Corrective" : "Preventive";
+                const typeLabel = c.capaType === "corrective" ? t("quality.eightDCapa.typeCorrectiveShort") : t("quality.eightDCapa.typePreventiveShort");
                 return (
                   <tr
                     key={c.id}
@@ -828,7 +839,7 @@ function CapaTab() {
                       <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${typeBg}`}>{typeLabel}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${st.bg}`}>{st.label}</span>
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${st.bg}`}>{t(st.key)}</span>
                     </td>
                     <td className="px-4 py-3 text-[#605e5c] text-xs">{c.responsibleName || "-"}</td>
                     <td className="px-4 py-3 text-[#605e5c] text-xs">{fmtDate(c.targetDate)}</td>
@@ -842,52 +853,52 @@ function CapaTab() {
       )}
 
       {/* Create CAPA Dialog */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="新建 CAPA" wide>
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t("quality.workbench.newCapaDialog")} wide>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#323130] mb-1">Type *</label>
+            <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.capaType")} *</label>
             <InlineSelect value={cf.capaType} onChange={(v) => setCf({ ...cf, capaType: v as "corrective" | "preventive" })}
               options={[
-                { value: "corrective", label: "Corrective" },
-                { value: "preventive", label: "Preventive" },
+                { value: "corrective", label: t("quality.eightDCapa.typeCorrective") },
+                { value: "preventive", label: t("quality.eightDCapa.typePreventive") },
               ]}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#323130] mb-1">Title *</label>
+            <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.reportTitle")} *</label>
             <input type="text" value={cf.title} onChange={(e) => setCf({ ...cf, title: e.target.value })}
               className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#323130] mb-1">Description</label>
+            <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.capaDesc")}</label>
             <textarea value={cf.description} onChange={(e) => setCf({ ...cf, description: e.target.value })} rows={2}
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#323130] mb-1">Root Cause</label>
+            <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.rootCause")}</label>
             <textarea value={cf.rootCause} onChange={(e) => setCf({ ...cf, rootCause: e.target.value })} rows={2}
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#323130] mb-1">Action Plan (one per line)</label>
+            <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.workbench.actionPlan")}</label>
             <textarea value={cf.actionPlan} onChange={(e) => setCf({ ...cf, actionPlan: e.target.value })} rows={3}
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Responsible Name</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.capaResponsible")}</label>
               <input type="text" value={cf.responsibleName} onChange={(e) => setCf({ ...cf, responsibleName: e.target.value })}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Target Date</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.capaTargetDate")}</label>
               <input type="date" value={cf.targetDate} onChange={(e) => setCf({ ...cf, targetDate: e.target.value })}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-[#edebe9]">
             <button onClick={() => setShowCreate(false)}
-              className="h-9 px-4 text-sm text-[#323130] border border-[#8a8886] rounded-md hover:bg-[#f3f2f1]">Cancel</button>
+              className="h-9 px-4 text-sm text-[#323130] border border-[#8a8886] rounded-md hover:bg-[#f3f2f1]">{t("quality.common.cancel")}</button>
             <button
               disabled={!cf.title || createMut.isPending}
               onClick={() => createMut.mutate({
@@ -902,30 +913,30 @@ function CapaTab() {
               className="h-9 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-sm font-medium rounded-md flex items-center gap-1.5 disabled:opacity-50"
             >
               {createMut.isPending && <Loader2 size={14} className="animate-spin" />}
-              Create
+              {t("quality.common.create")}
             </button>
           </div>
         </div>
       </Modal>
 
       {/* Update Status Dialog */}
-      <Modal open={selectedCapa !== null} onClose={() => setSelectedCapa(null)} title="Update CAPA Status">
+      <Modal open={selectedCapa !== null} onClose={() => setSelectedCapa(null)} title={t("quality.workbench.updateCapaStatus")}>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#323130] mb-1">New Status</label>
+            <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.workbench.newStatus")}</label>
             <InlineSelect value={newStatus} onChange={setNewStatus}
-              options={CAPA_STATUS_ORDER.map((s) => ({ value: s, label: CAPA_STATUS_STYLES[s].label }))}
+              options={CAPA_STATUS_ORDER.map((s) => ({ value: s, label: t(CAPA_STATUS_KEYS[s].key) }))}
             />
           </div>
           {(newStatus === "verified" || newStatus === "closed") && (
             <>
               <div>
-                <label className="block text-sm font-medium text-[#323130] mb-1">Verification Result</label>
+                <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.workbench.verificationResult")}</label>
                 <textarea value={verificationResult} onChange={(e) => setVerificationResult(e.target.value)} rows={2}
                   className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#323130] mb-1">Effectiveness Check</label>
+                <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.workbench.effectivenessCheck")}</label>
                 <textarea value={effectivenessCheck} onChange={(e) => setEffectivenessCheck(e.target.value)} rows={2}
                   className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
               </div>
@@ -933,7 +944,7 @@ function CapaTab() {
           )}
           <div className="flex justify-end gap-3 pt-2 border-t border-[#edebe9]">
             <button onClick={() => setSelectedCapa(null)}
-              className="h-9 px-4 text-sm text-[#323130] border border-[#8a8886] rounded-md hover:bg-[#f3f2f1]">Cancel</button>
+              className="h-9 px-4 text-sm text-[#323130] border border-[#8a8886] rounded-md hover:bg-[#f3f2f1]">{t("quality.common.cancel")}</button>
             <button
               disabled={updateMut.isPending}
               onClick={() => {
@@ -948,7 +959,7 @@ function CapaTab() {
               className="h-9 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-sm font-medium rounded-md flex items-center gap-1.5 disabled:opacity-50"
             >
               {updateMut.isPending && <Loader2 size={14} className="animate-spin" />}
-              Update
+              {t("quality.workbench.update")}
             </button>
           </div>
         </div>
@@ -961,12 +972,13 @@ function CapaTab() {
 // TAB 4: Dashboard
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function DashboardTab() {
+  const { t } = useLanguage();
   const statsQ = trpc.eightDCapa.getStats.useQuery();
   const capaListQ = trpc.eightDCapa.listCAPA.useQuery({});
 
   if (statsQ.isLoading) return <SkeletonRows rows={6} />;
   const stats = statsQ.data;
-  if (!stats) return <p className="text-[#a19f9d] text-center py-12">No data available</p>;
+  if (!stats) return <p className="text-[#a19f9d] text-center py-12">{t("quality.common.noData")}</p>;
 
   const sevData = stats.eightD.bySeverity;
   const maxSev = Math.max(sevData.critical, sevData.high, sevData.medium, sevData.low, 1);
@@ -986,12 +998,12 @@ function DashboardTab() {
       {/* 6 stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { label: "8D Total", value: stats.eightD.total, icon: ClipboardList, color: "text-[#0078d4]" },
-          { label: "8D Open", value: stats.eightD.open, icon: Clock, color: "text-[#d83b01]" },
-          { label: "8D Closed", value: stats.eightD.closed, icon: CheckCircle2, color: "text-[#107c10]" },
-          { label: "CAPA Total", value: stats.capa.total, icon: Target, color: "text-[#0078d4]" },
-          { label: "Corrective", value: stats.capa.corrective, icon: Bug, color: "text-[#d83b01]" },
-          { label: "Preventive", value: stats.capa.preventive, icon: Shield, color: "text-[#107c10]" },
+          { label: t("quality.eightDCapa.total8D"), value: stats.eightD.total, icon: ClipboardList, color: "text-[#0078d4]" },
+          { label: t("quality.eightDCapa.inProgress"), value: stats.eightD.open, icon: Clock, color: "text-[#d83b01]" },
+          { label: t("quality.eightDCapa.closed"), value: stats.eightD.closed, icon: CheckCircle2, color: "text-[#107c10]" },
+          { label: t("quality.eightDCapa.totalCAPA"), value: stats.capa.total, icon: Target, color: "text-[#0078d4]" },
+          { label: t("quality.eightDCapa.corrective"), value: stats.capa.corrective, icon: Bug, color: "text-[#d83b01]" },
+          { label: t("quality.eightDCapa.preventive"), value: stats.capa.preventive, icon: Shield, color: "text-[#107c10]" },
         ].map((c) => (
           <div key={c.label} className="bg-white rounded-lg border border-[#edebe9] shadow-sm p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -1006,15 +1018,15 @@ function DashboardTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Severity Distribution */}
         <div className="bg-white rounded-lg border border-[#edebe9] shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-[#323130] mb-4">8D Severity Distribution</h3>
+          <h3 className="text-sm font-semibold text-[#323130] mb-4">{t("quality.workbench.sevDistribution")}</h3>
           <div className="space-y-3">
             {(["critical", "high", "medium", "low"] as const).map((sev) => {
               const count = sevData[sev];
               const pct = maxSev > 0 ? (count / maxSev) * 100 : 0;
-              const sevStyle = SEVERITY_STYLES[sev];
+              const sevStyle = SEVERITY_KEYS[sev];
               return (
                 <div key={sev} className="flex items-center gap-3">
-                  <span className={`w-16 text-xs font-medium px-2 py-0.5 rounded ${sevStyle.bg}`}>{sevStyle.label}</span>
+                  <span className={`w-16 text-xs font-medium px-2 py-0.5 rounded ${sevStyle.bg}`}>{t(sevStyle.key)}</span>
                   <div className="flex-1 h-6 bg-[#f3f2f1] rounded overflow-hidden">
                     <div
                       className={`h-full rounded transition-all ${
@@ -1034,12 +1046,12 @@ function DashboardTab() {
 
         {/* CAPA Pipeline */}
         <div className="bg-white rounded-lg border border-[#edebe9] shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-[#323130] mb-4">CAPA Pipeline</h3>
+          <h3 className="text-sm font-semibold text-[#323130] mb-4">{t("quality.workbench.capaPipeline")}</h3>
           <div className="space-y-2">
             {CAPA_STATUS_ORDER.map((status, i) => {
               const count = capaPipeline[status];
               const pct = maxPipeline > 0 ? (count / maxPipeline) * 100 : 0;
-              const stStyle = CAPA_STATUS_STYLES[status];
+              const stStyle = CAPA_STATUS_KEYS[status];
               const barColors = [
                 "bg-[#a19f9d]", "bg-[#0078d4]", "bg-[#ffaa44]",
                 "bg-[#d83b01]", "bg-[#107c10]", "bg-[#0b6a0b]",
@@ -1047,7 +1059,7 @@ function DashboardTab() {
               return (
                 <div key={status}>
                   <div className="flex items-center gap-3">
-                    <span className={`w-20 text-xs font-medium px-2 py-0.5 rounded ${stStyle.bg}`}>{stStyle.label}</span>
+                    <span className={`w-20 text-xs font-medium px-2 py-0.5 rounded ${stStyle.bg}`}>{t(stStyle.key)}</span>
                     <div className="flex-1 h-5 bg-[#f3f2f1] rounded overflow-hidden">
                       <div
                         className={`h-full rounded transition-all ${barColors[i]}`}
@@ -1072,7 +1084,7 @@ function DashboardTab() {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TAB 5: MSA 测量系统分析
+// TAB 5: MSA
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const STUDY_TYPE_OPTIONS = [
   { value: "gage_rr", label: "Gage R&R" },
@@ -1087,21 +1099,22 @@ const STUDY_TYPE_LABELS: Record<string, string> = {
   stability: "Stability", attribute_agreement: "Attr. Agreement",
 };
 
-const MSA_STATUS_STYLES: Record<string, { label: string; bg: string }> = {
-  planned:     { label: "计划中", bg: "bg-[#f3f2f1] text-[#605e5c]" },
-  in_progress: { label: "进行中", bg: "bg-[#deecf9] text-[#0078d4]" },
-  completed:   { label: "已完成", bg: "bg-[#dff6dd] text-[#107c10]" },
-  failed:      { label: "不合格", bg: "bg-[#fed9cc] text-[#d83b01]" },
-  archived:    { label: "已归档", bg: "bg-[#f3f2f1] text-[#a19f9d]" },
+const MSA_STATUS_KEYS: Record<string, { key: string; bg: string }> = {
+  planned:     { key: "quality.msa.statusPlanned",    bg: "bg-[#f3f2f1] text-[#605e5c]" },
+  in_progress: { key: "quality.msa.statusInProgress", bg: "bg-[#deecf9] text-[#0078d4]" },
+  completed:   { key: "quality.msa.statusCompleted",  bg: "bg-[#dff6dd] text-[#107c10]" },
+  failed:      { key: "quality.msa.statusFailed",     bg: "bg-[#fed9cc] text-[#d83b01]" },
+  archived:    { key: "quality.msa.statusArchived",   bg: "bg-[#f3f2f1] text-[#a19f9d]" },
 };
 
-const CONCLUSION_STYLES: Record<string, { label: string; bg: string; desc: string }> = {
-  acceptable:   { label: "合格", bg: "bg-[#dff6dd] text-[#107c10]", desc: "%GR&R < 10%" },
-  marginal:     { label: "边际", bg: "bg-[#fff4ce] text-[#797673]", desc: "10% ≤ %GR&R < 30%" },
-  unacceptable: { label: "不合格", bg: "bg-[#fed9cc] text-[#d83b01]", desc: "%GR&R ≥ 30%" },
+const CONCLUSION_KEYS: Record<string, { key: string; bg: string; desc: string }> = {
+  acceptable:   { key: "quality.msa.conclusionAcceptable",   bg: "bg-[#dff6dd] text-[#107c10]", desc: "%GR&R < 10%" },
+  marginal:     { key: "quality.msa.conclusionMarginal",     bg: "bg-[#fff4ce] text-[#797673]", desc: "10% <= %GR&R < 30%" },
+  unacceptable: { key: "quality.msa.conclusionUnacceptable", bg: "bg-[#fed9cc] text-[#d83b01]", desc: "%GR&R >= 30%" },
 };
 
 function MsaTab() {
+  const { t } = useLanguage();
   const [typeFilter, setTypeFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [selectedStudy, setSelectedStudy] = useState<number | null>(null);
@@ -1132,7 +1145,7 @@ function MsaTab() {
   });
   const deleteMut = trpc.msa.delete.useMutation({
     onSuccess: () => {
-      toast.success("MSA研究已删除");
+      toast.success(t("quality.workbench.msaDeleted"));
       listQ.refetch();
       statsQ.refetch();
     },
@@ -1147,11 +1160,11 @@ function MsaTab() {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: "MSA Total", value: stats?.total ?? "-", icon: Ruler, color: "text-[#0078d4]" },
-          { label: "Gage R&R", value: stats?.byType.gage_rr ?? "-", icon: FlaskConical, color: "text-[#0078d4]" },
-          { label: "Acceptable", value: stats?.byConclusion.acceptable ?? "-", icon: CheckCircle2, color: "text-[#107c10]" },
-          { label: "Marginal", value: stats?.byConclusion.marginal ?? "-", icon: AlertTriangle, color: "text-[#797673]" },
-          { label: "Unacceptable", value: stats?.byConclusion.unacceptable ?? "-", icon: XCircle, color: "text-[#d83b01]" },
+          { label: t("quality.msa.totalStudies"), value: stats?.total ?? "-", icon: Ruler, color: "text-[#0078d4]" },
+          { label: t("quality.msa.grrStudies"), value: stats?.byType.gage_rr ?? "-", icon: FlaskConical, color: "text-[#0078d4]" },
+          { label: t("quality.msa.conclusionAcceptable"), value: stats?.byConclusion.acceptable ?? "-", icon: CheckCircle2, color: "text-[#107c10]" },
+          { label: t("quality.msa.conclusionMarginal"), value: stats?.byConclusion.marginal ?? "-", icon: AlertTriangle, color: "text-[#797673]" },
+          { label: t("quality.msa.conclusionUnacceptable"), value: stats?.byConclusion.unacceptable ?? "-", icon: XCircle, color: "text-[#d83b01]" },
         ].map((c) => (
           <div key={c.label} className="bg-white rounded-lg border border-[#edebe9] shadow-sm p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -1167,7 +1180,7 @@ function MsaTab() {
       <div className="flex flex-wrap items-center gap-3">
         <InlineSelect
           value={typeFilter} onChange={setTypeFilter} className="w-44"
-          placeholder="All Study Types"
+          placeholder={t("quality.workbench.allStudyTypes")}
           options={STUDY_TYPE_OPTIONS}
         />
         <div className="flex-1" />
@@ -1175,7 +1188,7 @@ function MsaTab() {
           onClick={() => setShowCreate(true)}
           className="h-9 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-sm font-medium rounded-md flex items-center gap-1.5"
         >
-          <Plus size={14} /> 新建MSA研究
+          <Plus size={14} /> {t("quality.msa.newStudy")}
         </button>
       </div>
 
@@ -1187,21 +1200,21 @@ function MsaTab() {
             <thead>
               <tr className="bg-[#f3f2f1]">
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Study Code</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Type</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Gauge</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Characteristic</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Status</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.msa.studyType")}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.msa.gage")}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.msa.characteristic")}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.common.status")}</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">%GR&R</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Conclusion</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">Actions</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.msa.conclusion")}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase">{t("quality.common.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-12 text-[#a19f9d]">No MSA studies found</td></tr>
+                <tr><td colSpan={8} className="text-center py-12 text-[#a19f9d]">{t("quality.msa.noStudies")}</td></tr>
               ) : items.map((s) => {
-                const st = MSA_STATUS_STYLES[s.status ?? "planned"];
-                const concl = s.conclusion ? CONCLUSION_STYLES[s.conclusion] : null;
+                const st = MSA_STATUS_KEYS[s.status ?? "planned"];
+                const concl = s.conclusion ? CONCLUSION_KEYS[s.conclusion] : null;
                 return (
                   <tr key={s.id} className="border-t border-[#edebe9] hover:bg-[#f3f2f1]/60 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs text-[#0078d4]">{s.studyCode}</td>
@@ -1213,14 +1226,14 @@ function MsaTab() {
                     <td className="px-4 py-3 text-[#323130] text-xs max-w-[160px] truncate">{s.gaugeName}</td>
                     <td className="px-4 py-3 text-[#605e5c] text-xs max-w-[140px] truncate">{s.characteristicName || "-"}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${st.bg}`}>{st.label}</span>
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${st.bg}`}>{t(st.key)}</span>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-[#323130]">
                       {s.grrPercent ? `${Number(s.grrPercent).toFixed(1)}%` : "-"}
                     </td>
                     <td className="px-4 py-3">
                       {concl ? (
-                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${concl.bg}`}>{concl.label}</span>
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${concl.bg}`}>{t(concl.key)}</span>
                       ) : <span className="text-xs text-[#a19f9d]">-</span>}
                     </td>
                     <td className="px-4 py-3">
@@ -1232,8 +1245,8 @@ function MsaTab() {
                           <Eye size={14} />
                         </button>
                         <button
-                          onClick={() => { if (confirm("确定删除此MSA研究?")) deleteMut.mutate({ id: s.id }); }}
-                          className="p-1.5 rounded hover:bg-[#fed9cc] text-[#d83b01]" title="Delete"
+                          onClick={() => { if (confirm(t("quality.workbench.confirmDeleteMsa"))) deleteMut.mutate({ id: s.id }); }}
+                          className="p-1.5 rounded hover:bg-[#fed9cc] text-[#d83b01]" title={t("quality.common.delete")}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -1249,22 +1262,22 @@ function MsaTab() {
       )}
 
       {/* Create MSA Dialog */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="新建 MSA 研究" wide>
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t("quality.workbench.newMsaDialog")} wide>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#323130] mb-1">Study Type *</label>
+            <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.msa.studyType")} *</label>
             <InlineSelect value={cf.studyType} onChange={(v) => setCf({ ...cf, studyType: v as typeof cf.studyType })}
               options={STUDY_TYPE_OPTIONS} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Gauge Name *</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.msa.gageName")} *</label>
               <input type="text" value={cf.gaugeName} onChange={(e) => setCf({ ...cf, gaugeName: e.target.value })}
                 placeholder="e.g. Mitutoyo Caliper 500-196"
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Gauge ID</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.msa.gageId")}</label>
               <input type="text" value={cf.gaugeId} onChange={(e) => setCf({ ...cf, gaugeId: e.target.value })}
                 placeholder="GG-001"
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
@@ -1272,12 +1285,12 @@ function MsaTab() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Part Name</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.msa.partName")}</label>
               <input type="text" value={cf.partName} onChange={(e) => setCf({ ...cf, partName: e.target.value })}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Characteristic Name</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.msa.characteristicName")}</label>
               <input type="text" value={cf.characteristicName} onChange={(e) => setCf({ ...cf, characteristicName: e.target.value })}
                 placeholder="e.g. Outer Diameter"
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
@@ -1285,13 +1298,13 @@ function MsaTab() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Specification</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.msa.specification")}</label>
               <input type="text" value={cf.specification} onChange={(e) => setCf({ ...cf, specification: e.target.value })}
-                placeholder="25.00 ± 0.05 mm"
+                placeholder="25.00 +/- 0.05 mm"
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Tolerance</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.msa.tolerance")}</label>
               <input type="text" value={cf.tolerance} onChange={(e) => setCf({ ...cf, tolerance: e.target.value })}
                 placeholder="0.10"
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
@@ -1299,30 +1312,30 @@ function MsaTab() {
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Operators</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.msa.operators")}</label>
               <input type="number" value={cf.numOperators} onChange={(e) => setCf({ ...cf, numOperators: parseInt(e.target.value) || 3 })}
                 min={1} max={10}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Parts</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.msa.parts")}</label>
               <input type="number" value={cf.numParts} onChange={(e) => setCf({ ...cf, numParts: parseInt(e.target.value) || 10 })}
                 min={1} max={30}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#323130] mb-1">Trials</label>
+              <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.msa.trials")}</label>
               <input type="number" value={cf.numTrials} onChange={(e) => setCf({ ...cf, numTrials: parseInt(e.target.value) || 3 })}
                 min={1} max={10}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
             </div>
           </div>
           <p className="text-xs text-[#605e5c]">
-            Total measurements needed: {cf.numOperators * cf.numParts * cf.numTrials}
+            {t("quality.workbench.totalMeasurements")}: {cf.numOperators * cf.numParts * cf.numTrials}
           </p>
           <div className="flex justify-end gap-3 pt-2 border-t border-[#edebe9]">
             <button onClick={() => setShowCreate(false)}
-              className="h-9 px-4 text-sm text-[#323130] border border-[#8a8886] rounded-md hover:bg-[#f3f2f1]">Cancel</button>
+              className="h-9 px-4 text-sm text-[#323130] border border-[#8a8886] rounded-md hover:bg-[#f3f2f1]">{t("quality.common.cancel")}</button>
             <button
               disabled={!cf.gaugeName || createMut.isPending}
               onClick={() => createMut.mutate({
@@ -1341,7 +1354,7 @@ function MsaTab() {
               className="h-9 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-sm font-medium rounded-md flex items-center gap-1.5 disabled:opacity-50"
             >
               {createMut.isPending && <Loader2 size={14} className="animate-spin" />}
-              Create
+              {t("quality.common.create")}
             </button>
           </div>
         </div>
@@ -1358,6 +1371,7 @@ function MsaTab() {
 
 // ─── MSA Detail Modal (measurements + GR&R calc) ──────────
 function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boolean; onClose: () => void }) {
+  const { t, tpl } = useLanguage();
   const detailQ = trpc.msa.getById.useQuery({ id: studyId });
   const calcMut = trpc.msa.calculateGRR.useMutation({
     onSuccess: (res) => {
@@ -1393,24 +1407,24 @@ function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boo
   const study = detailQ.data;
 
   return (
-    <Modal open={open} onClose={onClose} title={study ? `MSA: ${study.studyCode}` : "Loading..."} wide>
+    <Modal open={open} onClose={onClose} title={study ? `MSA: ${study.studyCode}` : t("quality.common.loading")} wide>
       {detailQ.isLoading ? <SkeletonRows rows={5} /> : !study ? (
-        <p className="text-[#a19f9d] text-center py-8">Study not found</p>
+        <p className="text-[#a19f9d] text-center py-8">{t("quality.workbench.studyNotFound")}</p>
       ) : (
         <div className="space-y-4">
           {/* Study Info */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-            <div><span className="text-[#605e5c]">Type:</span> <span className="font-medium text-[#323130]">{STUDY_TYPE_LABELS[study.studyType ?? "gage_rr"]}</span></div>
-            <div><span className="text-[#605e5c]">Gauge:</span> <span className="font-medium text-[#323130]">{study.gaugeName}</span></div>
-            <div><span className="text-[#605e5c]">Part:</span> <span className="font-medium text-[#323130]">{study.partName || "-"}</span></div>
-            <div><span className="text-[#605e5c]">Spec:</span> <span className="font-medium text-[#323130]">{study.specification || "-"}</span></div>
-            <div><span className="text-[#605e5c]">Operators:</span> <span className="font-medium text-[#323130]">{study.numOperators}</span></div>
-            <div><span className="text-[#605e5c]">Parts:</span> <span className="font-medium text-[#323130]">{study.numParts}</span></div>
-            <div><span className="text-[#605e5c]">Trials:</span> <span className="font-medium text-[#323130]">{study.numTrials}</span></div>
+            <div><span className="text-[#605e5c]">{t("quality.msa.studyType")}:</span> <span className="font-medium text-[#323130]">{STUDY_TYPE_LABELS[study.studyType ?? "gage_rr"]}</span></div>
+            <div><span className="text-[#605e5c]">{t("quality.msa.gage")}:</span> <span className="font-medium text-[#323130]">{study.gaugeName}</span></div>
+            <div><span className="text-[#605e5c]">{t("quality.msa.part")}:</span> <span className="font-medium text-[#323130]">{study.partName || "-"}</span></div>
+            <div><span className="text-[#605e5c]">{t("quality.msa.specification")}:</span> <span className="font-medium text-[#323130]">{study.specification || "-"}</span></div>
+            <div><span className="text-[#605e5c]">{t("quality.msa.operators")}:</span> <span className="font-medium text-[#323130]">{study.numOperators}</span></div>
+            <div><span className="text-[#605e5c]">{t("quality.msa.parts")}:</span> <span className="font-medium text-[#323130]">{study.numParts}</span></div>
+            <div><span className="text-[#605e5c]">{t("quality.msa.trials")}:</span> <span className="font-medium text-[#323130]">{study.numTrials}</span></div>
             <div>
-              <span className="text-[#605e5c]">Status:</span>{" "}
-              <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${MSA_STATUS_STYLES[study.status ?? "planned"].bg}`}>
-                {MSA_STATUS_STYLES[study.status ?? "planned"].label}
+              <span className="text-[#605e5c]">{t("quality.common.status")}:</span>{" "}
+              <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${MSA_STATUS_KEYS[study.status ?? "planned"].bg}`}>
+                {t(MSA_STATUS_KEYS[study.status ?? "planned"].key)}
               </span>
             </div>
           </div>
@@ -1418,14 +1432,14 @@ function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boo
           {/* GR&R Results (if completed) */}
           {study.conclusion && (
             <div className="bg-[#faf9f8] rounded-lg border border-[#edebe9] p-4">
-              <h4 className="text-sm font-semibold text-[#323130] mb-3">GR&R Results</h4>
+              <h4 className="text-sm font-semibold text-[#323130] mb-3">{t("quality.workbench.grrResults")}</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <span className="text-xs text-[#605e5c] block">Repeatability (EV)</span>
+                  <span className="text-xs text-[#605e5c] block">{t("quality.msa.repeatability")} (EV)</span>
                   <span className="text-lg font-bold text-[#323130]">{Number(study.repeatability).toFixed(4)}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-[#605e5c] block">Reproducibility (AV)</span>
+                  <span className="text-xs text-[#605e5c] block">{t("quality.msa.reproducibility")} (AV)</span>
                   <span className="text-lg font-bold text-[#323130]">{Number(study.reproducibility).toFixed(4)}</span>
                 </div>
                 <div>
@@ -1438,11 +1452,11 @@ function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boo
                 </div>
               </div>
               <div className="mt-3">
-                <span className="text-xs text-[#605e5c]">Conclusion: </span>
-                <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${CONCLUSION_STYLES[study.conclusion]?.bg ?? ""}`}>
-                  {CONCLUSION_STYLES[study.conclusion]?.label ?? study.conclusion}
+                <span className="text-xs text-[#605e5c]">{t("quality.msa.conclusion")}: </span>
+                <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${CONCLUSION_KEYS[study.conclusion]?.bg ?? ""}`}>
+                  {t(CONCLUSION_KEYS[study.conclusion]?.key ?? study.conclusion)}
                 </span>
-                <span className="text-xs text-[#a19f9d] ml-2">{CONCLUSION_STYLES[study.conclusion]?.desc ?? ""}</span>
+                <span className="text-xs text-[#a19f9d] ml-2">{CONCLUSION_KEYS[study.conclusion]?.desc ?? ""}</span>
               </div>
             </div>
           )}
@@ -1451,11 +1465,11 @@ function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boo
           <div>
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-sm font-semibold text-[#323130]">
-                Measurements ({study.measurements?.length ?? 0} / {(study.numOperators ?? 3) * (study.numParts ?? 10) * (study.numTrials ?? 3)})
+                {t("quality.workbench.measurements")} ({study.measurements?.length ?? 0} / {(study.numOperators ?? 3) * (study.numParts ?? 10) * (study.numTrials ?? 3)})
               </h4>
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowBatch(!showBatch)}
-                  className="text-xs text-[#0078d4] hover:underline">{showBatch ? "Single Entry" : "Batch Entry"}</button>
+                  className="text-xs text-[#0078d4] hover:underline">{showBatch ? t("quality.workbench.singleEntry") : t("quality.workbench.batchEntry")}</button>
                 {(study.measurements?.length ?? 0) > 0 && (
                   <button
                     onClick={() => calcMut.mutate({ studyId: study.id })}
@@ -1463,7 +1477,7 @@ function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boo
                     className="h-8 px-3 bg-[#107c10] hover:bg-[#0b6a0b] text-white text-xs font-medium rounded-md flex items-center gap-1 disabled:opacity-50"
                   >
                     {calcMut.isPending && <Loader2 size={12} className="animate-spin" />}
-                    <FlaskConical size={12} /> Calculate GR&R
+                    <FlaskConical size={12} /> {t("quality.msa.calculateGRR")}
                   </button>
                 )}
               </div>
@@ -1473,25 +1487,25 @@ function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boo
             {!showBatch && (
               <div className="flex flex-wrap items-end gap-2 mb-3">
                 <div className="w-28">
-                  <label className="block text-xs text-[#605e5c] mb-0.5">Operator</label>
+                  <label className="block text-xs text-[#605e5c] mb-0.5">{t("quality.workbench.operator")}</label>
                   <input type="text" value={mf.operatorName} onChange={(e) => setMf({ ...mf, operatorName: e.target.value })}
                     placeholder="Op A"
                     className="w-full h-8 px-2 text-xs border border-[#8a8886] rounded focus:outline-none focus:border-[#0078d4]" />
                 </div>
                 <div className="w-20">
-                  <label className="block text-xs text-[#605e5c] mb-0.5">Part #</label>
+                  <label className="block text-xs text-[#605e5c] mb-0.5">{t("quality.workbench.partNo")}</label>
                   <input type="number" value={mf.partNumber} onChange={(e) => setMf({ ...mf, partNumber: parseInt(e.target.value) || 1 })}
                     min={1}
                     className="w-full h-8 px-2 text-xs border border-[#8a8886] rounded focus:outline-none focus:border-[#0078d4]" />
                 </div>
                 <div className="w-20">
-                  <label className="block text-xs text-[#605e5c] mb-0.5">Trial #</label>
+                  <label className="block text-xs text-[#605e5c] mb-0.5">{t("quality.workbench.trialNo")}</label>
                   <input type="number" value={mf.trialNumber} onChange={(e) => setMf({ ...mf, trialNumber: parseInt(e.target.value) || 1 })}
                     min={1}
                     className="w-full h-8 px-2 text-xs border border-[#8a8886] rounded focus:outline-none focus:border-[#0078d4]" />
                 </div>
                 <div className="w-28">
-                  <label className="block text-xs text-[#605e5c] mb-0.5">Value</label>
+                  <label className="block text-xs text-[#605e5c] mb-0.5">{t("quality.workbench.value")}</label>
                   <input type="text" value={mf.measuredValue} onChange={(e) => setMf({ ...mf, measuredValue: e.target.value })}
                     placeholder="25.03"
                     className="w-full h-8 px-2 text-xs border border-[#8a8886] rounded focus:outline-none focus:border-[#0078d4]" />
@@ -1508,7 +1522,7 @@ function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boo
                   className="h-8 px-3 bg-[#0078d4] hover:bg-[#106ebe] text-white text-xs rounded flex items-center gap-1 disabled:opacity-50"
                 >
                   {addMut.isPending && <Loader2 size={12} className="animate-spin" />}
-                  <Plus size={12} /> Add
+                  <Plus size={12} /> {t("quality.workbench.add")}
                 </button>
               </div>
             )}
@@ -1517,7 +1531,7 @@ function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boo
             {showBatch && (
               <div className="mb-3 space-y-2">
                 <p className="text-xs text-[#605e5c]">
-                  Paste tab/comma-separated data: <code className="bg-[#f3f2f1] px-1 rounded">OperatorName, PartNumber, TrialNumber, MeasuredValue</code>
+                  {t("quality.workbench.batchHint")}: <code className="bg-[#f3f2f1] px-1 rounded">OperatorName, PartNumber, TrialNumber, MeasuredValue</code>
                 </p>
                 <textarea value={batchText} onChange={(e) => setBatchText(e.target.value)}
                   rows={5} placeholder="Op A, 1, 1, 25.03&#10;Op A, 1, 2, 25.01&#10;Op B, 1, 1, 24.98"
@@ -1540,7 +1554,7 @@ function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boo
                   className="h-8 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-xs font-medium rounded flex items-center gap-1 disabled:opacity-50"
                 >
                   {batchMut.isPending && <Loader2 size={12} className="animate-spin" />}
-                  Import {batchText.trim().split("\n").filter(Boolean).length} rows
+                  {tpl("quality.workbench.importRows", { count: String(batchText.trim().split("\n").filter(Boolean).length) })}
                 </button>
               </div>
             )}
@@ -1551,10 +1565,10 @@ function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boo
                 <table className="w-full text-xs">
                   <thead className="sticky top-0 bg-[#f3f2f1]">
                     <tr>
-                      <th className="text-left px-3 py-2 text-[#605e5c] font-semibold">Operator</th>
-                      <th className="text-left px-3 py-2 text-[#605e5c] font-semibold">Part</th>
-                      <th className="text-left px-3 py-2 text-[#605e5c] font-semibold">Trial</th>
-                      <th className="text-left px-3 py-2 text-[#605e5c] font-semibold">Value</th>
+                      <th className="text-left px-3 py-2 text-[#605e5c] font-semibold">{t("quality.workbench.operator")}</th>
+                      <th className="text-left px-3 py-2 text-[#605e5c] font-semibold">{t("quality.msa.part")}</th>
+                      <th className="text-left px-3 py-2 text-[#605e5c] font-semibold">{t("quality.workbench.trial")}</th>
+                      <th className="text-left px-3 py-2 text-[#605e5c] font-semibold">{t("quality.workbench.value")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1582,15 +1596,16 @@ function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boo
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 type TabKey = "reports" | "detail" | "capa" | "msa" | "dashboard";
 
-const TABS: { key: TabKey; label: string; icon: typeof Shield }[] = [
-  { key: "reports", label: "问题报告", icon: ClipboardList },
-  { key: "detail", label: "步骤详情", icon: FileSearch },
-  { key: "capa", label: "纠正预防", icon: Target },
-  { key: "msa", label: "测量系统分析", icon: Ruler },
-  { key: "dashboard", label: "质量概览", icon: BarChart3 },
+const TAB_KEYS: { key: TabKey; labelKey: string; icon: typeof Shield }[] = [
+  { key: "reports", labelKey: "quality.workbench.tabProblemReport", icon: ClipboardList },
+  { key: "detail", labelKey: "quality.workbench.tabStepDetails", icon: FileSearch },
+  { key: "capa", labelKey: "quality.workbench.tabCAPA", icon: Target },
+  { key: "msa", labelKey: "quality.workbench.tabMSA", icon: Ruler },
+  { key: "dashboard", labelKey: "quality.workbench.tabOverview", icon: BarChart3 },
 ];
 
 export default function QualityWorkbench() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabKey>("reports");
   const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
 
@@ -1613,14 +1628,14 @@ export default function QualityWorkbench() {
             <Shield size={18} className="text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-[#323130]">Quality 8D / CAPA Workbench</h1>
-            <p className="text-xs text-[#605e5c]">M9-M10 Problem Solving & Corrective/Preventive Actions -- IATF 16949</p>
+            <h1 className="text-xl font-bold text-[#323130]">{t("quality.workbench.title")}</h1>
+            <p className="text-xs text-[#605e5c]">{t("quality.workbench.subtitle")}</p>
           </div>
         </div>
 
         {/* Tab Bar */}
         <div className="flex border-b border-[#edebe9] overflow-x-auto scrollbar-hide">
-          {TABS.map((tab) => {
+          {TAB_KEYS.map((tab) => {
             const isActive = activeTab === tab.key;
             const isDetailDisabled = tab.key === "detail" && selectedReportId === null;
             return (
@@ -1639,7 +1654,7 @@ export default function QualityWorkbench() {
                 }`}
               >
                 <tab.icon size={15} />
-                {tab.label}
+                {t(tab.labelKey)}
               </button>
             );
           })}
@@ -1655,7 +1670,7 @@ export default function QualityWorkbench() {
         {activeTab === "detail" && selectedReportId === null && (
           <div className="text-center py-16 text-[#a19f9d]">
             <FileSearch size={48} className="mx-auto mb-3" />
-            <p>Select a report from the "问题报告" tab to view details</p>
+            <p>{t("quality.workbench.selectReportHint")}</p>
           </div>
         )}
         {activeTab === "capa" && <CapaTab />}

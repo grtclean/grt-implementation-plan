@@ -14,6 +14,7 @@
  * Microsoft Fluent Design (bg-[#faf9f8])
  */
 import { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import {
@@ -101,16 +102,17 @@ function StatCard({ label, value, icon: Icon, color = "text-[#323130]" }: {
 function PlansTab({ activePlanId, onSelectPlan }: {
   activePlanId: number | null; onSelectPlan: (id: number) => void;
 }) {
+  const { t } = useLanguage();
   const plans = trpc.fatSat.plans.list.useQuery({});
   const createPlan = trpc.fatSat.plans.create.useMutation({
-    onSuccess: () => { toast.success("测试计划已创建"); plans.refetch(); },
+    onSuccess: () => { toast.success(t("afterSales.fatSat.planCreated")); plans.refetch(); },
     onError: (e) => toast.error(e.message),
   });
   const updateStatus = trpc.fatSat.plans.updateStatus.useMutation({
-    onSuccess: () => { toast.success("状态已更新"); plans.refetch(); },
+    onSuccess: () => { toast.success(t("afterSales.fatSat.statusUpdated")); plans.refetch(); },
   });
   const initSAT = trpc.fatSat.templates.initSAT.useMutation({
-    onSuccess: () => { toast.success("SAT模板已初始化（16项测试+13检查+4签字+5现场条件）"); plans.refetch(); },
+    onSuccess: () => { toast.success(t("afterSales.fatSat.satTemplateInit")); plans.refetch(); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -137,9 +139,9 @@ function PlansTab({ activePlanId, onSelectPlan }: {
     <div className="space-y-4">
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <StatCard label="总计划" value={stats.total} icon={ClipboardCheck} color="text-[#0078d4]" />
-        <StatCard label="进行中" value={stats.inProgress} icon={Play} color="text-blue-600" />
-        <StatCard label="已完成" value={stats.completed} icon={CheckCircle2} color="text-green-600" />
+        <StatCard label={t("afterSales.fatSat.totalPlans")} value={stats.total} icon={ClipboardCheck} color="text-[#0078d4]" />
+        <StatCard label={t("afterSales.fatSat.inProgress")} value={stats.inProgress} icon={Play} color="text-blue-600" />
+        <StatCard label={t("afterSales.fatSat.completed")} value={stats.completed} icon={CheckCircle2} color="text-green-600" />
         <StatCard label="FAT" value={stats.fat} icon={Factory} color="text-orange-600" />
         <StatCard label="SAT" value={stats.sat} icon={Settings} color="text-purple-600" />
       </div>
@@ -150,7 +152,7 @@ function PlansTab({ activePlanId, onSelectPlan }: {
           className="px-4 py-2 bg-[#0078d4] text-white rounded hover:bg-[#106ebe] text-sm inline-flex items-center gap-2"
           onClick={() => setShowCreate(!showCreate)}
         >
-          <Plus className="w-4 h-4" /> 创建计划
+          <Plus className="w-4 h-4" /> {t("afterSales.fatSat.createPlan")}
         </button>
         <button
           className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm inline-flex items-center gap-2"
@@ -160,47 +162,47 @@ function PlansTab({ activePlanId, onSelectPlan }: {
           disabled={initSAT.isPending}
         >
           {initSAT.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings className="w-4 h-4" />}
-          快速创建SAT模板
+          {t("afterSales.fatSat.quickSatTemplate")}
         </button>
       </div>
 
       {/* Create Form */}
       {showCreate && (
         <div className="bg-white rounded-lg border border-[#edebe9] p-5">
-          <h4 className="text-sm font-semibold text-[#323130] mb-3">新建测试计划</h4>
+          <h4 className="text-sm font-semibold text-[#323130] mb-3">{t("afterSales.fatSat.newTestPlan")}</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <div>
-              <label className="block text-xs text-[#605e5c] mb-1">类型</label>
+              <label className="block text-xs text-[#605e5c] mb-1">{t("afterSales.fatSat.type")}</label>
               <select className="w-full px-3 py-2 border border-[#8a8886] rounded text-sm" value={form.planType}
                 onChange={(e) => setForm({ ...form, planType: e.target.value as "FAT" | "SAT" })}>
-                <option value="FAT">FAT (工厂验收)</option>
-                <option value="SAT">SAT (现场验收)</option>
+                <option value="FAT">FAT ({t("afterSales.fatSat.factoryAcceptance")})</option>
+                <option value="SAT">SAT ({t("afterSales.fatSat.siteAcceptance")})</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs text-[#605e5c] mb-1">计划名称 *</label>
+              <label className="block text-xs text-[#605e5c] mb-1">{t("afterSales.fatSat.planName")} *</label>
               <input className="w-full px-3 py-2 border border-[#8a8886] rounded text-sm" placeholder="如: GRT-2026-FAT-001"
                 value={form.planName} onChange={(e) => setForm({ ...form, planName: e.target.value })} />
             </div>
             <div>
-              <label className="block text-xs text-[#605e5c] mb-1">设备型号</label>
+              <label className="block text-xs text-[#605e5c] mb-1">{t("afterSales.fatSat.equipmentModel")}</label>
               <input className="w-full px-3 py-2 border border-[#8a8886] rounded text-sm" placeholder="如: GRT-WM-3000"
                 value={form.equipmentModel} onChange={(e) => setForm({ ...form, equipmentModel: e.target.value })} />
             </div>
             <div>
-              <label className="block text-xs text-[#605e5c] mb-1">客户名称</label>
+              <label className="block text-xs text-[#605e5c] mb-1">{t("afterSales.fatSat.customerName")}</label>
               <input className="w-full px-3 py-2 border border-[#8a8886] rounded text-sm"
                 value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} />
             </div>
             <div>
-              <label className="block text-xs text-[#605e5c] mb-1">测试地点</label>
+              <label className="block text-xs text-[#605e5c] mb-1">{t("afterSales.fatSat.testLocation")}</label>
               <input className="w-full px-3 py-2 border border-[#8a8886] rounded text-sm"
                 value={form.testLocation} onChange={(e) => setForm({ ...form, testLocation: e.target.value })} />
             </div>
             <div className="flex items-end">
               <button className="px-5 py-2 bg-[#0078d4] text-white rounded text-sm hover:bg-[#106ebe] inline-flex items-center gap-2"
                 onClick={() => {
-                  if (!form.planName.trim()) return toast.error("请输入计划名称");
+                  if (!form.planName.trim()) return toast.error(t("afterSales.fatSat.fillPlanName"));
                   createPlan.mutate(form);
                   setShowCreate(false);
                   setForm({ planType: "FAT", planName: "", equipmentModel: "", customerName: "", testLocation: "", projectId: 1 });
@@ -208,7 +210,7 @@ function PlansTab({ activePlanId, onSelectPlan }: {
                 disabled={createPlan.isPending}
               >
                 {createPlan.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                提交
+                {t("afterSales.fatSat.submit")}
               </button>
             </div>
           </div>
@@ -224,20 +226,20 @@ function PlansTab({ activePlanId, onSelectPlan }: {
         ) : planList.length === 0 ? (
           <div className="text-center py-16 text-[#a19f9d]">
             <ClipboardCheck className="w-12 h-12 mx-auto mb-3 opacity-40" />
-            <p>暂无测试计划，请点击"创建计划"或"快速创建SAT模板"</p>
+            <p>{t("afterSales.fatSat.noPlansHint")}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#edebe9] text-left text-xs text-[#605e5c] bg-[#faf9f8]">
-                  <th className="py-3 px-4">计划名称</th>
-                  <th className="py-3 px-3">类型</th>
-                  <th className="py-3 px-3">状态</th>
-                  <th className="py-3 px-3">设备型号</th>
-                  <th className="py-3 px-3">客户</th>
-                  <th className="py-3 px-3">创建时间</th>
-                  <th className="py-3 px-3">操作</th>
+                  <th className="py-3 px-4">{t("afterSales.fatSat.thPlanName")}</th>
+                  <th className="py-3 px-3">{t("afterSales.fatSat.thType")}</th>
+                  <th className="py-3 px-3">{t("afterSales.fatSat.thStatus")}</th>
+                  <th className="py-3 px-3">{t("afterSales.fatSat.thEquipment")}</th>
+                  <th className="py-3 px-3">{t("afterSales.fatSat.thCustomer")}</th>
+                  <th className="py-3 px-3">{t("afterSales.fatSat.thCreatedAt")}</th>
+                  <th className="py-3 px-3">{t("afterSales.fatSat.thActions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -260,13 +262,13 @@ function PlansTab({ activePlanId, onSelectPlan }: {
                         {p.status === "draft" && (
                           <button className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
                             onClick={() => updateStatus.mutate({ planId: p.id, status: "in_progress" })}>
-                            开始
+                            {t("afterSales.fatSat.start")}
                           </button>
                         )}
                         {p.status === "in_progress" && (
                           <button className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
                             onClick={() => updateStatus.mutate({ planId: p.id, status: "completed" })}>
-                            完成
+                            {t("afterSales.fatSat.complete")}
                           </button>
                         )}
                       </div>
@@ -287,12 +289,13 @@ function PlansTab({ activePlanId, onSelectPlan }: {
 // ═══════════════════════════════════════════════════════════
 
 function TestItemsTab({ planId }: { planId: number | null }) {
+  const { t } = useLanguage();
   const items = trpc.fatSat.testItems.list.useQuery(
     { planId: planId! },
     { enabled: !!planId },
   );
   const updateItem = trpc.fatSat.testItems.update.useMutation({
-    onSuccess: () => { toast.success("测试结果已保存"); items.refetch(); },
+    onSuccess: () => { toast.success(t("afterSales.fatSat.resultSaved")); items.refetch(); },
   });
   const summary = trpc.fatSat.summary.get.useQuery(
     { planId: planId! },
@@ -305,7 +308,7 @@ function TestItemsTab({ planId }: { planId: number | null }) {
     return (
       <div className="text-center py-16 bg-white rounded-lg border border-[#edebe9]">
         <Target className="w-12 h-12 mx-auto text-[#c8c6c4] mb-3" />
-        <p className="text-[#605e5c]">请先在"测试计划"中选择一个计划</p>
+        <p className="text-[#605e5c]">{t("afterSales.fatSat.selectPlanFirst")}</p>
       </div>
     );
   }
@@ -334,16 +337,16 @@ function TestItemsTab({ planId }: { planId: number | null }) {
     <div className="space-y-4">
       {/* Progress Overview */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="测试总项" value={totalItems} icon={Target} color="text-[#0078d4]" />
-        <StatCard label="通过" value={passedItems} icon={CheckCircle2} color="text-green-600" />
-        <StatCard label="不通过" value={failedItems} icon={XCircle} color="text-red-600" />
-        <StatCard label="通过率" value={`${passRate}%`} icon={BarChart3} color={passRate >= 80 ? "text-green-600" : passRate >= 50 ? "text-amber-600" : "text-red-600"} />
+        <StatCard label={t("afterSales.fatSat.totalTestItems")} value={totalItems} icon={Target} color="text-[#0078d4]" />
+        <StatCard label={t("afterSales.fatSat.passed")} value={passedItems} icon={CheckCircle2} color="text-green-600" />
+        <StatCard label={t("afterSales.fatSat.failed")} value={failedItems} icon={XCircle} color="text-red-600" />
+        <StatCard label={t("afterSales.fatSat.passRate")} value={`${passRate}%`} icon={BarChart3} color={passRate >= 80 ? "text-green-600" : passRate >= 50 ? "text-amber-600" : "text-red-600"} />
       </div>
 
       {/* Progress Bar */}
       <div className="bg-white rounded-lg border border-[#edebe9] p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-[#323130]">测试进度</span>
+          <span className="text-sm font-medium text-[#323130]">{t("afterSales.fatSat.testProgress")}</span>
           <span className="text-xs text-[#605e5c]">{passedItems + failedItems} / {totalItems}</span>
         </div>
         <div className="w-full h-3 bg-[#f3f2f1] rounded-full overflow-hidden flex">
@@ -355,9 +358,9 @@ function TestItemsTab({ planId }: { planId: number | null }) {
           )}
         </div>
         <div className="flex gap-4 mt-2 text-[10px] text-[#605e5c]">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[#107c10]" /> 通过 {passedItems}</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[#d83b01]" /> 不通过 {failedItems}</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[#f3f2f1]" /> 待测 {totalItems - passedItems - failedItems}</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[#107c10]" /> {t("afterSales.fatSat.passed")} {passedItems}</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[#d83b01]" /> {t("afterSales.fatSat.failed")} {failedItems}</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[#f3f2f1]" /> {t("afterSales.fatSat.pendingTest")} {totalItems - passedItems - failedItems}</span>
         </div>
       </div>
 
@@ -366,7 +369,7 @@ function TestItemsTab({ planId }: { planId: number | null }) {
         <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#0078d4]" /></div>
       ) : itemList.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg border border-[#edebe9]">
-          <p className="text-[#a19f9d]">该计划暂无测试项目。使用"快速创建SAT模板"可自动生成16项标准测试。</p>
+          <p className="text-[#a19f9d]">{t("afterSales.fatSat.noTestItems")}</p>
         </div>
       ) : (
         Array.from(grouped.entries()).map(([cat, catItems]) => {
@@ -384,10 +387,10 @@ function TestItemsTab({ planId }: { planId: number | null }) {
               >
                 <CatIcon className="w-5 h-5 text-[#0078d4]" />
                 <span className="text-sm font-semibold text-[#323130]">{catLabel}</span>
-                <span className="text-xs text-[#605e5c]">{catItems.length} 项</span>
+                <span className="text-xs text-[#605e5c]">{catItems.length} {t("afterSales.fatSat.items")}</span>
                 <div className="flex gap-2 ml-auto text-xs">
-                  <span className="text-green-600">{catPassed} 通过</span>
-                  {catFailed > 0 && <span className="text-red-600">{catFailed} 不通过</span>}
+                  <span className="text-green-600">{catPassed} {t("afterSales.fatSat.passed")}</span>
+                  {catFailed > 0 && <span className="text-red-600">{catFailed} {t("afterSales.fatSat.failed")}</span>}
                 </div>
                 {isExpanded ? <ChevronDown className="w-4 h-4 text-[#605e5c]" /> : <ChevronRight className="w-4 h-4 text-[#605e5c]" />}
               </button>
@@ -397,13 +400,13 @@ function TestItemsTab({ planId }: { planId: number | null }) {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left text-xs text-[#605e5c] bg-[#faf9f8]">
-                        <th className="py-2 px-4">测试项</th>
-                        <th className="py-2 px-3">规格</th>
-                        <th className="py-2 px-3">通过标准</th>
-                        <th className="py-2 px-3">实测值</th>
-                        <th className="py-2 px-3">结果</th>
-                        <th className="py-2 px-3">测试员</th>
-                        <th className="py-2 px-3">操作</th>
+                        <th className="py-2 px-4">{t("afterSales.fatSat.thTestItem")}</th>
+                        <th className="py-2 px-3">{t("afterSales.fatSat.thSpec")}</th>
+                        <th className="py-2 px-3">{t("afterSales.fatSat.thPassCriteria")}</th>
+                        <th className="py-2 px-3">{t("afterSales.fatSat.thActualValue")}</th>
+                        <th className="py-2 px-3">{t("afterSales.fatSat.thResult")}</th>
+                        <th className="py-2 px-3">{t("afterSales.fatSat.thTester")}</th>
+                        <th className="py-2 px-3">{t("afterSales.fatSat.thActions")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -436,9 +439,9 @@ function TestItemsTab({ planId }: { planId: number | null }) {
                             <td className="py-2.5 px-3">
                               <div className="flex gap-1">
                                 <button className="px-1.5 py-0.5 text-[10px] bg-green-500 text-white rounded hover:bg-green-600"
-                                  onClick={() => updateItem.mutate({ id: item.id, result: "passed" })}>通过</button>
+                                  onClick={() => updateItem.mutate({ id: item.id, result: "passed" })}>{t("afterSales.fatSat.pass")}</button>
                                 <button className="px-1.5 py-0.5 text-[10px] bg-red-500 text-white rounded hover:bg-red-600"
-                                  onClick={() => updateItem.mutate({ id: item.id, result: "failed" })}>不通过</button>
+                                  onClick={() => updateItem.mutate({ id: item.id, result: "failed" })}>{t("afterSales.fatSat.fail")}</button>
                               </div>
                             </td>
                           </tr>
@@ -461,6 +464,7 @@ function TestItemsTab({ planId }: { planId: number | null }) {
 // ═══════════════════════════════════════════════════════════
 
 function ChecklistTab({ planId }: { planId: number | null }) {
+  const { t } = useLanguage();
   const checklists = trpc.fatSat.checklists.list.useQuery(
     { planId: planId! },
     { enabled: !!planId },
@@ -473,7 +477,7 @@ function ChecklistTab({ planId }: { planId: number | null }) {
     return (
       <div className="text-center py-16 bg-white rounded-lg border border-[#edebe9]">
         <ClipboardCheck className="w-12 h-12 mx-auto text-[#c8c6c4] mb-3" />
-        <p className="text-[#605e5c]">请先在"测试计划"中选择一个计划</p>
+        <p className="text-[#605e5c]">{t("afterSales.fatSat.selectPlanFirst")}</p>
       </div>
     );
   }
@@ -496,7 +500,7 @@ function ChecklistTab({ planId }: { planId: number | null }) {
       {total > 0 && (
         <div className="bg-white rounded-lg border border-[#edebe9] p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-[#323130]">检查进度</span>
+            <span className="text-sm font-medium text-[#323130]">{t("afterSales.fatSat.checkProgress")}</span>
             <span className="text-xs text-[#605e5c]">{completed} / {total} ({total > 0 ? Math.round((completed / total) * 100) : 0}%)</span>
           </div>
           <div className="w-full h-3 bg-[#f3f2f1] rounded-full overflow-hidden">
@@ -510,7 +514,7 @@ function ChecklistTab({ planId }: { planId: number | null }) {
         <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#0078d4]" /></div>
       ) : items.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg border border-[#edebe9]">
-          <p className="text-[#a19f9d]">该计划暂无检查清单</p>
+          <p className="text-[#a19f9d]">{t("afterSales.fatSat.noChecklist")}</p>
         </div>
       ) : (
         Array.from(grouped.entries()).map(([cat, catItems]) => {
@@ -558,19 +562,20 @@ function ChecklistTab({ planId }: { planId: number | null }) {
 // ═══════════════════════════════════════════════════════════
 
 function SignoffTab({ planId }: { planId: number | null }) {
+  const { t } = useLanguage();
   const signoffs = trpc.fatSat.signoffs.list.useQuery(
     { planId: planId! },
     { enabled: !!planId },
   );
   const updateSignoff = trpc.fatSat.signoffs.update.useMutation({
-    onSuccess: () => { toast.success("签字已更新"); signoffs.refetch(); },
+    onSuccess: () => { toast.success(t("afterSales.fatSat.signoffUpdated")); signoffs.refetch(); },
   });
 
   if (!planId) {
     return (
       <div className="text-center py-16 bg-white rounded-lg border border-[#edebe9]">
         <PenTool className="w-12 h-12 mx-auto text-[#c8c6c4] mb-3" />
-        <p className="text-[#605e5c]">请先在"测试计划"中选择一个计划</p>
+        <p className="text-[#605e5c]">{t("afterSales.fatSat.selectPlanFirst")}</p>
       </div>
     );
   }
@@ -583,12 +588,12 @@ function SignoffTab({ planId }: { planId: number | null }) {
         <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#0078d4]" /></div>
       ) : items.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg border border-[#edebe9]">
-          <p className="text-[#a19f9d]">该计划暂无签字步骤</p>
+          <p className="text-[#a19f9d]">{t("afterSales.fatSat.noSignoffSteps")}</p>
         </div>
       ) : (
         <div className="bg-white rounded-lg border border-[#edebe9] p-6">
           <h4 className="text-sm font-semibold text-[#323130] mb-4 flex items-center gap-2">
-            <Award className="w-5 h-5 text-[#0078d4]" /> 审批流程
+            <Award className="w-5 h-5 text-[#0078d4]" /> {t("afterSales.fatSat.approvalWorkflow")}
           </h4>
 
           {/* Workflow Timeline */}
@@ -622,13 +627,13 @@ function SignoffTab({ planId }: { planId: number | null }) {
                       <StatusBadge status={step.status} map={SIGNOFF_STATUSES} />
                     </div>
                     <div className="text-xs text-[#605e5c] mb-2">
-                      角色: {step.signerRole} {step.signerName && `· 签字人: ${step.signerName}`}
+                      {t("afterSales.fatSat.role")}: {step.signerRole} {step.signerName && `· ${t("afterSales.fatSat.signer")}: ${step.signerName}`}
                     </div>
                     {step.comment && (
                       <div className="text-xs text-[#605e5c] bg-[#faf9f8] px-3 py-2 rounded mb-2">"{step.comment}"</div>
                     )}
                     {step.signedAt && (
-                      <div className="text-[10px] text-[#a19f9d]">签字时间: {fmtDate(step.signedAt)}</div>
+                      <div className="text-[10px] text-[#a19f9d]">{t("afterSales.fatSat.signedAt")}: {fmtDate(step.signedAt)}</div>
                     )}
 
                     {/* Action Buttons */}
@@ -643,7 +648,7 @@ function SignoffTab({ planId }: { planId: number | null }) {
                             comment: "审核通过",
                           })}
                         >
-                          <Check className="w-3 h-3" /> 批准
+                          <Check className="w-3 h-3" /> {t("afterSales.fatSat.approve")}
                         </button>
                         <button
                           className="px-3 py-1.5 text-xs bg-[#d83b01] text-white rounded hover:bg-red-700 inline-flex items-center gap-1"
@@ -654,7 +659,7 @@ function SignoffTab({ planId }: { planId: number | null }) {
                             comment: "需要修改",
                           })}
                         >
-                          <X className="w-3 h-3" /> 驳回
+                          <X className="w-3 h-3" /> {t("afterSales.fatSat.reject")}
                         </button>
                       </div>
                     )}
@@ -674,19 +679,20 @@ function SignoffTab({ planId }: { planId: number | null }) {
 // ═══════════════════════════════════════════════════════════
 
 function SiteConditionsTab({ planId }: { planId: number | null }) {
+  const { t } = useLanguage();
   const conditions = trpc.fatSat.siteConditions.list.useQuery(
     { planId: planId! },
     { enabled: !!planId },
   );
   const updateCondition = trpc.fatSat.siteConditions.update.useMutation({
-    onSuccess: () => { toast.success("测量值已保存"); conditions.refetch(); },
+    onSuccess: () => { toast.success(t("afterSales.fatSat.measurementSaved")); conditions.refetch(); },
   });
 
   if (!planId) {
     return (
       <div className="text-center py-16 bg-white rounded-lg border border-[#edebe9]">
         <Thermometer className="w-12 h-12 mx-auto text-[#c8c6c4] mb-3" />
-        <p className="text-[#605e5c]">请先在"测试计划"中选择一个计划</p>
+        <p className="text-[#605e5c]">{t("afterSales.fatSat.selectPlanFirst")}</p>
       </div>
     );
   }
@@ -707,7 +713,7 @@ function SiteConditionsTab({ planId }: { planId: number | null }) {
         <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#0078d4]" /></div>
       ) : items.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg border border-[#edebe9]">
-          <p className="text-[#a19f9d]">该计划暂无现场条件记录（仅SAT类型自动创建）</p>
+          <p className="text-[#a19f9d]">{t("afterSales.fatSat.noSiteConditions")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -741,11 +747,11 @@ function SiteConditionsTab({ planId }: { planId: number | null }) {
 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-[#605e5c]">期望值</span>
+                    <span className="text-[#605e5c]">{t("afterSales.fatSat.expectedValue")}</span>
                     <span className="font-medium">{cond.expectedValue || "-"} {cond.unit || ""}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[#605e5c]">实测值</span>
+                    <span className="text-[#605e5c]">{t("afterSales.fatSat.actualValue")}</span>
                     <input
                       className="w-24 px-2 py-1 border border-[#c8c6c4] rounded text-xs text-right focus:border-[#0078d4] focus:outline-none"
                       defaultValue={cond.actualValue || ""}
@@ -758,13 +764,13 @@ function SiteConditionsTab({ planId }: { planId: number | null }) {
                     />
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#605e5c]">状态</span>
+                    <span className="text-[#605e5c]">{t("afterSales.fatSat.status")}</span>
                     <span className={`text-xs font-medium ${
                       isInSpec === true ? "text-green-600" :
                       isInSpec === false ? "text-red-600" :
                       "text-[#a19f9d]"
                     }`}>
-                      {isInSpec === true ? "合规" : isInSpec === false ? "超标" : "待测"}
+                      {isInSpec === true ? t("afterSales.fatSat.compliant") : isInSpec === false ? t("afterSales.fatSat.outOfSpec") : t("afterSales.fatSat.pendingTest")}
                     </span>
                   </div>
                 </div>
@@ -774,11 +780,11 @@ function SiteConditionsTab({ planId }: { planId: number | null }) {
                   <button
                     className="flex-1 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
                     onClick={() => updateCondition.mutate({ id: cond.id, isWithinSpec: true })}
-                  >合规</button>
+                  >{t("afterSales.fatSat.compliant")}</button>
                   <button
                     className="flex-1 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
                     onClick={() => updateCondition.mutate({ id: cond.id, isWithinSpec: false })}
-                  >超标</button>
+                  >{t("afterSales.fatSat.outOfSpec")}</button>
                 </div>
               </div>
             );
@@ -794,16 +800,17 @@ function SiteConditionsTab({ planId }: { planId: number | null }) {
 // ═══════════════════════════════════════════════════════════
 
 const TABS = [
-  { id: "plans",      label: "测试计划", icon: ClipboardCheck },
-  { id: "items",      label: "测试执行", icon: Target },
-  { id: "checklist",  label: "检查清单", icon: CheckCircle2 },
-  { id: "signoff",    label: "签字审批", icon: PenTool },
-  { id: "conditions", label: "现场条件", icon: Thermometer },
+  { id: "plans",      labelKey: "afterSales.fatSat.tabPlans", icon: ClipboardCheck },
+  { id: "items",      labelKey: "afterSales.fatSat.tabItems", icon: Target },
+  { id: "checklist",  labelKey: "afterSales.fatSat.tabChecklist", icon: CheckCircle2 },
+  { id: "signoff",    labelKey: "afterSales.fatSat.tabSignoff", icon: PenTool },
+  { id: "conditions", labelKey: "afterSales.fatSat.tabConditions", icon: Thermometer },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
 export default function FatSatExecutionDashboard() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabId>("plans");
   const [activePlanId, setActivePlanId] = useState<number | null>(null);
 
@@ -815,7 +822,7 @@ export default function FatSatExecutionDashboard() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
             <ClipboardCheck className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-xl font-semibold text-[#323130]">FAT/SAT 执行仪表板</h1>
+          <h1 className="text-xl font-semibold text-[#323130]">{t("afterSales.fatSat.title")}</h1>
           <span className="text-xs text-[#605e5c] bg-[#f3f2f1] px-2 py-0.5 rounded">M7-M8 Acceptance Testing</span>
           {activePlanId && (
             <span className="text-xs text-[#0078d4] bg-[#deecf9] px-2 py-0.5 rounded ml-2">
@@ -824,7 +831,7 @@ export default function FatSatExecutionDashboard() {
           )}
         </div>
         <p className="text-xs text-[#a19f9d] ml-11">
-          工厂验收(FAT) & 现场验收(SAT) — 测试计划/执行/检查/签字/环境
+          {t("afterSales.fatSat.desc")}
         </p>
       </div>
 
@@ -845,7 +852,7 @@ export default function FatSatExecutionDashboard() {
                 onClick={() => setActiveTab(tab.id)}
               >
                 <Icon className="w-4 h-4" />
-                {tab.label}
+                {t(tab.labelKey)}
               </button>
             );
           })}

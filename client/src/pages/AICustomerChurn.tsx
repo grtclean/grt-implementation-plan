@@ -3,6 +3,7 @@
  * Phase G: 流失概率 · 健康评分 · 风险因子 · 挽留策略
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ interface ChurnResult {
 }
 
 export default function AICustomerChurn() {
+  const { t } = useLanguage();
   const [customerName, setCustomerName] = useState("");
   const [industry, setIndustry] = useState(INDUSTRIES[0]);
   const [contractValue, setContractValue] = useState("");
@@ -64,9 +66,9 @@ export default function AICustomerChurn() {
 
   const riskLevelConfig = (level: string) => {
     switch (level) {
-      case "high": return { label: "高风险", color: "bg-red-500/20 text-red-400 border-red-500/30" };
-      case "medium": return { label: "中风险", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
-      case "low": return { label: "低风险", color: "bg-green-500/20 text-green-400 border-green-500/30" };
+      case "high": return { label: t("ai.churn.riskHigh"), color: "bg-red-500/20 text-red-400 border-red-500/30" };
+      case "medium": return { label: t("ai.churn.riskMedium"), color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
+      case "low": return { label: t("ai.churn.riskLow"), color: "bg-green-500/20 text-green-400 border-green-500/30" };
       default: return { label: level, color: "bg-muted text-muted-foreground" };
     }
   };
@@ -81,7 +83,7 @@ export default function AICustomerChurn() {
   };
 
   const priorityLabel = (p: string) => {
-    switch (p) { case "high": return "紧急"; case "medium": return "重要"; case "low": return "一般"; default: return p; }
+    switch (p) { case "high": return t("ai.churn.priorityUrgent"); case "medium": return t("ai.churn.priorityImportant"); case "low": return t("ai.churn.priorityNormal"); default: return p; }
   };
 
   const churnColor = (prob: number) => {
@@ -101,12 +103,12 @@ export default function AICustomerChurn() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={UserCheck}
-          title="AI客户流失预测"
-          description="流失概率 · 健康评分 · 风险因子 · 挽留策略"
+          title={t("ai.churn.title")}
+          description={t("ai.churn.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI预测
+              {t("ai.churn.aiPredict")}
             </Badge>
           }
         />
@@ -116,20 +118,20 @@ export default function AICustomerChurn() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <UserCheck className="h-5 w-5 text-primary" />
-              客户信息
+              {t("ai.churn.customerInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">客户名称</label>
+                <label className="text-sm text-muted-foreground">{t("ai.churn.customerName")}</label>
                 <Input placeholder="如: 上海大众汽车有限公司" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">所属行业</label>
+                <label className="text-sm text-muted-foreground">{t("ai.churn.industry")}</label>
                 <Select value={industry} onValueChange={(v) => setIndustry(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择行业" />
+                    <SelectValue placeholder={t("ai.churn.selectIndustry")} />
                   </SelectTrigger>
                   <SelectContent>
                     {INDUSTRIES.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
@@ -139,18 +141,18 @@ export default function AICustomerChurn() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">合同金额 (万元)</label>
+                <label className="text-sm text-muted-foreground">{t("ai.churn.contractValue")}</label>
                 <Input type="number" placeholder="如: 200" value={contractValue} onChange={(e) => setContractValue(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">最近订单日期</label>
+                <label className="text-sm text-muted-foreground">{t("ai.churn.lastOrderDate")}</label>
                 <Input type="date" value={lastOrderDate} onChange={(e) => setLastOrderDate(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">订单频率</label>
+                <label className="text-sm text-muted-foreground">{t("ai.churn.orderFrequency")}</label>
                 <Select value={orderFrequency} onValueChange={(v) => setOrderFrequency(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择频率" />
+                    <SelectValue placeholder={t("ai.churn.selectFrequency")} />
                   </SelectTrigger>
                   <SelectContent>
                     {ORDER_FREQUENCIES.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
@@ -160,22 +162,22 @@ export default function AICustomerChurn() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">满意度评分 1-10（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.churn.satisfactionScore")}</label>
                 <Input type="number" min={1} max={10} placeholder="如: 8" value={satisfactionScore} onChange={(e) => setSatisfactionScore(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">投诉次数（可选）</label>
+                <label className="text-sm text-muted-foreground">{t("ai.churn.complaintCount")}</label>
                 <Input type="number" min={0} placeholder="如: 2" value={complaintCount} onChange={(e) => setComplaintCount(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">竞品动态（可选）</label>
+              <label className="text-sm text-muted-foreground">{t("ai.churn.competitorActivity")}</label>
               <Textarea placeholder="如: 某竞争对手近期在该客户所在区域推出低价促销活动..." value={competitorActivity} onChange={(e) => setCompetitorActivity(e.target.value)} rows={2} />
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!customerName.trim() || !contractValue || !lastOrderDate || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI预测
+                {t("ai.churn.aiPredict")}
               </Button>
             </div>
           </CardContent>
@@ -188,7 +190,7 @@ export default function AICustomerChurn() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground">流失概率</p>
+                  <p className="text-sm text-muted-foreground">{t("ai.churn.churnProbability")}</p>
                   <p className={`text-5xl font-bold ${churnColor(result.churnProbability)}`}>{result.churnProbability}%</p>
                   <div className="mt-2 w-full h-2 bg-muted rounded-full overflow-hidden">
                     <div
@@ -200,7 +202,7 @@ export default function AICustomerChurn() {
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground">风险等级</p>
+                  <p className="text-sm text-muted-foreground">{t("ai.churn.riskLevel")}</p>
                   <Badge className={`text-2xl px-4 py-2 mt-2 ${riskLevelConfig(result.riskLevel).color}`}>
                     {riskLevelConfig(result.riskLevel).label}
                   </Badge>
@@ -208,7 +210,7 @@ export default function AICustomerChurn() {
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-muted-foreground">客户健康评分</p>
+                  <p className="text-sm text-muted-foreground">{t("ai.churn.customerHealthScore")}</p>
                   <p className={`text-5xl font-bold ${healthColor(result.customerHealthScore)}`}>{result.customerHealthScore}</p>
                   <div className="mt-2 w-full h-2 bg-muted rounded-full overflow-hidden">
                     <div
@@ -226,7 +228,7 @@ export default function AICustomerChurn() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    流失风险因子
+                    {t("ai.churn.churnFactors")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -254,7 +256,7 @@ export default function AICustomerChurn() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Heart className="h-5 w-5 text-pink-400" />
-                    挽留措施
+                    {t("ai.churn.retentionActions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -262,10 +264,10 @@ export default function AICustomerChurn() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 text-muted-foreground font-medium">措施</th>
-                          <th className="text-center py-2 text-muted-foreground font-medium">优先级</th>
-                          <th className="text-left py-2 text-muted-foreground font-medium">预期效果</th>
-                          <th className="text-right py-2 text-muted-foreground font-medium">时间线</th>
+                          <th className="text-left py-2 text-muted-foreground font-medium">{t("ai.churn.actionCol")}</th>
+                          <th className="text-center py-2 text-muted-foreground font-medium">{t("ai.churn.priorityCol")}</th>
+                          <th className="text-left py-2 text-muted-foreground font-medium">{t("ai.churn.expectedImpactCol")}</th>
+                          <th className="text-right py-2 text-muted-foreground font-medium">{t("ai.churn.timelineCol")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -292,7 +294,7 @@ export default function AICustomerChurn() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Shield className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("ai.churn.aiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

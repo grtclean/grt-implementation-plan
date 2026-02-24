@@ -3,6 +3,7 @@
  * 社保计算 · 公积金 · 企业成本 · 合规建议
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ interface SocialInsuranceResult {
 }
 
 export default function AISocialInsurance() {
+  const { t } = useLanguage();
   const [city, setCity] = useState(CITIES[0]);
   const [baseSalary, setBaseSalary] = useState("");
   const [housingFundRate, setHousingFundRate] = useState("7");

@@ -514,7 +514,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       {(() => {
         // 查找当前页面对应的菜单项（在过滤后的菜单中查找）
         let currentGroup: MenuGroup | null = null;
-        let currentItem: { name: string; nameEn: string; path: string } | null = null;
+        let currentItem: { name: string; nameEn: string; nameDe?: string; nameFr?: string; path: string } | null = null;
         for (const group of filteredMenuConfig) {
           const item = group.items.find(i => i.path === location);
           if (item) {
@@ -523,7 +523,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             break;
           }
         }
-        
+
         // 点击菜单组名称时，展开该组并滚动到该位置
         const handleGroupClick = (groupName: string) => {
           // 确保该菜单组展开
@@ -538,21 +538,30 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             }
           }, 100);
         };
-        
+
+        const getLocalizedName = (item: { name: string; nameEn: string; nameDe?: string; nameFr?: string }) => {
+          switch (language) {
+            case "zh": return item.name;
+            case "de": return item.nameDe || item.nameEn;
+            case "fr": return item.nameFr || item.nameEn;
+            default: return item.nameEn;
+          }
+        };
+
         if (currentItem && location !== '/') {
-          const groupName = language === 'zh' ? currentGroup?.name : currentGroup?.nameEn;
-          const itemName = language === 'zh' ? currentItem.name : currentItem.nameEn;
+          const groupName = currentGroup ? getLocalizedName(currentGroup) : '';
+          const itemName = getLocalizedName(currentItem);
           return (
             <div className="flex-shrink-0 px-3 py-2 border-b border-sidebar-border/50 bg-sidebar-accent/20">
               <div className="flex items-center gap-1.5 text-xs">
                 <span className="text-muted-foreground">
-                  {language === 'zh' ? '当前位置' : 'Current'}
+                  {language === 'zh' ? '当前位置' : language === 'de' ? 'Aktuell' : language === 'fr' ? 'Actuel' : 'Current'}
                 </span>
                 <ChevronRight className="w-3 h-3 text-muted-foreground/50" />
                 <button
                   onClick={() => currentGroup && handleGroupClick(currentGroup.name)}
                   className="text-muted-foreground hover:text-primary hover:underline transition-colors cursor-pointer"
-                  title={language === 'zh' ? '点击跳转到该菜单组' : 'Click to jump to this menu group'}
+                  title={language === 'zh' ? '点击跳转到该菜单组' : language === 'de' ? 'Klicken, um zur Menügruppe zu springen' : language === 'fr' ? 'Cliquer pour aller au groupe de menus' : 'Click to jump to this menu group'}
                 >
                   {groupName}
                 </button>
@@ -572,17 +581,17 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
           <button
             onClick={() => setExpandedGroups(filteredMenuConfig.map(g => g.name))}
             className="px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 rounded-sm transition-colors"
-            title={language === 'zh' ? '全部展开' : 'Expand All'}
+            title={language === 'zh' ? '全部展开' : language === 'de' ? 'Alle aufklappen' : language === 'fr' ? 'Tout déplier' : 'Expand All'}
           >
-            {language === 'zh' ? '展开' : 'Expand'}
+            {language === 'zh' ? '展开' : language === 'de' ? 'Aufklappen' : language === 'fr' ? 'Déplier' : 'Expand'}
           </button>
           <span className="text-muted-foreground/30">|</span>
           <button
             onClick={() => setExpandedGroups([])}
             className="px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 rounded-sm transition-colors"
-            title={language === 'zh' ? '全部收起' : 'Collapse All'}
+            title={language === 'zh' ? '全部收起' : language === 'de' ? 'Alle zuklappen' : language === 'fr' ? 'Tout replier' : 'Collapse All'}
           >
-            {language === 'zh' ? '收起' : 'Collapse'}
+            {language === 'zh' ? '收起' : language === 'de' ? 'Zuklappen' : language === 'fr' ? 'Replier' : 'Collapse'}
           </button>
         </div>
       </div>
@@ -601,7 +610,14 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
                     isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
                   )}>
                     <Icon className="h-3 w-3" />
-                    <span>{language === 'zh' ? item.name : item.nameEn}</span>
+                    <span>{(() => {
+                      switch (language) {
+                        case "zh": return item.name;
+                        case "de": return item.nameDe || item.nameEn;
+                        case "fr": return item.nameFr || item.nameEn;
+                        default: return item.nameEn;
+                      }
+                    })()}</span>
                   </div>
                 </Link>
               );

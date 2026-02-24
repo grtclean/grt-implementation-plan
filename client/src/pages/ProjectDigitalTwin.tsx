@@ -11,6 +11,7 @@ import {
   Clock, Sparkles, Play, RotateCcw,
 } from "lucide-react";
 import { PageHeader } from "@/components/grt";
+import { useLanguage } from "@/contexts/LanguageContext";
 import StagePipeline from "./rd-verification/StagePipeline";
 import { STAGES } from "../../../shared/stage-definitions";
 
@@ -33,9 +34,10 @@ interface GaugeProps {
   unit: string;
   color: string;
   icon: React.ReactNode;
+  deviationLabels?: { large: string; small: string; normal: string };
 }
 
-function GaugeCard({ label, value, unit, color, icon }: GaugeProps) {
+function GaugeCard({ label, value, unit, color, icon, deviationLabels }: GaugeProps) {
   const angle = Math.min(Math.max(value, -50), 150) / 150 * 180;
   return (
     <Card>
@@ -49,7 +51,7 @@ function GaugeCard({ label, value, unit, color, icon }: GaugeProps) {
           <text x="60" y="55" textAnchor="middle" className="fill-foreground text-lg font-bold" fontSize="18">{value}{unit}</text>
         </svg>
         <Badge variant={value > 10 ? "destructive" : value > 0 ? "secondary" : "default"} className="mt-1">
-          {value > 10 ? "偏差大" : value > 0 ? "轻微偏差" : "正常"}
+          {value > 10 ? deviationLabels?.large ?? "偏差大" : value > 0 ? deviationLabels?.small ?? "轻微偏差" : deviationLabels?.normal ?? "正常"}
         </Badge>
       </CardContent>
     </Card>
@@ -109,15 +111,30 @@ function RadarChart() {
 }
 
 export default function ProjectDigitalTwin() {
+  const { t } = useLanguage();
   const [simDelay, setSimDelay] = useState(0);
   const [simCost, setSimCost] = useState(0);
   const [simResult, setSimResult] = useState<string | null>(null);
+
+  const RISK_AXES_T = [
+    { label: t("projects.twin.schedule"), value: 65 },
+    { label: t("projects.twin.cost"), value: 45 },
+    { label: t("projects.twin.quality"), value: 80 },
+    { label: t("projects.twin.resource"), value: 55 },
+    { label: t("projects.twin.technology"), value: 70 },
+  ];
+
+  const deviationLabels = {
+    large: t("projects.twin.deviationLarge"),
+    small: t("projects.twin.deviationSmall"),
+    normal: t("projects.twin.normal"),
+  };
 
   const handleSimulate = () => {
     const impact = [];
     if (simDelay > 0) impact.push(`交期延迟 ${simDelay} 天，项目完成日期推迟至 2026-07-${15 + simDelay}`);
     if (simCost > 0) impact.push(`追加成本 ¥${simCost.toLocaleString()}，总预算偏差率上升至 ${(3.2 + simCost / 100000).toFixed(1)}%`);
-    if (impact.length === 0) impact.push("无参数变化，项目按原计划推进");
+    if (impact.length === 0) impact.push(t("projects.twin.noChange"));
     setSimResult(impact.join("；"));
   };
 
@@ -126,7 +143,7 @@ export default function ProjectDigitalTwin() {
         {/* Header */}
         <PageHeader
           icon={Cpu}
-          title="项目数字孪生"
+          title={t("projects.twin.title")}
           description={PROJECT.id + " · " + PROJECT.name}
           actions={<><Badge variant="outline">{PROJECT.model}</Badge><Badge variant="secondary">{PROJECT.customer}</Badge></>}
         />
@@ -140,16 +157,16 @@ export default function ProjectDigitalTwin() {
 
         {/* KPI Gauges */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <GaugeCard label="进度偏差" value={5} unit="%" color="#f59e0b" icon={<Clock className="h-4 w-4" />} />
-          <GaugeCard label="成本偏差" value={3.2} unit="%" color="#3b82f6" icon={<DollarSign className="h-4 w-4" />} />
-          <GaugeCard label="质量指数" value={94} unit="分" color="#22c55e" icon={<Shield className="h-4 w-4" />} />
-          <GaugeCard label="资源利用率" value={82} unit="%" color="#8b5cf6" icon={<Users className="h-4 w-4" />} />
+          <GaugeCard label={t("projects.twin.scheduleDeviation")} value={5} unit="%" color="#f59e0b" icon={<Clock className="h-4 w-4" />} deviationLabels={deviationLabels} />
+          <GaugeCard label={t("projects.twin.costDeviation")} value={3.2} unit="%" color="#3b82f6" icon={<DollarSign className="h-4 w-4" />} deviationLabels={deviationLabels} />
+          <GaugeCard label={t("projects.twin.qualityIndex")} value={94} unit={t("projects.twin.points")} color="#22c55e" icon={<Shield className="h-4 w-4" />} deviationLabels={deviationLabels} />
+          <GaugeCard label={t("projects.twin.resourceUtilization")} value={82} unit="%" color="#8b5cf6" icon={<Users className="h-4 w-4" />} deviationLabels={deviationLabels} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Milestone prediction */}
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5" />里程碑预测</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5" />{t("projects.twin.milestonePrediction")}</CardTitle></CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {MILESTONES.map(m => (
@@ -158,7 +175,7 @@ export default function ProjectDigitalTwin() {
                     <span className="flex-1">{m.name}</span>
                     <span className="text-muted-foreground w-20 text-right">{m.planned.toLocaleDateString("zh-CN", { month: "short", day: "numeric" })}</span>
                     <span className={"w-20 text-right font-mono " + (m.delay > 5 ? "text-red-400" : m.delay > 0 ? "text-yellow-400" : "text-green-400")}>
-                      {m.delay > 0 ? `+${m.delay}d` : m.delay < 0 ? `${m.delay}d` : "准时"}
+                      {m.delay > 0 ? `+${m.delay}d` : m.delay < 0 ? `${m.delay}d` : t("projects.twin.onTime")}
                     </span>
                   </div>
                 ))}
@@ -168,11 +185,11 @@ export default function ProjectDigitalTwin() {
 
           {/* Risk radar */}
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5" />风险雷达图</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5" />{t("projects.twin.riskRadar")}</CardTitle></CardHeader>
             <CardContent className="flex flex-col items-center">
               <RadarChart />
               <div className="flex gap-3 mt-3 flex-wrap justify-center">
-                {RISK_AXES.map(a => (
+                {RISK_AXES_T.map(a => (
                   <Badge key={a.label} variant={a.value >= 70 ? "destructive" : a.value >= 50 ? "secondary" : "default"}>
                     {a.label}: {a.value}
                   </Badge>
@@ -184,25 +201,25 @@ export default function ProjectDigitalTwin() {
 
         {/* What-If Simulator */}
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5" />What-If 模拟器</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5" />{t("projects.twin.whatIfSimulator")}</CardTitle></CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4 items-end">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">增加延迟 (天)</label>
+                <label className="text-sm text-muted-foreground">{t("projects.twin.addDelay")}</label>
                 <Input type="number" min={0} value={simDelay} onChange={e => setSimDelay(Number(e.target.value))} className="w-28" />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">追加成本 (¥)</label>
+                <label className="text-sm text-muted-foreground">{t("projects.twin.addCost")}</label>
                 <Input type="number" min={0} step={10000} value={simCost} onChange={e => setSimCost(Number(e.target.value))} className="w-36" />
               </div>
-              <Button onClick={handleSimulate}><Play className="h-4 w-4 mr-2" />模拟</Button>
+              <Button onClick={handleSimulate}><Play className="h-4 w-4 mr-2" />{t("projects.twin.simulate")}</Button>
               <Button variant="outline" onClick={() => { setSimDelay(0); setSimCost(0); setSimResult(null); }}>
-                <RotateCcw className="h-4 w-4 mr-2" />重置
+                <RotateCcw className="h-4 w-4 mr-2" />{t("projects.twin.reset")}
               </Button>
             </div>
             {simResult && (
               <div className="mt-4 p-4 rounded-lg border bg-accent/30">
-                <p className="text-sm font-medium flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" />模拟结果</p>
+                <p className="text-sm font-medium flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" />{t("projects.twin.simResult")}</p>
                 <p className="text-sm mt-1">{simResult}</p>
               </div>
             )}

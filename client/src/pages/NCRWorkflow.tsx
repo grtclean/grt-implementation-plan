@@ -1,6 +1,6 @@
 /**
- * NCR不合格品处理 (NCR Workflow)
- * US-009: 不合格品报告生成 · 根因分析 · 处置建议 · 8D追踪
+ * NCR Nonconforming Product (NCR Workflow)
+ * US-009: NCR report generation, root cause analysis, disposition recommendation, 8D tracking
  */
 import { useState } from "react";
 import { PageHeader } from "@/components/grt";
@@ -9,34 +9,39 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertTriangle, Loader2, Sparkles, CheckCircle, Shield, Target, ListChecks,
 } from "lucide-react";
 
-const DEFECT_CATEGORIES = [
-  { value: "尺寸超差", label: "尺寸超差" },
-  { value: "表面缺陷", label: "表面缺陷" },
-  { value: "清洁度不达标", label: "清洁度不达标" },
-  { value: "功能异常", label: "功能异常" },
-  { value: "材料问题", label: "材料问题" },
-  { value: "装配偏差", label: "装配偏差" },
+const DEFECT_CATEGORY_KEYS = [
+  { value: "尺寸超差", key: "quality.ncr.catDimension" },
+  { value: "表面缺陷", key: "quality.ncr.catSurface" },
+  { value: "清洁度不达标", key: "quality.ncr.catCleanliness" },
+  { value: "功能异常", key: "quality.ncr.catFunction" },
+  { value: "材料问题", key: "quality.ncr.catMaterial" },
+  { value: "装配偏差", key: "quality.ncr.catAssembly" },
 ];
 
-const DETECTION_STAGES = [
-  { value: "来料检验", label: "来料检验" },
-  { value: "过程检验", label: "过程检验" },
-  { value: "终检", label: "终检" },
-  { value: "FAT", label: "FAT" },
-  { value: "SAT", label: "SAT" },
-  { value: "售后", label: "售后" },
+const DETECTION_STAGE_KEYS = [
+  { value: "来料检验", key: "quality.ncr.stageIncoming" },
+  { value: "过程检验", key: "quality.ncr.stageInProcess" },
+  { value: "终检", key: "quality.ncr.stageFinal" },
+  { value: "FAT", key: "FAT" },
+  { value: "SAT", key: "SAT" },
+  { value: "售后", key: "quality.ncr.stageAfterSales" },
 ];
 
-const SEVERITIES = [
-  { value: "critical", label: "严重 (Critical)" },
-  { value: "major", label: "主要 (Major)" },
-  { value: "minor", label: "次要 (Minor)" },
+const SEVERITY_KEYS = [
+  { value: "critical", key: "quality.ncr.severityCritical" },
+  { value: "major", key: "quality.ncr.severityMajor" },
+  { value: "minor", key: "quality.ncr.severityMinor" },
 ];
+
+function detectionStageLabel(t: (k: string) => string, key: string): string {
+  return key.startsWith("quality.") ? t(key) : key;
+}
 
 interface NCRResult {
   ncrNumber: string;
@@ -61,6 +66,7 @@ interface NCRResult {
 }
 
 export default function NCRWorkflow() {
+  const { t } = useLanguage();
   // Form state
   const [productName, setProductName] = useState("");
   const [batchNumber, setBatchNumber] = useState("");
@@ -104,9 +110,9 @@ export default function NCRWorkflow() {
 
   const severityLabel = (s: string) => {
     switch (s) {
-      case "critical": return "严重";
-      case "major": return "主要";
-      case "minor": return "次要";
+      case "critical": return t("quality.ncr.severityCritical");
+      case "major": return t("quality.ncr.severityMajor");
+      case "minor": return t("quality.ncr.severityMinor");
       default: return s;
     }
   };
@@ -131,12 +137,12 @@ export default function NCRWorkflow() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={AlertTriangle}
-          title="NCR不合格品处理"
-          description="不合格品报告生成 · 根因分析 · 处置建议 · 8D追踪"
+          title={t("quality.ncr.title")}
+          description={t("quality.ncr.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI质检
+              {t("quality.ncr.aiBadge")}
             </Badge>
           }
         />
@@ -146,72 +152,72 @@ export default function NCRWorkflow() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <AlertTriangle className="h-5 w-5 text-primary" />
-              不合格品信息
+              {t("quality.ncr.sectionInput")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">产品名称 *</label>
-                <Input placeholder="如: 铝合金发动机缸体" value={productName} onChange={(e) => setProductName(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.ncr.productName")} *</label>
+                <Input placeholder={t("quality.ncr.productPlaceholder")} value={productName} onChange={(e) => setProductName(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">批次号 *</label>
-                <Input placeholder="如: BATCH-2026-0215-001" value={batchNumber} onChange={(e) => setBatchNumber(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.ncr.batchNo")} *</label>
+                <Input placeholder={t("quality.ncr.batchPlaceholder")} value={batchNumber} onChange={(e) => setBatchNumber(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">不合格数量 *</label>
-                <Input type="number" placeholder="如: 15" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.ncr.defectQty")} *</label>
+                <Input type="number" placeholder={t("quality.ncr.qtyPlaceholder")} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">缺陷类别 *</label>
+                <label className="text-sm text-muted-foreground">{t("quality.ncr.defectCategory")} *</label>
                 <Select value={defectCategory} onValueChange={(v) => setDefectCategory(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择缺陷类别" />
+                    <SelectValue placeholder={t("quality.ncr.selectDefectCategory")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {DEFECT_CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                    {DEFECT_CATEGORY_KEYS.map((c) => <SelectItem key={c.value} value={c.value}>{t(c.key)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">检出环节 *</label>
+                <label className="text-sm text-muted-foreground">{t("quality.ncr.detectionStage")} *</label>
                 <Select value={detectionStage} onValueChange={(v) => setDetectionStage(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择检出环节" />
+                    <SelectValue placeholder={t("quality.ncr.selectDetectionStage")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {DETECTION_STAGES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                    {DETECTION_STAGE_KEYS.map((s) => <SelectItem key={s.value} value={s.value}>{detectionStageLabel(t, s.key)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">严重程度</label>
+                <label className="text-sm text-muted-foreground">{t("quality.ncr.severityLevel")}</label>
                 <Select value={severity} onValueChange={(v) => setSeverity(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="不指定" />
+                    <SelectValue placeholder={t("quality.ncr.unspecified")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">不指定</SelectItem>
-                    {SEVERITIES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                    <SelectItem value="__none__">{t("quality.ncr.unspecified")}</SelectItem>
+                    {SEVERITY_KEYS.map((s) => <SelectItem key={s.value} value={s.value}>{t(s.key)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">缺陷描述 *</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="详细描述缺陷现象、位置、数量等" value={defectDescription} onChange={(e) => setDefectDescription(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("quality.ncr.defectDesc")} *</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder={t("quality.ncr.defectDescPlaceholder")} value={defectDescription} onChange={(e) => setDefectDescription(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">历史发生情况</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder="历史发生情况" value={previousOccurrences} onChange={(e) => setPreviousOccurrences(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("quality.ncr.historyInfo")}</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder={t("quality.ncr.historyInfo")} value={previousOccurrences} onChange={(e) => setPreviousOccurrences(e.target.value)} />
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!productName.trim() || !batchNumber.trim() || !defectDescription.trim() || !quantity || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI分析
+                {t("quality.ncr.analyzeBtn")}
               </Button>
             </div>
           </CardContent>
@@ -225,7 +231,7 @@ export default function NCRWorkflow() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">NCR编号</p>
+                    <p className="text-sm text-muted-foreground">{t("quality.ncr.sectionNumber")}</p>
                     <p className="text-3xl font-bold text-primary">{result.ncrNumber}</p>
                   </div>
                   <div className="flex gap-2">
@@ -244,7 +250,7 @@ export default function NCRWorkflow() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Shield className="h-5 w-5 text-red-400" />
-                    遏制措施
+                    {t("quality.ncr.sectionContainment")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -265,7 +271,7 @@ export default function NCRWorkflow() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Target className="h-5 w-5 text-primary" />
-                  根因分析（鱼骨图）
+                  {t("quality.ncr.sectionRootCause")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -287,11 +293,11 @@ export default function NCRWorkflow() {
                 <div className="p-4 rounded bg-primary/5 border border-primary/20">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">最可能根因</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t("quality.ncr.mostLikelyCause")}</p>
                       <p className="text-sm font-medium">{result.rootCauseAnalysis.mostLikelyCause}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-muted-foreground mb-1">置信度</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t("quality.ncr.confidenceLevel")}</p>
                       <p className="text-2xl font-bold text-primary">{result.rootCauseAnalysis.confidence}%</p>
                     </div>
                   </div>
@@ -305,17 +311,17 @@ export default function NCRWorkflow() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ListChecks className="h-5 w-5 text-primary" />
-                    纠正措施
+                    {t("quality.ncr.sectionCorrective")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left py-2 font-medium text-muted-foreground">措施</th>
-                        <th className="text-left py-2 font-medium text-muted-foreground">负责人</th>
-                        <th className="text-left py-2 font-medium text-muted-foreground">截止日期</th>
-                        <th className="text-center py-2 font-medium text-muted-foreground">优先级</th>
+                        <th className="text-left py-2 font-medium text-muted-foreground">{t("quality.ncr.headerAction")}</th>
+                        <th className="text-left py-2 font-medium text-muted-foreground">{t("quality.ncr.headerResponsible")}</th>
+                        <th className="text-left py-2 font-medium text-muted-foreground">{t("quality.ncr.headerDeadline")}</th>
+                        <th className="text-center py-2 font-medium text-muted-foreground">{t("quality.ncr.headerPriority")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -338,7 +344,7 @@ export default function NCRWorkflow() {
             {/* Disposition Recommendation */}
             <Card>
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-muted-foreground mb-2">处置建议</p>
+                <p className="text-sm font-medium text-muted-foreground mb-2">{t("quality.ncr.sectionDisposition")}</p>
                 <div className="p-4 rounded bg-yellow-500/5 border border-yellow-500/20">
                   <p className="text-sm font-medium">{result.dispositionRecommendation}</p>
                 </div>
@@ -351,7 +357,7 @@ export default function NCRWorkflow() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Shield className="h-5 w-5 text-green-400" />
-                    预防措施
+                    {t("quality.ncr.sectionPreventive")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -370,7 +376,7 @@ export default function NCRWorkflow() {
             {/* Cost Impact */}
             <Card>
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-muted-foreground mb-1">成本影响</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">{t("quality.ncr.sectionCostImpact")}</p>
                 <p className="text-sm">{result.costImpact}</p>
               </CardContent>
             </Card>
@@ -381,7 +387,7 @@ export default function NCRWorkflow() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("quality.ncr.sectionAiSuggestions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

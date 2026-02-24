@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatusBadge, createStatusColorMap } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,7 @@ const MOCK_UPLOADED: UploadedDoc[] = [
 // ============================================================
 
 export default function ProjectPhaseDocuments() {
+  const { t } = useLanguage();
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [selectedStage, setSelectedStage] = useState<string>("");
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -125,9 +127,9 @@ export default function ProjectPhaseDocuments() {
   });
 
   const statusLabelMap: Record<string, string> = {
-    uploaded: "已上传",
-    expired: "已过期",
-    missing: "缺失",
+    uploaded: t("projects.phaseDocs.statusUploaded"),
+    expired: t("projects.phaseDocs.statusExpired"),
+    missing: t("projects.phaseDocs.statusMissing"),
   };
 
   const statusLabel = (status: string) => (
@@ -138,24 +140,24 @@ export default function ProjectPhaseDocuments() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={FolderOpen}
-          title="阶段文档管理"
-          description="管理项目各阶段(M0-M12)必需文档，确保交付完整性"
+          title={t("projects.phaseDocs.title")}
+          description={t("projects.phaseDocs.description")}
         />
 
         {/* Project & Stage Selection */}
         <div className="flex flex-wrap gap-4">
           <div className="min-w-[280px] space-y-1">
-            <Label>选择项目</Label>
+            <Label>{t("projects.phaseDocs.selectProject")}</Label>
             <Select value={selectedProject} onValueChange={v => { setSelectedProject(v); setSelectedStage(""); setAiResult(null); }}>
-              <SelectTrigger><SelectValue placeholder="选择项目..." /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("projects.phaseDocs.selectProjectPlaceholder")} /></SelectTrigger>
               <SelectContent>{MOCK_PROJECTS.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           {project && (
             <div className="min-w-[200px] space-y-1">
-              <Label>选择阶段</Label>
+              <Label>{t("projects.phaseDocs.selectStage")}</Label>
               <Select value={selectedStage} onValueChange={v => { setSelectedStage(v); setAiResult(null); }}>
-                <SelectTrigger><SelectValue placeholder="选择阶段..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("projects.phaseDocs.selectStagePlaceholder")} /></SelectTrigger>
                 <SelectContent>{STAGES.map(s => <SelectItem key={s.code} value={s.code}>{s.code} - {s.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
@@ -165,7 +167,7 @@ export default function ProjectPhaseDocuments() {
         {/* Stage Progress Overview */}
         {project && !selectedStage && (
           <Card>
-            <CardHeader><CardTitle className="text-lg">项目阶段概览 - {project.name}</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-lg">{t("projects.phaseDocs.stageOverview")} - {project.name}</CardTitle></CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 {STAGES.map(s => {
@@ -177,7 +179,7 @@ export default function ProjectPhaseDocuments() {
                       <p className="font-mono font-bold">{s.code}</p>
                       <p className="text-xs text-muted-foreground">{s.name}</p>
                       {hasData && <Badge variant="outline" className="mt-1 text-xs">{docs.filter(d => d.status === "uploaded").length}/{docs.length}</Badge>}
-                      {isCurrent && <Badge className="mt-1 text-xs bg-primary">当前</Badge>}
+                      {isCurrent && <Badge className="mt-1 text-xs bg-primary">{t("projects.phaseDocs.current")}</Badge>}
                     </div>
                   );
                 })}
@@ -193,14 +195,14 @@ export default function ProjectPhaseDocuments() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">文档完整度</span>
+                  <span className="font-medium">{t("projects.phaseDocs.docCompleteness")}</span>
                   <span className="text-lg font-bold">{docStats.percent}%</span>
                 </div>
                 <Progress value={docStats.percent} className="h-2 mb-3" />
                 <div className="flex gap-4 text-sm">
-                  <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500" />已上传: {docStats.uploaded}</span>
-                  <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-red-500" />缺失: {docStats.missing}</span>
-                  <span className="flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-yellow-500" />过期: {docStats.expired}</span>
+                  <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500" />{t("projects.phaseDocs.uploaded")}: {docStats.uploaded}</span>
+                  <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-red-500" />{t("projects.phaseDocs.missing")}: {docStats.missing}</span>
+                  <span className="flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-yellow-500" />{t("projects.phaseDocs.expired")}: {docStats.expired}</span>
                 </div>
               </CardContent>
             </Card>
@@ -209,11 +211,11 @@ export default function ProjectPhaseDocuments() {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2"><FileCheck className="w-5 h-5" />必需文档清单 - {selectedStage}</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2"><FileCheck className="w-5 h-5" />{t("projects.phaseDocs.requiredDocChecklist")} - {selectedStage}</CardTitle>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={() => setShowUploadDialog(!showUploadDialog)}><Upload className="w-4 h-4 mr-1" />上传文档</Button>
+                    <Button size="sm" onClick={() => setShowUploadDialog(!showUploadDialog)}><Upload className="w-4 h-4 mr-1" />{t("projects.phaseDocs.uploadDoc")}</Button>
                     <Button size="sm" variant="outline" onClick={handleAICheck} disabled={aiChecking}>
-                      {aiChecking ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />检查中...</> : <><Sparkles className="w-4 h-4 mr-1" />AI完整性检查</>}
+                      {aiChecking ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />{t("projects.phaseDocs.checking")}</> : <><Sparkles className="w-4 h-4 mr-1" />{t("projects.phaseDocs.aiCompletenessCheck")}</>}
                     </Button>
                   </div>
                 </div>
@@ -226,20 +228,20 @@ export default function ProjectPhaseDocuments() {
                         {statusIcon(doc.status)}
                         <div>
                           <p className="font-medium text-sm">{doc.name}</p>
-                          <p className="text-xs text-muted-foreground">{doc.type} {!doc.required && "(可选)"}</p>
+                          <p className="text-xs text-muted-foreground">{doc.type} {!doc.required && t("projects.phaseDocs.optional")}</p>
                         </div>
                       </div>
                       {statusLabel(doc.status)}
                     </div>
                   ))}
-                  {requiredDocs.length === 0 && <p className="text-center text-muted-foreground py-4">该阶段暂无预定义文档要求</p>}
+                  {requiredDocs.length === 0 && <p className="text-center text-muted-foreground py-4">{t("projects.phaseDocs.noRequiredDocs")}</p>}
                 </div>
               </CardContent>
             </Card>
 
             {/* Uploaded Documents */}
             <Card>
-              <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="w-5 h-5" />已上传文档</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="w-5 h-5" />{t("projects.phaseDocs.uploadedDocs")}</CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {MOCK_UPLOADED.map(doc => (
@@ -265,15 +267,15 @@ export default function ProjectPhaseDocuments() {
             {/* AI Completeness Check Result */}
             {aiResult && (
               <Card className={aiResult.percent === 100 ? "border-green-500" : "border-yellow-500"}>
-                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />AI完整性检查结果</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />{t("projects.phaseDocs.aiCheckResult")}</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-4">
                     <div className="text-3xl font-bold">{aiResult.percent}%</div>
-                    <div>{aiResult.percent === 100 ? <Badge className="bg-green-500/20 text-green-400">文档完整</Badge> : <Badge className="bg-yellow-500/20 text-yellow-400">文档不完整</Badge>}</div>
+                    <div>{aiResult.percent === 100 ? <Badge className="bg-green-500/20 text-green-400">{t("projects.phaseDocs.docComplete")}</Badge> : <Badge className="bg-yellow-500/20 text-yellow-400">{t("projects.phaseDocs.docIncomplete")}</Badge>}</div>
                   </div>
                   {aiResult.missing.length > 0 && (
                     <div>
-                      <p className="font-medium text-sm mb-2">缺失文档:</p>
+                      <p className="font-medium text-sm mb-2">{t("projects.phaseDocs.missingDocs")}</p>
                       <div className="space-y-1">{aiResult.missing.map(m => (
                         <div key={m} className="flex items-center gap-2 text-sm p-2 rounded bg-red-500/10 text-red-400"><XCircle className="w-4 h-4" />{m}</div>
                       ))}</div>
@@ -286,23 +288,23 @@ export default function ProjectPhaseDocuments() {
             {/* Upload Dialog */}
             {showUploadDialog && (
               <Card className="border-primary">
-                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Upload className="w-5 h-5" />上传文档</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Upload className="w-5 h-5" />{t("projects.phaseDocs.uploadTitle")}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>文档类型</Label>
-                      <Select><SelectTrigger><SelectValue placeholder="选择文档类型" /></SelectTrigger>
+                    <div className="space-y-2"><Label>{t("projects.phaseDocs.docType")}</Label>
+                      <Select><SelectTrigger><SelectValue placeholder={t("projects.phaseDocs.selectDocType")} /></SelectTrigger>
                         <SelectContent>
-                          {Array.from(new Set(requiredDocs.map(d => d.type))).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                          <SelectItem value="other">其他</SelectItem>
+                          {Array.from(new Set(requiredDocs.map(d => d.type))).map(tp => <SelectItem key={tp} value={tp}>{tp}</SelectItem>)}
+                          <SelectItem value="other">{t("projects.phaseDocs.other")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2"><Label>描述</Label><Input placeholder="文档说明..." /></div>
+                    <div className="space-y-2"><Label>{t("projects.phaseDocs.docDescription")}</Label><Input placeholder={t("projects.phaseDocs.docDescPlaceholder")} /></div>
                   </div>
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center text-muted-foreground"><Upload className="w-8 h-8 mx-auto mb-2" /><p className="text-sm">拖拽文件或点击上传</p><p className="text-xs mt-1">支持 PDF, DOCX, XLSX, DWG 格式</p></div>
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center text-muted-foreground"><Upload className="w-8 h-8 mx-auto mb-2" /><p className="text-sm">{t("projects.phaseDocs.dragOrClick")}</p><p className="text-xs mt-1">{t("projects.phaseDocs.supportedFormats")}</p></div>
                   <div className="flex gap-2 justify-end">
-                    <Button variant="outline" onClick={() => setShowUploadDialog(false)}>取消</Button>
-                    <Button onClick={() => setShowUploadDialog(false)}>确认上传</Button>
+                    <Button variant="outline" onClick={() => setShowUploadDialog(false)}>{t("projects.change.cancel")}</Button>
+                    <Button onClick={() => setShowUploadDialog(false)}>{t("projects.phaseDocs.confirmUpload")}</Button>
                   </div>
                 </CardContent>
               </Card>

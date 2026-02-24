@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ── Types ──
 
@@ -1390,6 +1391,7 @@ const SEED_MILITARY_ORDERS = [
 
 // ── Main Page ──
 export default function KpiPerformance() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("positions");
   const [seeding, setSeeding] = useState(false);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
@@ -1521,19 +1523,19 @@ export default function KpiPerformance() {
       <div className="space-y-6">
         <PageHeader
           icon={Target}
-          title="KPI绩效管理"
-          description="岗位画像、KPI指标库、目标设定、技能矩阵、月度评审与军令状"
+          title={t("hr.kpi.title")}
+          description={t("hr.kpi.description")}
           actions={
             <div className="flex items-center gap-2">
               {isLoading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
               <Button variant="outline" size="sm" onClick={() => setAiDialogOpen(true)}>
                 <Sparkles className="h-4 w-4 mr-1" />
-                AI分析
+                {t("hr.kpi.aiAnalysis")}
               </Button>
               {isEmpty && (
                 <Button variant="outline" size="sm" onClick={handleSeedDefaults} disabled={seeding}>
                   {seeding ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <DatabaseZap className="h-4 w-4 mr-1" />}
-                  初始化演示数据
+                  {t("hr.kpi.seedData")}
                 </Button>
               )}
             </div>
@@ -1541,24 +1543,24 @@ export default function KpiPerformance() {
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={Users} label="岗位画像" value={positions.length} />
-          <StatCard icon={BookOpen} label="KPI指标" value={library.length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-          <StatCard icon={BrainCircuit} label="技能记录" value={skills.length} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
-          <StatCard icon={Scroll} label="军令状" value={militaryOrders.length} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+          <StatCard icon={Users} label={t("hr.kpi.positionProfiles")} value={positions.length} />
+          <StatCard icon={BookOpen} label={t("hr.kpi.kpiIndicators")} value={library.length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={BrainCircuit} label={t("hr.kpi.skillRecords")} value={skills.length} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
+          <StatCard icon={Scroll} label={t("hr.kpi.militaryOrders")} value={militaryOrders.length} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between">
             <TabsList>
-              <TabsTrigger value="positions">岗位画像</TabsTrigger>
-              <TabsTrigger value="library">指标库</TabsTrigger>
-              <TabsTrigger value="targets">KPI目标</TabsTrigger>
-              <TabsTrigger value="skills">技能矩阵</TabsTrigger>
-              <TabsTrigger value="reviews">月度评审</TabsTrigger>
-              <TabsTrigger value="orders">军令状</TabsTrigger>
+              <TabsTrigger value="positions">{t("hr.kpi.tab.positions")}</TabsTrigger>
+              <TabsTrigger value="library">{t("hr.kpi.tab.library")}</TabsTrigger>
+              <TabsTrigger value="targets">{t("hr.kpi.tab.targets")}</TabsTrigger>
+              <TabsTrigger value="skills">{t("hr.kpi.tab.skills")}</TabsTrigger>
+              <TabsTrigger value="reviews">{t("hr.kpi.tab.reviews")}</TabsTrigger>
+              <TabsTrigger value="orders">{t("hr.kpi.tab.orders")}</TabsTrigger>
             </TabsList>
             <Button size="sm" onClick={openAdd}>
-              <Plus className="h-4 w-4 mr-1" />添加
+              <Plus className="h-4 w-4 mr-1" />{t("hr.kpi.add")}
             </Button>
           </div>
 

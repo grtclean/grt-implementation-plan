@@ -3,6 +3,7 @@
  * Phase E: 缺陷预测 · 根因分析 · 预防措施
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ interface PredictionResult {
 }
 
 export default function QualityPrediction() {
+  const { t } = useLanguage();
   const [processName, setProcessName] = useState("");
   const [recentDefectRate, setRecentDefectRate] = useState("");
   const [inspectionCount, setInspectionCount] = useState("");
@@ -49,10 +51,10 @@ export default function QualityPrediction() {
   };
 
   const trendConfig: Record<string, { label: string; color: string; icon: typeof TrendingUp }> = {
-    improving: { label: "改善中", color: "bg-green-500/20 text-green-400 border-green-500/30", icon: TrendingUp },
-    stable: { label: "稳定", color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Minus },
-    declining: { label: "下降中", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: TrendingDown },
-    critical: { label: "告警", color: "bg-red-500/20 text-red-400 border-red-500/30", icon: AlertTriangle },
+    improving: { label: t("quality.prediction.trendImproving"), color: "bg-green-500/20 text-green-400 border-green-500/30", icon: TrendingUp },
+    stable: { label: t("quality.prediction.trendStable"), color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Minus },
+    declining: { label: t("quality.prediction.trendDeclining"), color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: TrendingDown },
+    critical: { label: t("quality.prediction.trendAlert"), color: "bg-red-500/20 text-red-400 border-red-500/30", icon: AlertTriangle },
   };
 
   const scoreColor = (score: number) => {
@@ -79,12 +81,12 @@ export default function QualityPrediction() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Shield}
-          title="AI质量趋势预测"
-          description="缺陷预测 · 根因分析 · 预防措施"
+          title={t("quality.prediction.title")}
+          description={t("quality.prediction.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI预测
+              {t("quality.prediction.aiPrediction")}
             </Badge>
           }
         />
@@ -94,42 +96,42 @@ export default function QualityPrediction() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Shield className="h-5 w-5 text-primary" />
-              质量数据
+              {t("quality.prediction.qualityData")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">工序名称</label>
-                <Input placeholder="如: T4焊接" value={processName} onChange={(e) => setProcessName(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.prediction.processName")}</label>
+                <Input placeholder="e.g. T4" value={processName} onChange={(e) => setProcessName(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">近期缺陷率(%)</label>
-                <Input type="number" placeholder="如: 3.5" value={recentDefectRate} onChange={(e) => setRecentDefectRate(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.prediction.recentDefectRate")}</label>
+                <Input type="number" placeholder="e.g. 3.5" value={recentDefectRate} onChange={(e) => setRecentDefectRate(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">检验数量</label>
-                <Input type="number" placeholder="如: 200" value={inspectionCount} onChange={(e) => setInspectionCount(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.prediction.inspectionCount")}</label>
+                <Input type="number" placeholder="e.g. 200" value={inspectionCount} onChange={(e) => setInspectionCount(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">缺陷类型（可选，逗号分隔）</label>
-                <Input placeholder="如: 气孔,裂纹,变形" value={defectTypes} onChange={(e) => setDefectTypes(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.prediction.defectType")}</label>
+                <Input placeholder="e.g. porosity,crack,deformation" value={defectTypes} onChange={(e) => setDefectTypes(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">材料批次（可选）</label>
-                <Input placeholder="如: SS316L-2026-02" value={materialBatch} onChange={(e) => setMaterialBatch(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.prediction.materialBatch")}</label>
+                <Input placeholder="e.g. SS316L-2026-02" value={materialBatch} onChange={(e) => setMaterialBatch(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">设备使用年限（可选）</label>
-                <Input type="number" placeholder="如: 5" value={equipmentAge} onChange={(e) => setEquipmentAge(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.prediction.equipmentAge")}</label>
+                <Input type="number" placeholder="e.g. 5" value={equipmentAge} onChange={(e) => setEquipmentAge(e.target.value)} />
               </div>
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!processName.trim() || !recentDefectRate || !inspectionCount || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                预测分析
+                {t("quality.prediction.predictiveAnalysis")}
               </Button>
             </div>
           </CardContent>
@@ -144,7 +146,7 @@ export default function QualityPrediction() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">趋势方向</p>
+                      <p className="text-sm text-muted-foreground">{t("quality.prediction.trendDirection")}</p>
                       {(() => {
                         const cfg = trendConfig[result.trendDirection];
                         const Icon = cfg?.icon || Minus;
@@ -159,9 +161,9 @@ export default function QualityPrediction() {
                       })()}
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-muted-foreground">预测缺陷率</p>
+                      <p className="text-sm text-muted-foreground">{t("quality.prediction.predictedDefectRate")}</p>
                       <p className="text-2xl font-bold">{result.predictedDefectRate}%</p>
-                      <p className="text-xs text-muted-foreground">置信度 {result.confidenceLevel}%</p>
+                      <p className="text-xs text-muted-foreground">{t("quality.prediction.confidence")} {result.confidenceLevel}%</p>
                     </div>
                   </div>
                 </CardContent>
@@ -169,7 +171,7 @@ export default function QualityPrediction() {
 
               <Card>
                 <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground">质量评分</p>
+                  <p className="text-sm text-muted-foreground">{t("quality.prediction.qualityScore")}</p>
                   <p className={`text-5xl font-bold ${scoreColor(result.qualityScore)}`}>{result.qualityScore}</p>
                   <div className="mt-3 w-full h-2 bg-muted rounded-full overflow-hidden">
                     <div
@@ -187,7 +189,7 @@ export default function QualityPrediction() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    根因分析
+                    {t("quality.prediction.rootCauseAnalysis")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -197,7 +199,7 @@ export default function QualityPrediction() {
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-sm">{item.cause}</span>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline">概率 {item.probability}%</Badge>
+                            <Badge variant="outline">{t("quality.prediction.probability")} {item.probability}%</Badge>
                             <span className={`text-sm font-medium ${impactColor(item.impact)}`}>{item.impact}</span>
                           </div>
                         </div>
@@ -217,7 +219,7 @@ export default function QualityPrediction() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CheckCircle className="h-5 w-5 text-green-400" />
-                    预防措施
+                    {t("quality.prediction.preventiveMeasures")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

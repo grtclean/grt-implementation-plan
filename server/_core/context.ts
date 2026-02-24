@@ -4,11 +4,13 @@ import { sdk } from "./sdk";
 import { verifyToken } from "./local-auth";
 import { COOKIE_NAME } from "@shared/const";
 import { parse as parseCookieHeader } from "cookie";
+import { resolveLanguageFromHeader, type Language } from "../lib/server-i18n";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
   res: CreateExpressContextOptions["res"];
   user: User | null;
+  language: Language;
 };
 
 const isLocalAuth = () =>
@@ -57,9 +59,18 @@ export async function createContext(
     }
   }
 
+  // Resolve language: 1) user preference, 2) Accept-Language header, 3) default 'zh'
+  let language: Language = 'zh';
+  if (user?.languagePreference) {
+    language = user.languagePreference as Language;
+  } else {
+    language = resolveLanguageFromHeader(opts.req.headers['accept-language']);
+  }
+
   return {
     req: opts.req,
     res: opts.res,
     user,
+    language,
   };
 }

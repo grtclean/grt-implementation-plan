@@ -45,7 +45,7 @@ import FeatureGuide from "@/components/FeatureGuide";
 import { toast } from "sonner";
 
 export default function CostManagement() {
-  const { t } = useLanguage();
+  const { t, tpl } = useLanguage();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [showAddRecordDialog, setShowAddRecordDialog] = useState(false);
   const [showAddBudgetDialog, setShowAddBudgetDialog] = useState(false);
@@ -112,13 +112,13 @@ export default function CostManagement() {
   
   const createRecordMutation = trpc.cost.createRecord.useMutation({
     onSuccess: () => {
-      toast.success("成本记录已创建");
+      toast.success(t("finance.cost.recordCreatedMsg"));
       setShowAddRecordDialog(false);
       utils.cost.getRecords.invalidate();
       utils.cost.getSummary.invalidate();
     },
     onError: (error) => {
-      toast.error("创建失败: " + error.message);
+      toast.error(t("finance.cost.createFailedMsg") + ": " + error.message);
     },
   });
 
@@ -128,23 +128,23 @@ export default function CostManagement() {
         toast.success(result.message);
         utils.cost.getCategories.invalidate();
       } else {
-        toast.error(result?.message || "初始化失败");
+        toast.error(result?.message || t("finance.cost.initFailedMsg"));
       }
     },
     onError: (error) => {
-      toast.error("初始化失败: " + error.message);
+      toast.error(t("finance.cost.initFailedMsg") + ": " + error.message);
     },
   });
 
   const createBudgetMutation = trpc.cost.createBudget.useMutation({
     onSuccess: () => {
-      toast.success("预算已创建");
+      toast.success(t("finance.cost.budgetCreatedMsg"));
       setShowAddBudgetDialog(false);
       utils.cost.getBudgets.invalidate();
       utils.cost.getSummary.invalidate();
     },
     onError: (error) => {
-      toast.error("创建失败: " + error.message);
+      toast.error(t("finance.cost.createFailedMsg") + ": " + error.message);
     },
   });
 
@@ -169,12 +169,12 @@ export default function CostManagement() {
   
   const rollbackMutation = trpc.ruleVersion.rollback.useMutation({
     onSuccess: () => {
-      toast.success("规则已回滚到选定版本");
+      toast.success(t("finance.cost.rollbackSuccessMsg"));
       utils.costAlert.getActiveRules.invalidate();
       utils.ruleVersion.getAll.invalidate();
     },
     onError: (error) => {
-      toast.error("回滚失败: " + error.message);
+      toast.error(t("finance.cost.rollbackFailedMsg") + ": " + error.message);
     },
   });
   
@@ -186,35 +186,35 @@ export default function CostManagement() {
   
   const initBuiltinTemplatesMutation = trpc.ruleTemplate.initBuiltin.useMutation({
     onSuccess: (result) => {
-      toast.success(`初始化完成: ${result.message}`);
+      toast.success(tpl("finance.cost.initCompleted", { msg: result.message }));
       refetchTemplates();
     },
     onError: (error) => {
-      toast.error("初始化失败: " + error.message);
+      toast.error(t("finance.cost.initFailedMsg") + ": " + error.message);
     },
   });
   
   const createRuleFromTemplateMutation = trpc.ruleTemplate.createRule.useMutation({
     onSuccess: () => {
-      toast.success("已从模板创建规则");
+      toast.success(t("finance.cost.ruleCreatedMsg"));
       utils.costAlert.getActiveRules.invalidate();
       setShowTemplateLibraryDialog(false);
     },
     onError: (error) => {
-      toast.error("创建失败: " + error.message);
+      toast.error(t("finance.cost.createFailedMsg") + ": " + error.message);
     },
   });
   
   const saveAsTemplateMutation = trpc.ruleTemplate.saveAsTemplate.useMutation({
     onSuccess: () => {
-      toast.success("规则已保存为模板");
+      toast.success(t("finance.cost.templateSavedMsg"));
       setShowSaveAsTemplateDialog(false);
       setRuleToSaveAsTemplate(null);
       setNewTemplateName("");
       setNewTemplateDescription("");
     },
     onError: (error) => {
-      toast.error("保存失败: " + error.message);
+      toast.error(t("finance.cost.saveFailed") + ": " + error.message);
     },
   });
   
@@ -239,12 +239,12 @@ export default function CostManagement() {
   
   const handleBatchExport = () => {
     if (selectedRulesForBatch.length === 0) {
-      toast.error("请先选择要导出的规则");
+      toast.error(t("finance.cost.selectRules"));
       return;
     }
-    
+
     const selectedRulesData = alertRules?.filter(r => selectedRulesForBatch.includes(r.id)) || [];
-    
+
     if (batchExportFormat === "json") {
       const exportData = {
         exportTime: new Date().toISOString(),
@@ -265,9 +265,9 @@ export default function CostManagement() {
       a.download = `alert-rules-export-${new Date().toISOString().split("T")[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`已导出 ${selectedRulesData.length} 条规则`);
+      toast.success(tpl("finance.cost.exportedCount", { count: selectedRulesData.length }));
     } else {
-      const headers = ["名称", "描述", "适用范围", "预警类型", "阈值", "预警级别", "启用状态"];
+      const csvHeaders = t("finance.cost.csvHeaders");
       const rows = selectedRulesData.map(r => [
         r.name,
         r.description || "",
@@ -275,9 +275,9 @@ export default function CostManagement() {
         r.alertType,
         r.threshold,
         r.alertLevel,
-        r.isActive ? "是" : "否",
+        r.isActive ? t("finance.cost.csvEnabled") : t("finance.cost.csvDisabled"),
       ]);
-      const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+      const csv = [csvHeaders, ...rows.map(r => r.join(","))].join("\n");
       const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -285,13 +285,13 @@ export default function CostManagement() {
       a.download = `alert-rules-export-${new Date().toISOString().split("T")[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`已导出 ${selectedRulesData.length} 条规则`);
+      toast.success(tpl("finance.cost.exportedCount", { count: selectedRulesData.length }));
     }
   };
   
   const handleBatchRollback = async () => {
     if (selectedRulesForBatch.length === 0 || !batchRollbackDate) {
-      toast.error("请选择规则和回滚日期");
+      toast.error(t("finance.cost.selectRulesAndDate"));
       return;
     }
     
@@ -317,10 +317,10 @@ export default function CostManagement() {
     }
     
     if (successCount > 0) {
-      toast.success(`成功回滚 ${successCount} 条规则`);
+      toast.success(tpl("finance.cost.rollbackedCount", { count: successCount }));
     }
     if (failCount > 0) {
-      toast.warning(`${failCount} 条规则回滚失败（无匹配版本）`);
+      toast.warning(tpl("finance.cost.rollbackFailedCount", { count: failCount }));
     }
     
     setShowBatchVersionDialog(false);
@@ -331,78 +331,78 @@ export default function CostManagement() {
   // Export functions
   const handleExportPDF = () => {
     if (!selectedProjectId || !costSummary) {
-      toast.error("请先选择项目");
+      toast.error(t("finance.cost.selectProjectMsg"));
       return;
     }
-    
+
     // Generate PDF content
     const selectedProject = projects?.find(p => p.id === selectedProjectId);
     const content = `
-成本报表 - ${selectedProject?.name || '未知项目'}
-生成时间: ${new Date().toLocaleString('zh-CN')}
+${t("finance.cost.costReportLabel")} - ${selectedProject?.name || t("finance.cost.unknownProject")}
+${t("finance.cost.generatedTimeLabel")}: ${new Date().toLocaleString()}
 
-成本概览
+${t("finance.cost.costOverviewLabel")}
 ---------
-总预算: ${formatCurrency(costSummary.summary.totalBudget || 0)}
-实际成本: ${formatCurrency(costSummary.summary.totalSpent || 0)}
-预算使用率: ${costSummary.summary.totalBudget ? ((costSummary.summary.totalSpent / costSummary.summary.totalBudget) * 100).toFixed(1) : 0}%
+${t("finance.cost.totalBudgetLabel")}: ${formatCurrency(costSummary.summary.totalBudget || 0)}
+${t("finance.cost.actualCostLabel")}: ${formatCurrency(costSummary.summary.totalSpent || 0)}
+${t("finance.cost.budgetUsageLabel")}: ${costSummary.summary.totalBudget ? ((costSummary.summary.totalSpent / costSummary.summary.totalBudget) * 100).toFixed(1) : 0}%
 CPI: ${costSummary.summary.totalSpent > 0 ? (costSummary.summary.totalBudget / costSummary.summary.totalSpent).toFixed(2) : 'N/A'}
 
-成本明细
+${t("finance.cost.costDetailLabel")}
 ---------
-${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.description}: ${formatCurrency((r as any).amount || r.amount)}`).join('\n') || '无记录'}
+${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.description}: ${formatCurrency((r as any).amount || r.amount)}`).join('\n') || t("finance.cost.noRecordsLabel")}
     `.trim();
-    
+
     // Create and download file
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `成本报表_${selectedProject?.name || 'project'}_${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `${t("finance.cost.costReportFilename")}_${selectedProject?.name || 'project'}_${new Date().toISOString().split('T')[0]}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("报表已导出");
+    toast.success(t("finance.cost.exportSuccessMsg"));
   };
 
   const handleExportExcel = () => {
     if (!selectedProjectId || !costSummary) {
-      toast.error("请先选择项目");
+      toast.error(t("finance.cost.selectProjectMsg"));
       return;
     }
-    
+
     const selectedProject = projects?.find(p => p.id === selectedProjectId);
-    
+
     // Generate CSV content (Excel compatible)
     let csv = '\uFEFF'; // BOM for Excel UTF-8
-    csv += '成本报表,\n';
-    csv += `项目名称,${selectedProject?.name || ''}\n`;
-    csv += `生成时间,${new Date().toLocaleString('zh-CN')}\n`;
+    csv += `${t("finance.cost.csvReportLabel")},\n`;
+    csv += `${t("finance.cost.csvProjectName")},${selectedProject?.name || ''}\n`;
+    csv += `${t("finance.cost.csvGeneratedTime")},${new Date().toLocaleString()}\n`;
     csv += '\n';
-    csv += '成本概览,\n';
-    csv += `总预算,${(costSummary.summary.totalBudget || 0) / 100}\n`;
-    csv += `实际成本,${(costSummary.summary.totalSpent || 0) / 100}\n`;
-    csv += `预算使用率,${costSummary.summary.totalBudget ? ((costSummary.summary.totalSpent / costSummary.summary.totalBudget) * 100).toFixed(1) : 0}%\n`;
+    csv += `${t("finance.cost.csvCostOverview")},\n`;
+    csv += `${t("finance.cost.csvTotalBudget")},${(costSummary.summary.totalBudget || 0) / 100}\n`;
+    csv += `${t("finance.cost.csvActualCost")},${(costSummary.summary.totalSpent || 0) / 100}\n`;
+    csv += `${t("finance.cost.csvBudgetUsage")},${costSummary.summary.totalBudget ? ((costSummary.summary.totalSpent / costSummary.summary.totalBudget) * 100).toFixed(1) : 0}%\n`;
     csv += `CPI,${costSummary.summary.totalSpent > 0 ? (costSummary.summary.totalBudget / costSummary.summary.totalSpent).toFixed(2) : 'N/A'}\n`;
     csv += '\n';
-    csv += '成本明细,\n';
-    csv += '类别ID,描述,金额(元)\n';
+    csv += `${t("finance.cost.csvCostDetail")},\n`;
+    csv += `${t("finance.cost.csvCatIdDescAmount")}\n`;
     costRecords?.forEach(r => {
       csv += `${r.categoryId},${r.description},${r.amount / 100}\n`;
     });
-    
+
     // Create and download file
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `成本报表_${selectedProject?.name || 'project'}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `${t("finance.cost.csvReportFilename")}_${selectedProject?.name || 'project'}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("报表已导出为Excel格式");
+    toast.success(t("finance.cost.exportExcelMsg"));
   };
 
   // Form states
@@ -427,7 +427,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
 
   const handleCreateRecord = () => {
     if (!selectedProjectId || !recordForm.categoryId || !recordForm.costCode || !recordForm.description) {
-      toast.error("请填写必填字段");
+      toast.error(t("finance.cost.fillRequiredMsg"));
       return;
     }
     createRecordMutation.mutate({
@@ -446,7 +446,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
 
   const handleCreateBudget = () => {
     if (!selectedProjectId || !budgetForm.categoryId || !budgetForm.budgetAmount) {
-      toast.error("请填写必填字段");
+      toast.error(t("finance.cost.fillRequiredMsg"));
       return;
     }
     createBudgetMutation.mutate({
@@ -461,7 +461,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
 
   // Format currency (from cents to yuan)
   const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("zh-CN", {
+    return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency: "CNY",
     }).format(cents / 100);
@@ -471,23 +471,23 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
       <>
       <FeatureGuide
         featureId="cost-management"
-        title="成本管理"
-        description="项目成本预算、实际成本跟踪和偏差分析"
+        title={t("finance.cost.titleLabel")}
+        description={t("finance.cost.descLabel")}
         steps={[
-          { title: "项目选择", description: "选择项目查看成本数据，支持多项目对比" },
-          { title: "预算管理", description: "设置项目预算，按分类分配资金" },
-          { title: "成本记录", description: "记录实际成本，支持多种成本类型" },
-          { title: "偏差分析", description: "自动计算预算与实际偏差，生成分析报告" },
-          { title: "告警规则", description: "设置成本超支告警，自动发送通知" },
-          { title: "版本历史", description: "查看规则修改历史，支持版本对比和回滚" }
+          { title: t("finance.cost.featureProjectSelect"), description: t("finance.cost.featureProjectSelectDesc") },
+          { title: t("finance.cost.featureBudgetMgmt"), description: t("finance.cost.featureBudgetMgmtDesc") },
+          { title: t("finance.cost.featureCostRecord"), description: t("finance.cost.featureCostRecordDesc") },
+          { title: t("finance.cost.featureVariance"), description: t("finance.cost.featureVarianceDesc") },
+          { title: t("finance.cost.featureAlert"), description: t("finance.cost.featureAlertDesc") },
+          { title: t("finance.cost.featureVersion"), description: t("finance.cost.featureVersionDesc") }
         ]}
       />
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
           icon={Calculator}
-          title={t("cost.title") || "成本管理"}
-          description={t("cost.desc") || "项目成本预算、实际成本追踪与分析"}
+          title={t("finance.cost.titleLabel")}
+          description={t("finance.cost.descLabel")}
           actions={
             <>
               {/* Initialize Categories Button - only show when no categories exist */}
@@ -503,7 +503,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                   ) : (
                     <Database className="w-4 h-4 mr-1" />
                   )}
-                  初始化成本类别
+                  {t("finance.cost.initCategories2")}
                 </Button>
               )}
               <Select
@@ -511,7 +511,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                 onValueChange={(value) => setSelectedProjectId(parseInt(value))}
               >
                 <SelectTrigger className="w-[250px]">
-                  <SelectValue placeholder="选择项目" />
+                  <SelectValue placeholder={t("finance.cost.selectProjectPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {projects?.map((project) => (
@@ -531,7 +531,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                     onClick={handleExportPDF}
                   >
                     <FileText className="w-4 h-4 mr-1" />
-                    导出报表
+                    {t("finance.cost.exportReportBtn")}
                   </Button>
                   <Button
                     variant="outline"
@@ -539,7 +539,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                     onClick={handleExportExcel}
                   >
                     <Download className="w-4 h-4 mr-1" />
-                    导出Excel
+                    {t("finance.cost.exportExcelBtn")}
                   </Button>
                 </>
               )}
@@ -551,8 +551,8 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-16">
               <DollarSign className="w-16 h-16 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium text-muted-foreground">请选择一个项目</h3>
-              <p className="text-sm text-muted-foreground/70 mt-1">选择项目后可查看和管理成本数据</p>
+              <h3 className="text-lg font-medium text-muted-foreground">{t("finance.cost.selectProject")}</h3>
+              <p className="text-sm text-muted-foreground/70 mt-1">{t("finance.cost.selectProjectHint")}</p>
             </CardContent>
           </Card>
         ) : summaryLoading ? (
@@ -566,15 +566,15 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
               <TabsList className="grid w-full max-w-lg grid-cols-3">
                 <TabsTrigger value="project-cost" className="gap-1.5">
                   <DollarSign className="w-4 h-4" />
-                  项目成本
+                  {t("finance.cost.projectCostTab")}
                 </TabsTrigger>
                 <TabsTrigger value="cost-analysis" className="gap-1.5">
                   <PieChart className="w-4 h-4" />
-                  成本分析
+                  {t("finance.cost.costAnalysisTab")}
                 </TabsTrigger>
                 <TabsTrigger value="cost-budget" className="gap-1.5">
                   <Calculator className="w-4 h-4" />
-                  成本预算
+                  {t("finance.cost.costBudgetTab")}
                 </TabsTrigger>
               </TabsList>
 
@@ -582,16 +582,16 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
               <TabsContent value="project-cost" className="space-y-4">
                 {/* Cost Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <StatCard icon={Calculator} label="总预算" value={formatCurrency(costSummary?.summary.totalBudget || 0)} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-                  <StatCard icon={DollarSign} label="实际成本" value={formatCurrency(costSummary?.summary.totalSpent || 0)} iconColor="text-green-500" iconBg="bg-green-500/10" />
+                  <StatCard icon={Calculator} label={t("finance.cost.totalBudget")} value={formatCurrency(costSummary?.summary.totalBudget || 0)} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+                  <StatCard icon={DollarSign} label={t("finance.cost.totalSpent")} value={formatCurrency(costSummary?.summary.totalSpent || 0)} iconColor="text-green-500" iconBg="bg-green-500/10" />
                   <StatCard
                     icon={((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? TrendingDown : TrendingUp}
-                    label="成本偏差"
+                    label={t("finance.cost.varianceLabel")}
                     value={formatCurrency(Math.abs((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)))}
                     iconColor={((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? "text-emerald-500" : "text-red-500"}
                     iconBg={((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) >= 0 ? "bg-emerald-500/10" : "bg-red-500/10"}
                   />
-                  <StatCard icon={PieChart} label="CPI 成本绩效指数" value={costSummary?.summary.totalSpent ? (costSummary.summary.totalBudget / costSummary.summary.totalSpent).toFixed(2) : "1.00"} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+                  <StatCard icon={PieChart} label={t("finance.cost.cpiLabel")} value={costSummary?.summary.totalSpent ? (costSummary.summary.totalBudget / costSummary.summary.totalSpent).toFixed(2) : "1.00"} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
                 </div>
 
                 {/* Cost Records */}
@@ -600,24 +600,24 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                     <DialogTrigger asChild>
                       <Button size="sm">
                         <Plus className="w-4 h-4 mr-1" />
-                        添加成本记录
+                        {t("finance.cost.addCostRecord")}
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>添加成本记录</DialogTitle>
-                        <DialogDescription>记录项目的实际支出</DialogDescription>
+                        <DialogTitle>{t("finance.cost.addCostRecord")}</DialogTitle>
+                        <DialogDescription>{t("finance.cost.recordActualSpend")}</DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 py-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label>成本类别 *</Label>
+                            <Label>{t("finance.cost.categoryLabel")} *</Label>
                             <Select
                               value={recordForm.categoryId.toString()}
                               onValueChange={(value) => setRecordForm({ ...recordForm, categoryId: parseInt(value) })}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="选择类别" />
+                                <SelectValue placeholder={t("finance.cost.selectCategory")} />
                               </SelectTrigger>
                               <SelectContent>
                                 {categories?.map((cat) => (
@@ -629,25 +629,25 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label>成本编号 *</Label>
+                            <Label>{t("finance.cost.costCodeLabel")} *</Label>
                             <Input
                               value={recordForm.costCode}
                               onChange={(e) => setRecordForm({ ...recordForm, costCode: e.target.value })}
-                              placeholder="如: COST-2026-001"
+                              placeholder={t("finance.cost.costCodePlaceholder")}
                             />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label>描述 *</Label>
+                          <Label>{t("finance.cost.descriptionLabel")} *</Label>
                           <Textarea
                             value={recordForm.description}
                             onChange={(e) => setRecordForm({ ...recordForm, description: e.target.value })}
-                            placeholder="成本描述..."
+                            placeholder={t("finance.cost.costDescPlaceholder")}
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label>金额 (元) *</Label>
+                            <Label>{t("finance.cost.amountYuan")} *</Label>
                             <Input
                               type="number"
                               value={recordForm.amount}
@@ -656,31 +656,31 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>供应商</Label>
+                            <Label>{t("finance.cost.vendorLabel")}</Label>
                             <Input
                               value={recordForm.vendor}
                               onChange={(e) => setRecordForm({ ...recordForm, vendor: e.target.value })}
-                              placeholder="供应商名称"
+                              placeholder={t("finance.cost.vendorPlaceholder")}
                             />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label>发票号</Label>
+                            <Label>{t("finance.cost.invoiceLabel")}</Label>
                             <Input
                               value={recordForm.invoiceNo}
                               onChange={(e) => setRecordForm({ ...recordForm, invoiceNo: e.target.value })}
-                              placeholder="发票编号"
+                              placeholder={t("finance.cost.invoicePlaceholder")}
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>所属阶段</Label>
+                            <Label>{t("finance.cost.phaseLabel")}</Label>
                             <Select
                               value={recordForm.phaseCode}
                               onValueChange={(value) => setRecordForm({ ...recordForm, phaseCode: value })}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="选择阶段" />
+                                <SelectValue placeholder={t("finance.cost.selectPhase")} />
                               </SelectTrigger>
                               <SelectContent>
                                 {["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9", "M10", "M11", "M12"].map((phase) => (
@@ -691,21 +691,21 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label>备注</Label>
+                          <Label>{t("finance.cost.remarkLabel")}</Label>
                           <Textarea
                             value={recordForm.remark}
                             onChange={(e) => setRecordForm({ ...recordForm, remark: e.target.value })}
-                            placeholder="备注信息..."
+                            placeholder={t("finance.cost.remarkPlaceholder")}
                           />
                         </div>
                       </div>
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" onClick={() => setShowAddRecordDialog(false)}>
-                          取消
+                          {t("finance.cost.cancelBtn")}
                         </Button>
                         <Button onClick={handleCreateRecord} disabled={createRecordMutation.isPending}>
                           {createRecordMutation.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
-                          创建
+                          {t("finance.cost.createBtn")}
                         </Button>
                       </div>
                     </DialogContent>
@@ -717,10 +717,10 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <FileText className="w-5 h-5" />
-                      成本记录列表
+                      {t("finance.cost.costRecordList")}
                     </CardTitle>
                     <CardDescription>
-                      共 {costRecords?.length || 0} 条记录
+                      {tpl("finance.cost.totalRecords", { count: costRecords?.length || 0 })}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -756,9 +756,9 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                 rec.status === "rejected" ? "bg-red-500/20 text-red-400" :
                                 "bg-yellow-500/20 text-yellow-400"
                               }>
-                                {rec.status === "approved" ? "已审核" :
-                                 rec.status === "paid" ? "已支付" :
-                                 rec.status === "rejected" ? "已驳回" : "待审核"}
+                                {rec.status === "approved" ? t("finance.cost.statusApproved") :
+                                 rec.status === "paid" ? t("finance.cost.statusPaid") :
+                                 rec.status === "rejected" ? t("finance.cost.statusRejected") : t("finance.cost.statusPending")}
                               </Badge>
                             </div>
                           </div>
@@ -767,7 +767,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                       </div>
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
-                        暂无成本记录
+                        {t("finance.cost.noCostRecords")}
                       </div>
                     )}
                   </CardContent>
@@ -777,10 +777,10 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Users className="w-5 h-5" />
-                      人工成本
+                      {t("finance.cost.laborCostTitle")}
                     </CardTitle>
                     <CardDescription>
-                      共 {laborCosts?.length || 0} 条工时记录
+                      {tpl("finance.cost.totalLaborRecords", { count: laborCosts?.length || 0 })}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -794,10 +794,10 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                             className="flex items-center justify-between p-4 rounded-lg border bg-card"
                           >
                             <div>
-                              <p className="font-medium">{lb.description || `工时记录 (${labor.employeeId})`}</p>
+                              <p className="font-medium">{lb.description || tpl("finance.cost.laborDesc", { id: labor.employeeId })}</p>
                               <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                                <span>{labor.hours} 小时</span>
-                                <span>• 时薪: {formatCurrency(lb.hourlyRate || labor.rate)}</span>
+                                <span>{tpl("finance.cost.hoursLabel", { hours: labor.hours })}</span>
+                                <span>• {tpl("finance.cost.hourlyRateLabel", { rate: formatCurrency(lb.hourlyRate || labor.rate) })}</span>
                                 {lb.phaseCode && (
                                   <Badge variant="outline" className="text-xs">{lb.phaseCode}</Badge>
                                 )}
@@ -810,8 +810,8 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                 lb.status === "rejected" ? "bg-red-500/20 text-red-400" :
                                 "bg-yellow-500/20 text-yellow-400"
                               }>
-                                {lb.status === "approved" ? "已审核" :
-                                 lb.status === "rejected" ? "已驳回" : "待审核"}
+                                {lb.status === "approved" ? t("finance.cost.statusApproved") :
+                                 lb.status === "rejected" ? t("finance.cost.statusRejected") : t("finance.cost.statusPending")}
                               </Badge>
                             </div>
                           </div>
@@ -820,7 +820,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                       </div>
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
-                        暂无人工成本记录
+                        {t("finance.cost.noLaborRecords")}
                       </div>
                     )}
                   </CardContent>
@@ -832,9 +832,9 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                 {/* Budget Utilization Overview */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">预算使用情况</CardTitle>
+                    <CardTitle className="text-lg">{t("finance.cost.budgetUsageTitle")}</CardTitle>
                     <CardDescription>
-                      已使用 {costSummary?.summary.totalBudget ? Math.round((costSummary.summary.totalSpent / costSummary.summary.totalBudget) * 100) : 0}% 的总预算
+                      {tpl("finance.cost.budgetUsagePercent", { percent: costSummary?.summary.totalBudget ? Math.round((costSummary.summary.totalSpent / costSummary.summary.totalBudget) * 100) : 0 })}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -843,8 +843,8 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                       className="h-3"
                     />
                     <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-                      <span>已使用: {formatCurrency(costSummary?.summary.totalSpent || 0)}</span>
-                      <span>剩余: {formatCurrency((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0))}</span>
+                      <span>{tpl("finance.cost.usedLabel", { amount: formatCurrency(costSummary?.summary.totalSpent || 0) })}</span>
+                      <span>{tpl("finance.cost.remainingLabel", { amount: formatCurrency((costSummary?.summary.totalBudget || 0) - (costSummary?.summary.totalSpent || 0)) })}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -855,10 +855,10 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                     <div>
                       <CardTitle className="text-lg flex items-center gap-2">
                         <AlertTriangle className="w-5 h-5" />
-                        成本预警规则
+                        {t("finance.cost.alertRulesTitle")}
                       </CardTitle>
                       <CardDescription>
-                        配置成本超支预警规则，当触发条件时自动发送通知
+                        {t("finance.cost.alertRulesDesc")}
                       </CardDescription>
                     </div>
                     <Button
@@ -868,7 +868,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                       className="gap-2"
                     >
                       <Library className="w-4 h-4" />
-                      模板库
+                      {t("finance.cost.templateLibBtn")}
                     </Button>
                   </CardHeader>
                   <CardContent>
@@ -882,12 +882,12 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                               <Bell className="w-5 h-5 text-yellow-500" />
                             </div>
                             <div>
-                              <p className="font-medium">预算使用率 80% 警告</p>
-                              <p className="text-sm text-muted-foreground">当项目成本达到预算的80%时发送警告</p>
+                              <p className="font-medium">{t("finance.cost.rule80Title")}</p>
+                              <p className="text-sm text-muted-foreground">{t("finance.cost.rule80Desc")}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
-                            <Badge variant="outline" className="bg-yellow-500/20 text-yellow-400">警告</Badge>
+                            <Badge variant="outline" className="bg-yellow-500/20 text-yellow-400">{t("finance.cost.warningBadge")}</Badge>
                             <Switch defaultChecked />
                           </div>
                         </div>
@@ -899,12 +899,12 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                               <AlertTriangle className="w-5 h-5 text-orange-500" />
                             </div>
                             <div>
-                              <p className="font-medium">预算使用率 95% 严重警告</p>
-                              <p className="text-sm text-muted-foreground">当项目成本达到预算的95%时发送严重警告</p>
+                              <p className="font-medium">{t("finance.cost.rule95Title")}</p>
+                              <p className="text-sm text-muted-foreground">{t("finance.cost.rule95Desc")}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
-                            <Badge variant="outline" className="bg-orange-500/20 text-orange-400">严重</Badge>
+                            <Badge variant="outline" className="bg-orange-500/20 text-orange-400">{t("finance.cost.criticalBadge")}</Badge>
                             <Switch defaultChecked />
                           </div>
                         </div>
@@ -916,12 +916,12 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                               <AlertTriangle className="w-5 h-5 text-red-500" />
                             </div>
                             <div>
-                              <p className="font-medium">预算超支紧急警报</p>
-                              <p className="text-sm text-muted-foreground">当项目成本超过预算时立即发送紧急警报</p>
+                              <p className="font-medium">{t("finance.cost.rule100Title")}</p>
+                              <p className="text-sm text-muted-foreground">{t("finance.cost.rule100Desc")}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
-                            <Badge variant="outline" className="bg-red-500/20 text-red-400">紧急</Badge>
+                            <Badge variant="outline" className="bg-red-500/20 text-red-400">{t("finance.cost.emergencyBadge")}</Badge>
                             <Switch defaultChecked />
                           </div>
                         </div>
@@ -933,12 +933,12 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                               <TrendingDown className="w-5 h-5 text-purple-500" />
                             </div>
                             <div>
-                              <p className="font-medium">CPI 低于 0.9 警告</p>
-                              <p className="text-sm text-muted-foreground">当成本绩效指数(CPI)低于0.9时发送警告</p>
+                              <p className="font-medium">{t("finance.cost.ruleCpi09Title")}</p>
+                              <p className="text-sm text-muted-foreground">{t("finance.cost.ruleCpi09Desc")}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
-                            <Badge variant="outline" className="bg-purple-500/20 text-purple-400">警告</Badge>
+                            <Badge variant="outline" className="bg-purple-500/20 text-purple-400">{t("finance.cost.warningBadge")}</Badge>
                             <Switch defaultChecked />
                           </div>
                         </div>
@@ -950,12 +950,12 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                               <TrendingDown className="w-5 h-5 text-red-500" />
                             </div>
                             <div>
-                              <p className="font-medium">CPI 低于 0.8 严重警告</p>
-                              <p className="text-sm text-muted-foreground">当成本绩效指数(CPI)低于0.8时发送严重警告</p>
+                              <p className="font-medium">{t("finance.cost.ruleCpi08Title")}</p>
+                              <p className="text-sm text-muted-foreground">{t("finance.cost.ruleCpi08Desc")}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
-                            <Badge variant="outline" className="bg-red-500/20 text-red-400">严重</Badge>
+                            <Badge variant="outline" className="bg-red-500/20 text-red-400">{t("finance.cost.criticalBadge")}</Badge>
                             <Switch defaultChecked />
                           </div>
                         </div>
@@ -965,20 +965,20 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                       <div className="border-t pt-4 mt-4">
                         <h4 className="font-medium mb-3 flex items-center gap-2">
                           <Settings className="w-4 h-4" />
-                          通知设置
+                          {t("finance.cost.notificationSettings")}
                         </h4>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex items-center justify-between p-3 rounded-lg border">
                             <div className="flex items-center gap-2">
                               <Bell className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-sm">邮件通知</span>
+                              <span className="text-sm">{t("finance.cost.emailNotification")}</span>
                             </div>
                             <Switch defaultChecked />
                           </div>
                           <div className="flex items-center justify-between p-3 rounded-lg border">
                             <div className="flex items-center gap-2">
                               <Bell className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-sm">系统通知</span>
+                              <span className="text-sm">{t("finance.cost.systemNotification")}</span>
                             </div>
                             <Switch defaultChecked />
                           </div>
@@ -989,7 +989,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                       <div className="border-t pt-4 mt-4">
                         <h4 className="font-medium mb-3 flex items-center gap-2">
                           <FileText className="w-4 h-4" />
-                          预警历史记录
+                          {t("finance.cost.alertHistory")}
                         </h4>
                         {alertLogsLoading ? (
                           <div className="flex justify-center py-6">
@@ -1014,7 +1014,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                   <div>
                                     <p className="text-sm font-medium">{log.message}</p>
                                     <p className="text-xs text-muted-foreground">
-                                      {new Date(log.triggeredAt).toLocaleString('zh-CN')}
+                                      {new Date(log.triggeredAt).toLocaleString()}
                                     </p>
                                   </div>
                                 </div>
@@ -1025,9 +1025,9 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                     log.status === 'ignored' ? 'bg-gray-500/20 text-gray-400' :
                                     'bg-yellow-500/20 text-yellow-400'
                                   }`}>
-                                    {log.status === 'resolved' ? '已解决' :
-                                     log.status === 'acknowledged' ? '已确认' :
-                                     log.status === 'ignored' ? '已忽略' : '待处理'}
+                                    {log.status === 'resolved' ? t("finance.cost.statusResolved") :
+                                     log.status === 'acknowledged' ? t("finance.cost.statusAcknowledged") :
+                                     log.status === 'ignored' ? t("finance.cost.statusIgnored") : t("finance.cost.statusPendingAlert")}
                                   </Badge>
                                 </div>
                               </div>
@@ -1036,8 +1036,8 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                         ) : (
                           <div className="text-center py-6 text-muted-foreground">
                             <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p>暂无预警记录</p>
-                            <p className="text-xs mt-1">当触发预警条件时，记录将显示在这里</p>
+                            <p>{t("finance.cost.noAlertLogs")}</p>
+                            <p className="text-xs mt-1">{t("finance.cost.alertLogsHint")}</p>
                           </div>
                         )}
                       </div>
@@ -1046,29 +1046,29 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                       <div className="border-t pt-4 mt-4">
                         <h4 className="font-medium mb-3 flex items-center gap-2">
                           <Database className="w-4 h-4" />
-                          批量导入/导出
+                          {t("finance.cost.batchImportExport")}
                         </h4>
                         <div className="flex gap-4">
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button variant="outline" size="sm">
                                 <Plus className="w-4 h-4 mr-1" />
-                                批量导入规则
+                                {t("finance.cost.batchImportRules")}
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-2xl">
                               <DialogHeader>
-                                <DialogTitle>批量导入预警规则</DialogTitle>
+                                <DialogTitle>{t("finance.cost.batchImportTitle")}</DialogTitle>
                                 <DialogDescription>
-                                  上传CSV文件批量导入预警规则，支持中英文列名
+                                  {t("finance.cost.batchImportDesc")}
                                 </DialogDescription>
                               </DialogHeader>
                               <div className="space-y-4">
                                 <div className="p-4 rounded-lg border bg-muted/50">
-                                  <p className="text-sm font-medium mb-2">CSV格式说明：</p>
+                                  <p className="text-sm font-medium mb-2">{t("finance.cost.csvFormatDesc")}</p>
                                   <p className="text-xs text-muted-foreground">
-                                    必填列：规则名称, 预警类型(预算百分比/绝对金额/CPI指数), 阈值, 预警级别(警告/严重/紧急)<br/>
-                                    可选列：描述, 适用范围(所有项目/指定项目/指定类别), 项目ID, 类别ID, 通知方式, 是否启用
+                                    {t("finance.cost.csvRequiredCols")}<br/>
+                                    {t("finance.cost.csvOptionalCols")}
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-4">
@@ -1083,12 +1083,12 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                         try {
                                           const importResult = await batchImportMutation.mutateAsync({ rules: [{ csvContent: content }] });
                                           if (importResult.success) {
-                                            toast.success(`导入完成: ${importResult.message}`);
+                                            toast.success(tpl("finance.cost.importCompleted", { msg: importResult.message }));
                                           } else {
-                                            toast.error(importResult.message || "导入失败");
+                                            toast.error(importResult.message || t("finance.cost.importFailed"));
                                           }
                                         } catch (error) {
-                                          toast.error("导入失败，请检查CSV格式");
+                                          toast.error(t("finance.cost.importFormatError"));
                                         }
                                       }
                                     }}
@@ -1101,7 +1101,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                     className="text-primary hover:underline flex items-center gap-1"
                                   >
                                     <Download className="w-3 h-3" />
-                                    下载CSV模板
+                                    {t("finance.cost.downloadCsvTemplate")}
                                   </a>
                                   <span className="text-muted-foreground/50">|</span>
                                   <a 
@@ -1123,12 +1123,12 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                       a.href = url;
                                       a.download = "cost_alert_rules_template_with_examples.csv";
                                       a.click();
-                                      toast.success("模板已下载，包含示例数据");
+                                      toast.success(t("finance.cost.templateDownloaded"));
                                     }}
                                     className="text-primary hover:underline flex items-center gap-1"
                                   >
                                     <FileText className="w-3 h-3" />
-                                    下载带示例的模板
+                                    {t("finance.cost.downloadWithExamples")}
                                   </a>
                                   <span className="text-muted-foreground/50">|</span>
                                   <a 
@@ -1136,7 +1136,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                     target="_blank"
                                     className="text-primary hover:underline"
                                   >
-                                    查看导入说明
+                                    {t("finance.cost.viewImportGuide")}
                                   </a>
                                 </div>
                               </div>
@@ -1153,15 +1153,15 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                   a.href = result.url;
                                   a.download = `cost_alert_rules_${new Date().toISOString().split("T")[0]}.csv`;
                                   a.click();
-                                  toast.success("导出成功");
+                                  toast.success(t("finance.cost.exportOk"));
                                 }
                               } catch (error) {
-                                toast.error("导出失败");
+                                toast.error(t("finance.cost.exportFail"));
                               }
                             }}
                           >
                             <Download className="w-4 h-4 mr-1" />
-                            导出规则
+                            {t("finance.cost.exportRules")}
                           </Button>
                         </div>
                       </div>
@@ -1170,23 +1170,23 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                       <div className="border-t pt-4 mt-4">
                         <h4 className="font-medium mb-3 flex items-center gap-2">
                           <History className="w-4 h-4" />
-                          版本管理
+                          {t("finance.cost.versionMgmt")}
                         </h4>
                         <p className="text-sm text-muted-foreground mb-4">
-                          查看规则的历史版本，支持版本对比和回滚操作
+                          {t("finance.cost.versionMgmtDesc")}
                         </p>
                         
                         {/* Batch Operations Toolbar */}
                         <div className="flex items-center justify-between mb-4 p-3 rounded-lg border bg-muted/30">
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground">
-                              已选择 {selectedRulesForBatch.length} 条规则
+                              {tpl("finance.cost.selectedCount", { count: selectedRulesForBatch.length })}
                             </span>
                             <Button variant="ghost" size="sm" onClick={selectAllRules}>
-                              全选
+                              {t("finance.cost.selectAllBtn")}
                             </Button>
                             <Button variant="ghost" size="sm" onClick={clearRuleSelection}>
-                              清除
+                              {t("finance.cost.clearBtn")}
                             </Button>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1197,7 +1197,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                               disabled={selectedRulesForBatch.length === 0}
                             >
                               <RotateCcw className="w-4 h-4 mr-1" />
-                              批量回滚
+                              {t("finance.cost.batchRollbackBtn")}
                             </Button>
                             <Select
                               value={batchExportFormat}
@@ -1218,7 +1218,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                               disabled={selectedRulesForBatch.length === 0}
                             >
                               <Download className="w-4 h-4 mr-1" />
-                              导出选中
+                              {t("finance.cost.exportSelected")}
                             </Button>
                           </div>
                         </div>
@@ -1256,8 +1256,8 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                   <div>
                                     <p className="text-sm font-medium">{rule.name}</p>
                                     <p className="text-xs text-muted-foreground">
-                                      {rule.alertType === 'budget_percent' ? '预算百分比' :
-                                       rule.alertType === 'absolute_amount' ? '绝对金额' : 'CPI指数'}
+                                      {rule.alertType === 'budget_percent' ? t("finance.cost.alertTypeBudgetPercent") :
+                                       rule.alertType === 'absolute_amount' ? t("finance.cost.alertTypeAbsoluteAmount") : t("finance.cost.alertTypeCpi")}
                                       : {rule.threshold}{rule.alertType === 'budget_percent' ? '%' : ''}
                                     </p>
                                   </div>
@@ -1273,14 +1273,14 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                   }}
                                 >
                                   <History className="w-4 h-4 mr-1" />
-                                  版本历史
+                                  {t("finance.cost.versionHistoryBtn")}
                                 </Button>
                               </div>
                             ))
                           ) : (
                             <div className="text-center py-4 text-muted-foreground">
                               <History className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                              <p className="text-sm">暂无预警规则</p>
+                              <p className="text-sm">{t("finance.cost.noAlertRules")}</p>
                             </div>
                           )}
                         </div>
@@ -1295,10 +1295,10 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
                         <History className="w-5 h-5" />
-                        规则版本历史
+                        {t("finance.cost.versionHistoryTitle")}
                       </DialogTitle>
                       <DialogDescription>
-                        查看规则的所有历史版本，可以对比不同版本或回滚到指定版本
+                        {t("finance.cost.versionHistoryDesc")}
                       </DialogDescription>
                     </DialogHeader>
                     
@@ -1324,23 +1324,23 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                   <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-medium">版本 {version.versionNumber}</span>
+                                        <span className="font-medium">{tpl("finance.cost.versionLabel", { num: version.versionNumber })}</span>
                                         {isLatest && (
                                           <Badge variant="outline" className="bg-primary/20 text-primary text-xs">
-                                            当前版本
+                                            {t("finance.cost.currentVersion")}
                                           </Badge>
                                         )}
                                       </div>
                                       <p className="text-xs text-muted-foreground mb-2">
-                                        {new Date(version.changedAt).toLocaleString('zh-CN')}
+                                        {new Date(version.changedAt).toLocaleString()}
                                         {version.changeSummary && ` - ${version.changeSummary}`}
                                       </p>
                                       <div className="text-sm space-y-1">
-                                        <p><span className="text-muted-foreground">规则名称:</span> {ruleData.name}</p>
-                                        <p><span className="text-muted-foreground">阈值:</span> {ruleData.threshold}{ruleData.alertType === 'budget_percent' ? '%' : ''}</p>
-                                        <p><span className="text-muted-foreground">预警级别:</span> {
-                                          ruleData.alertLevel === 'emergency' ? '紧急' :
-                                          ruleData.alertLevel === 'critical' ? '严重' : '警告'
+                                        <p><span className="text-muted-foreground">{t("finance.cost.ruleNameLabel")}</span> {ruleData.name}</p>
+                                        <p><span className="text-muted-foreground">{t("finance.cost.thresholdLabel")}</span> {ruleData.threshold}{ruleData.alertType === 'budget_percent' ? '%' : ''}</p>
+                                        <p><span className="text-muted-foreground">{t("finance.cost.alertLevelLabel")}</span> {
+                                          ruleData.alertLevel === 'emergency' ? t("finance.cost.levelEmergency") :
+                                          ruleData.alertLevel === 'critical' ? t("finance.cost.levelCritical") : t("finance.cost.levelWarning")
                                         }</p>
                                       </div>
                                     </div>
@@ -1350,7 +1350,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                           variant="outline"
                                           size="sm"
                                           onClick={() => {
-                                            if (confirm(`确定要回滚到版本 ${version.versionNumber} 吗？`)) {
+                                            if (confirm(tpl("finance.cost.confirmRollback", { version: version.versionNumber }))) {
                                               rollbackMutation.mutate({
                                                 ruleId: selectedRuleForVersion!,
                                                 versionNumber: version.versionNumber
@@ -1360,7 +1360,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                           disabled={rollbackMutation.isPending}
                                         >
                                           <RotateCcw className="w-4 h-4 mr-1" />
-                                          回滚
+                                          {t("finance.cost.rollbackBtn")}
                                         </Button>
                                       )}
                                       {ruleVersions.length > 1 && index < ruleVersions.length - 1 && (
@@ -1375,7 +1375,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                           }}
                                         >
                                           <GitCompare className="w-4 h-4 mr-1" />
-                                          对比上一版本
+                                          {t("finance.cost.comparePrev")}
                                         </Button>
                                       )}
                                     </div>
@@ -1390,7 +1390,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                             <div className="border-t pt-4">
                               <h4 className="font-medium mb-3 flex items-center gap-2">
                                 <GitCompare className="w-4 h-4" />
-                                版本对比: v{compareVersions.v1} → v{compareVersions.v2}
+                                {tpl("finance.cost.versionCompare", { v1: compareVersions.v1, v2: compareVersions.v2 })}
                               </h4>
                               {(versionComparison.comparison as any[])?.length > 0 ? (
                                 <div className="space-y-2">
@@ -1402,20 +1402,20 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                           diff.changeType === 'removed' ? 'bg-red-500/20 text-red-400' :
                                           'bg-blue-500/20 text-blue-400'
                                         }`}>
-                                          {diff.changeType === 'added' ? '新增' :
-                                           diff.changeType === 'removed' ? '删除' : '修改'}
+                                          {diff.changeType === 'added' ? t("finance.cost.changeAdded") :
+                                           diff.changeType === 'removed' ? t("finance.cost.changeRemoved") : t("finance.cost.changeModified")}
                                         </Badge>
                                         <span className="font-medium text-sm">{diff.fieldLabel}</span>
                                       </div>
                                       <div className="text-sm">
                                         {diff.changeType !== 'added' && (
                                           <p className="text-red-400 line-through">
-                                            旧值: {JSON.stringify(diff.oldValue)}
+                                            {tpl("finance.cost.oldValue", { val: JSON.stringify(diff.oldValue) })}
                                           </p>
                                         )}
                                         {diff.changeType !== 'removed' && (
                                           <p className="text-green-400">
-                                            新值: {JSON.stringify(diff.newValue)}
+                                            {tpl("finance.cost.newValue", { val: JSON.stringify(diff.newValue) })}
                                           </p>
                                         )}
                                       </div>
@@ -1424,7 +1424,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                 </div>
                               ) : (
                                 <p className="text-sm text-muted-foreground text-center py-4">
-                                  两个版本之间没有差异
+                                  {t("finance.cost.noDifference")}
                                 </p>
                               )}
                               <Button
@@ -1433,7 +1433,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                 className="mt-2"
                                 onClick={() => setCompareVersions(null)}
                               >
-                                关闭对比
+                                {t("finance.cost.closeCompare")}
                               </Button>
                             </div>
                           )}
@@ -1441,8 +1441,8 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                       ) : (
                         <div className="text-center py-8 text-muted-foreground">
                           <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                          <p>暂无版本历史</p>
-                          <p className="text-xs mt-1">规则修改后会自动保存版本</p>
+                          <p>{t("finance.cost.noVersionHistory")}</p>
+                          <p className="text-xs mt-1">{t("finance.cost.versionAutoSaveHint")}</p>
                         </div>
                       )}
                     </div>
@@ -1455,16 +1455,16 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
                         <RotateCcw className="w-5 h-5" />
-                        批量回滚规则
+                        {t("finance.cost.batchRollbackTitle")}
                       </DialogTitle>
                       <DialogDescription>
-                        将选中的 {selectedRulesForBatch.length} 条规则回滚到指定日期之前的版本
+                        {tpl("finance.cost.batchRollbackDesc", { count: selectedRulesForBatch.length })}
                       </DialogDescription>
                     </DialogHeader>
                     
                     <div className="space-y-4">
                       <div className="p-4 rounded-lg border bg-muted/30">
-                        <h4 className="text-sm font-medium mb-2">已选择的规则：</h4>
+                        <h4 className="text-sm font-medium mb-2">{t("finance.cost.selectedRulesLabel")}</h4>
                         <div className="flex flex-wrap gap-1">
                           {alertRules?.filter(r => selectedRulesForBatch.includes(r.id)).map(r => (
                             <Badge key={r.id} variant="outline" className="text-xs">
@@ -1475,14 +1475,14 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                       </div>
                       
                       <div className="space-y-2">
-                        <Label>回滚到日期</Label>
+                        <Label>{t("finance.cost.rollbackToDate")}</Label>
                         <Input
                           type="datetime-local"
                           value={batchRollbackDate}
                           onChange={(e) => setBatchRollbackDate(e.target.value)}
                         />
                         <p className="text-xs text-muted-foreground">
-                          将回滚到此日期之前的最新版本
+                          {t("finance.cost.rollbackToDateHint")}
                         </p>
                       </div>
                       
@@ -1491,7 +1491,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                           variant="outline"
                           onClick={() => setShowBatchVersionDialog(false)}
                         >
-                          取消
+                          {t("finance.cost.cancelBtn")}
                         </Button>
                         <Button
                           onClick={handleBatchRollback}
@@ -1500,12 +1500,12 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                           {rollbackMutation.isPending ? (
                             <>
                               <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                              回滚中...
+                              {t("finance.cost.rollingBack")}
                             </>
                           ) : (
                             <>
                               <RotateCcw className="w-4 h-4 mr-1" />
-                              确认回滚
+                              {t("finance.cost.confirmRollbackBtn")}
                             </>
                           )}
                         </Button>
@@ -1520,10 +1520,10 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
                         <Library className="w-5 h-5" />
-                        预警规则模板库
+                        {t("finance.cost.templateLibTitle")}
                       </DialogTitle>
                       <DialogDescription>
-                        从预置模板快速创建预警规则，或保存自定义模板
+                        {t("finance.cost.templateLibDesc")}
                       </DialogDescription>
                     </DialogHeader>
                     
@@ -1538,10 +1538,10 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                               size="sm"
                               onClick={() => setSelectedTemplateCategory(cat)}
                             >
-                              {cat === "all" ? "全部" : 
-                               cat === "budget" ? "预算" : 
-                               cat === "performance" ? "绩效" : 
-                               cat === "cost" ? "成本" : "风险"}
+                              {cat === "all" ? t("finance.cost.catAll") :
+                               cat === "budget" ? t("finance.cost.catBudget") :
+                               cat === "performance" ? t("finance.cost.catPerformance") :
+                               cat === "cost" ? t("finance.cost.catCost") : t("finance.cost.catRisk")}
                             </Button>
                           ))}
                         </div>
@@ -1556,7 +1556,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                           ) : (
                             <Sparkles className="w-4 h-4 mr-1" />
                           )}
-                          初始化内置模板
+                          {t("finance.cost.initBuiltinTemplates")}
                         </Button>
                       </div>
                       
@@ -1593,20 +1593,20 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                     <div className="flex items-center gap-2">
                                       <p className="font-medium">{template.name}</p>
                                       <Badge variant="outline" className="text-xs">
-                                        {template.templateType === "builtin" ? "内置" : "自定义"}
+                                        {template.templateType === "builtin" ? t("finance.cost.templateBuiltin") : t("finance.cost.templateCustom")}
                                       </Badge>
                                     </div>
                                     <p className="text-sm text-muted-foreground">{template.description}</p>
                                     <div className="flex gap-2 mt-1">
                                       <Badge variant="secondary" className="text-xs">
-                                        {config.alertType === "budget_percent" ? "预算百分比" :
-                                         config.alertType === "cpi" ? "CPI指数" : "绝对金额"}
+                                        {config.alertType === "budget_percent" ? t("finance.cost.alertTypeBudgetPercentLabel") :
+                                         config.alertType === "cpi" ? t("finance.cost.alertTypeCpiLabel") : t("finance.cost.alertTypeAbsoluteLabel")}
                                       </Badge>
                                       <Badge variant="secondary" className="text-xs">
-                                        阈值: {config.alertType === "cpi" ? (config.threshold / 100).toFixed(2) : config.threshold}%
+                                        {tpl("finance.cost.thresholdValueLabel", { val: config.alertType === "cpi" ? (config.threshold / 100).toFixed(2) : config.threshold })}
                                       </Badge>
                                       <Badge variant="secondary" className="text-xs">
-                                        已使用 {template.usageCount} 次
+                                        {tpl("finance.cost.usedCount", { count: template.usageCount })}
                                       </Badge>
                                     </div>
                                   </div>
@@ -1621,7 +1621,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                   ) : (
                                     <Copy className="w-4 h-4 mr-1" />
                                   )}
-                                  使用模板
+                                  {t("finance.cost.useTemplate")}
                                 </Button>
                               </div>
                             );
@@ -1629,7 +1629,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                         ) : (
                           <div className="text-center py-8 text-muted-foreground">
                             <Library className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p>暂无模板，点击"初始化内置模板"创建预置模板</p>
+                            <p>{t("finance.cost.noTemplates")}</p>
                           </div>
                         )}
                       </div>
@@ -1643,25 +1643,25 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
                         <Save className="w-5 h-5" />
-                        保存为模板
+                        {t("finance.cost.saveAsTemplateTitle")}
                       </DialogTitle>
                       <DialogDescription>
-                        将当前规则保存为自定义模板，方便后续复用
+                        {t("finance.cost.saveAsTemplateDesc")}
                       </DialogDescription>
                     </DialogHeader>
                     
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label>模板名称</Label>
+                        <Label>{t("finance.cost.templateNameLabel")}</Label>
                         <Input
                           value={newTemplateName}
                           onChange={(e) => setNewTemplateName(e.target.value)}
-                          placeholder="输入模板名称"
+                          placeholder={t("finance.cost.templateNamePlaceholder")}
                         />
                       </div>
                       
                       <div className="space-y-2">
-                        <Label>模板分类</Label>
+                        <Label>{t("finance.cost.templateCategoryLabel")}</Label>
                         <Select
                           value={newTemplateCategory}
                           onValueChange={(v) => setNewTemplateCategory(v as any)}
@@ -1670,20 +1670,20 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="budget">预算类</SelectItem>
-                            <SelectItem value="performance">绩效类</SelectItem>
-                            <SelectItem value="cost">成本类</SelectItem>
-                            <SelectItem value="risk">风险类</SelectItem>
+                            <SelectItem value="budget">{t("finance.cost.catBudgetType")}</SelectItem>
+                            <SelectItem value="performance">{t("finance.cost.catPerformanceType")}</SelectItem>
+                            <SelectItem value="cost">{t("finance.cost.catCostType")}</SelectItem>
+                            <SelectItem value="risk">{t("finance.cost.catRiskType")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       
                       <div className="space-y-2">
-                        <Label>模板描述</Label>
+                        <Label>{t("finance.cost.templateDescLabel")}</Label>
                         <Textarea
                           value={newTemplateDescription}
                           onChange={(e) => setNewTemplateDescription(e.target.value)}
-                          placeholder="输入模板描述（可选）"
+                          placeholder={t("finance.cost.templateDescPlaceholder")}
                           rows={3}
                         />
                       </div>
@@ -1698,7 +1698,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                             setNewTemplateDescription("");
                           }}
                         >
-                          取消
+                          {t("finance.cost.cancelBtn")}
                         </Button>
                         <Button
                           onClick={() => {
@@ -1718,7 +1718,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                           ) : (
                             <Save className="w-4 h-4 mr-1" />
                           )}
-                          保存模板
+                          {t("finance.cost.saveTemplateBtn")}
                         </Button>
                       </div>
                     </div>
@@ -1727,9 +1727,9 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                 {/* Notebook */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>成本管理笔记</CardTitle>
+                    <CardTitle>{t("finance.cost.costNotebookTitle")}</CardTitle>
                     <CardDescription>
-                      记录成本相关的注意事项、沟通记录和AI建议
+                      {t("finance.cost.costNotebookDesc")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -1737,7 +1737,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                       <ProcessNotebook
                         processType="cost_budget"
                         processId={selectedProjectId.toString()}
-                        processStep="成本管理"
+                        processStep={t("finance.cost.costNotebookStep")}
                       />
                     )}
                   </CardContent>
@@ -1751,23 +1751,23 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                     <DialogTrigger asChild>
                       <Button size="sm">
                         <Plus className="w-4 h-4 mr-1" />
-                        添加预算
+                        {t("finance.cost.addBudgetBtn")}
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>添加预算</DialogTitle>
-                        <DialogDescription>设置项目预算</DialogDescription>
+                        <DialogTitle>{t("finance.cost.addBudgetTitle")}</DialogTitle>
+                        <DialogDescription>{t("finance.cost.setBudgetDesc")}</DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                          <Label>成本类别 *</Label>
+                          <Label>{t("finance.cost.categoryLabel")} *</Label>
                           <Select
                             value={budgetForm.categoryId.toString()}
                             onValueChange={(value) => setBudgetForm({ ...budgetForm, categoryId: parseInt(value) })}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="选择类别" />
+                              <SelectValue placeholder={t("finance.cost.selectCategory")} />
                             </SelectTrigger>
                             <SelectContent>
                               {categories?.map((cat) => (
@@ -1780,7 +1780,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label>预算年度 *</Label>
+                            <Label>{t("finance.cost.budgetYearLabel")} *</Label>
                             <Input
                               type="number"
                               value={budgetForm.budgetYear}
@@ -1788,25 +1788,25 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>预算月份</Label>
+                            <Label>{t("finance.cost.budgetMonthLabel")}</Label>
                             <Select
                               value={budgetForm.budgetMonth?.toString() || ""}
                               onValueChange={(value) => setBudgetForm({ ...budgetForm, budgetMonth: value ? parseInt(value) : undefined })}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="年度预算" />
+                                <SelectValue placeholder={t("finance.cost.annualBudget")} />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">年度预算</SelectItem>
+                                <SelectItem value="">{t("finance.cost.annualBudget")}</SelectItem>
                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
-                                  <SelectItem key={month} value={month.toString()}>{month}月</SelectItem>
+                                  <SelectItem key={month} value={month.toString()}>{tpl("finance.cost.monthLabel", { month })}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label>预算金额 (元) *</Label>
+                          <Label>{t("finance.cost.budgetAmountYuan")} *</Label>
                           <Input
                             type="number"
                             value={budgetForm.budgetAmount}
@@ -1815,21 +1815,21 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>备注</Label>
+                          <Label>{t("finance.cost.remarkLabel")}</Label>
                           <Textarea
                             value={budgetForm.remark}
                             onChange={(e) => setBudgetForm({ ...budgetForm, remark: e.target.value })}
-                            placeholder="备注信息..."
+                            placeholder={t("finance.cost.remarkPlaceholder")}
                           />
                         </div>
                       </div>
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" onClick={() => setShowAddBudgetDialog(false)}>
-                          取消
+                          {t("finance.cost.cancelBtn")}
                         </Button>
                         <Button onClick={handleCreateBudget} disabled={createBudgetMutation.isPending}>
                           {createBudgetMutation.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
-                          创建
+                          {t("finance.cost.createBtn")}
                         </Button>
                       </div>
                     </DialogContent>
@@ -1841,10 +1841,10 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Calculator className="w-5 h-5" />
-                      预算列表
+                      {t("finance.cost.budgetListTitle")}
                     </CardTitle>
                     <CardDescription>
-                      共 {budgets?.length || 0} 项预算
+                      {tpl("finance.cost.totalBudgets", { count: budgets?.length || 0 })}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -1864,9 +1864,9 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                             >
                               <div className="flex items-center justify-between mb-3">
                                 <div>
-                                  <p className="font-medium">{budget.projectName || "未分类"}</p>
+                                  <p className="font-medium">{budget.projectName || t("finance.cost.uncategorized")}</p>
                                   <p className="text-sm text-muted-foreground">
-                                    {bgt.budgetYear ? `${bgt.budgetYear}年` : ""} {bgt.budgetMonth ? `${bgt.budgetMonth}月` : "年度预算"}
+                                    {bgt.budgetYear ? tpl("finance.cost.yearSuffix", { year: bgt.budgetYear }) : ""} {bgt.budgetMonth ? tpl("finance.cost.monthSuffix", { month: bgt.budgetMonth }) : t("finance.cost.annualBudget")}
                                   </p>
                                 </div>
                                 <Badge variant="outline" className={
@@ -1875,18 +1875,18 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                   bgt.status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
                                   "bg-muted text-muted-foreground"
                                 }>
-                                  {bgt.status === "approved" ? "已批准" :
-                                   bgt.status === "rejected" ? "已驳回" :
-                                   bgt.status === "pending" ? "待审批" : "草稿"}
+                                  {bgt.status === "approved" ? t("finance.cost.statusApproved2") :
+                                   bgt.status === "rejected" ? t("finance.cost.statusRejected2") :
+                                   bgt.status === "pending" ? t("finance.cost.statusPendingApproval") : t("finance.cost.statusDraft")}
                                 </Badge>
                               </div>
                               <Progress value={utilization} className="h-2 mb-2" />
                               <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">
-                                  已使用: {formatCurrency(Number(usedAmount))} ({utilization}%)
+                                  {tpl("finance.cost.usedBudget", { amount: formatCurrency(Number(usedAmount)), percent: utilization })}
                                 </span>
                                 <span className="font-medium">
-                                  预算: {formatCurrency(Number(budgetAmount))}
+                                  {tpl("finance.cost.budgetTotal", { amount: formatCurrency(Number(budgetAmount)) })}
                                 </span>
                               </div>
                             </div>
@@ -1895,7 +1895,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                       </div>
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
-                        暂无预算数据
+                        {t("finance.cost.noBudgetData")}
                       </div>
                     )}
                   </CardContent>

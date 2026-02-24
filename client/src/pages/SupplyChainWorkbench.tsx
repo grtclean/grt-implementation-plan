@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ function LoadingSkeleton({ rows = 3 }: { rows?: number }) {
 
 // ─── Tab 1: Dashboard Overview ────────────────────────────────
 function DashboardTab() {
+  const { t } = useLanguage();
   const statsQuery = trpc.supplyChain.dashboardStats.useQuery();
   const stats = statsQuery.data;
 
@@ -43,32 +45,32 @@ function DashboardTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={ClipboardCheck} label="IQC通过率" value={`${stats.iqc?.passRate ?? 0}%`} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={ScanBarcode} label="BOM匹配率" value={`${stats.bomScan?.matchRate ?? 0}%`} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={Trash2} label="报废总成本" value={`¥${((stats.scrap?.totalCost ?? 0) / 10000).toFixed(1)}万`} iconColor="text-red-500" iconBg="bg-red-500/10" />
-        <StatCard icon={Ban} label="黑名单供应商" value={stats.penalties?.blacklisted ?? 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={ClipboardCheck} label={t("supply.chain.iqcPassRate")} value={`${stats.iqc?.passRate ?? 0}%`} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={ScanBarcode} label={t("supply.chain.bomMatchRate")} value={`${stats.bomScan?.matchRate ?? 0}%`} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Trash2} label={t("supply.chain.totalScrapCost")} value={`¥${((stats.scrap?.totalCost ?? 0) / 10000).toFixed(1)}万`} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Ban} label={t("supply.chain.blacklistedSuppliers")} value={stats.penalties?.blacklisted ?? 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
         <Card>
-          <CardHeader><CardTitle className="text-sm">来料检验 IQC</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">{t("supply.chain.iqcInspection")}</CardTitle></CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats.iqc?.total ?? 0}</div>
-            <p className="text-sm text-muted-foreground mt-1">待检: {stats.iqc?.pending ?? 0} | 通过率: {stats.iqc?.passRate ?? 0}%</p>
+            <p className="text-sm text-muted-foreground mt-1">{t("supply.chain.pendingInspection")}: {stats.iqc?.pending ?? 0} | {t("supply.chain.passRate")}: {stats.iqc?.passRate ?? 0}%</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-sm">客户质量反馈</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">{t("supply.chain.customerQualityFeedback")}</CardTitle></CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats.complaints?.open ?? 0}</div>
-            <p className="text-sm text-muted-foreground mt-1">未关闭 | 严重: {stats.complaints?.critical ?? 0}</p>
+            <p className="text-sm text-muted-foreground mt-1">{t("supply.chain.unclosed")} | {t("supply.chain.critical")}: {stats.complaints?.critical ?? 0}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-sm">备件预警</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">{t("supply.chain.sparePartsWarning")}</CardTitle></CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-orange-500">{stats.spareParts?.lowStock ?? 0}</div>
-            <p className="text-sm text-muted-foreground mt-1">低库存备件 | 活跃处罚: {stats.penalties?.active ?? 0}</p>
+            <p className="text-sm text-muted-foreground mt-1">{t("supply.chain.lowStockParts")} | {t("supply.chain.activePenalties")}: {stats.penalties?.active ?? 0}</p>
           </CardContent>
         </Card>
       </div>
@@ -78,6 +80,7 @@ function DashboardTab() {
 
 // ─── Tab 2: Supplier Labels ───────────────────────────────────
 function LabelsTab() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ supplierSerialNumber: "", materialCode: "", poNumber: "", projectNumber: "", supplierName: "", materialName: "", quantity: "", batchNumber: "" });
@@ -93,20 +96,20 @@ function LabelsTab() {
   const filtered = labels.filter((l: any) => !search || l.supplierSerialNumber?.includes(search) || l.materialCode?.includes(search));
 
   const handleCreate = async () => {
-    if (!form.supplierSerialNumber || !form.materialCode) { toast.error("序列号和物料编码必填"); return; }
+    if (!form.supplierSerialNumber || !form.materialCode) { toast.error(t("supply.chain.serialAndMaterialRequired")); return; }
     try {
       await createLabelMutation.mutateAsync(form);
-      toast.success("标签已创建");
+      toast.success(t("supply.chain.labelCreated"));
       setShowCreate(false);
       setForm({ supplierSerialNumber: "", materialCode: "", poNumber: "", projectNumber: "", supplierName: "", materialName: "", quantity: "", batchNumber: "" });
       refetch();
-    } catch (e: any) { toast.error(e.message || "创建失败"); }
+    } catch (e: any) { toast.error(e.message || t("supply.p2p.createFailed")); }
   };
 
   const handleValidate = async (id: number) => {
     try {
       const res = await validateLabelMutation.mutateAsync({ id });
-      toast.success(res?.isValidated ? "验证通过" : "验证失败，请检查数据");
+      toast.success(res?.isValidated ? t("supply.chain.verifyPassed") : t("supply.chain.verifyFailed"));
       refetch();
     } catch (e: any) { toast.error(e.message); }
   };
@@ -114,8 +117,8 @@ function LabelsTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="relative w-full sm:w-auto"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="搜索序列号/物料..." className="pl-9 w-full sm:w-64" value={search} onChange={e => setSearch(e.target.value)} /></div>
-        <Button size="sm" className="min-h-[44px] shrink-0" onClick={() => setShowCreate(true)}><Plus className="h-4 w-4 mr-1" />新建标签</Button>
+        <div className="relative w-full sm:w-auto"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder={t("supply.chain.searchSerialMaterial")} className="pl-9 w-full sm:w-64" value={search} onChange={e => setSearch(e.target.value)} /></div>
+        <Button size="sm" className="min-h-[44px] shrink-0" onClick={() => setShowCreate(true)}><Plus className="h-4 w-4 mr-1" />{t("supply.chain.newLabel")}</Button>
       </div>
       {isLoading ? <LoadingSkeleton /> : (
         <div className="space-y-2">
@@ -129,43 +132,43 @@ function LabelsTab() {
                     <Badge variant="outline">{l.materialCode}</Badge>
                     {l.poNumber && <span className="text-xs text-muted-foreground">PO: {l.poNumber}</span>}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-0.5">{l.supplierName || "—"} | {l.materialName || "—"} | 批次: {l.batchNumber || "—"}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{l.supplierName || "—"} | {l.materialName || "—"} | {t("supply.p2p.batchNumber")}: {l.batchNumber || "—"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 ml-8 sm:ml-0">
                 <Badge className={l.isValidated ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}>
-                  {l.isValidated ? <><CheckCircle2 className="h-3 w-3 mr-1" />已验证</> : "待验证"}
+                  {l.isValidated ? <><CheckCircle2 className="h-3 w-3 mr-1" />{t("supply.chain.verified")}</> : t("supply.chain.pendingVerification")}
                 </Badge>
-                {!l.isValidated && <Button size="sm" variant="outline" className="min-h-[44px]" onClick={() => handleValidate(l.id)}>验证</Button>}
+                {!l.isValidated && <Button size="sm" variant="outline" className="min-h-[44px]" onClick={() => handleValidate(l.id)}>{t("supply.chain.verify")}</Button>}
               </div>
             </div>
           ))}
-          {filtered.length === 0 && <div className="text-center py-8 text-muted-foreground">暂无标签数据</div>}
+          {filtered.length === 0 && <div className="text-center py-8 text-muted-foreground">{t("supply.chain.noLabelData")}</div>}
         </div>
       )}
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>新建供应商标签</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("supply.chain.newLabelDialog")}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
-            <div><Label>供应商序列号 *</Label><Input value={form.supplierSerialNumber} onChange={e => setForm(p => ({ ...p, supplierSerialNumber: e.target.value }))} /></div>
+            <div><Label>{t("supply.chain.supplierSerialNumber")} *</Label><Input value={form.supplierSerialNumber} onChange={e => setForm(p => ({ ...p, supplierSerialNumber: e.target.value }))} /></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>物料编码 *</Label><Input value={form.materialCode} onChange={e => setForm(p => ({ ...p, materialCode: e.target.value }))} /></div>
-              <div><Label>物料名称</Label><Input value={form.materialName} onChange={e => setForm(p => ({ ...p, materialName: e.target.value }))} /></div>
+              <div><Label>{t("supply.p2p.materialCode")} *</Label><Input value={form.materialCode} onChange={e => setForm(p => ({ ...p, materialCode: e.target.value }))} /></div>
+              <div><Label>{t("supply.p2p.materialName")}</Label><Input value={form.materialName} onChange={e => setForm(p => ({ ...p, materialName: e.target.value }))} /></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>PO编号</Label><Input value={form.poNumber} onChange={e => setForm(p => ({ ...p, poNumber: e.target.value }))} /></div>
-              <div><Label>项目编号</Label><Input value={form.projectNumber} onChange={e => setForm(p => ({ ...p, projectNumber: e.target.value }))} /></div>
+              <div><Label>{t("supply.p2p.poNumber")}</Label><Input value={form.poNumber} onChange={e => setForm(p => ({ ...p, poNumber: e.target.value }))} /></div>
+              <div><Label>{t("supply.chain.projectNumber")}</Label><Input value={form.projectNumber} onChange={e => setForm(p => ({ ...p, projectNumber: e.target.value }))} /></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>供应商</Label><Input value={form.supplierName} onChange={e => setForm(p => ({ ...p, supplierName: e.target.value }))} /></div>
-              <div><Label>批次号</Label><Input value={form.batchNumber} onChange={e => setForm(p => ({ ...p, batchNumber: e.target.value }))} /></div>
+              <div><Label>{t("supply.p2p.supplier")}</Label><Input value={form.supplierName} onChange={e => setForm(p => ({ ...p, supplierName: e.target.value }))} /></div>
+              <div><Label>{t("supply.p2p.batchNumber")}</Label><Input value={form.batchNumber} onChange={e => setForm(p => ({ ...p, batchNumber: e.target.value }))} /></div>
             </div>
-            <div><Label>数量</Label><Input type="number" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} /></div>
+            <div><Label>{t("supply.planning.quantityLabel")}</Label><Input type="number" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
-            <Button onClick={handleCreate}>创建</Button>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
+            <Button onClick={handleCreate}>{t("supply.p2p.save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -175,6 +178,7 @@ function LabelsTab() {
 
 // ─── Tab 3: Incoming Inspection (IQC) ─────────────────────────
 function InspectionTab() {
+  const { t } = useLanguage();
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ materialCode: "", materialName: "", supplierName: "", poNumber: "", hasTestReport: false, inspectedQuantity: "" });
 
@@ -192,24 +196,30 @@ function InspectionTab() {
     CONDITIONAL: "bg-amber-100 text-amber-700",
     PENDING: "bg-gray-100 text-gray-700",
   };
-  const resultLabel: Record<string, string> = { PASS: "通过", FAIL: "不合格", CONDITIONAL: "有条件接收", PENDING: "待检" };
+
+  const resultLabel: Record<string, string> = {
+    PASS: t("supply.chain.passLabel"),
+    FAIL: t("supply.chain.failLabel"),
+    CONDITIONAL: t("supply.chain.conditionalLabel"),
+    PENDING: t("supply.chain.pendingLabel"),
+  };
 
   const handleCreate = async () => {
-    if (!form.materialCode) { toast.error("物料编码必填"); return; }
+    if (!form.materialCode) { toast.error(t("supply.chain.materialCodeRequired")); return; }
     try {
       await createInspectionMutation.mutateAsync(form);
-      toast.success("检验记录已创建");
+      toast.success(t("supply.chain.inspectionCreated"));
       setShowCreate(false);
       setForm({ materialCode: "", materialName: "", supplierName: "", poNumber: "", hasTestReport: false, inspectedQuantity: "" });
       refetch();
-    } catch (e: any) { toast.error(e.message || "创建失败"); }
+    } catch (e: any) { toast.error(e.message || t("supply.p2p.createFailed")); }
   };
 
   const handleAutoReject = async (id: number) => {
     try {
       const res = await rejectReceiptMutation.mutateAsync({ id }) as any;
       if (res.autoRejected) {
-        toast.error(`自动拒绝: ${res.reasons.join("; ")} — 已触发供应商处罚`);
+        toast.error(`${t("supply.chain.autoRejected")}: ${res.reasons.join("; ")}`);
       } else {
         toast.success(res.message);
       }
@@ -221,11 +231,11 @@ function InspectionTab() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline">总计: {inspections.length}</Badge>
-          <Badge className="bg-green-100 text-green-700">通过: {inspections.filter((i: any) => i.inspectionResult === "PASS").length}</Badge>
-          <Badge className="bg-red-100 text-red-700">不合格: {inspections.filter((i: any) => i.inspectionResult === "FAIL").length}</Badge>
+          <Badge variant="outline">{t("supply.chain.totalLabel")}: {inspections.length}</Badge>
+          <Badge className="bg-green-100 text-green-700">{t("supply.chain.passed")}: {inspections.filter((i: any) => i.inspectionResult === "PASS").length}</Badge>
+          <Badge className="bg-red-100 text-red-700">{t("supply.chain.failed")}: {inspections.filter((i: any) => i.inspectionResult === "FAIL").length}</Badge>
         </div>
-        <Button size="sm" className="min-h-[44px] shrink-0" onClick={() => setShowCreate(true)}><Plus className="h-4 w-4 mr-1" />新建检验</Button>
+        <Button size="sm" className="min-h-[44px] shrink-0" onClick={() => setShowCreate(true)}><Plus className="h-4 w-4 mr-1" />{t("supply.chain.newInspection")}</Button>
       </div>
       {isLoading ? <LoadingSkeleton rows={4} /> : (
         <div className="space-y-2">
@@ -237,7 +247,7 @@ function InspectionTab() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-xs">{i.inspectionCode}</span>
                     <Badge variant="outline">{i.materialCode}</Badge>
-                    {!i.hasTestReport && <Badge variant="destructive" className="text-xs">缺报告</Badge>}
+                    {!i.hasTestReport && <Badge variant="destructive" className="text-xs">{t("supply.chain.missingReport")}</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground mt-0.5">{i.supplierName || "—"} | PO: {i.poNumber || "—"} | {i.createdAt?.split("T")[0]}</p>
                 </div>
@@ -246,37 +256,37 @@ function InspectionTab() {
                 <Badge className={resultColor[i.inspectionResult] || ""}>{resultLabel[i.inspectionResult] || i.inspectionResult}</Badge>
                 {i.inspectionResult === "PENDING" && (
                   <Button size="sm" variant="destructive" className="min-h-[44px]" onClick={() => handleAutoReject(i.id)}>
-                    <XCircle className="h-3 w-3 mr-1" />自动检查
+                    <XCircle className="h-3 w-3 mr-1" />{t("supply.chain.autoCheck")}
                   </Button>
                 )}
               </div>
             </div>
           ))}
-          {inspections.length === 0 && <div className="text-center py-8 text-muted-foreground">暂无检验记录</div>}
+          {inspections.length === 0 && <div className="text-center py-8 text-muted-foreground">{t("supply.chain.noInspectionData")}</div>}
         </div>
       )}
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>新建来料检验</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("supply.chain.newInspectionDialog")}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>物料编码 *</Label><Input value={form.materialCode} onChange={e => setForm(p => ({ ...p, materialCode: e.target.value }))} /></div>
-              <div><Label>物料名称</Label><Input value={form.materialName} onChange={e => setForm(p => ({ ...p, materialName: e.target.value }))} /></div>
+              <div><Label>{t("supply.p2p.materialCode")} *</Label><Input value={form.materialCode} onChange={e => setForm(p => ({ ...p, materialCode: e.target.value }))} /></div>
+              <div><Label>{t("supply.p2p.materialName")}</Label><Input value={form.materialName} onChange={e => setForm(p => ({ ...p, materialName: e.target.value }))} /></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>供应商</Label><Input value={form.supplierName} onChange={e => setForm(p => ({ ...p, supplierName: e.target.value }))} /></div>
-              <div><Label>PO编号</Label><Input value={form.poNumber} onChange={e => setForm(p => ({ ...p, poNumber: e.target.value }))} /></div>
+              <div><Label>{t("supply.p2p.supplier")}</Label><Input value={form.supplierName} onChange={e => setForm(p => ({ ...p, supplierName: e.target.value }))} /></div>
+              <div><Label>{t("supply.p2p.poNumber")}</Label><Input value={form.poNumber} onChange={e => setForm(p => ({ ...p, poNumber: e.target.value }))} /></div>
             </div>
-            <div><Label>检验数量</Label><Input type="number" value={form.inspectedQuantity} onChange={e => setForm(p => ({ ...p, inspectedQuantity: e.target.value }))} /></div>
+            <div><Label>{t("supply.chain.inspectedQuantity")}</Label><Input type="number" value={form.inspectedQuantity} onChange={e => setForm(p => ({ ...p, inspectedQuantity: e.target.value }))} /></div>
             <div className="flex items-center gap-2">
               <input type="checkbox" id="hasReport" checked={form.hasTestReport} onChange={e => setForm(p => ({ ...p, hasTestReport: e.target.checked }))} />
-              <Label htmlFor="hasReport">已附检测报告</Label>
+              <Label htmlFor="hasReport">{t("supply.chain.hasTestReport")}</Label>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
-            <Button onClick={handleCreate}>创建</Button>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
+            <Button onClick={handleCreate}>{t("supply.p2p.save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -286,6 +296,7 @@ function InspectionTab() {
 
 // ─── Tab 4: Assembly BOM Scan ─────────────────────────────────
 function BomScanTab() {
+  const { t } = useLanguage();
   const [projectNumber, setProjectNumber] = useState("");
   const [processCode, setProcessCode] = useState("T1");
   const [barcode, setBarcode] = useState("");
@@ -305,7 +316,7 @@ function BomScanTab() {
   };
 
   const handleScan = async () => {
-    if (!projectNumber || !barcode) { toast.error("项目编号和条码必填"); return; }
+    if (!projectNumber || !barcode) { toast.error(t("supply.chain.projectAndBarcodeRequired")); return; }
     try {
       const res = await scanAndVerifyMutation.mutateAsync({
         projectNumber,
@@ -313,15 +324,15 @@ function BomScanTab() {
         scannedBarcode: barcode,
       });
       if (res.bomMatchResult === "MATCH") {
-        toast.success(`BOM匹配: ${res.resolvedMaterialCode}`);
+        toast.success(`${t("supply.chain.bomMatch")}: ${res.resolvedMaterialCode}`);
       } else if (res.bomMatchResult === "MISMATCH") {
-        toast.error(`BOM不匹配! 扫描: ${res.resolvedMaterialCode}, 预期: ${res.expectedMaterialCode || "—"}`);
+        toast.error(`${t("supply.chain.bomMismatch")} ${res.resolvedMaterialCode}, ${res.expectedMaterialCode || "—"}`);
       } else {
-        toast.info(`扫码结果: ${res.bomMatchResult}`);
+        toast.info(`${t("supply.chain.scanResult")}: ${res.bomMatchResult}`);
       }
       setBarcode("");
       refetch();
-    } catch (e: any) { toast.error(e.message || "扫码失败"); }
+    } catch (e: any) { toast.error(e.message || t("supply.chain.scanFailed")); }
   };
 
   return (
@@ -329,18 +340,18 @@ function BomScanTab() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-            <div className="flex-1"><Label>项目编号</Label><Input placeholder="PRJ-2026-XXX" value={projectNumber} onChange={e => setProjectNumber(e.target.value)} /></div>
+            <div className="flex-1"><Label>{t("supply.chain.projectNumber")}</Label><Input placeholder="PRJ-2026-XXX" value={projectNumber} onChange={e => setProjectNumber(e.target.value)} /></div>
             <div className="w-full sm:w-32">
-              <Label>工序</Label>
+              <Label>{t("supply.chain.processCode")}</Label>
               <Select value={processCode} onValueChange={setProcessCode}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{Array.from({ length: 15 }, (_, i) => `T${i + 1}`).map(t => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                <SelectContent>{Array.from({ length: 15 }, (_, i) => `T${i + 1}`).map(tc => (
+                  <SelectItem key={tc} value={tc}>{tc}</SelectItem>
                 ))}</SelectContent>
               </Select>
             </div>
-            <div className="flex-1"><Label>扫描条码</Label><Input placeholder="扫描或输入条码..." value={barcode} onChange={e => setBarcode(e.target.value)} onKeyDown={e => e.key === "Enter" && handleScan()} /></div>
-            <Button className="min-h-[44px]" onClick={handleScan}><ScanBarcode className="h-4 w-4 mr-1" />扫码验证</Button>
+            <div className="flex-1"><Label>{t("supply.chain.scanBarcode")}</Label><Input placeholder={t("supply.chain.scanBarcode") + "..."} value={barcode} onChange={e => setBarcode(e.target.value)} onKeyDown={e => e.key === "Enter" && handleScan()} /></div>
+            <Button className="min-h-[44px]" onClick={handleScan}><ScanBarcode className="h-4 w-4 mr-1" />{t("supply.chain.scanAndVerify")}</Button>
           </div>
         </CardContent>
       </Card>
@@ -354,7 +365,7 @@ function BomScanTab() {
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs">{s.scannedBarcode}</span>
                   <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-sm">{s.resolvedMaterialCode || "未识别"}</span>
+                  <span className="text-sm">{s.resolvedMaterialCode || t("supply.chain.unrecognized")}</span>
                   <Badge variant="secondary" className="text-xs">{s.processCode}</Badge>
                 </div>
               </div>
@@ -363,10 +374,10 @@ function BomScanTab() {
                 {s.bomMatchResult === "MISMATCH" && <XCircle className="h-3 w-3 mr-1" />}
                 {s.bomMatchResult}
               </Badge>
-              {s.deviationConfirmed && <Badge className="bg-purple-100 text-purple-700">偏差已确认</Badge>}
+              {s.deviationConfirmed && <Badge className="bg-purple-100 text-purple-700">{t("supply.chain.deviationConfirmed")}</Badge>}
             </div>
           ))}
-          {scans.length === 0 && <div className="text-center py-8 text-muted-foreground">暂无扫码记录</div>}
+          {scans.length === 0 && <div className="text-center py-8 text-muted-foreground">{t("supply.chain.noScanRecords")}</div>}
         </div>
       )}
     </div>
@@ -375,6 +386,7 @@ function BomScanTab() {
 
 // ─── Tab 5: Labor Confirmations ───────────────────────────────
 function LaborTab() {
+  const { t } = useLanguage();
   const recordsQuery = trpc.supplyChain.labor.list.useQuery({});
   const records = recordsQuery.data?.items ?? [];
   const isLoading = recordsQuery.isLoading;
@@ -385,10 +397,10 @@ function LaborTab() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="总记录" value={stats?.total ?? 0} />
-        <StatCard icon={Timer} label="进行中" value={stats?.active ?? 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={CheckCircle2} label="已完成" value={stats?.completed ?? 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={Gauge} label="平均效率" value={`${stats?.avgEfficiency ?? 0}%`} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
+        <StatCard icon={Users} label={t("supply.chain.totalRecords")} value={stats?.total ?? 0} />
+        <StatCard icon={Timer} label={t("supply.chain.inProgress")} value={stats?.active ?? 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label={t("supply.chain.completedLabel")} value={stats?.completed ?? 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Gauge} label={t("supply.chain.avgEfficiency")} value={`${stats?.avgEfficiency ?? 0}%`} iconColor="text-amber-500" iconBg="bg-amber-500/10" />
       </div>
 
       {isLoading ? <LoadingSkeleton rows={5} /> : (
@@ -397,9 +409,9 @@ function LaborTab() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="border-b text-left text-muted-foreground">
-                  <th className="p-3">项目</th><th className="p-3">工序</th><th className="p-3">工人</th>
-                  <th className="p-3">上班</th><th className="p-3">下班</th><th className="p-3 text-right">工时(分)</th>
-                  <th className="p-3 text-right">效率</th><th className="p-3">质量</th>
+                  <th className="p-3">{t("supply.chain.thProject")}</th><th className="p-3">{t("supply.chain.thProcess")}</th><th className="p-3">{t("supply.chain.thWorker")}</th>
+                  <th className="p-3">{t("supply.chain.thClockIn")}</th><th className="p-3">{t("supply.chain.thClockOut")}</th><th className="p-3 text-right">{t("supply.chain.thWorkMinutes")}</th>
+                  <th className="p-3 text-right">{t("supply.chain.thEfficiency")}</th><th className="p-3">{t("supply.chain.thQuality")}</th>
                 </tr></thead>
                 <tbody>
                   {records.slice(0, 20).map((r: any) => (
@@ -408,7 +420,7 @@ function LaborTab() {
                       <td className="p-3"><Badge variant="secondary">{r.processCode}</Badge></td>
                       <td className="p-3">{r.workerName || `#${r.workerId}`}</td>
                       <td className="p-3 text-xs">{r.clockInTime?.split("T")[1]?.slice(0, 5) || "—"}</td>
-                      <td className="p-3 text-xs">{r.clockOutTime?.split("T")[1]?.slice(0, 5) || <Badge className="bg-blue-100 text-blue-700">进行中</Badge>}</td>
+                      <td className="p-3 text-xs">{r.clockOutTime?.split("T")[1]?.slice(0, 5) || <Badge className="bg-blue-100 text-blue-700">{t("supply.chain.inProgress")}</Badge>}</td>
                       <td className="p-3 text-right">{r.netWorkMinutes ?? "—"}</td>
                       <td className="p-3 text-right">{r.efficiencyPercent ? `${Number(r.efficiencyPercent).toFixed(0)}%` : "—"}</td>
                       <td className="p-3">
@@ -418,7 +430,7 @@ function LaborTab() {
                   ))}
                 </tbody>
               </table>
-              {records.length === 0 && <div className="text-center py-8 text-muted-foreground">暂无工时记录</div>}
+              {records.length === 0 && <div className="text-center py-8 text-muted-foreground">{t("supply.chain.noLaborRecords")}</div>}
             </div>
           </CardContent>
         </Card>
@@ -429,6 +441,7 @@ function LaborTab() {
 
 // ─── Tab 6: Customer Complaints ───────────────────────────────
 function ComplaintsTab() {
+  const { t } = useLanguage();
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ customerName: "", projectNumber: "", severity: "medium" as string, description: "" });
 
@@ -443,28 +456,38 @@ function ComplaintsTab() {
     low: "bg-gray-100 text-gray-700", medium: "bg-amber-100 text-amber-700",
     high: "bg-orange-100 text-orange-700", critical: "bg-red-100 text-red-700",
   };
-  const severityLabel: Record<string, string> = { low: "低", medium: "中", high: "高", critical: "严重" };
-  const statusLabel: Record<string, string> = { open: "待处理", investigating: "调查中", resolved: "已解决", closed: "已关闭" };
+  const severityLabel: Record<string, string> = {
+    low: t("supply.chain.severityLow"),
+    medium: t("supply.chain.severityMedium"),
+    high: t("supply.chain.severityHigh"),
+    critical: t("supply.chain.severityCritical"),
+  };
+  const statusLabel: Record<string, string> = {
+    open: t("supply.chain.statusOpen"),
+    investigating: t("supply.chain.statusInvestigating"),
+    resolved: t("supply.chain.statusResolved"),
+    closed: t("supply.chain.statusClosed"),
+  };
 
   const handleCreate = async () => {
-    if (!form.description) { toast.error("问题描述必填"); return; }
+    if (!form.description) { toast.error(t("supply.chain.descriptionRequired")); return; }
     try {
       await createComplaintMutation.mutateAsync({ ...form, severity: form.severity as "high" | "medium" | "low" | "critical" });
-      toast.success("投诉已记录");
+      toast.success(t("supply.chain.complaintRecorded"));
       setShowCreate(false);
       setForm({ customerName: "", projectNumber: "", severity: "medium", description: "" });
       refetch();
-    } catch (e: any) { toast.error(e.message || "创建失败"); }
+    } catch (e: any) { toast.error(e.message || t("supply.p2p.createFailed")); }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline">总计: {complaints.length}</Badge>
-          <Badge className="bg-red-100 text-red-700">严重: {complaints.filter((c: any) => c.severity === "critical").length}</Badge>
+          <Badge variant="outline">{t("supply.chain.totalLabel")}: {complaints.length}</Badge>
+          <Badge className="bg-red-100 text-red-700">{t("supply.chain.severityCritical")}: {complaints.filter((c: any) => c.severity === "critical").length}</Badge>
         </div>
-        <Button size="sm" className="min-h-[44px] shrink-0" onClick={() => setShowCreate(true)}><Plus className="h-4 w-4 mr-1" />新建反馈</Button>
+        <Button size="sm" className="min-h-[44px] shrink-0" onClick={() => setShowCreate(true)}><Plus className="h-4 w-4 mr-1" />{t("supply.chain.newFeedback")}</Button>
       </div>
       {isLoading ? <LoadingSkeleton /> : (
         <div className="space-y-2">
@@ -476,8 +499,8 @@ function ComplaintsTab() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-xs">{c.complaintCode}</span>
                     <Badge className={severityColor[c.severity] || ""}>{severityLabel[c.severity] || c.severity}</Badge>
-                    {c.eightDReportId && <Badge variant="secondary">8D已关联</Badge>}
-                    {c.designChangeRequired && <Badge variant="secondary">需设计变更</Badge>}
+                    {c.eightDReportId && <Badge variant="secondary">{t("supply.chain.linked8D")}</Badge>}
+                    {c.designChangeRequired && <Badge variant="secondary">{t("supply.chain.designChangeNeeded")}</Badge>}
                   </div>
                   <p className="text-sm mt-0.5 line-clamp-1">{c.description}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{c.customerName || "—"} | {c.projectNumber || "—"} | {c.createdAt?.split("T")[0]}</p>
@@ -486,32 +509,32 @@ function ComplaintsTab() {
               <Badge variant="outline" className="ml-8 sm:ml-0 shrink-0">{statusLabel[c.status] || c.status}</Badge>
             </div>
           ))}
-          {complaints.length === 0 && <div className="text-center py-8 text-muted-foreground">暂无投诉记录</div>}
+          {complaints.length === 0 && <div className="text-center py-8 text-muted-foreground">{t("supply.chain.noComplaintData")}</div>}
         </div>
       )}
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>新建客户质量反馈</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("supply.chain.newComplaintDialog")}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>客户名称</Label><Input value={form.customerName} onChange={e => setForm(p => ({ ...p, customerName: e.target.value }))} /></div>
-              <div><Label>项目编号</Label><Input value={form.projectNumber} onChange={e => setForm(p => ({ ...p, projectNumber: e.target.value }))} /></div>
+              <div><Label>{t("supply.chain.customerName")}</Label><Input value={form.customerName} onChange={e => setForm(p => ({ ...p, customerName: e.target.value }))} /></div>
+              <div><Label>{t("supply.chain.projectNumber")}</Label><Input value={form.projectNumber} onChange={e => setForm(p => ({ ...p, projectNumber: e.target.value }))} /></div>
             </div>
-            <div><Label>严重程度</Label>
+            <div><Label>{t("supply.chain.severityLevel")}</Label>
               <Select value={form.severity} onValueChange={v => setForm(p => ({ ...p, severity: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">低</SelectItem><SelectItem value="medium">中</SelectItem>
-                  <SelectItem value="high">高</SelectItem><SelectItem value="critical">严重</SelectItem>
+                  <SelectItem value="low">{t("supply.chain.severityLow")}</SelectItem><SelectItem value="medium">{t("supply.chain.severityMedium")}</SelectItem>
+                  <SelectItem value="high">{t("supply.chain.severityHigh")}</SelectItem><SelectItem value="critical">{t("supply.chain.severityCritical")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>问题描述 *</Label><Textarea rows={3} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></div>
+            <div><Label>{t("supply.chain.problemDescription")} *</Label><Textarea rows={3} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
-            <Button onClick={handleCreate}>提交</Button>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
+            <Button onClick={handleCreate}>{t("supply.p2p.submit")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -521,6 +544,7 @@ function ComplaintsTab() {
 
 // ─── Tab 7: Maintenance & Spare Parts ─────────────────────────
 function MaintenanceTab() {
+  const { t } = useLanguage();
   const maintenanceQuery = trpc.supplyChain.maintenance.list.useQuery({});
   const records = maintenanceQuery.data?.items ?? [];
   const isLoading = maintenanceQuery.isLoading;
@@ -531,22 +555,32 @@ function MaintenanceTab() {
   const lowStockQuery = trpc.supplyChain.sparePart.lowStockAlerts.useQuery();
   const lowStockAlerts = lowStockQuery.data ?? [];
 
-  const typeLabel: Record<string, string> = { preventive: "预防性", corrective: "纠正性", predictive: "预测性", emergency: "紧急" };
+  const typeLabel: Record<string, string> = {
+    preventive: t("supply.chain.typePreventive"),
+    corrective: t("supply.chain.typeCorrective"),
+    predictive: t("supply.chain.typePredictive"),
+    emergency: t("supply.chain.typeEmergency"),
+  };
   const typeColor: Record<string, string> = { preventive: "bg-blue-100 text-blue-700", corrective: "bg-orange-100 text-orange-700", predictive: "bg-purple-100 text-purple-700", emergency: "bg-red-100 text-red-700" };
-  const statusLabel: Record<string, string> = { scheduled: "已排期", in_progress: "进行中", completed: "已完成", cancelled: "已取消" };
+  const maintStatusLabel: Record<string, string> = {
+    scheduled: t("supply.chain.statusScheduled"),
+    in_progress: t("supply.chain.statusInProgressMaint"),
+    completed: t("supply.chain.statusCompletedMaint"),
+    cancelled: t("supply.chain.statusCancelledMaint"),
+  };
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Wrench} label="维保记录" value={records.length} />
-        <StatCard icon={Package} label="备件种类" value={spareStats?.total ?? 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={AlertTriangle} label="低库存备件" value={spareStats?.lowStock ?? 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={Shield} label="关键备件" value={spareStats?.critical ?? 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Wrench} label={t("supply.chain.maintenanceRecords")} value={records.length} />
+        <StatCard icon={Package} label={t("supply.chain.partTypes")} value={spareStats?.total ?? 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={AlertTriangle} label={t("supply.chain.lowStockPartsLabel")} value={spareStats?.lowStock ?? 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Shield} label={t("supply.chain.criticalPartsLabel")} value={spareStats?.critical ?? 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
       </div>
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-sm">维保记录</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">{t("supply.chain.maintenanceRecordsList")}</CardTitle></CardHeader>
           <CardContent>
             {isLoading ? <LoadingSkeleton rows={3} /> : (
               <div className="space-y-2">
@@ -558,19 +592,19 @@ function MaintenanceTab() {
                         <span className="font-mono text-xs">{r.maintenanceCode}</span>
                         <Badge className={typeColor[r.maintenanceType] || ""}>{typeLabel[r.maintenanceType] || r.maintenanceType}</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground">{r.equipmentName || `设备#${r.equipmentId}`} | {r.scheduledDate || "—"}</p>
+                      <p className="text-xs text-muted-foreground">{r.equipmentName || `#${r.equipmentId}`} | {r.scheduledDate || "—"}</p>
                     </div>
-                    <Badge variant="outline">{statusLabel[r.status] || r.status}</Badge>
+                    <Badge variant="outline">{maintStatusLabel[r.status] || r.status}</Badge>
                   </div>
                 ))}
-                {records.length === 0 && <div className="text-center py-4 text-muted-foreground text-sm">暂无维保记录</div>}
+                {records.length === 0 && <div className="text-center py-4 text-muted-foreground text-sm">{t("supply.chain.noMaintenanceRecords")}</div>}
               </div>
             )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-orange-500" />备件低库存预警</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-orange-500" />{t("supply.chain.sparePartLowStockWarning")}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {lowStockAlerts.slice(0, 8).map((p: any) => (
@@ -578,12 +612,12 @@ function MaintenanceTab() {
                   <Package className="h-4 w-4 text-orange-500 shrink-0" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">{p.materialName}</p>
-                    <p className="text-xs text-muted-foreground">{p.materialCode} | 库存: {p.currentStock} / 安全: {p.reorderPoint}</p>
+                    <p className="text-xs text-muted-foreground">{p.materialCode} | {p.currentStock} / {p.reorderPoint}</p>
                   </div>
-                  {p.autoReorderEnabled && <Badge className="bg-blue-100 text-blue-700 text-xs">自动补货</Badge>}
+                  {p.autoReorderEnabled && <Badge className="bg-blue-100 text-blue-700 text-xs">{t("supply.chain.autoReorder")}</Badge>}
                 </div>
               ))}
-              {lowStockAlerts.length === 0 && <div className="text-center py-4 text-muted-foreground text-sm">无低库存预警</div>}
+              {lowStockAlerts.length === 0 && <div className="text-center py-4 text-muted-foreground text-sm">{t("supply.chain.noLowStockWarning")}</div>}
             </div>
           </CardContent>
         </Card>
@@ -594,6 +628,7 @@ function MaintenanceTab() {
 
 // ─── Tab 8: Scrap & Supplier Penalties ────────────────────────
 function ScrapPenaltyTab() {
+  const { t } = useLanguage();
   const scrapsQuery = trpc.supplyChain.scrap.list.useQuery({});
   const scraps = scrapsQuery.data?.items ?? [];
 
@@ -606,23 +641,39 @@ function ScrapPenaltyTab() {
   const penaltyStatsQuery = trpc.supplyChain.penalty.stats.useQuery();
   const penaltyStats = penaltyStatsQuery.data ?? null;
 
-  const methodLabel: Record<string, string> = { recycle: "回收", destroy: "销毁", return: "退供应商", salvage: "拆解利用" };
-  const triggerLabel: Record<string, string> = { quality_reject: "质量不合格", late_delivery: "交付延迟", missing_report: "缺失报告", safety_violation: "安全违规" };
-  const penaltyTypeLabel: Record<string, string> = { warning: "警告", fine: "罚款", probation: "观察期", suspension: "暂停", blacklist: "黑名单" };
+  const methodLabel: Record<string, string> = {
+    recycle: t("supply.chain.disposalRecycle"),
+    destroy: t("supply.chain.disposalDestroy"),
+    return: t("supply.chain.disposalReturn"),
+    salvage: t("supply.chain.disposalSalvage"),
+  };
+  const triggerLabel: Record<string, string> = {
+    quality_reject: t("supply.chain.triggerQualityReject"),
+    late_delivery: t("supply.chain.triggerLateDelivery"),
+    missing_report: t("supply.chain.triggerMissingReport"),
+    safety_violation: t("supply.chain.triggerSafetyViolation"),
+  };
+  const penaltyTypeLabel: Record<string, string> = {
+    warning: t("supply.chain.penaltyWarning"),
+    fine: t("supply.chain.penaltyFine"),
+    probation: t("supply.chain.penaltyProbation"),
+    suspension: t("supply.chain.penaltySuspension"),
+    blacklist: t("supply.chain.penaltyBlacklist"),
+  };
   const penaltyTypeColor: Record<string, string> = { warning: "bg-amber-100 text-amber-700", fine: "bg-orange-100 text-orange-700", probation: "bg-red-100 text-red-700", suspension: "bg-red-200 text-red-800", blacklist: "bg-red-300 text-red-900" };
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Trash2} label="报废总数" value={scrapStats?.total ?? 0} />
-        <StatCard icon={TrendingUp} label="报废成本" value={`¥${((scrapStats?.totalCost ?? 0) / 10000).toFixed(1)}万`} iconColor="text-red-500" iconBg="bg-red-500/10" />
-        <StatCard icon={Ban} label="活跃处罚" value={penaltyStats?.active ?? 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={Shield} label="黑名单" value={penaltyStats?.blacklisted ?? 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Trash2} label={t("supply.chain.totalScraps")} value={scrapStats?.total ?? 0} />
+        <StatCard icon={TrendingUp} label={t("supply.chain.scrapCost")} value={`¥${((scrapStats?.totalCost ?? 0) / 10000).toFixed(1)}万`} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Ban} label={t("supply.chain.activePenaltiesStat")} value={penaltyStats?.active ?? 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Shield} label={t("supply.chain.blacklistStat")} value={penaltyStats?.blacklisted ?? 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
       </div>
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-sm">报废记录</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">{t("supply.chain.scrapRecords")}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {scraps.slice(0, 8).map((s: any) => (
@@ -635,16 +686,16 @@ function ScrapPenaltyTab() {
                     </div>
                     <p className="text-xs text-muted-foreground">{s.scrapReason} | {methodLabel[s.disposalMethod] || s.disposalMethod} | ¥{s.totalScrapCost || 0}</p>
                   </div>
-                  {s.replacementRequired && <Badge variant="secondary">需替换</Badge>}
+                  {s.replacementRequired && <Badge variant="secondary">{t("supply.chain.replacementNeeded")}</Badge>}
                 </div>
               ))}
-              {scraps.length === 0 && <div className="text-center py-4 text-muted-foreground text-sm">暂无报废记录</div>}
+              {scraps.length === 0 && <div className="text-center py-4 text-muted-foreground text-sm">{t("supply.chain.noScrapRecords")}</div>}
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-sm">供应商处罚</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">{t("supply.chain.supplierPenalties")}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {penalties.slice(0, 8).map((p: any) => (
@@ -652,16 +703,16 @@ function ScrapPenaltyTab() {
                   <AlertTriangle className={`h-4 w-4 shrink-0 ${p.isBlacklisted ? "text-red-600" : "text-orange-500"}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{p.supplierName || `供应商#${p.supplierId}`}</span>
+                      <span className="text-sm font-medium">{p.supplierName || `#${p.supplierId}`}</span>
                       <Badge className={penaltyTypeColor[p.penaltyType] || ""}>{penaltyTypeLabel[p.penaltyType] || p.penaltyType}</Badge>
-                      {p.isBlacklisted && <Badge variant="destructive">黑名单</Badge>}
+                      {p.isBlacklisted && <Badge variant="destructive">{t("supply.chain.blacklisted")}</Badge>}
                     </div>
-                    <p className="text-xs text-muted-foreground">{triggerLabel[p.triggerType] || p.triggerType} | 次数: {p.occurrenceCount} | 等级: L{p.escalationLevel}</p>
+                    <p className="text-xs text-muted-foreground">{triggerLabel[p.triggerType] || p.triggerType} | {t("supply.chain.occurrenceCount")}: {p.occurrenceCount} | {t("supply.chain.escalationLevel")}: L{p.escalationLevel}</p>
                   </div>
-                  <Badge variant={p.isActive ? "default" : "outline"}>{p.isActive ? "活跃" : "已解决"}</Badge>
+                  <Badge variant={p.isActive ? "default" : "outline"}>{p.isActive ? t("supply.chain.statusActivePenalty") : t("supply.chain.statusResolvedPenalty")}</Badge>
                 </div>
               ))}
-              {penalties.length === 0 && <div className="text-center py-4 text-muted-foreground text-sm">暂无处罚记录</div>}
+              {penalties.length === 0 && <div className="text-center py-4 text-muted-foreground text-sm">{t("supply.chain.noPenaltyRecords")}</div>}
             </div>
           </CardContent>
         </Card>
@@ -674,24 +725,25 @@ function ScrapPenaltyTab() {
 // Main Workbench
 // ═══════════════════════════════════════════════════════════════
 export default function SupplyChainWorkbench() {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Truck}
-        title="供应链追溯工作台"
-        description="IATF 16949 全链追溯 — 供应商→来料→装配→客户→维保→报废"
+        title={t("supply.chain.title")}
+        description={t("supply.chain.desc")}
       />
 
       <Tabs defaultValue="dashboard">
         <TabsList className="flex-wrap h-auto gap-1 overflow-x-auto scrollbar-hide">
-          <TabsTrigger value="dashboard" className="gap-1 min-h-[44px]"><LayoutDashboard className="h-3.5 w-3.5" />总览</TabsTrigger>
-          <TabsTrigger value="labels" className="gap-1 min-h-[44px]"><Tag className="h-3.5 w-3.5" />供应商标签</TabsTrigger>
-          <TabsTrigger value="inspection" className="gap-1 min-h-[44px]"><ClipboardCheck className="h-3.5 w-3.5" />来料检验</TabsTrigger>
-          <TabsTrigger value="bom-scan" className="gap-1 min-h-[44px]"><ScanBarcode className="h-3.5 w-3.5" />装配扫码</TabsTrigger>
-          <TabsTrigger value="labor" className="gap-1 min-h-[44px]"><Clock className="h-3.5 w-3.5" />工时确认</TabsTrigger>
-          <TabsTrigger value="complaints" className="gap-1 min-h-[44px]"><MessageSquare className="h-3.5 w-3.5" />质量反馈</TabsTrigger>
-          <TabsTrigger value="maintenance" className="gap-1 min-h-[44px]"><Wrench className="h-3.5 w-3.5" />维保与备件</TabsTrigger>
-          <TabsTrigger value="scrap" className="gap-1 min-h-[44px]"><Trash2 className="h-3.5 w-3.5" />报废与供应商</TabsTrigger>
+          <TabsTrigger value="dashboard" className="gap-1 min-h-[44px]"><LayoutDashboard className="h-3.5 w-3.5" />{t("supply.chain.tabDashboard")}</TabsTrigger>
+          <TabsTrigger value="labels" className="gap-1 min-h-[44px]"><Tag className="h-3.5 w-3.5" />{t("supply.chain.tabLabels")}</TabsTrigger>
+          <TabsTrigger value="inspection" className="gap-1 min-h-[44px]"><ClipboardCheck className="h-3.5 w-3.5" />{t("supply.chain.tabInspection")}</TabsTrigger>
+          <TabsTrigger value="bom-scan" className="gap-1 min-h-[44px]"><ScanBarcode className="h-3.5 w-3.5" />{t("supply.chain.tabBomScan")}</TabsTrigger>
+          <TabsTrigger value="labor" className="gap-1 min-h-[44px]"><Clock className="h-3.5 w-3.5" />{t("supply.chain.tabLabor")}</TabsTrigger>
+          <TabsTrigger value="complaints" className="gap-1 min-h-[44px]"><MessageSquare className="h-3.5 w-3.5" />{t("supply.chain.tabComplaints")}</TabsTrigger>
+          <TabsTrigger value="maintenance" className="gap-1 min-h-[44px]"><Wrench className="h-3.5 w-3.5" />{t("supply.chain.tabMaintenance")}</TabsTrigger>
+          <TabsTrigger value="scrap" className="gap-1 min-h-[44px]"><Trash2 className="h-3.5 w-3.5" />{t("supply.chain.tabScrap")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard"><DashboardTab /></TabsContent>

@@ -8,6 +8,7 @@ import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, Users, CheckCircle2, AlertTriangle, Calendar, UserX } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const attendanceStatusColorMap = createStatusColorMap({
   "正常": "green",
@@ -28,25 +29,26 @@ const MOCK_RECORDS = [
 ];
 
 export default function Attendance() {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Clock}
-        title="考勤管理"
-        description="考勤统计 · 异常处理 · 请假审批"
-        actions={<Button variant="outline"><Calendar className="h-4 w-4 mr-2" />月度报表</Button>}
+        title={t("hr.attendance.title")}
+        description={t("hr.attendance.desc")}
+        actions={<Button variant="outline"><Calendar className="h-4 w-4 mr-2" />{t("hr.attendance.monthlyReport")}</Button>}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard icon={Users} label="总人数" value={TODAY_STATS.total} />
-        <StatCard icon={CheckCircle2} label="已到岗" value={TODAY_STATS.present} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={AlertTriangle} label="迟到" value={TODAY_STATS.late} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={UserX} label="缺勤" value={TODAY_STATS.absent} iconColor="text-red-500" iconBg="bg-red-500/10" />
-        <StatCard icon={Calendar} label="请假" value={TODAY_STATS.leave} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Users} label={t("hr.attendance.totalStaff")} value={TODAY_STATS.total} />
+        <StatCard icon={CheckCircle2} label={t("hr.attendance.present")} value={TODAY_STATS.present} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label={t("hr.attendance.late")} value={TODAY_STATS.late} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={UserX} label={t("hr.attendance.absent")} value={TODAY_STATS.absent} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Calendar} label={t("hr.attendance.leave")} value={TODAY_STATS.leave} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
       </div>
 
       <Card>
-        <CardHeader><CardTitle>今日考勤记录</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("hr.attendance.todayRecords")}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-2">
             {MOCK_RECORDS.map((r, i) => (
@@ -56,8 +58,8 @@ export default function Attendance() {
                   <span className="font-medium">{r.name}</span>
                   <span className="text-sm text-muted-foreground ml-2">{r.dept}</span>
                 </div>
-                <span className="text-sm text-muted-foreground">签到: {r.clockIn}</span>
-                <span className="text-sm text-muted-foreground">签退: {r.clockOut}</span>
+                <span className="text-sm text-muted-foreground">{t("hr.attendance.clockIn")}: {r.clockIn}</span>
+                <span className="text-sm text-muted-foreground">{t("hr.attendance.clockOut")}: {r.clockOut}</span>
                 <span className="text-sm">{r.hours}</span>
                 <StatusBadge color={attendanceStatusColorMap[r.status as keyof typeof attendanceStatusColorMap] ?? "gray"}>{r.status}</StatusBadge>
               </div>
@@ -65,7 +67,7 @@ export default function Attendance() {
             {MOCK_RECORDS.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Clock className="w-12 h-12 mb-3 opacity-50" />
-                <p className="font-medium">暂无考勤记录</p>
+                <p className="font-medium">{t("hr.attendance.noRecords")}</p>
               </div>
             )}
           </div>

@@ -9,6 +9,7 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,7 @@ import {
 import { useState, useMemo } from "react";
 
 export default function AiAccuracyDashboard() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [projectId, setProjectId] = useState<number | undefined>(undefined);
 
@@ -42,14 +44,14 @@ export default function AiAccuracyDashboard() {
     <div className="space-y-6">
       <PageHeader
         icon={Brain}
-        title="AI预设准确度分析"
-        description="采纳率统计 · 工序维度分析 · 修改幅度追踪 · 趋势优化"
+        title={t("ai.accuracy.title")}
+        description={t("ai.accuracy.description")}
         actions={
           <div className="flex items-center gap-2">
-            <Label className="text-sm whitespace-nowrap">筛选项目:</Label>
+            <Label className="text-sm whitespace-nowrap">{t("ai.accuracy.filterProject")}</Label>
             <Input
               type="number"
-              placeholder="全部项目"
+              placeholder={t("ai.accuracy.allProjects")}
               className="w-32"
               value={projectId || ""}
               onChange={(e) => setProjectId(e.target.value ? parseInt(e.target.value) : undefined)}
@@ -62,24 +64,24 @@ export default function AiAccuracyDashboard() {
         <Card>
           <CardContent className="flex items-center justify-center py-16">
             <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
-            <span className="ml-3 text-muted-foreground">加载AI准确度数据...</span>
+            <span className="ml-3 text-muted-foreground">{t("ai.accuracy.loading")}</span>
           </CardContent>
         </Card>
       ) : data ? (
         <>
           {/* 总体统计卡片 */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <StatCard icon={Target} label="总采纳率" value={`${data.overall.adoptionRate.toFixed(1)}%`} iconColor="text-purple-600" iconBg="bg-purple-100" />
-            <StatCard icon={CheckCircle2} label="直接采纳率" value={`${data.overall.directAdoptionRate.toFixed(1)}%`} subtitle={`${data.overall.confirmedCount} 项`} iconColor="text-green-600" iconBg="bg-green-100" />
-            <StatCard icon={Edit} label="修改后采纳" value={`${data.overall.modificationRate.toFixed(1)}%`} subtitle={`${data.overall.modifiedCount} 项`} iconColor="text-blue-600" iconBg="bg-blue-100" />
-            <StatCard icon={XCircle} label="拒绝率" value={`${data.overall.rejectionRate.toFixed(1)}%`} subtitle={`${data.overall.rejectedCount} 项`} iconColor="text-red-600" iconBg="bg-red-100" />
-            <StatCard icon={Activity} label="AI预设总数" value={data.overall.totalPresets} subtitle={`待处理: ${data.overall.pendingCount}`} iconColor="text-amber-600" iconBg="bg-amber-100" />
+            <StatCard icon={Target} label={t("ai.accuracy.totalAdoption")} value={`${data.overall.adoptionRate.toFixed(1)}%`} iconColor="text-purple-600" iconBg="bg-purple-100" />
+            <StatCard icon={CheckCircle2} label={t("ai.accuracy.directAdoption")} value={`${data.overall.directAdoptionRate.toFixed(1)}%`} subtitle={`${data.overall.confirmedCount}`} iconColor="text-green-600" iconBg="bg-green-100" />
+            <StatCard icon={Edit} label={t("ai.accuracy.modifiedAdoption")} value={`${data.overall.modificationRate.toFixed(1)}%`} subtitle={`${data.overall.modifiedCount}`} iconColor="text-blue-600" iconBg="bg-blue-100" />
+            <StatCard icon={XCircle} label={t("ai.accuracy.rejectionRate")} value={`${data.overall.rejectionRate.toFixed(1)}%`} subtitle={`${data.overall.rejectedCount}`} iconColor="text-red-600" iconBg="bg-red-100" />
+            <StatCard icon={Activity} label={t("ai.accuracy.totalPresets")} value={data.overall.totalPresets} subtitle={`${data.overall.pendingCount}`} iconColor="text-amber-600" iconBg="bg-amber-100" />
           </div>
 
           {/* 采纳率可视化条 */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">采纳率分布</CardTitle>
+              <CardTitle className="text-base">{t("ai.accuracy.adoptionDistribution")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex h-8 rounded-lg overflow-hidden">
@@ -88,7 +90,7 @@ export default function AiAccuracyDashboard() {
                     className="bg-green-500 flex items-center justify-center text-white text-xs font-medium"
                     style={{ width: `${data.overall.directAdoptionRate}%` }}
                   >
-                    {data.overall.directAdoptionRate > 10 ? `直接 ${data.overall.directAdoptionRate.toFixed(0)}%` : ""}
+                    {data.overall.directAdoptionRate > 10 ? `${t("ai.accuracy.direct")} ${data.overall.directAdoptionRate.toFixed(0)}%` : ""}
                   </div>
                 )}
                 {data.overall.modifiedCount > 0 && (
@@ -96,7 +98,7 @@ export default function AiAccuracyDashboard() {
                     className="bg-blue-500 flex items-center justify-center text-white text-xs font-medium"
                     style={{ width: `${data.overall.modificationRate}%` }}
                   >
-                    {data.overall.modificationRate > 10 ? `修改 ${data.overall.modificationRate.toFixed(0)}%` : ""}
+                    {data.overall.modificationRate > 10 ? `${t("ai.accuracy.modified")} ${data.overall.modificationRate.toFixed(0)}%` : ""}
                   </div>
                 )}
                 {data.overall.rejectedCount > 0 && (
@@ -104,7 +106,7 @@ export default function AiAccuracyDashboard() {
                     className="bg-red-500 flex items-center justify-center text-white text-xs font-medium"
                     style={{ width: `${data.overall.rejectionRate}%` }}
                   >
-                    {data.overall.rejectionRate > 10 ? `拒绝 ${data.overall.rejectionRate.toFixed(0)}%` : ""}
+                    {data.overall.rejectionRate > 10 ? `${t("ai.accuracy.rejected")} ${data.overall.rejectionRate.toFixed(0)}%` : ""}
                   </div>
                 )}
                 {data.overall.pendingCount > 0 && (
@@ -112,32 +114,32 @@ export default function AiAccuracyDashboard() {
                     className="bg-amber-300 flex items-center justify-center text-amber-800 text-xs font-medium"
                     style={{ width: `${(data.overall.pendingCount / data.overall.totalPresets * 100)}%` }}
                   >
-                    {(data.overall.pendingCount / data.overall.totalPresets * 100) > 10 ? "待处理" : ""}
+                    {(data.overall.pendingCount / data.overall.totalPresets * 100) > 10 ? t("ai.accuracy.pendingLabel") : ""}
                   </div>
                 )}
               </div>
               <div className="flex items-center gap-4 mt-2 text-xs">
-                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-green-500" /> 直接采纳</div>
-                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-blue-500" /> 修改后采纳</div>
-                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-red-500" /> 拒绝</div>
-                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-amber-300" /> 待处理</div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-green-500" /> {t("ai.accuracy.directLabel")}</div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-blue-500" /> {t("ai.accuracy.modifiedLabel")}</div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-red-500" /> {t("ai.accuracy.rejectedLabel")}</div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-amber-300" /> {t("ai.accuracy.pendingLabel")}</div>
               </div>
             </CardContent>
           </Card>
 
           <Tabs defaultValue="process" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="process">按工序</TabsTrigger>
-              <TabsTrigger value="project">按项目</TabsTrigger>
-              <TabsTrigger value="trend">月度趋势</TabsTrigger>
-              <TabsTrigger value="modification">修改分析</TabsTrigger>
+              <TabsTrigger value="process">{t("ai.accuracy.byProcess")}</TabsTrigger>
+              <TabsTrigger value="project">{t("ai.accuracy.byProject")}</TabsTrigger>
+              <TabsTrigger value="trend">{t("ai.accuracy.monthlyTrend")}</TabsTrigger>
+              <TabsTrigger value="modification">{t("ai.accuracy.modificationAnalysis")}</TabsTrigger>
             </TabsList>
 
             {/* 按工序维度 */}
             <TabsContent value="process" className="space-y-3 mt-3">
               {data.byProcess.length === 0 ? (
                 <Card className="border-dashed">
-                  <CardContent className="py-8 text-center text-muted-foreground">暂无工序数据</CardContent>
+                  <CardContent className="py-8 text-center text-muted-foreground">{t("ai.accuracy.noProcessData")}</CardContent>
                 </Card>
               ) : (
                 data.byProcess.map((proc: any) => (
@@ -150,7 +152,7 @@ export default function AiAccuracyDashboard() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-purple-600">{proc.stats.adoptionRate.toFixed(0)}%</span>
-                          <span className="text-xs text-muted-foreground">采纳率</span>
+                          <span className="text-xs text-muted-foreground">{t("ai.accuracy.adoptionRate")}</span>
                         </div>
                       </div>
                       <div className="flex h-3 rounded-full overflow-hidden bg-muted">
@@ -159,10 +161,10 @@ export default function AiAccuracyDashboard() {
                         <div className="bg-red-500" style={{ width: `${proc.stats.rejectionRate}%` }} />
                       </div>
                       <div className="flex items-center gap-4 mt-1.5 text-[10px] text-muted-foreground">
-                        <span>直接: {proc.stats.confirmedCount}</span>
-                        <span>修改: {proc.stats.modifiedCount}</span>
-                        <span>拒绝: {proc.stats.rejectedCount}</span>
-                        <span>总计: {proc.stats.totalPresets}</span>
+                        <span>{t("ai.accuracy.direct")}: {proc.stats.confirmedCount}</span>
+                        <span>{t("ai.accuracy.modified")}: {proc.stats.modifiedCount}</span>
+                        <span>{t("ai.accuracy.rejected")}: {proc.stats.rejectedCount}</span>
+                        <span>{t("ai.accuracy.total")}: {proc.stats.totalPresets}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -174,7 +176,7 @@ export default function AiAccuracyDashboard() {
             <TabsContent value="project" className="space-y-3 mt-3">
               {data.byProject.length === 0 ? (
                 <Card className="border-dashed">
-                  <CardContent className="py-8 text-center text-muted-foreground">暂无项目数据</CardContent>
+                  <CardContent className="py-8 text-center text-muted-foreground">{t("ai.accuracy.noProjectData")}</CardContent>
                 </Card>
               ) : (
                 data.byProject.map((proj: any) => (
@@ -202,14 +204,14 @@ export default function AiAccuracyDashboard() {
             <TabsContent value="trend" className="space-y-3 mt-3">
               {data.trend.length === 0 ? (
                 <Card className="border-dashed">
-                  <CardContent className="py-8 text-center text-muted-foreground">暂无趋势数据</CardContent>
+                  <CardContent className="py-8 text-center text-muted-foreground">{t("ai.accuracy.noTrendData")}</CardContent>
                 </Card>
               ) : (
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-purple-600" />
-                      月度采纳率趋势
+                      {t("ai.accuracy.monthlyTrendTitle")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -238,22 +240,22 @@ export default function AiAccuracyDashboard() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Edit className="w-4 h-4 text-blue-600" />
-                    修改幅度分析
+                    {t("ai.accuracy.modificationTitle")}
                   </CardTitle>
                   <CardDescription>
-                    分析工程师对AI预设的修改模式，用于优化AI推荐准确性
+                    {t("ai.accuracy.modificationDesc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-                    <div className="text-sm text-muted-foreground">平均每次修改涉及字段数</div>
+                    <div className="text-sm text-muted-foreground">{t("ai.accuracy.avgFieldsModified")}</div>
                     <div className="text-3xl font-bold text-blue-600">
                       {data.modificationAnalysis.avgFieldsModified.toFixed(1)}
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <div className="text-sm font-medium">最常被修改的字段</div>
+                    <div className="text-sm font-medium">{t("ai.accuracy.mostModifiedFields")}</div>
                     {data.modificationAnalysis.mostModifiedFields.map((field: any) => {
                       const maxCount = Math.max(...data.modificationAnalysis.mostModifiedFields.map((f: any) => f.count), 1);
                       return (
@@ -279,7 +281,7 @@ export default function AiAccuracyDashboard() {
                   <div className="text-xs text-muted-foreground bg-purple-50 dark:bg-purple-950 rounded-lg p-3">
                     <div className="flex items-center gap-1 mb-1">
                       <Sparkles className="w-3 h-3 text-purple-500" />
-                      <span className="font-medium text-purple-700 dark:text-purple-300">AI优化建议</span>
+                      <span className="font-medium text-purple-700 dark:text-purple-300">{t("ai.accuracy.aiOptimizationSuggestion")}</span>
                     </div>
                     <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
                       {data.overall.rejectionRate > 30 && (
@@ -305,8 +307,8 @@ export default function AiAccuracyDashboard() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Brain className="w-16 h-16 text-muted-foreground/30 mb-4" />
-            <h3 className="text-lg font-semibold text-muted-foreground">暂无AI预设数据</h3>
-            <p className="text-sm text-muted-foreground/70 mt-1">请先在工序管理中使用AI智慧预设功能</p>
+            <h3 className="text-lg font-semibold text-muted-foreground">{t("ai.accuracy.noPresetData")}</h3>
+            <p className="text-sm text-muted-foreground/70 mt-1">{t("ai.accuracy.usePresetFirst")}</p>
           </CardContent>
         </Card>
       )}

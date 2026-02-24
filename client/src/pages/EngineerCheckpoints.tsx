@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -265,13 +266,13 @@ const ENGINEER_CHECKPOINTS: EngineerCheckpoint[] = [
   },
 ];
 
-// 状态颜色和图标映射
+// Status color and icon mapping - labels resolved via t() inside component
 const STATUS_CONFIG = {
-  pending: { color: 'bg-gray-500', icon: Clock, label: '待处理', textColor: 'text-gray-500' },
-  in_progress: { color: 'bg-blue-500', icon: Settings, label: '进行中', textColor: 'text-blue-500' },
-  approved: { color: 'bg-green-500', icon: CheckCircle2, label: '已通过', textColor: 'text-green-500' },
-  rejected: { color: 'bg-red-500', icon: XCircle, label: '已拒绝', textColor: 'text-red-500' },
-  conditional: { color: 'bg-yellow-500', icon: AlertTriangle, label: '有条件通过', textColor: 'text-yellow-500' },
+  pending: { color: 'bg-gray-500', icon: Clock, labelKey: 'quality.engineer.statusPending', textColor: 'text-gray-500' },
+  in_progress: { color: 'bg-blue-500', icon: Settings, labelKey: 'quality.engineer.statusInProgress', textColor: 'text-blue-500' },
+  approved: { color: 'bg-green-500', icon: CheckCircle2, labelKey: 'quality.engineer.statusApproved', textColor: 'text-green-500' },
+  rejected: { color: 'bg-red-500', icon: XCircle, labelKey: 'quality.engineer.statusRejected', textColor: 'text-red-500' },
+  conditional: { color: 'bg-yellow-500', icon: AlertTriangle, labelKey: 'quality.engineer.statusConditional', textColor: 'text-yellow-500' },
 };
 
 // 阶段图标映射
@@ -292,6 +293,7 @@ const PHASE_ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 export default function EngineerCheckpoints() {
+  const { t } = useLanguage();
   const [checkpoints, setCheckpoints] = useState<EngineerCheckpoint[]>(ENGINEER_CHECKPOINTS);
   const [selectedPhase, setSelectedPhase] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -332,7 +334,7 @@ export default function EngineerCheckpoints() {
       )
     );
 
-    toast.success(`检查点 ${selectedCheckpoint.id} 已${STATUS_CONFIG[status].label}`);
+    toast.success(`${t("quality.engineer.checkpoint")} ${selectedCheckpoint.id} ${t(STATUS_CONFIG[status].labelKey)}`);
     setIsApprovalDialogOpen(false);
     setApprovalRemarks('');
     setSelectedCheckpoint(null);
@@ -349,32 +351,32 @@ export default function EngineerCheckpoints() {
         {/* 页面标题 */}
         <PageHeader
           icon={ClipboardCheck}
-          title="工程师确认检查点"
-          description="M0-M12项目生命周期工程师确认检查点管理"
+          title={t("quality.engineer.title")}
+          description={t("quality.engineer.description")}
           actions={
             <Badge variant="outline" className="text-lg px-4 py-2">
-              进度: {stats.approved}/{stats.total}
+              {t("quality.engineer.progress")}: {stats.approved}/{stats.total}
             </Badge>
           }
         />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <StatCard icon={FileText} label="总检查点" value={stats.total} iconColor="text-muted-foreground" iconBg="bg-muted" />
-          <StatCard icon={CheckCircle2} label="已通过" value={stats.approved} iconColor="text-green-500" iconBg="bg-green-500/10" />
-          <StatCard icon={Settings} label="进行中" value={stats.inProgress} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-          <StatCard icon={Clock} label="待处理" value={stats.pending} iconColor="text-gray-500" iconBg="bg-gray-500/10" />
-          <StatCard icon={XCircle} label="已拒绝" value={stats.rejected} iconColor="text-red-500" iconBg="bg-red-500/10" />
+          <StatCard icon={FileText} label={t("quality.engineer.totalCheckpoints")} value={stats.total} iconColor="text-muted-foreground" iconBg="bg-muted" />
+          <StatCard icon={CheckCircle2} label={t("quality.engineer.statusApproved")} value={stats.approved} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Settings} label={t("quality.engineer.statusInProgress")} value={stats.inProgress} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Clock} label={t("quality.engineer.statusPending")} value={stats.pending} iconColor="text-gray-500" iconBg="bg-gray-500/10" />
+          <StatCard icon={XCircle} label={t("quality.engineer.statusRejected")} value={stats.rejected} iconColor="text-red-500" iconBg="bg-red-500/10" />
         </div>
 
         {/* 过滤器 */}
         <div className="flex flex-wrap items-center gap-4">
           <Select value={selectedPhase} onValueChange={setSelectedPhase}>
             <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="选择阶段" />
+              <SelectValue placeholder={t("quality.engineer.selectPhase")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">所有阶段</SelectItem>
+              <SelectItem value="all">{t("quality.engineer.allPhases")}</SelectItem>
               {Array.from(new Set(checkpoints.map((cp) => cp.phase))).map((phase) => (
                 <SelectItem key={phase} value={phase}>
                   {phase}
@@ -385,13 +387,13 @@ export default function EngineerCheckpoints() {
 
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
             <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="选择状态" />
+              <SelectValue placeholder={t("quality.engineer.selectStatus")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">所有状态</SelectItem>
+              <SelectItem value="all">{t("quality.engineer.allStatuses")}</SelectItem>
               {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                 <SelectItem key={key} value={key}>
-                  {config.label}
+                  {t(config.labelKey)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -401,8 +403,8 @@ export default function EngineerCheckpoints() {
         {/* 检查点列表 */}
         <Tabs defaultValue="list" className="w-full">
           <TabsList>
-            <TabsTrigger value="list">列表视图</TabsTrigger>
-            <TabsTrigger value="timeline">时间线视图</TabsTrigger>
+            <TabsTrigger value="list">{t("quality.engineer.listView")}</TabsTrigger>
+            <TabsTrigger value="timeline">{t("quality.engineer.timelineView")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="list" className="space-y-4">
@@ -426,7 +428,7 @@ export default function EngineerCheckpoints() {
                             <span className="font-medium">{checkpoint.checkpointName}</span>
                             <Badge className={`${STATUS_CONFIG[checkpoint.status].color} text-white`}>
                               <StatusIcon className="w-3 h-3 mr-1" />
-                              {STATUS_CONFIG[checkpoint.status].label}
+                              {t(STATUS_CONFIG[checkpoint.status].labelKey)}
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">{checkpoint.description}</p>
@@ -440,13 +442,13 @@ export default function EngineerCheckpoints() {
                             {checkpoint.dueDate && (
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
-                                截止: {checkpoint.dueDate}
+                                {t("quality.engineer.dueDate")}: {checkpoint.dueDate}
                               </span>
                             )}
                             {checkpoint.completedDate && (
                               <span className="flex items-center gap-1 text-green-500">
                                 <CheckCircle2 className="w-3 h-3" />
-                                完成: {checkpoint.completedDate}
+                                {t("quality.engineer.completedDate")}: {checkpoint.completedDate}
                               </span>
                             )}
                           </div>
@@ -456,7 +458,7 @@ export default function EngineerCheckpoints() {
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="outline" size="sm">
-                              查看详情
+                              {t("quality.engineer.viewDetails")}
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-2xl">
@@ -469,7 +471,7 @@ export default function EngineerCheckpoints() {
                             </DialogHeader>
                             <div className="space-y-4">
                               <div>
-                                <h4 className="font-medium mb-2">所需文档</h4>
+                                <h4 className="font-medium mb-2">{t("quality.engineer.requiredDocuments")}</h4>
                                 <ul className="list-disc list-inside text-sm text-muted-foreground">
                                   {checkpoint.requiredDocuments.map((doc, i) => (
                                     <li key={i}>{doc}</li>
@@ -477,7 +479,7 @@ export default function EngineerCheckpoints() {
                                 </ul>
                               </div>
                               <div>
-                                <h4 className="font-medium mb-2">验证项目</h4>
+                                <h4 className="font-medium mb-2">{t("quality.engineer.verificationItems")}</h4>
                                 <ul className="space-y-1">
                                   {checkpoint.verificationItems.map((item, i) => (
                                     <li key={i} className="flex items-center gap-2 text-sm">
@@ -489,7 +491,7 @@ export default function EngineerCheckpoints() {
                               </div>
                               {checkpoint.remarks && (
                                 <div>
-                                  <h4 className="font-medium mb-2">备注</h4>
+                                  <h4 className="font-medium mb-2">{t("quality.engineer.remarks")}</h4>
                                   <p className="text-sm text-muted-foreground">{checkpoint.remarks}</p>
                                 </div>
                               )}
@@ -498,7 +500,7 @@ export default function EngineerCheckpoints() {
                         </Dialog>
                         {(checkpoint.status === 'pending' || checkpoint.status === 'in_progress') && (
                           <Button size="sm" onClick={() => startApproval(checkpoint)}>
-                            审批
+                            {t("quality.engineer.approve")}
                             <ChevronRight className="w-4 h-4 ml-1" />
                           </Button>
                         )}
@@ -538,7 +540,7 @@ export default function EngineerCheckpoints() {
                           </CardTitle>
                           <Badge className={`${STATUS_CONFIG[checkpoint.status].color} text-white`}>
                             <StatusIcon className="w-3 h-3 mr-1" />
-                            {STATUS_CONFIG[checkpoint.status].label}
+                            {t(STATUS_CONFIG[checkpoint.status].labelKey)}
                           </Badge>
                         </div>
                         <CardDescription>{checkpoint.phaseName}</CardDescription>
@@ -572,41 +574,41 @@ export default function EngineerCheckpoints() {
         <Dialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>检查点审批</DialogTitle>
+              <DialogTitle>{t("quality.engineer.approvalDialog")}</DialogTitle>
               <DialogDescription>
                 {selectedCheckpoint && (
                   <>
-                    审批检查点: {selectedCheckpoint.phase} - {selectedCheckpoint.checkpointName}
+                    {t("quality.engineer.approvalTarget")}: {selectedCheckpoint.phase} - {selectedCheckpoint.checkpointName}
                   </>
                 )}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">审批备注</label>
+                <label className="text-sm font-medium">{t("quality.engineer.approvalRemarks")}</label>
                 <Textarea
                   value={approvalRemarks}
                   onChange={(e) => setApprovalRemarks(e.target.value)}
-                  placeholder="请输入审批备注..."
+                  placeholder={t("quality.engineer.approvalRemarksPlaceholder")}
                   className="mt-1"
                 />
               </div>
             </div>
             <DialogFooter className="flex gap-2">
               <Button variant="outline" onClick={() => setIsApprovalDialogOpen(false)}>
-                取消
+                {t("quality.common.cancel")}
               </Button>
               <Button variant="destructive" onClick={() => handleApproval('rejected')}>
                 <XCircle className="w-4 h-4 mr-1" />
-                拒绝
+                {t("quality.engineer.reject")}
               </Button>
               <Button variant="secondary" onClick={() => handleApproval('conditional')}>
                 <AlertTriangle className="w-4 h-4 mr-1" />
-                有条件通过
+                {t("quality.engineer.statusConditional")}
               </Button>
               <Button onClick={() => handleApproval('approved')}>
                 <CheckCircle2 className="w-4 h-4 mr-1" />
-                通过
+                {t("quality.engineer.pass")}
               </Button>
             </DialogFooter>
           </DialogContent>

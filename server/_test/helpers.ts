@@ -46,6 +46,7 @@ export function createMockContext(
     user: { ...baseUser, ...overrides },
     req: createMockReq(),
     res: createMockRes(),
+    language: 'zh' as const,
   };
 }
 
@@ -57,6 +58,7 @@ export function createAnonymousContext(): TrpcContext {
     user: null,
     req: createMockReq(),
     res: createMockRes(),
+    language: 'zh' as const,
   };
 }
 
@@ -78,5 +80,6 @@ export function createAdminContext(
     },
     req: createMockReq(),
     res: createMockRes(),
+    language: 'zh' as const,
   };
 }

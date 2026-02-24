@@ -14,6 +14,7 @@ import {
   FileText, Loader2, Sparkles, CheckCircle, Shield, Clock, Wrench, Package,
   AlertTriangle,
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const CLEANING_METHODS = [
   { value: "碳氢真空清洗", label: "碳氢真空清洗" },
@@ -50,6 +51,7 @@ interface ProcessCardResult {
 }
 
 export default function SOPProcessCardEditor() {
+  const { t } = useLanguage();
   const [productType, setProductType] = useState("碳氢真空清洗机");
   const [workpieceDescription, setWorkpieceDescription] = useState("");
   const [cleaningMethod, setCleaningMethod] = useState("碳氢真空清洗");
@@ -79,66 +81,66 @@ export default function SOPProcessCardEditor() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={FileText}
-          title="SOP工艺卡片编辑器"
-          description="AI工序生成 · 参数推荐 · 质检点绑定 · BOM物料关联"
-          actions={<Badge variant="outline" className="gap-1"><Sparkles className="h-3 w-3" />AI生成</Badge>}
+          title={t("quality.sopCard.title")}
+          description={t("quality.sopCard.description")}
+          actions={<Badge variant="outline" className="gap-1"><Sparkles className="h-3 w-3" />{t("quality.sopCard.aiBadge")}</Badge>}
         />
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><FileText className="h-5 w-5 text-primary" />工艺需求输入</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base"><FileText className="h-5 w-5 text-primary" />{t("quality.sopCard.sectionInput")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">产品类型</label>
+                <label className="text-sm text-muted-foreground">{t("quality.sopCard.productType")}</label>
                 <Select value={productType} onValueChange={(v) => setProductType(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择产品类型" />
+                    <SelectValue placeholder={t("quality.sopCard.productType")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {PRODUCT_TYPES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                    {PRODUCT_TYPES.map((p) => <SelectItem key={p.value} value={p.value}>{({ "碳氢真空清洗机": t("quality.sopCard.typeHydrocarbon"), "水基清洗线": t("quality.sopCard.typeAqueous"), "超声波清洗机": t("quality.sopCard.typeUltrasonic"), "定制清洗设备": t("quality.sopCard.typeCustom") } as Record<string, string>)[p.value] ?? p.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">清洗方式</label>
+                <label className="text-sm text-muted-foreground">{t("quality.sopCard.cleaningMethod")}</label>
                 <Select value={cleaningMethod} onValueChange={(v) => setCleaningMethod(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择清洗方式" />
+                    <SelectValue placeholder={t("quality.sopCard.cleaningMethod")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {CLEANING_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                    {CLEANING_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{({ "碳氢真空清洗": t("quality.sopCard.methodHydrocarbon"), "水基清洗": t("quality.sopCard.methodAqueous"), "超声波清洗": t("quality.sopCard.methodUltrasonic"), "组合清洗": t("quality.sopCard.methodCombined") } as Record<string, string>)[m.value] ?? m.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">工件描述</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder="如: 铝合金发动机缸体，尺寸400×300×250mm，含油道和水道内腔" value={workpieceDescription} onChange={(e) => setWorkpieceDescription(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("quality.sopCard.workpieceDesc")}</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder={t("quality.sopCard.workpieceDescPlaceholder")} value={workpieceDescription} onChange={(e) => setWorkpieceDescription(e.target.value)} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">清洁度目标</label>
-                <Input placeholder="如: ISO 16232 C级" value={cleanlinessTarget} onChange={(e) => setCleanlinessTarget(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.sopCard.cleanlinessTarget")}</label>
+                <Input placeholder={t("quality.sopCard.cleanlinessTargetPlaceholder")} value={cleanlinessTarget} onChange={(e) => setCleanlinessTarget(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">工件材料（可选）</label>
-                <Input placeholder="如: ADC12铝合金" value={materialType} onChange={(e) => setMaterialType(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.sopCard.workpieceMaterial")}</label>
+                <Input placeholder={t("quality.sopCard.materialPlaceholder")} value={materialType} onChange={(e) => setMaterialType(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">批次数量（可选）</label>
-                <Input type="number" placeholder="如: 50" value={batchSize} onChange={(e) => setBatchSize(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("quality.sopCard.batchQty")}</label>
+                <Input type="number" placeholder="e.g. 50" value={batchSize} onChange={(e) => setBatchSize(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">特殊要求（可选）</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[40px]" placeholder="如: 需要防锈处理，内腔清洗需特别关注" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("quality.sopCard.specialRequirements")}</label>
+              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[40px]" placeholder={t("quality.sopCard.specialReqPlaceholder")} value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} />
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!workpieceDescription.trim() || !cleanlinessTarget.trim() || mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI生成工艺卡片
+                {t("quality.sopCard.generateBtn")}
               </Button>
             </div>
           </CardContent>
@@ -151,16 +153,16 @@ export default function SOPProcessCardEditor() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">工艺名称</p>
+                    <p className="text-sm text-muted-foreground">{t("quality.sopCard.processName")}</p>
                     <p className="text-2xl font-bold">{result.processName}</p>
                   </div>
                   <div className="flex gap-3 text-center">
                     <div className="px-4 py-2 rounded bg-muted/50">
-                      <p className="text-xs text-muted-foreground">工序数</p>
+                      <p className="text-xs text-muted-foreground">{t("quality.sopCard.stepCount")}</p>
                       <p className="text-xl font-bold text-primary">{result.totalSteps}</p>
                     </div>
                     <div className="px-4 py-2 rounded bg-muted/50">
-                      <p className="text-xs text-muted-foreground">总周期</p>
+                      <p className="text-xs text-muted-foreground">{t("quality.sopCard.totalCycle")}</p>
                       <p className="text-xl font-bold">{result.estimatedCycleTime}</p>
                     </div>
                   </div>
@@ -180,7 +182,7 @@ export default function SOPProcessCardEditor() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{step.stepName}</span>
-                          {step.qualityCheckpoint.required && <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">质检点</Badge>}
+                          {step.qualityCheckpoint.required && <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">{t("quality.sopCard.qcPoint")}</Badge>}
                           <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1"><Clock className="h-3 w-3" />{step.estimatedTime}</span>
                         </div>
                         <p className="text-sm text-muted-foreground">{step.description}</p>
@@ -192,15 +194,15 @@ export default function SOPProcessCardEditor() {
                         {/* Equipment */}
                         <div className="flex items-start gap-2">
                           <Wrench className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div><p className="text-xs text-muted-foreground">设备要求</p><p className="text-sm">{step.equipmentRequired}</p></div>
+                          <div><p className="text-xs text-muted-foreground">{t("quality.sopCard.equipmentReq")}</p><p className="text-sm">{step.equipmentRequired}</p></div>
                         </div>
 
                         {/* Parameters Table */}
                         {step.parameters.length > 0 && (
                           <div>
-                            <p className="text-xs text-muted-foreground mb-2">工艺参数</p>
+                            <p className="text-xs text-muted-foreground mb-2">{t("quality.sopCard.processParams")}</p>
                             <table className="w-full text-sm">
-                              <thead><tr className="border-b text-xs"><th className="text-left py-1 text-muted-foreground">参数</th><th className="text-left py-1 text-muted-foreground">设定值</th><th className="text-left py-1 text-muted-foreground">单位</th><th className="text-left py-1 text-muted-foreground">公差</th></tr></thead>
+                              <thead><tr className="border-b text-xs"><th className="text-left py-1 text-muted-foreground">{t("quality.sopCard.paramField")}</th><th className="text-left py-1 text-muted-foreground">{t("quality.sopCard.setValue")}</th><th className="text-left py-1 text-muted-foreground">{t("quality.sopCard.unitField")}</th><th className="text-left py-1 text-muted-foreground">{t("quality.sopCard.toleranceField")}</th></tr></thead>
                               <tbody>
                                 {step.parameters.map((p, pi) => (
                                   <tr key={pi} className="border-b border-muted/30">
@@ -218,11 +220,11 @@ export default function SOPProcessCardEditor() {
                         {/* Quality Checkpoint */}
                         {step.qualityCheckpoint.required && (
                           <div className="p-3 rounded bg-blue-500/10 border border-blue-500/20">
-                            <div className="flex items-center gap-1 text-xs text-blue-400 mb-1"><Shield className="h-3 w-3" />质检点</div>
+                            <div className="flex items-center gap-1 text-xs text-blue-400 mb-1"><Shield className="h-3 w-3" />{t("quality.sopCard.qcPoint")}</div>
                             <div className="grid grid-cols-3 gap-2 text-xs">
-                              <div><p className="text-muted-foreground">检测方法</p><p>{step.qualityCheckpoint.method}</p></div>
-                              <div><p className="text-muted-foreground">标准</p><p>{step.qualityCheckpoint.standard}</p></div>
-                              <div><p className="text-muted-foreground">合格标准</p><p>{step.qualityCheckpoint.acceptCriteria}</p></div>
+                              <div><p className="text-muted-foreground">{t("quality.sopCard.testMethod")}</p><p>{step.qualityCheckpoint.method}</p></div>
+                              <div><p className="text-muted-foreground">{t("quality.sopCard.standard")}</p><p>{step.qualityCheckpoint.standard}</p></div>
+                              <div><p className="text-muted-foreground">{t("quality.sopCard.passCriteria")}</p><p>{step.qualityCheckpoint.acceptCriteria}</p></div>
                             </div>
                           </div>
                         )}
@@ -231,7 +233,7 @@ export default function SOPProcessCardEditor() {
                         {step.bomMaterials.length > 0 && (
                           <div className="flex items-start gap-2">
                             <Package className="h-4 w-4 text-muted-foreground mt-0.5" />
-                            <div><p className="text-xs text-muted-foreground">关联物料</p>
+                            <div><p className="text-xs text-muted-foreground">{t("quality.sopCard.relatedMaterials")}</p>
                               <div className="flex flex-wrap gap-1 mt-1">{step.bomMaterials.map((m, mi) => (<Badge key={mi} variant="outline" className="text-xs">{m}</Badge>))}</div>
                             </div>
                           </div>
@@ -241,7 +243,7 @@ export default function SOPProcessCardEditor() {
                         {step.safetyNotes && (
                           <div className="flex items-start gap-2 text-xs">
                             <AlertTriangle className="h-4 w-4 text-yellow-400 mt-0.5" />
-                            <div><p className="text-muted-foreground">安全注意</p><p>{step.safetyNotes}</p></div>
+                            <div><p className="text-muted-foreground">{t("quality.sopCard.safetyNotes")}</p><p>{step.safetyNotes}</p></div>
                           </div>
                         )}
                       </div>
@@ -255,7 +257,7 @@ export default function SOPProcessCardEditor() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {result.toolsRequired.length > 0 && (
                 <Card>
-                  <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Wrench className="h-5 w-5 text-primary" />所需工具</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Wrench className="h-5 w-5 text-primary" />{t("quality.sopCard.sectionTools")}</CardTitle></CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">{result.toolsRequired.map((t, i) => (<Badge key={i} variant="outline">{t}</Badge>))}</div>
                   </CardContent>
@@ -263,7 +265,7 @@ export default function SOPProcessCardEditor() {
               )}
               {result.safetyWarnings.length > 0 && (
                 <Card>
-                  <CardHeader><CardTitle className="flex items-center gap-2 text-base"><AlertTriangle className="h-5 w-5 text-red-400" />安全警告</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="flex items-center gap-2 text-base"><AlertTriangle className="h-5 w-5 text-red-400" />{t("quality.sopCard.sectionSafety")}</CardTitle></CardHeader>
                   <CardContent>
                     <ul className="space-y-1">{result.safetyWarnings.map((w, i) => (<li key={i} className="flex items-start gap-2 text-sm"><AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" /><span>{w}</span></li>))}</ul>
                   </CardContent>
@@ -273,7 +275,7 @@ export default function SOPProcessCardEditor() {
 
             {result.recommendations.length > 0 && (
               <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CheckCircle className="h-5 w-5 text-primary" />AI建议</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CheckCircle className="h-5 w-5 text-primary" />{t("quality.sopCard.sectionAiSuggestions")}</CardTitle></CardHeader>
                 <CardContent>
                   <ul className="space-y-2">{result.recommendations.map((r, i) => (<li key={i} className="flex items-start gap-2 text-sm"><span className="text-primary font-medium flex-shrink-0">{i + 1}.</span><span>{r}</span></li>))}</ul>
                 </CardContent>

@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Play, Square, Clock, CheckCircle2, AlertCircle,
   Loader2, Timer, Calendar, History, Wrench,
@@ -27,6 +28,7 @@ import { useState, useEffect } from "react";
 export default function WorkerMobileView() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const assignmentsQuery = trpc.processSteps.getWorkerAssignments.useQuery();
   const summaryQuery = trpc.processSteps.getWorkerDailySummary.useQuery();
@@ -34,21 +36,21 @@ export default function WorkerMobileView() {
 
   const startMutation = trpc.processSteps.startTimeLogForWorker.useMutation({
     onSuccess: () => {
-      toast({ title: "计时已开始", description: "请在完成后点击结束按钮" });
+      toast({ title: t("manufacturing.workerMobile.timerStarted"), description: t("manufacturing.workerMobile.timerStartedDesc") });
       assignmentsQuery.refetch();
       summaryQuery.refetch();
     },
-    onError: (err) => toast({ title: "开始失败", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: t("manufacturing.workerMobile.startFailed"), description: err.message, variant: "destructive" }),
   });
 
   const endMutation = trpc.processSteps.endTimeLog.useMutation({
     onSuccess: (data: any) => {
-      toast({ title: "工时已记录", description: `实际工时: ${data.actualHours?.toFixed(2) || '?'}小时` });
+      toast({ title: t("manufacturing.workerMobile.timeRecorded"), description: `${t("manufacturing.workerMobile.actualHours")}: ${data.actualHours?.toFixed(2) || '?'}h` });
       assignmentsQuery.refetch();
       summaryQuery.refetch();
       historyQuery.refetch();
     },
-    onError: (err) => toast({ title: "结束失败", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: t("manufacturing.workerMobile.endFailed"), description: err.message, variant: "destructive" }),
   });
 
   const assignments = (assignmentsQuery.data as any[]) || [];
@@ -65,7 +67,7 @@ export default function WorkerMobileView() {
         <Link href="/">
           <Button variant="ghost" size="sm" className="gap-1">
             <Home className="w-4 h-4" />
-            返回主页
+            {t("manufacturing.workerMobile.backToHome")}
           </Button>
         </Link>
       </div>
@@ -77,8 +79,8 @@ export default function WorkerMobileView() {
               <User className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <div className="font-bold text-lg">{user?.name || "产线员工"}</div>
-              <div className="text-xs text-muted-foreground">工位终端</div>
+              <div className="font-bold text-lg">{user?.name || t("manufacturing.workerMobile.lineWorker")}</div>
+              <div className="text-xs text-muted-foreground">{t("manufacturing.workerMobile.workstationTerminal")}</div>
             </div>
           </div>
 
@@ -86,11 +88,11 @@ export default function WorkerMobileView() {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-background/80 rounded-lg p-3 text-center">
                 <div className="text-2xl font-bold text-primary">{summary.todayHours?.toFixed(1) || 0}h</div>
-                <div className="text-[10px] text-muted-foreground">今日工时 ({summary.todayTasks || 0}项)</div>
+                <div className="text-[10px] text-muted-foreground">{t("manufacturing.workerMobile.todayHours")} ({summary.todayTasks || 0})</div>
               </div>
               <div className="bg-background/80 rounded-lg p-3 text-center">
                 <div className="text-2xl font-bold text-blue-600">{summary.weekHours?.toFixed(1) || 0}h</div>
-                <div className="text-[10px] text-muted-foreground">本周工时 ({summary.weekTasks || 0}项)</div>
+                <div className="text-[10px] text-muted-foreground">{t("manufacturing.workerMobile.weekHours")} ({summary.weekTasks || 0})</div>
               </div>
             </div>
           )}
@@ -103,7 +105,7 @@ export default function WorkerMobileView() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <Timer className="w-5 h-5 text-blue-600 animate-pulse" />
-              <span className="font-bold text-blue-700 dark:text-blue-300">正在计时</span>
+              <span className="font-bold text-blue-700 dark:text-blue-300">{t("manufacturing.workerMobile.timing")}</span>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-lg p-4 mb-3">
               <div className="flex items-center gap-2 mb-2">
@@ -113,7 +115,7 @@ export default function WorkerMobileView() {
               <div className="text-lg font-bold mb-1">{activeTask.stepName}</div>
               {activeTask.processRequirements && (
                 <div className="text-xs text-muted-foreground mb-1">
-                  工艺要求: {activeTask.processRequirements}
+                  {t("manufacturing.workerMobile.processRequirements")}: {activeTask.processRequirements}
                 </div>
               )}
               <ElapsedTimer startTime={activeTask.activeStartTime} />
@@ -128,7 +130,7 @@ export default function WorkerMobileView() {
               ) : (
                 <Square className="w-6 h-6 mr-2" />
               )}
-              结束工时
+              {t("manufacturing.workerMobile.endTime")}
             </Button>
           </CardContent>
         </Card>
@@ -139,11 +141,11 @@ export default function WorkerMobileView() {
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="tasks" className="text-sm">
             <Wrench className="w-4 h-4 mr-1" />
-            待办工序 ({assignments.filter((a: any) => !a.activeTimeLogId).length})
+            {t("manufacturing.workerMobile.pendingSteps")} ({assignments.filter((a: any) => !a.activeTimeLogId).length})
           </TabsTrigger>
           <TabsTrigger value="history" className="text-sm">
             <History className="w-4 h-4 mr-1" />
-            工时记录
+            {t("manufacturing.workerMobile.timeRecords")}
           </TabsTrigger>
         </TabsList>
 
@@ -159,7 +161,7 @@ export default function WorkerMobileView() {
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-8">
                 <CheckCircle2 className="w-10 h-10 text-green-500 mb-2" />
-                <span className="text-muted-foreground">暂无待办工序</span>
+                <span className="text-muted-foreground">{t("manufacturing.workerMobile.noPendingSteps")}</span>
               </CardContent>
             </Card>
           ) : (
@@ -174,7 +176,7 @@ export default function WorkerMobileView() {
                     startMutation.mutate({
                       bomStepId: task.bomStepId,
                       workerId: user?.id || 0,
-                      workerName: user?.name || "未知",
+                      workerName: user?.name || t("manufacturing.workerMobile.unknown"),
                     });
                   }}
                   isStarting={startMutation.isPending}
@@ -196,7 +198,7 @@ export default function WorkerMobileView() {
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-8">
                 <Clock className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                <span className="text-muted-foreground">暂无工时记录</span>
+                <span className="text-muted-foreground">{t("manufacturing.workerMobile.noTimeRecords")}</span>
               </CardContent>
             </Card>
           ) : (
@@ -213,7 +215,7 @@ export default function WorkerMobileView() {
                         {record.actualHours.toFixed(2)}h
                       </Badge>
                     ) : (
-                      <Badge variant="secondary">进行中</Badge>
+                      <Badge variant="secondary">{t("manufacturing.workerMobile.inProgress")}</Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
@@ -250,6 +252,7 @@ function WorkerTaskCard({
   isStarting: boolean;
   hasActiveTask: boolean;
 }) {
+  const { t } = useLanguage();
   return (
     <Card>
       <CardContent className="p-4">
@@ -261,7 +264,7 @@ function WorkerTaskCard({
 
         {task.processRequirements && (
           <div className="text-xs text-muted-foreground mb-1 bg-muted/50 rounded p-2">
-            <span className="font-medium">工艺要求:</span> {task.processRequirements}
+            <span className="font-medium">{t("manufacturing.workerMobile.processRequirements")}:</span> {task.processRequirements}
           </div>
         )}
         {task.processDescription && (
@@ -278,7 +281,7 @@ function WorkerTaskCard({
           )}
           {task.theoreticalHours && (
             <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" /> 理论: {task.theoreticalHours}h
+              <Clock className="w-3 h-3" /> {t("manufacturing.workerMobile.theoretical")}: {task.theoreticalHours}h
             </span>
           )}
         </div>
@@ -293,7 +296,7 @@ function WorkerTaskCard({
           ) : (
             <Play className="w-5 h-5 mr-2" />
           )}
-          {hasActiveTask ? "请先结束当前任务" : "开始工时"}
+          {hasActiveTask ? t("manufacturing.workerMobile.finishCurrentFirst") : t("manufacturing.workerMobile.startTime")}
         </Button>
       </CardContent>
     </Card>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from "@/components/ui/button";
@@ -16,21 +17,23 @@ import {
 } from "lucide-react";
 
 const PROCESS_CODES = Array.from({ length: 15 }, (_, i) => `T${i + 1}`);
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  in_storage: { label: "在库", color: "bg-blue-100 text-blue-800" },
-  in_transit: { label: "流转中", color: "bg-yellow-100 text-yellow-800" },
-  at_station: { label: "在工位", color: "bg-green-100 text-green-800" },
-  in_process: { label: "加工中", color: "bg-purple-100 text-purple-800" },
-  completed: { label: "已完成", color: "bg-gray-100 text-gray-800" },
-  defective: { label: "不良品", color: "bg-red-100 text-red-800" },
-};
 
 export default function MaterialFlowTracking() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedProject] = useState("PRJ-2026-001");
   const [showRecordDialog, setShowRecordDialog] = useState(false);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
+
+  const STATUS_MAP: Record<string, { label: string; color: string }> = {
+    in_storage: { label: t("supply.materialFlow.statusInStorage"), color: "bg-blue-100 text-blue-800" },
+    in_transit: { label: t("supply.materialFlow.statusInTransit"), color: "bg-yellow-100 text-yellow-800" },
+    at_station: { label: t("supply.materialFlow.statusAtStation"), color: "bg-green-100 text-green-800" },
+    in_process: { label: t("supply.materialFlow.statusInProcess"), color: "bg-purple-100 text-purple-800" },
+    completed: { label: t("supply.materialFlow.statusCompleted"), color: "bg-gray-100 text-gray-800" },
+    defective: { label: t("supply.materialFlow.statusDefective"), color: "bg-red-100 text-red-800" },
+  };
 
   const [newFlowRecord, setNewFlowRecord] = useState({
     materialId: "", materialName: "", fromProcess: "T1", toProcess: "T2",
@@ -62,21 +65,21 @@ export default function MaterialFlowTracking() {
   // Mutations
   const recordFlowMut = (trpc.qualityMaterialPerformance as any).recordMaterialFlow.useMutation({
     onSuccess: () => {
-      toast({ title: "物料流转已记录" });
+      toast({ title: t("supply.materialFlow.flowRecorded") });
       setShowRecordDialog(false);
       flowRecordsQuery.refetch();
     },
   });
   const updateLocationMut = (trpc.qualityMaterialPerformance as any).updateMaterialLocation.useMutation({
     onSuccess: () => {
-      toast({ title: "物料位置已更新" });
+      toast({ title: t("supply.materialFlow.locationUpdated") });
       setShowLocationDialog(false);
       locationsQuery.refetch();
     },
   });
   const detectBottlenecksMut = trpc.qualityMaterialPerformance.detectBottlenecks.useMutation({
     onSuccess: () => {
-      toast({ title: "瓶颈检测完成" });
+      toast({ title: t("supply.materialFlow.bottleneckDetected") });
       bottlenecksQuery.refetch();
     },
   });
@@ -88,37 +91,37 @@ export default function MaterialFlowTracking() {
       {/* Header */}
       <PageHeader
         icon={Truck}
-        title="物料流转追踪"
-        description="T1-T15工序间物料流转状态、UWB定位、生产瓶颈分析"
+        title={t("supply.materialFlow.pageTitle")}
+        description={t("supply.materialFlow.pageDesc")}
         actions={
           <Button variant="outline" onClick={() => detectBottlenecksMut.mutate({ projectId: selectedProject })}>
-            <Activity className="w-4 h-4 mr-2" />瓶颈检测
+            <Activity className="w-4 h-4 mr-2" />{t("supply.materialFlow.detectBottleneck")}
           </Button>
         }
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-4 w-full max-w-lg">
-          <TabsTrigger value="overview">流转概览</TabsTrigger>
-          <TabsTrigger value="flow">流转记录</TabsTrigger>
-          <TabsTrigger value="locations">实时位置</TabsTrigger>
-          <TabsTrigger value="bottlenecks">瓶颈分析</TabsTrigger>
+          <TabsTrigger value="overview">{t("supply.materialFlow.tabOverview")}</TabsTrigger>
+          <TabsTrigger value="flow">{t("supply.materialFlow.tabFlowRecords")}</TabsTrigger>
+          <TabsTrigger value="locations">{t("supply.materialFlow.tabLocations")}</TabsTrigger>
+          <TabsTrigger value="bottlenecks">{t("supply.materialFlow.tabBottlenecks")}</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard icon={Package} label="物料总数" value={summary?.totalMaterials || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-            <StatCard icon={RefreshCw} label="流转次数" value={summary?.totalFlows || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
-            <StatCard icon={Clock} label="平均流转时间(分)" value={summary?.avgTransitTime ? Math.round(Number(summary.avgTransitTime)) : 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
-            <StatCard icon={AlertTriangle} label="活跃瓶颈" value={summary?.activeBottlenecks || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
+            <StatCard icon={Package} label={t("supply.materialFlow.totalMaterials")} value={summary?.totalMaterials || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+            <StatCard icon={RefreshCw} label={t("supply.materialFlow.flowCount")} value={summary?.totalFlows || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+            <StatCard icon={Clock} label={t("supply.materialFlow.avgTransitTime")} value={summary?.avgTransitTime ? Math.round(Number(summary.avgTransitTime)) : 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+            <StatCard icon={AlertTriangle} label={t("supply.materialFlow.activeBottlenecks")} value={summary?.activeBottlenecks || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
           </div>
 
           {/* Process Flow Visualization */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">T1-T15 工序流转图</CardTitle>
+              <CardTitle className="text-lg">{t("supply.materialFlow.processFlowChart")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between overflow-x-auto pb-4">
@@ -130,7 +133,7 @@ export default function MaterialFlowTracking() {
                       <div className={`flex flex-col items-center min-w-[60px] p-2 rounded-lg border ${count > 0 ? 'border-primary bg-primary/5' : 'border-border'}`}>
                         <span className="font-mono font-bold text-xs">{code}</span>
                         <span className={`text-lg font-bold ${count > 0 ? 'text-primary' : 'text-muted-foreground'}`}>{count}</span>
-                        <span className="text-[10px] text-muted-foreground">物料</span>
+                        <span className="text-[10px] text-muted-foreground">{t("supply.materialFlow.materialUnit")}</span>
                       </div>
                       {i < 14 && <ArrowRight className="w-4 h-4 text-muted-foreground mx-1 flex-shrink-0" />}
                     </div>
@@ -144,27 +147,27 @@ export default function MaterialFlowTracking() {
         {/* Flow Records Tab */}
         <TabsContent value="flow" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">物料流转记录</h3>
+            <h3 className="text-lg font-semibold">{t("supply.materialFlow.flowRecordTitle")}</h3>
             <Dialog open={showRecordDialog} onOpenChange={setShowRecordDialog}>
               <DialogTrigger asChild>
-                <Button><Plus className="w-4 h-4 mr-2" />记录流转</Button>
+                <Button><Plus className="w-4 h-4 mr-2" />{t("supply.materialFlow.recordFlow")}</Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>记录物料流转</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{t("supply.materialFlow.recordFlowDialog")}</DialogTitle></DialogHeader>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>物料ID</Label>
+                      <Label>{t("supply.materialFlow.materialId")}</Label>
                       <Input value={newFlowRecord.materialId} onChange={e => setNewFlowRecord(p => ({ ...p, materialId: e.target.value }))} placeholder="MAT-001" />
                     </div>
                     <div>
-                      <Label>物料名称</Label>
-                      <Input value={newFlowRecord.materialName} onChange={e => setNewFlowRecord(p => ({ ...p, materialName: e.target.value }))} placeholder="清洗喷嘴组件" />
+                      <Label>{t("supply.materialFlow.materialName")}</Label>
+                      <Input value={newFlowRecord.materialName} onChange={e => setNewFlowRecord(p => ({ ...p, materialName: e.target.value }))} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>来源工序</Label>
+                      <Label>{t("supply.materialFlow.fromProcess")}</Label>
                       <Select value={newFlowRecord.fromProcess} onValueChange={v => setNewFlowRecord(p => ({ ...p, fromProcess: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -173,7 +176,7 @@ export default function MaterialFlowTracking() {
                       </Select>
                     </div>
                     <div>
-                      <Label>目标工序</Label>
+                      <Label>{t("supply.materialFlow.toProcess")}</Label>
                       <Select value={newFlowRecord.toProcess} onValueChange={v => setNewFlowRecord(p => ({ ...p, toProcess: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -184,11 +187,11 @@ export default function MaterialFlowTracking() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>数量</Label>
+                      <Label>{t("supply.materialFlow.quantity")}</Label>
                       <Input type="number" min={1} value={newFlowRecord.quantity} onChange={e => setNewFlowRecord(p => ({ ...p, quantity: Number(e.target.value) }))} />
                     </div>
                     <div>
-                      <Label>批次号</Label>
+                      <Label>{t("supply.materialFlow.batchNumber")}</Label>
                       <Input value={newFlowRecord.batchNumber} onChange={e => setNewFlowRecord(p => ({ ...p, batchNumber: e.target.value }))} placeholder="BATCH-001" />
                     </div>
                   </div>
@@ -197,7 +200,7 @@ export default function MaterialFlowTracking() {
                     onClick={() => recordFlowMut.mutate({ ...newFlowRecord, projectId: selectedProject })}
                     disabled={recordFlowMut.isPending || !newFlowRecord.materialId}
                   >
-                    {recordFlowMut.isPending ? "记录中..." : "记录流转"}
+                    {recordFlowMut.isPending ? t("supply.materialFlow.recording") : t("supply.materialFlow.recordFlow")}
                   </Button>
                 </div>
               </DialogContent>
@@ -212,7 +215,7 @@ export default function MaterialFlowTracking() {
                     <Package className="w-5 h-5 text-muted-foreground" />
                     <div>
                       <div className="font-medium">{r.material_name || r.material_id}</div>
-                      <div className="text-sm text-muted-foreground">批次: {r.batch_number || '-'} · 数量: {r.quantity}</div>
+                      <div className="text-sm text-muted-foreground">{t("supply.materialFlow.batchLabel")}: {r.batch_number || '-'} · {t("supply.materialFlow.quantityLabel")}: {r.quantity}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -223,14 +226,14 @@ export default function MaterialFlowTracking() {
                       {STATUS_MAP[r.status]?.label || r.status}
                     </Badge>
                     {r.transit_time_minutes && (
-                      <span className="text-xs text-muted-foreground">{r.transit_time_minutes}分钟</span>
+                      <span className="text-xs text-muted-foreground">{r.transit_time_minutes}{t("supply.materialFlow.minutes")}</span>
                     )}
                   </div>
                 </CardContent>
               </Card>
             ))}
             {(!flowRecordsQuery.data || (flowRecordsQuery.data as any[]).length === 0) && (
-              <p className="text-center text-muted-foreground py-8">暂无流转记录</p>
+              <p className="text-center text-muted-foreground py-8">{t("supply.materialFlow.noFlowRecords")}</p>
             )}
           </div>
         </TabsContent>
@@ -238,21 +241,21 @@ export default function MaterialFlowTracking() {
         {/* Locations Tab */}
         <TabsContent value="locations" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">物料实时位置 (UWB定位)</h3>
+            <h3 className="text-lg font-semibold">{t("supply.materialFlow.realtimeLocations")}</h3>
             <Dialog open={showLocationDialog} onOpenChange={setShowLocationDialog}>
               <DialogTrigger asChild>
-                <Button variant="outline"><MapPin className="w-4 h-4 mr-2" />更新位置</Button>
+                <Button variant="outline"><MapPin className="w-4 h-4 mr-2" />{t("supply.materialFlow.updateLocation")}</Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>更新物料位置</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{t("supply.materialFlow.updateLocationDialog")}</DialogTitle></DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label>物料ID</Label>
+                    <Label>{t("supply.materialFlow.materialId")}</Label>
                     <Input value={newLocation.materialId} onChange={e => setNewLocation(p => ({ ...p, materialId: e.target.value }))} placeholder="MAT-001" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>当前工序</Label>
+                      <Label>{t("supply.materialFlow.currentProcess")}</Label>
                       <Select value={newLocation.currentProcess} onValueChange={v => setNewLocation(p => ({ ...p, currentProcess: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -261,21 +264,21 @@ export default function MaterialFlowTracking() {
                       </Select>
                     </div>
                     <div>
-                      <Label>区域</Label>
-                      <Input value={newLocation.locationZone} onChange={e => setNewLocation(p => ({ ...p, locationZone: e.target.value }))} placeholder="A区-3号工位" />
+                      <Label>{t("supply.materialFlow.zoneLabel")}</Label>
+                      <Input value={newLocation.locationZone} onChange={e => setNewLocation(p => ({ ...p, locationZone: e.target.value }))} />
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <Label>X坐标</Label>
+                      <Label>{t("supply.materialFlow.coordX")}</Label>
                       <Input type="number" value={newLocation.positionX} onChange={e => setNewLocation(p => ({ ...p, positionX: Number(e.target.value) }))} />
                     </div>
                     <div>
-                      <Label>Y坐标</Label>
+                      <Label>{t("supply.materialFlow.coordY")}</Label>
                       <Input type="number" value={newLocation.positionY} onChange={e => setNewLocation(p => ({ ...p, positionY: Number(e.target.value) }))} />
                     </div>
                     <div>
-                      <Label>Z坐标</Label>
+                      <Label>{t("supply.materialFlow.coordZ")}</Label>
                       <Input type="number" value={newLocation.positionZ} onChange={e => setNewLocation(p => ({ ...p, positionZ: Number(e.target.value) }))} />
                     </div>
                   </div>
@@ -284,7 +287,7 @@ export default function MaterialFlowTracking() {
                     onClick={() => updateLocationMut.mutate({ ...newLocation, projectId: selectedProject })}
                     disabled={updateLocationMut.isPending || !newLocation.materialId}
                   >
-                    {updateLocationMut.isPending ? "更新中..." : "更新位置"}
+                    {updateLocationMut.isPending ? t("supply.materialFlow.updating") : t("supply.materialFlow.updateLocation")}
                   </Button>
                 </div>
               </DialogContent>
@@ -306,13 +309,13 @@ export default function MaterialFlowTracking() {
                   <div className="space-y-1 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Warehouse className="w-3 h-3" />
-                      <span>{loc.location_zone || '未知区域'}</span>
+                      <span>{loc.location_zone || t("supply.materialFlow.unknownZone")}</span>
                     </div>
                     <div className="font-mono text-xs">
-                      坐标: ({loc.position_x}, {loc.position_y}, {loc.position_z})
+                      {t("supply.materialFlow.coordinates")}: ({loc.position_x}, {loc.position_y}, {loc.position_z})
                     </div>
                     <div className="text-xs">
-                      更新: {new Date(Number(loc.updated_at)).toLocaleString()}
+                      {t("supply.materialFlow.updated")}: {new Date(Number(loc.updated_at)).toLocaleString()}
                     </div>
                   </div>
                   {loc.uwb_tag_id && (
@@ -322,14 +325,14 @@ export default function MaterialFlowTracking() {
               </Card>
             ))}
             {(!locationsQuery.data || (locationsQuery.data as any[]).length === 0) && (
-              <div className="col-span-full text-center text-muted-foreground py-8">暂无物料位置数据</div>
+              <div className="col-span-full text-center text-muted-foreground py-8">{t("supply.materialFlow.noLocationData")}</div>
             )}
           </div>
         </TabsContent>
 
         {/* Bottlenecks Tab */}
         <TabsContent value="bottlenecks" className="space-y-4">
-          <h3 className="text-lg font-semibold">生产瓶颈分析</h3>
+          <h3 className="text-lg font-semibold">{t("supply.materialFlow.bottleneckAnalysis")}</h3>
           <div className="space-y-3">
             {(bottlenecksQuery.data as any[] || []).map((b: any) => (
               <Card key={b.id} className={b.severity === 'critical' ? 'border-red-300' : b.severity === 'high' ? 'border-orange-300' : ''}>
@@ -342,23 +345,23 @@ export default function MaterialFlowTracking() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant={b.status === 'active' ? 'destructive' : b.status === 'monitoring' ? 'secondary' : 'default'}>
-                        {b.status === 'active' ? '活跃' : b.status === 'monitoring' ? '监控中' : '已解决'}
+                        {b.status === 'active' ? t("supply.materialFlow.bottleneckActive") : b.status === 'monitoring' ? t("supply.materialFlow.bottleneckMonitoring") : t("supply.materialFlow.bottleneckResolved")}
                       </Badge>
                       {b.impact_score && (
-                        <span className="text-sm font-mono">影响: {b.impact_score}/10</span>
+                        <span className="text-sm font-mono">{t("supply.materialFlow.impact")}: {b.impact_score}/10</span>
                       )}
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground">{b.description}</p>
                   {b.suggested_action && (
                     <div className="mt-2 p-2 bg-muted rounded text-sm">
-                      <span className="font-medium">建议措施: </span>{b.suggested_action}
+                      <span className="font-medium">{t("supply.materialFlow.suggestedAction")}: </span>{b.suggested_action}
                     </div>
                   )}
                   <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                    {b.wait_time_minutes && <span>等待: {b.wait_time_minutes}分钟</span>}
-                    {b.queue_length && <span>队列: {b.queue_length}</span>}
-                    <span>检测: {new Date(Number(b.detected_at)).toLocaleString()}</span>
+                    {b.wait_time_minutes && <span>{t("supply.materialFlow.waitTime")}: {b.wait_time_minutes}{t("supply.materialFlow.minutes")}</span>}
+                    {b.queue_length && <span>{t("supply.materialFlow.queueLength")}: {b.queue_length}</span>}
+                    <span>{t("supply.materialFlow.detectedAt")}: {new Date(Number(b.detected_at)).toLocaleString()}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -366,8 +369,8 @@ export default function MaterialFlowTracking() {
             {(!bottlenecksQuery.data || (bottlenecksQuery.data as any[]).length === 0) && (
               <div className="text-center py-12">
                 <Activity className="w-12 h-12 mx-auto text-green-500 mb-3" />
-                <p className="text-lg font-medium text-green-600">生产线运行正常</p>
-                <p className="text-muted-foreground">未检测到瓶颈</p>
+                <p className="text-lg font-medium text-green-600">{t("supply.materialFlow.lineNormal")}</p>
+                <p className="text-muted-foreground">{t("supply.materialFlow.noBottlenecks")}</p>
               </div>
             )}
           </div>
