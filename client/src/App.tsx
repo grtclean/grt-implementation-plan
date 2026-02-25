@@ -260,6 +260,7 @@ import RoleDashboard from "./pages/RoleDashboard";
 import TaskCockpitPage from "./pages/TaskCockpitPage";
 import Gamification from "./pages/Gamification";
 import IoTDashboard from "./pages/IoTDashboard";
+import IoTFleetDashboard from "./pages/IoTFleetDashboard";
 import RAGTrainingCenter from "./pages/RAGTrainingCenter";
 import DelegationManagement from "./pages/DelegationManagement";
 import PerformanceSalaryQuery from "./pages/PerformanceSalaryQuery";
@@ -279,12 +280,13 @@ import AIGenesisWorkspace from "./pages/AIGenesisWorkspace";
 import AiAssistantProvisioning from "./pages/AiAssistantProvisioning";
 import AIAgentFleetDashboard from "./pages/AIAgentFleetDashboard";
 import SystemControlTower from "./pages/SystemControlTower";
-import ERPIntegration from "./pages/ERPIntegration";
+import ERPIntegration from "./pages/ErpIntegration";
 import MaterialManagement from "./pages/MaterialManagement";
 import ProcurementManagement from "./pages/ProcurementManagement";
 import SupplyChainWorkbench from "./pages/SupplyChainWorkbench";
 import ProcurementWorkbench from "./pages/ProcurementWorkbench";
 import SupplyChainPlanning from "./pages/SupplyChainPlanning";
+import SupplyChainRFQKanban from "./pages/SupplyChainRFQKanban";
 import PPAPManagement from "./pages/PPAPManagement";
 import FMEAManagement from "./pages/FMEAManagement";
 import ControlPlanManagement from "./pages/ControlPlanManagement";
@@ -307,11 +309,68 @@ import DualAIMatrix from "./pages/DualAIMatrix";
 import MeetingHub from "./pages/MeetingHub";
 import CrossBorderSync from "./pages/CrossBorderSync";
 import UniversalWorkspace from "./pages/UniversalWorkspace";
+import PersonalizedPortal from "./pages/PersonalizedPortal";
 import DataMigrationHub from "./pages/DataMigrationHub";
 import CustomerDigitalTwinPortal from "./pages/CustomerDigitalTwinPortal";
 
+// Cleaning Machine Project Wizard (M0→M2 + T1-T15)
+import NewProjectWizard from "./pages/NewProjectWizard";
+
+// ======== V2.0 Five Core Engines ========
+import MeEngine from "./pages/engines/MeEngine";
+import StrategyEngine from "./pages/engines/StrategyEngine";
+import OperationsEngine from "./pages/engines/OperationsEngine";
+import ResourcesEngine from "./pages/engines/ResourcesEngine";
+import OKRMatrixPage from "./pages/OKRMatrixPage";
+
 // KPI绩效管理
 const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
+
+// Project 360 Cockpit — cross-module aggregation
+const Project360Cockpit = React.lazy(() => import("./pages/Project360Cockpit"));
+
+// Phase 1.2: Shop Floor Machine Login (SOP + Role Interlock)
+const ShopFloorMachineLogin = React.lazy(() => import("./pages/ShopFloorMachineLogin"));
+
+// Phase 1.3: OEE Dashboard (IATF 16949)
+const OEEDashboard = React.lazy(() => import("./pages/OEEDashboard"));
+
+// Phase 1.4: Compliance Calendar & Auto-Reminder
+const ComplianceCalendar = React.lazy(() => import("./pages/ComplianceCalendar"));
+
+// Phase 2.1: ECO Cost Impact Analysis (Cross-Domain Fusion)
+const EcoReviewDashboard = React.lazy(() => import("./pages/EcoReviewDashboard"));
+
+// Phase 2.2: Supplier Risk Radar (IQC × SCM Fusion)
+const SupplierRiskRadar = React.lazy(() => import("./pages/SupplierRiskRadar"));
+
+// Phase 2.3: Employee Digital Profile (HR × AI × Meeting × Cert Fusion)
+const EmployeeProfile = React.lazy(() => import("./pages/EmployeeProfile"));
+
+// Phase 2.4: Dynamic FMEA RPN (Shop Floor QC × Engineering FMEA Fusion)
+const FmeaLiveRiskMatrix = React.lazy(() => import("./pages/FmeaLiveRiskMatrix"));
+
+// Phase 3.1: AI Training Closed-Loop (AI HR Intervention Dashboard)
+const AiInterventionDashboard = React.lazy(() => import("./pages/AiInterventionDashboard"));
+
+// Phase 3.2: Equipment Health & Auto-Scheduling (Smart APS Dashboard)
+const SmartScheduleDashboard = React.lazy(() => import("./pages/SmartScheduleDashboard"));
+
+// Phase 3.3: Smart Inventory (Dynamic Safety Stock & Cash Flow Optimization)
+const SmartInventoryDashboard = React.lazy(() => import("./pages/SmartInventoryDashboard"));
+
+// Phase 3.4: Carbon Footprint & CBAM Compliance
+const CbamDashboard = React.lazy(() => import("./pages/CbamDashboard"));
+
+// Phase 4: Ultimate Digital Thread & Executive Cockpit
+const CeoExecutiveCockpit = React.lazy(() => import("./pages/CeoExecutiveCockpit"));
+
+// GRT Value Chain Enhancement — 非标清洗设备全价值链
+const EquipmentComplianceTracker = React.lazy(() => import("./pages/EquipmentComplianceTracker"));
+const ProcessTrialWorkbench = React.lazy(() => import("./pages/ProcessTrialWorkbench"));
+const NDAManagement = React.lazy(() => import("./pages/NDAManagement"));
+const SalesMaterialsLibrary = React.lazy(() => import("./pages/SalesMaterialsLibrary"));
+const DrawingLibrary = React.lazy(() => import("./pages/DrawingLibrary"));
 
 // v2.6.0 新增页面
 const QuotationCreate = React.lazy(() => import("./pages/QuotationCreate"));
@@ -418,8 +477,8 @@ function LazyFallback() {
 }
 
 // Standalone routes that should NOT have sidebar layout
-const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/404', '/oa-test', '/morning-meeting'];
-const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/', '/vision/'];
+const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/404', '/oa-test', '/morning-meeting', '/shop-floor/machine-login'];
+const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/', '/vision/', '/shop-floor/'];
 
 function Router() {
   const [location] = useLocation();
@@ -477,6 +536,27 @@ function Router() {
       <Route path={"/ai-assistant-provisioning"} component={AiAssistantProvisioning} />
       <Route path={"/ai-agent-fleet"} component={AIAgentFleetDashboard} />
       <Route path={"/system-control-tower"} component={SystemControlTower} />
+      {/* ══════ V2.0 Five Core Engine Routes ══════ */}
+      <Route path={"/me"}>
+        <ProtectedRoute component={MeEngine} />
+      </Route>
+      <Route path={"/strategy/okr-matrix"}>
+        <ProtectedRoute component={OKRMatrixPage} />
+      </Route>
+      <Route path={"/strategy"}>
+        <ProtectedRoute component={StrategyEngine} />
+      </Route>
+      <Route path={"/operations/new-project"}>
+        <ProtectedRoute component={NewProjectWizard} />
+      </Route>
+      <Route path={"/operations"}>
+        <ProtectedRoute component={OperationsEngine} />
+      </Route>
+      <Route path={"/resources"}>
+        <ProtectedRoute component={ResourcesEngine} />
+      </Route>
+
+      <Route path={"/my-workspace"} component={PersonalizedPortal} />
       <Route path={"/workspace"} component={UniversalWorkspace} />
       <Route path={"/data-migration"} component={DataMigrationHub} />
       <Route path={"/customer-digital-twin"} component={CustomerDigitalTwinPortal} />
@@ -1031,6 +1111,10 @@ function Router() {
       {/* Workshop Kiosk Terminal (IATF 16949 / VDA 6.3) */}
       <Route path="/kiosk/qr-confirm" component={KioskQrConfirm} />
       <Route path="/kiosk" component={KioskWorkshop} />
+      {/* Phase 1.2: Shop Floor Machine Login (SOP + Role Interlock) */}
+      <Route path="/shop-floor/machine-login" component={ShopFloorMachineLogin} />
+      {/* Phase 1.3: OEE Dashboard (IATF 16949) */}
+      <Route path="/shop-floor/oee-dashboard" component={OEEDashboard} />
       <Route path="/test-execution-dashboard">
         <ProtectedRoute component={TestExecutionDashboard} />
       </Route>
@@ -1248,6 +1332,9 @@ function Router() {
       </Route>
       <Route path="/iot-dashboard">
         <ProtectedRoute component={IoTDashboard} />
+      </Route>
+      <Route path="/iot-fleet">
+        <ProtectedRoute component={IoTFleetDashboard} />
       </Route>
 
       {/* RAG知识库训练中心 */}
@@ -1509,6 +1596,9 @@ function Router() {
       <Route path="/supply-chain-planning">
         <ProtectedRoute component={SupplyChainPlanning} />
       </Route>
+      <Route path="/supply-chain-rfq">
+        <ProtectedRoute component={SupplyChainRFQKanban} />
+      </Route>
       <Route path="/ppap">
         <ProtectedRoute component={PPAPManagement} />
       </Route>
@@ -1539,6 +1629,56 @@ function Router() {
       {/* Office 365 Encrypted Email Ferry — Cross-Border Data Sync */}
       <Route path="/cross-border-sync">
         <ProtectedRoute component={CrossBorderSync} />
+      </Route>
+
+      {/* GRT Value Chain Enhancement — 非标清洗设备全价值链 */}
+      <Route path="/equipment-compliance">
+        <ProtectedRoute component={EquipmentComplianceTracker} />
+      </Route>
+      <Route path="/process-trials">
+        <ProtectedRoute component={ProcessTrialWorkbench} />
+      </Route>
+      <Route path="/nda-management">
+        <ProtectedRoute component={NDAManagement} />
+      </Route>
+      <Route path="/sales-materials">
+        <ProtectedRoute component={SalesMaterialsLibrary} />
+      </Route>
+      <Route path="/drawing-library">
+        <ProtectedRoute component={DrawingLibrary} />
+      </Route>
+      <Route path="/project-360-cockpit">
+        <ProtectedRoute component={Project360Cockpit} />
+      </Route>
+      <Route path="/admin/compliance-calendar">
+        <ProtectedRoute component={ComplianceCalendar} />
+      </Route>
+      <Route path="/engineering/eco-review/:id">
+        <ProtectedRoute component={EcoReviewDashboard} />
+      </Route>
+      <Route path="/supply-chain/risk-radar">
+        <ProtectedRoute component={SupplierRiskRadar} />
+      </Route>
+      <Route path="/my-workspace/profile/:userId">
+        <ProtectedRoute component={EmployeeProfile} />
+      </Route>
+      <Route path="/quality/fmea-live">
+        <ProtectedRoute component={FmeaLiveRiskMatrix} />
+      </Route>
+      <Route path="/hr/ai-interventions">
+        <ProtectedRoute component={AiInterventionDashboard} />
+      </Route>
+      <Route path="/production/smart-schedule">
+        <ProtectedRoute component={SmartScheduleDashboard} />
+      </Route>
+      <Route path="/supply-chain/smart-inventory">
+        <ProtectedRoute component={SmartInventoryDashboard} />
+      </Route>
+      <Route path="/esg/cbam-dashboard">
+        <ProtectedRoute component={CbamDashboard} />
+      </Route>
+      <Route path="/ceo/executive-cockpit">
+        <ProtectedRoute component={CeoExecutiveCockpit} />
       </Route>
 
       <Route path={"/404"} component={NotFound} />

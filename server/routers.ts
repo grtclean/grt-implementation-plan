@@ -243,8 +243,35 @@ import { reportCenterRouter } from "./routers/report-center.router";
 import { visionDashboardRouter } from "./routers/vision-dashboard.router";
 import { cicdRouter } from "./routers/cicd.router";
 import { smartMeetingRouter } from "./routers/smart-meeting.router";
+import { aiPerformanceRouter } from "./routers/ai-performance.router";
 import { syncDispatchRouter } from "./routers/sync-dispatch.router";
 import { dataMigrationRouter } from "./routers/data-migration.router";
+import { aiCanvasRouter } from "./routers/ai-canvas.router";
+import { okrRouter } from "./routers/okr.router";
+import { cleaningProjectRouter } from "./routers/cleaning-project.router";
+import { roleAgentRouter } from "./routers/role-agent.router";
+import { automationRouter } from "./routers/automation.router";
+
+// GRT Value Chain Enhancement — 非标清洗设备全价值链
+import { equipmentComplianceRouter } from "./routers/equipment-compliance.router";
+import { processTrialRouter } from "./routers/process-trial.router";
+import { customerNdaRouter } from "./routers/customer-nda.router";
+import { salesMaterialsRouter } from "./routers/sales-materials.router";
+import { projectDrawingsRouter } from "./routers/project-drawings.router";
+import { vaultRouter } from "./routers/vault.router";
+import { project360Router } from "./routers/project360.router";
+import { sopInterlockRouter } from "./routers/sop-interlock.router";
+import { oeeDashboardRouter } from "./routers/oee-dashboard.router";
+import { complianceCalendarRouter } from "./routers/compliance-calendar.router";
+import { ecoImpactRouter } from "./routers/eco-impact.router";
+import { supplierRiskRouter } from "./routers/supplier-risk.router";
+import { employeeProfileRouter } from "./routers/employee-profile.router";
+import { fmeaDynamicRouter } from "./routers/fmea-dynamic.router";
+import { aiInterventionRouter } from "./routers/ai-intervention.router";
+import { smartSchedulerRouter } from "./routers/smart-scheduler.router";
+import { smartInventoryRouter } from "./routers/smart-inventory.router";
+import { carbonFootprintRouter } from "./routers/carbon-footprint.router";
+import { digitalThreadRouter } from "./routers/digital-thread.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -600,11 +627,78 @@ export const appRouter = router({
   // Smart Meeting & AI Engagement Hub (智能会议与互动中枢)
   smartMeeting: smartMeetingRouter,
 
+  // AI Performance Engine (AI绩效引擎 — 4-dimension meeting scores)
+  aiPerformance: aiPerformanceRouter,
+
   // Office 365 Encrypted Email Ferry — Cross-Border Data Sync (US → China)
   syncDispatch: syncDispatchRouter,
 
   // Data Cleansing & Migration Hub (Legacy import with AI field mapping + sandbox isolation)
   dataMigration: dataMigrationRouter,
+
+  // AI Canvas — Workflow Parser & Action Router (Req 9a: ubiquitous AI input)
+  aiCanvas: aiCanvasRouter,
+
+  // OKR Engine — Objectives & Key Results (Strategy Hub)
+  okr: okrRouter,
+
+  // Cleaning Machine Project Wizard (M0→M2 lifecycle + T1-T15 milestones)
+  cleaningProject: cleaningProjectRouter,
+
+  // Role-Based AI Agent (role-specific quick actions + suggestions)
+  roleAgent: roleAgentRouter,
+
+  // Automation Hooks — Management Rhythm (OKR → Meetings closed-loop)
+  automation: automationRouter,
+
+  // GRT Value Chain Enhancement — 非标清洗设备全价值链
+  equipmentCompliance: equipmentComplianceRouter,
+  processTrial: processTrialRouter,
+  customerNda: customerNdaRouter,
+  salesMaterials: salesMaterialsRouter,
+  projectDrawings: projectDrawingsRouter,
+
+  // Digital Thread — Cloud Vault & Engineering Change Orders
+  vault: vaultRouter,
+
+  // Project 360 Cockpit — cross-module aggregation
+  project360: project360Router,
+
+  // Phase 1.2: SOP + Role Quality Interlock (machine access control)
+  sopInterlock: sopInterlockRouter,
+
+  // Phase 1.3: OEE Dashboard (IATF 16949 compliance)
+  oeeDashboard: oeeDashboardRouter,
+
+  // Phase 1.4: Compliance Calendar & Auto-Reminder
+  complianceCalendar: complianceCalendarRouter,
+
+  // Phase 2.1: ECO Cost Impact Analysis (PLM × WMS × ERP fusion)
+  ecoImpact: ecoImpactRouter,
+
+  // Phase 2.2: Supplier Risk Rating (IQC × SCM real-time interlock)
+  supplierRisk: supplierRiskRouter,
+
+  // Phase 2.3: Employee Digital Profile (HR × AI × Meeting × Cert fusion)
+  employeeProfile: employeeProfileRouter,
+
+  // Phase 2.4: Dynamic FMEA RPN (Shop Floor QC × Engineering FMEA fusion)
+  fmeaDynamic: fmeaDynamicRouter,
+
+  // Phase 3.1: AI Training Closed-Loop (AI-Driven Intervention + Interlock)
+  aiIntervention: aiInterventionRouter,
+
+  // Phase 3.2: Smart Scheduler (Equipment Health & Auto-Scheduling)
+  smartScheduler: smartSchedulerRouter,
+
+  // Phase 3.3: Smart Inventory (Dynamic Safety Stock & Cash Flow)
+  smartInventory: smartInventoryRouter,
+
+  // Phase 3.4: Carbon Footprint & CBAM Compliance
+  carbonFootprint: carbonFootprintRouter,
+
+  // Phase 4: Ultimate Digital Thread & Executive Cockpit
+  digitalThread: digitalThreadRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {
