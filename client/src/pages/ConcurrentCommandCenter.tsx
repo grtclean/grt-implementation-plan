@@ -19,9 +19,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useConcurrentSync } from "@/hooks/useConcurrentSync";
 import {
   Monitor,
   GitBranch,
@@ -39,6 +41,9 @@ import {
   Droplets,
   Wind,
   Filter,
+  Wifi,
+  WifiOff,
+  Activity,
 } from "lucide-react";
 
 // ─── Status badge helpers ────────────────────────────────────────────────────
@@ -80,6 +85,16 @@ const SUB_SYSTEM_ICONS: Record<string, React.ReactNode> = {
   "PLC Control Panel": <Cpu className="h-5 w-5 text-muted-foreground" />,
 };
 
+// ─── Action labels for activity feed ─────────────────────────────────────────
+
+const ACTION_LABELS: Record<string, string> = {
+  claimRoom: "Claimed",
+  updateRoomStatus: "Updated status of",
+  approveMerge: "Approved merge for",
+  updateSandboxStatus: "Updated sandbox",
+  approveCommissioningReport: "Approved",
+};
+
 // ─── Multi-Role Session Simulator ────────────────────────────────────────────
 
 const ROLE_SESSIONS = [
@@ -88,11 +103,25 @@ const ROLE_SESSIONS = [
   { role: "Sales", path: "/?role=sales", color: "bg-indigo-600" },
 ];
 
+// ─── Simulated current user (replace with real auth context in production) ───
+
+function useCurrentUser() {
+  const [user] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = parseInt(params.get("userId") || String(Math.floor(Math.random() * 9000) + 1000));
+    const name = params.get("userName") || `Engineer-${id}`;
+    return { id, name };
+  });
+  return user;
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function ConcurrentCommandCenter() {
   const { t } = useLanguage();
   const utils = trpc.useUtils();
+  const currentUser = useCurrentUser();
+  const { isConnected, onlineUsers, activities } = useConcurrentSync(currentUser.id, currentUser.name);
 
   // Track 1 data
   const sandboxes = trpc.concurrentCommand.listSandboxes.useQuery();
@@ -106,6 +135,7 @@ export default function ConcurrentCommandCenter() {
     onSuccess: (data) => {
       toast.success(`${data.moduleName} branch approved for merge`);
       utils.concurrentCommand.listSandboxes.invalidate();
+      utils.concurrentCommand.getActivityLog.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -115,6 +145,7 @@ export default function ConcurrentCommandCenter() {
       toast.success(`Claimed ${data.subSystem} for debugging`);
       utils.concurrentCommand.listRooms.invalidate();
       utils.concurrentCommand.generateCommissioningReport.invalidate();
+      utils.concurrentCommand.getActivityLog.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -124,6 +155,7 @@ export default function ConcurrentCommandCenter() {
       toast.success(`${data.subSystem} marked as ${data.testStatus}`);
       utils.concurrentCommand.listRooms.invalidate();
       utils.concurrentCommand.generateCommissioningReport.invalidate();
+      utils.concurrentCommand.getActivityLog.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -132,6 +164,7 @@ export default function ConcurrentCommandCenter() {
     onSuccess: () => {
       toast.success("Commissioning report approved by Chief Engineer");
       utils.concurrentCommand.generateCommissioningReport.invalidate();
+      utils.concurrentCommand.getActivityLog.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -159,6 +192,38 @@ export default function ConcurrentCommandCenter() {
         title="并行调试指挥中心"
         description="Concurrent Command Center — Dual-Track Software & Hardware debugging with manager approval gateway"
       />
+
+      {/* Online Status Bar */}
+      <div className="flex items-center gap-3 rounded-lg border px-4 py-2 bg-card">
+        {isConnected ? (
+          <Wifi className="h-4 w-4 text-green-500" />
+        ) : (
+          <WifiOff className="h-4 w-4 text-red-500" />
+        )}
+        <span className="text-sm font-medium">
+          {isConnected ? "Connected" : "Disconnected"}
+        </span>
+        <span className="text-sm text-muted-foreground">
+          — {Math.max(onlineUsers.length, 1)} user{Math.max(onlineUsers.length, 1) !== 1 ? "s" : ""} online
+        </span>
+        <div className="flex -space-x-1 ml-2">
+          {(onlineUsers.length > 0
+            ? onlineUsers
+            : [{ userId: currentUser.id, userName: currentUser.name }]
+          ).slice(0, 8).map((u) => (
+            <span
+              key={u.userId}
+              title={u.userName}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground ring-2 ring-background"
+            >
+              {u.userName.slice(0, 2).toUpperCase()}
+            </span>
+          ))}
+        </div>
+        <span className="ml-auto text-xs text-muted-foreground">
+          You: {currentUser.name}
+        </span>
+      </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -234,7 +299,7 @@ export default function ConcurrentCommandCenter() {
                         <Button
                           size="sm"
                           className="bg-amber-500 hover:bg-amber-600 text-white shrink-0"
-                          onClick={() => approveMerge.mutate({ id: sandbox.id })}
+                          onClick={() => approveMerge.mutate({ id: sandbox.id, userName: currentUser.name })}
                           disabled={approveMerge.isPending}
                         >
                           <ShieldCheck className="h-4 w-4 mr-1" />
@@ -338,7 +403,7 @@ export default function ConcurrentCommandCenter() {
                             onClick={() =>
                               claimRoom.mutate({
                                 id: room.id,
-                                engineerName: "Current User",
+                                engineerName: currentUser.name,
                               })
                             }
                             disabled={claimRoom.isPending}
@@ -357,6 +422,7 @@ export default function ConcurrentCommandCenter() {
                               updateRoomStatus.mutate({
                                 id: room.id,
                                 testStatus: "PASSED",
+                                userName: currentUser.name,
                               })
                             }
                             disabled={updateRoomStatus.isPending}
@@ -422,7 +488,7 @@ export default function ConcurrentCommandCenter() {
                 ) : (
                   <Button
                     className="bg-green-600 hover:bg-green-700 text-white w-full"
-                    onClick={() => approveReport.mutate()}
+                    onClick={() => approveReport.mutate({ userName: currentUser.name })}
                     disabled={approveReport.isPending}
                   >
                     <ShieldCheck className="h-4 w-4 mr-1.5" />
@@ -434,6 +500,48 @@ export default function ConcurrentCommandCenter() {
           )}
         </div>
       </div>
+
+      {/* Live Activity Feed */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Activity className="h-5 w-5 text-blue-600" />
+            Live Activity Feed
+          </CardTitle>
+          <CardDescription>
+            Real-time operations from all connected users
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[240px]">
+            {activities.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No activity yet — perform an action to see it here
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {activities.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
+                  >
+                    <Badge variant="outline" className="shrink-0 mt-0.5">
+                      {entry.userName.slice(0, 6)}
+                    </Badge>
+                    <span className="flex-1">
+                      <span className="font-medium">{ACTION_LABELS[entry.action] ?? entry.action}</span>{" "}
+                      <span className="text-muted-foreground">{entry.target}</span>
+                    </span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(entry.timestamp).toLocaleTimeString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </CardContent>
+      </Card>
     </div>
   );
 }

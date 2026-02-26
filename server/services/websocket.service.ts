@@ -24,7 +24,7 @@ interface WSConnection {
 
 // 消息类型定义
 interface WSMessage {
-  type: 'join' | 'leave' | 'edit' | 'cursor' | 'chat' | 'sync' | 'presence' | 'ping' | 'pong';
+  type: 'join' | 'leave' | 'edit' | 'cursor' | 'chat' | 'sync' | 'presence' | 'ping' | 'pong' | 'action';
   workspaceId: number;
   documentId?: number;
   userId?: number;
@@ -456,6 +456,15 @@ export function initWebSocketServer(server: any): WebSocketServer {
           case 'chat':
             handleChat(connId, message);
             break;
+          case 'action':
+            // Rebroadcast action messages to all workspace members
+            if (message.workspaceId) {
+              broadcastToWorkspace(message.workspaceId, {
+                ...message,
+                timestamp: Date.now(),
+              }, connId);
+            }
+            break;
           case 'ping':
             ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
             break;
@@ -515,7 +524,11 @@ export function getWebSocketStats() {
   };
 }
 
+export { broadcastToWorkspace, getWorkspacePresence };
+
 export default {
   initWebSocketServer,
   getWebSocketStats,
+  broadcastToWorkspace,
+  getWorkspacePresence,
 };

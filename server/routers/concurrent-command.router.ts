@@ -1,5 +1,50 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
+import { broadcastToWorkspace } from "../services/websocket.service";
+
+// Dedicated workspace ID for Concurrent Command Center
+const CCC_WORKSPACE_ID = 9900;
+
+// ─── In-memory activity log (most recent 50 entries) ──────────────────────────
+
+interface ActivityEntry {
+  id: string;
+  action: string;
+  target: string;
+  userName: string;
+  timestamp: string;
+}
+
+const activityLog: ActivityEntry[] = [];
+const MAX_LOG = 50;
+
+function pushActivity(action: string, target: string, userName: string): ActivityEntry {
+  const entry: ActivityEntry = {
+    id: `act_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+    action,
+    target,
+    userName,
+    timestamp: new Date().toISOString(),
+  };
+  activityLog.unshift(entry);
+  if (activityLog.length > MAX_LOG) activityLog.length = MAX_LOG;
+  return entry;
+}
+
+function broadcast(action: string, target: string, userName: string, extra?: Record<string, any>) {
+  const entry = pushActivity(action, target, userName);
+  try {
+    broadcastToWorkspace(CCC_WORKSPACE_ID, {
+      type: 'action' as any,
+      workspaceId: CCC_WORKSPACE_ID,
+      data: { ...entry, ...extra },
+      timestamp: Date.now(),
+    });
+  } catch {
+    // WebSocket may not be initialized in test environments
+  }
+  return entry;
+}
 
 // ─── Track 1: Software Dev Sandboxes (in-memory mock) ────────────────────────
 
@@ -111,17 +156,18 @@ export const concurrentCommandRouter = router({
   }),
 
   updateSandboxStatus: publicProcedure
-    .input(z.object({ id: z.number(), branchStatus: z.enum(["ISOLATED", "TESTING", "READY_FOR_MERGE"]) }))
+    .input(z.object({ id: z.number(), branchStatus: z.enum(["ISOLATED", "TESTING", "READY_FOR_MERGE"]), userName: z.string().optional() }))
     .mutation(({ input }) => {
       const sandbox = MOCK_SANDBOXES.find((s) => s.id === input.id);
       if (!sandbox) throw new Error("Sandbox not found");
       sandbox.branchStatus = input.branchStatus;
       sandbox.updatedAt = new Date().toISOString();
+      broadcast("updateSandboxStatus", sandbox.moduleName, input.userName ?? "System", { branchStatus: input.branchStatus });
       return sandbox;
     }),
 
   approveMerge: publicProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.number(), userName: z.string().optional() }))
     .mutation(({ input }) => {
       const sandbox = MOCK_SANDBOXES.find((s) => s.id === input.id);
       if (!sandbox) throw new Error("Sandbox not found");
@@ -130,6 +176,7 @@ export const concurrentCommandRouter = router({
       }
       sandbox.managerApproved = true;
       sandbox.updatedAt = new Date().toISOString();
+      broadcast("approveMerge", sandbox.moduleName, input.userName ?? "Manager");
       return sandbox;
     }),
 
@@ -145,19 +192,25 @@ export const concurrentCommandRouter = router({
       const room = MOCK_ROOMS.find((r) => r.id === input.id);
       if (!room) throw new Error("Room not found");
       if (room.testStatus === "PASSED") throw new Error("Cannot claim a sub-system that already passed");
+      // Conflict guard: if already claimed by someone else, reject
+      if (room.engineerAssigned && room.engineerAssigned !== input.engineerName) {
+        throw new Error(`Already claimed by ${room.engineerAssigned}`);
+      }
       room.engineerAssigned = input.engineerName;
       room.testStatus = "DEBUGGING";
       room.updatedAt = new Date().toISOString();
+      broadcast("claimRoom", room.subSystem, input.engineerName);
       return room;
     }),
 
   updateRoomStatus: publicProcedure
-    .input(z.object({ id: z.number(), testStatus: z.enum(["IDLE", "DEBUGGING", "PASSED"]) }))
+    .input(z.object({ id: z.number(), testStatus: z.enum(["IDLE", "DEBUGGING", "PASSED"]), userName: z.string().optional() }))
     .mutation(({ input }) => {
       const room = MOCK_ROOMS.find((r) => r.id === input.id);
       if (!room) throw new Error("Room not found");
       room.testStatus = input.testStatus;
       room.updatedAt = new Date().toISOString();
+      broadcast("updateRoomStatus", room.subSystem, input.userName ?? room.engineerAssigned ?? "System", { testStatus: input.testStatus });
       return room;
     }),
 
@@ -184,8 +237,17 @@ export const concurrentCommandRouter = router({
     };
   }),
 
-  approveCommissioningReport: publicProcedure.mutation(() => {
-    commissioningReportApproved = true;
-    return { success: true, approvedBy: "Chief Engineer", approvedAt: new Date().toISOString() };
+  approveCommissioningReport: publicProcedure
+    .input(z.object({ userName: z.string().optional() }).optional())
+    .mutation(({ input }) => {
+      commissioningReportApproved = true;
+      broadcast("approveCommissioningReport", "Commissioning Report", input?.userName ?? "Chief Engineer");
+      return { success: true, approvedBy: "Chief Engineer", approvedAt: new Date().toISOString() };
+    }),
+
+  // ─── Activity log query ───────────────────────────────────────────────────
+
+  getActivityLog: publicProcedure.query(() => {
+    return activityLog;
   }),
 });
