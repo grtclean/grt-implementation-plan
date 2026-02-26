@@ -3,8 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useLanguage } from "@/contexts/LanguageContext";
-import LanguageSelector from "@/components/LanguageSelector";
 import { CheckCircle2, Eye, EyeOff, Loader2, LogIn, Shield, UserPlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -22,7 +20,6 @@ export default function LocalLogin() {
   const usernameRef = useRef<HTMLInputElement>(null);
   const { isAuthenticated, loading: authLoading, refresh } = useAuth();
   const [, navigate] = useLocation();
-  const { t } = useLanguage();
 
   // If already authenticated, redirect to home
   useEffect(() => {
@@ -60,18 +57,18 @@ export default function LocalLogin() {
 
     // Client-side validation
     if (username.length < 3) {
-      setError(t("auth.usernameMinLength"));
+      setError("用户名至少需要3个字符");
       return;
     }
     if (password.length < 6) {
-      setError(t("auth.passwordMinLength"));
+      setError("密码至少需要6个字符");
       return;
     }
 
     if (mode === "register") {
       const confirmPassword = (formData.get("confirmPassword") as string) || "";
       if (password !== confirmPassword) {
-        setError(t("auth.passwordMismatch"));
+        setError("两次输入的密码不一致");
         return;
       }
     }
@@ -96,13 +93,13 @@ export default function LocalLogin() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || t("auth.actionFailed"));
+        setError(data.error || "操作失败，请重试");
         setLoading(false);
         return;
       }
 
       // Show success
-      setSuccessMsg(mode === "login" ? t("auth.loginRedirect") : (data.message || t("auth.registerRedirect")));
+      setSuccessMsg(mode === "login" ? "登录成功！正在跳转..." : (data.message || "注册成功！正在跳转..."));
 
       // Refresh auth state, then navigate
       if (refresh) refresh();
@@ -110,7 +107,7 @@ export default function LocalLogin() {
         window.location.href = "/";
       }, 600);
     } catch (err) {
-      setError(t("auth.networkError"));
+      setError("网络错误，请检查服务器连接后重试");
       setLoading(false);
     }
   };
@@ -121,19 +118,14 @@ export default function LocalLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4 relative">
-      {/* Language Selector */}
-      <div className="absolute top-4 right-4">
-        <LanguageSelector />
-      </div>
-
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
       <div className="w-full max-w-[420px] space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
             <Shield className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("auth.welcomeTitle")}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">GRT 管理系统</h1>
           <p className="text-sm text-muted-foreground">
             Global Robot Technology
           </p>
@@ -151,7 +143,7 @@ export default function LocalLogin() {
             }`}
           >
             <LogIn className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-            {t("auth.login")}
+            登录
           </button>
           <button
             type="button"
@@ -163,7 +155,7 @@ export default function LocalLogin() {
             }`}
           >
             <UserPlus className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-            {t("auth.register")}
+            注册
           </button>
         </div>
 
@@ -171,12 +163,12 @@ export default function LocalLogin() {
         <Card className="shadow-lg border-border/50">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg">
-              {mode === "login" ? t("auth.welcomeBack") : t("auth.createAccount")}
+              {mode === "login" ? "欢迎回来" : "创建新账户"}
             </CardTitle>
             <CardDescription>
               {mode === "login"
-                ? t("auth.enterCredentials")
-                : t("auth.fillForm")}
+                ? "请输入您的登录凭据"
+                : "填写以下信息完成注册"}
             </CardDescription>
           </CardHeader>
 
@@ -184,13 +176,13 @@ export default function LocalLogin() {
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
               {/* Username */}
               <div className="space-y-2">
-                <Label htmlFor="username">{t("auth.username")} <span className="text-destructive">*</span></Label>
+                <Label htmlFor="username">用户名 <span className="text-destructive">*</span></Label>
                 <Input
                   ref={usernameRef}
                   id="username"
                   name="username"
                   type="text"
-                  placeholder={t("auth.usernamePlaceholder")}
+                  placeholder="请输入用户名（至少3个字符）"
                   required
                   minLength={3}
                   autoComplete="username"
@@ -203,23 +195,23 @@ export default function LocalLogin() {
               {mode === "register" && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="name">{t("auth.displayName")}</Label>
+                    <Label htmlFor="name">显示名称</Label>
                     <Input
                       id="name"
                       name="name"
                       type="text"
-                      placeholder={t("auth.namePlaceholder")}
+                      placeholder="您的姓名（选填，默认使用用户名）"
                       autoComplete="name"
                       disabled={loading}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">{t("auth.email")}</Label>
+                    <Label htmlFor="email">邮箱</Label>
                     <Input
                       id="email"
                       name="email"
                       type="email"
-                      placeholder={t("auth.emailPlaceholder")}
+                      placeholder="your@email.com（选填）"
                       autoComplete="email"
                       disabled={loading}
                     />
@@ -229,13 +221,13 @@ export default function LocalLogin() {
 
               {/* Password */}
               <div className="space-y-2">
-                <Label htmlFor="password">{t("auth.password")} <span className="text-destructive">*</span></Label>
+                <Label htmlFor="password">密码 <span className="text-destructive">*</span></Label>
                 <div className="relative">
                   <Input
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder={mode === "register" ? t("auth.passwordMinLengthPlaceholder") : t("auth.passwordPlaceholder")}
+                    placeholder={mode === "register" ? "至少6个字符" : "请输入密码"}
                     required
                     minLength={6}
                     autoComplete={mode === "login" ? "current-password" : "new-password"}
@@ -256,13 +248,13 @@ export default function LocalLogin() {
               {/* Confirm Password (register only) */}
               {mode === "register" && (
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">{t("auth.confirmPassword")} <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="confirmPassword">确认密码 <span className="text-destructive">*</span></Label>
                   <div className="relative">
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
-                      placeholder={t("auth.confirmPasswordPlaceholder")}
+                      placeholder="请再次输入密码"
                       required
                       minLength={6}
                       autoComplete="new-password"
@@ -307,8 +299,8 @@ export default function LocalLogin() {
                   <UserPlus className="w-4 h-4 mr-2" />
                 )}
                 {loading
-                  ? (mode === "login" ? t("auth.loggingIn") : t("auth.registering"))
-                  : (mode === "login" ? t("auth.login") : t("auth.register"))}
+                  ? (mode === "login" ? "登录中..." : "注册中...")
+                  : (mode === "login" ? "登录" : "注册")}
               </Button>
             </form>
           </CardContent>
@@ -316,7 +308,7 @@ export default function LocalLogin() {
 
         {/* Footer Info */}
         <p className="text-xs text-muted-foreground text-center">
-          {t("auth.firstUserAdmin")}
+          首个注册的用户将自动成为系统管理员
         </p>
       </div>
     </div>

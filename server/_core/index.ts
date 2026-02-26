@@ -14,6 +14,7 @@ import { initWebSocketServer, getWebSocketStats } from "../services/websocket.se
 import { initIMEWebSocket, getIMEWebSocketStats } from "../ime/ime-websocket.service";
 import { initScheduler } from "../services/scheduler.service";
 import imeRestApi from "../ime/ime-rest-api";
+import { showcaseLeadsRouter } from "../showcase/showcase-leads.router";
 
 const isLocalAuth = process.env.LOCAL_AUTH === "true" || process.env.VITE_LOCAL_AUTH === "true";
 
@@ -104,6 +105,9 @@ async function startServer() {
     })
   );
   app.use("/api/v1/ime", imeRestApi);
+
+  // Showcase Portal — Public CRM lead capture (no auth required)
+  app.use("/api/crm/leads", showcaseLeadsRouter);
 
   // Contract document download endpoint
   app.get("/api/contract-documents/:id/download", async (req, res) => {
