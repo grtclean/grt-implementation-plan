@@ -460,6 +460,10 @@ const BOMFreezeAutomation = React.lazy(() => import("./pages/BOMFreezeAutomation
 const QCPassNotification = React.lazy(() => import("./pages/QCPassNotification"));
 const AISecurityGovernance = React.lazy(() => import("./pages/AISecurityGovernance"));
 
+// Collaboration Drive & Smart Spreadsheet
+import CollaborationDocs from "./pages/CollaborationDocs";
+import SpreadsheetViewer from "./pages/SpreadsheetViewer";
+
 // Protected route wrapper component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -651,6 +655,12 @@ function Router() {
       </Route>
       <Route path={"/ai-diagnostic"}>
         <ProtectedRoute component={AIDiagnostic} />
+      </Route>
+      <Route path={"/collaboration-docs/spreadsheet/:id"}>
+        <ProtectedRoute component={SpreadsheetViewer} />
+      </Route>
+      <Route path={"/collaboration-docs"}>
+        <ProtectedRoute component={CollaborationDocs} />
       </Route>
       <Route path={"/collaboration"}>
         <ProtectedRoute component={CollaborationWorkspace} />

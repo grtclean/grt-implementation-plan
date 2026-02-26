@@ -1084,6 +1084,7 @@ export const menuConfig: MenuGroup[] = [
     icon: MessageSquare,
     superCategory: "resources",
     items: [
+      { name: "协同云盘", nameEn: "Collaboration Drive", nameDe: "Zusammenarbeitslaufwerk", nameFr: "Drive collaboratif", path: "/collaboration-docs", icon: FolderKanban, isNew: true },
       { name: "社群管理", nameEn: "Community", nameDe: "Community", nameFr: "Communauté", path: "/community", icon: MessageSquare },
       { name: "协作空间", nameEn: "Collaboration", nameDe: "Zusammenarbeit", nameFr: "Collaboration", path: "/collaboration", icon: Users },
       { name: "智能会议中枢", nameEn: "Meeting Hub", nameDe: "Meeting-Hub", nameFr: "Hub de réunion", path: "/meeting-hub", icon: Presentation, isNew: true },
