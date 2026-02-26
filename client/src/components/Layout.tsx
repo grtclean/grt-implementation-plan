@@ -465,10 +465,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   // inline JSX in the parent, preventing unmount/remount on every re-render.
   const collapsedNavContent = () => (
     <>
-      <div className="p-3 border-b border-[#edebe9] flex flex-col items-center gap-2">
-        <a href="/" className="block" title="GRT System">
-          <BrandLogo size="sm" variant="icon" />
-        </a>
+      <div className="p-2 border-b border-[#edebe9] flex justify-center">
         <button
           onClick={toggleSidebar}
           className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-[#f3f2f1] transition-colors text-[#605e5c]"
@@ -526,12 +523,8 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
   const navContent = () => (
     <div className="flex flex-col h-full">
-      {/* 1. Fixed header - Logo + collapse toggle */}
-      <div className="h-16 flex items-center px-4 shrink-0 border-b border-[#edebe9] gap-3">
-        <a href="/" className="flex items-center" title="GRT System">
-          <BrandLogo size="md" variant="full" />
-        </a>
-        <div className="flex-1" />
+      {/* Sidebar collapse toggle — no brand (brand lives in full-width header) */}
+      <div className="h-10 flex items-center justify-end px-3 shrink-0 border-b border-[#edebe9]">
         <button
           onClick={toggleSidebar}
           className="w-8 h-8 hidden lg:flex items-center justify-center rounded-md hover:bg-[#f3f2f1] transition-colors text-[#605e5c]"
@@ -734,79 +727,36 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="h-screen bg-background flex overflow-hidden">
-      {/* Desktop Sidebar - Fluent Design */}
-      <aside className={cn(
-        "hidden lg:flex flex-col bg-white border-r border-[#edebe9] shrink-0 z-50 relative transition-[width] duration-200",
-        sidebarCollapsed ? "w-16" : "w-72"
-      )}>
-        {sidebarCollapsed ? collapsedNavContent() : navContent()}
-      </aside>
-
-      {/* Mobile Header - Fluent Design */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-[#edebe9] z-50 flex items-center px-4">
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="mr-4 text-[#605e5c]">
-              <Menu className="w-6 h-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent
-            side="left"
-            className="w-72 p-0 bg-white border-[#edebe9] h-full"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-          >
-            {navContent()}
-          </SheetContent>
-        </Sheet>
-        <a href="/" className="flex items-center gap-2 flex-1" title="GRT System">
-          <BrandLogo size="sm" variant="full" />
-        </a>
-        <div className="flex items-center gap-2">
-          <LanguageSelector variant="compact" />
-        </div>
-      </header>
-
-      {/* Main Content - Sprint 1 flex布局，侧边栏为第一个子元素，主内容区为第二个子元素 flex-1 */}
-      <main className="flex-1 pt-16 lg:pt-0 overflow-y-auto [scrollbar-gutter:stable]">
-        {/* Desktop Top Bar - Fluent Design */}
-        <div className="hidden lg:flex items-center justify-between px-8 py-3 border-b border-[#edebe9] bg-white sticky top-0 z-40 relative">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      {/* ═══ Full-width Top Header — M365 App Shell (spans 100vw, fixed) ═══ */}
+      <header className="fixed top-0 left-0 right-0 h-12 bg-white border-b border-[#edebe9] z-50 flex items-center px-3 shrink-0">
+        {/* ── Desktop header ── */}
+        <div className="hidden lg:flex items-center flex-1 gap-2">
           {/* Left: Waffle + Brand Text + Logo */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setWaffleOpen(prev => !prev)}
-              className={cn(
-                "w-9 h-9 flex items-center justify-center rounded-md transition-colors",
-                waffleOpen
-                  ? "bg-[#eff6fc] text-[#0078d4]"
-                  : "text-[#605e5c] hover:bg-[#f3f2f1] hover:text-[#323130]"
-              )}
-              title={language === 'zh' ? '应用启动器' : 'App launcher'}
-            >
-              <Grid3X3 className="w-5 h-5" />
-            </button>
-            <a href="/" className="flex items-center gap-2" title="GRT System">
-              <span className="text-sm font-bold text-[#323130] select-none">GRT</span>
-              <span className="text-sm text-[#605e5c] select-none">System</span>
-              <img src="/GRTlogo.gif" alt="GRT" className="h-8 w-auto object-contain" />
-            </a>
-          </div>
-          {/* Waffle Menu Dropdown */}
-          <WaffleMenu
-            open={waffleOpen}
-            onClose={() => setWaffleOpen(false)}
-            activeAppId={(() => {
-              const app = WAFFLE_APPS.find(a => a.menuGroupNames.some(gn => filteredMenuConfig.some(g => g.name === gn && g.items.some(i => i.path === location))));
-              return app?.id || '';
-            })()}
-            onSelectApp={(app: WaffleApp) => { setWaffleOpen(false); setLocation(app.defaultPath); }}
-            language={language}
-            filteredMenuConfig={filteredMenuConfig}
-          />
+          <button
+            onClick={() => setWaffleOpen(prev => !prev)}
+            className={cn(
+              "w-9 h-9 flex items-center justify-center rounded-md transition-colors",
+              waffleOpen
+                ? "bg-[#eff6fc] text-[#0078d4]"
+                : "text-[#605e5c] hover:bg-[#f3f2f1] hover:text-[#323130]"
+            )}
+            title={language === 'zh' ? '应用启动器' : 'App launcher'}
+          >
+            <Grid3X3 className="w-5 h-5" />
+          </button>
+          <a href="/" className="flex items-center gap-2" title="GRT System">
+            <span className="text-sm font-bold text-[#323130] select-none">GRT</span>
+            <span className="text-sm text-[#605e5c] select-none">System</span>
+            <img src="/GRTlogo.gif" alt="GRT" className="h-8 w-auto object-contain" />
+          </a>
+
           {/* Center: Search */}
-          <TopBarSearch />
+          <div className="flex-1 flex justify-center px-8 max-w-xl mx-auto">
+            <TopBarSearch />
+          </div>
+
+          {/* Right: Actions */}
           <div className="flex items-center gap-3">
             <LanguageSelector variant="header" />
             <Button
@@ -818,7 +768,6 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             >
               <HelpCircle className="w-4 h-4" />
             </Button>
-            {/* User Profile Dropdown */}
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -854,27 +803,76 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </div>
-        <PrintHeader />
-        <ErrorBoundary resetKeys={[location]} level="section">
-          <div className="p-6 lg:p-8">{children}</div>
-        </ErrorBoundary>
-      </main>
 
-      {/* 全局菜单搜索 (Ctrl+K) */}
+        {/* ── Mobile header ── */}
+        <div className="lg:hidden flex items-center flex-1">
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="mr-3 text-[#605e5c]">
+                <Menu className="w-6 h-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="w-72 p-0 bg-white border-[#edebe9] h-full"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {navContent()}
+            </SheetContent>
+          </Sheet>
+          <a href="/" className="flex items-center gap-2 flex-1" title="GRT System">
+            <span className="text-sm font-bold text-[#323130] select-none">GRT</span>
+            <span className="text-sm text-[#605e5c] select-none">System</span>
+            <img src="/GRTlogo.gif" alt="GRT" className="h-8 w-auto object-contain" />
+          </a>
+          <LanguageSelector variant="compact" />
+        </div>
+
+        {/* Waffle Menu Dropdown */}
+        <WaffleMenu
+          open={waffleOpen}
+          onClose={() => setWaffleOpen(false)}
+          activeAppId={(() => {
+            const app = WAFFLE_APPS.find(a => a.menuGroupNames.some(gn => filteredMenuConfig.some(g => g.name === gn && g.items.some(i => i.path === location))));
+            return app?.id || '';
+          })()}
+          onSelectApp={(app: WaffleApp) => { setWaffleOpen(false); setLocation(app.defaultPath); }}
+          language={language}
+          filteredMenuConfig={filteredMenuConfig}
+        />
+      </header>
+
+      {/* ═══ Below-header body (sidebar + main content) ═══ */}
+      <div className="flex flex-1 pt-12 overflow-hidden">
+        {/* Desktop Sidebar — navigation only, no brand */}
+        <aside className={cn(
+          "hidden lg:flex flex-col bg-white border-r border-[#edebe9] shrink-0 z-40 relative transition-[width] duration-200",
+          sidebarCollapsed ? "w-16" : "w-72"
+        )}>
+          {sidebarCollapsed ? collapsedNavContent() : navContent()}
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+          <PrintHeader />
+          <ErrorBoundary resetKeys={[location]} level="section">
+            <div className="p-6 lg:p-8">{children}</div>
+          </ErrorBoundary>
+        </main>
+      </div>
+
+      {/* ═══ Overlays ═══ */}
       <GlobalMenuSearch />
-      {/* Help Column - 右侧帮助面板 (z-40, AI面板打开时自动隐藏) */}
       <HelpColumn
         isOpen={helpPanelOpen}
         onClose={() => setHelpPanelOpen(false)}
         onOpenAI={() => setAiPanelOpen(true)}
       />
-      {/* Context-Aware Help Overlay */}
       <HelpOverlay />
-      {/* GRT Copilot — AI Help Panel (Ctrl+/) */}
       <CopilotBar />
-      {/* Guided Walkthrough — tooltip step-by-step overlay */}
       <GuidedWalkthrough />
-      {/* AI Floating Button and Panel */}
       <AIFloatingButton onClick={() => setAiPanelOpen(true)} isOpen={aiPanelOpen} />
       <AIConversationPanel isOpen={aiPanelOpen} onClose={() => setAiPanelOpen(false)} />
     </div>
