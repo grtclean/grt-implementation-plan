@@ -48,6 +48,11 @@ export function createRoleMiddleware(roleNames: string[]) {
       });
     }
 
+    // Admin bypass: users with role='admin' in users table pass all role checks
+    if (ctx.user.role === 'admin') {
+      return next({ ctx });
+    }
+
     let hasRole = false;
     for (const roleName of roleNames) {
       const result = await permissionService.checkRole(ctx.user.openId || String(ctx.user.id), roleName);
