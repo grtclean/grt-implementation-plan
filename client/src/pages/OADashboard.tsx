@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -124,7 +125,8 @@ export default function OADashboard() {
   const searchString = useSearch();
   const tabFromUrl = new URLSearchParams(searchString).get("tab");
   const [activeTab, setActiveTab] = useState(tabFromUrl || "overview");
-  const currentUserId = 1; // In production: from auth context
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? 0;
 
   // Sync tab when URL query changes (e.g. sidebar nav)
   useEffect(() => {
@@ -499,7 +501,7 @@ export default function OADashboard() {
 
       {/* Dialogs */}
       <NewWorkflowDialog open={showNewWorkflow} onOpenChange={setShowNewWorkflow}
-        onSubmit={(data) => createWorkflowMut.mutate(data)} isPending={createWorkflowMut.isPending} />
+        onSubmit={(data) => createWorkflowMut.mutate(data)} isPending={createWorkflowMut.isPending} currentUserId={currentUserId} />
       <TripReportSheet report={selectedReport} open={!!selectedReport}
         onOpenChange={(open) => !open && setSelectedReport(null)} />
     </div>
@@ -510,11 +512,12 @@ export default function OADashboard() {
 
 type WorkflowType = typeof WORKFLOW_TYPES[number]["value"];
 
-function NewWorkflowDialog({ open, onOpenChange, onSubmit, isPending }: {
+function NewWorkflowDialog({ open, onOpenChange, onSubmit, isPending, currentUserId }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSubmit: (data: { type: WorkflowType; title: string; content?: Record<string, unknown>; applicantId?: number }) => void;
   isPending: boolean;
+  currentUserId: number;
 }) {
   const [type, setType] = useState<WorkflowType>("LEAVE");
   const [title, setTitle] = useState("");
@@ -522,7 +525,7 @@ function NewWorkflowDialog({ open, onOpenChange, onSubmit, isPending }: {
 
   const handleSubmit = () => {
     if (!title.trim()) return;
-    onSubmit({ type, title: title.trim(), content: details ? { details } : undefined, applicantId: 1 });
+    onSubmit({ type, title: title.trim(), content: details ? { details } : undefined, applicantId: currentUserId });
     setType("LEAVE"); setTitle(""); setDetails("");
   };
 

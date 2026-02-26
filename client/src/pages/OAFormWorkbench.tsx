@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import UniversalDynamicForm from "@/components/UniversalDynamicForm";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const oaForms = trpc.oaForms;
 
@@ -123,6 +124,9 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 export default function OAFormWorkbench() {
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? 0;
+  const currentUserName = user?.name ?? "未知用户";
   const [tab, setTab] = useState<TabKey>("gallery");
   const [catFilter, setCatFilter] = useState("all");
   const [selTpl, setSelTpl] = useState<any>(null);
@@ -140,10 +144,10 @@ export default function OAFormWorkbench() {
 
   // Data
   const tplQ = oaForms.listTemplates.useQuery({ activeOnly: tab === "gallery" });
-  const subQ = oaForms.listSubmissions.useQuery({ applicantId: 1 }); // TODO: replace with auth context
-  const pendQ = oaForms.getMyPendingApprovals.useQuery({ approverId: 1 }); // TODO: replace with auth context
+  const subQ = oaForms.listSubmissions.useQuery({ applicantId: currentUserId }, { enabled: currentUserId > 0 });
+  const pendQ = oaForms.getMyPendingApprovals.useQuery({ approverId: currentUserId }, { enabled: currentUserId > 0 });
   const statsQ = oaForms.getStats.useQuery();
-  const favQ = oaForms.listFavorites.useQuery({ userId: 1 }); // TODO: replace with auth context
+  const favQ = oaForms.listFavorites.useQuery({ userId: currentUserId }, { enabled: currentUserId > 0 });
   const allTplQ = oaForms.listTemplates.useQuery({ activeOnly: false });
 
   // Mutations
@@ -163,7 +167,7 @@ export default function OAFormWorkbench() {
   function toggleFav(id: number, e: React.MouseEvent) {
     e.stopPropagation();
     const fn = favIds.has(id) ? rmFav : addFav;
-    fn.mutate({ userId: 1, templateId: id }, { onSuccess: () => favQ.refetch() }); // TODO: replace with auth context
+    fn.mutate({ userId: currentUserId, templateId: id }, { onSuccess: () => favQ.refetch() });
   }
 
   function pickTemplate(t: any) { setSelTpl(t); setSuccess(false); setTab("fill"); }
@@ -172,7 +176,7 @@ export default function OAFormWorkbench() {
     if (!selTpl) return;
     try {
       await createSub.mutateAsync({
-        templateId: selTpl.id, applicantId: 1, applicantName: "当前用户", // TODO: replace with auth context
+        templateId: selTpl.id, applicantId: currentUserId, applicantName: currentUserName,
         title: `${selTpl.templateName} - ${new Date().toLocaleDateString("zh-CN")}`,
         formData: values, priority: "normal",
       });
@@ -186,14 +190,14 @@ export default function OAFormWorkbench() {
   function doApprove() {
     if (!approveDlg) return;
     approveMut.mutate(
-      { submissionId: approveDlg.id, approverId: 1, approverName: "当前用户", comment: appComment || undefined }, // TODO: replace with auth context
+      { submissionId: approveDlg.id, approverId: currentUserId, approverName: currentUserName, comment: appComment || undefined },
       { onSuccess: () => { setApproveDlg(null); setAppComment(""); pendQ.refetch(); } },
     );
   }
   function doReject() {
     if (!rejectDlg || !rejReason.trim()) return;
     rejectMut.mutate(
-      { submissionId: rejectDlg.id, approverId: 1, approverName: "当前用户", comment: rejReason }, // TODO: replace with auth context
+      { submissionId: rejectDlg.id, approverId: currentUserId, approverName: currentUserName, comment: rejReason },
       { onSuccess: () => { setRejectDlg(null); setRejReason(""); pendQ.refetch(); } },
     );
   }
