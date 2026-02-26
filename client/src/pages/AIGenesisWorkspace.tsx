@@ -37,6 +37,9 @@ import {
   Archive,
   RefreshCw,
   Loader2,
+  Shield,
+  ShieldCheck,
+  Clock,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -47,6 +50,8 @@ type DocumentStatus = "UPLOADED" | "PROCESSING" | "ANALYZED" | "FAILED" | "ARCHI
 type ProposalStatus = "DRAFT" | "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "COMMITTED";
 type ProposalType = "SCHEMA_CHANGE" | "CONFIG_UPDATE" | "SOP_CREATION" | "POLICY_UPDATE" | "OTHER";
 type ChatRole = "user" | "ai" | "system";
+type ApprovalStatus = "DRAFT" | "PENDING_MANAGER" | "APPROVED";
+type MockRole = "employee" | "manager";
 
 interface GenesisDocument {
   id: number;
@@ -91,6 +96,12 @@ const STATUS_STYLES: Record<DocumentStatus, { color: string; label: string }> = 
   ARCHIVED: { color: "bg-muted text-muted-foreground border-muted", label: "Archived" },
 };
 
+const APPROVAL_STYLES: Record<ApprovalStatus, { color: string; label: string; labelCn: string }> = {
+  DRAFT: { color: "bg-slate-500/15 text-slate-400 border-slate-500/30", label: "Draft", labelCn: "草稿" },
+  PENDING_MANAGER: { color: "bg-amber-500/15 text-amber-400 border-amber-500/30", label: "Awaiting Approval", labelCn: "等待主管审核" },
+  APPROVED: { color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", label: "Approved", labelCn: "已批准" },
+};
+
 const PROPOSAL_STATUS_STYLES: Record<ProposalStatus, { color: string; label: string }> = {
   DRAFT: { color: "bg-muted text-muted-foreground border-muted", label: "Draft" },
   PENDING_REVIEW: { color: "bg-amber-500/15 text-amber-400 border-amber-500/30", label: "Pending Review" },
@@ -129,6 +140,14 @@ export default function AIGenesisWorkspace() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [chatInput, setChatInput] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+  const [mockRole, setMockRole] = useState<MockRole>("employee");
+  const [localDocuments, setLocalDocuments] = useState<Array<{
+    id: number; fileName: string; fileSize: number; fileType: string;
+    status: DocumentStatus; approvalStatus: ApprovalStatus;
+    uploadedAt: string; proposalCount: number;
+  }>>([]);
+  const [nextLocalId, setNextLocalId] = useState(-1);
+  const [approvalStatusMap, setApprovalStatusMap] = useState<Record<number, ApprovalStatus>>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -212,6 +231,14 @@ export default function AIGenesisWorkspace() {
 
   // Resolve data from backend
   const documents = (documentsQuery.data as any)?.items ?? [];
+  // Merge local mock uploads with backend documents, each carrying approvalStatus
+  const allDocuments = [
+    ...localDocuments,
+    ...documents.map((d: any) => ({
+      ...d,
+      approvalStatus: (approvalStatusMap[d.id] ?? "DRAFT") as ApprovalStatus,
+    })),
+  ];
   const proposals = (proposalsQuery.data as any)?.items ?? [];
   const selectedProposal = proposals.find((p: any) => p.id === selectedProposalId) ?? null;
   const proposalDetail = proposalDetailQuery.data;
@@ -265,6 +292,7 @@ export default function AIGenesisWorkspace() {
   }, []);
 
   const handleFileUpload = (files: File[]) => {
+    const file = files[0];
     setUploadProgress(0);
     const interval = setInterval(() => {
       setUploadProgress((prev) => {
@@ -277,7 +305,31 @@ export default function AIGenesisWorkspace() {
       });
     }, 200);
 
-    uploadMutation.mutate({ fileName: files[0].name });
+    // Simulate a 1-second upload delay — generates a local mock record
+    // so Excel/CSV/XLSX files never hit a binary-parsing path that could crash
+    setTimeout(() => {
+      clearInterval(interval);
+      const ext = file.name.split(".").pop()?.toLowerCase() || "other";
+      const newDoc = {
+        id: nextLocalId,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: ext,
+        status: "UPLOADED" as DocumentStatus,
+        approvalStatus: "DRAFT" as ApprovalStatus,
+        uploadedAt: new Date().toLocaleString(),
+        proposalCount: 0,
+      };
+      setLocalDocuments((prev) => [newDoc, ...prev]);
+      setApprovalStatusMap((prev) => ({ ...prev, [nextLocalId]: "DRAFT" }));
+      setNextLocalId((prev) => prev - 1);
+      setUploadProgress(100);
+      setTimeout(() => setUploadProgress(null), 500);
+      toast.success(`${file.name} uploaded successfully`);
+
+      // Also persist to backend (non-blocking, best-effort)
+      uploadMutation.mutate({ fileName: file.name });
+    }, 1000);
   };
 
   // ---------------------------------------------------------------------------
@@ -321,6 +373,26 @@ export default function AIGenesisWorkspace() {
   };
 
   // ---------------------------------------------------------------------------
+  // Document RBAC approval handlers
+  // ---------------------------------------------------------------------------
+
+  const handleRequestAuthorization = (docId: number) => {
+    setApprovalStatusMap((prev) => ({ ...prev, [docId]: "PENDING_MANAGER" }));
+    setLocalDocuments((prev) =>
+      prev.map((d) => (d.id === docId ? { ...d, approvalStatus: "PENDING_MANAGER" } : d))
+    );
+    toast.info("Authorization requested — awaiting manager approval (申请已提交，等待主管审核)");
+  };
+
+  const handleManagerApprove = (docId: number) => {
+    setApprovalStatusMap((prev) => ({ ...prev, [docId]: "APPROVED" }));
+    setLocalDocuments((prev) =>
+      prev.map((d) => (d.id === docId ? { ...d, approvalStatus: "APPROVED" } : d))
+    );
+    toast.success("Document approved — AI ingestion authorized (主管确认，AI处理已授权)");
+  };
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
@@ -332,7 +404,21 @@ export default function AIGenesisWorkspace() {
         title="AI Genesis Workspace"
         description="Document ingestion and AI-driven proposal management"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* Mock RBAC role toggle */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setMockRole((r) => (r === "employee" ? "manager" : "employee"))}
+            >
+              {mockRole === "manager" ? (
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              ) : (
+                <Shield className="w-3.5 h-3.5 text-blue-400" />
+              )}
+              {mockRole === "manager" ? "Role: Manager (主管)" : "Role: Employee (员工)"}
+            </Button>
             <Badge variant="outline" className="gap-1">
               <FileText className="w-3 h-3" />
               {stats.documentCount} docs
@@ -418,18 +504,19 @@ export default function AIGenesisWorkspace() {
               </div>
               <ScrollArea className="flex-1 px-4 pb-4">
                 <div className="space-y-2">
-                  {documentsQuery.isLoading ? (
+                  {documentsQuery.isLoading && localDocuments.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                       <Loader2 className="w-8 h-8 animate-spin mb-2 opacity-50" />
                       <p className="text-xs">Loading documents...</p>
                     </div>
-                  ) : documents.length === 0 ? (
+                  ) : allDocuments.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                       <FileText className="w-8 h-8 mb-2 opacity-40" />
                       <p className="text-xs">No documents yet. Upload one above.</p>
                     </div>
-                  ) : documents.map((doc: any) => {
+                  ) : allDocuments.map((doc: any) => {
                     const statusInfo = STATUS_STYLES[doc.status as DocumentStatus] ?? STATUS_STYLES.UPLOADED;
+                    const approvalInfo = APPROVAL_STYLES[(doc.approvalStatus ?? "DRAFT") as ApprovalStatus];
                     const isSelected = selectedDocumentId === doc.id;
                     return (
                       <Card
@@ -448,12 +535,17 @@ export default function AIGenesisWorkspace() {
                               <p className="text-sm font-medium truncate text-foreground">
                                 {doc.fileName}
                               </p>
-                              <div className="flex items-center gap-2 mt-1">
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${statusInfo.color}`}>
                                   {doc.status === "PROCESSING" && (
                                     <RefreshCw className="w-2.5 h-2.5 mr-1 animate-spin" />
                                   )}
                                   {statusInfo.label}
+                                </Badge>
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-0.5 ${approvalInfo.color}`}>
+                                  {doc.approvalStatus === "PENDING_MANAGER" && <Clock className="w-2.5 h-2.5" />}
+                                  {doc.approvalStatus === "APPROVED" && <ShieldCheck className="w-2.5 h-2.5" />}
+                                  {approvalInfo.labelCn}
                                 </Badge>
                                 {doc.proposalCount > 0 && (
                                   <span className="text-[10px] text-muted-foreground">
@@ -463,7 +555,47 @@ export default function AIGenesisWorkspace() {
                               </div>
                               <p className="text-[10px] text-muted-foreground mt-1">
                                 {doc.uploadedAt ?? doc.createdAt}
+                                {doc.fileSize ? ` · ${(doc.fileSize / 1024).toFixed(1)} KB` : ""}
                               </p>
+                              {/* RBAC approval action buttons */}
+                              {mockRole === "employee" && doc.approvalStatus === "DRAFT" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="mt-2 h-7 text-xs gap-1"
+                                  onClick={(e) => { e.stopPropagation(); handleRequestAuthorization(doc.id); }}
+                                >
+                                  <Shield className="w-3 h-3" />
+                                  申请授权 Request Authorization
+                                </Button>
+                              )}
+                              {mockRole === "employee" && doc.approvalStatus === "PENDING_MANAGER" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="mt-2 h-7 text-xs gap-1 text-amber-400"
+                                  disabled
+                                >
+                                  <Clock className="w-3 h-3 animate-pulse" />
+                                  等待主管审核 Awaiting Approval...
+                                </Button>
+                              )}
+                              {mockRole === "manager" && doc.approvalStatus === "PENDING_MANAGER" && (
+                                <Button
+                                  size="sm"
+                                  className="mt-2 h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                  onClick={(e) => { e.stopPropagation(); handleManagerApprove(doc.id); }}
+                                >
+                                  <ShieldCheck className="w-3 h-3" />
+                                  主管确认 Manager Approve
+                                </Button>
+                              )}
+                              {doc.approvalStatus === "APPROVED" && (
+                                <div className="flex items-center gap-1 mt-2 text-[10px] text-emerald-400">
+                                  <ShieldCheck className="w-3 h-3" />
+                                  AI ingestion authorized
+                                </div>
+                              )}
                             </div>
                           </div>
                         </CardContent>
