@@ -236,6 +236,7 @@ import { governanceRouter } from "./routers/governance.router";
 import { aiSecurityGovernanceRouter } from "./routers/ai-security-governance.router";
 import { campaignRouter } from "./routers/campaign.router";
 import { collaborationDocsRouter } from "./routers/collaboration-docs.router";
+import { concurrentCommandRouter } from "./routers/concurrent-command.router";
 import { genesisRouter } from "./routers/genesis.router";
 import { helpRouter } from "./routers/help.router";
 import { supplyChainRouter } from "./routers/supply-chain.router";
@@ -406,6 +407,7 @@ export const appRouter = router({
   socialPlatformConfig: socialPlatformConfigRouter,
   workspace: workspaceRouter,
   collaborationDocs: collaborationDocsRouter,
+  concurrentCommand: concurrentCommandRouter,
   scheduling: schedulingRouter,
   uwb: uwbRouter,
   

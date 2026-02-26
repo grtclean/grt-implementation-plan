@@ -460,6 +460,9 @@ const BOMFreezeAutomation = React.lazy(() => import("./pages/BOMFreezeAutomation
 const QCPassNotification = React.lazy(() => import("./pages/QCPassNotification"));
 const AISecurityGovernance = React.lazy(() => import("./pages/AISecurityGovernance"));
 
+// Concurrent Command Center — Dual-Track Debugging
+const ConcurrentCommandCenter = React.lazy(() => import("./pages/ConcurrentCommandCenter"));
+
 // Collaboration Drive & Smart Spreadsheet
 import CollaborationDocs from "./pages/CollaborationDocs";
 import SpreadsheetViewer from "./pages/SpreadsheetViewer";
@@ -655,6 +658,9 @@ function Router() {
       </Route>
       <Route path={"/ai-diagnostic"}>
         <ProtectedRoute component={AIDiagnostic} />
+      </Route>
+      <Route path={"/concurrent-command-center"}>
+        <ProtectedRoute component={ConcurrentCommandCenter} />
       </Route>
       <Route path={"/collaboration-docs/spreadsheet/:id"}>
         <ProtectedRoute component={SpreadsheetViewer} />

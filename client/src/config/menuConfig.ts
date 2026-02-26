@@ -907,6 +907,7 @@ export const menuConfig: MenuGroup[] = [
     superCategory: "strategy",
     items: [
       { name: "双AI协作矩阵", nameEn: "Dual-AI Matrix", nameDe: "Dual-KI-Matrix", nameFr: "Matrice Double IA", path: "/dual-ai-matrix", icon: Zap, isNew: true },
+      { name: "并行指挥中心", nameEn: "Concurrent Command", nameDe: "Parallele Kommandozentrale", nameFr: "Centre de commande concurrent", path: "/concurrent-command-center", icon: Monitor, isNew: true },
       { name: "Gemini技术规格", nameEn: "Gemini Spec", nameDe: "Gemini-Spezifikation", nameFr: "Spécification Gemini", path: "/gemini-spec", icon: FileText, isNew: true },
       { name: "仿真指挥中心", nameEn: "Simulator", nameDe: "Simulator", nameFr: "Simulateur", path: "/simulator", icon: Zap, isNew: true },
       { name: "系统部署", nameEn: "Deployment", nameDe: "Bereitstellung", nameFr: "Déploiement", path: "/system-deployment", icon: Server },
