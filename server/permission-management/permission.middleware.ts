@@ -20,7 +20,7 @@ export function createPermissionMiddleware(permissionCode: string) {
     }
 
     const hasPermission = await permissionService.checkPermission(
-      ctx.user.id,
+      ctx.user.openId || String(ctx.user.id),
       permissionCode
     );
 
@@ -50,7 +50,7 @@ export function createRoleMiddleware(roleNames: string[]) {
 
     let hasRole = false;
     for (const roleName of roleNames) {
-      const result = await permissionService.checkRole(ctx.user.id, roleName);
+      const result = await permissionService.checkRole(ctx.user.openId || String(ctx.user.id), roleName);
       if (result) {
         hasRole = true;
         break;
@@ -82,7 +82,7 @@ export function createCertificationMiddleware(certificateCode: string) {
     }
 
     const hasCertification = await permissionService.checkCertification(
-      ctx.user.id,
+      ctx.user.openId || String(ctx.user.id),
       certificateCode
     );
 
@@ -110,7 +110,7 @@ export function createDataScopeMiddleware() {
       });
     }
 
-    const dataScope = await permissionService.getUserDataScope(ctx.user.id);
+    const dataScope = await permissionService.getUserDataScope(ctx.user.openId || String(ctx.user.id));
     ctx.dataScope = dataScope;
 
     return next({ ctx });
@@ -132,7 +132,7 @@ export function createAuditMiddleware() {
       // 记录成功的操作
       if (ctx.user) {
         await permissionService.logAuditEvent(
-          ctx.user.id,
+          ctx.user.openId || String(ctx.user.id),
           meta?.operation || 'unknown',
           undefined,
           undefined,
@@ -148,7 +148,7 @@ export function createAuditMiddleware() {
       // 记录失败的操作
       if (ctx.user) {
         await permissionService.logAuditEvent(
-          ctx.user.id,
+          ctx.user.openId || String(ctx.user.id),
           meta?.operation || 'unknown',
           undefined,
           undefined,
@@ -177,7 +177,7 @@ export function createPermissionAndDataScopeMiddleware(permissionCode: string) {
 
     // 检查权限
     const hasPermission = await permissionService.checkPermission(
-      ctx.user.id,
+      ctx.user.openId || String(ctx.user.id),
       permissionCode
     );
 
@@ -189,7 +189,7 @@ export function createPermissionAndDataScopeMiddleware(permissionCode: string) {
     }
 
     // 获取数据范围
-    const dataScope = await permissionService.getUserDataScope(ctx.user.id);
+    const dataScope = await permissionService.getUserDataScope(ctx.user.openId || String(ctx.user.id));
     ctx.dataScope = dataScope;
 
     return next({ ctx });

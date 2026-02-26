@@ -31,8 +31,12 @@ export const permissionRouter = router({
   checkPermission: protectedProcedure
     .input(z.object({ permissionCode: z.string() }))
     .query(async ({ ctx, input }) => {
+      // Admin bypass: users with role='admin' in users table have all permissions
+      if ((ctx.user as any).role === 'admin') {
+        return { hasPermission: true };
+      }
       const hasPermission = await permissionService.checkPermission(
-        String(ctx.user.id),
+        ctx.user.openId || String(ctx.user.id),
         input.permissionCode
       );
       return { hasPermission };
@@ -42,7 +46,7 @@ export const permissionRouter = router({
    * 获取用户所有权限
    */
   getUserPermissions: protectedProcedure.query(async ({ ctx }) => {
-    const permissions = await permissionService.getUserPermissions(String(ctx.user.id));
+    const permissions = await permissionService.getUserPermissions(ctx.user.openId || String(ctx.user.id));
     return { permissions };
   }),
 
@@ -50,7 +54,7 @@ export const permissionRouter = router({
    * 获取用户数据范围
    */
   getUserDataScope: protectedProcedure.query(async ({ ctx }) => {
-    const dataScope = await permissionService.getUserDataScope(String(ctx.user.id));
+    const dataScope = await permissionService.getUserDataScope(ctx.user.openId || String(ctx.user.id));
     return { dataScope };
   }),
 
@@ -59,7 +63,7 @@ export const permissionRouter = router({
    */
   getUserCertifications: protectedProcedure.query(async ({ ctx }) => {
     const certifications = await permissionService.getUserCertifications(
-      String(ctx.user.id)
+      ctx.user.openId || String(ctx.user.id)
     );
     return { certifications };
   }),
@@ -68,7 +72,7 @@ export const permissionRouter = router({
    * 管理员：获取所有角色
    */
   getAllRoles: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .query(async () => {
       const db = await requireDb();
       const allRoles = await (db as any).select().from(roles);
@@ -79,7 +83,7 @@ export const permissionRouter = router({
    * 管理员：创建角色
    */
   createRole: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(
       z.object({
         name: z.string().min(1),
@@ -123,7 +127,7 @@ export const permissionRouter = router({
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        String(ctx.user.id),
+        ctx.user.openId || String(ctx.user.id),
         'create_role',
         undefined,
         undefined,
@@ -138,7 +142,7 @@ export const permissionRouter = router({
    * 管理员：编辑角色
    */
   updateRole: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(
       z.object({
         roleId: z.number(),
@@ -161,7 +165,7 @@ export const permissionRouter = router({
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        String(ctx.user.id),
+        ctx.user.openId || String(ctx.user.id),
         'update_role',
         undefined,
         input.roleId,
@@ -176,7 +180,7 @@ export const permissionRouter = router({
    * 管理员：删除角色
    */
   deleteRole: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(z.object({ roleId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
@@ -204,7 +208,7 @@ export const permissionRouter = router({
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        String(ctx.user.id),
+        ctx.user.openId || String(ctx.user.id),
         'delete_role',
         undefined,
         input.roleId,
@@ -219,7 +223,7 @@ export const permissionRouter = router({
    * 管理员：获取所有权限
    */
   getAllPermissions: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .query(async () => {
       const db = await requireDb();
       const allPermissions = await (db as any).select().from(permissions);
@@ -230,7 +234,7 @@ export const permissionRouter = router({
    * 管理员：分配权限给角色
    */
   assignPermissionToRole: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(
       z.object({
         roleId: z.number(),
@@ -257,7 +261,7 @@ export const permissionRouter = router({
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        String(ctx.user.id),
+        ctx.user.openId || String(ctx.user.id),
         'grant_permission',
         undefined,
         input.roleId,
@@ -272,7 +276,7 @@ export const permissionRouter = router({
    * 管理员：分配角色给用户
    */
   assignRoleToUser: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(
       z.object({
         userId: z.string(),
@@ -285,7 +289,7 @@ export const permissionRouter = router({
       await permissionService.assignRoleToUserById(
         input.userId,
         input.roleId,
-        String(ctx.user.id),
+        ctx.user.openId || String(ctx.user.id),
         input.startDate ? new Date(input.startDate) : undefined,
         input.endDate ? new Date(input.endDate) : undefined
       );
@@ -296,7 +300,7 @@ export const permissionRouter = router({
    * 管理员：撤销用户角色
    */
   revokeRoleFromUser: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(
       z.object({
         userId: z.string(),
@@ -318,7 +322,7 @@ export const permissionRouter = router({
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        String(ctx.user.id),
+        ctx.user.openId || String(ctx.user.id),
         'revoke_role',
         input.userId,
         input.roleId,
@@ -333,7 +337,7 @@ export const permissionRouter = router({
    * 管理员：获取用户的角色分配
    */
   getUserRoles: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(z.object({ userId: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -361,7 +365,7 @@ export const permissionRouter = router({
    * 管理员：获取角色的权限列表
    */
   getRolePermissions: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(z.object({ roleId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -386,7 +390,7 @@ export const permissionRouter = router({
    * 管理员：获取每个角色的活跃用户数
    */
   getRoleMemberCounts: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .query(async () => {
       const db = await requireDb();
       const now = new Date();
@@ -418,7 +422,7 @@ export const permissionRouter = router({
    * 管理员：获取用户的有效权限（从所有活跃角色派生）
    */
   getUserEffectivePermissions: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(z.object({ userId: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -472,7 +476,7 @@ export const permissionRouter = router({
    * 管理员：获取所有角色-权限映射
    */
   getAllRolePermissionMappings: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .query(async () => {
       const db = await requireDb();
       const records = await (db as any)
@@ -488,7 +492,7 @@ export const permissionRouter = router({
    * 管理员：获取审计日志
    */
   getAuditLogs: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(
       z.object({
         limit: z.number().default(50),
@@ -537,7 +541,7 @@ export const permissionRouter = router({
    * 管理员：添加用户认证
    */
   addUserCertification: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(
       z.object({
         userId: z.string(),
@@ -565,7 +569,7 @@ export const permissionRouter = router({
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        String(ctx.user.id),
+        ctx.user.openId || String(ctx.user.id),
         'grant_permission',
         input.userId,
         undefined,
@@ -580,7 +584,7 @@ export const permissionRouter = router({
    * 管理员：撤销用户认证
    */
   revokeUserCertification: protectedProcedure
-    .use(createRoleMiddleware(['admin']))
+    .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(
       z.object({
         userId: z.string(),
@@ -602,7 +606,7 @@ export const permissionRouter = router({
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        String(ctx.user.id),
+        ctx.user.openId || String(ctx.user.id),
         'revoke_permission',
         input.userId,
         undefined,

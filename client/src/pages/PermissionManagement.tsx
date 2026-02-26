@@ -13,7 +13,7 @@ import { UserRoleAssignmentTab } from './permission-management/UserRoleAssignmen
 import { AuditLogsTab } from './permission-management/AuditLogsTab';
 
 export default function PermissionManagement() {
-  const hasPermission = usePermission('permission:admin');
+  const hasPermission = usePermission('system:permissions:assign');
 
   if (!hasPermission) {
     return (
