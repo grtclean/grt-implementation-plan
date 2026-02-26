@@ -6354,6 +6354,7 @@ export {
   userPermissions,
   permissionBlacklist,
   permissionConfigs,
+  routePermissions,
 } from './permission-schema';
 
 // ===== 重新导出菜单导航系统表 =====

@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
+import { router, protectedProcedure, requirePermission } from '../_core/trpc';
 import { getDb } from '../db';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -87,7 +87,7 @@ export const schedulingRouter = router({
   /**
    * 获取排程任务列表
    */
-  listTasks: publicProcedure
+  listTasks: requirePermission('mfg:scheduling:view')
     .input(z.object({
       projectId: z.string().optional(),
       buCode: z.string().optional(),
@@ -222,7 +222,7 @@ export const schedulingRouter = router({
   /**
    * 获取资源列表
    */
-  listResources: publicProcedure
+  listResources: requirePermission('mfg:scheduling:view')
     .input(z.object({
       resourceType: z.enum(['employee', 'equipment', 'workstation']).optional(),
       buCode: z.string().optional(),
@@ -336,7 +336,7 @@ export const schedulingRouter = router({
   /**
    * 获取约束列表
    */
-  listConstraints: publicProcedure
+  listConstraints: requirePermission('mfg:scheduling:view')
     .input(z.object({
       constraintType: z.string().optional(),
       isActive: z.boolean().optional(),
@@ -413,7 +413,7 @@ export const schedulingRouter = router({
   /**
    * 执行排程计算
    */
-  runScheduling: protectedProcedure
+  runScheduling: requirePermission('mfg:scheduling:run')
     .input(schedulingInputSchema)
     .mutation(async ({ input, ctx }) => {
       const db: any = await getDb();
@@ -591,7 +591,7 @@ export const schedulingRouter = router({
   /**
    * 获取排程任务执行记录
    */
-  listJobs: publicProcedure
+  listJobs: requirePermission('mfg:scheduling:view')
     .input(z.object({
       status: z.enum(['pending', 'running', 'completed', 'failed', 'cancelled']).optional(),
       limit: z.number().min(1).max(50).default(20),
@@ -618,7 +618,7 @@ export const schedulingRouter = router({
   /**
    * 获取排程结果
    */
-  getJobResults: publicProcedure
+  getJobResults: requirePermission('mfg:scheduling:view')
     .input(z.object({ jobId: z.string() }))
     .query(async ({ input }) => {
       const db: any = await getDb();
@@ -655,7 +655,7 @@ export const schedulingRouter = router({
   /**
    * 获取甘特图数据
    */
-  getGanttData: publicProcedure
+  getGanttData: requirePermission('mfg:scheduling:view')
     .input(z.object({ jobId: z.string() }))
     .query(async ({ input }) => {
       const db: any = await getDb();
@@ -720,7 +720,7 @@ export const schedulingRouter = router({
   /**
    * 获取排程统计
    */
-  getStatistics: publicProcedure
+  getStatistics: requirePermission('mfg:scheduling:view')
     .query(async () => {
       const db: any = await getDb();
       
@@ -987,7 +987,7 @@ export const schedulingRouter = router({
   /**
    * 获取自动刷新状态
    */
-  getAutoRefreshStatus: publicProcedure
+  getAutoRefreshStatus: protectedProcedure
     .query(async () => {
       return getRefreshStatus();
     }),
@@ -1056,7 +1056,7 @@ export const schedulingRouter = router({
   /**
    * 将排程结果下发给工人
    */
-  dispatchToWorkers: protectedProcedure
+  dispatchToWorkers: requirePermission('mfg:scheduling:dispatch')
     .input(z.object({ jobId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const db: any = await getDb();

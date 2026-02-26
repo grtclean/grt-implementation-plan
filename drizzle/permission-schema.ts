@@ -411,6 +411,43 @@ export const permissionConfigs = pgTable(
 );
 
 /**
+ * 路由权限映射表
+ * 将前端路由映射到所需权限，用于菜单可见性和路由守卫
+ */
+export const routePermissions = pgTable(
+  'grt_route_permissions',
+  {
+    id: serial().primaryKey(),
+
+    // 路由模式 (e.g. '/crm/customers', '/mfg/*')
+    routePattern: varchar('route_pattern', { length: 256 }).notNull(),
+
+    // 所需权限编码 (对应 grt_permissions.code)
+    requiredPermission: varchar('required_permission', { length: 128 }).notNull(),
+
+    // 最低角色等级 (0-10)
+    minLevel: integer('min_level').default(0).notNull(),
+
+    // 允许的角色列表 (JSON数组, null = 任何已认证角色)
+    allowedRoles: json('allowed_roles'),
+
+    // 是否为菜单项 (在导航中可见)
+    isMenuItem: boolean('is_menu_item').default(true),
+
+    // 状态
+    isActive: boolean('is_active').default(true),
+
+    // 时间戳
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    routePatternIdx: index('route_pattern_idx').on(table.routePattern),
+    requiredPermissionIdx: index('route_required_permission_idx').on(table.requiredPermission),
+  })
+);
+
+/**
  * 导出类型定义
  */
 export type UserPermission = typeof userPermissions.$inferSelect;
@@ -424,3 +461,4 @@ export type TemporaryPermission = typeof temporaryPermissions.$inferSelect;
 export type QualificationCertificate = typeof qualificationCertificates.$inferSelect;
 export type PermissionBlacklist = typeof permissionBlacklist.$inferSelect;
 export type PermissionConfig = typeof permissionConfigs.$inferSelect;
+export type RoutePermission = typeof routePermissions.$inferSelect;

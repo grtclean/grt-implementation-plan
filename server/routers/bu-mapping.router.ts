@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { 
   buMappingService, 
   DEFAULT_BUS, 
@@ -60,7 +60,7 @@ export const buMappingRouter = router({
   /**
    * 创建BU部门映射
    */
-  createMapping: adminProcedure
+  createMapping: requirePermission('hr:bu-team:manage')
     .input(z.object({
       buCode: buCodeSchema,
       jdyDeptNo: z.number(),
@@ -80,7 +80,7 @@ export const buMappingRouter = router({
   /**
    * 批量创建BU部门映射
    */
-  batchCreateMappings: adminProcedure
+  batchCreateMappings: requirePermission('hr:bu-team:manage')
     .input(z.object({
       mappings: z.array(z.object({
         buCode: buCodeSchema,
@@ -104,7 +104,7 @@ export const buMappingRouter = router({
   /**
    * 更新BU部门映射
    */
-  updateMapping: adminProcedure
+  updateMapping: requirePermission('hr:bu-team:manage')
     .input(z.object({
       id: z.number(),
       buCode: buCodeSchema.optional(),
@@ -128,7 +128,7 @@ export const buMappingRouter = router({
   /**
    * 删除BU部门映射
    */
-  deleteMapping: adminProcedure
+  deleteMapping: requirePermission('hr:bu-team:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const success = await buMappingService.deleteMapping(input.id);
@@ -139,7 +139,7 @@ export const buMappingRouter = router({
    * 自动匹配简道云部门到BU
    * 根据部门名称关键词自动识别并创建映射
    */
-  autoMatchDepartments: adminProcedure.mutation(async () => {
+  autoMatchDepartments: requirePermission('hr:bu-team:manage').mutation(async () => {
     const jdyService = getJiandaoyunSyncService();
     
     if (!jdyService.isConfigured()) {
@@ -326,7 +326,7 @@ export const buMappingRouter = router({
   /**
    * 设置BU负责人
    */
-  setLeader: adminProcedure
+  setLeader: requirePermission('hr:bu-team:manage')
     .input(z.object({
       buCode: buCodeSchema,
       roleType: roleTypeSchema,
@@ -353,7 +353,7 @@ export const buMappingRouter = router({
   /**
    * 删除BU负责人
    */
-  deleteLeader: adminProcedure
+  deleteLeader: requirePermission('hr:bu-team:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const { deleteLeader } = await import('../services/bu-mapping.service');
@@ -381,7 +381,7 @@ export const buMappingRouter = router({
   /**
    * 更新BU绩效统计
    */
-  updatePerformanceStats: adminProcedure
+  updatePerformanceStats: requirePermission('hr:bu-team:manage')
     .input(z.object({
       buCode: buCodeSchema,
       statPeriod: z.string(),
@@ -422,7 +422,7 @@ export const buMappingRouter = router({
   /**
    * 初始化示例绩效数据
    */
-  initSamplePerformanceData: adminProcedure.mutation(async () => {
+  initSamplePerformanceData: requirePermission('hr:bu-team:manage').mutation(async () => {
     const { initSamplePerformanceData } = await import('../services/bu-mapping.service');
     const result = await initSamplePerformanceData();
     return { success: true, ...result };

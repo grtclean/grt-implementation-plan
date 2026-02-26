@@ -1,18 +1,18 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
 import { projects } from "../../drizzle/schema";
 import { eq, ne, desc, count, sql, inArray, and } from "drizzle-orm";
 
 export const projectRouter = router({
   // 项目列表
-  list: publicProcedure.query(async () => {
+  list: requirePermission('project:list:view').query(async () => {
     const db = await requireDb();
     return await db.select().from(projects).orderBy(desc(projects.createdAt));
   }),
 
   // 获取项目详情
-  getById: publicProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input }) => {
+  getById: requirePermission('project:list:view').input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input }) => {
     const db = await requireDb();
     const numId = typeof input.id === "number" ? input.id : parseInt(input.id);
     const [item] = await db.select().from(projects).where(eq(projects.id, numId));
@@ -20,7 +20,7 @@ export const projectRouter = router({
   }),
 
   // 创建项目
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('project:create').input(z.object({
     name: z.string().min(1),
     shortName: z.string().optional(),
     type: z.enum(["standard", "key", "strategic"]).default("standard"),
@@ -53,7 +53,7 @@ export const projectRouter = router({
   }),
 
   // 更新项目
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('project:edit').input(z.object({
     id: z.union([z.string(), z.number()]),
     name: z.string().optional(),
     shortName: z.string().optional(),
@@ -91,7 +91,7 @@ export const projectRouter = router({
   }),
 
   // 删除项目
-  delete: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
+  delete: requirePermission('project:delete').input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = typeof input.id === "number" ? input.id : parseInt(input.id);
     const deleted = await db.delete(projects).where(eq(projects.id, numId)).returning();
@@ -99,7 +99,7 @@ export const projectRouter = router({
   }),
 
   // Project Lens: 按角色阶段筛选项目列表
-  listByRole: publicProcedure.input(z.object({
+  listByRole: requirePermission('project:list:view').input(z.object({
     phases: z.array(z.string()).optional(),
     healthStatus: z.enum(["green", "yellow", "red"]).optional(),
     limit: z.number().default(20),
@@ -119,7 +119,7 @@ export const projectRouter = router({
   }),
 
   // 项目统计
-  statistics: publicProcedure.query(async () => {
+  statistics: requirePermission('project:list:view').query(async () => {
     const db = await requireDb();
     const allProjects = await db.select().from(projects);
 

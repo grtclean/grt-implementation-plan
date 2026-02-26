@@ -4,17 +4,17 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import * as employeeService from "../services/employee.service";
 
 export const employeeRouter = router({
   // 获取所有员工
-  getAll: publicProcedure.query(async () => {
+  getAll: requirePermission('hr:employees:view').query(async () => {
     return employeeService.getAllEmployees();
   }),
 
   // 获取员工列表（支持筛选）
-  list: publicProcedure
+  list: requirePermission('hr:employees:view')
     .input(z.object({
       buCode: z.string().optional(),
       department: z.string().optional(),
@@ -43,7 +43,7 @@ export const employeeRouter = router({
     }),
 
   // 获取统计数据
-  getStats: publicProcedure.query(async () => {
+  getStats: requirePermission('hr:employees:view').query(async () => {
     const employees = await employeeService.getAllEmployees();
     const byBU: Record<string, number> = {};
     const byDepartment: Record<string, number> = {};
@@ -61,40 +61,40 @@ export const employeeRouter = router({
   }),
 
   // 按部门获取员工
-  getByDepartment: publicProcedure
+  getByDepartment: requirePermission('hr:employees:view')
     .input(z.object({ department: z.string() }))
     .query(async ({ input }) => {
       return employeeService.getEmployeesByDepartment(input.department);
     }),
 
   // 按BU获取员工
-  getByBU: publicProcedure
+  getByBU: requirePermission('hr:employees:view')
     .input(z.object({ buCode: z.string() }))
     .query(async ({ input }) => {
       return employeeService.getEmployeesByBU(input.buCode);
     }),
 
   // 根据员工编号获取员工
-  getById: publicProcedure
+  getById: requirePermission('hr:employees:view')
     .input(z.object({ employeeId: z.string() }))
     .query(async ({ input }) => {
       return employeeService.getEmployeeById(input.employeeId);
     }),
 
   // 搜索员工
-  search: publicProcedure
+  search: requirePermission('hr:employees:view')
     .input(z.object({ keyword: z.string() }))
     .query(async ({ input }) => {
       return employeeService.searchEmployees(input.keyword);
     }),
 
   // 获取部门统计
-  getDepartmentStats: publicProcedure.query(async () => {
+  getDepartmentStats: requirePermission('hr:employees:view').query(async () => {
     return employeeService.getDepartmentStats();
   }),
 
   // 获取BU统计
-  getBUStats: publicProcedure.query(async () => {
+  getBUStats: requirePermission('hr:employees:view').query(async () => {
     return employeeService.getBUStats();
   }),
 

@@ -1,16 +1,16 @@
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
 import { users } from "../../drizzle/schema";
 import { eq, desc, ilike } from "drizzle-orm";
 
 export const usersRouter = router({
-  getAll: publicProcedure.query(async () => {
+  getAll: requirePermission('system:users:view').query(async () => {
     const db = await requireDb();
     return await db.select().from(users).orderBy(users.name);
   }),
 
-  search: publicProcedure.input(z.object({ query: z.string() })).query(async ({ input }) => {
+  search: requirePermission('system:users:view').input(z.object({ query: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const all = await db.select().from(users);
     const q = input.query.toLowerCase();

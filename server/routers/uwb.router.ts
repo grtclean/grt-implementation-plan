@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
+import { router, protectedProcedure } from '../_core/trpc';
 import {
   processLocationData,
   processBatchLocationData,
@@ -57,7 +57,7 @@ export const uwbRouter = router({
   /**
    * 接收单条定位数据
    */
-  reportLocation: publicProcedure
+  reportLocation: protectedProcedure
     .input(locationDataSchema)
     .mutation(async ({ input }) => {
       await processLocationData({
@@ -70,7 +70,7 @@ export const uwbRouter = router({
   /**
    * 批量接收定位数据
    */
-  reportBatchLocations: publicProcedure
+  reportBatchLocations: protectedProcedure
     .input(z.array(locationDataSchema))
     .mutation(async ({ input }) => {
       const result = await processBatchLocationData(
@@ -188,7 +188,7 @@ export const uwbRouter = router({
   /**
    * 获取所有区域
    */
-  getAllZones: publicProcedure
+  getAllZones: protectedProcedure
     .query(async () => {
       return await getAllZones();
     }),
@@ -637,7 +637,7 @@ export const uwbRouter = router({
   /**
    * 更新标签电量（供硬件上报）
    */
-  updateTagBattery: publicProcedure
+  updateTagBattery: protectedProcedure
     .input(z.object({
       tagId: z.string(),
       batteryLevel: z.number().min(0).max(100),

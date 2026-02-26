@@ -2,6 +2,7 @@ import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
+import { permissionService } from "../permission-management/permission.service";
 
 export const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -43,3 +44,42 @@ export const adminProcedure = t.procedure.use(
     });
   }),
 );
+
+/**
+ * Safe permission check — wraps permissionService.checkPermission in try/catch.
+ * Returns false if DB is unavailable (admins still pass via fallback above).
+ */
+async function safeCheckPermission(userId: string, permissionCode: string): Promise<boolean> {
+  try {
+    return await permissionService.checkPermission(userId, permissionCode);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Creates a procedure that requires a specific RBAC permission code.
+ * Admin users (ctx.user.role === 'admin') bypass the permission check.
+ *
+ * Usage: requirePermission('hr:employees:view').query(...)
+ */
+export function requirePermission(permissionCode: string) {
+  return protectedProcedure.use(
+    t.middleware(async ({ ctx, next }) => {
+      // Admin fallback: admin role always passes
+      if (ctx.user.role === 'admin') {
+        return next({ ctx });
+      }
+
+      const ok = await safeCheckPermission(String(ctx.user.id), permissionCode);
+      if (!ok) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Missing permission: ${permissionCode}`,
+        });
+      }
+
+      return next({ ctx });
+    })
+  );
+}

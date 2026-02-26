@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // 模拟问卷数据
 const mockQuestionnaires = [
@@ -154,7 +154,7 @@ const LOADING_METHOD_OPTIONS = [
 
 export const questionnaireRouter = router({
   // 获取问卷列表
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       status: z.enum(["DRAFT", "SUBMITTED", "UNDER_REVIEW", "APPROVED", "CONVERTED"]).optional(),
       search: z.string().optional(),
@@ -193,7 +193,7 @@ export const questionnaireRouter = router({
     }),
 
   // 获取问卷详情
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({
       id: z.number(),
     }))
@@ -276,7 +276,7 @@ export const questionnaireRouter = router({
     }),
 
   // 获取AI分析
-  getAiAnalysis: publicProcedure
+  getAiAnalysis: protectedProcedure
     .input(z.object({
       id: z.number(),
     }))
@@ -324,7 +324,7 @@ export const questionnaireRouter = router({
     }),
 
   // 获取表单选项
-  getFormOptions: publicProcedure.query(() => {
+  getFormOptions: protectedProcedure.query(() => {
     return {
       materialTypes: MATERIAL_TYPE_OPTIONS,
       cleaningProducts: CLEANING_PRODUCT_OPTIONS,
@@ -353,7 +353,7 @@ export const questionnaireRouter = router({
   }),
 
   // 获取问卷统计
-  getStats: publicProcedure.query(() => {
+  getStats: protectedProcedure.query(() => {
     return {
       total: mockQuestionnaires.length,
       draft: mockQuestionnaires.filter(q => q.status === "DRAFT").length,
