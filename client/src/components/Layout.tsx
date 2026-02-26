@@ -729,7 +729,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* ═══ Full-width Top Header — M365 App Shell (spans 100vw, fixed) ═══ */}
-      <header className="fixed top-0 left-0 right-0 h-12 bg-white border-b border-[#edebe9] z-50 flex items-center px-3 shrink-0">
+      <header className="fixed top-0 left-0 right-0 h-12 bg-white dark:bg-white border-b border-[#edebe9] dark:border-[#edebe9] z-50 flex items-center px-3 shrink-0 text-[#323130]">
         {/* ── Desktop header ── */}
         <div className="hidden lg:flex items-center flex-1 gap-2">
           {/* Left: Waffle + Brand Text + Logo */}
@@ -746,8 +746,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             <Grid3X3 className="w-5 h-5" />
           </button>
           <a href="/" className="flex items-center gap-2" title="GRT System">
-            <span className="text-sm font-bold text-[#323130] select-none">GRT</span>
-            <span className="text-sm text-[#605e5c] select-none">System</span>
+            <span className="font-bold text-sm text-[#323130] whitespace-nowrap select-none">GRT System</span>
             <img src="/GRTlogo.gif" alt="GRT" className="h-8 w-auto object-contain" />
           </a>
 
@@ -771,20 +770,20 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 px-2 py-1 rounded-sm hover:bg-accent transition-colors">
-                    <Avatar className="h-7 w-7 border border-border">
-                      <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
+                  <button className="flex items-center gap-2 px-2 py-1 rounded-sm hover:bg-[#f3f2f1] transition-colors">
+                    <Avatar className="h-7 w-7 border border-[#edebe9]">
+                      <AvatarFallback className="text-xs font-medium bg-[#deecf9] text-[#0078d4]">
                         {avatarInitial}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium hidden xl:inline">{resolvedDisplayName}</span>
-                    <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-sm font-medium text-[#323130] hidden xl:inline">{resolvedDisplayName}</span>
+                    <ChevronDown className="w-3 h-3 text-[#a19f9d]" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <div className="px-2 py-1.5 border-b border-border">
-                    <p className="text-sm font-medium">{resolvedDisplayName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email || ''}</p>
+                <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-white dark:text-[#323130] dark:border-[#edebe9]">
+                  <div className="px-2 py-1.5 border-b border-[#edebe9]">
+                    <p className="text-sm font-medium text-[#323130]">{resolvedDisplayName}</p>
+                    <p className="text-xs text-[#605e5c] truncate">{user.email || ''}</p>
                   </div>
                   <DropdownMenuItem className="cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
@@ -823,8 +822,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             </SheetContent>
           </Sheet>
           <a href="/" className="flex items-center gap-2 flex-1" title="GRT System">
-            <span className="text-sm font-bold text-[#323130] select-none">GRT</span>
-            <span className="text-sm text-[#605e5c] select-none">System</span>
+            <span className="font-bold text-sm text-[#323130] whitespace-nowrap select-none">GRT System</span>
             <img src="/GRTlogo.gif" alt="GRT" className="h-8 w-auto object-contain" />
           </a>
           <LanguageSelector variant="compact" />
@@ -848,7 +846,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1 pt-12 overflow-hidden">
         {/* Desktop Sidebar — navigation only, no brand */}
         <aside className={cn(
-          "hidden lg:flex flex-col bg-white border-r border-[#edebe9] shrink-0 z-40 relative transition-[width] duration-200",
+          "hidden lg:flex flex-col bg-white dark:bg-white border-r border-[#edebe9] dark:border-[#edebe9] shrink-0 z-40 relative transition-[width] duration-200",
           sidebarCollapsed ? "w-16" : "w-72"
         )}>
           {sidebarCollapsed ? collapsedNavContent() : navContent()}

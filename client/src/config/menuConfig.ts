@@ -956,6 +956,7 @@ export const menuConfig: MenuGroup[] = [
           { name: "审计日志", nameEn: "Audit Log", nameDe: "Prüfprotokoll", nameFr: "Journal d'audit", path: "/audit-logs", icon: FileText },
           { name: "系统监控", nameEn: "System Monitor", nameDe: "Systemüberwachung", nameFr: "Surveillance système", path: "/grt-operation", icon: Gauge },
           { name: "安全仪表板", nameEn: "Security", nameDe: "Sicherheit", nameFr: "Sécurité", path: "/security", icon: Shield },
+          { name: "AI安全治理", nameEn: "AI Security & Governance", nameDe: "KI-Sicherheit", nameFr: "Sécurité IA", path: "/ai-security-governance", icon: ShieldCheck, isNew: true },
           { name: "合规仪表板", nameEn: "Compliance", nameDe: "Compliance", nameFr: "Conformité", path: "/compliance-dashboard", icon: Shield },
           { name: "合规日历", nameEn: "Compliance Calendar", nameDe: "Compliance-Kalender", nameFr: "Calendrier de conformité", path: "/admin/compliance-calendar", icon: CalendarClock, isNew: true },
           { name: "错误日志", nameEn: "Error Logs", nameDe: "Fehlerprotokolle", nameFr: "Journaux d'erreurs", path: "/error-logs", icon: AlertTriangle, isNew: true },
