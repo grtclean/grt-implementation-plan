@@ -90,6 +90,12 @@ export function generateMarkdownExport(
 ): string {
   const lines: string[] = [];
 
+  // GRT品牌标题
+  lines.push(`> **GRT System** | Global Robot Technology`);
+  lines.push(`>`);
+  lines.push(`---`);
+  lines.push(``);
+
   // 标题
   lines.push(`# ${meeting.title}`);
   lines.push("");
@@ -191,6 +197,15 @@ export function generateHtmlExport(
   </style>
 </head>
 <body>`);
+
+  // GRT品牌标题
+  sections.push(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #0078d4;">
+  <img src="/GRTlogo.gif" alt="GRT" style="height:40px;width:auto;" />
+  <div>
+    <div style="font-size:18px;font-weight:700;color:#0078d4;">GRT System</div>
+    <div style="font-size:12px;color:#6b7280;">Global Robot Technology</div>
+  </div>
+</div>`);
 
   // 标题
   sections.push(`<h1>${meeting.title}</h1>`);

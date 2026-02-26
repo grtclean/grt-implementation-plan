@@ -284,4 +284,13 @@
   .hub-chart {
     page-break-inside: avoid;
   }
+
+  /* Hide app chrome in print */
+  aside, header.h-12, .lg\:flex.items-center.justify-between {
+    display: none !important;
+  }
+  /* Show print header */
+  .print\:flex { display: flex !important; }
+  /* Remove padding/overflow constraints */
+  main { padding: 0 !important; overflow: visible !important; }
 }

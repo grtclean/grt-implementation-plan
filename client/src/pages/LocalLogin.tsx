@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { CheckCircle2, Eye, EyeOff, Loader2, LogIn, Shield, UserPlus } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, Loader2, LogIn, UserPlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
@@ -122,8 +122,8 @@ export default function LocalLogin() {
       <div className="w-full max-w-[420px] space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
-            <Shield className="w-8 h-8 text-primary" />
+          <div className="mx-auto w-20 h-20 flex items-center justify-center">
+            <img src="/GRTlogo.gif" alt="GRT" className="w-20 h-20 object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">GRT 管理系统</h1>
           <p className="text-sm text-muted-foreground">

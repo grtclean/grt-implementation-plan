@@ -127,29 +127,28 @@ export default function BrandLogo({
       className={`inline-flex items-center gap-2 ${className}`}
       style={{ height: dims.height }}
     >
-      {/* Icon portion (logo image or SVG fallback) */}
-      {variant !== "wordmark" && (
+      {!imgFailed ? (
+        /* GRT logo image replaces both icon and wordmark */
+        <img
+          src="/GRTlogo.gif"
+          alt="GRT"
+          style={{
+            height: dims.height,
+            width: "auto",
+            objectFit: "contain",
+          }}
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        /* SVG fallback when image is unavailable */
         <>
-          {!imgFailed ? (
-            <img
-              src="/grt-logo.png"
-              alt="GRT"
-              style={{
-                height: dims.iconSize,
-                width: "auto",
-                objectFit: "contain",
-              }}
-              onError={() => setImgFailed(true)}
-            />
-          ) : (
+          {variant !== "wordmark" && (
             <GRTIcon size={dims.iconSize} theme={theme} />
           )}
+          {variant !== "icon" && (
+            <GRTWordmark fontSize={dims.fontSize} theme={theme} />
+          )}
         </>
-      )}
-
-      {/* Wordmark portion */}
-      {variant !== "icon" && (
-        <GRTWordmark fontSize={dims.fontSize} theme={theme} />
       )}
     </div>
   );
