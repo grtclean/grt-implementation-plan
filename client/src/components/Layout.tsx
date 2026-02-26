@@ -235,6 +235,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [helpPanelOpen, setHelpPanelOpen] = useState(false);
   const [waffleOpen, setWaffleOpen] = useState(false);
+  const [activeAppId, setActiveAppId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved === 'true';
@@ -308,7 +309,16 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       }))
       .filter(group => group.items.length > 0);
   }, [canAccessGroup, canAccessItem, isHidden]);
-  
+
+  // Context-filtered sidebar menu: only show groups belonging to the active waffle app
+  const sidebarMenuConfig = useMemo(() => {
+    if (!activeAppId) return filteredMenuConfig;
+    const app = WAFFLE_APPS.find(a => a.id === activeAppId);
+    if (!app) return filteredMenuConfig;
+    const groupNames = new Set(app.menuGroupNames);
+    return filteredMenuConfig.filter(g => groupNames.has(g.name));
+  }, [activeAppId, filteredMenuConfig]);
+
   // 同步侧边栏折叠状态到服务器
   const updatePreferencesMutation = trpc.auth.updatePreferences.useMutation();
   
@@ -364,6 +374,16 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       setExpandedGroups(prev => [...prev, currentGroup.name]);
     }
   }, [location]);
+
+  // Auto-detect which waffle app owns the current URL
+  useEffect(() => {
+    const app = WAFFLE_APPS.find(a =>
+      a.menuGroupNames.some(gn =>
+        filteredMenuConfig.some(g => g.name === gn && g.items.some(i => i.path === location))
+      )
+    );
+    if (app) setActiveAppId(app.id);
+  }, [location, filteredMenuConfig]);
 
   // F1快捷键打开帮助面板
   useEffect(() => {
@@ -465,18 +485,8 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   // inline JSX in the parent, preventing unmount/remount on every re-render.
   const collapsedNavContent = () => (
     <>
-      <div className="p-2 border-b border-[#edebe9] flex justify-center">
-        <button
-          onClick={toggleSidebar}
-          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-[#f3f2f1] transition-colors text-[#605e5c]"
-          title="Expand sidebar"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-      </div>
-
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto overscroll-contain">
-        {filteredMenuConfig.map((group) => {
+        {sidebarMenuConfig.map((group) => {
           const GroupIcon = group.icon;
           const hasActiveItem = group.items.some(item => location === item.path);
           return (
@@ -507,6 +517,13 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       </nav>
 
       <div className="p-2 border-t border-[#edebe9] space-y-2">
+        <button
+          onClick={toggleSidebar}
+          className="w-8 h-8 mx-auto flex items-center justify-center rounded-md hover:bg-[#f3f2f1] transition-colors text-[#605e5c]"
+          title="Expand sidebar"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
         {user && (
           <Button
             variant="ghost"
@@ -523,17 +540,6 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
   const navContent = () => (
     <div className="flex flex-col h-full">
-      {/* Sidebar collapse toggle — no brand (brand lives in full-width header) */}
-      <div className="h-10 flex items-center justify-end px-3 shrink-0 border-b border-[#edebe9]">
-        <button
-          onClick={toggleSidebar}
-          className="w-8 h-8 hidden lg:flex items-center justify-center rounded-md hover:bg-[#f3f2f1] transition-colors text-[#605e5c]"
-          title="Collapse sidebar"
-        >
-          <PanelLeftClose className="w-4 h-4" />
-        </button>
-      </div>
-
       {/* 当前页面指示器 - 点击菜单组名称可跳转 */}
       {(() => {
         // 查找当前页面对应的菜单项（在过滤后的菜单中查找）
@@ -603,7 +609,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         <MenuCustomizationPanel />
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setExpandedGroups(filteredMenuConfig.map(g => g.name))}
+            onClick={() => setExpandedGroups(sidebarMenuConfig.map(g => g.name))}
             className="px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 rounded-sm transition-colors"
             title={language === 'zh' ? '全部展开' : language === 'de' ? 'Alle aufklappen' : language === 'fr' ? 'Tout déplier' : 'Expand All'}
           >
@@ -658,7 +664,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
           style={{ WebkitOverflowScrolling: 'touch' }}
           onScroll={handleNavScroll}
         >
-          {filteredMenuConfig.map((group) => {
+          {sidebarMenuConfig.map((group) => {
             const activeItem = group.items.find(item => location === item.path);
             return (
               <SidebarMenuGroup
@@ -696,6 +702,14 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* 3. Fixed footer - profile + user info */}
       <div className="shrink-0 border-t border-[#edebe9] p-4 bg-white space-y-3 z-10">
+        {/* Collapse sidebar toggle */}
+        <button
+          onClick={toggleSidebar}
+          className="w-full h-8 hidden lg:flex items-center justify-center rounded-md hover:bg-[#f3f2f1] transition-colors text-[#605e5c]"
+          title="Collapse sidebar"
+        >
+          <PanelLeftClose className="w-4 h-4" />
+        </button>
         {/* Role switcher */}
         <ProfileSwitcher />
 
@@ -836,7 +850,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             const app = WAFFLE_APPS.find(a => a.menuGroupNames.some(gn => filteredMenuConfig.some(g => g.name === gn && g.items.some(i => i.path === location))));
             return app?.id || '';
           })()}
-          onSelectApp={(app: WaffleApp) => { setWaffleOpen(false); setLocation(app.defaultPath); }}
+          onSelectApp={(app: WaffleApp) => { setWaffleOpen(false); setActiveAppId(app.id); setLocation(app.defaultPath); }}
           language={language}
           filteredMenuConfig={filteredMenuConfig}
         />
