@@ -146,8 +146,8 @@ export default function AIGenesisWorkspace() {
     status: DocumentStatus; approvalStatus: ApprovalStatus;
     uploadedAt: string; proposalCount: number;
   }>>([]);
-  const [nextLocalId, setNextLocalId] = useState(-1);
   const [approvalStatusMap, setApprovalStatusMap] = useState<Record<number, ApprovalStatus>>({});
+  const nextLocalIdRef = useRef(-1);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -271,7 +271,7 @@ export default function AIGenesisWorkspace() {
     setDragActive(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
@@ -280,19 +280,22 @@ export default function AIGenesisWorkspace() {
     if (files.length > 0) {
       handleFileUpload(files);
     }
-  }, []);
+  };
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
       handleFileUpload(files);
     }
     // Reset so the same file can be selected again
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }, []);
+  };
 
   const handleFileUpload = (files: File[]) => {
     const file = files[0];
+    const localId = nextLocalIdRef.current;
+    nextLocalIdRef.current -= 1;
+
     setUploadProgress(0);
     const interval = setInterval(() => {
       setUploadProgress((prev) => {
@@ -311,7 +314,7 @@ export default function AIGenesisWorkspace() {
       clearInterval(interval);
       const ext = file.name.split(".").pop()?.toLowerCase() || "other";
       const newDoc = {
-        id: nextLocalId,
+        id: localId,
         fileName: file.name,
         fileSize: file.size,
         fileType: ext,
@@ -321,8 +324,7 @@ export default function AIGenesisWorkspace() {
         proposalCount: 0,
       };
       setLocalDocuments((prev) => [newDoc, ...prev]);
-      setApprovalStatusMap((prev) => ({ ...prev, [nextLocalId]: "DRAFT" }));
-      setNextLocalId((prev) => prev - 1);
+      setApprovalStatusMap((prev) => ({ ...prev, [localId]: "DRAFT" }));
       setUploadProgress(100);
       setTimeout(() => setUploadProgress(null), 500);
       toast.success(`${file.name} uploaded successfully`);
