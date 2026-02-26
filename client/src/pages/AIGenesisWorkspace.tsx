@@ -40,6 +40,9 @@ import {
   Shield,
   ShieldCheck,
   Clock,
+  History,
+  BookOpen,
+  Star,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -135,12 +138,16 @@ export default function AIGenesisWorkspace() {
   // State
   const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null);
   const [selectedProposalId, setSelectedProposalId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"proposals" | "chat">("proposals");
+  const [activeTab, setActiveTab] = useState<"proposals" | "chat" | "history">("proposals");
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [chatInput, setChatInput] = useState("");
   const [isMobile, setIsMobile] = useState(false);
   const [mockRole, setMockRole] = useState<MockRole>("employee");
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+  const [generatedHistoryId, setGeneratedHistoryId] = useState<number | null>(null);
   const [localDocuments, setLocalDocuments] = useState<Array<{
     id: number; fileName: string; fileSize: number; fileType: string;
     status: DocumentStatus; approvalStatus: ApprovalStatus;
@@ -197,6 +204,25 @@ export default function AIGenesisWorkspace() {
     onError: () => toast.error("Failed to generate proposal"),
   });
 
+  const simulateGenerationMutation = trpc.genesis.simulateGeneration.useMutation({
+    onMutate: () => {
+      setIsGenerating(true);
+      setGeneratedContent(null);
+    },
+    onSuccess: (data) => {
+      setIsGenerating(false);
+      setGeneratedContent(data.generatedContent);
+      setGeneratedHistoryId(data.historyId);
+      toast.success(`Proposal generated for ${data.documentName} (History #${data.historyId})`);
+      utils.genesis.listProposalHistory.invalidate();
+      utils.genesis.getGenesisStats.invalidate();
+    },
+    onError: (err) => {
+      setIsGenerating(false);
+      toast.error(`Generation failed: ${err.message}`);
+    },
+  });
+
   const sendMessageMutation = trpc.genesis.sendMessage.useMutation({
     onSuccess: () => {
       utils.genesis.getProposal.invalidate();
@@ -217,6 +243,23 @@ export default function AIGenesisWorkspace() {
       utils.genesis.getGenesisStats.invalidate();
     },
     onError: () => toast.error("Failed to update status"),
+  });
+
+  const proposalHistoryQuery = trpc.genesis.listProposalHistory.useQuery();
+  const proposalHistory = proposalHistoryQuery.data ?? [];
+
+  const feedbackMutation = trpc.genesis.feedbackToKnowledgeBase.useMutation({
+    onSuccess: () => {
+      toast.success("反馈至知识炼金炉 — Fed back to Knowledge Base for AI learning");
+      utils.genesis.listProposalHistory.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const updateHistoryMutation = trpc.genesis.updateProposalHistory.useMutation({
+    onSuccess: () => {
+      utils.genesis.listProposalHistory.invalidate();
+    },
   });
 
   const commitMutation = trpc.genesis.commitProposal.useMutation({
@@ -371,7 +414,14 @@ export default function AIGenesisWorkspace() {
 
   const handleGenerateProposal = () => {
     if (!selectedDocumentId) return;
-    generateProposalMutation.mutate({ documentId: selectedDocumentId });
+    // Find the document name for context
+    const doc = allDocuments.find((d: any) => d.id === selectedDocumentId);
+    const docName = doc?.fileName ?? `Document #${selectedDocumentId}`;
+    // Use the fixed simulation pipeline (always works, even without DB)
+    simulateGenerationMutation.mutate({
+      documentId: selectedDocumentId,
+      documentName: docName,
+    });
   };
 
   // ---------------------------------------------------------------------------
@@ -612,12 +662,19 @@ export default function AIGenesisWorkspace() {
                     <Button
                       onClick={handleGenerateProposal}
                       className="w-full gap-2"
-                      disabled={
-                        documents.find((d: any) => d.id === selectedDocumentId)?.status === "PROCESSING"
-                      }
+                      disabled={isGenerating}
                     >
-                      <Sparkles className="w-4 h-4" />
-                      Generate Proposal
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Generating via Gemini/Claude Engine...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Generate Proposal
+                        </>
+                      )}
                     </Button>
                   </div>
                 )}
@@ -634,11 +691,11 @@ export default function AIGenesisWorkspace() {
             <div className="flex flex-col h-full">
               <Tabs
                 value={activeTab}
-                onValueChange={(v) => setActiveTab(v as "proposals" | "chat")}
+                onValueChange={(v) => setActiveTab(v as "proposals" | "chat" | "history")}
                 className="flex flex-col h-full"
               >
                 <div className="px-4 pt-3">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="proposals" className="gap-1.5">
                       <Sparkles className="w-3.5 h-3.5" />
                       Proposals
@@ -646,6 +703,10 @@ export default function AIGenesisWorkspace() {
                     <TabsTrigger value="chat" className="gap-1.5">
                       <MessageSquare className="w-3.5 h-3.5" />
                       Chat & Detail
+                    </TabsTrigger>
+                    <TabsTrigger value="history" className="gap-1.5">
+                      <History className="w-3.5 h-3.5" />
+                      History
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -659,14 +720,44 @@ export default function AIGenesisWorkspace() {
                           <Loader2 className="w-10 h-10 animate-spin mb-3 opacity-50" />
                           <p className="text-sm">Loading proposals...</p>
                         </div>
-                      ) : proposals.length === 0 ? (
+                      ) : proposals.length === 0 && !generatedContent ? (
                         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                           <Sparkles className="w-10 h-10 mb-3 opacity-40" />
                           <p className="text-sm">No proposals yet.</p>
                           <p className="text-xs mt-1">Upload a document and generate proposals to get started.</p>
                         </div>
                       ) : (
-                        [...proposals]
+                        <>
+                        {/* Generated content display */}
+                        {generatedContent && (
+                          <Card className="border-primary/40 bg-primary/5">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-center justify-between">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <Sparkles className="w-4 h-4 text-primary" />
+                                  Generated Proposal
+                                </CardTitle>
+                                <Badge variant="outline" className="text-[10px] bg-green-500/15 text-green-400 border-green-500/30">
+                                  History #{generatedHistoryId}
+                                </Badge>
+                              </div>
+                              <CardDescription>
+                                AI-generated via Gemini/Claude Engine — saved to Data Flywheel
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <ScrollArea className="h-[300px]">
+                                <div className="prose prose-sm dark:prose-invert max-w-none">
+                                  <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                                    {generatedContent}
+                                  </pre>
+                                </div>
+                              </ScrollArea>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {[...proposals]
                           .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                           .map((proposal: any) => {
                             const pStatus = PROPOSAL_STATUS_STYLES[proposal.status as ProposalStatus];
@@ -720,7 +811,8 @@ export default function AIGenesisWorkspace() {
                                 </CardContent>
                               </Card>
                             );
-                          })
+                          })}
+                        </>
                       )}
                     </div>
                   </ScrollArea>
@@ -936,6 +1028,105 @@ export default function AIGenesisWorkspace() {
                       </div>
                     </>
                   )}
+                </TabsContent>
+
+                {/* ---- History Tab (Data Flywheel Learning Registry) ---- */}
+                <TabsContent value="history" className="flex-1 min-h-0 mt-0 px-4 pb-4">
+                  <ScrollArea className="h-full pt-3">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                          <BookOpen className="w-4 h-4 text-primary" />
+                          AI Learning History — Data Flywheel Registry
+                        </h3>
+                        <Badge variant="outline" className="text-[10px]">
+                          {proposalHistory.length} record{proposalHistory.length !== 1 ? "s" : ""}
+                        </Badge>
+                      </div>
+
+                      {proposalHistoryQuery.isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                          <Loader2 className="w-10 h-10 animate-spin mb-3 opacity-50" />
+                          <p className="text-sm">Loading history...</p>
+                        </div>
+                      ) : proposalHistory.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                          <History className="w-10 h-10 mb-3 opacity-40" />
+                          <p className="text-sm">No generation history yet.</p>
+                          <p className="text-xs mt-1">Generate a proposal to start building the Data Flywheel.</p>
+                        </div>
+                      ) : (
+                        proposalHistory.map((entry: any) => {
+                          const statusColor =
+                            entry.status === "FINALIZED"
+                              ? "bg-green-500/15 text-green-400 border-green-500/30"
+                              : entry.status === "EDITED"
+                                ? "bg-blue-500/15 text-blue-400 border-blue-500/30"
+                                : "bg-muted text-muted-foreground border-muted";
+                          return (
+                            <Card key={entry.id} className="transition-all duration-150 hover:bg-muted/40">
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0 space-y-1.5">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-sm font-semibold text-foreground">
+                                        History #{entry.id}
+                                      </span>
+                                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${statusColor}`}>
+                                        {entry.status}
+                                      </Badge>
+                                      {entry.feedbackScore && (
+                                        <div className="flex items-center gap-0.5">
+                                          {Array.from({ length: entry.feedbackScore }).map((_, i) => (
+                                            <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      Source: {entry.sourceDocumentName ?? `Document #${entry.sourceDocumentId ?? "N/A"}`}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "—"}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                      {entry.generatedContent?.substring(0, 120)}...
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-col gap-1.5 shrink-0">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 text-xs gap-1"
+                                      onClick={() => {
+                                        setGeneratedContent(entry.generatedContent);
+                                        setGeneratedHistoryId(entry.id);
+                                        setActiveTab("proposals");
+                                      }}
+                                    >
+                                      <FileText className="w-3 h-3" />
+                                      View
+                                    </Button>
+                                    {entry.status !== "FINALIZED" && (
+                                      <Button
+                                        size="sm"
+                                        className="h-7 text-xs gap-1 bg-amber-600 hover:bg-amber-700 text-white"
+                                        onClick={() => feedbackMutation.mutate({ historyId: entry.id })}
+                                        disabled={feedbackMutation.isPending}
+                                      >
+                                        <BookOpen className="w-3 h-3" />
+                                        反馈至知识炼金炉
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })
+                      )}
+                    </div>
+                  </ScrollArea>
                 </TabsContent>
               </Tabs>
             </div>

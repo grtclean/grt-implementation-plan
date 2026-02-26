@@ -244,6 +244,48 @@ export const proposalChatLogs = pgTable("proposal_chat_logs", {
 ]);
 
 // ══════════════════════════════════════════════════════
+// Table 4: ai_proposal_history — Data Flywheel registry
+//
+// Every generated proposal is persisted here so the AI
+// system can learn from past outputs and subsequent
+// human edits.  Status tracks the editorial lifecycle.
+// ══════════════════════════════════════════════════════
+
+export const PROPOSAL_HISTORY_STATUSES = ['DRAFT', 'EDITED', 'FINALIZED'] as const;
+export type ProposalHistoryStatus = (typeof PROPOSAL_HISTORY_STATUSES)[number];
+
+export const proposalHistoryStatusEnum = pgEnum('proposal_history_status', PROPOSAL_HISTORY_STATUSES);
+
+export const aiProposalHistory = pgTable("ai_proposal_history", {
+  id: serial("id").primaryKey(),
+
+  /** FK -> knowledge_documents.id — which source document triggered this generation */
+  sourceDocumentId: integer("source_document_id").references(() => knowledgeDocuments.id),
+
+  /** The prompt / context that was sent to the LLM */
+  promptUsed: text("prompt_used").notNull(),
+
+  /** The AI-generated proposal content (Markdown / plain text) */
+  generatedContent: text("generated_content").notNull(),
+
+  /** Editorial lifecycle: DRAFT -> EDITED -> FINALIZED */
+  status: proposalHistoryStatusEnum("status").default("DRAFT").notNull(),
+
+  /** Optional human feedback score (1-5) for the learning loop */
+  feedbackScore: integer("feedback_score"),
+
+  /** Creation timestamp */
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
+
+  /** Last update timestamp */
+  updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
+}, (table) => [
+  index("aph_source_doc_idx").on(table.sourceDocumentId),
+  index("aph_status_idx").on(table.status),
+  index("aph_created_at_idx").on(table.createdAt),
+]);
+
+// ══════════════════════════════════════════════════════
 // Type Exports — Select (read) and Insert (write) models
 // ══════════════════════════════════════════════════════
 
@@ -255,3 +297,6 @@ export type NewGenesisProposal = InferInsertModel<typeof genesisProposals>;
 
 export type ProposalChatLog = InferSelectModel<typeof proposalChatLogs>;
 export type NewProposalChatLog = InferInsertModel<typeof proposalChatLogs>;
+
+export type AiProposalHistory = InferSelectModel<typeof aiProposalHistory>;
+export type NewAiProposalHistory = InferInsertModel<typeof aiProposalHistory>;
