@@ -131,7 +131,7 @@ export async function updateCommRecord(
 ) {
   const db = await requireDb();
 
-  const setFields: Record<string, any> = { updatedAt: new Date() };
+  const setFields: Record<string, any> = { updatedAt: sql`now()` };
   if (params.subject !== undefined) setFields.subject = params.subject;
   if (params.content !== undefined) setFields.content = params.content;
   if (params.summary !== undefined) setFields.summary = params.summary;

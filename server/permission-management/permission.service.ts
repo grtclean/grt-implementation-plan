@@ -20,7 +20,7 @@ import {
 // userRoles mapped to the old "user_roles" table (integer IDs, smallint is_active).
 // The RBAC system uses "grt_user_roles" (varchar user_id, boolean is_active).
 import { userRoles } from '../../drizzle/permission-schema';
-import { eq, and, or, gte, lte, inArray, isNull } from 'drizzle-orm';
+import { eq, and, or, gte, lte, inArray, isNull, sql } from 'drizzle-orm';
 
 /**
  * 权限服务类
@@ -43,7 +43,7 @@ export class PermissionService {
           eq(permissionBlacklist.isActive, true as any),
           or(
             isNull(permissionBlacklist.endDate),
-            gte(permissionBlacklist.endDate, new Date())
+            gte(permissionBlacklist.endDate, sql`now()`)
           )
         )
       )
@@ -61,10 +61,10 @@ export class PermissionService {
         and(
           eq(userRoles.userId, userId as any),
           eq(userRoles.isActive, true as any),
-          lte(userRoles.startDate, new Date() as any),
+          lte(userRoles.startDate, sql`now()`),
           or(
             isNull(userRoles.endDate),
-            gte(userRoles.endDate, new Date() as any)
+            gte(userRoles.endDate, sql`now()`)
           )
         )
       );
@@ -113,8 +113,8 @@ export class PermissionService {
           eq(temporaryPermissions.userId, userId),
           eq(temporaryPermissions.permissionId, permissionId),
           eq(temporaryPermissions.status, 'approved' as any),
-          lte(temporaryPermissions.startDate, new Date()),
-          gte(temporaryPermissions.endDate, new Date())
+          lte(temporaryPermissions.startDate, sql`now()`),
+          gte(temporaryPermissions.endDate, sql`now()`)
         )
       )
       .limit(1);
@@ -148,10 +148,10 @@ export class PermissionService {
           eq(userRoles.userId, userId as any),
           eq(userRoles.roleId, roleId as any),
           eq(userRoles.isActive, true as any),
-          lte(userRoles.startDate, new Date() as any),
+          lte(userRoles.startDate, sql`now()`),
           or(
             isNull(userRoles.endDate),
-            gte(userRoles.endDate, new Date() as any)
+            gte(userRoles.endDate, sql`now()`)
           )
         )
       )
@@ -174,10 +174,10 @@ export class PermissionService {
         and(
           eq(userRoles.userId, userId as any),
           eq(userRoles.isActive, true as any),
-          lte(userRoles.startDate, new Date() as any),
+          lte(userRoles.startDate, sql`now()`),
           or(
             isNull(userRoles.endDate),
-            gte(userRoles.endDate, new Date() as any)
+            gte(userRoles.endDate, sql`now()`)
           )
         )
       );
@@ -570,7 +570,7 @@ export class PermissionService {
           eq((qualificationCertificates as any).status, 'active'),
           or(
             isNull(qualificationCertificates.expiryDate),
-            gte(qualificationCertificates.expiryDate, new Date() as any)
+            gte(qualificationCertificates.expiryDate, sql`now()`)
           )
         )
       )

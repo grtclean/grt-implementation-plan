@@ -54,7 +54,7 @@ export function UserRoleAssignmentTab() {
 
   const { data: usersData } = trpc.users.getAll.useQuery(undefined, { retry: false });
   const { data: rolesData } = trpc.permission.getAllRoles.useQuery();
-  const { data: userRolesData, refetch: refetchUserRoles } = trpc.permission.getUserRoles.useQuery(
+  const { data: userRolesData, isLoading: loadingUserRoles } = trpc.permission.getUserRoles.useQuery(
     { userId: selectedUser?.id ?? '' },
     { enabled: !!selectedUser }
   );
@@ -65,8 +65,9 @@ export function UserRoleAssignmentTab() {
 
   const assignMutation = trpc.permission.assignRoleToUser.useMutation({
     onSuccess: () => {
-      refetchUserRoles();
+      utils.permission.getUserRoles.invalidate();
       utils.permission.getRoleMemberCounts.invalidate();
+      utils.permission.getUserEffectivePermissions.invalidate();
       setSelectedRoleId('');
       setStartDate('');
       setEndDate('');
@@ -76,15 +77,15 @@ export function UserRoleAssignmentTab() {
 
   const revokeMutation = trpc.permission.revokeRoleFromUser.useMutation({
     onSuccess: () => {
-      refetchUserRoles();
+      utils.permission.getUserRoles.invalidate();
       utils.permission.getRoleMemberCounts.invalidate();
-      if (showEffective) utils.permission.getUserEffectivePermissions.invalidate();
+      utils.permission.getUserEffectivePermissions.invalidate();
     },
   });
 
   // Filter users for combobox
   const filteredUsers = useMemo(() => {
-    if (!usersData) return [];
+    if (!Array.isArray(usersData)) return [];
     const q = userSearch.toLowerCase();
     if (!q) return usersData.slice(0, 20);
     return usersData.filter((u: any) =>
@@ -193,7 +194,9 @@ export function UserRoleAssignmentTab() {
               <CardDescription>Roles assigned to {selectedUser.name}</CardDescription>
             </CardHeader>
             <CardContent>
-              {!userRolesData?.userRoles?.length ? (
+              {loadingUserRoles ? (
+                <p className="text-sm text-muted-foreground py-4">Loading roles...</p>
+              ) : !userRolesData?.userRoles?.length ? (
                 <p className="text-sm text-muted-foreground py-4">No roles assigned</p>
               ) : (
                 <div className="space-y-2">

@@ -123,19 +123,19 @@ export const permissionRouter = router({
         description: input.description,
         defaultDataScope: input.defaultDataScope,
         roleType: 'custom',
-      });
+      }).returning({ id: roles.id });
 
       // 记录审计日志
       await permissionService.logAuditEvent(
         ctx.user.openId || String(ctx.user.id),
         'create_role',
         undefined,
-        undefined,
+        result[0]?.id,
         undefined,
         'success'
       );
 
-      return { roleId: result.insertId };
+      return { roleId: result[0]?.id };
     }),
 
   /**
@@ -154,14 +154,17 @@ export const permissionRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
 
-      await (db as any)
-        .update(roles)
-        .set({
-          displayName: input.displayName,
-          description: input.description,
-          isActive: input.isActive,
-        })
-        .where(eq(roles.id, input.roleId));
+      const updateData: Record<string, any> = {};
+      if (input.displayName !== undefined) updateData.displayName = input.displayName;
+      if (input.description !== undefined) updateData.description = input.description;
+      if (input.isActive !== undefined) updateData.isActive = input.isActive;
+
+      if (Object.keys(updateData).length > 0) {
+        await (db as any)
+          .update(roles)
+          .set(updateData)
+          .where(eq(roles.id, input.roleId));
+      }
 
       // 记录审计日志
       await permissionService.logAuditEvent(
@@ -310,6 +313,26 @@ export const permissionRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
 
+      // Verify the record exists before revoking
+      const existing = await (db as any)
+        .select({ id: userRoles.id })
+        .from(userRoles)
+        .where(
+          and(
+            eq(userRoles.userId, input.userId as any),
+            eq(userRoles.roleId, input.roleId as any),
+            eq(userRoles.isActive, true as any)
+          )
+        )
+        .limit(1);
+
+      if (existing.length === 0) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Active user role assignment not found',
+        });
+      }
+
       await (db as any)
         .update(userRoles)
         .set({ isActive: false } as any)
@@ -393,7 +416,6 @@ export const permissionRouter = router({
     .use(createRoleMiddleware(['admin', 'super_admin']))
     .query(async () => {
       const db = await requireDb();
-      const now = new Date();
       const records = await (db as any)
         .select({
           roleId: userRoles.roleId,
@@ -403,10 +425,10 @@ export const permissionRouter = router({
         .where(
           and(
             eq(userRoles.isActive, true as any),
-            lte(userRoles.startDate, now as any),
+            lte(userRoles.startDate, sql`now()`),
             or(
               isNull(userRoles.endDate),
-              gte(userRoles.endDate, now as any)
+              gte(userRoles.endDate, sql`now()`)
             )
           )
         )
@@ -426,7 +448,6 @@ export const permissionRouter = router({
     .input(z.object({ userId: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const now = new Date();
 
       // Get active roles
       const activeRoles = await (db as any)
@@ -436,10 +457,10 @@ export const permissionRouter = router({
           and(
             eq(userRoles.userId, input.userId as any),
             eq(userRoles.isActive, true as any),
-            lte(userRoles.startDate, now as any),
+            lte(userRoles.startDate, sql`now()`),
             or(
               isNull(userRoles.endDate),
-              gte(userRoles.endDate, now as any)
+              gte(userRoles.endDate, sql`now()`)
             )
           )
         );

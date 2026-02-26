@@ -45,6 +45,8 @@ export function RolePermissionEditor({ roleId, open, onClose }: Props) {
   const saveMutation = trpc.permission.assignPermissionToRole.useMutation({
     onSuccess: () => {
       utils.permission.getRolePermissions.invalidate({ roleId });
+      utils.permission.getAllRolePermissionMappings.invalidate();
+      utils.permission.getUserEffectivePermissions.invalidate();
       onClose();
     },
   });
@@ -66,7 +68,7 @@ export function RolePermissionEditor({ roleId, open, onClose }: Props) {
   // Initialize selection from current role permissions
   useEffect(() => {
     if (rolePermsData?.permissions && !initialized) {
-      const ids = new Set(rolePermsData.permissions.map((p: any) => p.permissionId));
+      const ids = new Set<number>(rolePermsData.permissions.map((p: any) => p.permissionId as number));
       setSelectedIds(ids);
       setInitialized(true);
     }
@@ -75,6 +77,7 @@ export function RolePermissionEditor({ roleId, open, onClose }: Props) {
   // Reset on roleId change
   useEffect(() => {
     setInitialized(false);
+    setSelectedIds(new Set());
   }, [roleId]);
 
   const togglePermission = (id: number) => {

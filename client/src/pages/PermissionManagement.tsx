@@ -2,9 +2,9 @@
  * Permission Management page — thin shell with 4 tabs
  */
 
-import { usePermission } from '@/_core/hooks/usePermission';
+import { trpc } from '@/lib/trpc';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, Shield } from 'lucide-react';
+import { AlertCircle, Shield, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PageHeader } from '@/components/grt';
 import { RolesTab } from './permission-management/RolesTab';
@@ -13,9 +13,19 @@ import { UserRoleAssignmentTab } from './permission-management/UserRoleAssignmen
 import { AuditLogsTab } from './permission-management/AuditLogsTab';
 
 export default function PermissionManagement() {
-  const hasPermission = usePermission('system:permissions:assign');
+  const { data, isLoading } = trpc.permission.checkPermission.useQuery(
+    { permissionCode: 'system:permissions:assign' }
+  );
 
-  if (!hasPermission) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!data?.hasPermission) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Alert className="max-w-md border-red-200 bg-red-50">

@@ -5,7 +5,7 @@
 
 import { requireDb } from '../utils/db-helpers';
 import { customerRequirementTickets } from '../../drizzle/customer-ticket-schema';
-import { eq, and, sql, desc, like, inArray } from 'drizzle-orm';
+import { eq, and, sql, desc, like } from 'drizzle-orm';
 
 // SOP合法状态转移图
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -168,7 +168,7 @@ export async function updateTicket(
     }
   }
 
-  const setFields: Record<string, any> = { updatedAt: new Date() };
+  const setFields: Record<string, any> = { updatedAt: sql`now()` };
   if (params.title !== undefined) setFields.title = params.title;
   if (params.description !== undefined) setFields.description = params.description;
   if (params.status !== undefined) setFields.status = params.status;
@@ -181,7 +181,7 @@ export async function updateTicket(
   if (params.resolution !== undefined) setFields.resolution = params.resolution;
 
   // 关闭时记录 closedAt
-  if (params.status === 'closed') setFields.closedAt = new Date();
+  if (params.status === 'closed') setFields.closedAt = sql`now()`;
 
   const result = await db
     .update(customerRequirementTickets)
@@ -219,8 +219,8 @@ export async function rateTicket(
     .set({
       satisfactionRating: params.satisfactionRating,
       satisfactionComment: params.satisfactionComment ?? null,
-      ratedAt: new Date(),
-      updatedAt: new Date(),
+      ratedAt: sql`now()`,
+      updatedAt: sql`now()`,
     } as any)
     .where(eq(customerRequirementTickets.id, ticketId))
     .returning();
@@ -273,7 +273,7 @@ export async function getTicketStats(assigneeId?: number) {
       and(
         where,
         sql`${customerRequirementTickets.dueDate} IS NOT NULL`,
-        sql`${customerRequirementTickets.dueDate} < CURRENT_DATE`,
+        sql`${customerRequirementTickets.dueDate}::date < CURRENT_DATE`,
         sql`${customerRequirementTickets.status} NOT IN ('closed', 'accepted', 'rejected')`,
       ),
     );

@@ -60,7 +60,7 @@ export function AuditLogsTab() {
     ...(endDate ? { endDate } : {}),
   };
 
-  const { data, isLoading, isFetching } = trpc.permission.getAuditLogs.useQuery(queryInput);
+  const { data, isLoading, isFetching, error } = trpc.permission.getAuditLogs.useQuery(queryInput);
 
   const resetFilters = () => {
     setActionType('');
@@ -125,7 +125,9 @@ export function AuditLogsTab() {
         </div>
 
         {/* Table */}
-        {isLoading ? (
+        {error ? (
+          <div className="text-center py-8 text-red-600">Error loading logs: {error.message}</div>
+        ) : isLoading ? (
           <div className="text-center py-8 text-muted-foreground">Loading...</div>
         ) : logs.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">No audit logs found</div>

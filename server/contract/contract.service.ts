@@ -544,7 +544,7 @@ export async function applyAnalysis(analysisId: number, userId: number) {
     .set({
       status: "applied",
       appliedBy: userId,
-      appliedAt: new Date().toISOString(),
+      appliedAt: sql`now()`,
       updatedAt: sql`now()`,
     })
     .where(eq(contractAiAnalyses.id, analysisId))
