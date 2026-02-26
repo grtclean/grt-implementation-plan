@@ -9,7 +9,6 @@ import {
   roles,
   permissions,
   rolePermissions,
-  userRoles,
   dataScopes,
   permissionAuditLogs,
   temporaryPermissions,
@@ -17,7 +16,11 @@ import {
   userPermissions,
   permissionBlacklist,
 } from '../../drizzle/schema';
-import { eq, and, or, gte, lte, inArray } from 'drizzle-orm';
+// Import userRoles from permission-schema directly — schema.ts exports a different
+// userRoles mapped to the old "user_roles" table (integer IDs, smallint is_active).
+// The RBAC system uses "grt_user_roles" (varchar user_id, boolean is_active).
+import { userRoles } from '../../drizzle/permission-schema';
+import { eq, and, or, gte, lte, inArray, isNull } from 'drizzle-orm';
 
 /**
  * 权限服务类
@@ -39,7 +42,7 @@ export class PermissionService {
           eq(permissionBlacklist.blacklistType, 'user'),
           eq(permissionBlacklist.isActive, true as any),
           or(
-            eq(permissionBlacklist.endDate, null as any),
+            isNull(permissionBlacklist.endDate),
             gte(permissionBlacklist.endDate, new Date())
           )
         )
@@ -57,10 +60,10 @@ export class PermissionService {
       .where(
         and(
           eq(userRoles.userId, userId as any),
-          eq(userRoles.isActive, 1 as any),
+          eq(userRoles.isActive, true as any),
           or(
-            eq((userRoles as any).endDate, null),
-            gte((userRoles as any).endDate, new Date())
+            isNull(userRoles.endDate),
+            gte(userRoles.endDate, new Date() as any)
           )
         )
       );
@@ -143,10 +146,10 @@ export class PermissionService {
         and(
           eq(userRoles.userId, userId as any),
           eq(userRoles.roleId, roleId as any),
-          eq(userRoles.isActive, 1 as any),
+          eq(userRoles.isActive, true as any),
           or(
-            eq((userRoles as any).endDate, null),
-            gte((userRoles as any).endDate, new Date())
+            isNull(userRoles.endDate),
+            gte(userRoles.endDate, new Date() as any)
           )
         )
       )
@@ -168,10 +171,10 @@ export class PermissionService {
       .where(
         and(
           eq(userRoles.userId, userId as any),
-          eq(userRoles.isActive, 1 as any),
+          eq(userRoles.isActive, true as any),
           or(
-            eq((userRoles as any).endDate, null),
-            gte((userRoles as any).endDate, new Date())
+            isNull(userRoles.endDate),
+            gte(userRoles.endDate, new Date() as any)
           )
         )
       );
@@ -436,7 +439,7 @@ export class PermissionService {
     // 撤销角色
     await db
       .update(userRoles)
-      .set({ isActive: 0 } as any)
+      .set({ isActive: false } as any)
       .where(
         and(
           eq(userRoles.userId, userId as any),
@@ -511,7 +514,7 @@ export class PermissionService {
           eq(qualificationCertificates.certificateCode, certificateCode),
           eq((qualificationCertificates as any).status, 'active'),
           or(
-            eq(qualificationCertificates.expiryDate, null as any),
+            isNull(qualificationCertificates.expiryDate),
             gte(qualificationCertificates.expiryDate, new Date() as any)
           )
         )
