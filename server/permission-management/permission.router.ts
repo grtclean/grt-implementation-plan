@@ -12,11 +12,14 @@ import {
   roles,
   permissions,
   rolePermissions,
-  userRoles,
   qualificationCertificates,
   permissionAuditLogs,
 } from '../../drizzle/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+// Import userRoles from permission-schema — schema.ts exports a different
+// userRoles mapped to the old "user_roles" table (integer IDs, smallint is_active).
+// The RBAC system uses "grt_user_roles" (varchar user_id, boolean is_active).
+import { userRoles } from '../../drizzle/permission-schema';
+import { eq, and, inArray, gte, lte, isNull, or, desc, sql } from 'drizzle-orm';
 
 /**
  * 权限管理路由
@@ -274,15 +277,17 @@ export const permissionRouter = router({
       z.object({
         userId: z.string(),
         roleId: z.number(),
-        endDate: z.date().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      await permissionService.assignRoleToUser(
+      await permissionService.assignRoleToUserById(
         input.userId,
-        '',
+        input.roleId,
         String(ctx.user.id),
-        input.endDate
+        input.startDate ? new Date(input.startDate) : undefined,
+        input.endDate ? new Date(input.endDate) : undefined
       );
       return { success: true };
     }),
@@ -325,6 +330,161 @@ export const permissionRouter = router({
     }),
 
   /**
+   * 管理员：获取用户的角色分配
+   */
+  getUserRoles: protectedProcedure
+    .use(createRoleMiddleware(['admin']))
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const records = await (db as any)
+        .select({
+          id: userRoles.id,
+          userId: userRoles.userId,
+          roleId: userRoles.roleId,
+          startDate: userRoles.startDate,
+          endDate: userRoles.endDate,
+          isActive: userRoles.isActive,
+          createdAt: userRoles.createdAt,
+          roleName: roles.name,
+          roleDisplayName: roles.displayName,
+          roleLevel: roles.level,
+          roleCategory: roles.category,
+        })
+        .from(userRoles)
+        .innerJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(eq(userRoles.userId, input.userId as any));
+      return { userRoles: records };
+    }),
+
+  /**
+   * 管理员：获取角色的权限列表
+   */
+  getRolePermissions: protectedProcedure
+    .use(createRoleMiddleware(['admin']))
+    .input(z.object({ roleId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const records = await (db as any)
+        .select({
+          permissionId: rolePermissions.permissionId,
+          roleId: rolePermissions.roleId,
+          code: permissions.code,
+          name: permissions.name,
+          description: permissions.description,
+          module: permissions.module,
+          category: permissions.category,
+          action: permissions.action,
+        })
+        .from(rolePermissions)
+        .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+        .where(eq(rolePermissions.roleId, input.roleId));
+      return { permissions: records };
+    }),
+
+  /**
+   * 管理员：获取每个角色的活跃用户数
+   */
+  getRoleMemberCounts: protectedProcedure
+    .use(createRoleMiddleware(['admin']))
+    .query(async () => {
+      const db = await requireDb();
+      const now = new Date();
+      const records = await (db as any)
+        .select({
+          roleId: userRoles.roleId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(userRoles)
+        .where(
+          and(
+            eq(userRoles.isActive, true as any),
+            lte(userRoles.startDate, now as any),
+            or(
+              isNull(userRoles.endDate),
+              gte(userRoles.endDate, now as any)
+            )
+          )
+        )
+        .groupBy(userRoles.roleId);
+      const counts: Record<number, number> = {};
+      for (const r of records) {
+        counts[r.roleId] = r.count;
+      }
+      return { counts };
+    }),
+
+  /**
+   * 管理员：获取用户的有效权限（从所有活跃角色派生）
+   */
+  getUserEffectivePermissions: protectedProcedure
+    .use(createRoleMiddleware(['admin']))
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const now = new Date();
+
+      // Get active roles
+      const activeRoles = await (db as any)
+        .select({ roleId: userRoles.roleId })
+        .from(userRoles)
+        .where(
+          and(
+            eq(userRoles.userId, input.userId as any),
+            eq(userRoles.isActive, true as any),
+            lte(userRoles.startDate, now as any),
+            or(
+              isNull(userRoles.endDate),
+              gte(userRoles.endDate, now as any)
+            )
+          )
+        );
+
+      const roleIds = activeRoles.map((r: any) => r.roleId);
+      if (roleIds.length === 0) return { permissions: [] };
+
+      // Get all permissions from these roles
+      const perms = await (db as any)
+        .select({
+          id: permissions.id,
+          code: permissions.code,
+          name: permissions.name,
+          description: permissions.description,
+          module: permissions.module,
+          category: permissions.category,
+        })
+        .from(rolePermissions)
+        .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+        .where(inArray(rolePermissions.roleId, roleIds as any));
+
+      // Deduplicate by permission id
+      const seen = new Set<number>();
+      const unique = perms.filter((p: any) => {
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      });
+
+      return { permissions: unique };
+    }),
+
+  /**
+   * 管理员：获取所有角色-权限映射
+   */
+  getAllRolePermissionMappings: protectedProcedure
+    .use(createRoleMiddleware(['admin']))
+    .query(async () => {
+      const db = await requireDb();
+      const records = await (db as any)
+        .select({
+          roleId: rolePermissions.roleId,
+          permissionId: rolePermissions.permissionId,
+        })
+        .from(rolePermissions);
+      return { mappings: records };
+    }),
+
+  /**
    * 管理员：获取审计日志
    */
   getAuditLogs: protectedProcedure
@@ -335,19 +495,38 @@ export const permissionRouter = router({
         offset: z.number().default(0),
         userId: z.string().optional(),
         actionType: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
       })
     )
     .query(async ({ input }) => {
       const db = await requireDb();
 
-      let query = (db as any).select().from(permissionAuditLogs);
+      const conditions: any[] = [];
 
       if (input.userId) {
-        query = query.where(eq(permissionAuditLogs.operatorId, input.userId));
+        conditions.push(eq(permissionAuditLogs.operatorId, input.userId));
       }
 
       if (input.actionType) {
-        query = query.where(eq(permissionAuditLogs.actionType, input.actionType as any));
+        conditions.push(eq(permissionAuditLogs.actionType, input.actionType as any));
+      }
+
+      if (input.startDate) {
+        conditions.push(gte(permissionAuditLogs.createdAt, new Date(input.startDate) as any));
+      }
+
+      if (input.endDate) {
+        conditions.push(lte(permissionAuditLogs.createdAt, new Date(input.endDate) as any));
+      }
+
+      let query = (db as any)
+        .select()
+        .from(permissionAuditLogs)
+        .orderBy(desc(permissionAuditLogs.createdAt));
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
       }
 
       const logs = await query.limit(input.limit).offset(input.offset);

@@ -61,6 +61,7 @@ export class PermissionService {
         and(
           eq(userRoles.userId, userId as any),
           eq(userRoles.isActive, true as any),
+          lte(userRoles.startDate, new Date() as any),
           or(
             isNull(userRoles.endDate),
             gte(userRoles.endDate, new Date() as any)
@@ -147,6 +148,7 @@ export class PermissionService {
           eq(userRoles.userId, userId as any),
           eq(userRoles.roleId, roleId as any),
           eq(userRoles.isActive, true as any),
+          lte(userRoles.startDate, new Date() as any),
           or(
             isNull(userRoles.endDate),
             gte(userRoles.endDate, new Date() as any)
@@ -172,6 +174,7 @@ export class PermissionService {
         and(
           eq(userRoles.userId, userId as any),
           eq(userRoles.isActive, true as any),
+          lte(userRoles.startDate, new Date() as any),
           or(
             isNull(userRoles.endDate),
             gte(userRoles.endDate, new Date() as any)
@@ -395,6 +398,58 @@ export class PermissionService {
     await db.insert(userRoles).values({
       userId,
       roleId,
+      endDate,
+      isActive: true,
+    } as any);
+
+    // 记录审计日志
+    await this.logAuditEvent(
+      operatorId,
+      'assign_role',
+      userId,
+      roleId as any,
+      undefined,
+      'success'
+    );
+  }
+
+  /**
+   * 分配角色给用户 (by role ID directly)
+   */
+  async assignRoleToUserById(
+    userId: string,
+    roleId: number,
+    operatorId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<void> {
+    const db: any = await requireDb();
+
+    // 检查是否已经分配
+    const existing = await db
+      .select()
+      .from(userRoles)
+      .where(
+        and(
+          eq(userRoles.userId, userId as any),
+          eq(userRoles.roleId, roleId as any),
+          eq(userRoles.isActive, true as any)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      throw new TRPCError({
+        code: 'CONFLICT',
+        message: 'User already has this role',
+      });
+    }
+
+    // 分配角色
+    await db.insert(userRoles).values({
+      userId,
+      roleId,
+      startDate: startDate || new Date(),
       endDate,
       isActive: true,
     } as any);
