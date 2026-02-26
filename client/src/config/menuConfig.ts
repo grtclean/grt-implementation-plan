@@ -200,6 +200,8 @@ export const WAFFLE_APPS: WaffleApp[] = [
   // Engine 3: Strategy & OKR
   { id: "strategy",      name: "战略规划",    nameEn: "Strategy",      icon: Target,          color: "#4F6BED", menuGroupNames: ["战略规划"],                  defaultPath: "/strategy",                engine: "strategy" },
   { id: "ai",            name: "AI助手",      nameEn: "AI Hub",        icon: Bot,             color: "#0063B1", menuGroupNames: ["AI助手"],                   defaultPath: "/ai-hub",                  engine: "strategy" },
+  { id: "knowledge",     name: "知识大脑",    nameEn: "Knowledge Brain",   nameDe: "Wissenszentrale",   nameFr: "Cerveau de connaissances", icon: Brain,  color: "#744DA9", menuGroupNames: ["知识大脑"],  defaultPath: "/rag-training",   engine: "strategy" },
+  { id: "devops",        name: "AI DevOps",   nameEn: "AI DevOps Matrix",  nameDe: "KI-DevOps-Matrix",  nameFr: "Matrice IA DevOps",        icon: Code2,  color: "#C239B3", menuGroupNames: ["AI DevOps"],  defaultPath: "/dual-ai-matrix", engine: "strategy" },
   // Engine 4: Core Operations
   { id: "sales",         name: "市场与销售",  nameEn: "Sales & CRM",   icon: TrendingUp,      color: "#107C10", menuGroupNames: ["市场与销售"],                defaultPath: "/sales-crm",               engine: "operations" },
   { id: "rnd",           name: "研发设计",    nameEn: "R&D Design",    icon: Cog,             color: "#5C2D91", menuGroupNames: ["研发设计"],                  defaultPath: "/requirements-analysis",   engine: "operations" },
@@ -869,6 +871,47 @@ export const menuConfig: MenuGroup[] = [
           { name: "AI军团管理", nameEn: "AI Agent Fleet", nameDe: "KI-Agentenflotte", nameFr: "Flotte d'agents IA", path: "/ai-agent-fleet", icon: Cpu, isNew: true },
         ],
       },
+    ],
+  },
+
+  // ────────────────────────────────────
+  // 知识大脑 — Knowledge Brain
+  // ────────────────────────────────────
+  {
+    name: "知识大脑",
+    nameEn: "Knowledge Brain",
+    nameDe: "Wissenszentrale",
+    nameFr: "Cerveau de connaissances",
+    icon: Brain,
+    superCategory: "strategy",
+    items: [
+      { name: "知识库训练", nameEn: "KB Training", nameDe: "Wissensbasis-Training", nameFr: "Formation base de connaissances", path: "/rag-training", icon: BookOpen, isNew: true },
+      { name: "知识库问答", nameEn: "Knowledge Q&A", nameDe: "Wissensbasis-Q&A", nameFr: "Q&R base de connaissances", path: "/knowledge-qa", icon: MessageSquare, isNew: true },
+      { name: "知识图谱", nameEn: "Knowledge Graph", nameDe: "Wissensgraph", nameFr: "Graphe de connaissances", path: "/knowledge-graph-approval", icon: Network, minLevel: 3 },
+      { name: "AI知识引擎", nameEn: "AI Genesis", nameDe: "KI-Wissensmotor", nameFr: "Moteur IA Genesis", path: "/ai-genesis", icon: Sparkles, isNew: true, minLevel: 3 },
+      { name: "简道云知识库", nameEn: "JDY Knowledge", nameDe: "JDY-Wissensbasis", nameFr: "Base JDY", path: "/jiandaoyun-knowledge", icon: Database, isNew: true },
+      { name: "历史案例库", nameEn: "Historical Cases", nameDe: "Historische Fälle", nameFr: "Cas historiques", path: "/historical-cases", icon: BookOpen, isNew: true },
+      { name: "变更影响分析", nameEn: "Change Impact", nameDe: "Änderungsauswirkung", nameFr: "Impact du changement", path: "/change-impact", icon: GitBranch, isNew: true },
+    ],
+  },
+
+  // ────────────────────────────────────
+  // AI DevOps — Dual-Engine Pipeline Console
+  // ────────────────────────────────────
+  {
+    name: "AI DevOps",
+    nameEn: "AI DevOps Matrix",
+    nameDe: "KI-DevOps-Matrix",
+    nameFr: "Matrice IA DevOps",
+    icon: Code2,
+    superCategory: "strategy",
+    items: [
+      { name: "双AI协作矩阵", nameEn: "Dual-AI Matrix", nameDe: "Dual-KI-Matrix", nameFr: "Matrice Double IA", path: "/dual-ai-matrix", icon: Zap, isNew: true },
+      { name: "Gemini技术规格", nameEn: "Gemini Spec", nameDe: "Gemini-Spezifikation", nameFr: "Spécification Gemini", path: "/gemini-spec", icon: FileText, isNew: true },
+      { name: "仿真指挥中心", nameEn: "Simulator", nameDe: "Simulator", nameFr: "Simulateur", path: "/simulator", icon: Zap, isNew: true },
+      { name: "系统部署", nameEn: "Deployment", nameDe: "Bereitstellung", nameFr: "Déploiement", path: "/system-deployment", icon: Server },
+      { name: "AI效能追踪", nameEn: "AI Effectiveness", nameDe: "KI-Effizienz", nameFr: "Efficacité IA", path: "/ai-effectiveness", icon: Activity },
+      { name: "模型监控", nameEn: "Model Monitor", nameDe: "Modellüberwachung", nameFr: "Surveillance modèle", path: "/model-performance-monitor", icon: Activity, minLevel: 3 },
     ],
   },
 
