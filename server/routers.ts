@@ -233,6 +233,7 @@ import { oaRouter } from "./routers/oa.router";
 import { oaFormsRouter } from "./routers/oa-forms.router";
 import { competencyRouter as realCompetencyRouter } from "./routers/competency.router";
 import { governanceRouter } from "./routers/governance.router";
+import { aiSecurityGovernanceRouter } from "./routers/ai-security-governance.router";
 import { campaignRouter } from "./routers/campaign.router";
 import { genesisRouter } from "./routers/genesis.router";
 import { helpRouter } from "./routers/help.router";
@@ -596,6 +597,9 @@ export const appRouter = router({
 
   // System Control Tower — Enterprise Governance (MDM, BPMN, RLS, Audit)
   governance: governanceRouter,
+
+  // Zero-Trust Security & Governance Gateway (OTP-gated destructive ops)
+  aiSecurityGovernance: aiSecurityGovernanceRouter,
 
   // Strategic Campaigns — Global Rollover Engine
   campaign: campaignRouter,

@@ -323,6 +323,9 @@ import OperationsEngine from "./pages/engines/OperationsEngine";
 import ResourcesEngine from "./pages/engines/ResourcesEngine";
 import OKRMatrixPage from "./pages/OKRMatrixPage";
 
+// GRT Cloud Showcase Portal (全球数字云展厅)
+const ShowcasePortal = React.lazy(() => import("./pages/showcase/ShowcasePortal"));
+
 // KPI绩效管理
 const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
 
@@ -455,6 +458,7 @@ const ReviewToQuotation = React.lazy(() => import("./pages/ReviewToQuotation"));
 const QualityMonthlyReport = React.lazy(() => import("./pages/QualityMonthlyReport"));
 const BOMFreezeAutomation = React.lazy(() => import("./pages/BOMFreezeAutomation"));
 const QCPassNotification = React.lazy(() => import("./pages/QCPassNotification"));
+const AISecurityGovernance = React.lazy(() => import("./pages/AISecurityGovernance"));
 
 // Protected route wrapper component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -478,7 +482,7 @@ function LazyFallback() {
 
 // Standalone routes that should NOT have sidebar layout
 const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/404', '/oa-test', '/morning-meeting', '/shop-floor/machine-login'];
-const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/', '/vision/', '/shop-floor/'];
+const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/', '/vision/', '/shop-floor/', '/showcase/'];
 
 function Router() {
   const [location] = useLocation();
@@ -489,6 +493,7 @@ function Router() {
     <Suspense fallback={<LazyFallback />}>
     <Switch>
       {/* Public routes */}
+      <Route path={"/showcase/:industry"} component={ShowcasePortal} />
       <Route path={"/"} component={Home} />
       <Route path={"/roadmap"} component={Roadmap} />
       <Route path={"/tools"} component={Tools} />
@@ -533,6 +538,7 @@ function Router() {
       <Route path={"/sales-crm"} component={SalesCRMWorkbench} />
       <Route path={"/after-sales-workbench"} component={AfterSalesWorkbench} />
       <Route path={"/ai-genesis"} component={AIGenesisWorkspace} />
+      <Route path={"/ai-security-governance"} component={AISecurityGovernance} />
       <Route path={"/ai-assistant-provisioning"} component={AiAssistantProvisioning} />
       <Route path={"/ai-agent-fleet"} component={AIAgentFleetDashboard} />
       <Route path={"/system-control-tower"} component={SystemControlTower} />

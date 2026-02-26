@@ -19,6 +19,7 @@ import {
   integer,
   varchar,
   text,
+  boolean,
   timestamp,
   json,
   index,
@@ -117,6 +118,15 @@ export const knowledgeDocuments = pgTable("ai_knowledge_documents", {
 
   /** Last update timestamp */
   updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
+
+  /** Whether this document has been purged via security rollback */
+  isPurged: boolean("is_purged").default(false),
+
+  /** FK → users.id — who approved this document (nullable) */
+  approvedBy: integer("approved_by").references(() => users.id),
+
+  /** Expiry timestamp for the approval (nullable) */
+  approvalExpiry: timestamp("approval_expiry", { mode: "string" }),
 }, (table) => [
   index("kd_file_type_idx").on(table.fileType),
   index("kd_status_idx").on(table.status),

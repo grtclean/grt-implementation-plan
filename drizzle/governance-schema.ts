@@ -52,6 +52,9 @@ export const SYS_AUDIT_ACTIONS = [
   "REJECT",
   "LOGIN",
   "EXPORT",
+  "APPROVE_KNOWLEDGE",
+  "ROLLBACK_KNOWLEDGE",
+  "SYSTEM_FREEZE",
 ] as const;
 
 export type SysWorkflowNodeType = (typeof SYS_WORKFLOW_NODE_TYPES)[number];
