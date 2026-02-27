@@ -767,6 +767,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "证据审核", nameEn: "Evidence Review", nameDe: "Nachweisprüfung", nameFr: "Revue des preuves", path: "/evidence-review", icon: Award, minLevel: 2 },
       { name: "能力评估矩阵", nameEn: "Assessment Matrix", nameDe: "Bewertungsmatrix", nameFr: "Matrice d'évaluation", path: "/capability-system", icon: LayoutGrid, isNew: true,
         allowedRoles: ["admin", "director", "hr_manager", "hr_specialist", "dept_manager", "bu_gm"] },
+      { name: "HR沙盘解析", nameEn: "HR Sandbox", nameDe: "HR-Sandbox", nameFr: "Sandbox RH", path: "/hr-sandbox-capability", icon: Brain, isNew: true, minLevel: 3 },
     ],
   },
 

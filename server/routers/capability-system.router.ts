@@ -20,7 +20,7 @@ import { publicProcedure, router } from "../_core/trpc";
 
 // ─── Capability Dictionary (6 TSDCKL Pillars) ───────────────────────
 
-interface CapabilityPillar {
+export interface CapabilityPillar {
   code: string;
   name: string;
   nameEn: string;
@@ -31,7 +31,7 @@ interface CapabilityPillar {
   scoringRules: string[];
 }
 
-const CAPABILITY_DICTIONARY: CapabilityPillar[] = [
+export const CAPABILITY_DICTIONARY: CapabilityPillar[] = [
   {
     code: "T", name: "硬核技术力", nameEn: "Technical Power",
     description: "专业技术深度、工程实践能力、问题诊断与解决",
@@ -108,13 +108,13 @@ const CAPABILITY_DICTIONARY: CapabilityPillar[] = [
 
 // ─── Role Capability Criteria (Target Scores by Role) ────────────────
 
-interface RoleCriteria {
+export interface RoleCriteria {
   role: string;
   roleName: string;
   targets: Record<string, number>; // code -> target score
 }
 
-const ROLE_CRITERIA: RoleCriteria[] = [
+export const ROLE_CRITERIA: RoleCriteria[] = [
   { role: "bu_gm",         roleName: "BU总经理",   targets: { T: 80, S: 90, D: 85, C: 90, K: 85, L: 95 } },
   { role: "director",      roleName: "总监",       targets: { T: 75, S: 85, D: 80, C: 85, K: 80, L: 90 } },
   { role: "dept_manager",  roleName: "部门经理",   targets: { T: 75, S: 80, D: 75, C: 80, K: 78, L: 82 } },
@@ -133,7 +133,7 @@ const ROLE_CRITERIA: RoleCriteria[] = [
 
 // ─── Employee Assessments (Feb 2026 Real Data) ───────────────────────
 
-interface EmployeeAssessment {
+export interface EmployeeAssessment {
   id: number;
   employeeId: number;
   name: string;
@@ -148,7 +148,7 @@ interface EmployeeAssessment {
   overallGrade: string;
 }
 
-function computeGrade(score: number): string {
+export function computeGrade(score: number): string {
   if (score >= 90) return "A+";
   if (score >= 85) return "A";
   if (score >= 80) return "A-";
@@ -175,7 +175,7 @@ function makeAssessment(
   };
 }
 
-const EMPLOYEE_ASSESSMENTS: EmployeeAssessment[] = [
+export const EMPLOYEE_ASSESSMENTS: EmployeeAssessment[] = [
   makeAssessment(1,  1001, "王磊",   "Wang Lei",    "海外BU",     "bu_gm",       "BU总经理",   82, 88, 85, 91, 83, 92),
   makeAssessment(2,  1002, "张伟",   "Zhang Wei",   "海外BU",     "bu_mech",     "机械工程师", 91, 62, 85, 58, 80, 42),
   makeAssessment(3,  1003, "李娜",   "Li Na",       "海外BU",     "bu_elec",     "电气工程师", 88, 68, 82, 55, 76, 40),

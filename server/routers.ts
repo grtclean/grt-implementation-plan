@@ -257,6 +257,7 @@ import { cleaningProjectRouter } from "./routers/cleaning-project.router";
 import { roleAgentRouter } from "./routers/role-agent.router";
 import { automationRouter } from "./routers/automation.router";
 import { aiTaskRouter } from "./routers/ai-task.router";
+import { hrSandboxRouter } from "./routers/hr-sandbox.router";
 
 // GRT Value Chain Enhancement — 非标清洗设备全价值链
 import { equipmentComplianceRouter } from "./routers/equipment-compliance.router";
@@ -652,6 +653,9 @@ export const appRouter = router({
   // AI Canvas — Workflow Parser & Action Router (Req 9a: ubiquitous AI input)
   aiCanvas: aiCanvasRouter,
   aiTask: aiTaskRouter,
+
+  // HR Sandbox Capability Model — ai_tasks queue-driven parsing
+  hrSandbox: hrSandboxRouter,
 
   // OKR Engine — Objectives & Key Results (Strategy Hub)
   okr: okrRouter,
