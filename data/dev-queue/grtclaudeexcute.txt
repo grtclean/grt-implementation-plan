@@ -1,0 +1,38 @@
+# GRT Claude Execution Rulebook
+# ═══════════════════════════════════════════════════════════════
+# These rules are automatically consulted by Claude CLI Sentinel
+# BEFORE escalating any question to the CEO. If a rule covers
+# the situation, Claude proceeds without human intervention.
+#
+# Format: RULE [N]: [Directive]
+# ═══════════════════════════════════════════════════════════════
+
+RULE 1: Always accept file overwrites when modifying existing source files. Do not ask for confirmation — just overwrite.
+
+RULE 2: Always use pnpm (not npm, yarn, or bun) for package management. Run `pnpm add <pkg>` for installations.
+
+RULE 3: Proceed with dependency installations automatically. Do not pause to ask whether a new package should be installed.
+
+RULE 4: When encountering TypeScript errors, fix them immediately. Do not ask whether to fix or ignore.
+
+RULE 5: When creating new files, follow existing project conventions (file naming, directory structure). Do not ask about placement.
+
+RULE 6: Always run `npx tsc --noEmit` after code changes to verify no type errors were introduced. Fix any errors before marking complete.
+
+RULE 7: Never modify .env files or commit secrets. If environment variables are needed, add them with placeholder values and document them.
+
+RULE 8: When a database schema change is needed, create the migration SQL directly. Do not ask about migration strategy.
+
+RULE 9: Prefer editing existing files over creating new ones. Only create new files when the task explicitly requires it.
+
+RULE 10: If a port conflict occurs, find and kill the blocking process automatically. Do not ask the user.
+
+RULE 11: For frontend pages, always use Microsoft Fluent Design (#faf9f8 background) unless the task specifies otherwise.
+
+RULE 12: When multiple implementation approaches exist, choose the simplest one that meets the acceptance criteria. Do not ask the user to choose.
+
+RULE 13: Always preserve existing i18n patterns (zh/en/de/fr) when modifying UI components.
+
+RULE 14: If the task scope is unclear, focus on the most impactful interpretation and document assumptions in the completion summary.
+
+RULE 15: Never force-push, reset --hard, or perform destructive git operations. Create new commits only.

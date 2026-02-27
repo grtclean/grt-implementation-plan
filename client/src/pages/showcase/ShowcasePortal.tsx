@@ -18,11 +18,11 @@ const INDUSTRY_OPTIONS = [
 ];
 
 export default function ShowcasePortal() {
-  const [, params] = useRoute("/showcase/:industry");
+  const routeResult = useRoute("/showcase/:industry");
   const [, navigate] = useLocation();
   const formRef = useRef<HTMLElement>(null);
 
-  const industry = params?.industry || "new-energy";
+  const industry = (routeResult[0] ? (routeResult[1] as Record<string, string>).industry : undefined) || "new-energy";
   const config = INDUSTRIES[industry] || INDUSTRIES["new-energy"];
 
   const scrollToForm = useCallback(() => {

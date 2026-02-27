@@ -58,36 +58,30 @@ export const vaultRouter = router({
     return file ?? null;
   }),
 
-  /** Mock upload — inserts file record; auto-generates webViewerUrl for SOLIDWORKS/EPLAN */
+  /** Mock upload — inserts file record */
   upload: publicProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]),
     fileName: z.string().min(1),
     fileType: z.enum(["SOLIDWORKS", "EPLAN", "WORD", "PDF", "EMAIL_EML", "MEETING_RECORD"]),
-    uploadBy: z.string().min(1),
+    uploadedBy: z.string().min(1),
     size: z.number().optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
-
-    // Auto-generate webViewerUrl for CAD/electrical types
-    let webViewerUrl: string | null = null;
-    if (input.fileType === "SOLIDWORKS" || input.fileType === "EPLAN") {
-      webViewerUrl = `/viewer/${input.fileType.toLowerCase()}/${encodeURIComponent(input.fileName)}`;
-    }
 
     const [inserted] = await db.insert(grtVaultFiles).values({
       projectId: toNum(input.projectId),
       fileName: input.fileName,
       fileType: input.fileType,
-      version: "v1.0",
-      uploadBy: input.uploadBy,
-      size: input.size ?? null,
-      webViewerUrl,
-    }).returning();
+      version: 1,
+      // uploadedBy is integer in schema — store 0 as placeholder since we receive a string name
+      uploadedBy: 0,
+      fileSizeBytes: input.size ?? null,
+    } as any).returning();
 
     return inserted;
   }),
 
-  /** Mock version bump — parses "v1.2" → "v1.3" */
+  /** Mock version bump — increments integer version */
   checkin: publicProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [file] = await db.select().from(grtVaultFiles)
@@ -95,11 +89,9 @@ export const vaultRouter = router({
 
     if (!file) throw new Error(`Vault file not found: id=${input.id}`);
 
-    // Parse current version and bump minor
-    const match = file.version.match(/^v(\d+)\.(\d+)$/);
-    const major = match ? parseInt(match[1]) : 1;
-    const minor = match ? parseInt(match[2]) + 1 : 1;
-    const newVersion = `v${major}.${minor}`;
+    // version is integer in schema
+    const currentVersion = typeof file.version === "number" ? file.version : 1;
+    const newVersion = currentVersion + 1;
 
     const [updated] = await db.update(grtVaultFiles)
       .set({ version: newVersion, updatedAt: new Date().toISOString() })
@@ -134,22 +126,26 @@ export const vaultRouter = router({
     return { items, total: Number(total) };
   }),
 
-  /** Create new ECO with linked file IDs */
+  /** Create new ECO with affected file IDs */
   createEco: publicProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]),
-    description: z.string().min(1),
-    requestedBy: z.string().min(1),
-    linkedFileIds: z.array(z.number()).optional(),
+    ecoNumber: z.string().min(1),
+    title: z.string().min(1),
+    description: z.string().optional(),
+    requestedBy: z.number().optional(),
+    affectedFiles: z.array(z.number()).optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
 
     const [inserted] = await db.insert(engineeringChangeOrders).values({
       projectId: toNum(input.projectId),
-      description: input.description,
-      requestedBy: input.requestedBy,
-      linkedFileIds: input.linkedFileIds ?? [],
-      status: "draft",
-    }).returning();
+      ecoNumber: input.ecoNumber,
+      title: input.title,
+      description: input.description ?? "",
+      requestedBy: input.requestedBy ?? null,
+      affectedFiles: input.affectedFiles ?? [],
+      status: "DRAFT",
+    } as any).returning();
 
     return inserted;
   }),

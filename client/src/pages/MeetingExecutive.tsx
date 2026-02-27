@@ -1529,6 +1529,7 @@ function ManagementRhythmTab() {
                 triggerPhaseMut.mutate({
                   phase: "ANNUAL_REVIEW",
                   projectTitle: "年度总结",
+                  pmName: "管理层",
                 })
               }
               disabled={triggerPhaseMut.isPending}

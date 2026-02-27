@@ -937,6 +937,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "年度企业日程", nameEn: "Annual Agenda", nameDe: "Jahreskalender", nameFr: "Agenda annuel", path: "/annual-agenda", icon: Calendar },
       { name: "全球增长追踪", nameEn: "Global Growth", nameDe: "Globales Wachstum", nameFr: "Croissance mondiale", path: "/global-growth-tracker", icon: Globe },
       { name: "变更治理", nameEn: "Change Governance", nameDe: "Änderungssteuerung", nameFr: "Gouvernance changement", path: "/change-management", icon: ClipboardCheck },
+      { name: "2026战略指挥", nameEn: "2026 Strategy Command", nameDe: "2026 Strategiekommando", nameFr: "Commandement stratégique 2026", path: "/ceo/strategy-2026", icon: Crown, isNew: true },
     ],
   },
 

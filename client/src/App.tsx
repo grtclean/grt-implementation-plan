@@ -468,6 +468,9 @@ const AISecurityGovernance = React.lazy(() => import("./pages/AISecurityGovernan
 // Concurrent Command Center — Dual-Track Debugging
 const ConcurrentCommandCenter = React.lazy(() => import("./pages/ConcurrentCommandCenter"));
 
+// 2026 CEO Strategic Command Center
+import CeoStrategy2026 from "./pages/CeoStrategy2026";
+
 // Collaboration Drive & Smart Spreadsheet
 import CollaborationDocs from "./pages/CollaborationDocs";
 import SpreadsheetViewer from "./pages/SpreadsheetViewer";
@@ -1722,6 +1725,9 @@ function Router() {
       </Route>
       <Route path="/ceo/executive-cockpit">
         <ProtectedRoute component={CeoExecutiveCockpit} />
+      </Route>
+      <Route path="/ceo/strategy-2026">
+        <ProtectedRoute component={CeoStrategy2026} />
       </Route>
 
       <Route path={"/404"} component={NotFound} />

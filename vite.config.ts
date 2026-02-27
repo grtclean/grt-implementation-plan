@@ -44,6 +44,16 @@ export default defineConfig({
       "localhost",
       "127.0.0.1",
     ],
+    proxy: {
+      "/api": {
+        target: `http://localhost:${process.env.PORT || 3000}`,
+        changeOrigin: true,
+      },
+      "/ws": {
+        target: `ws://localhost:${process.env.PORT || 3000}`,
+        ws: true,
+      },
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],

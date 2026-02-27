@@ -277,6 +277,7 @@ import { smartSchedulerRouter } from "./routers/smart-scheduler.router";
 import { smartInventoryRouter } from "./routers/smart-inventory.router";
 import { carbonFootprintRouter } from "./routers/carbon-footprint.router";
 import { digitalThreadRouter } from "./routers/digital-thread.router";
+import { strategyGoalsRouter } from "./routers/strategy-goals.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -713,6 +714,9 @@ export const appRouter = router({
 
   // Phase 4: Ultimate Digital Thread & Executive Cockpit
   digitalThread: digitalThreadRouter,
+
+  // 2026 CEO Strategic Goals & Division Performance
+  strategyGoals: strategyGoalsRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {
