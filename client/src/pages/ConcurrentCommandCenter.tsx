@@ -189,19 +189,23 @@ function RoleImprovementPanel({ currentUserName, utils }: { currentUserName: str
   // Local results state (fallback when backend unavailable)
   const [localResults, setLocalResults] = useState<any[]>([]);
 
+  // Keep a snapshot so onError can still access values after state changes
+  const pendingRef = { area: selectedArea, req: requirement };
+
   const submitMutation = trpc.concurrentCommand.submitImprovement.useMutation({
     onSuccess: (data) => {
       toast.success(`改进需求已提交: ${data.area} [优先级: ${data.priority === "high" ? "高" : data.priority === "medium" ? "中" : "低"}]`);
       setRequirement("");
       setSelectedArea("");
-      improvementsQuery.refetch();
-      utils.concurrentCommand.getActivityLog.invalidate();
+      try { improvementsQuery.refetch(); } catch {}
+      try { utils.concurrentCommand.getActivityLog.invalidate(); } catch {}
     },
     onError: () => {
-      // Backend unavailable — generate locally
-      const result = generateLocalImprovement(activeRole, selectedArea, requirement.trim());
+      // Backend unavailable — generate locally, do NOT clear inputs on failure
+      const result = generateLocalImprovement(activeRole, pendingRef.area, pendingRef.req.trim());
       setLocalResults(prev => [result, ...prev]);
-      toast.success(`改进方案已生成: ${selectedArea} [优先级: ${result.data.priority === "high" ? "高" : result.data.priority === "medium" ? "中" : "低"}]`);
+      toast.success(`改进方案已生成: ${pendingRef.area}`);
+      // Only clear after successful local generation
       setRequirement("");
       setSelectedArea("");
     },
@@ -209,34 +213,23 @@ function RoleImprovementPanel({ currentUserName, utils }: { currentUserName: str
 
   const improvementsQuery = trpc.concurrentCommand.listImprovements.useQuery(
     { role: activeRole },
-    { retry: false },
+    { retry: false, throwOnError: false },
   );
   const serverResults = improvementsQuery.data ?? [];
   const improvements = [...localResults.filter(r => r.data?.role === activeRole), ...serverResults];
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const handleSubmit = () => {
     if (!selectedArea) { toast.error("请先选择改进领域"); return; }
     if (!requirement.trim()) { toast.error("请输入改进需求内容"); return; }
-    setIsSubmitting(true);
-    try {
-      submitMutation.mutate({
-        role: activeRole,
-        area: selectedArea,
-        requirement: requirement.trim(),
-        userName: currentUserName,
-      });
-    } catch {
-      // Direct fallback
-      const result = generateLocalImprovement(activeRole, selectedArea, requirement.trim());
-      setLocalResults(prev => [result, ...prev]);
-      toast.success(`改进方案已生成（本地）: ${selectedArea}`);
-      setRequirement("");
-      setSelectedArea("");
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Snapshot current values before mutation (in case of async state issues)
+    pendingRef.area = selectedArea;
+    pendingRef.req = requirement;
+    submitMutation.mutate({
+      role: activeRole,
+      area: selectedArea,
+      requirement: requirement.trim(),
+      userName: currentUserName,
+    });
   };
 
   return (
@@ -297,21 +290,15 @@ function RoleImprovementPanel({ currentUserName, utils }: { currentUserName: str
           </div>
           <Button
             onClick={handleSubmit}
-            disabled={submitMutation.isPending || isSubmitting}
+            disabled={submitMutation.isPending}
             className="w-full"
           >
-            {(submitMutation.isPending || isSubmitting)
+            {submitMutation.isPending
               ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               : <Send className="h-4 w-4 mr-2" />
             }
             提交改进需求
           </Button>
-          {!selectedArea && !requirement.trim() && (
-            <p className="text-xs text-amber-600 flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" />
-              请先选择改进领域并输入改进需求
-            </p>
-          )}
         </div>
 
         {/* Results List */}
