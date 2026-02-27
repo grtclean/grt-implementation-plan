@@ -155,9 +155,10 @@ export default function BUSalesTargetPlanner() {
 
   // SVG bar chart
   const maxSales = Math.max(...(detail?.details ?? []).map((d) => Number(d.salesTarget ?? 0)), 1);
-  const barW = 40;
-  const chartH = 160;
-  const chartW = 12 * (barW + 12) + 20;
+  const maxOutput = Math.max(...(detail?.details ?? []).map((d) => Number(d.outputTarget ?? 0)), 1);
+  const barW = 36;
+  const chartH = 150;
+  const chartW = 12 * (barW + 10) + 20;
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -326,39 +327,72 @@ export default function BUSalesTargetPlanner() {
             </Button>
           </div>
 
-          {/* Bar Chart */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">{isZh ? "月度销售目标分布" : "Monthly Sales Target Distribution"}</CardTitle>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <svg width={chartW} height={chartH + 30} className="block">
-                {detail.details.map((d, i) => {
-                  const val = Number(d.salesTarget ?? 0);
-                  const h = (val / maxSales) * chartH;
-                  const x = i * (barW + 12) + 10;
-                  const quarter = Math.floor(i / 3);
-                  const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
-                  return (
-                    <g key={d.id}>
-                      <rect
-                        x={x}
-                        y={chartH - h}
-                        width={barW}
-                        height={h}
-                        fill={colors[quarter]}
-                        rx={3}
-                        opacity={d.isAdjusted ? 1 : 0.7}
-                      />
-                      <text x={x + barW / 2} y={chartH + 16} textAnchor="middle" className="text-[10px] fill-muted-foreground">
-                        {isZh ? MONTH_LABELS[i] : MONTH_LABELS_EN[i]}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
-            </CardContent>
-          </Card>
+          {/* Bar Charts — Sales + Output side by side */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {/* Sales Target Chart */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                  {isZh ? "月度销售目标分布" : "Monthly Sales Target Distribution"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="overflow-x-auto">
+                <svg width={chartW} height={chartH + 30} className="block">
+                  {detail.details.map((d, i) => {
+                    const val = Number(d.salesTarget ?? 0);
+                    const h = (val / maxSales) * chartH;
+                    const x = i * (barW + 10) + 10;
+                    const quarter = Math.floor(i / 3);
+                    const colors = ["#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe"];
+                    return (
+                      <g key={d.id}>
+                        <rect x={x} y={chartH - h} width={barW} height={h} fill={colors[quarter]} rx={3} opacity={d.isAdjusted ? 1 : 0.75} />
+                        <text x={x + barW / 2} y={chartH - h - 4} textAnchor="middle" className="text-[9px] fill-muted-foreground">
+                          {(val / 10000).toFixed(0)}
+                        </text>
+                        <text x={x + barW / 2} y={chartH + 14} textAnchor="middle" className="text-[10px] fill-muted-foreground">
+                          {isZh ? MONTH_LABELS[i] : MONTH_LABELS_EN[i]}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </CardContent>
+            </Card>
+
+            {/* Output Target Chart */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-purple-500" />
+                  {isZh ? "月度产值目标分布" : "Monthly Output Target Distribution"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="overflow-x-auto">
+                <svg width={chartW} height={chartH + 30} className="block">
+                  {detail.details.map((d, i) => {
+                    const val = Number(d.outputTarget ?? 0);
+                    const h = (val / maxOutput) * chartH;
+                    const x = i * (barW + 10) + 10;
+                    const quarter = Math.floor(i / 3);
+                    const colors = ["#8b5cf6", "#a78bfa", "#c4b5fd", "#ddd6fe"];
+                    return (
+                      <g key={d.id}>
+                        <rect x={x} y={chartH - h} width={barW} height={h} fill={colors[quarter]} rx={3} opacity={d.isAdjusted ? 1 : 0.75} />
+                        <text x={x + barW / 2} y={chartH - h - 4} textAnchor="middle" className="text-[9px] fill-muted-foreground">
+                          {(val / 10000).toFixed(0)}
+                        </text>
+                        <text x={x + barW / 2} y={chartH + 14} textAnchor="middle" className="text-[10px] fill-muted-foreground">
+                          {isZh ? MONTH_LABELS[i] : MONTH_LABELS_EN[i]}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Detail Table */}
           <Card>
