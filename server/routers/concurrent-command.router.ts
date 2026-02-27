@@ -271,6 +271,111 @@ export const concurrentCommandRouter = router({
       .limit(50);
   }),
 
+  // ─── Role Improvement Input ──────────────────────────────────────────────
+
+  submitImprovement: publicProcedure
+    .input(z.object({
+      role: z.string().min(1),
+      area: z.string().min(1),
+      requirement: z.string().min(2),
+      userName: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+
+      // Role-specific improvement analysis
+      const ROLE_ANALYSIS: Record<string, { areas: string[]; prompt: string }> = {
+        "HR Manager": {
+          areas: ["招聘流程", "绩效考核", "培训体系", "薪酬福利", "员工关系", "组织发展"],
+          prompt: "HR管理改进专家，擅长人力资源流程优化、绩效体系设计、组织效能提升",
+        },
+        Admin: {
+          areas: ["系统权限", "数据安全", "流程审批", "IT基础设施", "合规管理", "系统集成"],
+          prompt: "系统管理改进专家，擅长权限体系、安全策略、系统架构优化",
+        },
+        Sales: {
+          areas: ["客户管理", "销售漏斗", "报价流程", "渠道管理", "售后服务", "市场分析"],
+          prompt: "销售管理改进专家，擅长CRM优化、销售流程提效、客户体验提升",
+        },
+      };
+
+      const roleConfig = ROLE_ANALYSIS[input.role] || {
+        areas: ["通用流程"],
+        prompt: "通用管理改进专家",
+      };
+
+      // Generate improvement plan (algorithmic — no LLM dependency)
+      const priorityKeywords: Record<string, string[]> = {
+        high: ["紧急", "严重", "立即", "关键", "阻塞", "urgent", "critical", "blocking"],
+        medium: ["优化", "改善", "提升", "增强", "improve", "enhance", "optimize"],
+        low: ["建议", "考虑", "未来", "长期", "suggest", "consider", "future"],
+      };
+
+      let priority: "high" | "medium" | "low" = "medium";
+      const reqLower = input.requirement.toLowerCase();
+      if (priorityKeywords.high.some(k => reqLower.includes(k))) priority = "high";
+      else if (priorityKeywords.low.some(k => reqLower.includes(k))) priority = "low";
+
+      // Generate actionable steps based on area + requirement
+      const steps = [
+        `1. 现状分析: 对"${input.area}"进行全面诊断，识别${input.requirement.slice(0, 20)}相关的关键痛点`,
+        `2. 方案设计: 制定针对性改进方案，明确目标指标与验收标准`,
+        `3. 资源评估: 评估所需人力、预算和时间投入`,
+        `4. 试点执行: 选择1个部门/场景进行小范围试点验证`,
+        `5. 效果评估: 对比改进前后数据，量化改进效果`,
+        `6. 全面推广: 试点成功后制定推广计划并固化为标准流程`,
+      ];
+
+      const estimatedDays = priority === "high" ? "7-14天" : priority === "medium" ? "14-30天" : "30-60天";
+
+      const result = {
+        role: input.role,
+        area: input.area,
+        requirement: input.requirement,
+        priority,
+        steps,
+        estimatedDays,
+        assignedTo: `${input.role}团队`,
+        status: "待执行",
+        createdAt: new Date().toISOString(),
+      };
+
+      // Save to activity log
+      const entry = await broadcast(
+        "submitImprovement",
+        `[${input.role}] ${input.area}: ${input.requirement.slice(0, 60)}`,
+        input.userName ?? input.role,
+        result,
+      );
+
+      return { id: entry.id, ...result };
+    }),
+
+  listImprovements: publicProcedure
+    .input(z.object({ role: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const rows = await db
+        .select()
+        .from(cccActivities)
+        .where(eq(cccActivities.action, "submitImprovement"))
+        .orderBy(desc(cccActivities.createdAt))
+        .limit(30);
+
+      const items = rows.map(r => ({
+        id: r.id,
+        userName: r.userName,
+        target: r.target,
+        data: r.extraData as Record<string, any> | null,
+        createdAt: r.createdAt,
+      }));
+
+      if (input?.role) {
+        return items.filter(i => i.data?.role === input.role);
+      }
+      return items;
+    }),
+
   // ─── Seed Demo Data ───────────────────────────────────────────────────────
 
   seedDemoData: publicProcedure.mutation(async () => {

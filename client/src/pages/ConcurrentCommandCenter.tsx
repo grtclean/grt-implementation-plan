@@ -8,7 +8,7 @@
  * Both tracks feed into a manager approval gateway before changes go live.
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageHeader, StatCard } from "@/components/grt";
 import {
   Card,
@@ -20,6 +20,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -44,6 +46,13 @@ import {
   Wifi,
   WifiOff,
   Activity,
+  Send,
+  Loader2,
+  ChevronDown,
+  ChevronRight,
+  ListChecks,
+  AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 
 // ─── Status badge helpers ────────────────────────────────────────────────────
@@ -95,13 +104,201 @@ const ACTION_LABELS: Record<string, string> = {
   approveCommissioningReport: "Approved",
 };
 
-// ─── Multi-Role Session Simulator ────────────────────────────────────────────
+// ─── Role Improvement Configuration ─────────────────────────────────────────
 
-const ROLE_SESSIONS = [
-  { role: "Admin", path: "/?role=admin", color: "bg-purple-600" },
-  { role: "HR Manager", path: "/?role=hr-manager", color: "bg-teal-600" },
-  { role: "Sales", path: "/?role=sales", color: "bg-indigo-600" },
+const ROLE_CONFIGS = [
+  {
+    role: "HR Manager",
+    color: "bg-teal-600",
+    textColor: "text-teal-700",
+    borderColor: "border-teal-200",
+    bgColor: "bg-teal-50",
+    areas: ["招聘流程", "绩效考核", "培训体系", "薪酬福利", "员工关系", "组织发展"],
+  },
+  {
+    role: "Admin",
+    color: "bg-purple-600",
+    textColor: "text-purple-700",
+    borderColor: "border-purple-200",
+    bgColor: "bg-purple-50",
+    areas: ["系统权限", "数据安全", "流程审批", "IT基础设施", "合规管理", "系统集成"],
+  },
+  {
+    role: "Sales",
+    color: "bg-indigo-600",
+    textColor: "text-indigo-700",
+    borderColor: "border-indigo-200",
+    bgColor: "bg-indigo-50",
+    areas: ["客户管理", "销售漏斗", "报价流程", "渠道管理", "售后服务", "市场分析"],
+  },
 ];
+
+// ─── Role Improvement Panel Component ────────────────────────────────────────
+
+function RoleImprovementPanel({ currentUserName, utils }: { currentUserName: string; utils: any }) {
+  const [activeRole, setActiveRole] = useState<string>("HR Manager");
+  const [selectedArea, setSelectedArea] = useState<string>("");
+  const [requirement, setRequirement] = useState("");
+  const [expandedResult, setExpandedResult] = useState<number | null>(null);
+
+  const roleConfig = ROLE_CONFIGS.find(r => r.role === activeRole) || ROLE_CONFIGS[0];
+
+  const submitMutation = trpc.concurrentCommand.submitImprovement.useMutation({
+    onSuccess: (data) => {
+      toast.success(`改进需求已提交: ${data.area} [${data.priority}]`);
+      setRequirement("");
+      setSelectedArea("");
+      improvementsQuery.refetch();
+      utils.concurrentCommand.getActivityLog.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const improvementsQuery = trpc.concurrentCommand.listImprovements.useQuery({ role: activeRole });
+  const improvements = improvementsQuery.data ?? [];
+
+  const handleSubmit = () => {
+    if (!selectedArea) { toast.error("请选择改进领域"); return; }
+    if (!requirement.trim()) { toast.error("请输入改进需求"); return; }
+    submitMutation.mutate({
+      role: activeRole,
+      area: selectedArea,
+      requirement: requirement.trim(),
+      userName: currentUserName,
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Sparkles className="h-5 w-5 text-purple-600" />
+          角色改进输入中心
+        </CardTitle>
+        <CardDescription>
+          选择角色 → 输入改进需求 → 生成执行方案
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Role Tabs */}
+        <div className="flex gap-1 border-b pb-0">
+          {ROLE_CONFIGS.map(rc => (
+            <button
+              key={rc.role}
+              onClick={() => { setActiveRole(rc.role); setSelectedArea(""); setRequirement(""); }}
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeRole === rc.role
+                  ? `${rc.textColor} border-current`
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Users className="h-3.5 w-3.5" />
+              {rc.role}
+            </button>
+          ))}
+        </div>
+
+        {/* Input Form */}
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium mb-1 block">改进领域</label>
+            <Select value={selectedArea} onValueChange={setSelectedArea}>
+              <SelectTrigger>
+                <SelectValue placeholder="选择改进领域..." />
+              </SelectTrigger>
+              <SelectContent>
+                {roleConfig.areas.map(area => (
+                  <SelectItem key={area} value={area}>{area}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">改进需求</label>
+            <Textarea
+              placeholder={`作为${activeRole}，描述您希望改进的具体内容...`}
+              value={requirement}
+              onChange={e => setRequirement(e.target.value)}
+              rows={3}
+              onKeyDown={e => { if (e.key === "Enter" && e.ctrlKey) handleSubmit(); }}
+            />
+            <p className="text-xs text-muted-foreground mt-1">Ctrl+Enter 快速提交</p>
+          </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={submitMutation.isPending || !selectedArea || !requirement.trim()}
+            className="w-full"
+          >
+            {submitMutation.isPending
+              ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              : <Send className="h-4 w-4 mr-2" />
+            }
+            提交改进需求
+          </Button>
+        </div>
+
+        {/* Results List */}
+        {improvements.length > 0 && (
+          <div className="space-y-2 pt-2 border-t">
+            <div className="text-sm font-medium flex items-center gap-2">
+              <ListChecks className="h-4 w-4" />
+              {activeRole} 改进记录 ({improvements.length})
+            </div>
+            {improvements.map(item => {
+              const d = item.data;
+              const isExpanded = expandedResult === item.id;
+              const priColor = d?.priority === "high" ? "bg-red-100 text-red-700"
+                : d?.priority === "medium" ? "bg-amber-100 text-amber-700"
+                : "bg-green-100 text-green-700";
+
+              return (
+                <Card key={item.id} className="border bg-card/50">
+                  <CardContent className="p-3">
+                    <div
+                      className="flex items-start gap-2 cursor-pointer"
+                      onClick={() => setExpandedResult(isExpanded ? null : item.id)}
+                    >
+                      {isExpanded
+                        ? <ChevronDown className="h-4 w-4 mt-0.5 shrink-0" />
+                        : <ChevronRight className="h-4 w-4 mt-0.5 shrink-0" />
+                      }
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium">{d?.area}</span>
+                          <Badge className={priColor}>{d?.priority === "high" ? "高" : d?.priority === "medium" ? "中" : "低"}</Badge>
+                          <span className="text-xs text-muted-foreground">{d?.estimatedDays}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{d?.requirement}</p>
+                      </div>
+                    </div>
+
+                    {isExpanded && d?.steps && (
+                      <div className="mt-3 ml-6 space-y-1.5 text-sm">
+                        {(d.steps as string[]).map((step: string, i: number) => (
+                          <div key={i} className="flex items-start gap-2">
+                            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${roleConfig.color}`}>
+                              {i + 1}
+                            </span>
+                            <span className="text-muted-foreground">{step.replace(/^\d+\.\s*/, "")}</span>
+                          </div>
+                        ))}
+                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                          <span>负责: {d.assignedTo}</span>
+                          <span>预计: {d.estimatedDays}</span>
+                          <Badge variant="outline">{d.status}</Badge>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 // ─── Simulated current user (replace with real auth context in production) ───
 
@@ -319,37 +516,8 @@ export default function ConcurrentCommandCenter() {
             </CardContent>
           </Card>
 
-          {/* Multi-Role Session Simulator */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Users className="h-5 w-5 text-purple-600" />
-                Multi-Role Session Simulator
-              </CardTitle>
-              <CardDescription>
-                Open parallel browser sessions as different roles
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {ROLE_SESSIONS.map((session) => (
-                  <Button
-                    key={session.role}
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => {
-                      window.open(session.path, "_blank");
-                      toast.info(`Opened ${session.role} session in new tab`);
-                    }}
-                  >
-                    <PlayCircle className="h-4 w-4" />
-                    {session.role}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Role-Based Improvement Input */}
+          <RoleImprovementPanel currentUserName={currentUser.name} utils={utils} />
         </div>
 
         {/* ═══════ RIGHT PANEL — HARDWARE TRACK ═══════ */}
