@@ -13,10 +13,10 @@ import { trpc } from "@/lib/trpc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ClipboardCheck, Loader2, Sparkles, AlertTriangle, CheckCircle, Shield,
-  FileText, BarChart3,
+  FileText, BarChart3, Archive, Save, Eye, Trash2,
 } from "lucide-react";
 
-type ActiveTab = "inspect" | "judge" | "report";
+type ActiveTab = "inspect" | "judge" | "report" | "archive";
 
 interface InspectionResult {
   inspectionId: string;
@@ -163,10 +163,62 @@ export default function CleanlinessInspection() {
     }
   };
 
+  // ── Report Archive state ──
+  const [archiveFilter, setArchiveFilter] = useState<{ projectPhase?: string; verdict?: string }>({});
+  const [viewReportId, setViewReportId] = useState<number | null>(null);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [savePhase, setSavePhase] = useState("production");
+
+  const reportsQuery = trpc.cleanlinessQc.listReports.useQuery(
+    { projectPhase: archiveFilter.projectPhase, verdict: archiveFilter.verdict },
+    { enabled: activeTab === "archive" }
+  );
+  const reportDetailQuery = trpc.cleanlinessQc.getReport.useQuery(
+    { id: viewReportId! },
+    { enabled: viewReportId !== null }
+  );
+  const saveMutation = trpc.cleanlinessQc.saveReport.useMutation({
+    onSuccess: () => { setSaveDialogOpen(false); reportsQuery.refetch(); },
+  });
+  const deleteMutation = trpc.cleanlinessQc.deleteReport.useMutation({
+    onSuccess: () => reportsQuery.refetch(),
+  });
+
+  const handleSaveReport = () => {
+    saveMutation.mutate({
+      projectPhase: savePhase,
+      batchNumber,
+      standard,
+      cleanlinessClass: cleanlinessClass === "__none__" ? undefined : cleanlinessClass,
+      inspectionData: inspectResult ? JSON.stringify(inspectResult) : undefined,
+      judgmentData: judgeResult ? JSON.stringify(judgeResult) : undefined,
+      reportContent: reportResult ? JSON.stringify(reportResult) : undefined,
+      overallVerdict: judgeResult?.overallVerdict,
+      inspectorName: undefined,
+      inspectionDate: new Date().toISOString().slice(0, 10),
+    });
+  };
+
+  const PHASES = [
+    { value: "process_trial", label: "工艺试验" },
+    { value: "FAT", label: "FAT" },
+    { value: "SAT", label: "SAT" },
+    { value: "production", label: "生产" },
+    { value: "shipping", label: "发货" },
+    { value: "field_acceptance", label: "现场验收" },
+  ];
+
+  const verdictBadge = (v?: string | null) => {
+    if (!v) return null;
+    const cls = v === "pass" ? "bg-green-500/20 text-green-400" : v === "fail" ? "bg-red-500/20 text-red-400" : "bg-yellow-500/20 text-yellow-400";
+    return <Badge className={cls}>{v}</Badge>;
+  };
+
   const tabs: { key: ActiveTab; label: string; icon: typeof ClipboardCheck }[] = [
     { key: "inspect", label: t("manufacturing.cleanliness.tabDataEntry"), icon: ClipboardCheck },
     { key: "judge", label: t("manufacturing.cleanliness.tabAutoJudge"), icon: Shield },
     { key: "report", label: t("manufacturing.cleanliness.tabReportGen"), icon: FileText },
+    { key: "archive", label: "报告档案", icon: Archive },
   ];
 
   const isPending = inspectMutation.isPending || judgeMutation.isPending || reportMutation.isPending;
@@ -491,6 +543,118 @@ export default function CleanlinessInspection() {
                     <thead><tr className="border-b"><th className="text-left py-2 text-muted-foreground">{t("manufacturing.cleanliness.signoffRole")}</th><th className="text-left py-2 text-muted-foreground">{t("manufacturing.cleanliness.signoffReq")}</th></tr></thead>
                     <tbody>{reportResult.signoffItems.map((s, i) => (<tr key={i} className="border-b border-muted/50"><td className="py-2 font-medium">{s.role}</td><td className="py-2">{s.requirement}</td></tr>))}</tbody>
                   </table>
+                </CardContent>
+              </Card>
+            )}
+            {/* Save Report Button */}
+            <Card>
+              <CardContent className="pt-6">
+                {saveDialogOpen ? (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium">选择项目阶段:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {PHASES.map(p => (
+                        <Button key={p.value} size="sm" variant={savePhase === p.value ? "default" : "outline"} onClick={() => setSavePhase(p.value)}>
+                          {p.label}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={handleSaveReport} disabled={saveMutation.isPending}>
+                        {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        确认保存
+                      </Button>
+                      <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>取消</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button onClick={() => setSaveDialogOpen(true)} className="gap-2">
+                    <Save className="h-4 w-4" /> 保存报告到档案
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        {/* Tab: Report Archive */}
+        {activeTab === "archive" && (
+          <>
+            <div className="flex gap-2 flex-wrap">
+              <select className="h-9 rounded-md border bg-background px-3 text-sm" value={archiveFilter.projectPhase || ""} onChange={e => setArchiveFilter(p => ({ ...p, projectPhase: e.target.value || undefined }))}>
+                <option value="">全部阶段</option>
+                {PHASES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+              </select>
+              <select className="h-9 rounded-md border bg-background px-3 text-sm" value={archiveFilter.verdict || ""} onChange={e => setArchiveFilter(p => ({ ...p, verdict: e.target.value || undefined }))}>
+                <option value="">全部判定</option>
+                <option value="pass">合格</option>
+                <option value="fail">不合格</option>
+                <option value="conditional">有条件</option>
+              </select>
+            </div>
+
+            {viewReportId !== null && reportDetailQuery.data ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between text-base">
+                    <span className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" />报告详情 — {reportDetailQuery.data.batchNumber}</span>
+                    <Button size="sm" variant="outline" onClick={() => setViewReportId(null)}>返回列表</Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div><span className="text-muted-foreground">标准:</span> {reportDetailQuery.data.standard}</div>
+                    <div><span className="text-muted-foreground">阶段:</span> <Badge variant="outline">{reportDetailQuery.data.projectPhase}</Badge></div>
+                    <div><span className="text-muted-foreground">判定:</span> {verdictBadge(reportDetailQuery.data.overallVerdict)}</div>
+                    <div><span className="text-muted-foreground">日期:</span> {reportDetailQuery.data.inspectionDate}</div>
+                  </div>
+                  {reportDetailQuery.data.reportContent && (
+                    <div className="p-3 bg-muted/50 rounded text-sm whitespace-pre-wrap max-h-96 overflow-y-auto">
+                      {(() => { try { const r = JSON.parse(reportDetailQuery.data.reportContent); return `${r.reportTitle || ""}\n\n${r.executiveSummary || ""}\n\n${r.inspectionDetails || ""}\n\n${r.conclusion || ""}`; } catch { return reportDetailQuery.data.reportContent; } })()}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="pt-6">
+                  {reportsQuery.isLoading ? (
+                    <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />加载中...</div>
+                  ) : !reportsQuery.data?.length ? (
+                    <p className="text-muted-foreground text-sm">暂无报告档案</p>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 font-medium text-muted-foreground">批次号</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">阶段</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">标准</th>
+                          <th className="text-center py-2 font-medium text-muted-foreground">判定</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">检验员</th>
+                          <th className="text-left py-2 font-medium text-muted-foreground">日期</th>
+                          <th className="text-right py-2 font-medium text-muted-foreground">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reportsQuery.data.map(r => (
+                          <tr key={r.id} className="border-b border-muted/50">
+                            <td className="py-2 font-medium">{r.batchNumber}</td>
+                            <td className="py-2"><Badge variant="outline">{r.projectPhase}</Badge></td>
+                            <td className="py-2">{r.standard}</td>
+                            <td className="py-2 text-center">{verdictBadge(r.overallVerdict)}</td>
+                            <td className="py-2">{r.inspectorName || "-"}</td>
+                            <td className="py-2">{r.inspectionDate}</td>
+                            <td className="py-2 text-right">
+                              <div className="flex gap-1 justify-end">
+                                <Button size="sm" variant="ghost" onClick={() => setViewReportId(r.id)}><Eye className="h-4 w-4" /></Button>
+                                <Button size="sm" variant="ghost" onClick={() => { if (confirm("确认删除?")) deleteMutation.mutate({ id: r.id }); }}><Trash2 className="h-4 w-4 text-red-400" /></Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </CardContent>
               </Card>
             )}

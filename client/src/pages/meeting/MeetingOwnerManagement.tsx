@@ -526,7 +526,7 @@ function MeetingOwnerDialog({ open, onOpenChange, owner, onSave }: MeetingOwnerD
                 <SelectValue placeholder="选择会议类型" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="" disabled>选择会议类型</SelectItem>
+                <SelectItem value="__placeholder__" disabled>选择会议类型</SelectItem>
                 {MEETING_TYPES.map((type) => (
                   <SelectItem key={type.id} value={type.id}>
                     [{type.category === 'internal' ? '内部' : '客户'}] {type.name}

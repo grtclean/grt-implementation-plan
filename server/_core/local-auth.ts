@@ -9,6 +9,7 @@ import { eq, sql } from "drizzle-orm";
 import { SignJWT, jwtVerify } from "jose";
 import { getSessionCookieOptions } from "./cookies";
 import { ENV } from "./env";
+import { sanitizeName } from "@shared/sanitize";
 
 async function getDbAndSchema() {
   const dbModule = await import("../db");
@@ -80,16 +81,17 @@ export function registerLocalAuthRoutes(app: Express) {
       const allUsers = await db.select({ id: users.id }).from(users).limit(1);
       const isFirstUser = allUsers.length === 0;
 
+      const cleanName = sanitizeName(name) || username;
       await db.insert(users).values({
         openId: username,
-        name: name || username,
+        name: cleanName,
         email: email || null,
         loginMethod: `local:${hash}`,
         role: isFirstUser ? "admin" : "user",
         lastSignedIn: new Date().toISOString(),
       });
 
-      const token = await signToken({ openId: username, name: name || username });
+      const token = await signToken({ openId: username, name: cleanName });
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
@@ -141,7 +143,7 @@ export function registerLocalAuthRoutes(app: Express) {
 
       await db.update(users).set({ lastSignedIn: new Date().toISOString() }).where(eq(users.openId, username));
 
-      const token = await signToken({ openId: username, name: user.name || username });
+      const token = await signToken({ openId: username, name: sanitizeName(user.name) || username });
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
@@ -262,7 +264,7 @@ export function registerLocalAuthRoutes(app: Express) {
       res.json({
         id: user.id,
         openId: user.openId,
-        name: user.name,
+        name: sanitizeName(user.name) || user.openId,
         email: user.email,
         role: user.role,
         languagePreference: user.languagePreference,

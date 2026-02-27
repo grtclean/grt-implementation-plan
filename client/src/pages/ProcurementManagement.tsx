@@ -25,22 +25,22 @@ export default function ProcurementManagement() {
     status: selectedStatus || undefined,
     page: 1,
     pageSize: 20,
-  });
+  }, { retry: false, throwOnError: false });
 
   // 获取采购申请
   const { data: requestsData } = trpc.procurement.getPurchaseRequests.useQuery({
     page: 1,
     pageSize: 20,
-  });
+  }, { retry: false, throwOnError: false });
 
   // 获取供应商
   const { data: suppliersData } = trpc.procurement.getSuppliers.useQuery({
     page: 1,
     pageSize: 20,
-  });
+  }, { retry: false, throwOnError: false });
 
   // 获取采购统计
-  const { data: statsData } = trpc.procurement.getProcurementStats.useQuery();
+  const { data: statsData } = trpc.procurement.getProcurementStats.useQuery(undefined, { retry: false, throwOnError: false });
 
   return (
     <div className="space-y-6">
@@ -134,12 +134,12 @@ export default function ProcurementManagement() {
                     className="pl-10"
                   />
                 </div>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <Select value={selectedStatus || "__all__"} onValueChange={(v) => setSelectedStatus(v === "__all__" ? "" : v)}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder={t("supply.procurement.selectOrderStatus")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">{t("supply.procurement.allStatuses")}</SelectItem>
+                    <SelectItem value="__all__">{t("supply.procurement.allStatuses")}</SelectItem>
                     <SelectItem value="draft">{t("supply.procurement.statusDraft")}</SelectItem>
                     <SelectItem value="sent">{t("supply.procurement.statusSent")}</SelectItem>
                     <SelectItem value="confirmed">{t("supply.procurement.statusConfirmed")}</SelectItem>
@@ -178,7 +178,7 @@ export default function ProcurementManagement() {
                           <TableCell>{order.materialName}</TableCell>
                           <TableCell>{order.quantity}</TableCell>
                           <TableCell>¥{order.totalAmount?.toLocaleString()}</TableCell>
-                          <TableCell>{new Date(order.expectedDeliveryDate).toLocaleDateString()}</TableCell>
+                          <TableCell>{order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : '-'}</TableCell>
                           <TableCell>
                             <span className={`text-xs px-2 py-1 rounded-full ${
                               order.status === 'confirmed' 

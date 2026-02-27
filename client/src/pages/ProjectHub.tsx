@@ -17,8 +17,9 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { FolderKanban, FileText, CheckSquare, BarChart3, Plus, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { FolderKanban, FileText, CheckSquare, BarChart3, Plus, Clock, CheckCircle2, AlertTriangle, Mail, Upload, AlertCircle, Box } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/grt";
+import ProjectCloudVault from "@/components/ProjectCloudVault";
 
 type Project = {
   id: string;
@@ -275,6 +276,79 @@ export default function ProjectHub() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* CAD Viewer Section — lightweight inline placeholder (no Monaco dependency) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>CAD Viewer</CardTitle>
+            <Badge variant="outline" className="text-xs">Housing_CAD.step</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div
+            className="h-[350px] relative overflow-hidden rounded-lg flex items-center justify-center"
+            style={{ background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)" }}
+          >
+            {/* Animated grid */}
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                backgroundImage: "linear-gradient(rgba(0,120,212,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,120,212,0.3) 1px, transparent 1px)",
+                backgroundSize: "40px 40px",
+              }}
+            />
+            {/* Spinning 3D cube */}
+            <div className="text-center z-10 space-y-4">
+              <div
+                className="mx-auto w-28 h-28 border-2 border-[#0078d4] rounded-xl flex items-center justify-center"
+                style={{
+                  animation: "spin 8s linear infinite",
+                  boxShadow: "0 0 40px rgba(0,120,212,0.3), inset 0 0 40px rgba(0,120,212,0.1)",
+                }}
+              >
+                <Box className="w-14 h-14 text-[#0078d4]" />
+              </div>
+              <p className="text-white font-medium text-lg">Housing_CAD.step</p>
+              <div className="flex items-center justify-center gap-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-green-400" />
+                <span className="text-green-300 text-sm">3D Model Ready</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Cloud Vault — 4-tab file manager linked to project */}
+      <ProjectCloudVault projectId={1} />
+
+      {/* Floating Quick Actions Toolbar */}
+      <div className="fixed bottom-6 right-6 flex gap-2 z-50">
+        <Button
+          size="sm"
+          className="shadow-lg"
+          onClick={() => toast.success("Email draft created")}
+        >
+          <Mail className="w-4 h-4 mr-1" />
+          Draft Email
+        </Button>
+        <Button
+          size="sm"
+          className="shadow-lg"
+          onClick={() => toast.success("CAD file checked in")}
+        >
+          <Upload className="w-4 h-4 mr-1" />
+          Check-in CAD
+        </Button>
+        <Button
+          size="sm"
+          className="shadow-lg"
+          onClick={() => toast.success("ECO raised")}
+        >
+          <AlertCircle className="w-4 h-4 mr-1" />
+          Raise ECO
+        </Button>
+      </div>
     </div>
   );
 }

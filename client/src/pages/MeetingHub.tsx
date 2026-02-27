@@ -1,16 +1,18 @@
 /**
  * GRT Smart Meeting & AI Engagement Hub (智能会议与互动中枢)
  *
- * Employee-facing live meeting room with Microsoft Fluent Design.
+ * Unified In-Meeting Workspace with Microsoft Fluent Design.
  *
  * Layout:
- *   Top Bar     — Meeting title, LIVE badge, 3 check-in buttons
- *   Split View  — Left (60%): presentation placeholder | Right (40%): 3-tab panel
+ *   Top Bar     — Meeting title, LIVE badge, Teams launch, timer, check-in buttons
+ *   Split View  — Left (60%): Collaboration Canvas | Right (40%): tabbed panel
  *     Tab 1: My Private Notes (rich textarea, auto-saves)
- *     Tab 2: AI Engagement Quiz (3 questions from transcript)
- *     Tab 3: Group Chat (company-wide synced discussion)
+ *     Tab 2: Speaker Radar (声纹雷达 — diarization + voice-print matching)
+ *     Tab 3: AI Engagement Quiz (3 questions from transcript)
+ *     Tab 4: Group Chat (company-wide synced discussion)
  *
  * Backend: tRPC smartMeeting.* procedures
+ * Integration: Microsoft Teams via Graph API mock
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -37,7 +39,11 @@ import {
   AlertTriangle,
   Tv,
   RefreshCw,
+  Fingerprint,
+  Video,
+  ExternalLink,
 } from "lucide-react";
+import SpeakerRadarTab from "@/components/meeting/SpeakerRadarTab";
 
 // ── Fluent Design tokens ───────────────────────────────────
 const FLUENT_BG = "#faf9f8";
@@ -76,6 +82,7 @@ interface Meeting {
   expectedAttendees?: number | null;
   aiQuizQuestions?: QuizQuestion[] | null;
   actualStart?: string | null;
+  teamsUrl?: string | null;
 }
 
 // ── Mock data (used when no tRPC server available) ─────────
@@ -132,16 +139,130 @@ const DEMO_CHAT: ChatMessage[] = [
   { userId: 105, userName: "赵总监", message: "建议增加东南亚市场本地化团队的预算", time: new Date(Date.now() - 60000).toISOString() },
 ];
 
+// ── Collaboration Canvas (inline — imported from SmartMeeting concepts) ──
+function CollaborationCanvas() {
+  const [canvasContent, setCanvasContent] = useState(`# Meeting Notes
+
+## Attendees
+-
+
+## Discussion Points
+
+### 1. Review
+
+### 2. Key Tasks
+
+### 3. Issues & Solutions
+
+## Action Items
+- TODO:
+- Action:
+
+## Next Meeting
+`);
+  const [extractedActions, setExtractedActions] = useState<
+    Array<{ id: string; content: string; completed: boolean }>
+  >([]);
+
+  const extractActions = () => {
+    const lines = canvasContent.split("\n");
+    const actions: typeof extractedActions = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("TODO:") || trimmed.startsWith("- TODO:")) {
+        const c = trimmed.replace(/^-?\s*TODO:\s*/i, "").trim();
+        if (c) actions.push({ id: Math.random().toString(36), content: c, completed: false });
+      } else if (trimmed.startsWith("Action:") || trimmed.startsWith("- Action:")) {
+        const c = trimmed.replace(/^-?\s*Action:\s*/i, "").trim();
+        if (c) actions.push({ id: Math.random().toString(36), content: c, completed: false });
+      }
+    }
+    setExtractedActions(actions.length > 0 ? actions : extractedActions);
+  };
+
+  return (
+    <div className="flex gap-4 h-full" style={{ minHeight: 400 }}>
+      {/* Canvas editor */}
+      <div className="flex-1 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <FileText className="w-4 h-4" style={{ color: FLUENT_ACCENT }} />
+            Live Canvas (Markdown)
+          </h3>
+          <Button
+            size="sm"
+            onClick={extractActions}
+            style={{ background: FLUENT_ACCENT, color: "#fff" }}
+          >
+            <Zap className="w-3.5 h-3.5 mr-1" />
+            Extract Actions
+          </Button>
+        </div>
+        <Textarea
+          value={canvasContent}
+          onChange={(e) => setCanvasContent(e.target.value)}
+          className="flex-1 resize-none text-sm font-mono"
+          style={{ minHeight: 320, border: `1px solid ${FLUENT_BORDER}` }}
+          placeholder="Use TODO: or Action: to mark tasks..."
+        />
+      </div>
+
+      {/* Action items sidebar */}
+      <div className="w-56 flex flex-col gap-2">
+        <h4 className="text-xs font-medium" style={{ color: FLUENT_SUBTLE }}>
+          Action Items ({extractedActions.filter((a) => !a.completed).length})
+        </h4>
+        {extractedActions.length === 0 ? (
+          <p className="text-xs" style={{ color: FLUENT_BORDER }}>
+            Click "Extract Actions" to find TODO/Action items
+          </p>
+        ) : (
+          <div className="space-y-1.5 overflow-y-auto" style={{ maxHeight: 300 }}>
+            {extractedActions.map((a) => (
+              <button
+                key={a.id}
+                onClick={() =>
+                  setExtractedActions((prev) =>
+                    prev.map((x) => (x.id === a.id ? { ...x, completed: !x.completed } : x))
+                  )
+                }
+                className="w-full text-left flex items-start gap-2 p-2 rounded text-xs"
+                style={{
+                  background: a.completed ? `${FLUENT_SUCCESS}10` : "#f9f8f7",
+                  border: `1px solid ${a.completed ? FLUENT_SUCCESS : FLUENT_BORDER}`,
+                  textDecoration: a.completed ? "line-through" : "none",
+                  opacity: a.completed ? 0.6 : 1,
+                }}
+              >
+                {a.completed ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: FLUENT_SUCCESS }} />
+                ) : (
+                  <span
+                    className="w-3.5 h-3.5 rounded-full border-2 shrink-0 mt-0.5"
+                    style={{ borderColor: FLUENT_BORDER }}
+                  />
+                )}
+                {a.content}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Component ──────────────────────────────────────────────
 export default function MeetingHub() {
   const { t } = useLanguage();
 
   // ── State ──────────────────────────────────────────────
   const [meeting, setMeeting] = useState<Meeting>(DEMO_MEETING);
-  const [activeTab, setActiveTab] = useState<"notes" | "quiz" | "chat">("notes");
+  const [activeTab, setActiveTab] = useState<"notes" | "quiz" | "chat" | "speaker">("notes");
   const [checkInStatus, setCheckInStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [seedLoading, setSeedLoading] = useState(false);
+  const [teamsLoading, setTeamsLoading] = useState(false);
 
   // Notes state
   const [notes, setNotes] = useState("");
@@ -226,6 +347,31 @@ export default function MeetingHub() {
       console.log("[MeetingHub] Seed failed, using demo data");
     }
     setSeedLoading(false);
+  };
+
+  // ── Create/Launch Teams meeting ───────────────────────
+  const handleLaunchTeams = async () => {
+    if (meeting.teamsUrl) {
+      window.open(meeting.teamsUrl, "_blank", "noopener");
+      return;
+    }
+    setTeamsLoading(true);
+    try {
+      const res = await fetch("/api/trpc/smartMeeting.meeting.createTeamsLink", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ json: { meetingId: meeting.id } }),
+      });
+      const data = await res.json();
+      const teamsUrl = data?.result?.data?.json?.teamsUrl;
+      if (teamsUrl) {
+        setMeeting((prev) => ({ ...prev, teamsUrl }));
+        window.open(teamsUrl, "_blank", "noopener");
+      }
+    } catch {
+      console.log("[MeetingHub] Teams link creation failed");
+    }
+    setTeamsLoading(false);
   };
 
   // ── Check-in handler ───────────────────────────────────
@@ -426,6 +572,25 @@ export default function MeetingHub() {
 
         {/* Right: Check-in buttons + seed */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Launch MS Teams Video */}
+          <Button
+            size="sm"
+            onClick={handleLaunchTeams}
+            disabled={teamsLoading}
+            style={{
+              background: meeting.teamsUrl ? "#6264a7" : "#6264a7",
+              color: "#fff",
+            }}
+          >
+            {teamsLoading ? (
+              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+            ) : (
+              <Video className="w-4 h-4 mr-1" />
+            )}
+            {meeting.teamsUrl ? "加入 Teams 会议" : "创建 Teams 会议"}
+            {meeting.teamsUrl && <ExternalLink className="w-3 h-3 ml-1" />}
+          </Button>
+
           {/* Seed demo data button */}
           <Button
             variant="ghost"
@@ -505,43 +670,14 @@ export default function MeetingHub() {
 
       {/* ═══════════ SPLIT VIEW ═══════════ */}
       <div className="flex gap-4 p-4" style={{ height: "calc(100vh - 72px)" }}>
-        {/* ── LEFT PANEL (60%): Presentation ── */}
+        {/* ── LEFT PANEL (60%): Collaboration Canvas ── */}
         <div className="w-[60%] flex flex-col gap-4">
-          {/* Presentation area */}
           <Card
             className="flex-1 overflow-hidden"
             style={{ background: FLUENT_CARD, border: `1px solid ${FLUENT_BORDER}` }}
           >
-            <CardContent className="h-full flex flex-col items-center justify-center p-8">
-              <div
-                className="w-full h-full rounded-xl flex flex-col items-center justify-center gap-6"
-                style={{ background: "#f3f2f1", border: `2px dashed ${FLUENT_BORDER}` }}
-              >
-                <Tv className="w-20 h-20" style={{ color: FLUENT_BORDER }} />
-                <div className="text-center">
-                  <h2 className="text-xl font-semibold mb-1" style={{ color: FLUENT_SUBTLE }}>
-                    Live Presentation / Broadcast
-                  </h2>
-                  <p className="text-sm" style={{ color: FLUENT_SUBTLE }}>
-                    会议直播画面将在此处显示
-                  </p>
-                  <p className="text-xs mt-2" style={{ color: FLUENT_BORDER }}>
-                    支持 Enterprise WeChat / Teams / Zoom 集成
-                  </p>
-                </div>
-                {/* Simulated "live" indicator */}
-                {meeting.status === "LIVE" && (
-                  <div className="flex items-center gap-2 mt-4">
-                    <span
-                      className="w-3 h-3 rounded-full animate-pulse"
-                      style={{ background: FLUENT_DANGER }}
-                    />
-                    <span className="text-sm font-medium" style={{ color: FLUENT_DANGER }}>
-                      直播中 — {elapsed}
-                    </span>
-                  </div>
-                )}
-              </div>
+            <CardContent className="h-full flex flex-col p-4">
+              <CollaborationCanvas />
             </CardContent>
           </Card>
 
@@ -572,6 +708,7 @@ export default function MeetingHub() {
           >
             {[
               { key: "notes" as const, label: "我的笔记", icon: FileText },
+              { key: "speaker" as const, label: "声纹雷达", icon: Fingerprint },
               { key: "quiz" as const, label: "AI 互动测验", icon: Brain },
               { key: "chat" as const, label: "群聊讨论", icon: MessageSquare },
             ].map((tab) => (
@@ -823,7 +960,12 @@ export default function MeetingHub() {
                 </div>
               )}
 
-              {/* ── Tab 3: Group Chat ── */}
+              {/* ── Tab: Speaker Radar ── */}
+              {activeTab === "speaker" && (
+                <SpeakerRadarTab meetingId={meeting.id} />
+              )}
+
+              {/* ── Tab: Group Chat ── */}
               {activeTab === "chat" && (
                 <div className="flex-1 flex flex-col">
                   <div className="flex items-center justify-between mb-3">

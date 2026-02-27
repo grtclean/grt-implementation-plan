@@ -318,12 +318,12 @@ export default function MeetingDashboard() {
 
             <div>
               <label className="block text-sm font-medium mb-1">频道</label>
-              <Select value={selectedChannel} onValueChange={setSelectedChannel}>
+              <Select value={selectedChannel || "__all__"} onValueChange={(v) => setSelectedChannel(v === "__all__" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="所有频道" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">所有频道</SelectItem>
+                  <SelectItem value="__all__">所有频道</SelectItem>
                   {channels.map((channel: any) => (
                     <SelectItem key={channel.id} value={channel.id}>
                       {channel.name}
@@ -335,12 +335,12 @@ export default function MeetingDashboard() {
 
             <div>
               <label className="block text-sm font-medium mb-1">状态</label>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <Select value={selectedStatus || "__all__"} onValueChange={(v) => setSelectedStatus(v === "__all__" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="所有状态" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">所有状态</SelectItem>
+                  <SelectItem value="__all__">所有状态</SelectItem>
                   <SelectItem value="scheduled">已计划</SelectItem>
                   <SelectItem value="in_progress">进行中</SelectItem>
                   <SelectItem value="completed">已完成</SelectItem>
@@ -351,12 +351,12 @@ export default function MeetingDashboard() {
 
             <div>
               <label className="block text-sm font-medium mb-1">类型</label>
-              <Select value={selectedType} onValueChange={setSelectedType}>
+              <Select value={selectedType || "__all__"} onValueChange={(v) => setSelectedType(v === "__all__" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="所有类型" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">所有类型</SelectItem>
+                  <SelectItem value="__all__">所有类型</SelectItem>
                   <SelectItem value="standup">站会</SelectItem>
                   <SelectItem value="review">评审</SelectItem>
                   <SelectItem value="planning">计划</SelectItem>

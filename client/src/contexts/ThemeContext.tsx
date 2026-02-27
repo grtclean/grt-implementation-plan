@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 
 type Theme = "light" | "dark" | "system";
@@ -156,15 +156,17 @@ export function ThemeProvider({
     setTheme(newTheme);
   }, [resolvedTheme, setTheme]);
 
+  const value = useMemo(() => ({
+    theme,
+    resolvedTheme,
+    setTheme,
+    toggleTheme,
+    switchable,
+    isSynced,
+  }), [theme, resolvedTheme, setTheme, toggleTheme, switchable, isSynced]);
+
   return (
-    <ThemeContext.Provider value={{ 
-      theme, 
-      resolvedTheme,
-      setTheme, 
-      toggleTheme, 
-      switchable,
-      isSynced
-    }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

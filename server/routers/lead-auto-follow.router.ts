@@ -56,4 +56,26 @@ export const leadAutoFollowRouter = router({
   delete: publicProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async () => {
     return { success: true, message: "Auto-follow deleted" };
   }),
+
+  // ── 前端 LeadManagement.tsx 需要的过程 ──
+
+  getLeads: publicProcedure
+    .input(z.object({
+      status: z.string().optional(),
+      priority: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      let items = await db.select().from(crmLeads).orderBy(desc(crmLeads.createdAt)).limit(input?.limit ?? 50);
+      if (input?.status) items = items.filter((l: any) => l.status === input.status);
+      if (input?.priority) items = items.filter((l: any) => l.priority === input.priority);
+      return { items, total: items.length };
+    }),
+
+  getFollowUpTasks: publicProcedure
+    .input(z.object({ status: z.string().optional() }).optional())
+    .query(async () => {
+      return { items: [], total: 0 };
+    }),
 });

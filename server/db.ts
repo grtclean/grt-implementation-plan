@@ -75,7 +75,11 @@ export async function getDb() {
       return null;
     }
     try {
-      const pool = new pg.Pool({ connectionString: connUrl });
+      const pool = new pg.Pool({
+        connectionString: connUrl,
+        // Ensure UTF-8 on Windows where system code page may be GBK/CP936
+        options: '-c client_encoding=UTF8',
+      });
       _db = drizzle(pool);
       console.log("[Database] PostgreSQL connected (%s)", ENV.nodeEnv);
     } catch (error) {

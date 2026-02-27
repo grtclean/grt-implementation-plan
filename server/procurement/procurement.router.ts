@@ -82,39 +82,44 @@ export const procurementRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ input }) => {
-      const db = await requireDb();
+      try {
+        const db = await requireDb();
 
-      const conditions = [];
-      if (input.status) {
-        conditions.push(eq(purchaseRequests.status, input.status as "draft" | "submitted" | "approved" | "rejected" | "cancelled"));
+        const conditions = [];
+        if (input.status) {
+          conditions.push(eq(purchaseRequests.status, input.status as "draft" | "submitted" | "approved" | "rejected" | "cancelled"));
+        }
+        if (input.department) {
+          conditions.push(eq(purchaseRequests.department, input.department));
+        }
+
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+        const totalResult = await db
+          .select({ value: count() })
+          .from(purchaseRequests)
+          .where(whereClause);
+        const total = totalResult[0].value;
+
+        const offset = (input.page - 1) * input.pageSize;
+        const items = await db
+          .select()
+          .from(purchaseRequests)
+          .where(whereClause)
+          .orderBy(desc(purchaseRequests.id))
+          .limit(input.pageSize)
+          .offset(offset);
+
+        return {
+          items,
+          total,
+          page: input.page,
+          pageSize: input.pageSize,
+        };
+      } catch (e) {
+        console.error("[procurement.getPurchaseRequests] DB error:", e);
+        return { items: [], total: 0, page: input.page, pageSize: input.pageSize };
       }
-      if (input.department) {
-        conditions.push(eq(purchaseRequests.department, input.department));
-      }
-
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-      const totalResult = await db
-        .select({ value: count() })
-        .from(purchaseRequests)
-        .where(whereClause);
-      const total = totalResult[0].value;
-
-      const offset = (input.page - 1) * input.pageSize;
-      const items = await db
-        .select()
-        .from(purchaseRequests)
-        .where(whereClause)
-        .orderBy(desc(purchaseRequests.id))
-        .limit(input.pageSize)
-        .offset(offset);
-
-      return {
-        items,
-        total,
-        page: input.page,
-        pageSize: input.pageSize,
-      };
     }),
 
   /**
@@ -229,39 +234,44 @@ export const procurementRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ input }) => {
-      const db = await requireDb();
+      try {
+        const db = await requireDb();
 
-      const conditions = [];
-      if (input.status) {
-        conditions.push(eq(purchaseOrders.status, input.status as "draft" | "sent" | "confirmed" | "partially_received" | "received" | "cancelled"));
+        const conditions = [];
+        if (input.status) {
+          conditions.push(eq(purchaseOrders.status, input.status as "draft" | "sent" | "confirmed" | "partially_received" | "received" | "cancelled"));
+        }
+        if (input.supplierId) {
+          conditions.push(eq(purchaseOrders.supplierId, input.supplierId));
+        }
+
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+        const totalResult = await db
+          .select({ value: count() })
+          .from(purchaseOrders)
+          .where(whereClause);
+        const total = totalResult[0].value;
+
+        const offset = (input.page - 1) * input.pageSize;
+        const items = await db
+          .select()
+          .from(purchaseOrders)
+          .where(whereClause)
+          .orderBy(desc(purchaseOrders.id))
+          .limit(input.pageSize)
+          .offset(offset);
+
+        return {
+          items,
+          total,
+          page: input.page,
+          pageSize: input.pageSize,
+        };
+      } catch (e) {
+        console.error("[procurement.getPurchaseOrders] DB error:", e);
+        return { items: [], total: 0, page: input.page, pageSize: input.pageSize };
       }
-      if (input.supplierId) {
-        conditions.push(eq(purchaseOrders.supplierId, input.supplierId));
-      }
-
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-      const totalResult = await db
-        .select({ value: count() })
-        .from(purchaseOrders)
-        .where(whereClause);
-      const total = totalResult[0].value;
-
-      const offset = (input.page - 1) * input.pageSize;
-      const items = await db
-        .select()
-        .from(purchaseOrders)
-        .where(whereClause)
-        .orderBy(desc(purchaseOrders.id))
-        .limit(input.pageSize)
-        .offset(offset);
-
-      return {
-        items,
-        total,
-        page: input.page,
-        pageSize: input.pageSize,
-      };
     }),
 
   /**
@@ -425,42 +435,47 @@ export const procurementRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ input }) => {
-      const db = await requireDb();
+      try {
+        const db = await requireDb();
 
-      const conditions = [];
-      if (input.category) {
-        conditions.push(eq(suppliers.supplierCategory, input.category as "material" | "equipment" | "service" | "other"));
+        const conditions = [];
+        if (input.category) {
+          conditions.push(eq(suppliers.supplierCategory, input.category as "material" | "equipment" | "service" | "other"));
+        }
+        if (input.status) {
+          conditions.push(eq(suppliers.status, input.status as "active" | "inactive" | "suspended" | "blacklisted"));
+        }
+        if (input.isPreferred !== undefined) {
+          conditions.push(eq(suppliers.isPreferred, input.isPreferred ? 'yes' : 'no'));
+        }
+
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+        const totalResult = await db
+          .select({ value: count() })
+          .from(suppliers)
+          .where(whereClause);
+        const total = totalResult[0].value;
+
+        const offset = (input.page - 1) * input.pageSize;
+        const items = await db
+          .select()
+          .from(suppliers)
+          .where(whereClause)
+          .orderBy(desc(suppliers.id))
+          .limit(input.pageSize)
+          .offset(offset);
+
+        return {
+          items,
+          total,
+          page: input.page,
+          pageSize: input.pageSize,
+        };
+      } catch (e) {
+        console.error("[procurement.getSuppliers] DB error:", e);
+        return { items: [], total: 0, page: input.page, pageSize: input.pageSize };
       }
-      if (input.status) {
-        conditions.push(eq(suppliers.status, input.status as "active" | "inactive" | "suspended" | "blacklisted"));
-      }
-      if (input.isPreferred !== undefined) {
-        conditions.push(eq(suppliers.isPreferred, input.isPreferred ? 'yes' : 'no'));
-      }
-
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-      const totalResult = await db
-        .select({ value: count() })
-        .from(suppliers)
-        .where(whereClause);
-      const total = totalResult[0].value;
-
-      const offset = (input.page - 1) * input.pageSize;
-      const items = await db
-        .select()
-        .from(suppliers)
-        .where(whereClause)
-        .orderBy(desc(suppliers.id))
-        .limit(input.pageSize)
-        .offset(offset);
-
-      return {
-        items,
-        total,
-        page: input.page,
-        pageSize: input.pageSize,
-      };
     }),
 
   /**
@@ -494,75 +509,80 @@ export const procurementRouter = router({
    * 获取采购统计
    */
   getProcurementStats: protectedProcedure.query(async () => {
-    const db = await requireDb();
+    try {
+      const db = await requireDb();
 
-    // Total PO count and amount
-    const poCountResult = await db.select({ value: count() }).from(purchaseOrders);
-    const totalPOCount = poCountResult[0].value;
+      // Total PO count and amount
+      const poCountResult = await db.select({ value: count() }).from(purchaseOrders);
+      const totalPOCount = poCountResult[0].value;
 
-    const poAmountResult = await db.execute(
-      sql`SELECT COALESCE(SUM(total_amount), 0) as total FROM purchase_orders`
-    );
-    const poAmountRows = poAmountResult[0] as Array<{ total: string }>;
-    const totalPOAmount = Number(poAmountRows[0]?.total ?? 0);
+      const poAmountResult = await db.execute(
+        sql`SELECT COALESCE(SUM(total_amount), 0) as total FROM purchase_orders`
+      );
+      const poAmountRows = poAmountResult[0] as Array<{ total: string }>;
+      const totalPOAmount = Number(poAmountRows[0]?.total ?? 0);
 
-    const averagePOAmount = totalPOCount > 0 ? totalPOAmount / totalPOCount : 0;
+      const averagePOAmount = totalPOCount > 0 ? totalPOAmount / totalPOCount : 0;
 
-    // Active supplier count
-    const activeSupplierResult = await db.select({ value: count() }).from(suppliers).where(eq(suppliers.status, 'active'));
-    const activeSupplierCount = activeSupplierResult[0].value;
+      // Active supplier count
+      const activeSupplierResult = await db.select({ value: count() }).from(suppliers).where(eq(suppliers.status, 'active'));
+      const activeSupplierCount = activeSupplierResult[0].value;
 
-    // On-time delivery rate
-    const deliveredResult = await db.execute(
-      sql`SELECT
-            COUNT(*) as total_delivered,
-            SUM(CASE WHEN actual_delivery_date <= expected_delivery_date THEN 1 ELSE 0 END) as on_time
-          FROM purchase_orders
-          WHERE status = 'received' AND actual_delivery_date IS NOT NULL`
-    );
-    const deliveredRows = deliveredResult[0] as Array<{ total_delivered: number; on_time: number }>;
-    const totalDelivered = Number(deliveredRows[0]?.total_delivered ?? 0);
-    const onTimeCount = Number(deliveredRows[0]?.on_time ?? 0);
-    const onTimeDeliveryRate = totalDelivered > 0 ? Math.round((onTimeCount / totalDelivered) * 10000) / 100 : 0;
+      // On-time delivery rate
+      const deliveredResult = await db.execute(
+        sql`SELECT
+              COUNT(*) as total_delivered,
+              SUM(CASE WHEN actual_delivery_date <= expected_delivery_date THEN 1 ELSE 0 END) as on_time
+            FROM purchase_orders
+            WHERE status = 'received' AND actual_delivery_date IS NOT NULL`
+      );
+      const deliveredRows = deliveredResult[0] as Array<{ total_delivered: number; on_time: number }>;
+      const totalDelivered = Number(deliveredRows[0]?.total_delivered ?? 0);
+      const onTimeCount = Number(deliveredRows[0]?.on_time ?? 0);
+      const onTimeDeliveryRate = totalDelivered > 0 ? Math.round((onTimeCount / totalDelivered) * 10000) / 100 : 0;
 
-    // Quality pass rate
-    const qualityResult = await db.execute(
-      sql`SELECT
-            COUNT(*) as total_receipts,
-            SUM(CASE WHEN quality_status = 'passed' THEN 1 ELSE 0 END) as passed
-          FROM purchase_receipts`
-    );
-    const qualityRows = qualityResult[0] as Array<{ total_receipts: number; passed: number }>;
-    const totalReceipts = Number(qualityRows[0]?.total_receipts ?? 0);
-    const passedCount = Number(qualityRows[0]?.passed ?? 0);
-    const qualityPassRate = totalReceipts > 0 ? Math.round((passedCount / totalReceipts) * 10000) / 100 : 0;
+      // Quality pass rate
+      const qualityResult = await db.execute(
+        sql`SELECT
+              COUNT(*) as total_receipts,
+              SUM(CASE WHEN quality_status = 'passed' THEN 1 ELSE 0 END) as passed
+            FROM purchase_receipts`
+      );
+      const qualityRows = qualityResult[0] as Array<{ total_receipts: number; passed: number }>;
+      const totalReceipts = Number(qualityRows[0]?.total_receipts ?? 0);
+      const passedCount = Number(qualityRows[0]?.passed ?? 0);
+      const qualityPassRate = totalReceipts > 0 ? Math.round((passedCount / totalReceipts) * 10000) / 100 : 0;
 
-    // Unpaid amount
-    const unpaidResult = await db.execute(
-      sql`SELECT COALESCE(SUM(total_amount), 0) as total FROM purchase_orders WHERE payment_status = 'unpaid'`
-    );
-    const unpaidRows = unpaidResult[0] as Array<{ total: string }>;
-    const unpaidAmount = Number(unpaidRows[0]?.total ?? 0);
+      // Unpaid amount
+      const unpaidResult = await db.execute(
+        sql`SELECT COALESCE(SUM(total_amount), 0) as total FROM purchase_orders WHERE payment_status = 'unpaid'`
+      );
+      const unpaidRows = unpaidResult[0] as Array<{ total: string }>;
+      const unpaidAmount = Number(unpaidRows[0]?.total ?? 0);
 
-    // Overdue amount (invoices past due date and not fully paid)
-    const overdueResult = await db.execute(
-      sql`SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0) as total
-          FROM purchase_invoices
-          WHERE payment_status != 'paid' AND due_date < NOW()`
-    );
-    const overdueRows = overdueResult[0] as Array<{ total: string }>;
-    const overdueAmount = Number(overdueRows[0]?.total ?? 0);
+      // Overdue amount (invoices past due date and not fully paid)
+      const overdueResult = await db.execute(
+        sql`SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0) as total
+            FROM purchase_invoices
+            WHERE payment_status != 'paid' AND due_date < NOW()`
+      );
+      const overdueRows = overdueResult[0] as Array<{ total: string }>;
+      const overdueAmount = Number(overdueRows[0]?.total ?? 0);
 
-    return {
-      totalPOAmount,
-      totalPOCount,
-      averagePOAmount: Math.round(averagePOAmount * 100) / 100,
-      activeSupplierCount,
-      onTimeDeliveryRate,
-      qualityPassRate,
-      unpaidAmount,
-      overdueAmount,
-    };
+      return {
+        totalPOAmount,
+        totalPOCount,
+        averagePOAmount: Math.round(averagePOAmount * 100) / 100,
+        activeSupplierCount,
+        onTimeDeliveryRate,
+        qualityPassRate,
+        unpaidAmount,
+        overdueAmount,
+      };
+    } catch (e) {
+      console.error("[procurement.getProcurementStats] DB error:", e);
+      return { totalPOAmount: 0, totalPOCount: 0, averagePOAmount: 0, activeSupplierCount: 0, onTimeDeliveryRate: 0, qualityPassRate: 0, unpaidAmount: 0, overdueAmount: 0 };
+    }
   }),
 
   /**

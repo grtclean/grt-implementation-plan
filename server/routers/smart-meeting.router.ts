@@ -20,7 +20,14 @@ import {
   meetingAttendance,
   meetingInteractions,
   hrPenalties,
+  meetingSpeakers,
 } from "../../drizzle/smart-meetings-schema";
+import { analyzeMeetingAudio } from "../services/diarization-engine.service";
+import { createTeamsMeeting } from "../services/microsoft-teams.service";
+import {
+  calculateMeetingROI,
+  getAggregatedROI,
+} from "../services/meeting-analytics-engine.service";
 import { eq, desc, and, count, sql } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { processAbsences } from "../services/hr-meeting-engine";
@@ -237,6 +244,37 @@ Use the same language as the transcript.`,
 
         return { success: true, questions: mockQuestions };
       }
+    }),
+
+  // Create Teams meeting link via Graph API mock and save to DB
+  createTeamsLink: publicProcedure
+    .input(
+      z.object({
+        meetingId: z.union([z.string(), z.number()]),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const [meeting] = await db
+        .select()
+        .from(sysMeetings)
+        .where(eq(sysMeetings.id, toNum(input.meetingId)));
+      if (!meeting) throw new Error("Meeting not found");
+
+      const result = await createTeamsMeeting({
+        title: meeting.title,
+        description: meeting.description ?? undefined,
+        scheduledStart: meeting.scheduledStart?.toISOString(),
+        scheduledEnd: meeting.scheduledEnd?.toISOString(),
+        organizerName: meeting.organizerName ?? undefined,
+      });
+
+      await db
+        .update(sysMeetings)
+        .set({ teamsUrl: result.teamsUrl, updatedAt: new Date() })
+        .where(eq(sysMeetings.id, toNum(input.meetingId)));
+
+      return result;
     }),
 
   // Dashboard aggregation
@@ -780,6 +818,94 @@ const seedRouter = router({
 });
 
 // ═══════════════════════════════════════════════════════════
+//  7. Speaker Diarization & Voice-Print Matching
+// ═══════════════════════════════════════════════════════════
+const speakerRouter = router({
+  // Run voice-print analysis on a meeting
+  analyze: publicProcedure
+    .input(z.object({ meetingId: z.union([z.string(), z.number()]) }))
+    .mutation(async ({ input }) => {
+      const result = await analyzeMeetingAudio(toNum(input.meetingId));
+      return result;
+    }),
+
+  // List speakers for a meeting
+  listByMeeting: publicProcedure
+    .input(z.object({ meetingId: z.union([z.string(), z.number()]) }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      return db
+        .select()
+        .from(meetingSpeakers)
+        .where(eq(meetingSpeakers.meetingId, toNum(input.meetingId)))
+        .orderBy(meetingSpeakers.firstSpokenAt);
+    }),
+
+  // Bind an unknown speaker to a known profile
+  bindProfile: publicProcedure
+    .input(
+      z.object({
+        speakerId: z.union([z.string(), z.number()]),
+        profileId: z.number(),
+        profileType: z.enum(["EMPLOYEE", "CUSTOMER", "EXTERNAL"]),
+        profileName: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const [updated] = await db
+        .update(meetingSpeakers)
+        .set({
+          matchedProfileId: input.profileId,
+          matchedProfileType: input.profileType,
+          matchedProfileName: input.profileName,
+          matchConfidence: "1.00",
+          voiceSnippetUrl: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(meetingSpeakers.id, toNum(input.speakerId)))
+        .returning();
+      return updated ?? null;
+    }),
+
+  // Unbind a speaker (reset to unknown)
+  unbindProfile: publicProcedure
+    .input(z.object({ speakerId: z.union([z.string(), z.number()]) }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const [updated] = await db
+        .update(meetingSpeakers)
+        .set({
+          matchedProfileId: null,
+          matchedProfileType: null,
+          matchedProfileName: null,
+          matchConfidence: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(meetingSpeakers.id, toNum(input.speakerId)))
+        .returning();
+      return updated ?? null;
+    }),
+});
+
+// ═══════════════════════════════════════════════════════════
+//  8. Analytics — ROI Pipeline (Speaker Radar + Canvas → Executive)
+// ═══════════════════════════════════════════════════════════
+const analyticsRouter = router({
+  // Calculate ROI for a single meeting
+  meetingRoi: publicProcedure
+    .input(z.object({ meetingId: z.union([z.string(), z.number()]) }))
+    .query(async ({ input }) => {
+      return calculateMeetingROI(toNum(input.meetingId));
+    }),
+
+  // Get aggregated ROI across all meetings
+  aggregatedRoi: publicProcedure.query(async () => {
+    return getAggregatedROI();
+  }),
+});
+
+// ═══════════════════════════════════════════════════════════
 //  Export composed router
 // ═══════════════════════════════════════════════════════════
 export const smartMeetingRouter = router({
@@ -789,4 +915,6 @@ export const smartMeetingRouter = router({
   penalty: penaltyRouter,
   chat: chatRouter,
   seed: seedRouter,
+  speaker: speakerRouter,
+  analytics: analyticsRouter,
 });

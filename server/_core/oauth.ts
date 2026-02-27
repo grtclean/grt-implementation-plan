@@ -1,4 +1,5 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { sanitizeName } from "@shared/sanitize";
 import type { Express, Request, Response } from "express";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
@@ -53,9 +54,10 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
+      const cleanName = sanitizeName(userInfo.name);
       await db.upsertUser({
         openId: userInfo.openId,
-        name: userInfo.name || null,
+        name: cleanName || null,
         email: userInfo.email ?? null,
         loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
         lastSignedIn: new Date().toISOString(),
@@ -63,7 +65,7 @@ export function registerOAuthRoutes(app: Express) {
       console.log("[OAuth] User upserted to database");
 
       const sessionToken = await sdk.createSessionToken(userInfo.openId, {
-        name: userInfo.name || "",
+        name: cleanName || "",
         expiresInMs: ONE_YEAR_MS,
       });
       console.log("[OAuth] Session token created, length:", sessionToken.length);

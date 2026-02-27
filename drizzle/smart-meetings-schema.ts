@@ -50,6 +50,8 @@ export const sysMeetings = pgTable(
     actualEnd: timestamp("actual_end"),
     // Total attendee count (denormalised for dashboard queries)
     expectedAttendees: integer("expected_attendees").default(0),
+    // Microsoft Teams meeting URL (auto-created via Graph API mock)
+    teamsUrl: varchar("teams_url", { length: 1000 }),
     // AI-generated quiz questions (JSON array) derived from transcript
     aiQuizQuestions: json("ai_quiz_questions").$type<
       Array<{
@@ -168,5 +170,100 @@ export const hrPenalties = pgTable(
     levelIdx: index("hr_penalties_level_idx").on(table.penaltyLevel),
     meetingIdx: index("hr_penalties_meeting_idx").on(table.meetingId),
     createdAtIdx: index("hr_penalties_created_at_idx").on(table.createdAt),
+  })
+);
+
+// ─────────────────────────────────────────────────────────────
+//  meeting_action_items — Post-meeting action items with ownership
+// ─────────────────────────────────────────────────────────────
+export const meetingActionItems = pgTable(
+  "meeting_action_items",
+  {
+    id: serial("id").primaryKey(),
+    meetingId: integer("meeting_id").notNull(),
+    assignedTo: integer("assigned_to").notNull(),
+    assignedToName: varchar("assigned_to_name", { length: 100 }),
+    taskDesc: text("task_desc").notNull(),
+    // PENDING → COMPLETED → OVERDUE
+    status: varchar("status", { length: 20 }).notNull().default("PENDING"),
+    dueDate: timestamp("due_date"),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    meetingIdx: index("meeting_action_items_meeting_idx").on(table.meetingId),
+    assignedToIdx: index("meeting_action_items_assigned_idx").on(table.assignedTo),
+    statusIdx: index("meeting_action_items_status_idx").on(table.status),
+  })
+);
+
+// ─────────────────────────────────────────────────────────────
+//  meeting_speakers — Voice-print diarization results per meeting
+// ─────────────────────────────────────────────────────────────
+export const meetingSpeakers = pgTable(
+  "meeting_speakers",
+  {
+    id: serial("id").primaryKey(),
+    meetingId: integer("meeting_id").notNull(),
+    speakerLabel: varchar("speaker_label", { length: 100 }).notNull(),
+    matchedProfileId: integer("matched_profile_id"),
+    matchedProfileType: varchar("matched_profile_type", { length: 20 }),
+    matchedProfileName: varchar("matched_profile_name", { length: 200 }),
+    voiceSnippetUrl: varchar("voice_snippet_url", { length: 500 }),
+    matchConfidence: varchar("match_confidence", { length: 10 }),
+    firstSpokenAt: timestamp("first_spoken_at"),
+    speakingDurationSec: integer("speaking_duration_sec").default(0),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    meetingIdx: index("meeting_speakers_meeting_idx").on(table.meetingId),
+    profileIdx: index("meeting_speakers_profile_idx").on(
+      table.matchedProfileId,
+      table.matchedProfileType
+    ),
+    labelIdx: index("meeting_speakers_label_idx").on(table.speakerLabel),
+  })
+);
+
+// ─────────────────────────────────────────────────────────────
+//  hr_ai_performance — Monthly AI performance scores per user
+// ─────────────────────────────────────────────────────────────
+export const hrAiPerformance = pgTable(
+  "hr_ai_performance",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").notNull(),
+    userName: varchar("user_name", { length: 100 }),
+    // Month in "YYYY-MM" format
+    month: varchar("month", { length: 7 }).notNull(),
+    // Individual dimension scores (0–100)
+    breadthScore: integer("breadth_score").default(0),
+    depthScore: integer("depth_score").default(0),
+    executionScore: integer("execution_score").default(0),
+    disciplineScore: integer("discipline_score").default(0),
+    // Aggregated meeting score (weighted average of 4 dimensions)
+    meetingScore: integer("meeting_score").default(0),
+    // Total composite score (meeting + other modules)
+    totalScore: integer("total_score").default(0),
+    // AI-generated narrative summary of performance evaluation
+    aiEvaluationSummary: text("ai_evaluation_summary"),
+    // Number of meetings attended / total
+    meetingsAttended: integer("meetings_attended").default(0),
+    meetingsTotal: integer("meetings_total").default(0),
+    // Action item stats
+    actionItemsCompleted: integer("action_items_completed").default(0),
+    actionItemsTotal: integer("action_items_total").default(0),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userMonthIdx: index("hr_ai_performance_user_month_idx").on(
+      table.userId,
+      table.month
+    ),
+    monthIdx: index("hr_ai_performance_month_idx").on(table.month),
+    meetingScoreIdx: index("hr_ai_performance_score_idx").on(table.meetingScore),
   })
 );

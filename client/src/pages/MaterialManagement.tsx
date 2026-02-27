@@ -87,13 +87,13 @@ export default function MaterialManagement() {
     categoryCode: selectedCategory || undefined,
     page: 1,
     pageSize: 20,
-  });
+  }, { retry: false, throwOnError: false });
 
   // 获取物料分类
-  const { data: categoriesData } = trpc.materials.getCategories.useQuery();
+  const { data: categoriesData } = trpc.materials.getCategories.useQuery(undefined, { retry: false, throwOnError: false });
 
   // 获取库存统计
-  const { data: statsData } = trpc.materials.getInventoryStats.useQuery();
+  const { data: statsData } = trpc.materials.getInventoryStats.useQuery(undefined, { retry: false, throwOnError: false });
 
   return (
     <div className="space-y-6">
@@ -152,12 +152,12 @@ export default function MaterialManagement() {
                     className="pl-10"
                   />
                 </div>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <Select value={selectedCategory || "__all__"} onValueChange={(v) => setSelectedCategory(v === "__all__" ? "" : v)}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder={t("supply.material.selectCategory")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">{t("supply.material.allCategories")}</SelectItem>
+                    <SelectItem value="__all__">{t("supply.material.allCategories")}</SelectItem>
                     {categoriesData?.categories?.map((cat: any) => (
                       <SelectItem key={cat.id} value={cat.categoryCode}>
                         {cat.categoryName}

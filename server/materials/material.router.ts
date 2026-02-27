@@ -125,42 +125,47 @@ export const materialRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ input }) => {
-      const db = await requireDb();
+      try {
+        const db = await requireDb();
 
-      const conditions = [];
-      if (input.categoryCode) {
-        conditions.push(eq(materials.categoryCode, input.categoryCode));
+        const conditions = [];
+        if (input.categoryCode) {
+          conditions.push(eq(materials.categoryCode, input.categoryCode));
+        }
+        if (input.materialType) {
+          conditions.push(eq(materials.materialType, input.materialType as "equipment" | "component" | "part" | "consumable" | "chemical" | "other"));
+        }
+        if (input.status) {
+          conditions.push(eq(materials.status, input.status as "active" | "inactive" | "obsolete" | "discontinued"));
+        }
+
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+        const totalResult = await db
+          .select({ value: count() })
+          .from(materials)
+          .where(whereClause);
+        const total = totalResult[0].value;
+
+        const offset = (input.page - 1) * input.pageSize;
+        const items = await db
+          .select()
+          .from(materials)
+          .where(whereClause)
+          .orderBy(desc(materials.id))
+          .limit(input.pageSize)
+          .offset(offset);
+
+        return {
+          items,
+          total,
+          page: input.page,
+          pageSize: input.pageSize,
+        };
+      } catch (e) {
+        console.error("[materials.getAllMaterials] DB error:", e);
+        return { items: [], total: 0, page: input.page, pageSize: input.pageSize };
       }
-      if (input.materialType) {
-        conditions.push(eq(materials.materialType, input.materialType as "equipment" | "component" | "part" | "consumable" | "chemical" | "other"));
-      }
-      if (input.status) {
-        conditions.push(eq(materials.status, input.status as "active" | "inactive" | "obsolete" | "discontinued"));
-      }
-
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-      const totalResult = await db
-        .select({ value: count() })
-        .from(materials)
-        .where(whereClause);
-      const total = totalResult[0].value;
-
-      const offset = (input.page - 1) * input.pageSize;
-      const items = await db
-        .select()
-        .from(materials)
-        .where(whereClause)
-        .orderBy(desc(materials.id))
-        .limit(input.pageSize)
-        .offset(offset);
-
-      return {
-        items,
-        total,
-        page: input.page,
-        pageSize: input.pageSize,
-      };
     }),
 
   /**
@@ -241,13 +246,17 @@ export const materialRouter = router({
    * 获取物料分类
    */
   getCategories: protectedProcedure.query(async () => {
-    const db = await requireDb();
-    const categories = await db
-      .select()
-      .from(materialCategories)
-      .orderBy(materialCategories.level, materialCategories.sortOrder);
-
-    return { categories };
+    try {
+      const db = await requireDb();
+      const categories = await db
+        .select()
+        .from(materialCategories)
+        .orderBy(materialCategories.level, materialCategories.sortOrder);
+      return { categories };
+    } catch (e) {
+      console.error("[materials.getCategories] DB error:", e);
+      return { categories: [] };
+    }
   }),
 
   /**
@@ -275,49 +284,53 @@ export const materialRouter = router({
    * 获取库存统计
    */
   getInventoryStats: protectedProcedure.query(async () => {
-    const db = await requireDb();
+    try {
+      const db = await requireDb();
 
-    const totalResult = await db.select({ value: count() }).from(materials);
-    const totalMaterials = totalResult[0].value;
+      const totalResult = await db.select({ value: count() }).from(materials);
+      const totalMaterials = totalResult[0].value;
 
-    const activeResult = await db.select({ value: count() }).from(materials).where(eq(materials.status, 'active'));
-    const activeMaterials = activeResult[0].value;
+      const activeResult = await db.select({ value: count() }).from(materials).where(eq(materials.status, 'active'));
+      const activeMaterials = activeResult[0].value;
 
-    // Low stock: materials where quantityOnHand is below the material's minStockLevel
-    // We join inventory with materials to check
-    const lowStockResult = await db.execute(
-      sql`SELECT COUNT(DISTINCT m.id) as cnt FROM materials m
-          INNER JOIN inventory i ON i.material_id = m.id
-          WHERE i.quantity_on_hand < m.min_stock_level AND m.min_stock_level > 0`
-    );
-    const lowStockRows = lowStockResult[0] as Array<{ cnt: number }>;
-    const lowStockMaterials = lowStockRows[0]?.cnt ?? 0;
+      // Low stock: materials where quantityOnHand is below the material's minStockLevel
+      const lowStockResult = await db.execute(
+        sql`SELECT COUNT(DISTINCT m.id) as cnt FROM materials m
+            INNER JOIN inventory i ON i.material_id = m.id
+            WHERE i.quantity_on_hand < m.min_stock_level AND m.min_stock_level > 0`
+      );
+      const lowStockRows = lowStockResult[0] as Array<{ cnt: number }>;
+      const lowStockMaterials = lowStockRows[0]?.cnt ?? 0;
 
-    // Out of stock: materials with no inventory or quantity = 0
-    const outOfStockResult = await db.execute(
-      sql`SELECT COUNT(DISTINCT m.id) as cnt FROM materials m
-          LEFT JOIN inventory i ON i.material_id = m.id
-          WHERE i.id IS NULL OR i.quantity_on_hand = 0`
-    );
-    const outOfStockRows = outOfStockResult[0] as Array<{ cnt: number }>;
-    const outOfStockMaterials = outOfStockRows[0]?.cnt ?? 0;
+      // Out of stock: materials with no inventory or quantity = 0
+      const outOfStockResult = await db.execute(
+        sql`SELECT COUNT(DISTINCT m.id) as cnt FROM materials m
+            LEFT JOIN inventory i ON i.material_id = m.id
+            WHERE i.id IS NULL OR i.quantity_on_hand = 0`
+      );
+      const outOfStockRows = outOfStockResult[0] as Array<{ cnt: number }>;
+      const outOfStockMaterials = outOfStockRows[0]?.cnt ?? 0;
 
-    // Total inventory value
-    const valueResult = await db.execute(
-      sql`SELECT COALESCE(SUM(i.quantity_on_hand * COALESCE(m.standard_cost, 0)), 0) as total_value
-          FROM inventory i
-          INNER JOIN materials m ON m.id = i.material_id`
-    );
-    const valueRows = valueResult[0] as Array<{ total_value: number }>;
-    const totalInventoryValue = valueRows[0]?.total_value ?? 0;
+      // Total inventory value
+      const valueResult = await db.execute(
+        sql`SELECT COALESCE(SUM(i.quantity_on_hand * COALESCE(m.standard_cost, 0)), 0) as total_value
+            FROM inventory i
+            INNER JOIN materials m ON m.id = i.material_id`
+      );
+      const valueRows = valueResult[0] as Array<{ total_value: number }>;
+      const totalInventoryValue = valueRows[0]?.total_value ?? 0;
 
-    return {
-      totalMaterials,
-      activeMaterials,
-      lowStockMaterials,
-      outOfStockMaterials,
-      totalInventoryValue: Number(totalInventoryValue),
-    };
+      return {
+        totalMaterials,
+        activeMaterials,
+        lowStockMaterials,
+        outOfStockMaterials,
+        totalInventoryValue: Number(totalInventoryValue),
+      };
+    } catch (e) {
+      console.error("[materials.getInventoryStats] DB error:", e);
+      return { totalMaterials: 0, activeMaterials: 0, lowStockMaterials: 0, outOfStockMaterials: 0, totalInventoryValue: 0 };
+    }
   }),
 
   /**

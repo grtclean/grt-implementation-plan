@@ -42,9 +42,9 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
   if (!isUnauthorized) return;
 
-  // Don't redirect if already on login page
+  // Don't redirect if already on login page or public showcase pages
   const currentPath = window.location.pathname;
-  if (currentPath === "/login" || currentPath === "/login-success") return;
+  if (currentPath === "/login" || currentPath === "/login-success" || currentPath.startsWith("/showcase/")) return;
 
   isRedirecting = true;
 
@@ -62,7 +62,7 @@ queryClient.getQueryCache().subscribe(event => {
     if (!isRedirecting && error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG) {
       // Check if we're on a public page - don't redirect from login
       const currentPath = window.location.pathname;
-      if (currentPath !== "/login" && currentPath !== "/login-success" && currentPath !== "/auto-login.html") {
+      if (currentPath !== "/login" && currentPath !== "/login-success" && currentPath !== "/auto-login.html" && !currentPath.startsWith("/showcase/")) {
         console.warn("[Auth] Unauthorized query detected, redirecting to login");
         redirectToLoginIfUnauthorized(error);
       }

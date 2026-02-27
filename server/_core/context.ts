@@ -5,6 +5,7 @@ import { verifyToken } from "./local-auth";
 import { COOKIE_NAME } from "@shared/const";
 import { parse as parseCookieHeader } from "cookie";
 import { resolveLanguageFromHeader, type Language } from "../lib/server-i18n";
+import { sanitizeName } from "@shared/sanitize";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -65,6 +66,13 @@ export async function createContext(
     language = user.languagePreference as Language;
   } else {
     language = resolveLanguageFromHeader(opts.req.headers['accept-language']);
+  }
+
+  // Sanitize user name at the tRPC context level — fixes garbled chars (U+FFFD)
+  // from GBK/CP936 encoding mismatch on Chinese Windows, so all downstream
+  // consumers (40+ routers) automatically receive a clean name.
+  if (user && user.name) {
+    user = { ...user, name: sanitizeName(user.name) || user.openId };
   }
 
   return {

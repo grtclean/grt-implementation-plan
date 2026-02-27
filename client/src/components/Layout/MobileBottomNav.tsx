@@ -23,9 +23,9 @@ const TABS = [
     icon: LayoutDashboard,
     labelZh: "工作台",
     labelEn: "Workspace",
-    path: "/my-workspace",
+    path: "/me",
     match: (loc: string) =>
-      loc === "/" || loc === "/my-workspace" || loc === "/dashboard",
+      loc === "/" || loc === "/me" || loc === "/my-workspace" || loc === "/dashboard",
     showBadge: false,
   },
   {

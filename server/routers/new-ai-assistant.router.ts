@@ -42,4 +42,20 @@ export const newAiAssistantRouter = router({
   getConfig: publicProcedure.query(() => {
     return { config: null };
   }),
+
+  // ── 前端 AiAssistantPanel.tsx 需要的过程 ──
+
+  getStats: publicProcedure.query(() => {
+    return { employeeDigitalAssistants: 0, functionalAssistants: 0, totalSuggestions: 0 };
+  }),
+
+  getActiveFunctionalAssistants: publicProcedure.query(() => {
+    return [];
+  }),
+
+  getEmployeeDA: publicProcedure
+    .input(z.object({ employeeId: z.string() }))
+    .query(() => {
+      return null;
+    }),
 });

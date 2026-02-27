@@ -76,4 +76,43 @@ export const leadAnalyticsRouter = router({
   delete: publicProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async () => {
     return { success: true, message: "Use crm.leads.update instead" };
   }),
+
+  // ── 前端 LeadManagement.tsx 需要的过程 ──
+
+  getFunnelData: publicProcedure
+    .input(z.object({}).optional())
+    .query(async () => {
+      const db = await requireDb();
+      const leads = await db.select().from(crmLeads);
+      const stages = ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'];
+      const funnel = stages.map(stage => ({
+        stage,
+        count: leads.filter(l => l.status === stage).length,
+      }));
+      return { funnel, total: leads.length };
+    }),
+
+  getTrendData: publicProcedure
+    .input(z.object({ period: z.string().optional(), months: z.number().optional() }).optional())
+    .query(async () => {
+      return { trend: [], period: 'month' };
+    }),
+
+  getSourceAnalysis: publicProcedure
+    .input(z.object({}).optional())
+    .query(async () => {
+      const db = await requireDb();
+      const leads = await db.select().from(crmLeads);
+      const dist: Record<string, number> = {};
+      for (const l of leads) {
+        dist[l.source || 'unknown'] = (dist[l.source || 'unknown'] || 0) + 1;
+      }
+      return Object.entries(dist).map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count);
+    }),
+
+  getSalesPerformance: publicProcedure
+    .input(z.object({}).optional())
+    .query(async () => {
+      return { performers: [], avgConversion: 0 };
+    }),
 });

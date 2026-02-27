@@ -305,6 +305,10 @@ import ReportCenter from "./pages/ReportCenter";
 import ReportPresent from "./pages/ReportPresent";
 import LobbyGlobalScreen from "./pages/LobbyGlobalScreen";
 import ShopfloorMasterBoard from "./pages/ShopfloorMasterBoard";
+
+// GRT Cloud Showcase Portal (全球数字云展厅)
+const ShowcasePortal = React.lazy(() => import("./pages/showcase/ShowcasePortal"));
+
 import DualAIMatrix from "./pages/DualAIMatrix";
 import MeetingHub from "./pages/MeetingHub";
 import CrossBorderSync from "./pages/CrossBorderSync";
@@ -322,9 +326,6 @@ import StrategyEngine from "./pages/engines/StrategyEngine";
 import OperationsEngine from "./pages/engines/OperationsEngine";
 import ResourcesEngine from "./pages/engines/ResourcesEngine";
 import OKRMatrixPage from "./pages/OKRMatrixPage";
-
-// GRT Cloud Showcase Portal (全球数字云展厅)
-const ShowcasePortal = React.lazy(() => import("./pages/showcase/ShowcasePortal"));
 
 // KPI绩效管理
 const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
@@ -499,8 +500,9 @@ function Router() {
   const routes = (
     <Suspense fallback={<LazyFallback />}>
     <Switch>
-      {/* Public routes */}
+      {/* GRT Cloud Showcase Portal (全球数字云展厅) */}
       <Route path={"/showcase/:industry"} component={ShowcasePortal} />
+      {/* Public routes */}
       <Route path={"/"} component={Home} />
       <Route path={"/roadmap"} component={Roadmap} />
       <Route path={"/tools"} component={Tools} />

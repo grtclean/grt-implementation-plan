@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { WAFFLE_APPS, type WaffleApp, type MenuGroup } from "@/config/menuConfig";
 import { cn } from "@/lib/utils";
 
@@ -20,19 +20,20 @@ export default function WaffleMenu({
   filteredMenuConfig,
 }: WaffleMenuProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
-  // Close on click outside
+  // Close on click outside / Escape
   useEffect(() => {
     if (!open) return;
     const handleClick = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
+        onCloseRef.current();
       }
     };
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
-    // Delay adding listener to avoid the toggle click immediately closing
     const timer = setTimeout(() => {
       document.addEventListener("mousedown", handleClick);
       document.addEventListener("keydown", handleKey);
@@ -42,39 +43,36 @@ export default function WaffleMenu({
       document.removeEventListener("mousedown", handleClick);
       document.removeEventListener("keydown", handleKey);
     };
-  }, [open, onClose]);
+  }, [open]);
+
+  // RBAC: only show apps whose menu groups survive filtering
+  const filteredGroupNames = useMemo(
+    () => new Set(filteredMenuConfig.map((g) => g.name)),
+    [filteredMenuConfig]
+  );
+  const visibleApps = useMemo(
+    () => WAFFLE_APPS.filter((app) => app.menuGroupNames.some((gn) => filteredGroupNames.has(gn))),
+    [filteredGroupNames]
+  );
 
   if (!open) return null;
 
-  // Filter apps based on RBAC — hide apps whose menu groups are all filtered out
-  const filteredGroupNames = new Set(filteredMenuConfig.map((g) => g.name));
-  const visibleApps = WAFFLE_APPS.filter((app) =>
-    app.menuGroupNames.some((gn) => filteredGroupNames.has(gn))
-  );
-
   const getAppName = (app: WaffleApp) => {
     switch (language) {
-      case "zh":
-        return app.name;
-      case "de":
-        return app.nameDe || app.nameEn;
-      case "fr":
-        return app.nameFr || app.nameEn;
-      default:
-        return app.nameEn;
+      case "zh": return app.name;
+      case "de": return app.nameDe || app.nameEn;
+      case "fr": return app.nameFr || app.nameEn;
+      default: return app.nameEn;
     }
   };
 
   return (
     <div
       ref={panelRef}
-      className="absolute top-12 left-0 z-[60] bg-white border border-[#edebe9] rounded-lg shadow-xl p-4 waffle-enter"
-      style={{ minWidth: 280 }}
+      className="absolute top-12 left-0 z-[60] bg-white border border-[#edebe9] rounded-lg shadow-xl p-3 waffle-enter"
+      style={{ width: 288 }}
     >
-      <div className="text-xs font-semibold text-[#605e5c] uppercase tracking-wider mb-3 px-1">
-        {language === "zh" ? "应用" : "Apps"}
-      </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-1">
         {visibleApps.map((app) => {
           const Icon = app.icon;
           const isActive = app.id === activeAppId;
@@ -83,17 +81,17 @@ export default function WaffleMenu({
               key={app.id}
               onClick={() => onSelectApp(app)}
               className={cn(
-                "flex flex-col items-center gap-1.5 p-3 rounded-lg transition-colors hover:bg-[#f3f2f1]",
+                "flex flex-col items-center gap-1 p-2 rounded-md transition-colors hover:bg-[#f3f2f1]",
                 isActive && "ring-2 ring-[#0078d4] bg-[#eff6fc]"
               )}
             >
               <div
-                className="w-10 h-10 rounded-md flex items-center justify-center"
+                className="w-8 h-8 rounded flex items-center justify-center"
                 style={{ backgroundColor: app.color }}
               >
-                <Icon className="w-5 h-5 text-white" />
+                <Icon className="w-4 h-4 text-white" />
               </div>
-              <span className="text-[11px] text-[#323130] font-medium text-center leading-tight line-clamp-2">
+              <span className="text-[10px] text-[#323130] font-medium text-center leading-tight line-clamp-1 w-full">
                 {getAppName(app)}
               </span>
             </button>

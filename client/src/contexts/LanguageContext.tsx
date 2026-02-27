@@ -1,6 +1,9 @@
 import { translations, type Language, languageNames, languageFlags } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+
+// Static constant — never changes, safe to hoist outside component
+const AVAILABLE_LANGUAGES: Language[] = ['zh', 'en', 'de', 'fr'];
 
 type LanguageContextType = {
   language: Language;
@@ -121,33 +124,34 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }, 100);
   }, [updatePreferencesMutation]);
 
-  const t = (key: string): string => {
+  const t = useCallback((key: string): string => {
     const langTranslations = translations[language] as Record<string, string>;
     return langTranslations[key] || key;
-  };
+  }, [language]);
 
-  const tpl = (key: string, vars: Record<string, string | number>): string => {
-    let result = t(key);
+  const tpl = useCallback((key: string, vars: Record<string, string | number>): string => {
+    const langTranslations = translations[language] as Record<string, string>;
+    let result = langTranslations[key] || key;
     for (const [k, v] of Object.entries(vars)) {
       result = result.replace(`{${k}}`, String(v));
     }
     return result;
-  };
+  }, [language]);
 
-  const availableLanguages: Language[] = ['zh', 'en', 'de', 'fr'];
+  const value = useMemo(() => ({
+    language,
+    setLanguage,
+    t,
+    tpl,
+    languageNames,
+    languageFlags,
+    availableLanguages: AVAILABLE_LANGUAGES,
+    isChanging,
+    isSynced,
+  }), [language, setLanguage, t, tpl, isChanging, isSynced]);
 
   return (
-    <LanguageContext.Provider value={{
-      language,
-      setLanguage,
-      t,
-      tpl,
-      languageNames,
-      languageFlags,
-      availableLanguages,
-      isChanging,
-      isSynced
-    }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

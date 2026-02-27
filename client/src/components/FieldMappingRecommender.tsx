@@ -3,7 +3,7 @@
  * 基于字段名称相似度自动推荐映射关系
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -62,11 +62,13 @@ interface FieldMappingRecommenderProps {
   currentMappings?: { sourceField: string; targetField: string }[];
 }
 
+const EMPTY_MAPPINGS: { sourceField: string; targetField: string }[] = [];
+
 export default function FieldMappingRecommender({
   sourceFields,
   importType,
   onApplyMappings,
-  currentMappings = [],
+  currentMappings = EMPTY_MAPPINGS,
 }: FieldMappingRecommenderProps) {
   const [recommendations, setRecommendations] = useState<MappingRecommendation[]>([]);
   const [selectedMappings, setSelectedMappings] = useState<Map<string, string>>(new Map());
@@ -275,14 +277,14 @@ export default function FieldMappingRecommender({
                     <TableCell className="font-mono text-sm">{sourceField}</TableCell>
                     <TableCell>
                       <Select
-                        value={selected || ""}
-                        onValueChange={(value) => handleSelectMapping(sourceField, value)}
+                        value={selected || "__none__"}
+                        onValueChange={(value) => handleSelectMapping(sourceField, value === "__none__" ? "" : value)}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="选择目标字段" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">不映射</SelectItem>
+                          <SelectItem value="__none__">不映射</SelectItem>
                           {targetFields?.map((field) => (
                             <SelectItem key={field.field} value={field.field}>
                               {field.label}

@@ -233,14 +233,14 @@ export default function ToothpasteTestHistory() {
                   <div className="space-y-2">
                     <Label>特征类型</Label>
                     <Select
-                      value={filters.featureType}
-                      onValueChange={(value) => setFilters({ ...filters, featureType: value })}
+                      value={filters.featureType || "__all__"}
+                      onValueChange={(value) => setFilters({ ...filters, featureType: value === "__all__" ? "" : value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="全部类型" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">全部类型</SelectItem>
+                        <SelectItem value="__all__">全部类型</SelectItem>
                         {Object.entries(featureTypeNames).map(([key, names]) => (
                           <SelectItem key={key} value={key}>
                             {language === "zh" ? names.zh : names.en}
@@ -252,14 +252,14 @@ export default function ToothpasteTestHistory() {
                   <div className="space-y-2">
                     <Label>结果</Label>
                     <Select
-                      value={filters.result}
-                      onValueChange={(value) => setFilters({ ...filters, result: value })}
+                      value={filters.result || "__all__"}
+                      onValueChange={(value) => setFilters({ ...filters, result: value === "__all__" ? "" : value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="全部结果" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">全部结果</SelectItem>
+                        <SelectItem value="__all__">全部结果</SelectItem>
                         <SelectItem value="pass">通过</SelectItem>
                         <SelectItem value="fail">失败</SelectItem>
                         <SelectItem value="pending">待定</SelectItem>

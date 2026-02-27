@@ -444,14 +444,14 @@ export default function WorkflowConditionBranchEditor({
           <div className="flex items-center gap-2">
             <ArrowRight className="h-4 w-4 text-muted-foreground" />
             <Select
-              value={editedNode.defaultBranchTargetId || ''}
-              onValueChange={(value) => setEditedNode({ ...editedNode, defaultBranchTargetId: value })}
+              value={editedNode.defaultBranchTargetId || '__none__'}
+              onValueChange={(value) => setEditedNode({ ...editedNode, defaultBranchTargetId: value === "__none__" ? "" : value })}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="选择默认目标节点" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">无（结束流程）</SelectItem>
+                <SelectItem value="__none__">无（结束流程）</SelectItem>
                 {availableNodes.map((node) => (
                   <SelectItem key={node.id} value={node.id}>
                     {node.name} ({node.type})

@@ -1790,14 +1790,14 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                           <div className="space-y-2">
                             <Label>{t("finance.cost.budgetMonthLabel")}</Label>
                             <Select
-                              value={budgetForm.budgetMonth?.toString() || ""}
-                              onValueChange={(value) => setBudgetForm({ ...budgetForm, budgetMonth: value ? parseInt(value) : undefined })}
+                              value={budgetForm.budgetMonth?.toString() || "__annual__"}
+                              onValueChange={(value) => setBudgetForm({ ...budgetForm, budgetMonth: value === "__annual__" ? undefined : parseInt(value) })}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder={t("finance.cost.annualBudget")} />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">{t("finance.cost.annualBudget")}</SelectItem>
+                                <SelectItem value="__annual__">{t("finance.cost.annualBudget")}</SelectItem>
                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
                                   <SelectItem key={month} value={month.toString()}>{tpl("finance.cost.monthLabel", { month })}</SelectItem>
                                 ))}

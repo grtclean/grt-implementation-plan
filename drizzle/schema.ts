@@ -9937,6 +9937,42 @@ export const iotMaintenancePredictions = pgTable("iot_maintenance_predictions", 
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ========== IoT Fleet & Predictive Sales ==========
+
+/** Global machine registry — every GRT machine worldwide */
+export const iotFleetMachines = pgTable("iot_fleet_machines", {
+  id: serial("id").primaryKey(),
+  machineId: varchar("machine_id", { length: 50 }).notNull(),
+  plantName: varchar("plant_name", { length: 200 }),
+  lineName: varchar("line_name", { length: 200 }),
+  country: varchar("country", { length: 50 }),
+  machineType: varchar("machine_type", { length: 100 }),
+  status: varchar("status", { length: 30 }).default("offline"),
+  lastHeartbeat: timestamp("last_heartbeat"),
+  customerId: integer("customer_id"),
+  customerName: varchar("customer_name", { length: 200 }),
+  installDate: timestamp("install_date"),
+  warrantyExpiry: timestamp("warranty_expiry"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+/** AI-generated predictive alerts with spare part links */
+export const iotPredictiveAlerts = pgTable("iot_predictive_alerts", {
+  id: serial("id").primaryKey(),
+  machineId: varchar("machine_id", { length: 50 }).notNull(),
+  alertType: varchar("alert_type", { length: 50 }),
+  severity: varchar("severity", { length: 20 }),
+  currentValue: real("current_value"),
+  thresholdValue: real("threshold_value"),
+  predictedFailureDays: integer("predicted_failure_days"),
+  recommendedPartCode: varchar("recommended_part_code", { length: 50 }),
+  recommendedPartName: varchar("recommended_part_name", { length: 200 }),
+  estimatedPartPrice: real("estimated_part_price"),
+  quoteGenerated: boolean("quote_generated").default(false),
+  quoteGeneratedAt: timestamp("quote_generated_at"),
+  status: varchar("status", { length: 30 }).default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 // ========================================
 // AI Early Warning System Tables (Tasks #71-73)

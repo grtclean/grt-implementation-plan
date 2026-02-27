@@ -121,12 +121,12 @@ export function HrSignalsTab() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">信号类型</label>
-              <Select value={signalType} onValueChange={setSignalType}>
+              <Select value={signalType || "__all__"} onValueChange={(v) => setSignalType(v === "__all__" ? "" : v)}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="全部" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">全部</SelectItem>
+                  <SelectItem value="__all__">全部</SelectItem>
                   {Object.entries(SIGNAL_TYPES).map(([key, { label }]) => (
                     <SelectItem key={key} value={key}>{label}</SelectItem>
                   ))}

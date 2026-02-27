@@ -21,7 +21,7 @@ let listeners: Set<() => void> = new Set();
 let fetchStarted = false;
 
 const isPublicPageGlobal = typeof window !== 'undefined' &&
-  (window.location.pathname === '/login' || window.location.pathname === '/login-success');
+  (window.location.pathname === '/login' || window.location.pathname === '/login-success' || window.location.pathname.startsWith('/showcase/'));
 
 // On public pages, start with loading=false
 if (isPublicPageGlobal) {
