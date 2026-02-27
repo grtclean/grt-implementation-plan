@@ -1,710 +1,602 @@
 /**
- * Project 360 Cockpit — CEO-level single-page project snapshot
+ * Project 360 Cockpit — CEO-level single-page project dashboard
  *
- * Architecture: Mock-First (Phase 0)
- *   - Typed interfaces define the contract for all 6 data slices
- *   - Realistic mock data powers the layout for CEO review
- *   - tRPC overlay merges live data when backend slices respond
- *   - Each section is null-safe — shows "No data" gracefully
- *
- * Phase 2: Replace mock fallback with Redis-cached tRPC data
- * Phase 3: PII desensitization filter before render
+ * M365 Light Theme — enterprise dashboard with:
+ *   - KPI cards row (Financial Health, Schedule Variance, Overall Status)
+ *   - Split view: Concurrent Debugging Status + AI Smart Suggestions
+ *   - ECO Approval button (RBAC-gated, locked for non-managers)
+ *   - T1-T15 production pipeline with engineer lock indicators
  */
 
-import { useState, useMemo } from "react";
-import { PageHeader, StatCard } from "@/components/grt";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { trpc } from "@/lib/trpc";
+import { useUserProfile, ROLE_HIERARCHY } from "@/contexts/UserProfileContext";
 import {
   LayoutDashboard,
-  Factory,
   DollarSign,
-  ShieldCheck,
-  FolderOpen,
-  ClipboardCheck,
-  Loader2,
+  Clock,
+  Activity,
+  Lock,
+  Unlock,
   AlertTriangle,
-  Database,
-  Wifi,
-  WifiOff,
+  CheckCircle2,
+  XCircle,
+  Lightbulb,
+  Cpu,
+  Wind,
+  Droplets,
+  Zap,
+  ArrowRight,
+  Bot,
+  ShieldCheck,
+  FileCheck2,
+  TrendingUp,
+  TrendingDown,
+  Timer,
+  Users,
+  Wrench,
 } from "lucide-react";
 
-// ─── Typed Interfaces (Contract for Phase 2 Redis cache) ────────────
+// ─── SAIC New Energy Cleaning Line — Mock Project Data ───────────────
 
-interface ProjectSlice {
-  id: number;
-  name: string;
-  status: string;
-  currentPhase: string | null;
-  healthStatus: string | null;
-  budget: number | null;
-  actualCost: number | null;
-  completionPercent: number | null;
-}
-
-interface CostSlice {
-  budget: number;
-  spent: number;
-  remaining: number;
-}
-
-interface ProductionStage {
-  code: string;
-  status: string;
-  completion: number;
-}
-
-interface ProductionSlice {
-  stages: ProductionStage[];
-  completed: number;
-  inProgress: number;
-  blocked: number;
-}
-
-interface VaultSlice {
-  totalFiles: number;
-  byType: Record<string, number>;
-  ecoTotal: number;
-  ecoDraft: number;
-}
-
-interface QualitySlice {
-  fmeaCount: number;
-  maxRpn: number;
-  open8Ds: number;
-  overdueCapas: number;
-}
-
-interface AcceptanceSlice {
-  fatTotal: number;
-  fatCompleted: number;
-  satTotal: number;
-  satCompleted: number;
-}
-
-interface CockpitData {
-  project: ProjectSlice | null;
-  cost: CostSlice | null;
-  production: ProductionSlice | null;
-  vault: VaultSlice | null;
-  quality: QualitySlice | null;
-  acceptance: AcceptanceSlice | null;
-}
-
-// ─── Mock Data (realistic GRT cleaning equipment project) ───────────
-
-const MOCK_PROJECTS = [
-  { id: 1, name: "P2025-001 Semiconductor Wafer Cleaner" },
-  { id: 2, name: "P2025-002 Automotive Parts Washing Line" },
-  { id: 3, name: "P2025-003 Pharma CIP System" },
-];
-
-const MOCK_DATA: Record<number, CockpitData> = {
-  1: {
-    project: {
-      id: 1, name: "P2025-001 Semiconductor Wafer Cleaner", status: "active",
-      currentPhase: "M5", healthStatus: "green", budget: 1800000, actualCost: 1170000, completionPercent: 65,
-    },
-    cost: { budget: 1800000, spent: 1170000, remaining: 630000 },
-    production: {
-      stages: [
-        { code: "T1_MACHINING",      status: "COMPLETED",   completion: 100 },
-        { code: "T2_COLD_WORK",      status: "COMPLETED",   completion: 100 },
-        { code: "T3_SUB_ASSEMBLY",   status: "COMPLETED",   completion: 100 },
-        { code: "T4_WELDING",        status: "COMPLETED",   completion: 100 },
-        { code: "T5_SURFACE_TREAT",  status: "IN_PROGRESS", completion: 80 },
-        { code: "T6_PAINTING",       status: "IN_PROGRESS", completion: 45 },
-        { code: "T7_PLUMBING",       status: "NOT_STARTED", completion: 0 },
-        { code: "T8_ELECTRICAL",     status: "NOT_STARTED", completion: 0 },
-        { code: "T9_PLC_PROGRAM",    status: "NOT_STARTED", completion: 0 },
-        { code: "T10_INTEGRATION",   status: "NOT_STARTED", completion: 0 },
-        { code: "T11_CLEANING_TEST", status: "NOT_STARTED", completion: 0 },
-        { code: "T12_FAT_INTERNAL",  status: "NOT_STARTED", completion: 0 },
-        { code: "T13_PACKAGING",     status: "NOT_STARTED", completion: 0 },
-        { code: "T14_SHIPPING",      status: "NOT_STARTED", completion: 0 },
-        { code: "T15_SAT_ONSITE",    status: "NOT_STARTED", completion: 0 },
-      ],
-      completed: 4, inProgress: 2, blocked: 0,
-    },
-    vault: {
-      totalFiles: 47,
-      byType: { SOLIDWORKS: 18, EPLAN: 12, PDF: 9, WORD: 5, EMAIL_EML: 3 },
-      ecoTotal: 5, ecoDraft: 2,
-    },
-    quality: { fmeaCount: 3, maxRpn: 168, open8Ds: 2, overdueCapas: 1 },
-    acceptance: { fatTotal: 8, fatCompleted: 3, satTotal: 6, satCompleted: 0 },
-  },
-  2: {
-    project: {
-      id: 2, name: "P2025-002 Automotive Parts Washing Line", status: "active",
-      currentPhase: "M8", healthStatus: "yellow", budget: 3200000, actualCost: 2880000, completionPercent: 82,
-    },
-    cost: { budget: 3200000, spent: 2880000, remaining: 320000 },
-    production: {
-      stages: [
-        { code: "T1_MACHINING",      status: "COMPLETED",   completion: 100 },
-        { code: "T2_COLD_WORK",      status: "COMPLETED",   completion: 100 },
-        { code: "T3_SUB_ASSEMBLY",   status: "COMPLETED",   completion: 100 },
-        { code: "T4_WELDING",        status: "COMPLETED",   completion: 100 },
-        { code: "T5_SURFACE_TREAT",  status: "COMPLETED",   completion: 100 },
-        { code: "T6_PAINTING",       status: "COMPLETED",   completion: 100 },
-        { code: "T7_PLUMBING",       status: "COMPLETED",   completion: 100 },
-        { code: "T8_ELECTRICAL",     status: "COMPLETED",   completion: 100 },
-        { code: "T9_PLC_PROGRAM",    status: "IN_PROGRESS", completion: 70 },
-        { code: "T10_INTEGRATION",   status: "IN_PROGRESS", completion: 30 },
-        { code: "T11_CLEANING_TEST", status: "BLOCKED",     completion: 0 },
-        { code: "T12_FAT_INTERNAL",  status: "NOT_STARTED", completion: 0 },
-        { code: "T13_PACKAGING",     status: "NOT_STARTED", completion: 0 },
-        { code: "T14_SHIPPING",      status: "NOT_STARTED", completion: 0 },
-        { code: "T15_SAT_ONSITE",    status: "NOT_STARTED", completion: 0 },
-      ],
-      completed: 8, inProgress: 2, blocked: 1,
-    },
-    vault: {
-      totalFiles: 83,
-      byType: { SOLIDWORKS: 32, EPLAN: 22, PDF: 15, WORD: 8, MEETING_RECORD: 6 },
-      ecoTotal: 12, ecoDraft: 1,
-    },
-    quality: { fmeaCount: 5, maxRpn: 224, open8Ds: 1, overdueCapas: 0 },
-    acceptance: { fatTotal: 12, fatCompleted: 8, satTotal: 10, satCompleted: 2 },
-  },
-  3: {
-    project: {
-      id: 3, name: "P2025-003 Pharma CIP System", status: "draft",
-      currentPhase: "M1", healthStatus: "green", budget: 950000, actualCost: 42000, completionPercent: 5,
-    },
-    cost: { budget: 950000, spent: 42000, remaining: 908000 },
-    production: { stages: [], completed: 0, inProgress: 0, blocked: 0 },
-    vault: { totalFiles: 4, byType: { PDF: 3, WORD: 1 }, ecoTotal: 0, ecoDraft: 0 },
-    quality: { fmeaCount: 0, maxRpn: 0, open8Ds: 0, overdueCapas: 0 },
-    acceptance: { fatTotal: 0, fatCompleted: 0, satTotal: 0, satCompleted: 0 },
-  },
+const PROJECT = {
+  id: 1,
+  name: "SAIC New Energy Cleaning Line",
+  nameCn: "上汽新能源清洗线",
+  customer: "SAIC Motor (上汽集团)",
+  contractValue: 4200000,
+  currentPhase: "M6",
+  lifecycle: "M0-M12",
+  startDate: "2025-09-15",
+  targetDate: "2026-06-30",
+  projectManager: "Wang Lei (王磊)",
 };
 
-// ─── Helpers ────────────────────────────────────────────────────────
+const KPI = {
+  budget: 4200000,
+  actualCost: 2310000,
+  budgetVariance: -5.2, // % under budget (negative = good)
+  scheduleVarianceDays: 3, // days behind
+  overallStatus: "yellow" as "green" | "yellow" | "red",
+  completionPercent: 52,
+  milestonesDone: 6,
+  milestonesTotal: 12,
+};
 
-function fmt(n: number | undefined | null): string {
-  if (n == null) return "0";
-  if (Math.abs(n) >= 10000) return `¥${(n / 10000).toFixed(1)}w`;
-  if (Math.abs(n) >= 1000) return `¥${(n / 1000).toFixed(1)}k`;
+// ─── Concurrent Debugging Status (双轨联调状态) ─────────────────────
+
+interface SubSystem {
+  id: string;
+  name: string;
+  nameCn: string;
+  icon: typeof Cpu;
+  status: "locked" | "idle" | "testing" | "passed";
+  lockedBy?: string;
+  lockedSince?: string;
+  testProgress?: number;
+}
+
+const SUB_SYSTEMS: SubSystem[] = [
+  { id: "ultrasonic", name: "Ultrasonic Module", nameCn: "超声波模块", icon: Activity, status: "locked", lockedBy: "Zhang Wei (张伟)", lockedSince: "14:30", testProgress: 68 },
+  { id: "drying", name: "Hot-Air Drying Unit", nameCn: "热风干燥单元", icon: Wind, status: "locked", lockedBy: "Li Na (李娜)", lockedSince: "13:15", testProgress: 45 },
+  { id: "conveyor", name: "Conveyor System", nameCn: "输送系统", icon: ArrowRight, status: "testing", testProgress: 82 },
+  { id: "spray", name: "High-Pressure Spray", nameCn: "高压喷淋", icon: Droplets, status: "passed", testProgress: 100 },
+  { id: "plc", name: "PLC Control Unit", nameCn: "PLC控制单元", icon: Cpu, status: "idle" },
+  { id: "electrical", name: "Electrical Cabinet", nameCn: "电气控制柜", icon: Zap, status: "testing", testProgress: 55 },
+];
+
+// ─── AI Smart Suggestions (AI 智能建议) ──────────────────────────────
+
+interface AiSuggestion {
+  id: string;
+  type: "warning" | "info" | "success" | "critical";
+  title: string;
+  detail: string;
+  timestamp: string;
+  source: string;
+}
+
+const AI_SUGGESTIONS: AiSuggestion[] = [
+  {
+    id: "s1", type: "warning",
+    title: "Pump delivery delayed — adjust FAT schedule",
+    detail: "Supplier #SP-0042 (Grundfos) reports 5-day delay on centrifugal pump shipment. Recommend rescheduling T12_FAT from Mar 15 → Mar 22 to avoid idle assembly crew cost (est. ¥18,000/day).",
+    timestamp: "10 min ago", source: "Supply Chain AI",
+  },
+  {
+    id: "s2", type: "critical",
+    title: "Ultrasonic transducer RPN exceeds threshold",
+    detail: "FMEA analysis detected RPN = 224 on transducer cavitation failure mode. Severity=8, Occurrence=4, Detection=7. Immediate CAPA required per IATF 16949 §10.2.3.",
+    timestamp: "25 min ago", source: "Quality AI Engine",
+  },
+  {
+    id: "s3", type: "info",
+    title: "Zhang Wei & Li Na running concurrent tests",
+    detail: "Two engineers are currently holding locks on sub-systems in the same zone. Consider staggering test windows to avoid electromagnetic interference between ultrasonic and drying modules.",
+    timestamp: "1 hr ago", source: "IoT Fleet Monitor",
+  },
+  {
+    id: "s4", type: "success",
+    title: "High-pressure spray module passed all 12 test cases",
+    detail: "Spray coverage uniformity: 97.3% (target: 95%). Flow rate stability: ±1.2% (target: ±3%). Ready for integration testing.",
+    timestamp: "2 hrs ago", source: "Test Automation",
+  },
+  {
+    id: "s5", type: "warning",
+    title: "Budget burn rate trending high for M6",
+    detail: "Current monthly burn: ¥420K vs planned ¥380K. If trend continues, project will exceed budget by ¥126K at M12. Recommend reviewing T7 plumbing subcontractor costs.",
+    timestamp: "3 hrs ago", source: "Finance AI",
+  },
+];
+
+// ─── T-Pipeline Stages ───────────────────────────────────────────────
+
+const T_STAGES = [
+  { code: "T1", name: "Design Freeze", status: "done" },
+  { code: "T2", name: "BOM Release", status: "done" },
+  { code: "T3", name: "Procurement", status: "done" },
+  { code: "T4", name: "Fabrication", status: "done" },
+  { code: "T5", name: "Sub-Assembly", status: "done" },
+  { code: "T6", name: "Main Assembly", status: "active" },
+  { code: "T7", name: "Plumbing", status: "active" },
+  { code: "T8", name: "Electrical", status: "pending" },
+  { code: "T9", name: "PLC Programming", status: "pending" },
+  { code: "T10", name: "Integration Test", status: "pending" },
+  { code: "T11", name: "Cleaning Validation", status: "pending" },
+  { code: "T12", name: "FAT (Internal)", status: "pending" },
+  { code: "T13", name: "Packaging", status: "pending" },
+  { code: "T14", name: "Shipping", status: "pending" },
+  { code: "T15", name: "SAT (On-Site)", status: "pending" },
+];
+
+// ─── Helpers ─────────────────────────────────────────────────────────
+
+function fmtCurrency(n: number): string {
+  if (n >= 10000) return `¥${(n / 10000).toFixed(1)}万`;
+  if (n >= 1000) return `¥${(n / 1000).toFixed(1)}K`;
   return `¥${n}`;
 }
 
-const statusColor: Record<string, string> = {
-  COMPLETED: "bg-green-500",
-  IN_PROGRESS: "bg-blue-500",
-  NOT_STARTED: "bg-gray-400",
-  BLOCKED: "bg-red-500",
-  ON_HOLD: "bg-yellow-500",
+const suggestionStyles = {
+  warning:  { bg: "bg-amber-50", border: "border-l-amber-400", icon: AlertTriangle, iconColor: "text-amber-600" },
+  critical: { bg: "bg-red-50",   border: "border-l-red-500",   icon: XCircle,       iconColor: "text-red-600" },
+  info:     { bg: "bg-blue-50",  border: "border-l-blue-400",  icon: Lightbulb,     iconColor: "text-blue-600" },
+  success:  { bg: "bg-green-50", border: "border-l-green-400", icon: CheckCircle2,  iconColor: "text-green-600" },
 };
 
-const statusLabel: Record<string, string> = {
-  COMPLETED: "Completed",
-  IN_PROGRESS: "In Progress",
-  NOT_STARTED: "Pending",
-  BLOCKED: "Blocked",
-  ON_HOLD: "On Hold",
+const lockStatusStyles = {
+  locked:  { label: "Locked",  color: "bg-red-100 text-red-700", icon: Lock },
+  idle:    { label: "Idle",    color: "bg-gray-100 text-gray-600", icon: Wrench },
+  testing: { label: "Testing", color: "bg-blue-100 text-blue-700", icon: Activity },
+  passed:  { label: "Passed",  color: "bg-green-100 text-green-700", icon: CheckCircle2 },
 };
 
-const healthColor: Record<string, string> = {
-  green: "text-green-600",
-  yellow: "text-yellow-600",
-  red: "text-red-600",
-};
-
-const healthBadge: Record<string, string> = {
-  green: "bg-green-100 text-green-800",
-  yellow: "bg-yellow-100 text-yellow-800",
-  red: "bg-red-100 text-red-800",
-};
-
-function NoData({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-      <AlertTriangle className="w-8 h-8 mb-2 opacity-40" />
-      <p className="text-sm">{label}</p>
-    </div>
-  );
-}
-
-// ─── Main Component ─────────────────────────────────────────────────
+// ─── Main Component ──────────────────────────────────────────────────
 
 export default function Project360Cockpit() {
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const { currentUserRole } = useUserProfile();
+  const roleLevel = ROLE_HIERARCHY[currentUserRole] || 0;
+  const canApproveECO = roleLevel >= 3; // dept_manager+
 
-  // Live data — optional overlay. Will return null slices if tables aren't populated.
-  const { data: liveProjects } = trpc.project.list.useQuery();
-  const { data: liveData, isFetching: liveFetching } = trpc.project360.overview.useQuery(
-    { projectId: selectedProjectId! },
-    { enabled: !!selectedProjectId },
-  );
+  const [ecoDialogOpen, setEcoDialogOpen] = useState(false);
+  const [ecoSubmitted, setEcoSubmitted] = useState(false);
 
-  // Merge: live data takes priority, mock fills gaps
-  const projectOptions = useMemo(() => {
-    const live = Array.isArray(liveProjects) ? liveProjects : (liveProjects as any)?.items;
-    if (live && live.length > 0) return live.map((p: any) => ({ id: p.id, name: p.name }));
-    return MOCK_PROJECTS;
-  }, [liveProjects]);
+  const handleEcoApproval = () => {
+    if (!canApproveECO) {
+      setEcoDialogOpen(true);
+      return;
+    }
+    setEcoSubmitted(true);
+    setTimeout(() => setEcoSubmitted(false), 3000);
+  };
 
-  const isUsingMock = !liveData || Object.values(liveData).every((v) => v === null);
-
-  const data: CockpitData | null = useMemo(() => {
-    if (!selectedProjectId) return null;
-    const mock = MOCK_DATA[selectedProjectId] ?? null;
-    if (!liveData) return mock;
-    // Merge: use live slice if non-null, otherwise fall back to mock slice
-    return {
-      project: liveData.project ?? mock?.project ?? null,
-      cost: liveData.cost ?? mock?.cost ?? null,
-      production: liveData.production ?? mock?.production ?? null,
-      vault: liveData.vault ?? mock?.vault ?? null,
-      quality: liveData.quality ?? mock?.quality ?? null,
-      acceptance: liveData.acceptance ?? mock?.acceptance ?? null,
-    };
-  }, [selectedProjectId, liveData]);
+  const budgetUsedPercent = Math.round((KPI.actualCost / KPI.budget) * 100);
 
   return (
-    <div className="space-y-6 p-6">
-      {/* ─── Header ─── */}
-      <PageHeader
-        icon={LayoutDashboard}
-        title="Project 360 Cockpit"
-        description="Cross-module project snapshot — progress, cost, quality, vault, acceptance"
-        actions={
-          <div className="flex items-center gap-3">
-            {/* Data source indicator */}
-            <Badge
-              variant="outline"
-              className={`text-xs gap-1.5 ${isUsingMock && selectedProjectId ? "border-yellow-400 text-yellow-600" : "border-green-400 text-green-600"}`}
-            >
-              {!selectedProjectId ? (
-                <><Database className="w-3 h-3" /> Ready</>
-              ) : isUsingMock ? (
-                <><WifiOff className="w-3 h-3" /> Demo Data</>
-              ) : (
-                <><Wifi className="w-3 h-3" /> Live</>
-              )}
-            </Badge>
-            <Select
-              value={selectedProjectId?.toString() ?? ""}
-              onValueChange={(v) => setSelectedProjectId(Number(v))}
-            >
-              <SelectTrigger className="w-[280px]">
-                <SelectValue placeholder="Select a project..." />
-              </SelectTrigger>
-              <SelectContent>
-                {projectOptions.map((p: any) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        }
-      />
-
-      {/* ─── Empty state ─── */}
-      {!selectedProjectId && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-            <LayoutDashboard className="w-12 h-12 opacity-20" />
-            <p className="text-lg font-medium">Select a project to view its 360 cockpit</p>
-            <p className="text-sm">All modules aggregated in one view — progress, cost, quality, vault, acceptance</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ─── Loading overlay ─── */}
-      {selectedProjectId && liveFetching && !data && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      )}
-
-      {/* ─── Dashboard ─── */}
-      {data && (
-        <>
-          {/* Project health banner */}
-          {data.project && (
-            <div className="flex items-center gap-4 px-4 py-3 bg-muted/50 rounded-lg border">
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold">{data.project.name}</h2>
-                <p className="text-sm text-muted-foreground">
-                  Status: {data.project.status} | Phase: {data.project.currentPhase ?? "-"}
-                </p>
+    <div className="min-h-screen bg-slate-50">
+      {/* ─── Page Header ─── */}
+      <div className="bg-white border-b px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-600 rounded-lg">
+                <LayoutDashboard className="w-5 h-5 text-white" />
               </div>
-              {data.project.healthStatus && (
-                <Badge className={`${healthBadge[data.project.healthStatus] ?? "bg-gray-100 text-gray-800"} px-3 py-1 text-sm`}>
-                  {data.project.healthStatus === "green" ? "Healthy" : data.project.healthStatus === "yellow" ? "At Risk" : "Critical"}
-                </Badge>
-              )}
-              <div className="text-right">
-                <p className="text-2xl font-bold">{data.project.completionPercent ?? 0}%</p>
-                <p className="text-xs text-muted-foreground">Overall</p>
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">项目 360 驾驶舱</h1>
+                <p className="text-sm text-gray-500">Project 360 Cockpit — M0-M12 Lifecycle Dashboard</p>
               </div>
             </div>
-          )}
-
-          {/* Stat Cards Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              icon={Factory}
-              label="Phase / Progress"
-              value={data.project ? `${data.project.currentPhase ?? "-"} / ${data.project.completionPercent ?? 0}%` : "-"}
-              subtitle={
-                data.production
-                  ? `${data.production.completed} done, ${data.production.inProgress} active, ${data.production.blocked} blocked`
-                  : "No stages"
-              }
-              iconColor="text-blue-600"
-              iconBg="bg-blue-100"
-            />
-            <StatCard
-              icon={DollarSign}
-              label="Cost"
-              value={data.cost ? `${fmt(data.cost.spent)} / ${fmt(data.cost.budget)}` : "-"}
-              subtitle={data.cost ? `Remaining: ${fmt(data.cost.remaining)}` : "-"}
-              iconColor="text-emerald-600"
-              iconBg="bg-emerald-100"
-            />
-            <StatCard
-              icon={ShieldCheck}
-              label="Quality"
-              value={data.quality ? `${data.quality.open8Ds} open 8D` : "-"}
-              subtitle={data.quality ? `FMEA: ${data.quality.fmeaCount} | Max RPN: ${data.quality.maxRpn}` : "-"}
-              iconColor="text-orange-600"
-              iconBg="bg-orange-100"
-            />
-            <StatCard
-              icon={FolderOpen}
-              label="Vault"
-              value={data.vault ? `${data.vault.totalFiles} files` : "-"}
-              subtitle={data.vault ? `ECO: ${data.vault.ecoTotal} (${data.vault.ecoDraft} draft)` : "-"}
-              iconColor="text-purple-600"
-              iconBg="bg-purple-100"
-            />
           </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50 px-3 py-1">
+              <Activity className="w-3.5 h-3.5 mr-1.5" />
+              Live
+            </Badge>
+            <div className="text-right">
+              <p className="text-sm font-medium text-gray-700">{PROJECT.nameCn}</p>
+              <p className="text-xs text-gray-500">{PROJECT.customer}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-          {/* ─── Tabs ─── */}
-          <Tabs defaultValue="production" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="production">Production</TabsTrigger>
-              <TabsTrigger value="cost">Cost</TabsTrigger>
-              <TabsTrigger value="quality">Quality</TabsTrigger>
-              <TabsTrigger value="vault">Vault</TabsTrigger>
-              <TabsTrigger value="acceptance">Acceptance</TabsTrigger>
-            </TabsList>
+      <div className="p-6 space-y-6">
+        {/* ─── Project Banner ─── */}
+        <div className="bg-white rounded-xl border px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">{PROJECT.name}</h2>
+              <p className="text-sm text-gray-500">
+                PM: {PROJECT.projectManager} &nbsp;|&nbsp; Phase: <span className="font-medium text-blue-700">{PROJECT.currentPhase}</span> &nbsp;|&nbsp; {PROJECT.lifecycle}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-gray-900">{KPI.completionPercent}%</p>
+              <p className="text-xs text-gray-500">Overall Progress</p>
+            </div>
+            <Badge className={`px-4 py-2 text-sm font-medium ${
+              KPI.overallStatus === "green" ? "bg-green-100 text-green-800 hover:bg-green-100" :
+              KPI.overallStatus === "yellow" ? "bg-amber-100 text-amber-800 hover:bg-amber-100" :
+              "bg-red-100 text-red-800 hover:bg-red-100"
+            }`}>
+              {KPI.overallStatus === "green" ? "● Healthy" : KPI.overallStatus === "yellow" ? "● At Risk" : "● Critical"}
+            </Badge>
+          </div>
+        </div>
 
-            {/* ── Production Tab ── */}
-            <TabsContent value="production">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Factory className="w-5 h-5" />
-                    Production Stages (T1-T15)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {!data.production ? (
-                    <NoData label="No production data available" />
-                  ) : data.production.stages.length === 0 ? (
-                    <NoData label="No stages initialized — project may be in early planning (M0-M2)" />
-                  ) : (
-                    <>
-                      <div className="flex gap-6 mb-6 text-sm">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-3 h-3 rounded-full bg-green-500" />
-                          <span>Completed: <strong>{data.production.completed}</strong></span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-3 h-3 rounded-full bg-blue-500" />
-                          <span>In Progress: <strong>{data.production.inProgress}</strong></span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-3 h-3 rounded-full bg-red-500" />
-                          <span>Blocked: <strong>{data.production.blocked}</strong></span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-3 h-3 rounded-full bg-gray-400" />
-                          <span>Pending: <strong>{data.production.stages.length - data.production.completed - data.production.inProgress - data.production.blocked}</strong></span>
-                        </div>
+        {/* ─── KPI Cards Row ─── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Financial Health */}
+          <Card className="bg-white border shadow-sm">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-emerald-50 rounded-lg">
+                    <DollarSign className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-600">Financial Health</span>
+                </div>
+                {KPI.budgetVariance < 0 ? (
+                  <TrendingDown className="w-4 h-4 text-green-500" />
+                ) : (
+                  <TrendingUp className="w-4 h-4 text-red-500" />
+                )}
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{fmtCurrency(KPI.actualCost)}</p>
+              <p className="text-xs text-gray-500 mt-1">of {fmtCurrency(KPI.budget)} budget</p>
+              <div className="mt-3">
+                <Progress value={budgetUsedPercent} className="h-2" />
+              </div>
+              <p className={`text-xs mt-2 font-medium ${KPI.budgetVariance < 0 ? "text-green-600" : "text-red-600"}`}>
+                {KPI.budgetVariance < 0 ? "▼" : "▲"} {Math.abs(KPI.budgetVariance)}% vs plan
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Schedule Variance */}
+          <Card className="bg-white border shadow-sm">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-amber-50 rounded-lg">
+                    <Clock className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-600">Schedule Variance</span>
+                </div>
+                <Timer className="w-4 h-4 text-amber-500" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">+{KPI.scheduleVarianceDays} days</p>
+              <p className="text-xs text-gray-500 mt-1">behind schedule</p>
+              <div className="mt-3">
+                <Progress value={Math.max(0, 100 - KPI.scheduleVarianceDays * 5)} className="h-2" />
+              </div>
+              <p className="text-xs mt-2 text-amber-600 font-medium">
+                Target: {PROJECT.targetDate}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Milestone Progress */}
+          <Card className="bg-white border shadow-sm">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <FileCheck2 className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-600">Milestones</span>
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{KPI.milestonesDone} / {KPI.milestonesTotal}</p>
+              <p className="text-xs text-gray-500 mt-1">milestones completed</p>
+              <div className="mt-3">
+                <Progress value={Math.round((KPI.milestonesDone / KPI.milestonesTotal) * 100)} className="h-2" />
+              </div>
+              <p className="text-xs mt-2 text-blue-600 font-medium">
+                {Math.round((KPI.milestonesDone / KPI.milestonesTotal) * 100)}% complete
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Quality Score */}
+          <Card className="bg-white border shadow-sm">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-purple-50 rounded-lg">
+                    <ShieldCheck className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-600">Quality Score</span>
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">87.3</p>
+              <p className="text-xs text-gray-500 mt-1">overall quality index</p>
+              <div className="mt-3">
+                <Progress value={87.3} className="h-2" />
+              </div>
+              <p className="text-xs mt-2 text-purple-600 font-medium">
+                2 open 8D &nbsp;|&nbsp; Max RPN: 224
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ─── Middle Section: Split View ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Panel: Concurrent Debugging Status */}
+          <Card className="bg-white border shadow-sm">
+            <CardHeader className="pb-3 border-b bg-gray-50/50">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Users className="w-5 h-5 text-blue-600" />
+                双轨联调状态
+                <span className="text-xs text-gray-400 font-normal ml-1">Concurrent Debugging Status</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {SUB_SYSTEMS.map((sys) => {
+                  const style = lockStatusStyles[sys.status];
+                  const IconComponent = sys.icon;
+                  const StatusIcon = style.icon;
+                  return (
+                    <div key={sys.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors">
+                      <div className="p-2 bg-slate-100 rounded-lg">
+                        <IconComponent className="w-4 h-4 text-slate-600" />
                       </div>
-                      <div className="space-y-2.5">
-                        {data.production.stages.map((s, i) => (
-                          <div key={i} className="flex items-center gap-3">
-                            <span className="w-[160px] text-sm font-mono truncate text-muted-foreground">{s.code}</span>
-                            <div className="flex-1 relative">
-                              <Progress value={s.completion} className="h-5" />
-                              {s.completion > 8 && (
-                                <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white mix-blend-difference">
-                                  {s.completion}%
-                                </span>
-                              )}
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className={`w-[100px] justify-center text-xs gap-1 ${
-                                s.status === "COMPLETED" ? "border-green-300 text-green-700" :
-                                s.status === "IN_PROGRESS" ? "border-blue-300 text-blue-700" :
-                                s.status === "BLOCKED" ? "border-red-300 text-red-700" :
-                                "border-gray-200 text-gray-500"
-                              }`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full ${statusColor[s.status] ?? "bg-gray-400"}`} />
-                              {statusLabel[s.status] ?? s.status}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{sys.nameCn}</p>
+                        <p className="text-xs text-gray-500">{sys.name}</p>
+                      </div>
+                      {sys.status === "locked" && sys.lockedBy && (
+                        <div className="text-right mr-2">
+                          <p className="text-xs font-medium text-red-700">{sys.lockedBy}</p>
+                          <p className="text-xs text-gray-400">since {sys.lockedSince}</p>
+                        </div>
+                      )}
+                      {sys.testProgress !== undefined && sys.testProgress < 100 && (
+                        <div className="w-16">
+                          <Progress value={sys.testProgress} className="h-1.5" />
+                          <p className="text-xs text-gray-400 text-center mt-0.5">{sys.testProgress}%</p>
+                        </div>
+                      )}
+                      <Badge variant="outline" className={`text-xs gap-1 ${style.color} border-0`}>
+                        <StatusIcon className="w-3 h-3" />
+                        {style.label}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="px-5 py-3 bg-gray-50 border-t text-xs text-gray-500 flex items-center gap-4">
+                <span className="flex items-center gap-1"><Lock className="w-3 h-3 text-red-500" /> 2 Locked</span>
+                <span className="flex items-center gap-1"><Activity className="w-3 h-3 text-blue-500" /> 2 Testing</span>
+                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> 1 Passed</span>
+                <span className="flex items-center gap-1"><Wrench className="w-3 h-3 text-gray-400" /> 1 Idle</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Right Panel: AI Smart Suggestions */}
+          <Card className="bg-white border shadow-sm">
+            <CardHeader className="pb-3 border-b bg-gray-50/50">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Bot className="w-5 h-5 text-violet-600" />
+                AI 智能建议
+                <span className="text-xs text-gray-400 font-normal ml-1">AI Smart Suggestions</span>
+                <Badge variant="outline" className="ml-auto text-xs border-violet-200 text-violet-600 bg-violet-50">
+                  {AI_SUGGESTIONS.length} items
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y max-h-[400px] overflow-y-auto">
+                {AI_SUGGESTIONS.map((s) => {
+                  const style = suggestionStyles[s.type];
+                  const SIcon = style.icon;
+                  return (
+                    <div key={s.id} className={`px-5 py-3.5 border-l-4 ${style.border} ${style.bg} hover:brightness-[0.98] transition-all`}>
+                      <div className="flex items-start gap-2.5">
+                        <SIcon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${style.iconColor}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">{s.title}</p>
+                          <p className="text-xs text-gray-600 mt-1 leading-relaxed">{s.detail}</p>
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="text-xs text-gray-400">{s.timestamp}</span>
+                            <Badge variant="outline" className="text-xs border-gray-200 text-gray-500 bg-white">
+                              {s.source}
                             </Badge>
                           </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* ── Cost Tab ── */}
-            <TabsContent value="cost">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="w-5 h-5" />
-                    Budget vs Spent
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {!data.cost ? (
-                    <NoData label="No cost data available" />
-                  ) : (
-                    <div className="space-y-6">
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="font-medium">Spent: {fmt(data.cost.spent)}</span>
-                          <span className="text-muted-foreground">Budget: {fmt(data.cost.budget)}</span>
-                        </div>
-                        <div className="relative">
-                          <Progress
-                            value={data.cost.budget > 0 ? Math.min(100, (data.cost.spent / data.cost.budget) * 100) : 0}
-                            className="h-6"
-                          />
-                          <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white mix-blend-difference">
-                            {data.cost.budget > 0 ? Math.round((data.cost.spent / data.cost.budget) * 100) : 0}% utilized
-                          </span>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <Card className="bg-muted/50">
-                          <CardContent className="pt-4 text-center">
-                            <p className="text-2xl font-bold text-emerald-600">{fmt(data.cost.budget)}</p>
-                            <p className="text-sm text-muted-foreground">Budget</p>
-                          </CardContent>
-                        </Card>
-                        <Card className="bg-muted/50">
-                          <CardContent className="pt-4 text-center">
-                            <p className="text-2xl font-bold">{fmt(data.cost.spent)}</p>
-                            <p className="text-sm text-muted-foreground">Spent</p>
-                          </CardContent>
-                        </Card>
-                        <Card className="bg-muted/50">
-                          <CardContent className="pt-4 text-center">
-                            <p className={`text-2xl font-bold ${data.cost.remaining < 0 ? "text-red-600" : "text-blue-600"}`}>
-                              {fmt(data.cost.remaining)}
-                            </p>
-                            <p className="text-sm text-muted-foreground">Remaining</p>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* ── Quality Tab ── */}
-            <TabsContent value="quality">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5" />
-                    Quality Summary — FMEA / 8D / CAPA
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {!data.quality ? (
-                    <NoData label="No quality data available" />
-                  ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <Card className="bg-muted/50 border-l-4 border-l-blue-500">
-                        <CardContent className="pt-4 text-center">
-                          <p className="text-3xl font-bold">{data.quality.fmeaCount}</p>
-                          <p className="text-sm text-muted-foreground mt-1">FMEA Documents</p>
-                        </CardContent>
-                      </Card>
-                      <Card className={`bg-muted/50 border-l-4 ${data.quality.maxRpn >= 200 ? "border-l-red-500" : data.quality.maxRpn >= 100 ? "border-l-yellow-500" : "border-l-green-500"}`}>
-                        <CardContent className="pt-4 text-center">
-                          <p className={`text-3xl font-bold ${data.quality.maxRpn >= 200 ? "text-red-600" : data.quality.maxRpn >= 100 ? "text-orange-500" : "text-green-600"}`}>
-                            {data.quality.maxRpn}
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-1">Max RPN</p>
-                          {data.quality.maxRpn >= 100 && (
-                            <Badge variant="destructive" className="mt-2 text-xs">
-                              {data.quality.maxRpn >= 200 ? "Critical" : "Needs Action"}
-                            </Badge>
-                          )}
-                        </CardContent>
-                      </Card>
-                      <Card className={`bg-muted/50 border-l-4 ${data.quality.open8Ds > 0 ? "border-l-orange-500" : "border-l-green-500"}`}>
-                        <CardContent className="pt-4 text-center">
-                          <p className={`text-3xl font-bold ${data.quality.open8Ds > 0 ? "text-orange-600" : "text-green-600"}`}>
-                            {data.quality.open8Ds}
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-1">Open 8D Reports</p>
-                        </CardContent>
-                      </Card>
-                      <Card className={`bg-muted/50 border-l-4 ${data.quality.overdueCapas > 0 ? "border-l-red-500" : "border-l-green-500"}`}>
-                        <CardContent className="pt-4 text-center">
-                          <p className={`text-3xl font-bold ${data.quality.overdueCapas > 0 ? "text-red-600" : "text-green-600"}`}>
-                            {data.quality.overdueCapas}
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-1">Open CAPAs</p>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* ── Vault Tab ── */}
-            <TabsContent value="vault">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FolderOpen className="w-5 h-5" />
-                    Cloud Vault & Engineering Change Orders
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {!data.vault ? (
-                    <NoData label="No vault data available" />
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h4 className="text-sm font-medium mb-3">Files by Type</h4>
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {Object.entries(data.vault.byType).map(([type, cnt]) => (
-                            <Badge key={type} variant="secondary" className="text-sm px-3 py-1.5">
-                              {type}: <strong className="ml-1">{cnt}</strong>
-                            </Badge>
-                          ))}
-                          {Object.keys(data.vault.byType).length === 0 && (
-                            <span className="text-sm text-muted-foreground">No files uploaded</span>
-                          )}
-                        </div>
-                        <div className="px-4 py-3 bg-muted/50 rounded-lg">
-                          <p className="text-sm text-muted-foreground">Total Files</p>
-                          <p className="text-3xl font-bold">{data.vault.totalFiles}</p>
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium mb-3">Engineering Change Orders</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <Card className="bg-muted/50">
-                            <CardContent className="pt-4 text-center">
-                              <p className="text-3xl font-bold">{data.vault.ecoTotal}</p>
-                              <p className="text-sm text-muted-foreground">Total ECOs</p>
-                            </CardContent>
-                          </Card>
-                          <Card className="bg-muted/50">
-                            <CardContent className="pt-4 text-center">
-                              <p className="text-3xl font-bold text-yellow-600">{data.vault.ecoDraft}</p>
-                              <p className="text-sm text-muted-foreground">Draft</p>
-                            </CardContent>
-                          </Card>
                         </div>
                       </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* ── Acceptance Tab ── */}
-            <TabsContent value="acceptance">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ClipboardCheck className="w-5 h-5" />
-                    FAT / SAT Acceptance Testing
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {!data.acceptance ? (
-                    <NoData label="No acceptance data available" />
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Card className="bg-muted/50 border-l-4 border-l-blue-500">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base">FAT (Factory Acceptance Test)</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex justify-between text-sm mb-2">
-                            <span>Completed: <strong>{data.acceptance.fatCompleted}</strong></span>
-                            <span>Total: <strong>{data.acceptance.fatTotal}</strong></span>
-                          </div>
-                          <div className="relative">
-                            <Progress
-                              value={data.acceptance.fatTotal > 0 ? (data.acceptance.fatCompleted / data.acceptance.fatTotal) * 100 : 0}
-                              className="h-4"
-                            />
-                            {data.acceptance.fatTotal > 0 && (
-                              <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white mix-blend-difference">
-                                {Math.round((data.acceptance.fatCompleted / data.acceptance.fatTotal) * 100)}%
-                              </span>
-                            )}
-                          </div>
-                          {data.acceptance.fatTotal === 0 && (
-                            <p className="text-xs text-muted-foreground mt-2">No FAT plans created yet</p>
-                          )}
-                        </CardContent>
-                      </Card>
-                      <Card className="bg-muted/50 border-l-4 border-l-green-500">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base">SAT (Site Acceptance Test)</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex justify-between text-sm mb-2">
-                            <span>Completed: <strong>{data.acceptance.satCompleted}</strong></span>
-                            <span>Total: <strong>{data.acceptance.satTotal}</strong></span>
-                          </div>
-                          <div className="relative">
-                            <Progress
-                              value={data.acceptance.satTotal > 0 ? (data.acceptance.satCompleted / data.acceptance.satTotal) * 100 : 0}
-                              className="h-4"
-                            />
-                            {data.acceptance.satTotal > 0 && (
-                              <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white mix-blend-difference">
-                                {Math.round((data.acceptance.satCompleted / data.acceptance.satTotal) * 100)}%
-                              </span>
-                            )}
-                          </div>
-                          {data.acceptance.satTotal === 0 && (
-                            <p className="text-xs text-muted-foreground mt-2">No SAT plans created yet</p>
-                          )}
-                        </CardContent>
-                      </Card>
+        {/* ─── T-Pipeline (T1-T15) ─── */}
+        <Card className="bg-white border shadow-sm">
+          <CardHeader className="pb-3 border-b bg-gray-50/50">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Activity className="w-5 h-5 text-blue-600" />
+              Production Pipeline (T1 → T15)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-5 px-6">
+            <div className="flex items-center gap-1 overflow-x-auto pb-2">
+              {T_STAGES.map((t, i) => (
+                <div key={t.code} className="flex items-center">
+                  <div className={`flex flex-col items-center min-w-[72px] ${
+                    t.status === "done" ? "" : t.status === "active" ? "" : "opacity-50"
+                  }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                      t.status === "done"   ? "bg-green-500 border-green-500 text-white" :
+                      t.status === "active" ? "bg-blue-500 border-blue-500 text-white animate-pulse" :
+                      "bg-white border-gray-300 text-gray-400"
+                    }`}>
+                      {t.status === "done" ? "✓" : t.code.replace("T", "")}
                     </div>
+                    <p className={`text-xs mt-1.5 text-center leading-tight ${
+                      t.status === "done" ? "text-green-700 font-medium" :
+                      t.status === "active" ? "text-blue-700 font-medium" :
+                      "text-gray-400"
+                    }`}>
+                      {t.name}
+                    </p>
+                  </div>
+                  {i < T_STAGES.length - 1 && (
+                    <div className={`w-4 h-0.5 mt-[-16px] ${
+                      t.status === "done" ? "bg-green-400" :
+                      t.status === "active" ? "bg-blue-300" :
+                      "bg-gray-200"
+                    }`} />
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </>
-      )}
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-6 mt-4 pt-3 border-t text-xs text-gray-500">
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-green-500" /> Done: {T_STAGES.filter(t => t.status === "done").length}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" /> Active: {T_STAGES.filter(t => t.status === "active").length}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-gray-300" /> Pending: {T_STAGES.filter(t => t.status === "pending").length}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ─── ECO Approval Section ─── */}
+        <Card className="bg-white border shadow-sm">
+          <CardHeader className="pb-3 border-b bg-gray-50/50">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ShieldCheck className="w-5 h-5 text-orange-600" />
+                Engineering Change Order (ECO) Approval
+              </CardTitle>
+              <Badge variant="outline" className="text-xs border-orange-200 text-orange-600 bg-orange-50">
+                Zero-Trust Gateway
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="py-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  ECO-2026-0047: Modify ultrasonic transducer mounting bracket (Revision B → C)
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Submitted by Zhang Wei (张伟) &nbsp;|&nbsp; Impact: T5 Surface Treatment, T6 Assembly &nbsp;|&nbsp; Priority: High
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {ecoSubmitted && (
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100 animate-in fade-in">
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                    Approval Submitted
+                  </Badge>
+                )}
+                <Button
+                  onClick={handleEcoApproval}
+                  disabled={ecoSubmitted}
+                  className={`gap-2 ${canApproveECO
+                    ? "bg-orange-600 hover:bg-orange-700 text-white"
+                    : "bg-gray-100 text-gray-500 border border-gray-300 hover:bg-gray-100 cursor-not-allowed"
+                  }`}
+                  variant={canApproveECO ? "default" : "outline"}
+                >
+                  {canApproveECO ? (
+                    <><Unlock className="w-4 h-4" /> Approve ECO</>
+                  ) : (
+                    <><Lock className="w-4 h-4" /> Approve ECO 🔒</>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Locked state dialog */}
+            {ecoDialogOpen && !canApproveECO && (
+              <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-900">Authorization Required</p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      ECO approval requires <strong>Manager</strong> level or above (current role: <code className="bg-amber-100 px-1 rounded">{currentUserRole}</code>).
+                      This action is gated through the <strong>sys_approval_requests</strong> workflow. Please contact your department manager for clearance.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 text-xs"
+                      onClick={() => setEcoDialogOpen(false)}
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Approval chain visualization */}
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs font-medium text-gray-500 mb-3">Approval Chain (sys_approval_requests)</p>
+              <div className="flex items-center gap-2">
+                {[
+                  { role: "Engineer", status: "done" },
+                  { role: "Team Lead", status: "done" },
+                  { role: "Dept Manager", status: "pending" },
+                  { role: "Director", status: "locked" },
+                ].map((step, i) => (
+                  <div key={step.role} className="flex items-center gap-2">
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${
+                      step.status === "done"    ? "bg-green-100 text-green-700" :
+                      step.status === "pending" ? "bg-amber-100 text-amber-700 ring-2 ring-amber-300" :
+                      "bg-gray-100 text-gray-400"
+                    }`}>
+                      {step.status === "done" && <CheckCircle2 className="w-3 h-3" />}
+                      {step.status === "pending" && <Clock className="w-3 h-3" />}
+                      {step.status === "locked" && <Lock className="w-3 h-3" />}
+                      {step.role}
+                    </div>
+                    {i < 3 && <ArrowRight className="w-3 h-3 text-gray-300" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

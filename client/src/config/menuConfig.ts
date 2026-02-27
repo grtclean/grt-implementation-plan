@@ -928,6 +928,7 @@ export const menuConfig: MenuGroup[] = [
     superCategory: "strategy",
     items: [
       { name: "战略中枢", nameEn: "Strategy Hub", nameDe: "Strategie-Zentrale", nameFr: "Centre stratégie", path: "/strategy", icon: Target, isNew: true },
+      { name: "卓越文化", nameEn: "Excellence Culture", nameDe: "Exzellenzkultur", nameFr: "Culture d'excellence", path: "/strategy/excellence", icon: Award, isNew: true },
       { name: "OKR矩阵", nameEn: "OKR Matrix", nameDe: "OKR-Matrix", nameFr: "Matrice OKR", path: "/strategy/okr-matrix", icon: Target, isNew: true },
       { name: "资质管理", nameEn: "Certification", nameDe: "Zertifizierung", nameFr: "Certification", path: "/certification-management", icon: Award },
       { name: "年度企业日程", nameEn: "Annual Agenda", nameDe: "Jahreskalender", nameFr: "Agenda annuel", path: "/annual-agenda", icon: Calendar },

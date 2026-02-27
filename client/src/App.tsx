@@ -555,6 +555,9 @@ function Router() {
       <Route path={"/me"}>
         <ProtectedRoute component={MeEngine} />
       </Route>
+      <Route path={"/strategy/excellence"}>
+        <ProtectedRoute component={StrategyEngine} />
+      </Route>
       <Route path={"/strategy/okr-matrix"}>
         <ProtectedRoute component={OKRMatrixPage} />
       </Route>
