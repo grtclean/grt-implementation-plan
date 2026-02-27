@@ -146,6 +146,16 @@ export default function RequireAuth({ children }: RequireAuthProps) {
 
   const { isAuthenticated, loading, refresh } = useAuth();
   const [inIframe] = useState(() => isInIframe());
+
+  // Debug: log route guard state on every render
+  if (!isPublicPage) {
+    console.log("🧭 [GRT Route Guard]", {
+      path: currentPath,
+      isAuthenticated,
+      loading,
+      inIframe,
+    });
+  }
   const [checkCount, setCheckCount] = useState(0);
   const [loginSuccessReceived, setLoginSuccessReceived] = useState(false);
 
@@ -191,6 +201,12 @@ export default function RequireAuth({ children }: RequireAuthProps) {
   useEffect(() => {
     if (isPublicPage) return; // Never redirect when already on login page
     if (!loading && !isAuthenticated) {
+      console.error("🚫 [GRT Route Guard Redirect]", {
+        reason: "Not authenticated",
+        path: currentPath,
+        mode: isLocalAuth ? "local-auth" : "oauth",
+        inIframe,
+      });
       if (isLocalAuth) {
         window.location.href = "/login";
       } else if (!inIframe) {
