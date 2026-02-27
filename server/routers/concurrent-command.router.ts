@@ -13,8 +13,10 @@ import {
   cccSandboxes,
   cccRooms,
   cccActivities,
+  cccImprovements,
+  cccImprovementUpdates,
 } from "../../drizzle/concurrent-debug-schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 
 // Dedicated workspace ID for Concurrent Command Center
 const CCC_WORKSPACE_ID = 9900;
@@ -374,6 +376,286 @@ export const concurrentCommandRouter = router({
         return items.filter(i => i.data?.role === input.role);
       }
       return items;
+    }),
+
+  // ─── Improvement Lifecycle (V2 — 6-step closed-loop) ────────────────────
+
+  createImprovement: publicProcedure
+    .input(z.object({
+      role: z.string().min(1),
+      area: z.string().min(1),
+      requirement: z.string().min(2),
+      userName: z.string().min(1),
+      assignedTo: z.string().optional(),
+      dueDate: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+
+      // Priority detection
+      const priorityKeywords: Record<string, string[]> = {
+        high: ["紧急", "严重", "立即", "关键", "阻塞", "urgent", "critical", "blocking"],
+        medium: ["优化", "改善", "提升", "增强", "improve", "enhance", "optimize"],
+        low: ["建议", "考虑", "未来", "长期", "suggest", "consider", "future"],
+      };
+      let priority: "high" | "medium" | "low" = "medium";
+      const reqLower = input.requirement.toLowerCase();
+      if (priorityKeywords.high.some(k => reqLower.includes(k))) priority = "high";
+      else if (priorityKeywords.low.some(k => reqLower.includes(k))) priority = "low";
+
+      // Generate 6 steps
+      const steps = [
+        { label: "现状分析", desc: `对"${input.area}"进行全面诊断，识别${input.requirement.slice(0, 20)}相关的关键痛点`, done: false },
+        { label: "方案设计", desc: "制定针对性改进方案，明确目标指标与验收标准", done: false },
+        { label: "资源评估", desc: "评估所需人力、预算和时间投入", done: false },
+        { label: "试点执行", desc: "选择1个部门/场景进行小范围试点验证", done: false },
+        { label: "效果评估", desc: "对比改进前后数据，量化改进效果", done: false },
+        { label: "全面推广", desc: "试点成功后制定推广计划并固化为标准流程", done: false },
+      ];
+
+      const estimatedDays = priority === "high" ? "7-14天" : priority === "medium" ? "14-30天" : "30-60天";
+      const assignedTo = input.assignedTo || `${input.role}团队`;
+
+      // Auto due date based on priority
+      let dueDate = input.dueDate;
+      if (!dueDate) {
+        const d = new Date();
+        d.setDate(d.getDate() + (priority === "high" ? 14 : priority === "medium" ? 30 : 60));
+        dueDate = d.toISOString().slice(0, 10);
+      }
+
+      const now = new Date().toISOString();
+      const [row] = await db.insert(cccImprovements).values({
+        role: input.role,
+        area: input.area,
+        requirement: input.requirement,
+        priority,
+        status: "submitted",
+        steps,
+        estimatedDays,
+        assignedTo,
+        dueDate,
+        completionPct: 0,
+        createdBy: input.userName,
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
+
+      // First update record
+      await db.insert(cccImprovementUpdates).values({
+        improvementId: row.id,
+        stepNumber: 0,
+        action: "create",
+        content: `创建改进需求: ${input.area} — ${input.requirement.slice(0, 80)}`,
+        userName: input.userName,
+      });
+
+      // Activity log + broadcast for compatibility
+      await broadcast(
+        "createImprovement",
+        `[${input.role}] ${input.area}: ${input.requirement.slice(0, 60)}`,
+        input.userName,
+        { improvementId: row.id, priority, area: input.area },
+      );
+
+      return row;
+    }),
+
+  getImprovement: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id));
+      if (!imp) throw new Error("Improvement not found");
+
+      const updates = await db.select().from(cccImprovementUpdates)
+        .where(eq(cccImprovementUpdates.improvementId, input.id))
+        .orderBy(cccImprovementUpdates.createdAt);
+
+      return { ...imp, updates };
+    }),
+
+  listImprovementsV2: publicProcedure
+    .input(z.object({
+      role: z.string().optional(),
+      status: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const conditions = [];
+      if (input?.role) conditions.push(eq(cccImprovements.role, input.role));
+      if (input?.status) conditions.push(eq(cccImprovements.status, input.status));
+
+      const query = db.select().from(cccImprovements)
+        .orderBy(desc(cccImprovements.createdAt))
+        .limit(input?.limit ?? 50);
+
+      if (conditions.length > 0) {
+        return query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
+      }
+      return query;
+    }),
+
+  updateProgress: publicProcedure
+    .input(z.object({
+      id: z.number(),
+      stepNumber: z.number().min(1).max(6),
+      content: z.string().min(1),
+      completionPct: z.number().min(0).max(100),
+      userName: z.string().min(1),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+
+      const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id));
+      if (!imp) throw new Error("Improvement not found");
+      if (!["submitted", "assigned", "in_progress"].includes(imp.status)) {
+        throw new Error(`Cannot update progress: status is "${imp.status}"`);
+      }
+
+      // Mark step as done in JSON
+      const steps = Array.isArray(imp.steps) ? [...(imp.steps as any[])] : [];
+      if (steps[input.stepNumber - 1]) {
+        steps[input.stepNumber - 1] = { ...steps[input.stepNumber - 1], done: true };
+      }
+
+      const now = new Date().toISOString();
+      const [updated] = await db.update(cccImprovements).set({
+        completionPct: input.completionPct,
+        status: "in_progress",
+        steps,
+        updatedAt: now,
+      }).where(eq(cccImprovements.id, input.id)).returning();
+
+      await db.insert(cccImprovementUpdates).values({
+        improvementId: input.id,
+        stepNumber: input.stepNumber,
+        action: "progress",
+        content: input.content,
+        userName: input.userName,
+      });
+
+      await broadcast(
+        "updateProgress",
+        `[${imp.role}] ${imp.area} — 步骤${input.stepNumber}: ${input.content.slice(0, 40)}`,
+        input.userName,
+        { improvementId: input.id, completionPct: input.completionPct },
+      );
+
+      return updated;
+    }),
+
+  submitResult: publicProcedure
+    .input(z.object({
+      id: z.number(),
+      resultSummary: z.string().min(1),
+      resultEvidence: z.record(z.string(), z.any()).optional(),
+      userName: z.string().min(1),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+
+      const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id));
+      if (!imp) throw new Error("Improvement not found");
+
+      const now = new Date().toISOString();
+      const [updated] = await db.update(cccImprovements).set({
+        status: "completed",
+        resultSummary: input.resultSummary,
+        resultEvidence: input.resultEvidence ?? null,
+        completionPct: 100,
+        updatedAt: now,
+      }).where(eq(cccImprovements.id, input.id)).returning();
+
+      await db.insert(cccImprovementUpdates).values({
+        improvementId: input.id,
+        stepNumber: 0,
+        action: "submit_result",
+        content: input.resultSummary,
+        evidenceData: input.resultEvidence ?? null,
+        userName: input.userName,
+      });
+
+      await broadcast(
+        "submitResult",
+        `[${imp.role}] ${imp.area} — 已提交改进结果`,
+        input.userName,
+        { improvementId: input.id },
+      );
+
+      return updated;
+    }),
+
+  verifyImprovement: publicProcedure
+    .input(z.object({
+      id: z.number(),
+      approved: z.boolean(),
+      comment: z.string().optional(),
+      userName: z.string().min(1),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+
+      const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id));
+      if (!imp) throw new Error("Improvement not found");
+
+      const now = new Date().toISOString();
+
+      if (input.approved) {
+        const [updated] = await db.update(cccImprovements).set({
+          status: "verified",
+          verifiedBy: input.userName,
+          verifiedAt: now,
+          updatedAt: now,
+        }).where(eq(cccImprovements.id, input.id)).returning();
+
+        await db.insert(cccImprovementUpdates).values({
+          improvementId: input.id,
+          stepNumber: 0,
+          action: "verify",
+          content: input.comment || "验收通过",
+          userName: input.userName,
+        });
+
+        await broadcast("verifyImprovement", `[${imp.role}] ${imp.area} — 验收通过`, input.userName, { improvementId: input.id });
+        return updated;
+      } else {
+        // Reject — back to in_progress
+        const [updated] = await db.update(cccImprovements).set({
+          status: "in_progress",
+          completionPct: Math.max((imp.completionPct ?? 0) - 20, 0),
+          updatedAt: now,
+        }).where(eq(cccImprovements.id, input.id)).returning();
+
+        await db.insert(cccImprovementUpdates).values({
+          improvementId: input.id,
+          stepNumber: 0,
+          action: "reject",
+          content: input.comment || "打回修改",
+          userName: input.userName,
+        });
+
+        await broadcast("verifyImprovement", `[${imp.role}] ${imp.area} — 打回修改`, input.userName, { improvementId: input.id });
+        return updated;
+      }
+    }),
+
+  improvementStats: publicProcedure
+    .input(z.object({ role: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+
+      const conditions = input?.role ? eq(cccImprovements.role, input.role) : undefined;
+      const rows = await db.select({ status: cccImprovements.status })
+        .from(cccImprovements)
+        .where(conditions);
+
+      const counts = { submitted: 0, assigned: 0, in_progress: 0, completed: 0, verified: 0, closed: 0 };
+      for (const r of rows) {
+        if (r.status in counts) counts[r.status as keyof typeof counts]++;
+      }
+      return counts;
     }),
 
   // ─── Seed Demo Data ───────────────────────────────────────────────────────
