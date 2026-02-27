@@ -3,18 +3,30 @@
  *
  * Provides CRUD for annual BU sales/output target plans with:
  *   - Auto-generated monthly breakdown using growth rules
- *   - Detail-level adjustments (zero-sum validation)
- *   - Adjustment approval workflow
+ *   - Zero-sum validated adjustment submissions
+ *   - 2-step approval: Finance/PMO初审 → CEO终审
+ *   - Exception tagging (Spring Festival, equipment overhaul, etc.)
+ *   - On CEO approval: proposed data → official baseline (isAdjusted=true)
  */
 import { z } from "zod";
 import { router, publicProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 import {
   buSalesPlans,
   buSalesPlanDetails,
   buSalesPlanAdjustments,
 } from "../../drizzle/schema";
+
+/** Per-detail proposed change in an adjustment */
+const detailChangeSchema = z.object({
+  detailId: z.number(),
+  month: z.number(),
+  salesTarget: z.number(),
+  outputTarget: z.number(),
+  kpiTarget: z.number().optional(),
+  capabilityLevel: z.number().optional(),
+});
 
 export const buSalesTargetRouter = router({
   /** List all BU sales plans, ordered by year desc */
@@ -86,8 +98,6 @@ export const buSalesTargetRouter = router({
 
       const { year, departmentId, totalSalesTarget, totalOutputTarget, growthRules } = input;
 
-      // Calculate quarterly distribution using growth rules
-      // Q1_base = total / (1 + (1+g1) + (1+g1)(1+g2) + (1+g1)(1+g2)(1+g3))
       const g1 = growthRules.Q2_vs_Q1;
       const g2 = growthRules.Q3_vs_Q2;
       const g3 = growthRules.Q4_vs_Q3;
@@ -108,7 +118,6 @@ export const buSalesTargetRouter = router({
       const kpiBaselines = [75, 78, 80, 85];
       const capLevels = [2.25, 2.50, 2.75, 3.00];
 
-      // Insert plan
       const [plan] = await db
         .insert(buSalesPlans)
         .values({
@@ -121,7 +130,6 @@ export const buSalesTargetRouter = router({
         })
         .returning();
 
-      // Insert 12 monthly details
       const monthlyRows = [];
       for (let q = 0; q < 4; q++) {
         for (let m = 0; m < 3; m++) {
@@ -172,18 +180,67 @@ export const buSalesTargetRouter = router({
       return updated;
     }),
 
-  /** Submit adjustment request (validate zero-sum: year total unchanged) */
+  // ─── Phase 1: Two-Step Approval Workflow ─────────────────────
+
+  /** Submit plan for approval: draft → submitted */
+  submitPlan: publicProcedure
+    .input(z.object({
+      planId: z.number(),
+      submittedBy: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const [plan] = await db
+        .update(buSalesPlans)
+        .set({
+          status: "submitted",
+          submittedBy: input.submittedBy,
+          submittedAt: new Date().toISOString(),
+        })
+        .where(eq(buSalesPlans.id, input.planId))
+        .returning();
+
+      return plan;
+    }),
+
+  /**
+   * Submit adjustment with zero-sum validation & exception tagging.
+   * originalDetails + proposedDetails must have same total salesTarget & outputTarget
+   * unless adjustmentType === 'exception'.
+   */
   submitAdjustment: publicProcedure
     .input(z.object({
       buSalesPlanId: z.number(),
       applicantId: z.string(),
       adjustmentReason: z.string(),
-      originalData: z.record(z.string(), z.unknown()),
-      proposedData: z.record(z.string(), z.unknown()),
+      adjustmentType: z.enum(["normal", "exception"]).default("normal"),
+      exceptionTag: z.string().optional(),
+      originalDetails: z.array(detailChangeSchema),
+      proposedDetails: z.array(detailChangeSchema),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+
+      // Zero-sum validation for normal adjustments
+      if (input.adjustmentType === "normal") {
+        const origSalesSum = input.originalDetails.reduce((s, d) => s + d.salesTarget, 0);
+        const propSalesSum = input.proposedDetails.reduce((s, d) => s + d.salesTarget, 0);
+        const origOutputSum = input.originalDetails.reduce((s, d) => s + d.outputTarget, 0);
+        const propOutputSum = input.proposedDetails.reduce((s, d) => s + d.outputTarget, 0);
+
+        const salesTolerance = Math.abs(origSalesSum - propSalesSum);
+        const outputTolerance = Math.abs(origOutputSum - propOutputSum);
+
+        if (salesTolerance > 0.01 || outputTolerance > 0.01) {
+          throw new Error(
+            `零和校验失败: 销售目标差额=${salesTolerance.toFixed(2)}, 产值目标差额=${outputTolerance.toFixed(2)}。` +
+            `如需破例，请选择"例外调整"类型。`
+          );
+        }
+      }
 
       const [adj] = await db
         .insert(buSalesPlanAdjustments)
@@ -191,16 +248,149 @@ export const buSalesTargetRouter = router({
           buSalesPlanId: input.buSalesPlanId,
           applicantId: input.applicantId,
           adjustmentReason: input.adjustmentReason,
-          originalData: input.originalData,
-          proposedData: input.proposedData,
+          adjustmentType: input.adjustmentType,
+          exceptionTag: input.exceptionTag ?? null,
+          originalData: { details: input.originalDetails },
+          proposedData: { details: input.proposedDetails },
           approvalStatus: "pending",
+          reviewStep: "finance_pmo",
         })
         .returning();
+
+      // Update plan status to "submitted" if still draft
+      await db
+        .update(buSalesPlans)
+        .set({ status: "submitted" })
+        .where(
+          and(
+            eq(buSalesPlans.id, input.buSalesPlanId),
+            sql`${buSalesPlans.status} = 'draft'`
+          )
+        );
 
       return adj;
     }),
 
-  /** Approve/reject adjustment, apply proposed data to details */
+  /** Finance/PMO first-step review */
+  financeReview: publicProcedure
+    .input(z.object({
+      adjustmentId: z.number(),
+      reviewerId: z.string(),
+      approved: z.boolean(),
+      comment: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const finStatus = input.approved ? "approved" : "rejected";
+
+      const updateData: Record<string, unknown> = {
+        financePmoStatus: finStatus,
+        financePmoReviewedBy: input.reviewerId,
+        financePmoReviewedAt: new Date().toISOString(),
+        financePmoComment: input.comment ?? null,
+      };
+
+      if (input.approved) {
+        // Move to CEO step
+        updateData.reviewStep = "ceo";
+        updateData.approvalStatus = "finance_approved";
+      } else {
+        // Rejected at finance level
+        updateData.approvalStatus = "rejected";
+      }
+
+      const [adj] = await db
+        .update(buSalesPlanAdjustments)
+        .set(updateData)
+        .where(eq(buSalesPlanAdjustments.id, input.adjustmentId))
+        .returning();
+
+      // If rejected, revert plan status to draft
+      if (!input.approved && adj) {
+        await db
+          .update(buSalesPlans)
+          .set({ status: "draft" })
+          .where(eq(buSalesPlans.id, adj.buSalesPlanId));
+      }
+
+      return adj;
+    }),
+
+  /** CEO final review — on approval, apply proposed data to detail rows */
+  ceoReview: publicProcedure
+    .input(z.object({
+      adjustmentId: z.number(),
+      reviewerId: z.string(),
+      approved: z.boolean(),
+      comment: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const ceoStatus = input.approved ? "approved" : "rejected";
+
+      const [adj] = await db
+        .update(buSalesPlanAdjustments)
+        .set({
+          ceoStatus,
+          ceoReviewedBy: input.reviewerId,
+          ceoReviewedAt: new Date().toISOString(),
+          ceoComment: input.comment ?? null,
+          approvalStatus: input.approved ? "approved" : "rejected",
+          approvedBy: input.reviewerId,
+        })
+        .where(eq(buSalesPlanAdjustments.id, input.adjustmentId))
+        .returning();
+
+      if (!adj) throw new Error("Adjustment not found");
+
+      if (input.approved) {
+        // Apply proposed data to detail rows — this becomes the official baseline
+        const proposed = adj.proposedData as { details?: Array<{
+          detailId: number;
+          salesTarget: number;
+          outputTarget: number;
+          kpiTarget?: number;
+          capabilityLevel?: number;
+        }> } | null;
+
+        if (proposed?.details && Array.isArray(proposed.details)) {
+          for (const d of proposed.details) {
+            const setData: Record<string, unknown> = {
+              isAdjusted: true,
+              salesTarget: d.salesTarget.toFixed(2),
+              outputTarget: d.outputTarget.toFixed(2),
+            };
+            if (d.kpiTarget !== undefined) setData.kpiTarget = d.kpiTarget.toFixed(2);
+            if (d.capabilityLevel !== undefined) setData.capabilityLevel = d.capabilityLevel.toFixed(2);
+
+            await db
+              .update(buSalesPlanDetails)
+              .set(setData)
+              .where(eq(buSalesPlanDetails.id, d.detailId));
+          }
+        }
+
+        // Mark plan as approved — this is now the official 考核基线
+        await db
+          .update(buSalesPlans)
+          .set({ status: "approved" })
+          .where(eq(buSalesPlans.id, adj.buSalesPlanId));
+      } else {
+        // CEO rejected — revert plan to draft
+        await db
+          .update(buSalesPlans)
+          .set({ status: "draft" })
+          .where(eq(buSalesPlans.id, adj.buSalesPlanId));
+      }
+
+      return adj;
+    }),
+
+  /** Legacy approve shortcut — kept for backward compatibility */
   approveAdjustment: publicProcedure
     .input(z.object({
       adjustmentId: z.number(),
@@ -241,7 +431,7 @@ export const buSalesTargetRouter = router({
     .query(async () => {
       const db = await getDb();
       if (!db) {
-        return { totalPlans: 0, totalSalesTarget: 0, totalOutputTarget: 0, avgGrowth: 0 };
+        return { totalPlans: 0, totalSalesTarget: 0, totalOutputTarget: 0, avgGrowth: 0, pendingApprovals: 0 };
       }
       try {
         const result = await db
@@ -252,15 +442,51 @@ export const buSalesTargetRouter = router({
           })
           .from(buSalesPlans);
 
+        const pendingResult = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(buSalesPlanAdjustments)
+          .where(sql`${buSalesPlanAdjustments.approvalStatus} IN ('pending', 'finance_approved')`);
+
         const row = result[0];
         return {
           totalPlans: Number(row?.totalPlans ?? 0),
           totalSalesTarget: Number(row?.totalSalesTarget ?? 0),
           totalOutputTarget: Number(row?.totalOutputTarget ?? 0),
           avgGrowth: 0,
+          pendingApprovals: Number(pendingResult[0]?.count ?? 0),
         };
       } catch {
-        return { totalPlans: 0, totalSalesTarget: 0, totalOutputTarget: 0, avgGrowth: 0 };
+        return { totalPlans: 0, totalSalesTarget: 0, totalOutputTarget: 0, avgGrowth: 0, pendingApprovals: 0 };
+      }
+    }),
+
+  /** List pending adjustments for review (Finance/PMO or CEO step) */
+  pendingReviews: publicProcedure
+    .input(z.object({
+      step: z.enum(["finance_pmo", "ceo"]).optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      try {
+        let whereClause;
+        if (input?.step === "finance_pmo") {
+          whereClause = sql`${buSalesPlanAdjustments.approvalStatus} = 'pending' AND ${buSalesPlanAdjustments.reviewStep} = 'finance_pmo'`;
+        } else if (input?.step === "ceo") {
+          whereClause = sql`${buSalesPlanAdjustments.approvalStatus} = 'finance_approved' AND ${buSalesPlanAdjustments.reviewStep} = 'ceo'`;
+        } else {
+          whereClause = sql`${buSalesPlanAdjustments.approvalStatus} IN ('pending', 'finance_approved')`;
+        }
+
+        const items = await db
+          .select()
+          .from(buSalesPlanAdjustments)
+          .where(whereClause)
+          .orderBy(desc(buSalesPlanAdjustments.createdAt));
+
+        return items;
+      } catch {
+        return [];
       }
     }),
 });
