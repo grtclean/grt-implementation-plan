@@ -12022,3 +12022,27 @@ export type BuSalesPlanDetail = InferSelectModel<typeof buSalesPlanDetails>;
 export type InsertBuSalesPlanDetail = InferInsertModel<typeof buSalesPlanDetails>;
 export type BuSalesPlanAdjustment = InferSelectModel<typeof buSalesPlanAdjustments>;
 export type InsertBuSalesPlanAdjustment = InferInsertModel<typeof buSalesPlanAdjustments>;
+
+// ══════════════════════════════════════════════════════════════
+// AI Tasks — General-purpose async AI task queue
+// (e.g. HR_CAPABILITY_PARSING, DOCUMENT_ANALYSIS, etc.)
+// ══════════════════════════════════════════════════════════════
+
+export const aiTasks = pgTable('ai_tasks', {
+  id: serial('id').primaryKey(),
+  taskType: varchar('task_type', { length: 50 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  inputData: json('input_data').$type<Record<string, unknown>>(),
+  resultData: json('result_data').$type<Record<string, unknown>>(),
+  errorMessage: varchar('error_message', { length: 500 }),
+  createdBy: varchar('created_by', { length: 50 }),
+  startedAt: timestamp('started_at', { mode: 'string' }),
+  completedAt: timestamp('completed_at', { mode: 'string' }),
+  createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
+}, (table) => [
+  index('ai_tasks_type_idx').on(table.taskType),
+  index('ai_tasks_status_idx').on(table.status),
+]);
+
+export type AiTask = InferSelectModel<typeof aiTasks>;
+export type InsertAiTask = InferInsertModel<typeof aiTasks>;

@@ -60,6 +60,7 @@ import {
   buSalesPlans, InsertBuSalesPlan, BuSalesPlan,
   buSalesPlanDetails, InsertBuSalesPlanDetail, BuSalesPlanDetail,
   buSalesPlanAdjustments, InsertBuSalesPlanAdjustment, BuSalesPlanAdjustment,
+  aiTasks, AiTask, InsertAiTask,
 } from "../drizzle/schema";
 
 import { ENV } from './_core/env';
