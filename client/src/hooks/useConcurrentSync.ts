@@ -69,7 +69,14 @@ export function useConcurrentSync(userId: number, userName: string) {
   useEffect(() => {
     if (historyQuery.data && !seededRef.current) {
       seededRef.current = true;
-      setActivities(historyQuery.data.slice(0, MAX_LOCAL_ACTIVITIES) as ActivityEntry[]);
+      const mapped: ActivityEntry[] = historyQuery.data.slice(0, MAX_LOCAL_ACTIVITIES).map((a: any) => ({
+        id: String(a.id),
+        action: a.action ?? "",
+        target: a.target ?? "",
+        userName: a.userName ?? "",
+        timestamp: a.createdAt ?? a.timestamp ?? "",
+      }));
+      setActivities(mapped);
     }
   }, [historyQuery.data]);
 

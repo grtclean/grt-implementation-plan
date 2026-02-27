@@ -12,7 +12,13 @@ import {
 } from "../../drizzle/schema";
 import { gateChecklists } from "../../drizzle/schema";
 import { redBlueConfigs, redBlueExecutions } from "../../drizzle/approval-engine-schema";
-import { eq, desc, and, count, sql, lt, gte } from "drizzle-orm";
+import { eq, desc, and, count, sql, lt, gte, ne, inArray } from "drizzle-orm";
+
+// Ordered M-stage codes for index-based navigation
+const M_STAGE_CODES = [
+  "M0", "M1", "M2", "M3", "M4", "M5", "M6",
+  "M7", "M8", "M9", "M10", "M11", "M12",
+] as const;
 
 // M阶段定义（静态参考数据）
 const M_STAGE_DEFINITIONS = [
@@ -263,6 +269,34 @@ export const projectGateRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
+
+      // ── Checklist enforcement (W2-02 hardening) ──
+      if (input.approved) {
+        const [gate] = await db.select().from(projectGates).where(eq(projectGates.id, input.requestId));
+        if (!gate) throw new Error("Gate record not found");
+
+        const checklistItems = await db.select().from(gateChecklists)
+          .where(and(
+            eq(gateChecklists.projectId, gate.projectId),
+            eq(gateChecklists.gateStage, gate.phaseCode),
+          ));
+
+        const mandatoryItems = checklistItems.filter(i => i.isMandatory);
+        const failed = mandatoryItems.filter(i => i.status === "failed");
+        const notReady = mandatoryItems.filter(i => i.status !== "verified" && i.status !== "waived" && i.status !== "failed");
+
+        if (failed.length > 0) {
+          throw new Error(
+            `无法批准：${failed.length} 个必填检查项未通过 (${failed.map(i => i.checkItem).join(", ")})`
+          );
+        }
+        if (notReady.length > 0) {
+          throw new Error(
+            `无法批准：${notReady.length} 个必填检查项尚未完成验证 (${notReady.map(i => i.checkItem).join(", ")})`
+          );
+        }
+      }
+
       await db.update(projectGates)
         .set({
           status: input.approved ? "approved" : "rejected",
@@ -366,6 +400,321 @@ export const projectGateRouter = router({
         })
         .where(eq(redBlueConfigs.id, input.sessionId));
       return { success: true, message: "红蓝对抗结果已记录" };
+    }),
+
+  // ─── W2-02: Rock-Solid Stage-Gate Transitions (V2) ──────────────────────
+
+  /**
+   * Pre-flight check: can this stage advance?
+   * Validates all mandatory checklist items are verified/waived with zero failed.
+   */
+  validateGateReadiness: publicProcedure
+    .input(z.object({ projectId: z.number(), stageCode: z.string() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+
+      const items = await db.select().from(gateChecklists)
+        .where(and(
+          eq(gateChecklists.projectId, input.projectId),
+          eq(gateChecklists.gateStage, input.stageCode),
+        ));
+
+      const mandatory = items.filter(i => i.isMandatory);
+      const optional = items.filter(i => !i.isMandatory);
+      const mandatoryPassed = mandatory.filter(i => i.status === "verified" || i.status === "waived");
+      const mandatoryFailed = mandatory.filter(i => i.status === "failed");
+      const mandatoryPending = mandatory.filter(i =>
+        i.status !== "verified" && i.status !== "waived" && i.status !== "failed"
+      );
+
+      const reasons: string[] = [];
+      if (mandatoryFailed.length > 0) {
+        reasons.push(`${mandatoryFailed.length} 个必填项未通过: ${mandatoryFailed.map(i => i.checkItem).join(", ")}`);
+      }
+      if (mandatoryPending.length > 0) {
+        reasons.push(`${mandatoryPending.length} 个必填项待验证: ${mandatoryPending.map(i => i.checkItem).join(", ")}`);
+      }
+
+      const canAdvance = mandatory.length === 0 || (mandatoryFailed.length === 0 && mandatoryPending.length === 0);
+      const completionPercent = mandatory.length > 0
+        ? Math.round((mandatoryPassed.length / mandatory.length) * 100)
+        : 100;
+
+      return {
+        canAdvance,
+        mandatoryTotal: mandatory.length,
+        mandatoryPassed: mandatoryPassed.length,
+        mandatoryFailed: mandatoryFailed.length,
+        mandatoryPending: mandatoryPending.length,
+        optionalTotal: optional.length,
+        completionPercent,
+        reasons,
+      };
+    }),
+
+  /**
+   * Enforced phase advance with full checklist validation + audit trail.
+   * Works on projects_v2 / project_stages_v2 tables.
+   */
+  advancePhaseV2: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      currentStageCode: z.string(),
+      approvedBy: z.string(),
+      score: z.number().min(0).max(100).optional(),
+      comments: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+
+      // 1. Verify project exists and current stage matches (stale-race guard)
+      const [project] = await db.select().from(projectsV2)
+        .where(eq(projectsV2.id, input.projectId));
+      if (!project) throw new Error("项目不存在");
+      if (project.currentStage !== input.currentStageCode) {
+        throw new Error(
+          `阶段不匹配: 项目当前阶段为 ${project.currentStage}，请求阶段为 ${input.currentStageCode}`
+        );
+      }
+
+      // 2. Cannot advance past M12
+      const currentIdx = M_STAGE_CODES.indexOf(input.currentStageCode as any);
+      if (currentIdx < 0) throw new Error(`无效阶段: ${input.currentStageCode}`);
+      if (currentIdx >= M_STAGE_CODES.length - 1) {
+        throw new Error("M12 为终结阶段，无法继续推进");
+      }
+
+      // 3. Checklist enforcement: all mandatory items must be verified/waived, zero failed
+      const checklistItems = await db.select().from(gateChecklists)
+        .where(and(
+          eq(gateChecklists.projectId, input.projectId),
+          eq(gateChecklists.gateStage, input.currentStageCode),
+        ));
+
+      const mandatory = checklistItems.filter(i => i.isMandatory);
+      const failed = mandatory.filter(i => i.status === "failed");
+      const notReady = mandatory.filter(i =>
+        i.status !== "verified" && i.status !== "waived" && i.status !== "failed"
+      );
+
+      if (failed.length > 0) {
+        throw new Error(
+          `阶段推进被阻止：${failed.length} 个必填检查项未通过 (${failed.map(i => i.checkItem).join(", ")})`
+        );
+      }
+      if (notReady.length > 0) {
+        throw new Error(
+          `阶段推进被阻止：${notReady.length} 个必填检查项尚未完成 (${notReady.map(i => i.checkItem).join(", ")})`
+        );
+      }
+
+      const nextStageCode = M_STAGE_CODES[currentIdx + 1];
+      const now = new Date().toISOString();
+
+      // 4a. Mark current stage as Completed
+      const auditEntry = {
+        type: "ADVANCE",
+        from: input.currentStageCode,
+        to: nextStageCode,
+        approvedBy: input.approvedBy,
+        score: input.score ?? null,
+        comments: input.comments ?? null,
+        timestamp: now,
+      };
+
+      // Get current stage record to append audit
+      const [currentStageRow] = await db.select().from(projectStagesV2)
+        .where(and(
+          eq(projectStagesV2.projectId, input.projectId),
+          eq(projectStagesV2.stageCode, input.currentStageCode as any),
+        ));
+
+      let existingAuditLog: any[] = [];
+      if (currentStageRow?.auditLog) {
+        try { existingAuditLog = JSON.parse(currentStageRow.auditLog); } catch { /* ignore */ }
+      }
+      existingAuditLog.push(auditEntry);
+
+      await db.update(projectStagesV2)
+        .set({
+          status: "Completed" as any,
+          completionPercent: 100,
+          actualEndDate: now.split("T")[0],
+          auditLog: JSON.stringify(existingAuditLog),
+          updatedAt: now,
+        })
+        .where(and(
+          eq(projectStagesV2.projectId, input.projectId),
+          eq(projectStagesV2.stageCode, input.currentStageCode as any),
+        ));
+
+      // 4b. Mark next stage as InProgress
+      await db.update(projectStagesV2)
+        .set({
+          status: "InProgress" as any,
+          actualStartDate: now.split("T")[0],
+          updatedAt: now,
+        })
+        .where(and(
+          eq(projectStagesV2.projectId, input.projectId),
+          eq(projectStagesV2.stageCode, nextStageCode as any),
+        ));
+
+      // 4c. Advance project current stage
+      await db.update(projectsV2)
+        .set({
+          currentStage: nextStageCode as any,
+          updatedAt: now,
+        })
+        .where(eq(projectsV2.id, input.projectId));
+
+      return {
+        success: true,
+        previousStage: input.currentStageCode,
+        newStage: nextStageCode,
+        audit: auditEntry,
+      };
+    }),
+
+  /**
+   * Phase rollback with reason + audit trail.
+   * Marks intermediate stages as Blocked.
+   */
+  regressPhaseV2: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      targetStageCode: z.string(),
+      reason: z.string().min(1),
+      regressedBy: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+
+      // 1. Verify project
+      const [project] = await db.select().from(projectsV2)
+        .where(eq(projectsV2.id, input.projectId));
+      if (!project) throw new Error("项目不存在");
+
+      const currentIdx = M_STAGE_CODES.indexOf(project.currentStage as any);
+      const targetIdx = M_STAGE_CODES.indexOf(input.targetStageCode as any);
+
+      if (targetIdx < 0) throw new Error(`无效目标阶段: ${input.targetStageCode}`);
+      if (targetIdx >= currentIdx) {
+        throw new Error(
+          `目标阶段 ${input.targetStageCode} 必须在当前阶段 ${project.currentStage} 之前`
+        );
+      }
+
+      const now = new Date().toISOString();
+      const regressAudit = {
+        type: "REGRESS",
+        from: project.currentStage,
+        to: input.targetStageCode,
+        reason: input.reason,
+        regressedBy: input.regressedBy,
+        timestamp: now,
+      };
+
+      // 2. Mark all intermediate stages (target+1 through current) as Blocked
+      for (let i = targetIdx + 1; i <= currentIdx; i++) {
+        const stageCode = M_STAGE_CODES[i];
+
+        const [stageRow] = await db.select().from(projectStagesV2)
+          .where(and(
+            eq(projectStagesV2.projectId, input.projectId),
+            eq(projectStagesV2.stageCode, stageCode as any),
+          ));
+
+        let auditLog: any[] = [];
+        if (stageRow?.auditLog) {
+          try { auditLog = JSON.parse(stageRow.auditLog); } catch { /* ignore */ }
+        }
+        auditLog.push(regressAudit);
+
+        await db.update(projectStagesV2)
+          .set({
+            status: "Blocked" as any,
+            auditLog: JSON.stringify(auditLog),
+            updatedAt: now,
+          })
+          .where(and(
+            eq(projectStagesV2.projectId, input.projectId),
+            eq(projectStagesV2.stageCode, stageCode as any),
+          ));
+      }
+
+      // 3. Set target stage to InProgress with audit
+      const [targetRow] = await db.select().from(projectStagesV2)
+        .where(and(
+          eq(projectStagesV2.projectId, input.projectId),
+          eq(projectStagesV2.stageCode, input.targetStageCode as any),
+        ));
+
+      let targetAuditLog: any[] = [];
+      if (targetRow?.auditLog) {
+        try { targetAuditLog = JSON.parse(targetRow.auditLog); } catch { /* ignore */ }
+      }
+      targetAuditLog.push(regressAudit);
+
+      await db.update(projectStagesV2)
+        .set({
+          status: "InProgress" as any,
+          completionPercent: 0,
+          auditLog: JSON.stringify(targetAuditLog),
+          updatedAt: now,
+        })
+        .where(and(
+          eq(projectStagesV2.projectId, input.projectId),
+          eq(projectStagesV2.stageCode, input.targetStageCode as any),
+        ));
+
+      // 4. Update project current stage
+      await db.update(projectsV2)
+        .set({
+          currentStage: input.targetStageCode as any,
+          updatedAt: now,
+        })
+        .where(eq(projectsV2.id, input.projectId));
+
+      return {
+        success: true,
+        previousStage: project.currentStage,
+        newStage: input.targetStageCode,
+        reason: input.reason,
+      };
+    }),
+
+  /**
+   * Full audit log of all phase transitions for a project.
+   * Returns all 13 stage records with parsed auditLog events.
+   */
+  getPhaseTransitionHistory: publicProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+
+      const stages = await db.select().from(projectStagesV2)
+        .where(eq(projectStagesV2.projectId, input.projectId))
+        .orderBy(projectStagesV2.stageCode);
+
+      return stages.map(stage => {
+        let auditEvents: any[] = [];
+        if (stage.auditLog) {
+          try { auditEvents = JSON.parse(stage.auditLog); } catch { /* ignore */ }
+        }
+        const def = M_STAGE_DEFINITIONS.find(d => d.code === stage.stageCode);
+        return {
+          stageCode: stage.stageCode,
+          stageName: stage.stageName || def?.nameZh || stage.stageCode,
+          status: stage.status,
+          completionPercent: stage.completionPercent,
+          plannedStartDate: stage.plannedStartDate,
+          plannedEndDate: stage.plannedEndDate,
+          actualStartDate: stage.actualStartDate,
+          actualEndDate: stage.actualEndDate,
+          auditEvents,
+        };
+      });
     }),
 
   // 获取项目阶段统计

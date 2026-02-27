@@ -16,6 +16,7 @@ import {
   updateContract,
   deleteContract,
   getContractStats,
+  convertContractToProject,
   uploadDocument,
   getDocuments,
   deleteDocument,
@@ -111,6 +112,42 @@ export const contractRouter = router({
   stats: protectedProcedure.query(async () => {
     return getContractStats();
   }),
+
+  // ============================================================
+  // W2-05: Sign Contract → Auto-Create Project
+  // ============================================================
+
+  signContract: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        pm: z.number().optional(),
+        signDate: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      // 1. Validate contract status
+      const existing = await getContractById(input.id);
+      if (!existing) throw new Error(`合同 ${input.id} 不存在`);
+      if (["active", "completed", "terminated"].includes(existing.status)) {
+        throw new Error(`合同当前状态为 '${existing.status}'，无法签署`);
+      }
+
+      // 2. Update contract to active
+      const contract = await updateContract(input.id, {
+        status: "active",
+        signDate: input.signDate || new Date().toISOString().split("T")[0],
+      });
+
+      // 3. Auto-create project
+      const project = await convertContractToProject(input.id, input.pm);
+
+      return {
+        contract,
+        project,
+        message: `合同已签署，项目 ${project.projectCode} 已自动创建`,
+      };
+    }),
 
   // ============================================================
   // P1: Document Upload & Management

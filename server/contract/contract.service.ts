@@ -221,6 +221,117 @@ export async function getContractStats() {
 }
 
 // ============================================================
+// W2-05: Contract → Project Auto-Conversion
+// ============================================================
+
+/**
+ * Convert an active contract to a project (projects_v2 + 13 stage records).
+ * Follows the same pattern as crm.service.ts:convertOpportunityToProject().
+ */
+export async function convertContractToProject(contractId: number, pmId?: number) {
+  const db = await requireDb();
+  const { projectsV2, projectStagesV2 } = await import("../../drizzle/schema");
+
+  // 1. Fetch the contract
+  const [contract] = await db
+    .select()
+    .from(contracts)
+    .where(eq(contracts.id, contractId))
+    .limit(1);
+
+  if (!contract) {
+    throw new Error(`合同 ${contractId} 不存在`);
+  }
+  if (contract.status !== "active") {
+    throw new Error(`合同状态为 '${contract.status}'，必须为 'active' 才能转为项目`);
+  }
+  if (contract.projectId) {
+    throw new Error(`合同 ${contractId} 已关联项目 ${contract.projectId}`);
+  }
+
+  // 2. Generate project code: PRJ-YYYYMMDD-NNN
+  const today = new Date();
+  const datePart = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, "0"),
+    String(today.getDate()).padStart(2, "0"),
+  ].join("");
+
+  const maxCodeResult = await db
+    .select({ maxCode: sql<string>`MAX(project_code)` })
+    .from(projectsV2);
+
+  let nextSeq = 1;
+  const maxCode = maxCodeResult[0]?.maxCode;
+  if (maxCode) {
+    const match = maxCode.match(/PRJ-\d{8}-(\d+)/);
+    if (match) {
+      nextSeq = parseInt(match[1], 10) + 1;
+    }
+  }
+  const projectCode = `PRJ-${datePart}-${String(nextSeq).padStart(3, "0")}`;
+
+  // 3. Insert into projects_v2
+  const projectName = contract.title;
+  const [project] = await db
+    .insert(projectsV2)
+    .values({
+      projectCode,
+      projectName,
+      customerId: contract.customerId ?? 0,
+      currentStage: "M0" as const,
+      status: "Active" as const,
+      pm: pmId,
+      budget: contract.amount ?? undefined,
+      description: `自动创建自合同 ${contract.contractCode}`,
+    })
+    .returning();
+
+  // 4. Create M0-M12 stage records
+  const stages = [
+    "M0", "M1", "M2", "M3", "M4", "M5", "M6",
+    "M7", "M8", "M9", "M10", "M11", "M12",
+  ] as const;
+  const stageNames: Record<string, string> = {
+    M0: "项目启动", M1: "启动会", M2: "需求评审", M3: "方案设计",
+    M4: "设计评审", M5: "生产启动", M6: "生产完成", M7: "FAT验收",
+    M8: "发货准备", M9: "现场到货", M10: "现场安装", M11: "SAT验收",
+    M12: "项目关闭",
+  };
+
+  for (const stageCode of stages) {
+    await db.insert(projectStagesV2).values({
+      projectId: project.id,
+      stageCode,
+      stageName: stageNames[stageCode],
+      status: stageCode === "M0" ? ("InProgress" as const) : ("NotStarted" as const),
+      completionPercent: 0,
+    });
+  }
+
+  // 5. Link project back to contract
+  await db
+    .update(contracts)
+    .set({ projectId: project.id, updatedAt: sql`now()` })
+    .where(eq(contracts.id, contractId));
+
+  // 6. If contract has opportunityId, back-link opportunity too
+  if (contract.opportunityId) {
+    try {
+      const { crmOpportunitiesV2 } = await import("../../drizzle/schema");
+      await db
+        .update(crmOpportunitiesV2)
+        .set({ projectId: project.id, updatedAt: sql`now()` })
+        .where(eq(crmOpportunitiesV2.id, contract.opportunityId));
+    } catch {
+      // CRM schema may not exist — non-fatal
+    }
+  }
+
+  return project;
+}
+
+// ============================================================
 // P1: Document Upload & Management
 // ============================================================
 

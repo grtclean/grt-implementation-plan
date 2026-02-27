@@ -26,6 +26,7 @@ export const contracts = pgTable("contracts", {
   endDate: varchar("end_date", { length: 20 }),
   terms: text("terms"),
   notes: text("notes"),
+  projectId: integer("project_id"),
   createdBy: integer("created_by"),
   createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
@@ -34,6 +35,7 @@ export const contracts = pgTable("contracts", {
   index("contracts_customer_id_idx").on(table.customerId),
   index("contracts_status_idx").on(table.status),
   index("contracts_type_idx").on(table.type),
+  index("contracts_project_id_idx").on(table.projectId),
 ]);
 
 // ============================================================
