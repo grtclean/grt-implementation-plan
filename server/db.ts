@@ -56,6 +56,10 @@ import {
   functionalAiAssistants, InsertFunctionalAiAssistant, FunctionalAiAssistant,
   aiProcessSuggestions, InsertAiProcessSuggestion, AiProcessSuggestion,
   aiSuggestionExecutionLogs, InsertAiSuggestionExecutionLog, AiSuggestionExecutionLog,
+  // BU Sales Target Planning
+  buSalesPlans, InsertBuSalesPlan, BuSalesPlan,
+  buSalesPlanDetails, InsertBuSalesPlanDetail, BuSalesPlanDetail,
+  buSalesPlanAdjustments, InsertBuSalesPlanAdjustment, BuSalesPlanAdjustment,
 } from "../drizzle/schema";
 
 import { ENV } from './_core/env';

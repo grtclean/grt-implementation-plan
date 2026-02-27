@@ -326,6 +326,7 @@ import StrategyEngine from "./pages/engines/StrategyEngine";
 import OperationsEngine from "./pages/engines/OperationsEngine";
 import ResourcesEngine from "./pages/engines/ResourcesEngine";
 import OKRMatrixPage from "./pages/OKRMatrixPage";
+import BUSalesTargetPlanner from "./pages/BUSalesTargetPlanner";
 
 // KPI绩效管理
 const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
@@ -567,6 +568,9 @@ function Router() {
       </Route>
       <Route path={"/strategy/okr-matrix"}>
         <ProtectedRoute component={OKRMatrixPage} />
+      </Route>
+      <Route path={"/bu-sales-target"}>
+        <ProtectedRoute component={BUSalesTargetPlanner} />
       </Route>
       <Route path={"/strategy"}>
         <ProtectedRoute component={StrategyEngine} />

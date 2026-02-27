@@ -933,6 +933,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "战略中枢", nameEn: "Strategy Hub", nameDe: "Strategie-Zentrale", nameFr: "Centre stratégie", path: "/strategy", icon: Target, isNew: true },
       { name: "卓越文化", nameEn: "Excellence Culture", nameDe: "Exzellenzkultur", nameFr: "Culture d'excellence", path: "/strategy/excellence", icon: Award, isNew: true },
       { name: "OKR矩阵", nameEn: "OKR Matrix", nameDe: "OKR-Matrix", nameFr: "Matrice OKR", path: "/strategy/okr-matrix", icon: Target, isNew: true },
+      { name: "目标分解", nameEn: "Target Breakdown", nameDe: "Zielaufschlüsselung", nameFr: "Décomposition des objectifs", path: "/bu-sales-target", icon: BarChart3, isNew: true, minLevel: 3 },
       { name: "资质管理", nameEn: "Certification", nameDe: "Zertifizierung", nameFr: "Certification", path: "/certification-management", icon: Award },
       { name: "年度企业日程", nameEn: "Annual Agenda", nameDe: "Jahreskalender", nameFr: "Agenda annuel", path: "/annual-agenda", icon: Calendar },
       { name: "全球增长追踪", nameEn: "Global Growth", nameDe: "Globales Wachstum", nameFr: "Croissance mondiale", path: "/global-growth-tracker", icon: Globe },

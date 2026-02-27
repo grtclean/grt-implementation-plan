@@ -11958,3 +11958,54 @@ export type TestResult = InferSelectModel<typeof testResults>;
 export type InsertTestResult = InferInsertModel<typeof testResults>;
 export type AiGenerationLog = InferSelectModel<typeof aiGenerationLogs>;
 export type InsertAiGenerationLog = InferInsertModel<typeof aiGenerationLogs>;
+
+// ── BU Sales Target Planning (事业部年度目标分解) ──
+export const buSalesPlans = pgTable('bu_sales_plans', {
+  id: serial('id').primaryKey(),
+  year: integer('year').notNull(),
+  departmentId: varchar('department_id', { length: 50 }).notNull(),
+  totalSalesTarget: decimal('total_sales_target', { precision: 12, scale: 2 }),
+  totalOutputTarget: decimal('total_output_target', { precision: 12, scale: 2 }),
+  growthRules: json('growth_rules').$type<Record<string, number>>(),
+  status: varchar('status', { length: 20 }).default('draft'),
+  createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
+}, (table) => [
+  index('bu_sales_plans_year_idx').on(table.year),
+  index('bu_sales_plans_dept_idx').on(table.departmentId),
+]);
+
+export const buSalesPlanDetails = pgTable('bu_sales_plan_details', {
+  id: serial('id').primaryKey(),
+  buSalesPlanId: integer('bu_sales_plan_id').references(() => buSalesPlans.id).notNull(),
+  periodType: varchar('period_type', { length: 20 }),
+  periodValue: integer('period_value'),
+  salesTarget: decimal('sales_target', { precision: 12, scale: 2 }),
+  outputTarget: decimal('output_target', { precision: 12, scale: 2 }),
+  kpiTarget: decimal('kpi_target', { precision: 5, scale: 2 }),
+  capabilityLevel: decimal('capability_level', { precision: 4, scale: 2 }),
+  isAdjusted: boolean('is_adjusted').default(false),
+}, (table) => [
+  index('bu_sales_plan_details_plan_idx').on(table.buSalesPlanId),
+]);
+
+export const buSalesPlanAdjustments = pgTable('bu_sales_plan_adjustments', {
+  id: serial('id').primaryKey(),
+  buSalesPlanId: integer('bu_sales_plan_id').references(() => buSalesPlans.id).notNull(),
+  applicantId: varchar('applicant_id', { length: 50 }),
+  adjustmentReason: varchar('adjustment_reason', { length: 500 }),
+  originalData: json('original_data').$type<Record<string, unknown>>(),
+  proposedData: json('proposed_data').$type<Record<string, unknown>>(),
+  approvalStatus: varchar('approval_status', { length: 20 }).default('pending'),
+  approvedBy: varchar('approved_by', { length: 50 }),
+  createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
+}, (table) => [
+  index('bu_sales_plan_adj_plan_idx').on(table.buSalesPlanId),
+]);
+
+// ── BU Sales Target Planning: Type Exports ──
+export type BuSalesPlan = InferSelectModel<typeof buSalesPlans>;
+export type InsertBuSalesPlan = InferInsertModel<typeof buSalesPlans>;
+export type BuSalesPlanDetail = InferSelectModel<typeof buSalesPlanDetails>;
+export type InsertBuSalesPlanDetail = InferInsertModel<typeof buSalesPlanDetails>;
+export type BuSalesPlanAdjustment = InferSelectModel<typeof buSalesPlanAdjustments>;
+export type InsertBuSalesPlanAdjustment = InferInsertModel<typeof buSalesPlanAdjustments>;
