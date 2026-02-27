@@ -369,6 +369,35 @@ export async function getBUStats(): Promise<{ buCode: string; buName: string; co
 }
 
 /**
+ * 批量更新系统角色 (HR bulk assignment)
+ */
+export async function batchUpdateRoles(
+  updates: Array<{ employeeId: string; systemRole: SystemRole }>
+): Promise<{ updated: number; failed: number }> {
+  await ensureSystemRoleColumn();
+  const db = await requireDb();
+  let updated = 0;
+  let failed = 0;
+
+  for (const { employeeId, systemRole } of updates) {
+    try {
+      await db.execute(sql`
+        UPDATE company_employees SET
+          system_role = ${systemRole},
+          updated_at = NOW()
+        WHERE employee_id = ${employeeId}
+      `);
+      updated++;
+    } catch (e) {
+      console.error(`batchUpdateRoles failed for ${employeeId}:`, e);
+      failed++;
+    }
+  }
+
+  return { updated, failed };
+}
+
+/**
  * 搜索员工
  */
 export async function searchEmployees(keyword: string): Promise<Employee[]> {

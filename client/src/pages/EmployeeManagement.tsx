@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Users,
   UserPlus,
@@ -28,6 +29,7 @@ import {
   UserCog,
   ChevronLeft,
   ChevronRight,
+  UsersRound,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -92,7 +94,12 @@ export default function EmployeeManagement() {
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [roleEditOpen, setRoleEditOpen] = useState(false);
+  const [bulkRoleOpen, setBulkRoleOpen] = useState(false);
   const [targetEmployee, setTargetEmployee] = useState<any>(null);
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkRole, setBulkRole] = useState("employee");
 
   // Add form
   const [form, setForm] = useState({
@@ -155,6 +162,20 @@ export default function EmployeeManagement() {
   const initMutation = trpc.employee.initFromData.useMutation({
     onSuccess: () => { toast.success(isEn ? "Seed data imported" : "初始数据已导入"); refetch(); },
     onError: (err) => toast.error(err.message),
+  });
+
+  const bulkRoleMutation = trpc.employee.batchUpdateRoles.useMutation({
+    onSuccess: (data) => {
+      toast.success(
+        isEn
+          ? `${data.updated} employees updated${data.failed > 0 ? `, ${data.failed} failed` : ""}`
+          : `已更新 ${data.updated} 名员工${data.failed > 0 ? `，${data.failed} 个失败` : ""}`
+      );
+      setBulkRoleOpen(false);
+      setSelectedIds(new Set());
+      refetch();
+    },
+    onError: (err) => toast.error(`${isEn ? "Bulk update failed" : "批量更新失败"}: ${err.message}`),
   });
 
   // ── Derived data ──
@@ -252,6 +273,38 @@ export default function EmployeeManagement() {
     statusMutation.mutate({ employeeId: emp.employeeId, status: newStatus });
   };
 
+  // Bulk selection helpers
+  const toggleSelect = (empId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(empId)) next.delete(empId); else next.add(empId);
+      return next;
+    });
+  };
+  const isAllPageSelected = pagedEmployees.length > 0 && pagedEmployees.every(e => selectedIds.has(e.employeeId));
+  const toggleSelectAll = () => {
+    if (isAllPageSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        pagedEmployees.forEach(e => next.delete(e.employeeId));
+        return next;
+      });
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        pagedEmployees.forEach(e => next.add(e.employeeId));
+        return next;
+      });
+    }
+  };
+  const handleBulkRoleSubmit = () => {
+    const updates = Array.from(selectedIds).map(employeeId => ({
+      employeeId,
+      systemRole: bulkRole as any,
+    }));
+    bulkRoleMutation.mutate({ updates });
+  };
+
   const getRoleBadge = (role: string) => {
     const cfg = ROLE_MAP[role] || ROLE_MAP["employee"];
     return (
@@ -303,6 +356,17 @@ export default function EmployeeManagement() {
                 <Upload className="w-4 h-4 mr-1.5" />
                 {isEn ? "Seed Data" : "初始化数据"}
               </Button>
+              {selectedIds.size > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-purple-300 text-purple-700 hover:bg-purple-50"
+                  onClick={() => { setBulkRole("employee"); setBulkRoleOpen(true); }}
+                >
+                  <UsersRound className="w-4 h-4" />
+                  {isEn ? `Bulk Assign (${selectedIds.size})` : `批量分配角色 (${selectedIds.size})`}
+                </Button>
+              )}
               <Button size="sm" onClick={() => { resetForm(); setAddOpen(true); }}>
                 <UserPlus className="w-4 h-4 mr-1.5" />
                 {isEn ? "+ Add New Employee" : "+ 新增员工"}
@@ -434,6 +498,13 @@ export default function EmployeeManagement() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/30">
+                        <TableHead className="w-[44px]">
+                          <Checkbox
+                            checked={isAllPageSelected}
+                            onCheckedChange={toggleSelectAll}
+                            aria-label={isEn ? "Select all" : "全选"}
+                          />
+                        </TableHead>
                         <TableHead className="w-[100px] font-semibold">{isEn ? "Employee ID" : "员工编号"}</TableHead>
                         <TableHead className="font-semibold">{isEn ? "Name" : "姓名"}</TableHead>
                         <TableHead className="font-semibold">{isEn ? "Department" : "部门"}</TableHead>
@@ -445,7 +516,14 @@ export default function EmployeeManagement() {
                     </TableHeader>
                     <TableBody>
                       {pagedEmployees.map((emp) => (
-                        <TableRow key={emp.id} className="hover:bg-muted/20">
+                        <TableRow key={emp.id} className={`hover:bg-muted/20 ${selectedIds.has(emp.employeeId) ? "bg-primary/5" : ""}`}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedIds.has(emp.employeeId)}
+                              onCheckedChange={() => toggleSelect(emp.employeeId)}
+                              aria-label={`Select ${emp.name}`}
+                            />
+                          </TableCell>
                           <TableCell className="font-mono text-sm text-primary">{emp.employeeId}</TableCell>
                           <TableCell className="font-medium">{emp.name}</TableCell>
                           <TableCell className="text-sm">{emp.department}</TableCell>
@@ -773,6 +851,86 @@ export default function EmployeeManagement() {
               {roleMutation.isPending && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
               <Shield className="w-4 h-4 mr-1.5" />
               {isEn ? "Update Role" : "确认修改"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══════════════════════════════════════════════════════════════
+          DIALOG: Bulk Role Assignment
+         ══════════════════════════════════════════════════════════════ */}
+      <Dialog open={bulkRoleOpen} onOpenChange={setBulkRoleOpen}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UsersRound className="w-5 h-5 text-purple-500" />
+              {isEn ? "Bulk Role Assignment" : "批量角色分配"}
+            </DialogTitle>
+            <DialogDescription>
+              {isEn
+                ? `Assign the same role to ${selectedIds.size} selected employee(s). This takes effect immediately.`
+                : `为 ${selectedIds.size} 名已选员工统一分配角色。变更立即生效。`
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Selected employees preview */}
+          <div className="py-2">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">
+              {isEn ? "Selected Employees" : "已选员工"}
+            </Label>
+            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+              {Array.from(selectedIds).slice(0, 20).map(id => {
+                const emp = allEmployees.find(e => e.employeeId === id);
+                return (
+                  <Badge key={id} variant="secondary" className="text-xs gap-1">
+                    {emp?.name || id}
+                    <span className="text-muted-foreground font-mono">{id}</span>
+                  </Badge>
+                );
+              })}
+              {selectedIds.size > 20 && (
+                <Badge variant="outline" className="text-xs">
+                  +{selectedIds.size - 20} {isEn ? "more" : "更多"}
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Role selector */}
+          <div className="py-2">
+            <Label className="mb-2 block">{isEn ? "Assign Role" : "分配角色"}</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {SYSTEM_ROLES.map(r => (
+                <button
+                  key={r.value}
+                  onClick={() => setBulkRole(r.value)}
+                  className={`text-left px-3 py-2 rounded-lg border text-sm transition-all ${
+                    bulkRole === r.value
+                      ? "border-purple-500 bg-purple-50 ring-2 ring-purple-200"
+                      : "border-border hover:border-purple-300 hover:bg-muted/30"
+                  }`}
+                >
+                  <span className="font-medium">{isEn ? r.labelEn : r.label}</span>
+                  <span className="text-xs text-muted-foreground ml-1.5">Lv.{r.level}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkRoleOpen(false)}>{isEn ? "Cancel" : "取消"}</Button>
+            <Button
+              onClick={handleBulkRoleSubmit}
+              disabled={bulkRoleMutation.isPending}
+              className="gap-1.5 bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              {bulkRoleMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              <UsersRound className="w-4 h-4" />
+              {isEn
+                ? `Assign to ${selectedIds.size} employees`
+                : `分配给 ${selectedIds.size} 名员工`
+              }
             </Button>
           </DialogFooter>
         </DialogContent>

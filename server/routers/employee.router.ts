@@ -179,6 +179,18 @@ export const employeeRouter = router({
       return employeeService.updateSystemRole(input.employeeId, input.systemRole);
     }),
 
+  // 批量更新系统角色 (HR bulk assignment)
+  batchUpdateRoles: protectedProcedure
+    .input(z.object({
+      updates: z.array(z.object({
+        employeeId: z.string(),
+        systemRole: systemRoleSchema,
+      })).min(1).max(500),
+    }))
+    .mutation(async ({ input }) => {
+      return employeeService.batchUpdateRoles(input.updates);
+    }),
+
   // 更新员工状态 (activate / deactivate / resign)
   updateStatus: protectedProcedure
     .input(z.object({

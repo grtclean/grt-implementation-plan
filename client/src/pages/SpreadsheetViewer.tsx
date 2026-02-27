@@ -128,6 +128,20 @@ export default function SpreadsheetViewer() {
     }
   }, [editingCell]);
 
+  // Save mutation
+  const saveMutation = trpc.collaborationDocs.saveFile.useMutation({
+    onSuccess: () => toast.success("Changes saved to database"),
+    onError: (err) => toast.error(`Save failed: ${err.message}`),
+  });
+
+  const handleSave = useCallback(() => {
+    if (!grid || fileId <= 0) {
+      toast.info("No file to save");
+      return;
+    }
+    saveMutation.mutate({ id: fileId, parsedContent: grid });
+  }, [grid, fileId, saveMutation]);
+
   // Derived
   const fileName = fileData?.title ?? (fileId <= 0 ? "New Spreadsheet" : `File #${fileId}`);
   const selectedValue = selectedCell && grid
@@ -165,9 +179,15 @@ export default function SpreadsheetViewer() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => toast.success("Changes saved")}>
-            <Save className="w-3.5 h-3.5" />
-            Save
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-8"
+            onClick={handleSave}
+            disabled={saveMutation.isPending}
+          >
+            {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            {saveMutation.isPending ? "Saving..." : "Save"}
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => toast.info("Share link copied")}>
             <Share2 className="w-3.5 h-3.5" />
