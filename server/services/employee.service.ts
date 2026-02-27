@@ -1,10 +1,18 @@
 /**
  * 公司员工管理服务
- * v1.3.91 - 组织架构人员清单管理
+ * v2.0.0 - HR User Management Module (RBAC + Onboarding)
  */
 
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
+
+// RBAC角色类型 (matches UserProfileContext 18-role system)
+export type SystemRole =
+  | "admin" | "director" | "bu_gm" | "bu_pm" | "bu_sales"
+  | "bu_mech" | "bu_elec" | "procurement_eng" | "cs_engineer"
+  | "dept_manager" | "team_lead" | "hr_manager" | "hr_specialist"
+  | "finance_manager" | "finance_specialist" | "employee"
+  | "production_worker" | "guest";
 
 // 员工状态类型
 export type EmployeeStatus = 'active' | 'inactive' | 'resigned';
@@ -21,6 +29,7 @@ export interface Employee {
   phone: string | null;
   hireDate: Date | null;
   status: EmployeeStatus;
+  systemRole: SystemRole | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +45,7 @@ export interface CreateEmployeeInput {
   phone?: string;
   hireDate?: Date;
   status?: EmployeeStatus;
+  systemRole?: SystemRole;
 }
 
 // 部门到BU的映射
@@ -73,20 +83,56 @@ export function getBUCodeFromDepartment(department: string): string | null {
   return DEPARTMENT_TO_BU[department] || null;
 }
 
+// Column migration flag
+let systemRoleColumnEnsured = false;
+
 /**
- * 获取所有员工
+ * Ensure system_role column exists on company_employees table
  */
-export async function getAllEmployees(): Promise<Employee[]> {
+async function ensureSystemRoleColumn(): Promise<void> {
+  if (systemRoleColumnEnsured) return;
+  try {
+    const db = await requireDb();
+    await db.execute(sql`
+      ALTER TABLE company_employees ADD COLUMN IF NOT EXISTS system_role VARCHAR(30) DEFAULT 'employee'
+    `);
+    systemRoleColumnEnsured = true;
+  } catch (e: any) {
+    // Column may already exist (some DBs don't support IF NOT EXISTS for columns)
+    if (e.message?.includes('already exists') || e.message?.includes('duplicate column')) {
+      systemRoleColumnEnsured = true;
+    } else {
+      console.warn('ensureSystemRoleColumn warning:', e.message);
+      systemRoleColumnEnsured = true; // proceed anyway, column might exist
+    }
+  }
+}
+
+const EMPLOYEE_SELECT = sql`
+  id, employee_id as "employeeId", name, department, position,
+  bu_code as "buCode", email, phone, hire_date as "hireDate",
+  status, COALESCE(system_role, 'employee') as "systemRole",
+  created_at as "createdAt", updated_at as "updatedAt"
+`;
+
+/**
+ * 获取所有员工 (including inactive/resigned for HR management)
+ */
+export async function getAllEmployees(includeAll = false): Promise<Employee[]> {
+  await ensureSystemRoleColumn();
   const db = await requireDb();
-  const result = await db.execute(sql`
-    SELECT
-      id, employee_id as "employeeId", name, department, position,
-      bu_code as "buCode", email, phone, hire_date as "hireDate",
-      status, created_at as "createdAt", updated_at as "updatedAt"
-    FROM company_employees
-    WHERE status = 'active'
-    ORDER BY employee_id
-  `);
+  const result = includeAll
+    ? await db.execute(sql`
+        SELECT ${EMPLOYEE_SELECT}
+        FROM company_employees
+        ORDER BY employee_id
+      `)
+    : await db.execute(sql`
+        SELECT ${EMPLOYEE_SELECT}
+        FROM company_employees
+        WHERE status = 'active'
+        ORDER BY employee_id
+      `);
   return (result.rows as any[]) || [];
 }
 
@@ -94,12 +140,10 @@ export async function getAllEmployees(): Promise<Employee[]> {
  * 按部门获取员工
  */
 export async function getEmployeesByDepartment(department: string): Promise<Employee[]> {
+  await ensureSystemRoleColumn();
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT
-      id, employee_id as "employeeId", name, department, position,
-      bu_code as "buCode", email, phone, hire_date as "hireDate",
-      status, created_at as "createdAt", updated_at as "updatedAt"
+    SELECT ${EMPLOYEE_SELECT}
     FROM company_employees
     WHERE department = ${department} AND status = 'active'
     ORDER BY employee_id
@@ -111,12 +155,10 @@ export async function getEmployeesByDepartment(department: string): Promise<Empl
  * 按BU代码获取员工
  */
 export async function getEmployeesByBU(buCode: string): Promise<Employee[]> {
+  await ensureSystemRoleColumn();
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT
-      id, employee_id as "employeeId", name, department, position,
-      bu_code as "buCode", email, phone, hire_date as "hireDate",
-      status, created_at as "createdAt", updated_at as "updatedAt"
+    SELECT ${EMPLOYEE_SELECT}
     FROM company_employees
     WHERE bu_code = ${buCode} AND status = 'active'
     ORDER BY employee_id
@@ -128,12 +170,10 @@ export async function getEmployeesByBU(buCode: string): Promise<Employee[]> {
  * 根据员工编号获取员工
  */
 export async function getEmployeeById(employeeId: string): Promise<Employee | null> {
+  await ensureSystemRoleColumn();
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT
-      id, employee_id as "employeeId", name, department, position,
-      bu_code as "buCode", email, phone, hire_date as "hireDate",
-      status, created_at as "createdAt", updated_at as "updatedAt"
+    SELECT ${EMPLOYEE_SELECT}
     FROM company_employees
     WHERE employee_id = ${employeeId}
     LIMIT 1
@@ -146,17 +186,19 @@ export async function getEmployeeById(employeeId: string): Promise<Employee | nu
  * 创建员工
  */
 export async function createEmployee(input: CreateEmployeeInput): Promise<{ id: number }> {
+  await ensureSystemRoleColumn();
   const db = await requireDb();
   const buCode = input.buCode || getBUCodeFromDepartment(input.department);
-  
+  const systemRole = input.systemRole || 'employee';
+
   const result = await db.execute(sql`
-    INSERT INTO company_employees (employee_id, name, department, position, bu_code, email, phone, hire_date, status)
+    INSERT INTO company_employees (employee_id, name, department, position, bu_code, email, phone, hire_date, status, system_role)
     VALUES (${input.employeeId}, ${input.name}, ${input.department}, ${input.position},
             ${buCode}, ${input.email || null}, ${input.phone || null},
-            ${input.hireDate || null}, ${input.status || 'active'})
+            ${input.hireDate || null}, ${input.status || 'active'}, ${systemRole})
     RETURNING id
   `);
-  
+
   return { id: (result.rows as any[])[0]?.id ?? 0 };
 }
 
@@ -164,10 +206,11 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<{ id: 
  * 批量创建员工
  */
 export async function batchCreateEmployees(employees: CreateEmployeeInput[]): Promise<{ created: number; skipped: number }> {
+  await ensureSystemRoleColumn();
   const db = await requireDb();
   let created = 0;
   let skipped = 0;
-  
+
   for (const emp of employees) {
     try {
       const existing = await getEmployeeById(emp.employeeId);
@@ -175,13 +218,13 @@ export async function batchCreateEmployees(employees: CreateEmployeeInput[]): Pr
         skipped++;
         continue;
       }
-      
+
       const buCode = emp.buCode || getBUCodeFromDepartment(emp.department);
-      
+
       await db.execute(sql`
-        INSERT INTO company_employees (employee_id, name, department, position, bu_code, email, phone, status)
-        VALUES (${emp.employeeId}, ${emp.name}, ${emp.department}, ${emp.position}, 
-                ${buCode}, ${emp.email || null}, ${emp.phone || null}, 'active')
+        INSERT INTO company_employees (employee_id, name, department, position, bu_code, email, phone, status, system_role)
+        VALUES (${emp.employeeId}, ${emp.name}, ${emp.department}, ${emp.position},
+                ${buCode}, ${emp.email || null}, ${emp.phone || null}, 'active', 'employee')
       `);
       created++;
     } catch (error) {
@@ -189,7 +232,7 @@ export async function batchCreateEmployees(employees: CreateEmployeeInput[]): Pr
       skipped++;
     }
   }
-  
+
   return { created, skipped };
 }
 
@@ -197,18 +240,19 @@ export async function batchCreateEmployees(employees: CreateEmployeeInput[]): Pr
  * 更新员工信息
  */
 export async function updateEmployee(employeeId: string, updates: Partial<CreateEmployeeInput>): Promise<boolean> {
+  await ensureSystemRoleColumn();
   const db = await requireDb();
 
-  // Build update using parameterized query to prevent SQL injection
   const name = updates.name;
   const department = updates.department;
   const position = updates.position;
   const email = updates.email;
   const phone = updates.phone;
   const status = updates.status;
+  const systemRole = updates.systemRole;
   const buCode = department ? getBUCodeFromDepartment(department) : null;
 
-  if (!name && !department && !position && email === undefined && phone === undefined && !status) {
+  if (!name && !department && !position && email === undefined && phone === undefined && !status && !systemRole) {
     return false;
   }
 
@@ -221,11 +265,57 @@ export async function updateEmployee(employeeId: string, updates: Partial<Create
       email = CASE WHEN ${email !== undefined} THEN ${email || null} ELSE email END,
       phone = CASE WHEN ${phone !== undefined} THEN ${phone || null} ELSE phone END,
       status = COALESCE(${status || null}, status),
+      system_role = COALESCE(${systemRole || null}, system_role),
       updated_at = NOW()
     WHERE employee_id = ${employeeId}
   `);
 
   return true;
+}
+
+/**
+ * 更新员工系统角色 (HR/Admin only)
+ */
+export async function updateSystemRole(employeeId: string, systemRole: SystemRole): Promise<boolean> {
+  await ensureSystemRoleColumn();
+  const db = await requireDb();
+  await db.execute(sql`
+    UPDATE company_employees SET
+      system_role = ${systemRole},
+      updated_at = NOW()
+    WHERE employee_id = ${employeeId}
+  `);
+  return true;
+}
+
+/**
+ * 更新员工状态 (activate / deactivate / resign)
+ */
+export async function updateEmployeeStatus(employeeId: string, status: EmployeeStatus): Promise<boolean> {
+  const db = await requireDb();
+  await db.execute(sql`
+    UPDATE company_employees SET
+      status = ${status},
+      updated_at = NOW()
+    WHERE employee_id = ${employeeId}
+  `);
+  return true;
+}
+
+/**
+ * 获取下一个可用员工编号
+ */
+export async function getNextEmployeeId(): Promise<string> {
+  const db = await requireDb();
+  const result = await db.execute(sql`
+    SELECT employee_id FROM company_employees
+    ORDER BY employee_id DESC LIMIT 1
+  `);
+  const rows = (result.rows as any[]) || [];
+  if (rows.length === 0) return 'GRT001';
+  const lastId = rows[0].employee_id as string;
+  const num = parseInt(lastId.replace(/\D/g, ''), 10) || 0;
+  return `GRT${String(num + 1).padStart(3, '0')}`;
 }
 
 /**
@@ -282,13 +372,11 @@ export async function getBUStats(): Promise<{ buCode: string; buName: string; co
  * 搜索员工
  */
 export async function searchEmployees(keyword: string): Promise<Employee[]> {
+  await ensureSystemRoleColumn();
   const db = await requireDb();
   const searchTerm = `%${keyword}%`;
   const result = await db.execute(sql`
-    SELECT
-      id, employee_id as "employeeId", name, department, position,
-      bu_code as "buCode", email, phone, hire_date as "hireDate",
-      status, created_at as "createdAt", updated_at as "updatedAt"
+    SELECT ${EMPLOYEE_SELECT}
     FROM company_employees
     WHERE status = 'active'
       AND (name ILIKE ${searchTerm} OR employee_id ILIKE ${searchTerm} OR position ILIKE ${searchTerm})

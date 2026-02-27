@@ -1,29 +1,43 @@
 /**
  * 公司员工管理路由
- * v1.3.91 - 组织架构人员清单管理
+ * v2.0.0 - HR User Management Module (RBAC + Onboarding + Role Editor)
  */
 
 import { z } from "zod";
 import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import * as employeeService from "../services/employee.service";
 
+const systemRoleSchema = z.enum([
+  "admin", "director", "bu_gm", "bu_pm", "bu_sales",
+  "bu_mech", "bu_elec", "procurement_eng", "cs_engineer",
+  "dept_manager", "team_lead", "hr_manager", "hr_specialist",
+  "finance_manager", "finance_specialist", "employee",
+  "production_worker", "guest",
+]);
+
 export const employeeRouter = router({
-  // 获取所有员工
+  // 获取所有员工 (active only)
   getAll: requirePermission('hr:employees:view').query(async () => {
     return employeeService.getAllEmployees();
   }),
 
-  // 获取员工列表（支持筛选）
+  // 获取所有员工 (including inactive/resigned for HR management)
+  listAll: protectedProcedure.query(async () => {
+    return employeeService.getAllEmployees(true);
+  }),
+
+  // 获取员工列表（支持筛选 — includes all statuses for HR）
   list: requirePermission('hr:employees:view')
     .input(z.object({
       buCode: z.string().optional(),
       department: z.string().optional(),
       search: z.string().optional(),
+      includeAll: z.boolean().optional(),
     }).optional())
     .query(async ({ input }) => {
-      const employees = await employeeService.getAllEmployees();
+      const employees = await employeeService.getAllEmployees(input?.includeAll ?? false);
       let filtered = employees;
-      
+
       if (input?.buCode) {
         filtered = filtered.filter(e => e.buCode === input.buCode);
       }
@@ -32,13 +46,13 @@ export const employeeRouter = router({
       }
       if (input?.search) {
         const keyword = input.search.toLowerCase();
-        filtered = filtered.filter(e => 
+        filtered = filtered.filter(e =>
           e.name.toLowerCase().includes(keyword) ||
           e.employeeId.toLowerCase().includes(keyword) ||
           e.position.toLowerCase().includes(keyword)
         );
       }
-      
+
       return { employees: filtered, total: filtered.length };
     }),
 
@@ -98,7 +112,13 @@ export const employeeRouter = router({
     return employeeService.getBUStats();
   }),
 
-  // 创建员工（需要登录）
+  // 获取下一个可用员工编号
+  getNextId: protectedProcedure.query(async () => {
+    const nextId = await employeeService.getNextEmployeeId();
+    return { nextId };
+  }),
+
+  // 创建员工（需要登录 — with role assignment）
   create: protectedProcedure
     .input(z.object({
       employeeId: z.string(),
@@ -108,6 +128,7 @@ export const employeeRouter = router({
       buCode: z.string().optional(),
       email: z.string().optional(),
       phone: z.string().optional(),
+      systemRole: systemRoleSchema.optional(),
     }))
     .mutation(async ({ input }) => {
       return employeeService.createEmployee(input);
@@ -141,10 +162,31 @@ export const employeeRouter = router({
         email: z.string().optional(),
         phone: z.string().optional(),
         status: z.enum(['active', 'inactive', 'resigned']).optional(),
+        systemRole: systemRoleSchema.optional(),
       }),
     }))
     .mutation(async ({ input }) => {
       return employeeService.updateEmployee(input.employeeId, input.updates);
+    }),
+
+  // 更新系统角色（HR/Admin only）
+  updateRole: protectedProcedure
+    .input(z.object({
+      employeeId: z.string(),
+      systemRole: systemRoleSchema,
+    }))
+    .mutation(async ({ input }) => {
+      return employeeService.updateSystemRole(input.employeeId, input.systemRole);
+    }),
+
+  // 更新员工状态 (activate / deactivate / resign)
+  updateStatus: protectedProcedure
+    .input(z.object({
+      employeeId: z.string(),
+      status: z.enum(['active', 'inactive', 'resigned']),
+    }))
+    .mutation(async ({ input }) => {
+      return employeeService.updateEmployeeStatus(input.employeeId, input.status);
     }),
 
   // 初始化员工数据（从JSON导入）
