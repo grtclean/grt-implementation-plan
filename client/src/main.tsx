@@ -58,12 +58,18 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
+    // Debug: log all query errors for diagnosis
+    console.error("🚨 [GRT tRPC Query Error]", {
+      queryKey: event.query.queryKey,
+      message: error instanceof TRPCClientError ? error.message : String(error),
+      path: window.location.pathname,
+    });
     // Only redirect on explicit auth errors, and add a delay to prevent rapid redirects
     if (!isRedirecting && error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG) {
       // Check if we're on a public page - don't redirect from login
       const currentPath = window.location.pathname;
       if (currentPath !== "/login" && currentPath !== "/login-success" && currentPath !== "/auto-login.html" && !currentPath.startsWith("/showcase/")) {
-        console.warn("[Auth] Unauthorized query detected, redirecting to login");
+        console.warn("🔒 [Auth] Unauthorized query detected, redirecting to login...");
         redirectToLoginIfUnauthorized(error);
       }
     }
@@ -73,9 +79,16 @@ queryClient.getQueryCache().subscribe(event => {
 queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
+    // Debug: log all mutation errors for diagnosis
+    console.error("🚨 [GRT tRPC Mutation Error]", {
+      mutationKey: event.mutation.options.mutationKey,
+      message: error instanceof TRPCClientError ? error.message : String(error),
+      path: window.location.pathname,
+    });
     if (!isRedirecting && error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG) {
       const currentPath = window.location.pathname;
       if (currentPath !== "/login" && currentPath !== "/login-success") {
+        console.warn("🔒 [Auth] Unauthorized mutation detected, redirecting to login...");
         redirectToLoginIfUnauthorized(error);
       }
     }
@@ -102,15 +115,24 @@ const trpcClient = trpc.createClient({
         const headers: HeadersInit = {
           ...(init?.headers || {}),
         };
-        
+
         if (token) {
           (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
         }
-        
+
         return globalThis.fetch(input, {
           ...(init ?? {}),
           headers,
           credentials: "include", // Still try cookies first
+        }).then((res) => {
+          if (!res.ok) {
+            console.error("🚨 [GRT API Response]", {
+              url: typeof input === "string" ? input : (input as Request).url,
+              status: res.status,
+              statusText: res.statusText,
+            });
+          }
+          return res;
         });
       },
     }),
