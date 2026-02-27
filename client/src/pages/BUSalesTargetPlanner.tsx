@@ -123,30 +123,38 @@ export default function BUSalesTargetPlanner() {
   );
   const pendingReviewsQuery = trpc.buSalesTarget.pendingReviews.useQuery();
 
-  // ── Mutations ──
+  // ── Mutations (with error alerts) ──
+  const onErr = (e: { message: string }) => { alert(e.message); };
   const createMutation = trpc.buSalesTarget.create.useMutation({
     onSuccess: () => { setCreateOpen(false); listQuery.refetch(); dashboardQuery.refetch(); },
+    onError: onErr,
   });
   const updateDetailMutation = trpc.buSalesTarget.updateDetail.useMutation({
     onSuccess: () => { setEditingDetailId(null); setEditValues({}); detailQuery.refetch(); },
+    onError: onErr,
   });
   const submitPlanMutation = trpc.buSalesTarget.submitPlan.useMutation({
     onSuccess: () => { detailQuery.refetch(); listQuery.refetch(); },
+    onError: onErr,
   });
   const submitAdjustmentMutation = trpc.buSalesTarget.submitAdjustment.useMutation({
     onSuccess: () => {
       setAdjustOpen(false); setAdjustReason(""); setDraftChanges({});
       detailQuery.refetch(); pendingReviewsQuery.refetch();
     },
+    onError: onErr,
   });
   const financeReviewMutation = trpc.buSalesTarget.financeReview.useMutation({
     onSuccess: () => { setReviewDialogId(null); setReviewComment(""); detailQuery.refetch(); pendingReviewsQuery.refetch(); listQuery.refetch(); },
+    onError: onErr,
   });
   const ceoReviewMutation = trpc.buSalesTarget.ceoReview.useMutation({
     onSuccess: () => { setReviewDialogId(null); setReviewComment(""); detailQuery.refetch(); pendingReviewsQuery.refetch(); listQuery.refetch(); },
+    onError: onErr,
   });
   const deleteMutation = trpc.buSalesTarget.delete.useMutation({
     onSuccess: () => { setSelectedPlanId(null); listQuery.refetch(); dashboardQuery.refetch(); },
+    onError: onErr,
   });
 
   // ── Derived data ──

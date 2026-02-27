@@ -10,7 +10,7 @@
  */
 import { z } from "zod";
 import { router, publicProcedure } from "../_core/trpc";
-import { getDb } from "../db";
+import { getDb, requireDb } from "../db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import {
   buSalesPlans,
@@ -28,6 +28,96 @@ const detailChangeSchema = z.object({
   capabilityLevel: z.number().optional(),
 });
 
+// ── Auto-create tables if they don't exist ────────────────
+let tablesEnsured = false;
+async function ensureTables() {
+  if (tablesEnsured) return;
+  try {
+    const db = await requireDb();
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS bu_sales_plans (
+        id SERIAL PRIMARY KEY,
+        year INTEGER NOT NULL,
+        department_id VARCHAR(50) NOT NULL,
+        total_sales_target DECIMAL(12,2),
+        total_output_target DECIMAL(12,2),
+        growth_rules JSONB,
+        status VARCHAR(20) DEFAULT 'draft',
+        submitted_by VARCHAR(50),
+        submitted_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS bu_sales_plan_details (
+        id SERIAL PRIMARY KEY,
+        bu_sales_plan_id INTEGER NOT NULL REFERENCES bu_sales_plans(id),
+        period_type VARCHAR(20),
+        period_value INTEGER,
+        sales_target DECIMAL(12,2),
+        output_target DECIMAL(12,2),
+        kpi_target DECIMAL(5,2),
+        capability_level DECIMAL(4,2),
+        is_adjusted BOOLEAN DEFAULT false
+      )
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS bu_sales_plan_adjustments (
+        id SERIAL PRIMARY KEY,
+        bu_sales_plan_id INTEGER NOT NULL REFERENCES bu_sales_plans(id),
+        applicant_id VARCHAR(50),
+        adjustment_reason VARCHAR(500),
+        adjustment_type VARCHAR(30) DEFAULT 'normal',
+        exception_tag VARCHAR(50),
+        original_data JSONB,
+        proposed_data JSONB,
+        approval_status VARCHAR(20) DEFAULT 'pending',
+        approved_by VARCHAR(50),
+        review_step VARCHAR(20) DEFAULT 'finance_pmo',
+        finance_pmo_status VARCHAR(20),
+        finance_pmo_reviewed_by VARCHAR(50),
+        finance_pmo_reviewed_at TIMESTAMP,
+        finance_pmo_comment VARCHAR(500),
+        ceo_status VARCHAR(20),
+        ceo_reviewed_by VARCHAR(50),
+        ceo_reviewed_at TIMESTAMP,
+        ceo_comment VARCHAR(500),
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    // Add missing columns for existing tables (idempotent ALTER)
+    const alterSafe = async (table: string, col: string, type: string) => {
+      try {
+        await db.execute(sql.raw(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${col} ${type}`));
+      } catch { /* column already exists */ }
+    };
+    await alterSafe("bu_sales_plans", "submitted_by", "VARCHAR(50)");
+    await alterSafe("bu_sales_plans", "submitted_at", "TIMESTAMP");
+    await alterSafe("bu_sales_plan_adjustments", "adjustment_type", "VARCHAR(30) DEFAULT 'normal'");
+    await alterSafe("bu_sales_plan_adjustments", "exception_tag", "VARCHAR(50)");
+    await alterSafe("bu_sales_plan_adjustments", "review_step", "VARCHAR(20) DEFAULT 'finance_pmo'");
+    await alterSafe("bu_sales_plan_adjustments", "finance_pmo_status", "VARCHAR(20)");
+    await alterSafe("bu_sales_plan_adjustments", "finance_pmo_reviewed_by", "VARCHAR(50)");
+    await alterSafe("bu_sales_plan_adjustments", "finance_pmo_reviewed_at", "TIMESTAMP");
+    await alterSafe("bu_sales_plan_adjustments", "finance_pmo_comment", "VARCHAR(500)");
+    await alterSafe("bu_sales_plan_adjustments", "ceo_status", "VARCHAR(20)");
+    await alterSafe("bu_sales_plan_adjustments", "ceo_reviewed_by", "VARCHAR(50)");
+    await alterSafe("bu_sales_plan_adjustments", "ceo_reviewed_at", "TIMESTAMP");
+    await alterSafe("bu_sales_plan_adjustments", "ceo_comment", "VARCHAR(500)");
+    // Indexes
+    try {
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS bu_sales_plans_year_idx ON bu_sales_plans(year)`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS bu_sales_plans_dept_idx ON bu_sales_plans(department_id)`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS bu_sales_plan_details_plan_idx ON bu_sales_plan_details(bu_sales_plan_id)`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS bu_sales_plan_adj_plan_idx ON bu_sales_plan_adjustments(bu_sales_plan_id)`);
+    } catch { /* indexes exist */ }
+    tablesEnsured = true;
+    console.log("[BU Sales Target] Tables ensured");
+  } catch (err) {
+    console.warn("[BU Sales Target] ensureTables failed:", err);
+  }
+}
+
 export const buSalesTargetRouter = router({
   /** List all BU sales plans, ordered by year desc */
   list: publicProcedure
@@ -35,6 +125,7 @@ export const buSalesTargetRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return { items: [], total: 0 };
+      await ensureTables();
       try {
         const items = await db
           .select()
@@ -57,6 +148,7 @@ export const buSalesTargetRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return null;
+      await ensureTables();
       try {
         const [plan] = await db
           .select()
@@ -95,6 +187,7 @@ export const buSalesTargetRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      await ensureTables();
 
       const { year, departmentId, totalSalesTarget, totalOutputTarget, growthRules } = input;
 
@@ -164,6 +257,7 @@ export const buSalesTargetRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      await ensureTables();
 
       const updateData: Record<string, unknown> = { isAdjusted: true };
       if (input.salesTarget !== undefined) updateData.salesTarget = input.salesTarget.toFixed(2);
@@ -191,6 +285,7 @@ export const buSalesTargetRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      await ensureTables();
 
       const [plan] = await db
         .update(buSalesPlans)
@@ -223,6 +318,7 @@ export const buSalesTargetRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      await ensureTables();
 
       // Zero-sum validation for normal adjustments
       if (input.adjustmentType === "normal") {
@@ -282,6 +378,7 @@ export const buSalesTargetRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      await ensureTables();
 
       const finStatus = input.approved ? "approved" : "rejected";
 
@@ -329,6 +426,7 @@ export const buSalesTargetRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      await ensureTables();
 
       const ceoStatus = input.approved ? "approved" : "rejected";
 
@@ -400,6 +498,7 @@ export const buSalesTargetRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      await ensureTables();
 
       const newStatus = input.approved ? "approved" : "rejected";
 
@@ -418,6 +517,7 @@ export const buSalesTargetRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      await ensureTables();
 
       await db.delete(buSalesPlanAdjustments).where(eq(buSalesPlanAdjustments.buSalesPlanId, input.id));
       await db.delete(buSalesPlanDetails).where(eq(buSalesPlanDetails.buSalesPlanId, input.id));
@@ -433,6 +533,7 @@ export const buSalesTargetRouter = router({
       if (!db) {
         return { totalPlans: 0, totalSalesTarget: 0, totalOutputTarget: 0, avgGrowth: 0, pendingApprovals: 0 };
       }
+      await ensureTables();
       try {
         const result = await db
           .select({
@@ -468,6 +569,7 @@ export const buSalesTargetRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return [];
+      await ensureTables();
       try {
         let whereClause;
         if (input?.step === "finance_pmo") {
