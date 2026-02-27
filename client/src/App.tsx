@@ -333,6 +333,10 @@ const KpiPerformance = React.lazy(() => import("./pages/KpiPerformance"));
 // Project 360 Cockpit — cross-module aggregation
 const Project360Cockpit = React.lazy(() => import("./pages/Project360Cockpit"));
 
+// Capability System — TSDCKL 6-pillar model
+const My360Profile = React.lazy(() => import("./pages/My360Profile"));
+const CapabilitySystemMatrix = React.lazy(() => import("./pages/CapabilitySystemMatrix"));
+
 // Phase 1.2: Shop Floor Machine Login (SOP + Role Interlock)
 const ShopFloorMachineLogin = React.lazy(() => import("./pages/ShopFloorMachineLogin"));
 
@@ -1682,6 +1686,12 @@ function Router() {
       </Route>
       <Route path="/project-360-cockpit">
         <ProtectedRoute component={Project360Cockpit} />
+      </Route>
+      <Route path="/my-360-profile">
+        <ProtectedRoute component={My360Profile} />
+      </Route>
+      <Route path="/capability-system">
+        <ProtectedRoute component={CapabilitySystemMatrix} />
       </Route>
       <Route path="/admin/compliance-calendar">
         <ProtectedRoute component={ComplianceCalendar} />

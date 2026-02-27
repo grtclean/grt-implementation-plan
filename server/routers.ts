@@ -252,6 +252,7 @@ import { dataMigrationRouter } from "./routers/data-migration.router";
 import { aiCanvasRouter } from "./routers/ai-canvas.router";
 import { okrRouter } from "./routers/okr.router";
 import { excellenceCultureRouter } from "./routers/excellence-culture.router";
+import { capabilitySystemRouter } from "./routers/capability-system.router";
 import { cleaningProjectRouter } from "./routers/cleaning-project.router";
 import { roleAgentRouter } from "./routers/role-agent.router";
 import { automationRouter } from "./routers/automation.router";
@@ -653,6 +654,7 @@ export const appRouter = router({
 
   // Excellence Culture Model — Strategy Compass & Capability Matrix
   excellenceCulture: excellenceCultureRouter,
+  capabilitySystem: capabilitySystemRouter,
 
   // Cleaning Machine Project Wizard (M0→M2 lifecycle + T1-T15 milestones)
   cleaningProject: cleaningProjectRouter,
