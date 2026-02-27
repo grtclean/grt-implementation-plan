@@ -32,6 +32,7 @@ import {
   Send, Ban, CalendarClock, Receipt, Handshake, FileWarning,
   CircleDollarSign, Scale, BarChart3,
 } from "lucide-react";
+import QueryErrorBanner from "@/components/QueryErrorBanner";
 
 function LoadingSkeleton({ rows = 3 }: { rows?: number }) {
   return <div className="space-y-3">{Array.from({ length: rows }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>;
@@ -53,6 +54,7 @@ function OverviewTab() {
   const incidents = incidentQuery.data?.items ?? [];
 
   const isLoading = agreementsQuery.isLoading || paymentsQuery.isLoading;
+  const queryError = agreementsQuery.error || paymentsQuery.error || rfqQuery.error || deliveryQuery.error || incidentQuery.error;
 
   const activeAgreements = agreements.filter((a: any) => a.status === "ACTIVE").length;
   const pendingPayments = payments.filter((p: any) => p.status !== "ARCHIVED" && p.status !== "SUPPLIER_CONFIRMED").length;
@@ -64,6 +66,7 @@ function OverviewTab() {
 
   return (
     <div className="space-y-6">
+      <QueryErrorBanner error={queryError} onRetry={() => { agreementsQuery.refetch(); paymentsQuery.refetch(); rfqQuery.refetch(); deliveryQuery.refetch(); incidentQuery.refetch(); }} />
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard icon={CircleDollarSign} label={t("supply.p2p.totalPurchaseAmount")} value={`${(totalPoValue / 10000).toFixed(1)}万`} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
         <StatCard icon={Clock} label={t("supply.p2p.pendingPayment")} value={pendingPayments} iconColor="text-amber-500" iconBg="bg-amber-500/10" />

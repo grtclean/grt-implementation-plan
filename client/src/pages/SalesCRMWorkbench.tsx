@@ -589,9 +589,10 @@ function AnalyticsTab() {
   const funnelQ = (trpc.crm as any).opportunities.funnel.useQuery({});
   const intStatsQ = (trpc.crm as any).interactions.stats.useQuery({});
 
+  const queryError = oppStatsQ.error || custStatsQ.error || funnelQ.error || intStatsQ.error;
   const oppStats = oppStatsQ.data;
   const custStats = custStatsQ.data;
-  const funnel = funnelQ.data || [];
+  const funnel = Array.isArray(funnelQ.data) ? funnelQ.data : [];
   const intStats = intStatsQ.data;
   const maxFunnelVal = Math.max(...funnel.map((f: any) => Number(f.totalValue) || 0), 1);
 
@@ -603,6 +604,13 @@ function AnalyticsTab() {
 
   return (
     <div className="space-y-4">
+      {queryError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm">
+          <p className="font-semibold text-red-700">CRM data loading error</p>
+          <p className="mt-1 text-red-600 font-mono text-xs">{queryError.message}</p>
+          <button onClick={() => { oppStatsQ.refetch(); custStatsQ.refetch(); funnelQ.refetch(); intStatsQ.refetch(); }} className="mt-2 rounded bg-red-100 px-3 py-1 text-xs text-red-700 hover:bg-red-200">Retry</button>
+        </div>
+      )}
       {/* Top Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label={t("crm.workbench.pipelineTotal")} value={oppStats ? `¥${(Number(oppStats.pipelineValue) / 10000).toFixed(0)}万` : '--'} icon={DollarSign} color="#0078d4" />

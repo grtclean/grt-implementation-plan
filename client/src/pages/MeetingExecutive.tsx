@@ -66,6 +66,7 @@ import {
 } from "@/components/ui/table";
 import { PageHeader, StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
+import QueryErrorBanner from "@/components/QueryErrorBanner";
 import {
   LineChart,
   Line,
@@ -932,8 +933,11 @@ function AIPerformanceTab() {
     } catch { /* ignore */ }
   };
 
+  const queryError = dashboardQuery.error || leaderboardQuery.error || actionStatsQuery.error || roiQuery.error;
+
   return (
     <div className="space-y-6">
+      <QueryErrorBanner error={queryError} onRetry={() => { dashboardQuery.refetch(); leaderboardQuery.refetch(); actionStatsQuery.refetch(); }} />
       {/* Seed + status banner */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -1284,8 +1288,11 @@ function ManagementRhythmTab() {
   const okrDash = okrDashQuery.data;
   const stats = statsQuery.data;
 
+  const rhythmQueryError = meetingsQuery.error || okrDashQuery.error || statsQuery.error;
+
   return (
     <div className="space-y-6">
+      <QueryErrorBanner error={rhythmQueryError} onRetry={() => { meetingsQuery.refetch(); okrDashQuery.refetch(); statsQuery.refetch(); }} />
       {/* Section 0: Management Rhythm Closed-Loop Flow */}
       <div className="bg-white border rounded-lg">
         <div className="p-4 border-b">

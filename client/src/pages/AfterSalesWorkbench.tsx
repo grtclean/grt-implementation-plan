@@ -714,7 +714,17 @@ function DashboardTab() {
   const lowStock: any[] = Array.isArray((lowStockQ.data as any)?.items) ? (lowStockQ.data as any).items : Array.isArray(lowStockQ.data) ? lowStockQ.data : [];
 
   const isLoading = dashQ.isLoading || equipQ.isLoading || complaintsQ.isLoading || penaltiesQ.isLoading;
+  const queryError = dashQ.error || equipQ.error || dueSoonQ.error || complaintsQ.error || complaintStatsQ.error || penaltiesQ.error || penaltyStatsQ.error || lowStockQ.error;
   if (isLoading) return <Skeleton rows={6} />;
+  if (queryError) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
+        <p className="font-semibold text-red-700">Dashboard data loading error</p>
+        <p className="mt-1 text-red-600 font-mono text-xs">{queryError.message}</p>
+        <button onClick={() => { dashQ.refetch(); equipQ.refetch(); complaintsQ.refetch(); penaltiesQ.refetch(); }} className="mt-2 rounded bg-red-100 px-3 py-1 text-xs text-red-700 hover:bg-red-200">Retry</button>
+      </div>
+    );
+  }
 
   const recentComplaints = [...complaints].sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).slice(0, 5);
   const recentPenalties = [...penalties].sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).slice(0, 5);

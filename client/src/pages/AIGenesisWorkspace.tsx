@@ -44,6 +44,7 @@ import {
   BookOpen,
   Star,
 } from "lucide-react";
+import QueryErrorBanner from "@/components/QueryErrorBanner";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -287,6 +288,7 @@ export default function AIGenesisWorkspace() {
   const proposalDetail = proposalDetailQuery.data;
   const chatMessages = (proposalDetail as any)?.chatMessages ?? [];
 
+  const genesisQueryError = statsQuery.error || documentsQuery.error || proposalsQuery.error;
   const stats = statsQuery.data ?? {
     documentCount: documents.length,
     proposalCount: proposals.length,
@@ -450,6 +452,7 @@ export default function AIGenesisWorkspace() {
 
   return (
     <div className="flex flex-col h-full space-y-4">
+      <QueryErrorBanner error={genesisQueryError} onRetry={() => { statsQuery.refetch(); documentsQuery.refetch(); proposalsQuery.refetch(); }} />
       {/* Header */}
       <PageHeader
         icon={Brain}

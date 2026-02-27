@@ -157,7 +157,8 @@ export default function BUSalesTargetPlanner() {
     onError: onErr,
   });
 
-  // ── Derived data ──
+  // ── Derived data (with safe fallbacks) ──
+  const queryError = dashboardQuery.error || listQuery.error || detailQuery.error || pendingReviewsQuery.error;
   const dashboard = dashboardQuery.data;
   const plans = listQuery.data?.items ?? [];
   const detail = detailQuery.data;
@@ -314,6 +315,16 @@ export default function BUSalesTargetPlanner() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
+      {/* Query error inline banner — never crashes, never redirects */}
+      {queryError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
+          <p className="font-semibold text-red-700">{isZh ? "数据加载异常（页面功能可能受限）" : "Data loading error (page may have limited functionality)"}</p>
+          <p className="mt-1 text-red-600 font-mono text-xs">{queryError.message}</p>
+          <button onClick={() => { dashboardQuery.refetch(); listQuery.refetch(); }} className="mt-2 rounded bg-red-100 px-3 py-1 text-xs text-red-700 hover:bg-red-200">
+            {isZh ? "重新加载" : "Retry"}
+          </button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white">

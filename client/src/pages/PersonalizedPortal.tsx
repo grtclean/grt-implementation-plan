@@ -25,6 +25,7 @@ import {
   Users,
   AlertCircle,
 } from "lucide-react";
+import QueryErrorBanner from "@/components/QueryErrorBanner";
 
 // ---------------------------------------------------------------------------
 // Time-based greeting
@@ -96,6 +97,7 @@ export default function PersonalizedPortal() {
   const perfQuery = trpc.aiPerformance.dashboard.useQuery();
   const statsQuery = trpc.aiPerformance.actionItemStats.useQuery({ months: 6 });
 
+  const portalQueryError = perfQuery.error || statsQuery.error;
   const perf = perfQuery.data;
   const stats = statsQuery.data ?? [];
 
@@ -112,6 +114,7 @@ export default function PersonalizedPortal() {
 
   return (
     <div className="flex flex-col h-full overflow-auto">
+      {portalQueryError && <div className="px-6 pt-4"><QueryErrorBanner error={portalQueryError} onRetry={() => { perfQuery.refetch(); statsQuery.refetch(); }} /></div>}
       {/* Greeting Header */}
       <div className="px-6 pt-6 pb-4">
         <div className="flex items-center gap-3 mb-2">

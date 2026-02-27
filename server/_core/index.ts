@@ -133,11 +133,13 @@ async function startServer() {
     serveStatic(app);
   }
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
-
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+  const port = parseInt(process.env.PORT || "3000");
+  const portFree = await isPortAvailable(port);
+  if (!portFree) {
+    console.error(`\n  ❌ Port ${port} is already in use!`);
+    console.error(`  Run: taskkill /F /PID <pid>   (find PID with: netstat -ano | findstr :${port})`);
+    console.error(`  Or set a different PORT in .env\n`);
+    process.exit(1);
   }
 
   const wss = initWebSocketServer(server);

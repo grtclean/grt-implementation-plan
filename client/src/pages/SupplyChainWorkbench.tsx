@@ -27,6 +27,7 @@ import {
   BarChart3, Package, Gauge, Boxes, Factory, Users,
   ArrowRight, ChevronRight, Ban, Timer,
 } from "lucide-react";
+import QueryErrorBanner from "@/components/QueryErrorBanner";
 
 function LoadingSkeleton({ rows = 3 }: { rows?: number }) {
   return <div className="space-y-3">{Array.from({ length: rows }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>;
@@ -38,6 +39,7 @@ function DashboardTab() {
   const statsQuery = trpc.supplyChain.dashboardStats.useQuery();
   const stats = statsQuery.data;
 
+  if (statsQuery.error) return <QueryErrorBanner error={statsQuery.error} onRetry={() => statsQuery.refetch()} />;
   if (!stats) {
     return <LoadingSkeleton rows={4} />;
   }

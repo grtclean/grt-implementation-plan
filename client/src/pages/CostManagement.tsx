@@ -42,6 +42,7 @@ import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import ProcessNotebook from "@/components/ProcessNotebook";
 import FeatureGuide from "@/components/FeatureGuide";
+import QueryErrorBanner from "@/components/QueryErrorBanner";
 import { toast } from "sonner";
 
 export default function CostManagement() {
@@ -69,43 +70,46 @@ export default function CostManagement() {
   const [newTemplateDescription, setNewTemplateDescription] = useState("");
 
   // Fetch projects
-  const { data: projects, isLoading: projectsLoading } = trpc.project.list.useQuery();
-  
+  const { data: projects, isLoading: projectsLoading, error: projectsError } = trpc.project.list.useQuery();
+
   // Fetch cost categories
-  const { data: categories } = trpc.cost.getCategories.useQuery();
-  
+  const { data: categories, error: categoriesError } = trpc.cost.getCategories.useQuery();
+
   // Fetch cost summary for selected project
-  const { data: costSummary, isLoading: summaryLoading } = trpc.cost.getSummary.useQuery(
+  const { data: costSummary, isLoading: summaryLoading, error: summaryError } = trpc.cost.getSummary.useQuery(
     undefined,
     { enabled: !!selectedProjectId }
   );
 
   // Fetch cost records for selected project
-  const { data: costRecords } = trpc.cost.getRecords.useQuery(
+  const { data: costRecords, error: costRecordsError } = trpc.cost.getRecords.useQuery(
     undefined,
     { enabled: !!selectedProjectId }
   );
 
   // Fetch budgets for selected project
-  const { data: budgets } = trpc.cost.getBudgets.useQuery(
+  const { data: budgets, error: budgetsError } = trpc.cost.getBudgets.useQuery(
     undefined,
     { enabled: !!selectedProjectId }
   );
 
   // Fetch labor costs for selected project
-  const { data: laborCosts } = trpc.cost.getLaborCosts.useQuery(
+  const { data: laborCosts, error: laborCostsError } = trpc.cost.getLaborCosts.useQuery(
     undefined,
     { enabled: !!selectedProjectId }
   );
 
   // Fetch alert logs for selected project
-  const { data: alertLogs, isLoading: alertLogsLoading } = trpc.costAlert.getProjectLogs.useQuery(
+  const { data: alertLogs, isLoading: alertLogsLoading, error: alertLogsError } = trpc.costAlert.getProjectLogs.useQuery(
     { projectId: selectedProjectId! },
     { enabled: !!selectedProjectId }
   );
 
   // Fetch alert rules
-  const { data: alertRules } = trpc.costAlert.getActiveRules.useQuery();
+  const { data: alertRules, error: alertRulesError } = trpc.costAlert.getActiveRules.useQuery();
+
+  // Aggregate query errors for inline banner
+  const queryError = projectsError || categoriesError || summaryError || costRecordsError || budgetsError || laborCostsError || alertLogsError || alertRulesError;
 
   // Mutations
   const utils = trpc.useUtils();
@@ -546,6 +550,8 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
             </>
           }
         />
+
+        <QueryErrorBanner error={queryError} onRetry={() => window.location.reload()} />
 
         {!selectedProjectId ? (
           <Card className="border-dashed">

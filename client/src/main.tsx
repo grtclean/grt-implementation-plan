@@ -20,6 +20,8 @@ const queryClient = new QueryClient({
     queries: {
       retry: false,
       refetchOnWindowFocus: false,
+      // Never throw query errors to ErrorBoundary — handle inline per-page
+      throwOnError: false,
       // Keep data fresh for 30s — on page navigation, cached data shows
       // instantly (no loading spinner) while a background refetch updates it.
       // This eliminates the loading→content layout shift on every navigation.
@@ -27,6 +29,8 @@ const queryClient = new QueryClient({
     },
     mutations: {
       retry: false,
+      // Never throw mutation errors to ErrorBoundary — handle via onError callbacks
+      throwOnError: false,
     },
   },
 });

@@ -14,6 +14,7 @@ import {
   BarChart3, TrendingUp, X, ChevronDown, Loader2,
   Ruler, FlaskConical, Eye, Hash, Trash2,
 } from "lucide-react";
+import QueryErrorBanner from "@/components/QueryErrorBanner";
 
 // ─── Constants ────────────────────────────────────────────────
 const D_STEPS = ["open", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "closed", "verified"] as const;
@@ -231,6 +232,7 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
 
   return (
     <div className="space-y-4">
+      <QueryErrorBanner error={statsQ.error || listQ.error} onRetry={() => { statsQ.refetch(); listQ.refetch(); }} />
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
@@ -977,6 +979,7 @@ function DashboardTab() {
   const capaListQ = trpc.eightDCapa.listCAPA.useQuery({});
 
   if (statsQ.isLoading) return <SkeletonRows rows={6} />;
+  if (statsQ.error || capaListQ.error) return <QueryErrorBanner error={statsQ.error || capaListQ.error} onRetry={() => { statsQ.refetch(); capaListQ.refetch(); }} />;
   const stats = statsQ.data;
   if (!stats) return <p className="text-[#a19f9d] text-center py-12">{t("quality.common.noData")}</p>;
 
@@ -1157,6 +1160,7 @@ function MsaTab() {
 
   return (
     <div className="space-y-4">
+      <QueryErrorBanner error={listQ.error || statsQ.error} onRetry={() => { listQ.refetch(); statsQ.refetch(); }} />
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
