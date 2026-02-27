@@ -87,7 +87,11 @@ export default function TopHeader({
           <Grid3X3 className="w-5 h-5" />
         </button>
         <a href="/" className="flex items-center gap-2" title="GRT System">
-          <BrandLogo size="sm" variant="full" />
+          <BrandLogo size="sm" variant="icon" />
+          <span className="font-bold text-sm text-[#323130] select-none leading-none">
+            GRT
+            <span className="font-normal text-xs text-[#605e5c] ml-1">System</span>
+          </span>
         </a>
       </div>
 
