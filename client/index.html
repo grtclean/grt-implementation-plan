@@ -23,7 +23,12 @@
         // 1. Disable browser's automatic scroll restoration — it fights with
         //    React's rendering and causes visible content jumping on refresh
         if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-        // 2. Set dark class synchronously to prevent theme flash
+        // 2. One-time migration: force light theme for Microsoft white-background style
+        if (!localStorage.getItem('grt-theme-v2-migrated')) {
+          localStorage.setItem('grt-theme', 'light');
+          localStorage.setItem('grt-theme-v2-migrated', '1');
+        }
+        // 3. Set dark class synchronously to prevent theme flash
         var theme = localStorage.getItem('grt-theme') || 'light';
         if (theme === 'system') {
           theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';

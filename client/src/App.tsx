@@ -1760,7 +1760,7 @@ function App() {
       <LanguageProvider>
         <UserProfileProvider defaultRole="employee">
           <ThemeProvider
-            defaultTheme="dark"
+            defaultTheme="light"
             switchable
           >
             <TooltipProvider>
