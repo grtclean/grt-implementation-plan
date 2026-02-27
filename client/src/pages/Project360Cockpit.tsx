@@ -198,25 +198,23 @@ export default function Project360Cockpit() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* ─── Page Header ─── */}
-      <div className="bg-white border-b px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-600 rounded-lg">
-                <LayoutDashboard className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">项目 360 驾驶舱</h1>
-                <p className="text-sm text-gray-500">Project 360 Cockpit — M0-M12 Lifecycle Dashboard</p>
-              </div>
+      <div className="bg-white border-b px-4 sm:px-6 py-3 sm:py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 bg-blue-600 rounded-lg shrink-0">
+              <LayoutDashboard className="w-5 h-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">项目 360 驾驶舱</h1>
+              <p className="text-xs sm:text-sm text-gray-500 truncate">Project 360 Cockpit — M0-M12 Lifecycle</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50 px-3 py-1">
-              <Activity className="w-3.5 h-3.5 mr-1.5" />
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50 px-2 sm:px-3 py-1 text-xs">
+              <Activity className="w-3.5 h-3.5 mr-1" />
               Live
             </Badge>
-            <div className="text-right">
+            <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-gray-700">{PROJECT.nameCn}</p>
               <p className="text-xs text-gray-500">{PROJECT.customer}</p>
             </div>
@@ -224,23 +222,21 @@ export default function Project360Cockpit() {
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* ─── Project Banner ─── */}
-        <div className="bg-white rounded-xl border px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">{PROJECT.name}</h2>
-              <p className="text-sm text-gray-500">
-                PM: {PROJECT.projectManager} &nbsp;|&nbsp; Phase: <span className="font-medium text-blue-700">{PROJECT.currentPhase}</span> &nbsp;|&nbsp; {PROJECT.lifecycle}
-              </p>
-            </div>
+        <div className="bg-white rounded-xl border px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{PROJECT.name}</h2>
+            <p className="text-xs sm:text-sm text-gray-500 truncate">
+              PM: {PROJECT.projectManager} &nbsp;|&nbsp; Phase: <span className="font-medium text-blue-700">{PROJECT.currentPhase}</span> &nbsp;|&nbsp; {PROJECT.lifecycle}
+            </p>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6 shrink-0">
             <div className="text-center">
-              <p className="text-3xl font-bold text-gray-900">{KPI.completionPercent}%</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900">{KPI.completionPercent}%</p>
               <p className="text-xs text-gray-500">Overall Progress</p>
             </div>
-            <Badge className={`px-4 py-2 text-sm font-medium ${
+            <Badge className={`px-3 sm:px-4 py-2 text-sm font-medium ${
               KPI.overallStatus === "green" ? "bg-green-100 text-green-800 hover:bg-green-100" :
               KPI.overallStatus === "yellow" ? "bg-amber-100 text-amber-800 hover:bg-amber-100" :
               "bg-red-100 text-red-800 hover:bg-red-100"
@@ -450,8 +446,8 @@ export default function Project360Cockpit() {
               Production Pipeline (T1 → T15)
             </CardTitle>
           </CardHeader>
-          <CardContent className="py-5 px-6">
-            <div className="flex items-center gap-1 overflow-x-auto pb-2">
+          <CardContent className="py-5 px-4 sm:px-6">
+            <div className="flex items-center gap-1 overflow-x-auto pb-2 scrollbar-hide">
               {T_STAGES.map((t, i) => (
                 <div key={t.code} className="flex items-center">
                   <div className={`flex flex-col items-center min-w-[72px] ${
@@ -509,17 +505,17 @@ export default function Project360Cockpit() {
               </Badge>
             </div>
           </CardHeader>
-          <CardContent className="py-5">
-            <div className="flex items-center justify-between">
-              <div>
+          <CardContent className="py-5 px-4 sm:px-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0">
                 <p className="text-sm text-gray-700">
                   ECO-2026-0047: Modify ultrasonic transducer mounting bracket (Revision B → C)
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Submitted by Zhang Wei (张伟) &nbsp;|&nbsp; Impact: T5 Surface Treatment, T6 Assembly &nbsp;|&nbsp; Priority: High
+                  Submitted by Zhang Wei (张伟) &nbsp;|&nbsp; Priority: High
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 {ecoSubmitted && (
                   <Badge className="bg-green-100 text-green-800 hover:bg-green-100 animate-in fade-in">
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
@@ -571,7 +567,7 @@ export default function Project360Cockpit() {
             {/* Approval chain visualization */}
             <div className="mt-4 pt-4 border-t">
               <p className="text-xs font-medium text-gray-500 mb-3">Approval Chain (sys_approval_requests)</p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {[
                   { role: "Engineer", status: "done" },
                   { role: "Team Lead", status: "done" },

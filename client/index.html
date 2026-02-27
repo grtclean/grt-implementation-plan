@@ -8,7 +8,15 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>GRT System — 智能管理系统</title>
     <link rel="icon" type="image/gif" href="/GRTlogo.gif" />
-    <link rel="apple-touch-icon" href="/GRTlogo.gif" />
+    <link rel="apple-touch-icon" href="/GRTlogo.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/GRTlogo.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0078d4" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="GRT System" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="GRT System" />
     <!-- Prevent flash of incorrect theme and CSS transition flicker during initial load -->
     <script>
       (function() {
@@ -109,6 +117,10 @@
           s.dataset.websiteId = id;
           s.async = true;
           document.body.appendChild(s);
+        }
+        // Register Service Worker for PWA offline support
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/sw.js').catch(function() {});
         }
       });
     </script>

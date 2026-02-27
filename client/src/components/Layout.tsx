@@ -17,6 +17,9 @@ import TopHeader from "@/components/Layout/TopHeader";
 import WaffleMenu from "@/components/Layout/WaffleMenu";
 import ContextualSidebar from "@/components/Layout/ContextualSidebar";
 import MobileBottomNav from "@/components/Layout/MobileBottomNav";
+import MobileSidebarDrawer from "@/components/Layout/MobileSidebarDrawer";
+import IdleTimeoutOverlay from "@/components/IdleTimeoutOverlay";
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
@@ -43,6 +46,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   const [panelMode, setPanelMode] = useState<"agent" | "canvas">("agent");
   const [helpPanelOpen, setHelpPanelOpen] = useState(false);
   const [waffleOpen, setWaffleOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved === 'true';
@@ -212,6 +216,18 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     select: alertCountSelector,
   }).data ?? 0;
 
+  // ── Idle Timeout (30min) — forces re-auth on inactivity ──
+  const [isLocked, setIsLocked] = useState(false);
+  const { showWarning, resetTimer } = useIdleTimeout({
+    timeoutMs: 30 * 60 * 1000,
+    onTimeout: () => setIsLocked(true),
+  });
+
+  const handleReauthenticate = useCallback(() => {
+    setIsLocked(false);
+    resetTimer();
+  }, [resetTimer]);
+
   // ── Navigation handler ──
   const handleMenuNavigate = useCallback((path: string) => {
     setLocation(path);
@@ -237,6 +253,8 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         onNavigate={handleMenuNavigate}
         waffleOpen={waffleOpen}
         onWaffleToggle={() => setWaffleOpen(prev => !prev)}
+        mobileSidebarOpen={mobileSidebarOpen}
+        onToggleMobileSidebar={() => setMobileSidebarOpen(prev => !prev)}
         user={user}
         resolvedDisplayName={resolvedDisplayName}
         avatarInitial={avatarInitial}
@@ -251,6 +269,25 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         onSelectApp={handleWaffleSelect}
         language={language}
         filteredMenuConfig={filteredMenuConfig}
+      />
+
+      {/* Mobile sidebar drawer — slide-out on small screens */}
+      <MobileSidebarDrawer
+        open={mobileSidebarOpen}
+        onClose={() => setMobileSidebarOpen(false)}
+        activeApp={activeApp}
+        filteredMenuConfig={filteredMenuConfig}
+        expandedGroups={expandedGroups}
+        onToggleGroup={toggleGroup}
+        favoriteItems={favoriteItems}
+        language={language}
+        currentBU={currentBU}
+        alertCount={alertCount}
+        onNavigate={handleMenuNavigate}
+        user={user}
+        resolvedDisplayName={resolvedDisplayName}
+        avatarInitial={avatarInitial}
+        logout={logout}
       />
 
       {/* Main body: sidebar + content */}
@@ -279,7 +316,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         {/* Main content */}
         <main className="flex-1 overflow-y-auto pb-14 md:pb-0 [scrollbar-gutter:stable]">
           <ErrorBoundary resetKeys={[location]} level="section">
-            <div className="p-6 lg:p-8">{children}</div>
+            <div className="p-3 sm:p-6 lg:p-8">{children}</div>
           </ErrorBoundary>
         </main>
       </div>
@@ -316,6 +353,17 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       <GuidedWalkthrough />
       <AIFloatingButton onClick={() => setAiPanelOpen(true)} isOpen={aiPanelOpen} />
       <AIConversationPanel isOpen={aiPanelOpen} onClose={() => setAiPanelOpen(false)} />
+
+      {/* Idle timeout — warning banner or full lock screen */}
+      {(isLocked || showWarning) && (
+        <IdleTimeoutOverlay
+          showWarning={!isLocked && showWarning}
+          onDismissWarning={resetTimer}
+          onReauthenticate={handleReauthenticate}
+          onLogout={logout}
+          resolvedDisplayName={resolvedDisplayName}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,27 @@
+{
+  "name": "GRT System — 智能管理系统",
+  "short_name": "GRT",
+  "description": "GRT Intelligent Management System — Enterprise Super App",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#faf9f8",
+  "theme_color": "#0078d4",
+  "icons": [
+    {
+      "src": "/GRTlogo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/GRTlogo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "zh-CN",
+  "dir": "ltr"
+}

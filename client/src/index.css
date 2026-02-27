@@ -349,6 +349,11 @@
 
   /* Mobile bottom nav safe area */
   .safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+  /* PWA standalone mode adjustments */
+  @media all and (display-mode: standalone) {
+    .safe-area-pt { padding-top: env(safe-area-inset-top, 0px); }
+  }
 }
 
 /* Hide scrollbar while keeping scroll functionality (for horizontal tab bars, timelines) */

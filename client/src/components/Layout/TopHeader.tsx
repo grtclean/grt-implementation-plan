@@ -16,6 +16,7 @@ import {
   Grid3X3,
   HelpCircle,
   LogOut,
+  Menu,
   PenSquare,
   User,
 } from "lucide-react";
@@ -31,6 +32,8 @@ interface TopHeaderProps {
   onNavigate: (path: string) => void;
   waffleOpen: boolean;
   onWaffleToggle: () => void;
+  mobileSidebarOpen: boolean;
+  onToggleMobileSidebar: () => void;
   user: { name?: string; email?: string; openId?: string } | null;
   resolvedDisplayName: string;
   avatarInitial: string;
@@ -46,6 +49,8 @@ export default function TopHeader({
   onNavigate,
   waffleOpen,
   onWaffleToggle,
+  mobileSidebarOpen,
+  onToggleMobileSidebar,
   user,
   resolvedDisplayName,
   avatarInitial,
@@ -53,12 +58,26 @@ export default function TopHeader({
 }: TopHeaderProps) {
   return (
     <header className="h-12 bg-white border-b border-[#edebe9] flex items-center px-3 shrink-0 z-50 relative">
-      {/* Left: Waffle + Brand */}
-      <div className="flex items-center gap-2">
+      {/* Left: Hamburger (mobile) + Waffle (desktop) + Brand */}
+      <div className="flex items-center gap-1 sm:gap-2">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onToggleMobileSidebar}
+          className={cn(
+            "w-9 h-9 flex md:hidden items-center justify-center rounded-md transition-colors",
+            mobileSidebarOpen
+              ? "bg-[#eff6fc] text-[#0078d4]"
+              : "text-[#605e5c] hover:bg-[#f3f2f1] hover:text-[#323130]"
+          )}
+          title={language === "zh" ? "菜单" : "Menu"}
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        {/* Waffle — desktop only */}
         <button
           onClick={onWaffleToggle}
           className={cn(
-            "w-9 h-9 flex items-center justify-center rounded-md transition-colors",
+            "w-9 h-9 hidden md:flex items-center justify-center rounded-md transition-colors",
             waffleOpen
               ? "bg-[#eff6fc] text-[#0078d4]"
               : "text-[#605e5c] hover:bg-[#f3f2f1] hover:text-[#323130]"
