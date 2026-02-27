@@ -1,25 +1,75 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
 
+// ---------------------------------------------------------------------------
+// Folder model
+// ---------------------------------------------------------------------------
+
+interface MockFolder {
+  id: number;
+  name: string;
+  parentId: number | null;
+  createdAt: string;
+  createdBy: string;
+}
+
+const MOCK_FOLDERS: MockFolder[] = [
+  { id: 1, name: "CEO 文件", parentId: null, createdAt: "2026-02-10T08:00:00Z", createdBy: "CEO" },
+  { id: 2, name: "项目模板", parentId: null, createdAt: "2026-02-12T09:00:00Z", createdBy: "COO" },
+];
+let nextFolderId = 3;
+
+// ---------------------------------------------------------------------------
+// Role levels (mirrors client ROLE_HIERARCHY)
+// ---------------------------------------------------------------------------
+
+const ROLE_LEVELS: Record<string, number> = {
+  guest: 0,
+  employee: 1,
+  production_worker: 1,
+  team_lead: 2,
+  bu_sales: 2,
+  bu_mech: 2,
+  bu_elec: 2,
+  procurement_eng: 2,
+  cs_engineer: 2,
+  dept_manager: 3,
+  bu_pm: 3,
+  hr_specialist: 3,
+  finance_specialist: 3,
+  hr_manager: 4,
+  finance_manager: 4,
+  director: 5,
+  bu_gm: 6,
+  admin: 10,
+};
+
+// ---------------------------------------------------------------------------
 // Mock file data
+// ---------------------------------------------------------------------------
+
 const MOCK_FILES = [
   {
     id: 1,
-    title: "GRT SYSTEM 调试追踪",
-    fileName: "GRT SYSTEM 调试追踪.xlsx",
+    title: "CEO 3-Week Masterplan Tracker",
+    fileName: "CEO-3Week-Masterplan-Tracker.xlsx",
     fileType: "xlsx",
-    fileSize: 46285,
-    modifiedAt: "2026-02-18T10:30:00Z",
+    fileSize: 52480,
+    modifiedAt: "2026-02-27T08:00:00Z",
     uploadedBy: "CEO",
     status: "active" as const,
+    folderId: 1 as number | null,
     parsedContent: [
-      ["To do", "suggestion excute time", "gemini perparation", "claude done"],
-      ["Step 1: Claude 全局体检", "2026-02-20", "N/A", "\u2705 Complete"],
-      ["Step 2: Gemini 战略规划", "2026-02-21", "Strategic analysis done", "Pending"],
-      ["Step 3: 双AI协同对齐", "2026-02-22", "Alignment spec ready", "In Progress"],
-      ["Step 4: 系统集成测试", "2026-02-23", "Test matrix prepared", "Pending"],
-      ["Step 5: CEO验收 & 上线", "2026-02-25", "Launch checklist", "Pending"],
-      ["Step 6: 持续优化迭代", "2026-03-01", "Feedback loop designed", "Pending"],
+      ["Task ID", "To do", "suggestion execute time", "gemini preparation", "claude done"],
+      ["1.1", "HR / RBAC User Management", "2026-02-25", "Role matrix designed", "✅ Complete"],
+      ["1.2", "Collaboration & Document Hub", "2026-02-27", "OneDrive spec ready", "🔄 In Progress"],
+      ["1.3", "OKR + Strategy Cockpit", "2026-02-28", "KPI tree drafted", "Pending"],
+      ["2.1", "IoT Fleet Dashboard v2", "2026-03-01", "Sensor API mapped", "Pending"],
+      ["2.2", "AI Performance Engine v2", "2026-03-02", "Scoring model tuned", "Pending"],
+      ["2.3", "Meeting Intelligence Hub", "2026-03-03", "Diarization spec", "Pending"],
+      ["3.1", "Mobile Super-App Shell", "2026-03-05", "DingTalk SDK ready", "Pending"],
+      ["3.2", "Enterprise Search + Copilot", "2026-03-07", "RAG index built", "Pending"],
+      ["3.3", "CEO Launch & Go-Live", "2026-03-10", "Launch checklist", "Pending"],
     ],
   },
   {
@@ -31,6 +81,7 @@ const MOCK_FILES = [
     modifiedAt: "2026-02-15T14:20:00Z",
     uploadedBy: "Quality Manager",
     status: "active" as const,
+    folderId: null as number | null,
     parsedContent: [
       ["Audit Item", "Status", "Score", "Remarks"],
       ["Process Control", "Passed", "92", "Minor observation on SPC"],
@@ -47,6 +98,7 @@ const MOCK_FILES = [
     modifiedAt: "2026-02-10T09:15:00Z",
     uploadedBy: "采购部",
     status: "active" as const,
+    folderId: null as number | null,
     parsedContent: [
       ["供应商", "质量评分", "交期评分", "综合等级"],
       ["Supplier A", "95", "90", "A"],
@@ -63,6 +115,7 @@ const MOCK_FILES = [
     modifiedAt: "2026-02-05T16:45:00Z",
     uploadedBy: "COO",
     status: "active" as const,
+    folderId: 2 as number | null,
     parsedContent: [
       ["Quarter", "Target", "KPI", "Owner"],
       ["Q1", "Launch GRT System v2", "System uptime > 99.5%", "CTO"],
@@ -73,16 +126,35 @@ const MOCK_FILES = [
   },
 ];
 
+// File type with widened status
+type MockFile = Omit<typeof MOCK_FILES[number], "status"> & { status: "active" | "pending_approval" };
+
+// Mutable state for uploaded files
+const uploadedFiles: MockFile[] = [];
+let nextUploadId = 100;
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
+
 export const collaborationDocsRouter = router({
   listFiles: publicProcedure
     .input(
       z.object({
         search: z.string().optional(),
         fileType: z.string().optional(),
+        folderId: z.number().nullable().optional(),
       }).optional()
     )
     .query(({ input }) => {
-      let files = MOCK_FILES.map(({ parsedContent: _, ...rest }) => rest);
+      const allFiles = [...MOCK_FILES, ...uploadedFiles];
+      let files = allFiles.map(({ parsedContent: _, ...rest }) => rest);
+
+      // Filter by folder
+      if (input?.folderId !== undefined) {
+        files = files.filter((f) => f.folderId === input.folderId);
+      }
+
       if (input?.search) {
         const q = input.search.toLowerCase();
         files = files.filter(
@@ -98,26 +170,81 @@ export const collaborationDocsRouter = router({
   getFile: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(({ input }) => {
-      return MOCK_FILES.find((f) => f.id === input.id) ?? null;
+      const allFiles = [...MOCK_FILES, ...uploadedFiles];
+      return allFiles.find((f) => f.id === input.id) ?? null;
     }),
 
   uploadFile: publicProcedure
     .input(
       z.object({
         fileName: z.string().min(1).max(500),
+        userRole: z.string().optional(),
+        folderId: z.number().nullable().optional(),
       })
     )
     .mutation(({ input }) => {
       const ext = input.fileName.split(".").pop()?.toLowerCase() || "other";
-      return {
-        id: Date.now(),
+      const roleLevel = ROLE_LEVELS[input.userRole ?? "employee"] ?? 1;
+      const status = roleLevel >= 3 ? "active" : "pending_approval";
+
+      const newFile = {
+        id: nextUploadId++,
         title: input.fileName.replace(/\.[^.]+$/, ""),
         fileName: input.fileName,
         fileType: ext,
         fileSize: Math.floor(Math.random() * 100000) + 5000,
         modifiedAt: new Date().toISOString(),
-        uploadedBy: "Current User",
-        status: "active" as const,
+        uploadedBy: input.userRole ?? "Current User",
+        status: status as "active" | "pending_approval",
+        folderId: input.folderId ?? null,
+        parsedContent: [
+          ["Column A", "Column B", "Column C"],
+          ["(uploaded file)", "", ""],
+        ],
       };
+
+      uploadedFiles.push(newFile);
+      return { ...newFile, parsedContent: undefined };
+    }),
+
+  listFolders: publicProcedure
+    .input(
+      z.object({
+        parentId: z.number().nullable().optional(),
+      }).optional()
+    )
+    .query(({ input }) => {
+      const parentId = input?.parentId ?? null;
+      return MOCK_FOLDERS.filter((f) => f.parentId === parentId);
+    }),
+
+  createFolder: publicProcedure
+    .input(
+      z.object({
+        name: z.string().min(1).max(200),
+        parentId: z.number().nullable().optional(),
+      })
+    )
+    .mutation(({ input }) => {
+      const folder: MockFolder = {
+        id: nextFolderId++,
+        name: input.name,
+        parentId: input.parentId ?? null,
+        createdAt: new Date().toISOString(),
+        createdBy: "Current User",
+      };
+      MOCK_FOLDERS.push(folder);
+      return folder;
+    }),
+
+  approveFile: publicProcedure
+    .input(z.object({ fileId: z.number() }))
+    .mutation(({ input }) => {
+      const file = uploadedFiles.find((f) => f.id === input.fileId);
+      if (!file) {
+        throw new Error("File not found or not an uploaded file");
+      }
+      file.status = "active";
+      return { success: true, fileId: input.fileId };
     }),
 });

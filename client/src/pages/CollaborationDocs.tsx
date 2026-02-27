@@ -2,11 +2,13 @@
  * Collaboration Docs — GRT协同云盘
  *
  * OneDrive-style document hub for managing spreadsheets and office files.
+ * Supports folder navigation, RBAC-gated uploads, and approval workflow.
  */
 
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useUserProfile, ROLE_HIERARCHY } from "@/contexts/UserProfileContext";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +27,13 @@ import {
   HardDrive,
   Loader2,
   Plus,
+  Folder,
+  FolderPlus,
+  ChevronRight,
+  Home,
+  CheckCircle,
+  CircleDot,
+  ShieldCheck,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -58,30 +67,70 @@ function formatDate(iso: string) {
 // Component
 // ---------------------------------------------------------------------------
 
+interface BreadcrumbEntry {
+  id: number | null;
+  name: string;
+}
+
 export default function CollaborationDocs() {
   const [, navigate] = useLocation();
+  const { currentUserRole } = useUserProfile();
+  const roleLevel = ROLE_HIERARCHY[currentUserRole] ?? 0;
+  const canApprove = roleLevel >= 3; // dept_manager+
+
   const [searchQuery, setSearchQuery] = useState("");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
+  const [folderPath, setFolderPath] = useState<BreadcrumbEntry[]>([{ id: null, name: "Root" }]);
+  const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
 
-  // Local uploads state
-  const [localFiles, setLocalFiles] = useState<Array<{
-    id: number; title: string; fileName: string; fileType: string;
-    fileSize: number; modifiedAt: string; uploadedBy: string; status: string;
-  }>>([]);
-  const nextIdRef = useRef(-1);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // tRPC
   const utils = trpc.useUtils();
   const filesQuery = trpc.collaborationDocs.listFiles.useQuery(
-    searchQuery ? { search: searchQuery } : undefined
+    {
+      search: searchQuery || undefined,
+      folderId: currentFolderId,
+    }
+  );
+  const foldersQuery = trpc.collaborationDocs.listFolders.useQuery(
+    { parentId: currentFolderId }
   );
   const uploadMutation = trpc.collaborationDocs.uploadFile.useMutation({
     onSuccess: () => utils.collaborationDocs.listFiles.invalidate(),
   });
+  const createFolderMutation = trpc.collaborationDocs.createFolder.useMutation({
+    onSuccess: () => {
+      utils.collaborationDocs.listFolders.invalidate();
+      setShowNewFolderDialog(false);
+      setNewFolderName("");
+      toast.success("Folder created");
+    },
+  });
+  const approveMutation = trpc.collaborationDocs.approveFile.useMutation({
+    onSuccess: () => {
+      utils.collaborationDocs.listFiles.invalidate();
+      toast.success("File approved");
+    },
+  });
 
   const serverFiles = (filesQuery.data as any)?.items ?? [];
-  const allFiles = [...localFiles, ...serverFiles];
+  const folders = (foldersQuery.data as any) ?? [];
+
+  // Navigate into folder
+  const navigateToFolder = (folderId: number, folderName: string) => {
+    setCurrentFolderId(folderId);
+    setFolderPath((prev) => [...prev, { id: folderId, name: folderName }]);
+  };
+
+  // Navigate via breadcrumb
+  const navigateToBreadcrumb = (index: number) => {
+    const entry = folderPath[index];
+    setCurrentFolderId(entry.id);
+    setFolderPath(folderPath.slice(0, index + 1));
+  };
 
   // Upload handler
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,8 +139,6 @@ export default function CollaborationDocs() {
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     const file = files[0];
-    const localId = nextIdRef.current;
-    nextIdRef.current -= 1;
 
     setUploadProgress(0);
     const interval = setInterval(() => {
@@ -104,23 +151,29 @@ export default function CollaborationDocs() {
 
     setTimeout(() => {
       clearInterval(interval);
-      const ext = file.name.split(".").pop()?.toLowerCase() || "other";
-      setLocalFiles((prev) => [{
-        id: localId,
-        title: file.name.replace(/\.[^.]+$/, ""),
-        fileName: file.name,
-        fileType: ext,
-        fileSize: file.size,
-        modifiedAt: new Date().toISOString(),
-        uploadedBy: "Current User",
-        status: "active",
-      }, ...prev]);
       setUploadProgress(100);
       setTimeout(() => setUploadProgress(null), 400);
-      toast.success(`${file.name} uploaded to Collaboration Drive`);
-      uploadMutation.mutate({ fileName: file.name });
+      uploadMutation.mutate(
+        { fileName: file.name, userRole: currentUserRole, folderId: currentFolderId },
+        {
+          onSuccess: (result) => {
+            const statusLabel = (result as any).status === "pending_approval"
+              ? " (pending approval)"
+              : "";
+            toast.success(`${file.name} uploaded${statusLabel}`);
+          },
+        }
+      );
     }, 800);
   };
+
+  // Create folder handler
+  const handleCreateFolder = () => {
+    if (!newFolderName.trim()) return;
+    createFolderMutation.mutate({ name: newFolderName.trim(), parentId: currentFolderId });
+  };
+
+  const totalItems = folders.length + serverFiles.length;
 
   return (
     <div className="flex flex-col h-full space-y-4">
@@ -132,11 +185,20 @@ export default function CollaborationDocs() {
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="gap-1">
               <HardDrive className="w-3 h-3" />
-              {allFiles.length} files
+              {totalItems} items
             </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setShowNewFolderDialog(!showNewFolderDialog)}
+            >
+              <FolderPlus className="w-3.5 h-3.5" />
+              New Folder
+            </Button>
             <Button size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()}>
               <Plus className="w-3.5 h-3.5" />
-              Upload New Document
+              Upload
             </Button>
             <input
               ref={fileInputRef}
@@ -148,6 +210,55 @@ export default function CollaborationDocs() {
           </div>
         }
       />
+
+      {/* Breadcrumb navigation */}
+      <div className="flex items-center gap-1 text-sm">
+        {folderPath.map((entry, idx) => (
+          <span key={idx} className="flex items-center gap-1">
+            {idx > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+            <button
+              className={`hover:underline ${
+                idx === folderPath.length - 1
+                  ? "font-semibold text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => navigateToBreadcrumb(idx)}
+            >
+              {idx === 0 ? (
+                <span className="flex items-center gap-1">
+                  <Home className="w-3.5 h-3.5" />
+                  Root
+                </span>
+              ) : (
+                entry.name
+              )}
+            </button>
+          </span>
+        ))}
+      </div>
+
+      {/* New folder inline dialog */}
+      {showNewFolderDialog && (
+        <div className="flex items-center gap-2 max-w-md">
+          <Input
+            placeholder="Folder name..."
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleCreateFolder()}
+            autoFocus
+          />
+          <Button size="sm" onClick={handleCreateFolder} disabled={createFolderMutation.isPending}>
+            Create
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setShowNewFolderDialog(false); setNewFolderName(""); }}
+          >
+            Cancel
+          </Button>
+        </div>
+      )}
 
       {/* Search bar */}
       <div className="relative max-w-md">
@@ -178,66 +289,147 @@ export default function CollaborationDocs() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[45%]">Name</th>
-                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[10%]">Type</th>
-                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[12%]">Size</th>
-                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[15%]">Modified</th>
-                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[18%]">Owner</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[40%]">Name</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[8%]">Type</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[10%]">Size</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[10%]">Status</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[12%]">Modified</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[12%]">Owner</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[8%]">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filesQuery.isLoading && localFiles.length === 0 ? (
+                {filesQuery.isLoading ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-16">
+                    <td colSpan={7} className="text-center py-16">
                       <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-muted-foreground opacity-50" />
                       <p className="text-sm text-muted-foreground">Loading documents...</p>
                     </td>
                   </tr>
-                ) : allFiles.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-16">
-                      <FolderKanban className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-40" />
-                      <p className="text-sm text-muted-foreground">No documents yet</p>
-                      <p className="text-xs text-muted-foreground mt-1">Upload a file to get started</p>
-                    </td>
-                  </tr>
-                ) : allFiles.map((file: any) => (
-                  <tr
-                    key={file.id}
-                    className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/collaboration-docs/spreadsheet/${file.id}`)}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        {fileTypeIcon(file.fileType)}
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{file.title}</p>
-                          <p className="text-xs text-muted-foreground">{file.fileName}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="secondary" className="text-[10px] uppercase">
-                        {file.fileType}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {formatSize(file.fileSize)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Clock className="w-3 h-3" />
-                        {formatDate(file.modifiedAt)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <User className="w-3 h-3" />
-                        {file.uploadedBy}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                ) : (
+                  <>
+                    {/* Folders first */}
+                    {folders.map((folder: any) => (
+                      <tr
+                        key={`folder-${folder.id}`}
+                        className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
+                        onClick={() => navigateToFolder(folder.id, folder.name)}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <Folder className="w-8 h-8 text-amber-500" />
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{folder.name}</p>
+                              <p className="text-xs text-muted-foreground">Folder</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="secondary" className="text-[10px]">FOLDER</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">—</td>
+                        <td className="px-4 py-3">—</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Clock className="w-3 h-3" />
+                            {formatDate(folder.createdAt)}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <User className="w-3 h-3" />
+                            {folder.createdBy}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3" />
+                      </tr>
+                    ))}
+
+                    {/* Files */}
+                    {serverFiles.length === 0 && folders.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-16">
+                          <FolderKanban className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-40" />
+                          <p className="text-sm text-muted-foreground">No documents in this folder</p>
+                          <p className="text-xs text-muted-foreground mt-1">Upload a file or create a folder to get started</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      serverFiles.map((file: any) => {
+                        const isPending = file.status === "pending_approval";
+                        return (
+                          <tr
+                            key={file.id}
+                            className={`border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors ${
+                              isPending ? "border-l-2 border-l-amber-400" : ""
+                            }`}
+                            onClick={() => navigate(`/collaboration-docs/spreadsheet/${file.id}`)}
+                          >
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                {fileTypeIcon(file.fileType)}
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">{file.title}</p>
+                                  <p className="text-xs text-muted-foreground">{file.fileName}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge variant="secondary" className="text-[10px] uppercase">
+                                {file.fileType}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">
+                              {formatSize(file.fileSize)}
+                            </td>
+                            <td className="px-4 py-3">
+                              {isPending ? (
+                                <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50">
+                                  <CircleDot className="w-3 h-3" />
+                                  Pending
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="gap-1 text-green-600 border-green-300 bg-green-50">
+                                  <CheckCircle className="w-3 h-3" />
+                                  Active
+                                </Badge>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Clock className="w-3 h-3" />
+                                {formatDate(file.modifiedAt)}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <User className="w-3 h-3" />
+                                {file.uploadedBy}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              {isPending && canApprove && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1 h-7 text-xs"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    approveMutation.mutate({ fileId: file.id });
+                                  }}
+                                  disabled={approveMutation.isPending}
+                                >
+                                  <ShieldCheck className="w-3 h-3" />
+                                  Approve
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </>
+                )}
               </tbody>
             </table>
           </div>

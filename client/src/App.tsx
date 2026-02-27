@@ -664,6 +664,12 @@ function Router() {
       <Route path={"/concurrent-command-center"}>
         <ProtectedRoute component={ConcurrentCommandCenter} />
       </Route>
+      <Route path={"/workspace/docs/spreadsheet/:id"}>
+        <ProtectedRoute component={SpreadsheetViewer} />
+      </Route>
+      <Route path={"/workspace/docs"}>
+        <ProtectedRoute component={CollaborationDocs} />
+      </Route>
       <Route path={"/collaboration-docs/spreadsheet/:id"}>
         <ProtectedRoute component={SpreadsheetViewer} />
       </Route>
