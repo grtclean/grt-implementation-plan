@@ -8,7 +8,7 @@
  * Both tracks feed into a manager approval gateway before changes go live.
  */
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { PageHeader, StatCard } from "@/components/grt";
 import {
   Card,
@@ -24,7 +24,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
-import { Progress } from "@/components/ui/progress";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -43,7 +42,6 @@ import {
   PlayCircle,
   Cog,
   Zap,
-  Droplets,
   Wind,
   Filter,
   Wifi,
@@ -57,7 +55,6 @@ import {
   AlertTriangle,
   Sparkles,
   ClipboardCheck,
-  BarChart3,
   CalendarDays,
   UserCheck,
   RotateCcw,
@@ -418,8 +415,8 @@ function RoleImprovementPanel({ currentUserName, utils }: { currentUserName: str
                           <ImprovementStatusBadge status={imp.status} />
                         </div>
                         <div className="flex items-center gap-3 mt-1">
-                          <div className="flex-1">
-                            <Progress value={pct} className="h-1.5" />
+                          <div className="flex-1 h-1.5 rounded-full bg-primary/20 overflow-hidden">
+                            <div className={`h-full rounded-full transition-all ${progressColor}`} style={{ width: `${pct}%` }} />
                           </div>
                           <span className="text-xs text-muted-foreground shrink-0">{pct}%</span>
                         </div>

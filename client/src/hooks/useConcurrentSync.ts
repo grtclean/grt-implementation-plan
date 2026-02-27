@@ -95,7 +95,14 @@ export function useConcurrentSync(userId: number, userName: string) {
         const msg = JSON.parse(event.data);
 
         if (msg.type === "action" && msg.data) {
-          const entry: ActivityEntry = msg.data;
+          const raw = msg.data;
+          const entry: ActivityEntry = {
+            id: String(raw.id ?? ""),
+            action: raw.action ?? "",
+            target: raw.target ?? "",
+            userName: raw.userName ?? "",
+            timestamp: raw.createdAt ?? raw.timestamp ?? msg.timestamp ?? new Date().toISOString(),
+          };
 
           // Append to local activity list
           setActivities((prev) => {
