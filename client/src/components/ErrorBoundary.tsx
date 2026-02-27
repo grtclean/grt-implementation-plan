@@ -84,8 +84,15 @@ class ErrorBoundary extends Component<Props, State> {
     const { errorId, timestamp } = this.state;
     const { level = "component" } = this.props;
 
-    // 记录错误
-    console.error(`[ErrorBoundary-${level}] Error caught:`, error, errorInfo);
+    // Debug: prominent crash logging for diagnosis
+    console.error("💥 [GRT ErrorBoundary] Fatal exception caught!", {
+      level,
+      errorId,
+      path: window.location.pathname,
+      message: error.message,
+      stack: error.stack,
+    });
+    console.error("📄 [Component Stack]", errorInfo.componentStack);
 
     // 保存到本地错误日志
     const errorLog = { id: errorId, error, errorInfo, timestamp, level };
@@ -148,13 +155,19 @@ class ErrorBoundary extends Component<Props, State> {
                 抱歉，页面加载时遇到了问题。请尝试刷新页面或返回首页。
               </p>
 
-              <div className="w-full p-4 rounded-lg bg-muted mb-6 max-h-48 overflow-auto">
-                <p className="text-xs font-mono text-muted-foreground mb-2">
+              <div className="w-full p-4 rounded-lg bg-muted mb-6 max-h-64 overflow-auto">
+                <p className="text-xs font-mono text-muted-foreground mb-1">
                   错误ID: {errorId}
                 </p>
-                <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
+                <p className="text-xs font-mono text-muted-foreground mb-2">
+                  路径: {window.location.pathname}
+                </p>
+                <pre className="text-xs text-destructive whitespace-pre-wrap break-words font-bold mb-2">
                   {error?.message}
-                  {"\n\n"}
+                </pre>
+                <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
+                  {error?.stack}
+                  {"\n\n--- Component Stack ---\n"}
                   {errorInfo?.componentStack}
                 </pre>
               </div>

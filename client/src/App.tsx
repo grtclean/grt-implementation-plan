@@ -1752,7 +1752,7 @@ function Router() {
 
 function App() {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary level="page">
       <LanguageProvider>
         <UserProfileProvider defaultRole="employee">
           <ThemeProvider
