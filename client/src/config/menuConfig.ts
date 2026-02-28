@@ -1117,6 +1117,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "成就系统", nameEn: "Achievements", nameDe: "Erfolge", nameFr: "Réalisations", path: "/gamification", icon: Trophy, isNew: true },
       { name: "IoT数字孪生", nameEn: "IoT Digital Twin", nameDe: "IoT Digitaler Zwilling", nameFr: "IoT Jumeau numérique", path: "/iot-dashboard", icon: Cpu, isNew: true },
       { name: "IoT设备舰队", nameEn: "IoT Fleet Command", nameDe: "IoT-Flottensteuerung", nameFr: "Commande flotte IoT", path: "/iot-fleet", icon: Activity, isNew: true },
+      { name: "数字云厅", nameEn: "Digital Cloud Hall", nameDe: "Digitale Cloud-Halle", nameFr: "Hall Cloud Numérique", path: "/digital-cloud-hall", icon: Video, isNew: true, allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "bu_pm", "cs_engineer", "dept_manager"], minLevel: 2 },
     ],
   },
 ];

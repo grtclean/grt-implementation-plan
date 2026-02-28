@@ -261,6 +261,7 @@ import TaskCockpitPage from "./pages/TaskCockpitPage";
 import Gamification from "./pages/Gamification";
 import IoTDashboard from "./pages/IoTDashboard";
 import IoTFleetDashboard from "./pages/IoTFleetDashboard";
+import DigitalCloudHall from "./pages/DigitalCloudHall";
 import RAGTrainingCenter from "./pages/RAGTrainingCenter";
 import DelegationManagement from "./pages/DelegationManagement";
 import PerformanceSalaryQuery from "./pages/PerformanceSalaryQuery";
@@ -1380,6 +1381,11 @@ function Router() {
       </Route>
       <Route path="/iot-fleet">
         <ProtectedRoute component={IoTFleetDashboard} />
+      </Route>
+
+      {/* Digital Cloud Hall — 数字云厅 (视讯交互大厅) */}
+      <Route path="/digital-cloud-hall">
+        <ProtectedRoute component={DigitalCloudHall} />
       </Route>
 
       {/* RAG知识库训练中心 */}
