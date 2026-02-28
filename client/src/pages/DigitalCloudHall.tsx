@@ -14,6 +14,7 @@ import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 import {
   Video,
   VideoOff,
@@ -36,7 +37,11 @@ import {
   History,
   Sparkles,
   RefreshCw,
+  Globe,
+  RotateCw,
+  Box,
 } from "lucide-react";
+import GlobalServiceDashboard from "./GlobalServiceDashboard";
 
 // ─── Constants ──────────────────────────────────────────────
 
@@ -508,11 +513,68 @@ function SessionHistory({ userId, isLeader }: HistoryProps) {
   );
 }
 
+// ─── Asset Gallery — 3D Product Showcase ─────────────────────
+
+function AssetGallery() {
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setActiveIdx(p => (p + 1) % DEMO_PRODUCTS.length), 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="mb-6">
+      <h3 className="text-white/80 text-sm font-medium mb-3 flex items-center gap-2">
+        <Box className="w-4 h-4 text-cyan-400" />
+        3D 资产库
+      </h3>
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+        {DEMO_PRODUCTS.map((product, i) => {
+          const isActive = i === activeIdx;
+          return (
+            <button
+              key={product.id}
+              onClick={() => setActiveIdx(i)}
+              className={`shrink-0 w-36 rounded-xl border p-3 transition-all duration-500 cursor-pointer ${
+                isActive
+                  ? "bg-cyan-500/15 border-cyan-500/40 shadow-lg shadow-cyan-500/10 scale-105"
+                  : "bg-white/5 border-white/10 hover:bg-white/10"
+              }`}
+              style={{
+                transform: isActive ? "perspective(600px) rotateY(-5deg) scale(1.05)" : "perspective(600px) rotateY(0deg)",
+                transition: "transform 0.6s ease, background 0.3s, border-color 0.3s",
+              }}
+            >
+              <div className={`w-full h-16 rounded-lg mb-2 flex items-center justify-center ${
+                isActive ? "bg-cyan-500/20" : "bg-white/5"
+              }`}>
+                <RotateCw className={`w-6 h-6 ${isActive ? "text-cyan-300 animate-spin" : "text-white/20"}`} style={{ animationDuration: "4s" }} />
+              </div>
+              <div className="text-xs text-white/80 font-medium truncate">{product.name}</div>
+              <div className="text-[10px] text-white/40 truncate">{product.category}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page Component ────────────────────────────────────
 
 export default function DigitalCloudHall() {
   const { currentUserRole } = useUserProfile();
   const { t } = useLanguage();
+  const [location] = useLocation();
+
+  // Dual-module toggle: showcase (existing) vs service (global service dashboard)
+  const [activeModule, setActiveModule] = useState<"showcase" | "service">("showcase");
+
+  // Read query param for deep-linking: ?module=service
+  useEffect(() => {
+    if (location.includes("module=service")) setActiveModule("service");
+  }, []);
 
   // Determine mode
   const isLeader = LEADERSHIP_ROLES.includes(currentUserRole);
@@ -741,77 +803,112 @@ export default function DigitalCloudHall() {
         </div>
       </div>
 
-      {/* Status Bar */}
-      <SessionStatusBar session={session} elapsed={elapsed} />
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Left Panel */}
-        <div className="lg:col-span-2">
-          {isSales ? (
-            <div className="h-full flex flex-col">
-              <SlideContextPanel
-                activeProduct={activeProduct}
-                onSelectProduct={handleSelectProduct}
-                currentContext={slideContext}
-              />
-
-              {/* Call button */}
-              {!activeSessionId && (
-                <button
-                  onClick={handleCreateSession}
-                  disabled={createSession.isPending}
-                  className="mt-4 w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-lg font-semibold transition-all cursor-pointer disabled:opacity-50 shadow-lg shadow-cyan-500/20"
-                >
-                  {createSession.isPending ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <PhoneCall className="w-5 h-5" />
-                  )}
-                  呼叫总部支援
-                </button>
-              )}
-
-              {/* Leader selection dropdown */}
-              {showLeaderSelect && (
-                <div className="mt-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-                  <p className="text-white/60 text-sm mb-3">选择呼叫对象:</p>
-                  <div className="space-y-2">
-                    {DEMO_LEADERS.map((leader) => (
-                      <button
-                        key={leader.userId}
-                        onClick={() => handleInviteLeader(leader)}
-                        disabled={inviteLeadership.isPending}
-                        className="w-full text-left p-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/30 rounded-lg text-white/80 text-sm transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        <span className="font-medium">{leader.name}</span>
-                        <span className="text-white/40 text-xs ml-2">({leader.role})</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <LeadershipInbox onJoin={handleJoinSession} onReject={handleRejectSession} />
-          )}
-        </div>
-
-        {/* Right Panel — Video */}
-        <div className="lg:col-span-3">
-          <VideoErrorBoundary>
-            <VideoContainer
-              session={session}
-              notes={notes}
-              onNotesChange={setNotes}
-              slideContext={slideContext}
-            />
-          </VideoErrorBoundary>
-        </div>
+      {/* Module Toggle Bar */}
+      <div className="flex gap-1 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-1 mb-6">
+        <button
+          onClick={() => setActiveModule("showcase")}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+            activeModule === "showcase"
+              ? "bg-cyan-600/80 text-white shadow-lg shadow-cyan-500/20"
+              : "text-white/50 hover:text-white/80 hover:bg-white/5"
+          }`}
+        >
+          <Video className="w-4 h-4" />
+          数字云厅
+        </button>
+        <button
+          onClick={() => setActiveModule("service")}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+            activeModule === "service"
+              ? "bg-cyan-600/80 text-white shadow-lg shadow-cyan-500/20"
+              : "text-white/50 hover:text-white/80 hover:bg-white/5"
+          }`}
+        >
+          <Globe className="w-4 h-4" />
+          全球客服系统
+        </button>
       </div>
 
-      {/* Session History */}
-      <SessionHistory userId={0} isLeader={isLeader} />
+      {activeModule === "showcase" ? (
+        <>
+          {/* Status Bar */}
+          <SessionStatusBar session={session} elapsed={elapsed} />
+
+          {/* 3D Asset Gallery */}
+          <AssetGallery />
+
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Left Panel */}
+            <div className="lg:col-span-2">
+              {isSales ? (
+                <div className="h-full flex flex-col">
+                  <SlideContextPanel
+                    activeProduct={activeProduct}
+                    onSelectProduct={handleSelectProduct}
+                    currentContext={slideContext}
+                  />
+
+                  {/* Call button */}
+                  {!activeSessionId && (
+                    <button
+                      onClick={handleCreateSession}
+                      disabled={createSession.isPending}
+                      className="mt-4 w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-lg font-semibold transition-all cursor-pointer disabled:opacity-50 shadow-lg shadow-cyan-500/20"
+                    >
+                      {createSession.isPending ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <PhoneCall className="w-5 h-5" />
+                      )}
+                      呼叫总部支援
+                    </button>
+                  )}
+
+                  {/* Leader selection dropdown */}
+                  {showLeaderSelect && (
+                    <div className="mt-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+                      <p className="text-white/60 text-sm mb-3">选择呼叫对象:</p>
+                      <div className="space-y-2">
+                        {DEMO_LEADERS.map((leader) => (
+                          <button
+                            key={leader.userId}
+                            onClick={() => handleInviteLeader(leader)}
+                            disabled={inviteLeadership.isPending}
+                            className="w-full text-left p-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/30 rounded-lg text-white/80 text-sm transition-all cursor-pointer disabled:opacity-50"
+                          >
+                            <span className="font-medium">{leader.name}</span>
+                            <span className="text-white/40 text-xs ml-2">({leader.role})</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <LeadershipInbox onJoin={handleJoinSession} onReject={handleRejectSession} />
+              )}
+            </div>
+
+            {/* Right Panel — Video */}
+            <div className="lg:col-span-3">
+              <VideoErrorBoundary>
+                <VideoContainer
+                  session={session}
+                  notes={notes}
+                  onNotesChange={setNotes}
+                  slideContext={slideContext}
+                />
+              </VideoErrorBoundary>
+            </div>
+          </div>
+
+          {/* Session History */}
+          <SessionHistory userId={0} isLeader={isLeader} />
+        </>
+      ) : (
+        <GlobalServiceDashboard />
+      )}
     </div>
   );
 }

@@ -285,6 +285,7 @@ import { digitalThreadRouter } from "./routers/digital-thread.router";
 import { strategyGoalsRouter } from "./routers/strategy-goals.router";
 import { buSalesTargetRouter } from "./routers/bu-sales-target.router";
 import { cloudHallRouter } from "./routers/cloud-hall.router";
+import { serviceDashboardRouter } from "./routers/service-dashboard.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -738,6 +739,9 @@ export const appRouter = router({
 
   // Digital Cloud Hall — 数字云厅 (视讯交互大厅)
   cloudHall: cloudHallRouter,
+
+  // Global Service Dashboard — 全球客服展示系统
+  serviceDashboard: serviceDashboardRouter,
 
   // Finance Agent — AI 费用审核拦截引擎
   financeAgent: financeAgentRouter,
