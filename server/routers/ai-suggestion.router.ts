@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiProcessSuggestions, aiSuggestionExecutionLogs } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -18,7 +18,7 @@ const PROCESS_PROMPTS: Record<string, string> = {
 };
 
 export const aiSuggestionRouter = router({
-  getSuggestions: publicProcedure.input(z.object({
+  getSuggestions: protectedProcedure.input(z.object({
     processType: z.string().optional(),
     processId: z.string().optional(),
     stepCode: z.string().optional(),

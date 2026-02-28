@@ -1,84 +1,85 @@
 /**
  * AI Performance Engine Router — 4-dimension meeting scores
  *
+ * Queries real DB tables:
+ *   - hr_ai_performance: Monthly 4D scores per user
+ *   - meeting_action_items: Action item completion tracking
+ *
  * Provides:
- *   - getScores: legacy stub
  *   - dashboard: aggregate KPIs (avg score, completion rate, top performer)
  *   - leaderboard: ranked employee list by meeting score
  *   - actionItemStats: monthly action item completion trend
- *   - seedDemo: insert demo data (mock in-memory)
+ *   - userDetail: single user's performance detail
+ *   - seedDemo: insert seed data for demos
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
-
-// ── In-memory demo data store ──
-
-interface LeaderboardEntry {
-  userId: number;
-  userName: string;
-  department: string;
-  meetingScore: number;
-  breadth: number;
-  depth: number;
-  execution: number;
-  discipline: number;
-  actionItemRate: number;
-}
-
-interface ActionTrend {
-  month: string;
-  total: number;
-  completed: number;
-  overdue: number;
-  rate: number;
-}
-
-let demoLeaderboard: LeaderboardEntry[] = [];
-let demoActionTrend: ActionTrend[] = [];
-let seeded = false;
-
-function seedDemoData() {
-  demoLeaderboard = [
-    { userId: 1, userName: "张三", department: "项目管理部", meetingScore: 92, breadth: 90, depth: 95, execution: 88, discipline: 94, actionItemRate: 96 },
-    { userId: 2, userName: "李四", department: "质量部", meetingScore: 88, breadth: 85, depth: 90, execution: 87, discipline: 91, actionItemRate: 93 },
-    { userId: 3, userName: "王五", department: "销售部", meetingScore: 85, breadth: 88, depth: 82, execution: 84, discipline: 86, actionItemRate: 90 },
-    { userId: 4, userName: "赵六", department: "研发部", meetingScore: 83, breadth: 80, depth: 88, execution: 82, discipline: 81, actionItemRate: 88 },
-    { userId: 5, userName: "周七", department: "生产部", meetingScore: 80, breadth: 78, depth: 82, execution: 80, discipline: 79, actionItemRate: 85 },
-    { userId: 6, userName: "钱八", department: "采购部", meetingScore: 78, breadth: 75, depth: 80, execution: 78, discipline: 78, actionItemRate: 82 },
-    { userId: 7, userName: "孙九", department: "人力资源", meetingScore: 76, breadth: 74, depth: 78, execution: 76, discipline: 77, actionItemRate: 80 },
-    { userId: 8, userName: "吴十", department: "财务部", meetingScore: 74, breadth: 72, depth: 76, execution: 73, discipline: 75, actionItemRate: 78 },
-  ];
-
-  demoActionTrend = [
-    { month: "2025-09", total: 42, completed: 38, overdue: 2, rate: 90 },
-    { month: "2025-10", total: 48, completed: 44, overdue: 1, rate: 92 },
-    { month: "2025-11", total: 51, completed: 47, overdue: 2, rate: 92 },
-    { month: "2025-12", total: 55, completed: 52, overdue: 1, rate: 95 },
-    { month: "2026-01", total: 53, completed: 50, overdue: 1, rate: 94 },
-    { month: "2026-02", total: 38, completed: 35, overdue: 1, rate: 92 },
-  ];
-
-  seeded = true;
-}
+import { router, protectedProcedure } from "../_core/trpc";
+import { requireDb } from "../db";
+import { eq, desc, sql, count, and } from "drizzle-orm";
+import { hrAiPerformance, meetingActionItems } from "../../drizzle/smart-meetings-schema";
 
 export const aiPerformanceRouter = router({
-  /** Legacy stub */
-  getScores: publicProcedure
-    .input(
-      z.object({
-        meetingId: z.number().optional(),
-        userId: z.number().optional(),
-      }).optional()
-    )
-    .query(async () => {
-      return { items: [], total: 0 };
+  /** Legacy stub — kept for backward compat */
+  getScores: protectedProcedure
+    .input(z.object({ meetingId: z.number().optional(), userId: z.number().optional() }).optional())
+    .query(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        if (input?.userId) {
+          const rows = await db.select().from(hrAiPerformance)
+            .where(eq(hrAiPerformance.userId, input.userId))
+            .orderBy(desc(hrAiPerformance.month));
+          return { items: rows, total: rows.length };
+        }
+        return { items: [], total: 0 };
+      } catch {
+        return { items: [], total: 0 };
+      }
     }),
 
-  /** Dashboard aggregate KPIs */
-  dashboard: publicProcedure
+  /** Dashboard aggregate KPIs from hr_ai_performance */
+  dashboard: protectedProcedure
     .input(z.object({}).optional())
     .query(async () => {
-      if (!seeded || demoLeaderboard.length === 0) {
+      try {
+        const db = await requireDb();
+        // Get latest month's data
+        const latestMonth = await db.select({ month: hrAiPerformance.month })
+          .from(hrAiPerformance)
+          .orderBy(desc(hrAiPerformance.month))
+          .limit(1);
+
+        if (latestMonth.length === 0) {
+          return {
+            avgMeetingScore: 0,
+            actionItemCompletionRate: 0,
+            employeesEvaluated: 0,
+            topPerformer: null as { name: string; score: number } | null,
+          };
+        }
+
+        const targetMonth = latestMonth[0].month;
+        const monthData = await db.select().from(hrAiPerformance)
+          .where(eq(hrAiPerformance.month, targetMonth))
+          .orderBy(desc(hrAiPerformance.meetingScore));
+
+        const avgScore = monthData.length > 0
+          ? Math.round(monthData.reduce((s, r) => s + (r.meetingScore ?? 0), 0) / monthData.length)
+          : 0;
+
+        const totalItems = monthData.reduce((s, r) => s + (r.actionItemsTotal ?? 0), 0);
+        const completedItems = monthData.reduce((s, r) => s + (r.actionItemsCompleted ?? 0), 0);
+        const completionRate = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
+        const top = monthData[0];
+
+        return {
+          avgMeetingScore: avgScore,
+          actionItemCompletionRate: completionRate,
+          employeesEvaluated: monthData.length,
+          topPerformer: top ? { name: top.userName ?? `User#${top.userId}`, score: top.meetingScore ?? 0 } : null,
+        };
+      } catch {
         return {
           avgMeetingScore: 0,
           actionItemCompletionRate: 0,
@@ -86,50 +87,191 @@ export const aiPerformanceRouter = router({
           topPerformer: null as { name: string; score: number } | null,
         };
       }
-
-      const avg = Math.round(
-        demoLeaderboard.reduce((s, e) => s + e.meetingScore, 0) / demoLeaderboard.length
-      );
-      const lastTrend = demoActionTrend[demoActionTrend.length - 1];
-
-      return {
-        avgMeetingScore: avg,
-        actionItemCompletionRate: lastTrend?.rate ?? 0,
-        employeesEvaluated: demoLeaderboard.length,
-        topPerformer: {
-          name: demoLeaderboard[0].userName,
-          score: demoLeaderboard[0].meetingScore,
-        },
-      };
     }),
 
   /** Leaderboard — ranked employees by meeting score */
-  leaderboard: publicProcedure
-    .input(z.object({ limit: z.number().default(10) }))
+  leaderboard: protectedProcedure
+    .input(z.object({ limit: z.number().default(10), month: z.string().optional() }))
     .query(async ({ input }) => {
-      if (!seeded) return [];
-      return demoLeaderboard
-        .sort((a, b) => b.meetingScore - a.meetingScore)
-        .slice(0, input.limit);
+      try {
+        const db = await requireDb();
+        let targetMonth = input.month;
+        if (!targetMonth) {
+          const latest = await db.select({ month: hrAiPerformance.month })
+            .from(hrAiPerformance)
+            .orderBy(desc(hrAiPerformance.month))
+            .limit(1);
+          targetMonth = latest[0]?.month;
+        }
+        if (!targetMonth) return [];
+
+        const rows = await db.select().from(hrAiPerformance)
+          .where(eq(hrAiPerformance.month, targetMonth))
+          .orderBy(desc(hrAiPerformance.meetingScore))
+          .limit(input.limit);
+
+        return rows.map(r => ({
+          userId: r.userId,
+          userName: r.userName ?? `User#${r.userId}`,
+          department: "",
+          meetingScore: r.meetingScore ?? 0,
+          breadth: r.breadthScore ?? 0,
+          depth: r.depthScore ?? 0,
+          execution: r.executionScore ?? 0,
+          discipline: r.disciplineScore ?? 0,
+          actionItemRate: r.actionItemsTotal
+            ? Math.round(((r.actionItemsCompleted ?? 0) / r.actionItemsTotal) * 100)
+            : 0,
+        }));
+      } catch {
+        return [];
+      }
     }),
 
-  /** Monthly action item completion trend */
-  actionItemStats: publicProcedure
+  /** Monthly action item completion trend from meeting_action_items */
+  actionItemStats: protectedProcedure
     .input(z.object({ months: z.number().default(6) }))
     .query(async ({ input }) => {
-      if (!seeded) return [];
-      return demoActionTrend.slice(-input.months);
+      try {
+        const db = await requireDb();
+        // Aggregate action items by month
+        const rows = await db.execute(sql`
+          SELECT
+            TO_CHAR(created_at, 'YYYY-MM') AS month,
+            COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE status = 'COMPLETED')::int AS completed,
+            COUNT(*) FILTER (WHERE status = 'OVERDUE')::int AS overdue
+          FROM meeting_action_items
+          GROUP BY TO_CHAR(created_at, 'YYYY-MM')
+          ORDER BY month DESC
+          LIMIT ${input.months}
+        `);
+
+        const items = ((rows.rows ?? []) as any[]).reverse().map((r: any) => ({
+          month: r.month,
+          total: Number(r.total) || 0,
+          completed: Number(r.completed) || 0,
+          overdue: Number(r.overdue) || 0,
+          rate: (Number(r.total) || 0) > 0
+            ? Math.round(((Number(r.completed) || 0) / (Number(r.total) || 1)) * 100)
+            : 0,
+        }));
+
+        return items;
+      } catch {
+        return [];
+      }
     }),
 
-  /** Seed demo data for demonstration */
-  seedDemo: publicProcedure.mutation(async () => {
-    seedDemoData();
-    return {
-      ok: true,
-      count: demoLeaderboard.length,
-      performanceRecords: demoLeaderboard.length,
-      actionItems: demoActionTrend.reduce((s, t) => s + t.total, 0),
-      month: new Date().toISOString().slice(0, 7),
-    };
+  /** Single user performance detail */
+  userDetail: protectedProcedure
+    .input(z.object({ userId: z.number(), months: z.number().default(6) }))
+    .query(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const history = await db.select().from(hrAiPerformance)
+          .where(eq(hrAiPerformance.userId, input.userId))
+          .orderBy(desc(hrAiPerformance.month))
+          .limit(input.months);
+
+        const actionItems = await db.select().from(meetingActionItems)
+          .where(eq(meetingActionItems.assignedTo, input.userId))
+          .orderBy(desc(meetingActionItems.createdAt))
+          .limit(20);
+
+        return { history: history.reverse(), actionItems };
+      } catch {
+        return { history: [], actionItems: [] };
+      }
+    }),
+
+  /** Seed demo data into hr_ai_performance + meeting_action_items */
+  seedDemo: protectedProcedure.mutation(async () => {
+    try {
+      const db = await requireDb();
+
+      // Check if already seeded
+      const [existing] = await db.select({ value: count() }).from(hrAiPerformance);
+      if (Number(existing?.value ?? 0) > 0) {
+        return { ok: true, message: "Demo data already exists", count: Number(existing?.value ?? 0) };
+      }
+
+      const users = [
+        { id: 1, name: "张三", dept: "项目管理部" },
+        { id: 2, name: "李四", dept: "质量部" },
+        { id: 3, name: "王五", dept: "销售部" },
+        { id: 4, name: "赵六", dept: "研发部" },
+        { id: 5, name: "周七", dept: "生产部" },
+        { id: 6, name: "钱八", dept: "采购部" },
+        { id: 7, name: "孙九", dept: "人力资源" },
+        { id: 8, name: "吴十", dept: "财务部" },
+      ];
+
+      const months = ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"];
+      const perfRecords = [];
+
+      for (const user of users) {
+        for (const month of months) {
+          const base = 60 + Math.floor(Math.random() * 30);
+          const breadth = base + Math.floor(Math.random() * 10) - 5;
+          const depth = base + Math.floor(Math.random() * 10) - 3;
+          const execution = base + Math.floor(Math.random() * 8) - 4;
+          const discipline = base + Math.floor(Math.random() * 8) - 2;
+          const score = Math.round((breadth + depth + execution + discipline) / 4);
+          const totalItems = 5 + Math.floor(Math.random() * 8);
+          const completedItems = Math.max(1, totalItems - Math.floor(Math.random() * 3));
+
+          perfRecords.push({
+            userId: user.id,
+            userName: user.name,
+            month,
+            breadthScore: breadth,
+            depthScore: depth,
+            executionScore: execution,
+            disciplineScore: discipline,
+            meetingScore: score,
+            totalScore: score,
+            meetingsAttended: 3 + Math.floor(Math.random() * 5),
+            meetingsTotal: 6 + Math.floor(Math.random() * 3),
+            actionItemsCompleted: completedItems,
+            actionItemsTotal: totalItems,
+          });
+        }
+      }
+
+      await db.insert(hrAiPerformance).values(perfRecords);
+
+      // Seed some action items
+      const actionItems = [];
+      const statuses = ["COMPLETED", "COMPLETED", "COMPLETED", "PENDING", "OVERDUE"];
+      for (const user of users) {
+        for (let i = 0; i < 5; i++) {
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() - Math.floor(Math.random() * 60));
+          const status = statuses[Math.floor(Math.random() * statuses.length)];
+          actionItems.push({
+            meetingId: 100 + Math.floor(Math.random() * 20),
+            assignedTo: user.id,
+            assignedToName: user.name,
+            taskDesc: `${user.dept}待办事项 #${i + 1}`,
+            status,
+            dueDate,
+            completedAt: status === "COMPLETED" ? new Date() : null,
+          });
+        }
+      }
+
+      await db.insert(meetingActionItems).values(actionItems);
+
+      return {
+        ok: true,
+        count: perfRecords.length,
+        performanceRecords: perfRecords.length,
+        actionItems: actionItems.length,
+        month: months[months.length - 1],
+      };
+    } catch (e: any) {
+      return { ok: false, count: 0, message: e.message };
+    }
   }),
 });

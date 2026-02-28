@@ -16,6 +16,7 @@
 
 import { z } from "zod";
 import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
+import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
 import {
@@ -144,14 +145,14 @@ export const warehouseRouter = router({
 
   createWarehouse: adminProcedure
     .input(WarehouseCreateSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
       const result = await db.insert(warehouses).values({
         warehouseCode: input.warehouseCode,
         warehouseName: input.warehouseName,
         warehouseType: input.warehouseType,
-        buCode: input.buCode ?? null,
+        buCode: input.buCode ?? ctx.bu?.buCode ?? null,
         address: input.address ?? null,
         building: input.building ?? null,
         floor: input.floor ?? null,
@@ -175,11 +176,14 @@ export const warehouseRouter = router({
       isActive: z.boolean().optional(),
       search: z.string().optional(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
       const conditions = [];
+      // Auto-inject BU scope
+      const buFilter = buScopeCondition(warehouses.buCode, ctx);
+      if (buFilter) conditions.push(buFilter);
       if (input.warehouseType) conditions.push(eq(warehouses.warehouseType, input.warehouseType));
-      if (input.buCode) conditions.push(eq(warehouses.buCode, input.buCode));
+      if (input.buCode && !buFilter) conditions.push(eq(warehouses.buCode, input.buCode));
       if (input.isActive !== undefined) conditions.push(eq(warehouses.isActive, input.isActive));
       if (input.search) {
         const pattern = `%${input.search}%`;
@@ -191,9 +195,12 @@ export const warehouseRouter = router({
 
   getWarehouse: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
-      const whRows = await db.select().from(warehouses).where(eq(warehouses.id, input.id));
+      const buFilter = buScopeCondition(warehouses.buCode, ctx);
+      const conditions = [eq(warehouses.id, input.id)];
+      if (buFilter) conditions.push(buFilter);
+      const whRows = await db.select().from(warehouses).where(and(...conditions));
       if (!whRows[0]) return null;
       const locations = await db.select().from(warehouseLocations).where(eq(warehouseLocations.warehouseId, input.id));
       return { ...whRows[0], locations };

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 
 // ---------------------------------------------------------------------------
 // Excellence Culture Model — Data Types
@@ -225,11 +225,11 @@ function parseCsvToModel(csvText: string, csvUploadedBy: string): ExcellenceMode
 // ---------------------------------------------------------------------------
 
 export const excellenceCultureRouter = router({
-  getModel: publicProcedure.query(() => {
+  getModel: protectedProcedure.query(() => {
     return currentModel;
   }),
 
-  uploadCsv: publicProcedure
+  uploadCsv: protectedProcedure
     .input(z.object({
       csvContent: z.string().min(10),
       userRole: z.string().optional(),
@@ -244,7 +244,7 @@ export const excellenceCultureRouter = router({
       return { success: true, pillarCount: newModel.pillars.length, version: newModel.version };
     }),
 
-  analyzeAlignment: publicProcedure
+  analyzeAlignment: protectedProcedure
     .input(z.object({
       employeeName: z.string().optional(),
       userRole: z.string().optional(),

@@ -50,7 +50,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -646,14 +646,14 @@ export const digitalThreadRouter = router({
   /**
    * The master endpoint — returns the complete Digital Thread.
    */
-  cockpit: publicProcedure.query(async () => {
+  cockpit: protectedProcedure.query(async () => {
     return weaveDigitalThread(MOCK_EVENTS, MOCK_MODULE_DATA);
   }),
 
   /**
    * Filtered thread events
    */
-  events: publicProcedure
+  events: protectedProcedure
     .input(z.object({
       module: z.string().optional(),
       severity: z.string().optional(),
@@ -670,7 +670,7 @@ export const digitalThreadRouter = router({
   /**
    * Impact chain analysis
    */
-  impactChain: publicProcedure
+  impactChain: protectedProcedure
     .input(z.object({
       triggerModule: z.string(),
       triggerEntity: z.string(),

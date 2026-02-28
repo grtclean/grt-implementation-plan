@@ -1,19 +1,19 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { trainingAssessments, trainingAssessmentResults } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
 
 export const trainingAssessmentRouter = router({
   // 评估列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(trainingAssessments).orderBy(desc(trainingAssessments.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 获取评估详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     const [assessment] = await db.select().from(trainingAssessments).where(eq(trainingAssessments.id, id));
@@ -70,7 +70,7 @@ export const trainingAssessmentRouter = router({
   }),
 
   // 按培训获取评估
-  getByTraining: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getByTraining: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const trainingId = typeof input?.trainingId === "string" ? parseInt(input.trainingId) : (input?.trainingId || 0);
     return await db.select().from(trainingAssessments)

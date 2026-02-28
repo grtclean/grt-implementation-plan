@@ -3,7 +3,7 @@
  * IATF 16949 compliant 3D asset management, versioning, and audit
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   dtAssets,
@@ -29,7 +29,7 @@ export const digitalTwinRouter = router({
   // Assets — CRUD
   // ══════════════════════════════════════════════════
 
-  listAssets: publicProcedure.input(z.object({
+  listAssets: protectedProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]).optional(),
     fileFormat: z.string().optional(),
     status: z.string().optional(),
@@ -71,7 +71,7 @@ export const digitalTwinRouter = router({
     return { items, total: Number(total) };
   }),
 
-  getAsset: publicProcedure.input(idInput).query(async ({ input }) => {
+  getAsset: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [asset] = await db.select().from(dtAssets)
       .where(eq(dtAssets.id, toNum(input.id)));
@@ -96,7 +96,7 @@ export const digitalTwinRouter = router({
     return { ...asset, versionChain, assemblyNodes, auditLogs };
   }),
 
-  createAsset: publicProcedure.input(z.object({
+  createAsset: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     projectCode: z.string().optional(),
     assetName: z.string().min(1),
@@ -120,7 +120,7 @@ export const digitalTwinRouter = router({
     return createAsset(input);
   }),
 
-  updateAsset: publicProcedure.input(z.object({
+  updateAsset: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     assetName: z.string().optional(),
     description: z.string().optional(),
@@ -161,7 +161,7 @@ export const digitalTwinRouter = router({
     return updated;
   }),
 
-  submitForReview: publicProcedure.input(z.object({
+  submitForReview: protectedProcedure.input(z.object({
     assetId: z.union([z.string(), z.number()]),
     submittedBy: z.number(),
     submittedByName: z.string().optional(),
@@ -201,7 +201,7 @@ export const digitalTwinRouter = router({
   // Version Management — IATF 16949
   // ══════════════════════════════════════════════════
 
-  publishVersion: publicProcedure.input(z.object({
+  publishVersion: protectedProcedure.input(z.object({
     previousAssetId: z.union([z.string(), z.number()]),
     assetName: z.string().optional(),
     storageUrl: z.string().min(1),
@@ -224,7 +224,7 @@ export const digitalTwinRouter = router({
     });
   }),
 
-  approveAsset: publicProcedure.input(z.object({
+  approveAsset: protectedProcedure.input(z.object({
     assetId: z.union([z.string(), z.number()]),
     approvedBy: z.number(),
     approvedByName: z.string().optional(),
@@ -237,7 +237,7 @@ export const digitalTwinRouter = router({
     });
   }),
 
-  freezeAsset: publicProcedure.input(z.object({
+  freezeAsset: protectedProcedure.input(z.object({
     assetId: z.union([z.string(), z.number()]),
     frozenBy: z.number(),
     frozenByName: z.string().optional(),
@@ -249,7 +249,7 @@ export const digitalTwinRouter = router({
     });
   }),
 
-  verifyHash: publicProcedure.input(z.object({
+  verifyHash: protectedProcedure.input(z.object({
     assetId: z.union([z.string(), z.number()]),
     computedHash: z.string().min(1),
     verifiedBy: z.number(),
@@ -266,7 +266,7 @@ export const digitalTwinRouter = router({
   // Robot Assembly Nodes
   // ══════════════════════════════════════════════════
 
-  listAssemblyNodes: publicProcedure.input(z.object({
+  listAssemblyNodes: protectedProcedure.input(z.object({
     dtAssetId: z.union([z.string(), z.number()]),
   })).query(async ({ input }) => {
     const db = await requireDb();
@@ -276,7 +276,7 @@ export const digitalTwinRouter = router({
     return { items, total: items.length };
   }),
 
-  createAssemblyNode: publicProcedure.input(z.object({
+  createAssemblyNode: protectedProcedure.input(z.object({
     dtAssetId: z.union([z.string(), z.number()]),
     partNumber: z.string().min(1),
     partName: z.string().optional(),
@@ -326,7 +326,7 @@ export const digitalTwinRouter = router({
   // IATF Audit Logs — Read-Only
   // ══════════════════════════════════════════════════
 
-  listAuditLogs: publicProcedure.input(z.object({
+  listAuditLogs: protectedProcedure.input(z.object({
     assetId: z.union([z.string(), z.number()]).optional(),
     actorId: z.number().optional(),
     action: z.string().optional(),
@@ -364,7 +364,7 @@ export const digitalTwinRouter = router({
   // Dashboard Stats
   // ══════════════════════════════════════════════════
 
-  getStats: publicProcedure.input(z.object({
+  getStats: protectedProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]).optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();

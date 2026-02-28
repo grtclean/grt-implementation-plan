@@ -3,7 +3,7 @@
  * Replaces in-memory sop.service.ts with real sopTemplates table
  */
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sopTemplates } from "../../drizzle/production-process-schema";
 import { eq, desc, sql, ilike } from "drizzle-orm";
@@ -13,7 +13,7 @@ const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : i
 
 export const sopDbRouter = router({
   // 列表（支持筛选）
-  list: publicProcedure.input(z.object({
+  list: protectedProcedure.input(z.object({
     category: z.string().optional(),
     status: z.string().optional(),
     stage: z.string().optional(),
@@ -30,7 +30,7 @@ export const sopDbRouter = router({
   }),
 
   // 详情
-  getById: publicProcedure.input(idInput).query(async ({ input }) => {
+  getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [sop] = await db.select().from(sopTemplates).where(eq(sopTemplates.id, toNum(input.id)));
     return sop || null;
@@ -103,7 +103,7 @@ export const sopDbRouter = router({
   }),
 
   // 搜索
-  search: publicProcedure.input(z.object({ query: z.string() })).query(async ({ input }) => {
+  search: protectedProcedure.input(z.object({ query: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const items = await db.select().from(sopTemplates);
     const q = input.query.toLowerCase();
@@ -115,7 +115,7 @@ export const sopDbRouter = router({
   }),
 
   // 分类列表
-  categories: publicProcedure.query(async () => {
+  categories: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select({ category: sopTemplates.category }).from(sopTemplates);
     return [...new Set(items.map(i => i.category).filter(Boolean))];

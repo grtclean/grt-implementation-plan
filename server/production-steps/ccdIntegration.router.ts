@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 import {
   getCcdConfig,
   saveCcdConfig,

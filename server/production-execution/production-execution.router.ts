@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import * as db from "./production-execution.db";
 
 // ============================================================================
@@ -29,7 +29,7 @@ export const productionExecutionRouter = router({
   /**
    * 获取所有T1-T15阶段定义
    */
-  getStageDefinitions: publicProcedure.query(async () => {
+  getStageDefinitions: protectedProcedure.query(async () => {
     const definitions = await db.getStageDefinitions();
     return {
       success: true,
@@ -41,7 +41,7 @@ export const productionExecutionRouter = router({
   /**
    * 根据阶段代码获取阶段定义
    */
-  getStageDefinitionByCode: publicProcedure
+  getStageDefinitionByCode: protectedProcedure
     .input(z.object({ stageCode: z.string() }))
     .query(async ({ input }) => {
       const definition = await db.getStageDefinitionByCode(input.stageCode);
@@ -365,7 +365,7 @@ export const productionExecutionRouter = router({
   /**
    * 获取所有集成状态
    */
-  getIntegrationStatuses: publicProcedure.query(async () => {
+  getIntegrationStatuses: protectedProcedure.query(async () => {
     const statuses = await db.getIntegrationStatuses();
     return {
       success: true,
@@ -401,7 +401,7 @@ export const productionExecutionRouter = router({
   /**
    * 获取阶段的AI知识/洞察
    */
-  getAiKnowledge: publicProcedure
+  getAiKnowledge: protectedProcedure
     .input(z.object({ stageCode: z.string() }))
     .query(async ({ input }) => {
       const knowledge = await db.getAiKnowledgeForStage(input.stageCode);

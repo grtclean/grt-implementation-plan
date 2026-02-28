@@ -2753,12 +2753,14 @@ export const projects = pgTable("projects", {
 	completionPercent: integer().default(0),
 	remark: text(),
 	jiandaoyunId: varchar({ length: 64 }),
+	buCode: varchar('bu_code', { length: 50 }),
 	version: integer('version').default(1).notNull(),
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 },
 (table) => [
 	index("projects_projectCode_unique").on(table.projectCode),
+	index("projects_bu_code_idx").on(table.buCode),
 ]);
 
 export const quotationLearningRecords = pgTable("quotation_learning_records", {
@@ -9590,12 +9592,14 @@ export const crmLeads = pgTable("crm_leads", {
   convertedCustomerId: integer("converted_customer_id"),
   convertedOpportunityId: integer("converted_opportunity_id"),
   notes: text("notes"),
+  buCode: varchar("bu_code", { length: 50 }),
   createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
   index("crm_leads_status_idx").on(table.status),
   index("crm_leads_priority_idx").on(table.priority),
   index("crm_leads_assigned_to_idx").on(table.assignedTo),
+  index("crm_leads_bu_code_idx").on(table.buCode),
 ]);
 
 // ==================== 设计变更 → BOM → PO 联动事件表 ====================

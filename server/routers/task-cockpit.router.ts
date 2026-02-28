@@ -3,7 +3,7 @@
  * Time tracking, prerequisites checking, and categorized task management.
  */
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { projectTasks, taskTimeSessions, taskPrerequisites } from "../../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -12,7 +12,7 @@ const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : i
 
 export const taskCockpitRouter = router({
   // Fetch tasks grouped by category for a project
-  getTasksForCockpit: publicProcedure.input(z.object({
+  getTasksForCockpit: protectedProcedure.input(z.object({
     projectId: z.number(),
     assigneeId: z.number().optional(),
   })).query(async ({ input }) => {
@@ -96,7 +96,7 @@ export const taskCockpitRouter = router({
   }),
 
   // Get the currently running timer for a user
-  getActiveSession: publicProcedure.input(z.object({
+  getActiveSession: protectedProcedure.input(z.object({
     userId: z.number(),
   })).query(async ({ input }) => {
     const db = await requireDb();
@@ -107,7 +107,7 @@ export const taskCockpitRouter = router({
   }),
 
   // Check prerequisites for completing a task
-  checkPrerequisites: publicProcedure.input(z.object({
+  checkPrerequisites: protectedProcedure.input(z.object({
     taskId: z.union([z.string(), z.number()]),
   })).query(async ({ input }) => {
     const db = await requireDb();

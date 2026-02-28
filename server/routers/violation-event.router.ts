@@ -6,7 +6,7 @@
  * freezes the associated performance record.
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { violationEvents, performanceRecords } from "../../drizzle/performance-schema";
 import { eq, and, desc, sql, count } from "drizzle-orm";
@@ -15,7 +15,7 @@ export const violationEventRouter = router({
   /**
    * list — paginated violation events with optional filters
    */
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       buId: z.number().optional(),
       userId: z.number().optional(),
@@ -55,7 +55,7 @@ export const violationEventRouter = router({
   /**
    * getById — single event detail
    */
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -68,7 +68,7 @@ export const violationEventRouter = router({
    * create — report a new violation event
    * If severity >= MAJOR, auto-freezes matching performance record.
    */
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       eventType: z.string(),
       severity: z.enum(["MINOR", "MAJOR", "CRITICAL"]),
@@ -102,7 +102,7 @@ export const violationEventRouter = router({
   /**
    * updateStatus — transition event status (investigating → confirmed → resolved)
    */
-  updateStatus: publicProcedure
+  updateStatus: protectedProcedure
     .input(z.object({
       id: z.number(),
       status: z.enum(["open", "investigating", "confirmed", "resolved", "dismissed"]),
@@ -148,7 +148,7 @@ export const violationEventRouter = router({
   /**
    * addActionItems — attach investigation action items to event
    */
-  addActionItems: publicProcedure
+  addActionItems: protectedProcedure
     .input(z.object({
       id: z.number(),
       actionItems: z.array(z.object({
@@ -174,7 +174,7 @@ export const violationEventRouter = router({
   /**
    * stats — summary counts by severity and status
    */
-  stats: publicProcedure
+  stats: protectedProcedure
     .input(z.object({ buId: z.number().optional() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -210,7 +210,7 @@ export const violationEventRouter = router({
   /**
    * seedDemo — create demo violation events for testing
    */
-  seedDemo: publicProcedure.mutation(async () => {
+  seedDemo: protectedProcedure.mutation(async () => {
     const db = await requireDb();
 
     // Ensure table exists

@@ -3,7 +3,7 @@
  * Document management, file versioning, and design review workflows
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   plmDocuments,
@@ -29,7 +29,7 @@ export const plmRouter = router({
   // Documents — CRUD
   // ══════════════════════════════════════════════════
 
-  listDocuments: publicProcedure.input(z.object({
+  listDocuments: protectedProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]).optional(),
     docType: z.string().optional(),
     currentStatus: z.string().optional(),
@@ -67,7 +67,7 @@ export const plmRouter = router({
     return { items, total: Number(total) };
   }),
 
-  getDocument: publicProcedure.input(idInput).query(async ({ input }) => {
+  getDocument: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [doc] = await db.select().from(plmDocuments)
       .where(eq(plmDocuments.id, toNum(input.id)));
@@ -96,7 +96,7 @@ export const plmRouter = router({
     return { ...doc, versions, reviews, allReviews };
   }),
 
-  createDocument: publicProcedure.input(z.object({
+  createDocument: protectedProcedure.input(z.object({
     docNumber: z.string().min(1),
     title: z.string().min(1),
     description: z.string().optional(),
@@ -113,7 +113,7 @@ export const plmRouter = router({
     return createDocument(input);
   }),
 
-  updateDocument: publicProcedure.input(z.object({
+  updateDocument: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     title: z.string().optional(),
     description: z.string().optional(),
@@ -150,7 +150,7 @@ export const plmRouter = router({
   // Versions — Upload & History
   // ══════════════════════════════════════════════════
 
-  uploadVersion: publicProcedure.input(z.object({
+  uploadVersion: protectedProcedure.input(z.object({
     documentId: z.union([z.string(), z.number()]),
     fileUrlPath: z.string().min(1),
     originalFileName: z.string().optional(),
@@ -166,7 +166,7 @@ export const plmRouter = router({
     });
   }),
 
-  promoteMajorVersion: publicProcedure.input(z.object({
+  promoteMajorVersion: protectedProcedure.input(z.object({
     documentId: z.union([z.string(), z.number()]),
     fileUrlPath: z.string().min(1),
     uploadedBy: z.number(),
@@ -180,7 +180,7 @@ export const plmRouter = router({
     );
   }),
 
-  listVersions: publicProcedure.input(z.object({
+  listVersions: protectedProcedure.input(z.object({
     documentId: z.union([z.string(), z.number()]),
   })).query(async ({ input }) => {
     const db = await requireDb();
@@ -194,7 +194,7 @@ export const plmRouter = router({
   // Design Reviews — Submit & Decide
   // ══════════════════════════════════════════════════
 
-  submitReview: publicProcedure.input(z.object({
+  submitReview: protectedProcedure.input(z.object({
     documentVersionId: z.union([z.string(), z.number()]),
     reviewerUserId: z.number(),
     reviewerName: z.string().optional(),
@@ -209,7 +209,7 @@ export const plmRouter = router({
     });
   }),
 
-  recordDecision: publicProcedure.input(z.object({
+  recordDecision: protectedProcedure.input(z.object({
     reviewId: z.union([z.string(), z.number()]),
     reviewStatus: z.enum(["approved", "rejected", "revision_requested"]),
     comments: z.string().optional(),
@@ -220,7 +220,7 @@ export const plmRouter = router({
     });
   }),
 
-  listReviews: publicProcedure.input(z.object({
+  listReviews: protectedProcedure.input(z.object({
     documentVersionId: z.union([z.string(), z.number()]).optional(),
     reviewerUserId: z.number().optional(),
     reviewStatus: z.string().optional(),
@@ -259,7 +259,7 @@ export const plmRouter = router({
   // ══════════════════════════════════════════════════
 
   /** Global stats (no filters) — accurate counts for stat cards */
-  getStats: publicProcedure.input(z.object({
+  getStats: protectedProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]).optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
@@ -301,7 +301,7 @@ export const plmRouter = router({
     };
   }),
 
-  getProjectSummary: publicProcedure.input(z.object({
+  getProjectSummary: protectedProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]),
   })).query(async ({ input }) => {
     const db = await requireDb();

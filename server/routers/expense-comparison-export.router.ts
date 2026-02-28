@@ -9,7 +9,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 export const expenseComparisonExportRouter = router({
   export: protectedProcedure

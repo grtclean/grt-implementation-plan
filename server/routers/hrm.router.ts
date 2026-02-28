@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, sql, and, or } from "drizzle-orm";
 import {
@@ -21,7 +21,7 @@ const successResponse = { success: true, message: "操作成功" };
 export const hrmRouter = router({
   // ==================== CRUD (employees as default entity) ====================
 
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(hrmEmployees);
     const items = rows.map((row) => ({
@@ -39,7 +39,7 @@ export const hrmRouter = router({
     return { items, total: items.length, page: 1, pageSize: 10 };
   }),
 
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -117,7 +117,7 @@ export const hrmRouter = router({
 
   // ==================== Employees ====================
 
-  getEmployees: publicProcedure.query(async () => {
+  getEmployees: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(hrmEmployees);
     return rows.map((row) => ({
@@ -136,7 +136,7 @@ export const hrmRouter = router({
 
   // ==================== Departments (aggregated from employees) ====================
 
-  getDepartments: publicProcedure.query(async () => {
+  getDepartments: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db
       .select({
@@ -155,7 +155,7 @@ export const hrmRouter = router({
 
   // ==================== Candidates ====================
 
-  getCandidates: publicProcedure.query(async () => {
+  getCandidates: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(hrmCandidates);
     return rows.map((row) => ({
@@ -178,7 +178,7 @@ export const hrmRouter = router({
 
   // ==================== Salary Structures ====================
 
-  getSalaryStructures: publicProcedure.query(async () => {
+  getSalaryStructures: requirePermission('hrm_salary_structure').query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(hrmSalaryStructures);
     return rows.map((row) => ({
@@ -198,7 +198,7 @@ export const hrmRouter = router({
     }));
   }),
 
-  initSalaryStructures: protectedProcedure.mutation(async () => {
+  initSalaryStructures: requirePermission('hrm_salary_structure').mutation(async () => {
     const db = await requireDb();
     const defaults = [
       { department: "研发部", level: "P1", baseSalaryRatioMin: "0.50", baseSalaryRatioMax: "0.60", performanceRatioMin: "0.20", performanceRatioMax: "0.30", bonusRatioMin: "0.10", bonusRatioMax: "0.15", benefitsRatioMin: "0.05", benefitsRatioMax: "0.10", effectiveDate: new Date().toISOString() },
@@ -235,7 +235,7 @@ export const hrmRouter = router({
 
   // ==================== Performance Grades ====================
 
-  getPerformanceGrades: publicProcedure.query(async () => {
+  getPerformanceGrades: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(hrmPerformanceGrades);
     return rows.map((row) => ({
@@ -253,7 +253,7 @@ export const hrmRouter = router({
 
   // ==================== Positions ====================
 
-  getPositions: publicProcedure.query(async () => {
+  getPositions: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(hrmPositions);
     return rows.map((row) => ({
@@ -274,19 +274,19 @@ export const hrmRouter = router({
 
   // ==================== Attendance (stub - no table) ====================
 
-  getAttendance: publicProcedure.input(z.any()).query(() => {
+  getAttendance: protectedProcedure.input(z.any()).query(() => {
     return [] as Array<{ employeeId: string; date: string; checkIn: string; checkOut: string; status: string }>;
   }),
 
   // ==================== Leave Requests (stub - no table) ====================
 
-  getLeaveRequests: publicProcedure.query(() => {
+  getLeaveRequests: protectedProcedure.query(() => {
     return [] as Array<{ id: string; employeeId: string; type: string; startDate: string; endDate: string; status: string; reason: string }>;
   }),
 
   // ==================== Training Records ====================
 
-  getTrainingRecords: publicProcedure.query(async () => {
+  getTrainingRecords: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(hrmTrainingPlans);
     return rows.map((row) => ({
@@ -305,7 +305,7 @@ export const hrmRouter = router({
 
   // ==================== Org Chart (aggregated from employees) ====================
 
-  getOrgChart: publicProcedure.query(async () => {
+  getOrgChart: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db
       .select({
@@ -326,7 +326,7 @@ export const hrmRouter = router({
 
   // ==================== Statistics ====================
 
-  getStatistics: publicProcedure.query(async () => {
+  getStatistics: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [totalRes, activeRes, posRes, candRes, trainRes] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(hrmEmployees),
@@ -348,7 +348,7 @@ export const hrmRouter = router({
 
   // ==================== Salary Calculation ====================
 
-  calculateSalary: publicProcedure
+  calculateSalary: requirePermission('hrm_salary_calculation')
     .input(z.object({
       department: z.string(),
       baseSalary: z.number(),
@@ -398,23 +398,23 @@ export const hrmRouter = router({
       };
     }),
 
-  createSalaryCalculation: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  createSalaryCalculation: requirePermission('hrm_salary_calculation').input(z.any()).mutation(() => successResponse),
 
   // ==================== Scheduled Tasks (stub) ====================
 
-  getScheduledTasks: publicProcedure.query(() => [] as Array<{ id: string; taskName: string; taskType: string; cronExpression: string; isEnabled: boolean; lastRunAt: string | null }>),
+  getScheduledTasks: protectedProcedure.query(() => [] as Array<{ id: string; taskName: string; taskType: string; cronExpression: string; isEnabled: boolean; lastRunAt: string | null }>),
   createScheduledTask: protectedProcedure.input(z.any()).mutation(() => successResponse),
   updateScheduledTask: protectedProcedure.input(z.any()).mutation(() => successResponse),
 
   // ==================== Teams Meetings (stub) ====================
 
-  getTeamsMeetings: publicProcedure.query(() => [] as Array<{ id: string; subject: string; startTime: string; durationMinutes: number; status: string }>),
+  getTeamsMeetings: protectedProcedure.query(() => [] as Array<{ id: string; subject: string; startTime: string; durationMinutes: number; status: string }>),
   createTeamsMeeting: protectedProcedure.input(z.any()).mutation(() => successResponse),
   updateTeamsMeeting: protectedProcedure.input(z.any()).mutation(() => successResponse),
 
   // ==================== Performance Score (deterministic seed algorithm) ====================
 
-  calculatePerformanceScore: publicProcedure
+  calculatePerformanceScore: protectedProcedure
     .input(z.object({ userId: z.number(), projectId: z.number(), stageCode: z.string().optional() }))
     .query(({ input }) => {
       const seed = input.userId * 1000 + input.projectId + (input.stageCode ? input.stageCode.length * 7 : 0);

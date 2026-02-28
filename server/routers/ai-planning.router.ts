@@ -3,7 +3,7 @@
  * 封装 ai-planning.service.ts 的功能
  */
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import {
   generateWorkPlan,
   updatePlanStatus,
@@ -93,7 +93,7 @@ export const aiPlanningRouter = router({
   }),
 
   // 获取计划执行报告
-  getExecutionReport: publicProcedure.input(z.object({
+  getExecutionReport: protectedProcedure.input(z.object({
     planId: z.string(),
   })).query(async ({ input }) => {
     const report = await getPlanExecutionReport(input.planId);

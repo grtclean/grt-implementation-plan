@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   projects, projectGates, projectMilestones,
@@ -40,12 +40,12 @@ const M_STAGE_DEFINITIONS = [
 
 export const projectGateRouter = router({
   // 获取阶段定义列表
-  getStageDefinitions: publicProcedure.query(() => {
+  getStageDefinitions: protectedProcedure.query(() => {
     return M_STAGE_DEFINITIONS;
   }),
 
   // 获取项目阶段列表 (from projects v1 table with gates)
-  getProjectStages: publicProcedure
+  getProjectStages: protectedProcedure
     .input(z.object({
       projectId: z.number().optional(),
       currentStage: z.string().optional(),
@@ -113,7 +113,7 @@ export const projectGateRouter = router({
     }),
 
   // 获取项目阶段详情
-  getProjectStageDetail: publicProcedure
+  getProjectStageDetail: protectedProcedure
     .input(z.object({ projectId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -166,7 +166,7 @@ export const projectGateRouter = router({
     }),
 
   // 获取门禁检查项 (from gateChecklists table)
-  getGateChecklist: publicProcedure
+  getGateChecklist: protectedProcedure
     .input(z.object({
       projectId: z.number(),
       stageCode: z.string(),
@@ -350,7 +350,7 @@ export const projectGateRouter = router({
     }),
 
   // 获取红蓝对抗记录
-  getRedBlueRecords: publicProcedure
+  getRedBlueRecords: protectedProcedure
     .input(z.object({
       projectId: z.number(),
       stageCode: z.string().optional(),
@@ -433,7 +433,7 @@ export const projectGateRouter = router({
    * Pre-flight check: can this stage advance?
    * Validates all mandatory checklist items are verified/waived with zero failed.
    */
-  validateGateReadiness: publicProcedure
+  validateGateReadiness: protectedProcedure
     .input(z.object({ projectId: z.number(), stageCode: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -593,11 +593,68 @@ export const projectGateRouter = router({
         })
         .where(eq(projectsV2.id, input.projectId));
 
+      // 4d. M12 auto-trigger: create after-sales warranty record + equipment entry
+      let afterSalesCreated = false;
+      if (nextStageCode === "M12") {
+        try {
+          const { afterSalesClients, afterSalesEquipments } = await import("../../drizzle/schema");
+
+          // Look up customer info from the project
+          const projectInfo = await db.select().from(projects)
+            .where(eq(projects.id, input.projectId)).limit(1);
+          const proj = projectInfo[0];
+
+          if (proj) {
+            // Create or look up after-sales client
+            const existingClients = await db.select().from(afterSalesClients)
+              .where(eq(afterSalesClients.name, proj.name ?? ""));
+
+            let clientId: number;
+            if (existingClients.length > 0) {
+              clientId = existingClients[0].id;
+            } else {
+              const [newClient] = await db.insert(afterSalesClients).values({
+                name: proj.name || `Project #${proj.id}`,
+                tier: "standard",
+                contactPerson: "",
+                slaLevel: "standard",
+                responseTimeHours: 48,
+                status: "active",
+              }).returning();
+              clientId = newClient.id;
+            }
+
+            // Create equipment entry with 12-month warranty
+            const warrantyEnd = new Date();
+            warrantyEnd.setFullYear(warrantyEnd.getFullYear() + 1);
+
+            await db.insert(afterSalesEquipments).values({
+              serialNumber: `EQ-${proj.projectCode || proj.id}-001`,
+              modelName: proj.name || "清洗设备",
+              clientId,
+              equipmentType: "cleaning_line",
+              installationDate: now,
+              warrantyEndDate: warrantyEnd.toISOString(),
+              maintenanceCycleMonths: 3,
+              operationalStatus: "running",
+              status: "active",
+            }).returning();
+
+            afterSalesCreated = true;
+            console.log(`[ProjectGate] M12 reached for project ${input.projectId} — after-sales equipment + warranty created`);
+          }
+        } catch (e: any) {
+          console.warn(`[ProjectGate] M12 after-sales auto-trigger failed:`, e.message);
+          // Non-blocking — gate advance still succeeds
+        }
+      }
+
       return {
         success: true,
         previousStage: input.currentStageCode,
         newStage: nextStageCode,
         audit: auditEntry,
+        afterSalesCreated,
       };
     }),
 
@@ -713,7 +770,7 @@ export const projectGateRouter = router({
    * Full audit log of all phase transitions for a project.
    * Returns all 13 stage records with parsed auditLog events.
    */
-  getPhaseTransitionHistory: publicProcedure
+  getPhaseTransitionHistory: protectedProcedure
     .input(z.object({ projectId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -743,7 +800,7 @@ export const projectGateRouter = router({
     }),
 
   // 获取项目阶段统计
-  getStageStats: publicProcedure.query(async () => {
+  getStageStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const allProjects = await db.select().from(projects);
 
@@ -773,7 +830,7 @@ export const projectGateRouter = router({
   }),
 
   // 获取即将到期的门禁
-  getUpcomingGates: publicProcedure
+  getUpcomingGates: protectedProcedure
     .input(z.object({ days: z.number().default(7) }))
     .query(async ({ input }) => {
       const db = await requireDb();

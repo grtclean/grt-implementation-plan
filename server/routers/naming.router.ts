@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   namingChangeRequests,
@@ -15,14 +15,14 @@ import { eq, desc, and, count, sql } from "drizzle-orm";
 
 export const namingRouter = router({
   // 命名规则列表 (returns naming versions as "rules")
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(namingVersions).orderBy(desc(namingVersions.createdAt));
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 获取命名版本详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(namingVersions).where(eq(namingVersions.id, parseInt(input.id)));
     return item || null;
@@ -72,7 +72,7 @@ export const namingRouter = router({
   }),
 
   // 验证命名规则
-  validate: publicProcedure.input(z.object({
+  validate: protectedProcedure.input(z.object({
     name: z.string(),
     ruleType: z.string().optional(),
   })).query(async ({ input }) => {
@@ -86,7 +86,7 @@ export const namingRouter = router({
   }),
 
   // 生成命名
-  generate: publicProcedure.input(z.object({
+  generate: protectedProcedure.input(z.object({
     ruleType: z.string().optional(),
     prefix: z.string().optional(),
   })).query(async ({ input }) => {
@@ -103,7 +103,7 @@ export const namingRouter = router({
 
   // ===== 项目编号子路由 =====
   projectNumbers: router({
-    getCounter: publicProcedure.input(z.object({ prefix: z.string() })).query(async ({ input }) => {
+    getCounter: protectedProcedure.input(z.object({ prefix: z.string() })).query(async ({ input }) => {
       const db = await requireDb();
       const [counter] = await db.select().from(projectNumberCounters)
         .where(eq(projectNumberCounters.prefix, input.prefix));
@@ -124,7 +124,7 @@ export const namingRouter = router({
       };
     }),
 
-    getConversionHistory: publicProcedure.query(async () => {
+    getConversionHistory: protectedProcedure.query(async () => {
       const db = await requireDb();
       const history = await db.select().from(projectConversionHistory).orderBy(desc(projectConversionHistory.createdAt));
       return history.map(h => ({
@@ -198,7 +198,7 @@ export const namingRouter = router({
 
   // ===== 变更请求子路由 =====
   changeRequests: router({
-    list: publicProcedure.input(z.object({ status: z.string() }).optional()).query(async ({ input }) => {
+    list: protectedProcedure.input(z.object({ status: z.string() }).optional()).query(async ({ input }) => {
       const db = await requireDb();
       let query = db.select().from(namingChangeRequests).orderBy(desc(namingChangeRequests.requestDate));
       if (input?.status) {
@@ -282,7 +282,7 @@ export const namingRouter = router({
 
   // ===== 设备型号子路由 =====
   equipmentModels: router({
-    list: publicProcedure.input(z.object({ search: z.string() }).optional()).query(async ({ input }) => {
+    list: protectedProcedure.input(z.object({ search: z.string() }).optional()).query(async ({ input }) => {
       const db = await requireDb();
       let rows;
       if (input?.search) {
@@ -346,7 +346,7 @@ export const namingRouter = router({
 
   // ===== 审批人子路由 =====
   approvers: router({
-    list: publicProcedure.query(async () => {
+    list: protectedProcedure.query(async () => {
       const db = await requireDb();
       const rows = await db.select().from(namingRuleApprovers).orderBy(desc(namingRuleApprovers.createdAt));
       return rows.map(r => ({
@@ -387,7 +387,7 @@ export const namingRouter = router({
 
   // ===== 版本子路由 =====
   versions: router({
-    list: publicProcedure.query(async () => {
+    list: protectedProcedure.query(async () => {
       const db = await requireDb();
       const rows = await db.select().from(namingVersions).orderBy(desc(namingVersions.createdAt));
       return rows.map(r => ({

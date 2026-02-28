@@ -1,19 +1,19 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { processNotebooks } from "../../drizzle/schema";
 import { eq, desc, and } from "drizzle-orm";
 
 export const processNotebookRouter = router({
   // 笔记本列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(processNotebooks).orderBy(desc(processNotebooks.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 获取笔记本详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(processNotebooks).where(eq(processNotebooks.id, parseInt(input.id)));
     return item || null;
@@ -57,7 +57,7 @@ export const processNotebookRouter = router({
   }),
 
   // 按流程获取笔记本
-  getByProcess: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getByProcess: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const processType = input?.processType || "";
     const processId = input?.processId || "";
@@ -73,7 +73,7 @@ export const processNotebookRouter = router({
   }),
 
   // 获取笔记本及其条目（无entries子表，返回笔记本本身）
-  getNotebookWithEntries: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getNotebookWithEntries: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     // Frontend sends notebookId, also accept id
     const rawId = input?.notebookId ?? input?.id ?? 0;

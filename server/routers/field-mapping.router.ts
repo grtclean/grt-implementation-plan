@@ -1,17 +1,17 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
 
 export const fieldMappingRouter = router({
   // 字段映射列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     return emptyListResponse;
   }),
 
   // 获取字段映射详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async () => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async () => {
     return null;
   }),
 
@@ -31,7 +31,7 @@ export const fieldMappingRouter = router({
   }),
 
   // 获取映射列表
-  getMappings: publicProcedure.query(async () => {
+  getMappings: protectedProcedure.query(async () => {
     return [];
   }),
 
@@ -41,7 +41,7 @@ export const fieldMappingRouter = router({
   }),
 
   // 获取推荐映射
-  getRecommendations: publicProcedure.input(z.any()).query(async () => {
+  getRecommendations: protectedProcedure.input(z.any()).query(async () => {
     return [];
   }),
 });

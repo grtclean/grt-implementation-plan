@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import {
   listSOPs,
   getSOPById,
@@ -28,7 +28,7 @@ const sopCategoryEnum = z.enum([
 const sopStatusEnum = z.enum(["draft", "review", "approved", "archived"]);
 
 export const sopRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z
         .object({
@@ -43,13 +43,13 @@ export const sopRouter = router({
       return listSOPs(input ?? undefined);
     }),
 
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(({ input }) => {
       return getSOPById(input.id);
     }),
 
-  create: publicProcedure
+  create: protectedProcedure
     .input(
       z.object({
         title: z.string().min(1),
@@ -64,7 +64,7 @@ export const sopRouter = router({
       return createSOP(input);
     }),
 
-  update: publicProcedure
+  update: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -82,17 +82,17 @@ export const sopRouter = router({
       return updateSOP(id, data);
     }),
 
-  search: publicProcedure
+  search: protectedProcedure
     .input(z.object({ query: z.string() }))
     .query(({ input }) => {
       return searchSOPs(input.query);
     }),
 
-  categories: publicProcedure.query(() => {
+  categories: protectedProcedure.query(() => {
     return getSOPCategories();
   }),
 
-  version: publicProcedure
+  version: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(({ input }) => {
       return versionSOP(input.id);

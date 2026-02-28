@@ -1,17 +1,17 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
 
 export const reportSchedulerRouter = router({
   // 报表调度列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     return emptyListResponse;
   }),
 
   // 获取报表调度详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async () => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async () => {
     return null;
   }),
 
@@ -31,7 +31,7 @@ export const reportSchedulerRouter = router({
   }),
 
   // 获取调度列表
-  getSchedules: publicProcedure.query(async () => {
+  getSchedules: protectedProcedure.query(async () => {
     return [];
   }),
 
@@ -51,7 +51,7 @@ export const reportSchedulerRouter = router({
   }),
 
   // 获取发送历史
-  getHistory: publicProcedure.query(async () => {
+  getHistory: protectedProcedure.query(async () => {
     return [];
   }),
 

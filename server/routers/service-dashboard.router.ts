@@ -8,7 +8,7 @@
  * Config tables: serviceDashboardKpis, serviceDashboardLocations.
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, and, desc, sql, count, or, ilike, gte, lte, isNull } from "drizzle-orm";
 
@@ -142,7 +142,7 @@ export const serviceDashboardRouter = router({
    * getRegionOverview — 4-region summary (Asia/NA/Europe/Other)
    * DB-first: reads from service_dashboard_kpis (category=region_overview), falls back to mock
    */
-  getRegionOverview: publicProcedure.query(async () => {
+  getRegionOverview: protectedProcedure.query(async () => {
     try {
       // 1. Try config table first
       const regions = ["Asia", "NorthAmerica", "Europe", "Other"] as const;
@@ -191,7 +191,7 @@ export const serviceDashboardRouter = router({
   /**
    * getNorthAmericaStats — NA-specific KPIs
    */
-  getNorthAmericaStats: publicProcedure.query(async () => {
+  getNorthAmericaStats: protectedProcedure.query(async () => {
     try {
       const db = await requireDb();
       const { afterSalesServiceLogs, afterSalesClients, afterSalesEquipments } = await import("../../drizzle/schema");
@@ -261,7 +261,7 @@ export const serviceDashboardRouter = router({
   /**
    * getDetroitSparePartsInventory — Detroit warehouse spare parts
    */
-  getDetroitSparePartsInventory: publicProcedure
+  getDetroitSparePartsInventory: protectedProcedure
     .input(z.object({
       category: z.string().optional(),
       criticalOnly: z.boolean().optional(),
@@ -333,7 +333,7 @@ export const serviceDashboardRouter = router({
    * getNAProjectLocations — project sites across US + Mexico
    * DB-first: reads from service_dashboard_locations, falls back to equipment join, then mock
    */
-  getNAProjectLocations: publicProcedure.query(async () => {
+  getNAProjectLocations: protectedProcedure.query(async () => {
     try {
       // 1. Try config table
       const configLocs = await loadConfigLocations("NorthAmerica");
@@ -382,7 +382,7 @@ export const serviceDashboardRouter = router({
    * getServiceReplicationComparison — China HQ vs North America metrics
    * DB-first: reads from service_dashboard_kpis (china_hq / north_america), falls back to mock
    */
-  getServiceReplicationComparison: publicProcedure.query(async () => {
+  getServiceReplicationComparison: protectedProcedure.query(async () => {
     const METRICS_DEFS = [
       { key: "avgResponseHours", label: "平均响应时间 (h)", lowerIsBetter: true },
       { key: "firstCallResolution", label: "首次解决率 (%)", lowerIsBetter: false },
@@ -430,7 +430,7 @@ export const serviceDashboardRouter = router({
   /**
    * getComplianceKnowledge — Search compliance knowledge base (UL/CSA/OSHA/EPA/NFPA)
    */
-  getComplianceKnowledge: publicProcedure
+  getComplianceKnowledge: protectedProcedure
     .input(z.object({
       query: z.string().min(1),
       standard: z.enum(["UL", "CSA", "OSHA", "EPA", "NFPA", "NEC", "all"]).optional(),
@@ -494,7 +494,7 @@ export const serviceDashboardRouter = router({
   /**
    * getTicketLifecycle — 7-stage ticket lifecycle visualization
    */
-  getTicketLifecycle: publicProcedure
+  getTicketLifecycle: protectedProcedure
     .input(z.object({ ticketId: z.string().optional() }).optional())
     .query(async ({ input }) => {
       const ticketId = input?.ticketId;
@@ -569,7 +569,7 @@ export const serviceDashboardRouter = router({
   /**
    * seedNADemo — Seed demo data into existing tables for NA showcase
    */
-  seedNADemo: publicProcedure.mutation(async () => {
+  seedNADemo: protectedProcedure.mutation(async () => {
     const db = await requireDb();
     const { afterSalesClients, afterSalesEquipments, afterSalesServiceLogs, knowledgeDocuments } = await import("../../drizzle/schema");
     const { spareParts } = await import("../../drizzle/supply-chain-schema");
@@ -681,7 +681,7 @@ export const serviceDashboardRouter = router({
   /**
    * listKpis — List KPIs from config table for admin editing
    */
-  listKpis: publicProcedure
+  listKpis: protectedProcedure
     .input(z.object({ category: z.string().optional() }).optional())
     .query(async ({ input }) => {
       try {
@@ -710,7 +710,7 @@ export const serviceDashboardRouter = router({
   /**
    * upsertKpi — Insert or update a single KPI row (by category+region+key)
    */
-  upsertKpi: publicProcedure
+  upsertKpi: protectedProcedure
     .input(z.object({
       category: z.string(),
       region: z.string().nullable().optional(),
@@ -763,7 +763,7 @@ export const serviceDashboardRouter = router({
   /**
    * bulkUpsertKpis — Batch insert/update KPI rows (for CSV import)
    */
-  bulkUpsertKpis: publicProcedure
+  bulkUpsertKpis: protectedProcedure
     .input(z.object({
       items: z.array(z.object({
         category: z.string(),
@@ -814,7 +814,7 @@ export const serviceDashboardRouter = router({
   /**
    * listLocations — List project site locations for admin editing
    */
-  listLocations: publicProcedure
+  listLocations: protectedProcedure
     .input(z.object({ region: z.string().optional() }).optional())
     .query(async ({ input }) => {
       try {
@@ -846,7 +846,7 @@ export const serviceDashboardRouter = router({
   /**
    * upsertLocation — Insert or update a project site location
    */
-  upsertLocation: publicProcedure
+  upsertLocation: protectedProcedure
     .input(z.object({
       id: z.number().optional(),
       region: z.string(),
@@ -891,7 +891,7 @@ export const serviceDashboardRouter = router({
   /**
    * deleteLocation — Delete a project site location
    */
-  deleteLocation: publicProcedure
+  deleteLocation: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -904,7 +904,7 @@ export const serviceDashboardRouter = router({
    * syncFromDB — Aggregate real data from existing tables into config KPIs
    * Returns diff of what changed
    */
-  syncFromDB: publicProcedure.mutation(async () => {
+  syncFromDB: protectedProcedure.mutation(async () => {
     const db = await requireDb();
     const { afterSalesServiceLogs, afterSalesClients } = await import("../../drizzle/schema");
     const { spareParts } = await import("../../drizzle/supply-chain-schema");

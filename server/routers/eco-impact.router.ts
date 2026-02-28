@@ -21,7 +21,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -388,7 +388,7 @@ export const ecoImpactRouter = router({
   /**
    * listEcos — returns all ECOs with summary impact data.
    */
-  listEcos: publicProcedure.query(async () => {
+  listEcos: protectedProcedure.query(async () => {
     const results = MOCK_ECOS.map((eco) => {
       const impact = calculateEcoFinancialImpact(eco);
       return {
@@ -410,7 +410,7 @@ export const ecoImpactRouter = router({
    * getEcoImpact — full financial impact analysis for a single ECO.
    * The core fusion query: PLM × WMS × ERP in one response.
    */
-  getEcoImpact: publicProcedure
+  getEcoImpact: protectedProcedure
     .input(z.object({ ecoId: z.string() }))
     .query(async ({ input }) => {
       const eco = MOCK_ECOS.find((e) => e.ecoId === input.ecoId);

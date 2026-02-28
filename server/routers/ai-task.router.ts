@@ -5,7 +5,7 @@
  * Supports: create → poll status → retrieve result
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiTasks } from "../../drizzle/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -42,7 +42,7 @@ async function ensureTables() {
 // ─── Router ──────────────────────────────────────────────────
 export const aiTaskRouter = router({
   /** Create a new AI task */
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       taskType: z.string().max(50),
       inputData: z.record(z.string(), z.unknown()).optional(),
@@ -60,7 +60,7 @@ export const aiTaskRouter = router({
     }),
 
   /** Get task by ID (poll for status + result) */
-  get: publicProcedure
+  get: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       await ensureTables();
@@ -71,7 +71,7 @@ export const aiTaskRouter = router({
     }),
 
   /** List tasks with optional type/status filter */
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       taskType: z.string().optional(),
       status: z.string().optional(),
@@ -92,7 +92,7 @@ export const aiTaskRouter = router({
     }),
 
   /** Mark task as processing (worker picks it up) */
-  markProcessing: publicProcedure
+  markProcessing: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await ensureTables();
@@ -104,7 +104,7 @@ export const aiTaskRouter = router({
     }),
 
   /** Complete task with result data */
-  complete: publicProcedure
+  complete: protectedProcedure
     .input(z.object({
       id: z.number(),
       resultData: z.record(z.string(), z.unknown()),
@@ -123,7 +123,7 @@ export const aiTaskRouter = router({
     }),
 
   /** Fail task with error message */
-  fail: publicProcedure
+  fail: protectedProcedure
     .input(z.object({
       id: z.number(),
       errorMessage: z.string().max(500),
@@ -142,7 +142,7 @@ export const aiTaskRouter = router({
     }),
 
   /** Dashboard stats — count by status */
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     await ensureTables();
     const db = await requireDb();
     const rows = await db.select({

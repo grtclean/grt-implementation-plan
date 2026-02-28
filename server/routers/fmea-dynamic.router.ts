@@ -33,7 +33,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -332,7 +332,7 @@ export const fmeaDynamicRouter = router({
    * liveMatrix — returns all FMEA items with dynamic RPN recalculation.
    * The core fusion: Shop Floor QC × FMEA Engineering in one response.
    */
-  liveMatrix: publicProcedure.query(async () => {
+  liveMatrix: protectedProcedure.query(async () => {
     const results = MOCK_FMEA_ITEMS.map(item => {
       const itemDefects = MOCK_DEFECT_LOGS.filter(d => d.fmeaItemId === item.id);
       return recalculateRPN({ fmeaItem: item, defectLogs: itemDefects, now });
@@ -372,7 +372,7 @@ export const fmeaDynamicRouter = router({
   /**
    * recalculate — recalculate RPN for a specific FMEA item.
    */
-  recalculate: publicProcedure
+  recalculate: protectedProcedure
     .input(z.object({ fmeaItemId: z.number() }))
     .query(async ({ input }) => {
       const item = MOCK_FMEA_ITEMS.find(i => i.id === input.fmeaItemId);

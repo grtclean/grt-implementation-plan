@@ -6,7 +6,7 @@
  * recentReviews, seedDemo
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { expenseClaims, aiTasks } from "../../drizzle/schema";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
@@ -22,7 +22,7 @@ export const financeAgentRouter = router({
    * submitForReview — Submit an expense claim for AI review
    * Sets status to ai_reviewing, creates async task
    */
-  submitForReview: publicProcedure
+  submitForReview: protectedProcedure
     .input(z.object({ claimId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
@@ -57,7 +57,7 @@ export const financeAgentRouter = router({
   /**
    * getReviewStatus — Poll by taskId or claimId for review progress
    */
-  getReviewStatus: publicProcedure
+  getReviewStatus: protectedProcedure
     .input(z.object({
       taskId: z.number().optional(),
       claimId: z.number().optional(),
@@ -117,7 +117,7 @@ export const financeAgentRouter = router({
   /**
    * getAiDiagnosticReport — Full diagnostic report from claim
    */
-  getAiDiagnosticReport: publicProcedure
+  getAiDiagnosticReport: protectedProcedure
     .input(z.object({ claimId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -142,7 +142,7 @@ export const financeAgentRouter = router({
   /**
    * overrideAndApprove — Manager override intercept with justification
    */
-  overrideAndApprove: publicProcedure
+  overrideAndApprove: protectedProcedure
     .input(z.object({
       claimId: z.number(),
       justification: z.string().min(10, "理由至少10个字符"),
@@ -185,7 +185,7 @@ export const financeAgentRouter = router({
   /**
    * listPendingReviews — Paginated claims in ai_reviewing or pending_review
    */
-  listPendingReviews: publicProcedure
+  listPendingReviews: protectedProcedure
     .input(z.object({
       page: z.number().default(1),
       pageSize: z.number().default(20),
@@ -223,7 +223,7 @@ export const financeAgentRouter = router({
   /**
    * getBudgetContext — BU expense ratio + quarter target/actual
    */
-  getBudgetContext: publicProcedure
+  getBudgetContext: protectedProcedure
     .input(z.object({ departmentId: z.number().nullable().default(null) }))
     .query(async ({ input }) => {
       return fetchBuBudgetContext(input.departmentId);
@@ -232,14 +232,14 @@ export const financeAgentRouter = router({
   /**
    * getPolicyRules — Return 5 hardcoded policy rules
    */
-  getPolicyRules: publicProcedure.query(() => {
+  getPolicyRules: protectedProcedure.query(() => {
     return POLICY_RULES;
   }),
 
   /**
    * recentReviews — Last 20 claims with AI results
    */
-  recentReviews: publicProcedure.query(async () => {
+  recentReviews: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db
       .select({
@@ -269,7 +269,7 @@ export const financeAgentRouter = router({
   /**
    * seedDemo — Create 5 demo claims with varied AI results
    */
-  seedDemo: publicProcedure.mutation(async () => {
+  seedDemo: protectedProcedure.mutation(async () => {
     const db = await requireDb();
     const now = new Date().toISOString();
 

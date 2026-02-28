@@ -8,7 +8,7 @@
  *   quality loss agreements, quality loss incidents
  */
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   frameworkAgreements,
@@ -46,7 +46,7 @@ function generateUUID() {
 // 1. Framework Agreements (年度框架协议)
 // ═══════════════════════════════════════════════════════════════
 const frameworkAgreementRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       supplierId: z.number().optional(),
       status: z.string().optional(),
@@ -59,14 +59,14 @@ const frameworkAgreementRouter = router({
       return { items, total: items.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(frameworkAgreements).where(eq(frameworkAgreements.id, toNum(input.id)));
     if (!item) throw new Error("框架协议不存在");
     return item;
   }),
 
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       supplierId: z.number(),
       supplierName: z.string().optional(),
@@ -88,7 +88,7 @@ const frameworkAgreementRouter = router({
       return item;
     }),
 
-  update: publicProcedure
+  update: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       title: z.string().optional(),
@@ -109,7 +109,7 @@ const frameworkAgreementRouter = router({
       return item;
     }),
 
-  activate: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  activate: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(frameworkAgreements)
       .set({ status: "active", updatedAt: new Date().toISOString() })
@@ -118,7 +118,7 @@ const frameworkAgreementRouter = router({
     return item;
   }),
 
-  expire: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  expire: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(frameworkAgreements)
       .set({ status: "expired", updatedAt: new Date().toISOString() })
@@ -132,7 +132,7 @@ const frameworkAgreementRouter = router({
 // 2. RFQ (询价竞标)
 // ═══════════════════════════════════════════════════════════════
 const rfqRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       status: z.string().optional(),
       materialCode: z.string().optional(),
@@ -145,14 +145,14 @@ const rfqRouter = router({
       return { items, total: items.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(rfqEvents).where(eq(rfqEvents.id, toNum(input.id)));
     if (!item) throw new Error("询价事件不存在");
     return item;
   }),
 
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       title: z.string().optional(),
       materialCode: z.string().optional(),
@@ -175,7 +175,7 @@ const rfqRouter = router({
       return item;
     }),
 
-  publish: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  publish: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(rfqEvents)
       .set({ status: "published", updatedAt: new Date().toISOString() })
@@ -184,7 +184,7 @@ const rfqRouter = router({
     return item;
   }),
 
-  close: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  close: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(rfqEvents)
       .set({ status: "closed", updatedAt: new Date().toISOString() })
@@ -193,7 +193,7 @@ const rfqRouter = router({
     return item;
   }),
 
-  getQuotes: publicProcedure
+  getQuotes: protectedProcedure
     .input(z.object({ rfqEventId: z.union([z.string(), z.number()]) }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -203,7 +203,7 @@ const rfqRouter = router({
       return quotes;
     }),
 
-  submitQuote: publicProcedure
+  submitQuote: protectedProcedure
     .input(z.object({
       rfqEventId: z.number(),
       supplierId: z.number(),
@@ -222,7 +222,7 @@ const rfqRouter = router({
       return quote;
     }),
 
-  evaluateQuotes: publicProcedure
+  evaluateQuotes: protectedProcedure
     .input(z.object({
       rfqEventId: z.number(),
       scores: z.array(z.object({
@@ -265,7 +265,7 @@ const rfqRouter = router({
       return { ranked: results.length };
     }),
 
-  awardQuote: publicProcedure
+  awardQuote: protectedProcedure
     .input(z.object({
       rfqEventId: z.number(),
       quoteId: z.number(),
@@ -328,7 +328,7 @@ const rfqRouter = router({
 // 3. Delivery Registrations (到货登记)
 // ═══════════════════════════════════════════════════════════════
 const deliveryRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       supplierId: z.number().optional(),
       status: z.string().optional(),
@@ -343,14 +343,14 @@ const deliveryRouter = router({
       return { items, total: items.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(deliveryRegistrations).where(eq(deliveryRegistrations.id, toNum(input.id)));
     if (!item) throw new Error("到货登记不存在");
     return item;
   }),
 
-  register: publicProcedure
+  register: protectedProcedure
     .input(z.object({
       purchaseOrderId: z.number().optional(),
       poNumber: z.string().optional(),
@@ -377,7 +377,7 @@ const deliveryRouter = router({
       return item;
     }),
 
-  updateStatus: publicProcedure
+  updateStatus: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       status: z.enum(["pending", "received", "qc_pending", "qc_passed", "qc_failed", "warehouse_confirmed", "rejected"]),
@@ -391,7 +391,7 @@ const deliveryRouter = router({
       return item;
     }),
 
-  linkQcInspection: publicProcedure
+  linkQcInspection: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       qcInspectionId: z.number(),
@@ -409,7 +409,7 @@ const deliveryRouter = router({
       return item;
     }),
 
-  confirmReceipt: publicProcedure
+  confirmReceipt: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       warehouseReceiptId: z.number().optional(),
@@ -432,7 +432,7 @@ const deliveryRouter = router({
 // 4. Supplier Report Submissions
 // ═══════════════════════════════════════════════════════════════
 const supplierReportRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       supplierId: z.number().optional(),
       documentType: z.string().optional(),
@@ -447,7 +447,7 @@ const supplierReportRouter = router({
       return { items, total: items.length };
     }),
 
-  submit: publicProcedure
+  submit: protectedProcedure
     .input(z.object({
       supplierId: z.number(),
       supplierName: z.string().optional(),
@@ -465,7 +465,7 @@ const supplierReportRouter = router({
       return item;
     }),
 
-  verify: publicProcedure
+  verify: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       verificationStatus: z.enum(["verified", "rejected"]),
@@ -489,7 +489,7 @@ const supplierReportRouter = router({
 // 5. Payment Workflows (8-step payment approval)
 // ═══════════════════════════════════════════════════════════════
 const paymentRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       supplierId: z.number().optional(),
       status: z.string().optional(),
@@ -504,14 +504,14 @@ const paymentRouter = router({
       return { items, total: items.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(paymentWorkflows).where(eq(paymentWorkflows.id, toNum(input.id)));
     if (!item) throw new Error("付款工作流不存在");
     return item;
   }),
 
-  initiate: publicProcedure
+  initiate: protectedProcedure
     .input(z.object({
       invoiceId: z.number().optional(),
       invoiceNumber: z.string().optional(),
@@ -533,7 +533,7 @@ const paymentRouter = router({
       return item;
     }),
 
-  checkPaymentTerm: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  checkPaymentTerm: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [wf] = await db.select().from(paymentWorkflows).where(eq(paymentWorkflows.id, toNum(input.id)));
     if (!wf) throw new Error("工作流不存在");
@@ -549,7 +549,7 @@ const paymentRouter = router({
     return item;
   }),
 
-  confirmQualityOk: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  confirmQualityOk: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(paymentWorkflows)
       .set({
@@ -563,7 +563,7 @@ const paymentRouter = router({
     return item;
   }),
 
-  submitBuApproval: publicProcedure
+  submitBuApproval: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       approvedBy: z.number().optional(),
@@ -583,7 +583,7 @@ const paymentRouter = router({
       return item;
     }),
 
-  submitQualityApproval: publicProcedure
+  submitQualityApproval: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       approvedBy: z.number().optional(),
@@ -603,7 +603,7 @@ const paymentRouter = router({
       return item;
     }),
 
-  approvePayment: publicProcedure
+  approvePayment: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       approvedBy: z.number().optional(),
@@ -623,7 +623,7 @@ const paymentRouter = router({
       return item;
     }),
 
-  procurementConfirm: publicProcedure
+  procurementConfirm: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       confirmedBy: z.number().optional(),
@@ -647,7 +647,7 @@ const paymentRouter = router({
       return item;
     }),
 
-  supplierConfirm: publicProcedure
+  supplierConfirm: protectedProcedure
     .input(z.object({ token: z.string() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -667,7 +667,7 @@ const paymentRouter = router({
       return item;
     }),
 
-  archiveContract: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  archiveContract: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const now = new Date().toISOString();
     const [item] = await db.update(paymentWorkflows)
@@ -687,7 +687,7 @@ const paymentRouter = router({
 // 6. Small Value Procurements (小额采购 <50元/件)
 // ═══════════════════════════════════════════════════════════════
 const smallValueRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({ status: z.string().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -696,7 +696,7 @@ const smallValueRouter = router({
       return { items, total: items.length };
     }),
 
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       materialName: z.string(),
       materialCode: z.string().optional(),
@@ -723,7 +723,7 @@ const smallValueRouter = router({
       return item;
     }),
 
-  supervisorApprove: publicProcedure
+  supervisorApprove: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       approved: z.boolean(),
@@ -757,7 +757,7 @@ const smallValueRouter = router({
       }
     }),
 
-  procurementConfirm: publicProcedure
+  procurementConfirm: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       procurementOfficerName: z.string().optional(),
@@ -787,7 +787,7 @@ const smallValueRouter = router({
 // 7. Supplier Qualifications (供应商资格审查)
 // ═══════════════════════════════════════════════════════════════
 const qualificationRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       supplierId: z.number().optional(),
       qualificationType: z.string().optional(),
@@ -804,14 +804,14 @@ const qualificationRouter = router({
       return { items, total: items.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(supplierQualifications).where(eq(supplierQualifications.id, toNum(input.id)));
     if (!item) throw new Error("资格记录不存在");
     return item;
   }),
 
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       supplierId: z.number(),
       supplierName: z.string().optional(),
@@ -842,7 +842,7 @@ const qualificationRouter = router({
       return item;
     }),
 
-  update: publicProcedure
+  update: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       isoSystemCertifications: z.any().optional(),
@@ -865,7 +865,7 @@ const qualificationRouter = router({
       return item;
     }),
 
-  getBySupplier: publicProcedure
+  getBySupplier: protectedProcedure
     .input(z.object({ supplierId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -875,7 +875,7 @@ const qualificationRouter = router({
       return items;
     }),
 
-  checkExpiry: publicProcedure.query(async () => {
+  checkExpiry: protectedProcedure.query(async () => {
     const db = await requireDb();
     const today = new Date().toISOString().split("T")[0];
     const thirtyDaysLater = new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
@@ -890,7 +890,7 @@ const qualificationRouter = router({
 // 8. Quality Loss Agreements (质量损失协议)
 // ═══════════════════════════════════════════════════════════════
 const qualityLossAgreementRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       supplierId: z.number().optional(),
       status: z.string().optional(),
@@ -903,14 +903,14 @@ const qualityLossAgreementRouter = router({
       return { items, total: items.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(qualityLossAgreements).where(eq(qualityLossAgreements.id, toNum(input.id)));
     if (!item) throw new Error("质量损失协议不存在");
     return item;
   }),
 
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       supplierId: z.number(),
       supplierName: z.string().optional(),
@@ -932,7 +932,7 @@ const qualityLossAgreementRouter = router({
       return item;
     }),
 
-  sign: publicProcedure
+  sign: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       signedBy: z.string(),
@@ -954,7 +954,7 @@ const qualityLossAgreementRouter = router({
       return item;
     }),
 
-  expire: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  expire: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(qualityLossAgreements)
       .set({ status: "expired", updatedAt: new Date().toISOString() })
@@ -968,7 +968,7 @@ const qualityLossAgreementRouter = router({
 // 9. Quality Loss Incidents (质量损失事件记录)
 // ═══════════════════════════════════════════════════════════════
 const qualityLossIncidentRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       supplierId: z.number().optional(),
       qualityLossAgreementId: z.number().optional(),
@@ -985,14 +985,14 @@ const qualityLossIncidentRouter = router({
       return { items, total: items.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(qualityLossIncidents).where(eq(qualityLossIncidents.id, toNum(input.id)));
     if (!item) throw new Error("质量损失事件不存在");
     return item;
   }),
 
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       qualityLossAgreementId: z.number().optional(),
       supplierId: z.number(),
@@ -1040,7 +1040,7 @@ const qualityLossIncidentRouter = router({
       return item;
     }),
 
-  acknowledge: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  acknowledge: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(qualityLossIncidents)
       .set({
@@ -1053,7 +1053,7 @@ const qualityLossIncidentRouter = router({
     return item;
   }),
 
-  deductFromPayment: publicProcedure
+  deductFromPayment: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       paymentWorkflowId: z.number(),
@@ -1084,7 +1084,7 @@ const qualityLossIncidentRouter = router({
       return item;
     }),
 
-  stats: publicProcedure
+  stats: protectedProcedure
     .input(z.object({ supplierId: z.number().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();

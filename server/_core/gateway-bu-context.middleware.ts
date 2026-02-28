@@ -146,3 +146,42 @@ export function requireBuScope() {
     return next({ ctx });
   });
 }
+
+// ── BU Scope Query Helper ──
+
+import { eq, type SQL } from "drizzle-orm";
+import type { PgColumn } from "drizzle-orm/pg-core";
+
+/**
+ * Returns a WHERE condition for BU data isolation.
+ *
+ * - Global-scope roles (admin, director, hr_manager, etc.): returns `undefined` → no filter (see all BUs)
+ * - BU-scoped roles with a resolved BU: returns `eq(buCodeColumn, ctx.bu.buCode)`
+ * - Others without BU context: returns `undefined` (no filter, graceful fallback)
+ *
+ * Usage in a router:
+ *   const buFilter = buScopeCondition(projects.buCode, ctx);
+ *   const conditions = [otherCondition];
+ *   if (buFilter) conditions.push(buFilter);
+ *   db.select().from(projects).where(and(...conditions));
+ */
+export function buScopeCondition(
+  buCodeColumn: PgColumn,
+  ctx: { bu?: BuContext | null; user?: { role: string } | null },
+): SQL | undefined {
+  const role = (ctx.user?.role ?? "") as string;
+
+  // Global-scope roles see all BUs
+  if (GLOBAL_SCOPE_ROLES.has(role)) {
+    return undefined;
+  }
+
+  // If user has a resolved BU, filter by it
+  const buCode = (ctx as any).bu?.buCode;
+  if (buCode) {
+    return eq(buCodeColumn, buCode);
+  }
+
+  // No BU context → no filter (graceful fallback for non-BU roles)
+  return undefined;
+}

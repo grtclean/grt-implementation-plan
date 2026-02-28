@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
+import { router, protectedProcedure } from '../_core/trpc';
 import { 
   changeManagementService,
   type ChangeType,
@@ -651,7 +651,7 @@ export const changeManagementRouter = router({
   /**
    * 获取部署包文件列表
    */
-  getDeploymentPackageFiles: publicProcedure
+  getDeploymentPackageFiles: protectedProcedure
     .query(async () => {
       const files = generateDeploymentPackageFiles();
       return {
@@ -663,7 +663,7 @@ export const changeManagementRouter = router({
   /**
    * 下载部署包（返回JSON格式的文件内容，前端生成ZIP）
    */
-  downloadDeploymentPackage: publicProcedure
+  downloadDeploymentPackage: protectedProcedure
     .query(async () => {
       const packageContent = generateDeploymentPackageZipContent();
       return {

@@ -5,7 +5,7 @@
  * CRITICAL: Default mode is always EXTERNAL. INTERNAL unlock auto-reverts after 30 min.
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   displayScreens,
@@ -30,7 +30,7 @@ const UNLOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 export const visionDashboardRouter = router({
   // ─── Screens ───────────────────────────────────────────
 
-  listScreens: publicProcedure
+  listScreens: protectedProcedure
     .input(z.object({ location: z.string().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -44,7 +44,7 @@ export const visionDashboardRouter = router({
       return rows;
     }),
 
-  getScreen: publicProcedure.input(idInput).query(async ({ input }) => {
+  getScreen: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const rows = await db
       .select()
@@ -78,7 +78,7 @@ export const visionDashboardRouter = router({
     return screen;
   }),
 
-  createScreen: publicProcedure
+  createScreen: protectedProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -102,7 +102,7 @@ export const visionDashboardRouter = router({
 
   // ─── Mode Switching ────────────────────────────────────
 
-  unlockInternal: publicProcedure
+  unlockInternal: protectedProcedure
     .input(
       z.object({
         screenId: z.union([z.string(), z.number()]),
@@ -139,7 +139,7 @@ export const visionDashboardRouter = router({
       return rows[0] ?? null;
     }),
 
-  lockExternal: publicProcedure
+  lockExternal: protectedProcedure
     .input(
       z.object({
         screenId: z.union([z.string(), z.number()]),
@@ -169,7 +169,7 @@ export const visionDashboardRouter = router({
 
   // ─── Playlists ─────────────────────────────────────────
 
-  listPlaylists: publicProcedure
+  listPlaylists: protectedProcedure
     .input(z.object({ screenId: z.union([z.string(), z.number()]) }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -180,7 +180,7 @@ export const visionDashboardRouter = router({
         .orderBy(screenPlaylists.orderIndex);
     }),
 
-  upsertPlaylist: publicProcedure
+  upsertPlaylist: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]).optional(),
@@ -221,7 +221,7 @@ export const visionDashboardRouter = router({
 
   // ─── Security Logs ─────────────────────────────────────
 
-  securityLogs: publicProcedure
+  securityLogs: protectedProcedure
     .input(
       z.object({
         screenId: z.union([z.string(), z.number()]).optional(),
@@ -243,7 +243,7 @@ export const visionDashboardRouter = router({
 
   // ─── Shopfloor Real-Time Data ───────────────────────────
 
-  shopfloorStations: publicProcedure.query(async () => {
+  shopfloorStations: protectedProcedure.query(async () => {
     const db = await requireDb();
     const allStations = await db
       .select()
@@ -309,7 +309,7 @@ export const visionDashboardRouter = router({
     });
   }),
 
-  shopfloorRedBlackList: publicProcedure.query(async () => {
+  shopfloorRedBlackList: protectedProcedure.query(async () => {
     const db = await requireDb();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -368,7 +368,7 @@ export const visionDashboardRouter = router({
     return result;
   }),
 
-  shopfloorShortageAlerts: publicProcedure.query(async () => {
+  shopfloorShortageAlerts: protectedProcedure.query(async () => {
     const db = await requireDb();
     const parts = await db
       .select()
@@ -390,7 +390,7 @@ export const visionDashboardRouter = router({
 
   // ─── Lobby Real-Time Data ───────────────────────────────
 
-  lobbyData: publicProcedure
+  lobbyData: protectedProcedure
     .input(
       z
         .object({

@@ -28,7 +28,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -486,7 +486,7 @@ export const smartSchedulerRouter = router({
   /**
    * fleetHealth — live fleet health status (all machines).
    */
-  fleetHealth: publicProcedure.query(async () => {
+  fleetHealth: protectedProcedure.query(async () => {
     return {
       machines: MOCK_FLEET,
       summary: {
@@ -505,7 +505,7 @@ export const smartSchedulerRouter = router({
   /**
    * ganttView — production schedule with reschedule highlights.
    */
-  ganttView: publicProcedure.query(async () => {
+  ganttView: protectedProcedure.query(async () => {
     // Run the engine to get rescheduled state
     const result = monitorHealthAndReschedule(MOCK_FLEET, MOCK_SCHEDULE, NOW);
 
@@ -536,7 +536,7 @@ export const smartSchedulerRouter = router({
   /**
    * decisionLog — AI decision audit trail.
    */
-  decisionLog: publicProcedure.query(async () => {
+  decisionLog: protectedProcedure.query(async () => {
     const result = monitorHealthAndReschedule(MOCK_FLEET, MOCK_SCHEDULE, NOW);
     return {
       log: result.decisionLog,

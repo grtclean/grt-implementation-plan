@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 import { broadcastToWorkspace } from "../services/websocket.service";
 import { requireDb } from "../db";
 import {
@@ -62,12 +62,12 @@ async function broadcast(
 export const concurrentCommandRouter = router({
   // ─── Track 1: Software Dev Sandboxes ──────────────────────────────────────
 
-  listSandboxes: publicProcedure.query(async () => {
+  listSandboxes: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(cccSandboxes).orderBy(cccSandboxes.id);
   }),
 
-  updateSandboxStatus: publicProcedure
+  updateSandboxStatus: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -100,7 +100,7 @@ export const concurrentCommandRouter = router({
       return updated;
     }),
 
-  approveMerge: publicProcedure
+  approveMerge: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -132,12 +132,12 @@ export const concurrentCommandRouter = router({
 
   // ─── Track 2: Equipment Commissioning Rooms ───────────────────────────────
 
-  listRooms: publicProcedure.query(async () => {
+  listRooms: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(cccRooms).orderBy(cccRooms.id);
   }),
 
-  claimRoom: publicProcedure
+  claimRoom: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -173,7 +173,7 @@ export const concurrentCommandRouter = router({
       return updated;
     }),
 
-  updateRoomStatus: publicProcedure
+  updateRoomStatus: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -206,7 +206,7 @@ export const concurrentCommandRouter = router({
       return updated;
     }),
 
-  generateCommissioningReport: publicProcedure.query(async () => {
+  generateCommissioningReport: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rooms = await db.select().from(cccRooms).orderBy(cccRooms.id);
 
@@ -239,7 +239,7 @@ export const concurrentCommandRouter = router({
     };
   }),
 
-  approveCommissioningReport: publicProcedure
+  approveCommissioningReport: protectedProcedure
     .input(z.object({ userName: z.string().optional() }).optional())
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -264,7 +264,7 @@ export const concurrentCommandRouter = router({
 
   // ─── Activity Log ─────────────────────────────────────────────────────────
 
-  getActivityLog: publicProcedure.query(async () => {
+  getActivityLog: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db
       .select()
@@ -275,7 +275,7 @@ export const concurrentCommandRouter = router({
 
   // ─── Role Improvement Input ──────────────────────────────────────────────
 
-  submitImprovement: publicProcedure
+  submitImprovement: protectedProcedure
     .input(z.object({
       role: z.string().min(1),
       area: z.string().min(1),
@@ -353,7 +353,7 @@ export const concurrentCommandRouter = router({
       return { id: entry.id, ...result };
     }),
 
-  listImprovements: publicProcedure
+  listImprovements: protectedProcedure
     .input(z.object({ role: z.string().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -380,7 +380,7 @@ export const concurrentCommandRouter = router({
 
   // ─── Improvement Lifecycle (V2 — 6-step closed-loop) ────────────────────
 
-  createImprovement: publicProcedure
+  createImprovement: protectedProcedure
     .input(z.object({
       role: z.string().min(1),
       area: z.string().min(1),
@@ -461,7 +461,7 @@ export const concurrentCommandRouter = router({
       return row;
     }),
 
-  getImprovement: publicProcedure
+  getImprovement: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -475,7 +475,7 @@ export const concurrentCommandRouter = router({
       return { ...imp, updates };
     }),
 
-  listImprovementsV2: publicProcedure
+  listImprovementsV2: protectedProcedure
     .input(z.object({
       role: z.string().optional(),
       status: z.string().optional(),
@@ -497,7 +497,7 @@ export const concurrentCommandRouter = router({
       return query;
     }),
 
-  updateProgress: publicProcedure
+  updateProgress: protectedProcedure
     .input(z.object({
       id: z.number(),
       stepNumber: z.number().min(1).max(6),
@@ -546,7 +546,7 @@ export const concurrentCommandRouter = router({
       return updated;
     }),
 
-  submitResult: publicProcedure
+  submitResult: protectedProcedure
     .input(z.object({
       id: z.number(),
       resultSummary: z.string().min(1),
@@ -587,7 +587,7 @@ export const concurrentCommandRouter = router({
       return updated;
     }),
 
-  verifyImprovement: publicProcedure
+  verifyImprovement: protectedProcedure
     .input(z.object({
       id: z.number(),
       approved: z.boolean(),
@@ -641,7 +641,7 @@ export const concurrentCommandRouter = router({
       }
     }),
 
-  improvementStats: publicProcedure
+  improvementStats: protectedProcedure
     .input(z.object({ role: z.string().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -660,7 +660,7 @@ export const concurrentCommandRouter = router({
 
   // ─── Seed Demo Data ───────────────────────────────────────────────────────
 
-  seedDemoData: publicProcedure.mutation(async () => {
+  seedDemoData: protectedProcedure.mutation(async () => {
     const db = await requireDb();
 
     // Clear existing data (including improvement lifecycle tables)

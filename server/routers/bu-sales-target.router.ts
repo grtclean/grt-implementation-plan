@@ -9,7 +9,7 @@
  *   - On CEO approval: proposed data → official baseline (isAdjusted=true)
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { getDb, requireDb } from "../db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import {
@@ -120,7 +120,7 @@ async function ensureTables() {
 
 export const buSalesTargetRouter = router({
   /** List all BU sales plans, ordered by year desc */
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({ limit: z.number().default(50), offset: z.number().default(0) }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
@@ -143,7 +143,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** Get plan + its 12 monthly details by plan ID */
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -172,7 +172,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** Create plan + auto-generate 12 monthly details using growthRules */
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       year: z.number(),
       departmentId: z.string(),
@@ -246,7 +246,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** Manually adjust a single month detail (sets isAdjusted=true) */
-  updateDetail: publicProcedure
+  updateDetail: protectedProcedure
     .input(z.object({
       detailId: z.number(),
       salesTarget: z.number().optional(),
@@ -277,7 +277,7 @@ export const buSalesTargetRouter = router({
   // ─── Phase 1: Two-Step Approval Workflow ─────────────────────
 
   /** Submit plan for approval: draft → submitted */
-  submitPlan: publicProcedure
+  submitPlan: protectedProcedure
     .input(z.object({
       planId: z.number(),
       submittedBy: z.string(),
@@ -305,7 +305,7 @@ export const buSalesTargetRouter = router({
    * originalDetails + proposedDetails must have same total salesTarget & outputTarget
    * unless adjustmentType === 'exception'.
    */
-  submitAdjustment: publicProcedure
+  submitAdjustment: protectedProcedure
     .input(z.object({
       buSalesPlanId: z.number(),
       applicantId: z.string(),
@@ -368,7 +368,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** Finance/PMO first-step review */
-  financeReview: publicProcedure
+  financeReview: protectedProcedure
     .input(z.object({
       adjustmentId: z.number(),
       reviewerId: z.string(),
@@ -416,7 +416,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** CEO final review — on approval, apply proposed data to detail rows */
-  ceoReview: publicProcedure
+  ceoReview: protectedProcedure
     .input(z.object({
       adjustmentId: z.number(),
       reviewerId: z.string(),
@@ -489,7 +489,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** Legacy approve shortcut — kept for backward compatibility */
-  approveAdjustment: publicProcedure
+  approveAdjustment: protectedProcedure
     .input(z.object({
       adjustmentId: z.number(),
       approvedBy: z.string(),
@@ -512,7 +512,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** Delete plan + cascade details + adjustments */
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -527,7 +527,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** Aggregate KPIs: total plans, sum sales target, avg growth */
-  dashboard: publicProcedure
+  dashboard: protectedProcedure
     .query(async () => {
       const db = await getDb();
       if (!db) {
@@ -562,7 +562,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** List pending adjustments for review (Finance/PMO or CEO step) */
-  pendingReviews: publicProcedure
+  pendingReviews: protectedProcedure
     .input(z.object({
       step: z.enum(["finance_pmo", "ceo"]).optional(),
     }).optional())

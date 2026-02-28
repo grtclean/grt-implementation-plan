@@ -4,7 +4,7 @@
  * CRUD + publish for executive reports with JSON content blocks.
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sysReports } from "../../drizzle/report-center-schema";
 import { eq, desc, and, or, sql, ilike } from "drizzle-orm";
@@ -26,7 +26,7 @@ const contentBlockSchema = z.object({
 
 export const reportCenterRouter = router({
   /** List reports with optional filters */
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z
         .object({
@@ -61,7 +61,7 @@ export const reportCenterRouter = router({
     }),
 
   /** Get single report by ID */
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const rows = await db
       .select()
@@ -71,7 +71,7 @@ export const reportCenterRouter = router({
   }),
 
   /** Create a new report */
-  create: publicProcedure
+  create: protectedProcedure
     .input(
       z.object({
         title: z.string().min(1),
@@ -102,7 +102,7 @@ export const reportCenterRouter = router({
     }),
 
   /** Update an existing report */
-  update: publicProcedure
+  update: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -137,7 +137,7 @@ export const reportCenterRouter = router({
     }),
 
   /** Delete a report */
-  delete: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db
       .delete(sysReports)
@@ -146,7 +146,7 @@ export const reportCenterRouter = router({
   }),
 
   /** Publish a report (set status to PUBLISHED) */
-  publish: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  publish: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const rows = await db
       .update(sysReports)

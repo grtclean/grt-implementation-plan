@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 import {
@@ -48,7 +48,7 @@ const recurrenceTypeEnum = z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly
 
 export const annualAgendaRouter = router({
   // 获取年度日程列表
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       year: z.number().default(2026),
       month: z.number().optional(),
@@ -84,7 +84,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 获取单个日程详情
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -382,7 +382,7 @@ export const annualAgendaRouter = router({
   }),
 
   // 获取Graph同步状态（前端使用）
-  getGraphSyncStatus: publicProcedure.query(async () => {
+  getGraphSyncStatus: protectedProcedure.query(async () => {
     const credentials = await validateCredentials();
     return {
       isConfigured: credentials.valid,
@@ -566,7 +566,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 检测日程冲突
-  checkConflicts: publicProcedure
+  checkConflicts: protectedProcedure
     .input(z.object({
       date: z.string(),
       excludeId: z.number().optional(),
@@ -661,7 +661,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 导出年度日程
-  exportAgenda: publicProcedure
+  exportAgenda: protectedProcedure
     .input(z.object({
       year: z.number().default(2026),
       format: z.enum(['json', 'csv']),
@@ -730,7 +730,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 获取统计数据
-  getStats: publicProcedure
+  getStats: protectedProcedure
     .input(z.object({ year: z.number().default(2026) }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -819,7 +819,7 @@ export const annualAgendaRouter = router({
   // ==================== 模板管理接口 ====================
   
   // 获取模板列表
-  listTemplates: publicProcedure
+  listTemplates: protectedProcedure
     .input(z.object({
       frequency: z.enum(['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly']).optional(),
       isActive: z.boolean().optional(),
@@ -1010,7 +1010,7 @@ export const annualAgendaRouter = router({
   // ==================== 参与人员管理接口 ====================
   
   // 获取日程参与人员
-  listAttendees: publicProcedure
+  listAttendees: protectedProcedure
     .input(z.object({ eventId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -1126,7 +1126,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 获取即将到期的日程（用于提醒）
-  getUpcomingReminders: publicProcedure
+  getUpcomingReminders: protectedProcedure
     .input(z.object({
       daysAhead: z.number().default(7),
       includeToday: z.boolean().default(true),
@@ -1223,7 +1223,7 @@ ${reminderTypeText[input.reminderType] ? `此日程将于**${reminderTypeText[in
     }),
 
   // 日程统计数据
-  getStatistics: publicProcedure
+  getStatistics: protectedProcedure
     .input(z.object({
       year: z.number().default(2026),
       groupBy: z.enum(['month', 'quarter', 'department', 'type', 'status']).default('month'),
@@ -1348,7 +1348,7 @@ ${reminderTypeText[input.reminderType] ? `此日程将于**${reminderTypeText[in
     }),
 
   // 获取年度对比数据
-  getYearComparison: publicProcedure
+  getYearComparison: protectedProcedure
     .input(z.object({
       years: z.array(z.number()).default([2025, 2026]),
     }).optional())

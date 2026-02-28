@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import {
   syncUnifiedProjects,
   listUnifiedProjects,
@@ -94,55 +94,55 @@ const extendedChecklistUpdateSchema = z.object({
 // ============================================================
 
 const unifiedProjectsRouter = router({
-  sync: publicProcedure.mutation(async () => {
+  sync: protectedProcedure.mutation(async () => {
     return syncUnifiedProjects();
   }),
-  list: publicProcedure.input(unifiedProjectFiltersSchema).query(async ({ input }) => {
+  list: protectedProcedure.input(unifiedProjectFiltersSchema).query(async ({ input }) => {
     return listUnifiedProjects(input);
   }),
 });
 
 const fkConstraintsRouter = router({
-  register: publicProcedure.input(fkConstraintInputSchema).mutation(async ({ input }) => {
+  register: protectedProcedure.input(fkConstraintInputSchema).mutation(async ({ input }) => {
     return registerFKConstraint(input);
   }),
-  list: publicProcedure.input(fkConstraintFiltersSchema).query(async ({ input }) => {
+  list: protectedProcedure.input(fkConstraintFiltersSchema).query(async ({ input }) => {
     return listFKConstraints(input);
   }),
 });
 
 const jsonMigrationRouter = router({
-  migrateTasks: publicProcedure.input(stageIdSchema).mutation(async ({ input }) => {
+  migrateTasks: protectedProcedure.input(stageIdSchema).mutation(async ({ input }) => {
     return migrateJsonTasks(input.stageId);
   }),
-  migrateAuditLog: publicProcedure.input(stageIdSchema).mutation(async ({ input }) => {
+  migrateAuditLog: protectedProcedure.input(stageIdSchema).mutation(async ({ input }) => {
     return migrateJsonAuditLog(input.stageId);
   }),
 });
 
 const customerMasterRouter = router({
-  sync: publicProcedure.mutation(async () => {
+  sync: protectedProcedure.mutation(async () => {
     return syncCustomerMaster();
   }),
-  list: publicProcedure.input(customerMasterFiltersSchema).query(async ({ input }) => {
+  list: protectedProcedure.input(customerMasterFiltersSchema).query(async ({ input }) => {
     return listCustomerMaster(input);
   }),
 });
 
 const extendedChecklistRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({ stageCode: z.string().optional() }))
     .query(async ({ input }) => {
       return listExtendedChecklist(input.stageCode);
     }),
-  create: publicProcedure.input(extendedChecklistInputSchema).mutation(async ({ input }) => {
+  create: protectedProcedure.input(extendedChecklistInputSchema).mutation(async ({ input }) => {
     return createExtendedChecklistItem(input);
   }),
-  update: publicProcedure.input(extendedChecklistUpdateSchema).mutation(async ({ input }) => {
+  update: protectedProcedure.input(extendedChecklistUpdateSchema).mutation(async ({ input }) => {
     const { id, ...data } = input;
     return updateExtendedChecklistItem(id, data);
   }),
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input }) => {
       return deleteExtendedChecklistItem(input.id);

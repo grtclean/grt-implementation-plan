@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { reportTemplates } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -9,14 +9,14 @@ const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : i
 
 export const reportTemplateRouter = router({
   // 报表模板列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(reportTemplates).orderBy(desc(reportTemplates.createdAt));
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 获取模板详情
-  getById: publicProcedure.input(idInput).query(async ({ input }) => {
+  getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, toNum(input.id)));
     return item || null;
@@ -141,7 +141,7 @@ export const reportTemplateRouter = router({
   }),
 
   // 验证导入数据
-  validateImport: publicProcedure.input(z.object({ data: z.any() })).query(({ input }) => {
+  validateImport: protectedProcedure.input(z.object({ data: z.any() })).query(({ input }) => {
     try {
       const parsed = typeof input.data === "string" ? JSON.parse(input.data) : input.data;
       const tplData = parsed.template || parsed;
@@ -211,7 +211,7 @@ export const reportTemplateRouter = router({
   }),
 
   // 获取公开模板
-  getPublic: publicProcedure.query(async () => {
+  getPublic: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(reportTemplates)
       .where(eq(reportTemplates.isPublic, 1))
@@ -219,7 +219,7 @@ export const reportTemplateRouter = router({
   }),
 
   // 获取分享数据
-  getShareData: publicProcedure.input(idInput).query(async ({ input }) => {
+  getShareData: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [template] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, toNum(input.id)));
     if (!template || template.isPublic !== 1) return { data: null };

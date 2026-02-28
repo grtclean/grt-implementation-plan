@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { leadImportLogs } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
 
 export const leadImportRouter = router({
-  getImportHistory: publicProcedure.query(async () => {
+  getImportHistory: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(leadImportLogs).orderBy(desc(leadImportLogs.createdAt)).limit(50);
   }),

@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { feedback } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
 
 export const feedbackRouter = router({
   // 反馈列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(feedback).orderBy(desc(feedback.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };

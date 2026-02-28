@@ -3,7 +3,7 @@
  * 成本预警规则管理 — replaces placeholder alertRuleRouter
  */
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { costAlertRules, costAlertLogs } from "../../drizzle/schema";
 import { eq, desc, count, sql } from "drizzle-orm";
@@ -11,18 +11,18 @@ import { eq, desc, count, sql } from "drizzle-orm";
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 
 export const alertRuleRouter = router({
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(costAlertRules).orderBy(desc(costAlertRules.createdAt));
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
-  listHistory: publicProcedure.query(async () => {
+  listHistory: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(costAlertLogs).orderBy(desc(costAlertLogs.createdAt)).limit(100);
   }),
 
-  getStatistics: publicProcedure.query(async () => {
+  getStatistics: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [ruleCount] = await db.select({ count: count() }).from(costAlertRules);
     const [activeCount] = await db.select({ count: count() }).from(costAlertRules).where(eq(costAlertRules.isActive, 1));

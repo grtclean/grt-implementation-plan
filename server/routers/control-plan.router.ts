@@ -3,7 +3,7 @@
  * IATF 16949 Core Tool — 工序级质量控制
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { controlPlans, controlPlanItems, fmeaDocuments, fmeaItems } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -13,7 +13,7 @@ const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : i
 
 export const controlPlanRouter = router({
   // 列表
-  list: publicProcedure.input(z.object({
+  list: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     phase: z.enum(["prototype", "pre_launch", "production"]).optional(),
     status: z.string().optional(),
@@ -28,7 +28,7 @@ export const controlPlanRouter = router({
   }),
 
   // 详情（含行项）
-  getById: publicProcedure.input(idInput).query(async ({ input }) => {
+  getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     const [plan] = await db.select().from(controlPlans).where(eq(controlPlans.id, numId));
@@ -39,7 +39,7 @@ export const controlPlanRouter = router({
     return { ...plan, items };
   }),
   // 创建控制计划
-  create: publicProcedure.input(z.object({
+  create: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     fmeaDocumentId: z.number().optional(),
     title: z.string().min(1),
@@ -63,7 +63,7 @@ export const controlPlanRouter = router({
   }),
 
   // 更新控制计划
-  update: publicProcedure.input(z.object({
+  update: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     title: z.string().optional(),
     partName: z.string().optional(),
@@ -85,7 +85,7 @@ export const controlPlanRouter = router({
   }),
 
   // 删除控制计划（级联）
-  delete: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     await db.delete(controlPlanItems).where(eq(controlPlanItems.controlPlanId, numId));
@@ -94,7 +94,7 @@ export const controlPlanRouter = router({
   }),
   // ===== Control Plan Items (行项) =====
 
-  addItem: publicProcedure.input(z.object({
+  addItem: protectedProcedure.input(z.object({
     controlPlanId: z.number(),
     processStep: z.string().optional(),
     processNumber: z.string().optional(),
@@ -139,7 +139,7 @@ export const controlPlanRouter = router({
     }).returning();
     return { success: true, message: "控制项已添加", data: item };
   }),
-  updateItem: publicProcedure.input(z.object({
+  updateItem: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     processStep: z.string().optional(),
     processNumber: z.string().optional(),
@@ -171,7 +171,7 @@ export const controlPlanRouter = router({
     return { success: true, message: "控制项已更新", data: item };
   }),
 
-  deleteItem: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  deleteItem: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(controlPlanItems).where(eq(controlPlanItems.id, toNum(input.id)));
     return { success: true, message: "控制项已删除" };
@@ -179,7 +179,7 @@ export const controlPlanRouter = router({
   // ===== FMEA → Control Plan Auto-Generation =====
 
   // Auto-create control plan items from high-RPN FMEA items (RPN >= threshold)
-  generateFromFMEA: publicProcedure.input(z.object({
+  generateFromFMEA: protectedProcedure.input(z.object({
     controlPlanId: z.number(),
     fmeaDocumentId: z.number(),
     rpnThreshold: z.number().default(80),
@@ -237,7 +237,7 @@ export const controlPlanRouter = router({
 
   // ===== Statistics =====
 
-  getStats: publicProcedure.input(z.object({
+  getStats: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();

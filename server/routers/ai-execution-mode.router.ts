@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import {
   executeAI,
   recordAdoption,
@@ -39,7 +39,7 @@ const recordAdoptionInputSchema = z.object({
 
 export const aiExecutionModeRouter = router({
   // 获取模式配置
-  getModeConfig: publicProcedure
+  getModeConfig: protectedProcedure
     .input(z.object({ assistantType: z.string() }).optional())
     .query(({ input }) => {
       return getModeConfig(input?.assistantType || 'default');
@@ -85,7 +85,7 @@ export const aiExecutionModeRouter = router({
     }),
 
   // 获取效果统计
-  getEffectivenessStats: publicProcedure
+  getEffectivenessStats: protectedProcedure
     .input(z.object({
       assistantType: z.string().optional(),
       mode: z.enum(["internal", "generative"]).optional(),
@@ -95,7 +95,7 @@ export const aiExecutionModeRouter = router({
     }),
 
   // 获取最近日志
-  getRecentLogs: publicProcedure
+  getRecentLogs: protectedProcedure
     .input(z.object({ 
       limit: z.number().optional(),
       assistantType: z.string().optional(),
@@ -109,10 +109,10 @@ export const aiExecutionModeRouter = router({
     }),
 
   // 列表（兼容占位符接口）
-  list: publicProcedure.query(() => ({ items: [], total: 0 })),
+  list: protectedProcedure.query(() => ({ items: [], total: 0 })),
   
   // 获取单个（兼容占位符接口）
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(() => null),
   

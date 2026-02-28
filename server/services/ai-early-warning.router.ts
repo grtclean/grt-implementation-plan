@@ -6,24 +6,24 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import * as healthScanner from "./project-health-scanner.service";
 import * as riskScorer from "./risk-scorer.service";
 import * as narrative from "./llm-narrative.service";
 
 // Layer 1: Health Scanner Router
 const healthScannerRouter = router({
-  scanAll: publicProcedure.query(async () => {
+  scanAll: protectedProcedure.query(async () => {
     return healthScanner.scanAllProjects();
   }),
 
-  scanProject: publicProcedure
+  scanProject: protectedProcedure
     .input(z.object({ projectId: z.number() }))
     .query(async ({ input }) => {
       return healthScanner.scanSingleProject(input.projectId);
     }),
 
-  getHistory: publicProcedure
+  getHistory: protectedProcedure
     .input(z.object({ projectId: z.number() }))
     .query(async ({ input }) => {
       return healthScanner.getHealthHistory(input.projectId);
@@ -32,11 +32,11 @@ const healthScannerRouter = router({
 
 // Layer 2: Risk Scorer Router
 const riskScorerRouter = router({
-  getDashboard: publicProcedure.query(async () => {
+  getDashboard: protectedProcedure.query(async () => {
     return riskScorer.getRiskDashboard();
   }),
 
-  calculateRisk: publicProcedure
+  calculateRisk: protectedProcedure
     .input(z.object({ projectId: z.number() }))
     .query(async ({ input }) => {
       return riskScorer.calculateRiskScore(input.projectId);
@@ -45,7 +45,7 @@ const riskScorerRouter = router({
 
 // Notifications Router
 const notificationsRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z.object({
         userId: z.number().optional(),
@@ -56,7 +56,7 @@ const notificationsRouter = router({
       return riskScorer.getNotifications(input);
     }),
 
-  markRead: publicProcedure
+  markRead: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return riskScorer.markNotificationRead(input.id);
@@ -65,19 +65,19 @@ const notificationsRouter = router({
 
 // Layer 3: Narrative Router
 const narrativeRouter = router({
-  generateNarrative: publicProcedure
+  generateNarrative: protectedProcedure
     .input(z.object({ projectId: z.number() }))
     .query(async ({ input }) => {
       return narrative.generateProjectNarrative(input.projectId);
     }),
 
-  matchHistorical: publicProcedure
+  matchHistorical: protectedProcedure
     .input(z.object({ projectId: z.number() }))
     .query(async ({ input }) => {
       return narrative.matchHistoricalCases(input.projectId);
     }),
 
-  weeklyDigest: publicProcedure.query(async () => {
+  weeklyDigest: protectedProcedure.query(async () => {
     return narrative.generateWeeklyDigest();
   }),
 });

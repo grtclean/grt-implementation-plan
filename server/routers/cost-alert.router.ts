@@ -12,7 +12,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, and } from "drizzle-orm";
 import {
@@ -25,13 +25,13 @@ const successResponse = { success: true, message: "操作成功" };
 export const costAlertRouter = router({
   // ==================== CRUD (alert logs as default entity) ====================
 
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(costAlertLogs).orderBy(desc(costAlertLogs.createdAt));
     return { items: rows, total: rows.length, page: 1, pageSize: 10 };
   }),
 
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -95,14 +95,14 @@ export const costAlertRouter = router({
 
   // ==================== Active Rules ====================
 
-  getActiveRules: publicProcedure.query(async () => {
+  getActiveRules: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(costAlertRules).where(eq(costAlertRules.isActive, 1)).orderBy(desc(costAlertRules.createdAt));
   }),
 
   // ==================== Project Logs ====================
 
-  getProjectLogs: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getProjectLogs: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const projectId = Number(input?.projectId);
     if (!projectId) {
@@ -135,7 +135,7 @@ export const costAlertRouter = router({
     return { success: true, message: `${imported} rules imported`, imported };
   }),
 
-  parseCSV: publicProcedure.input(z.any()).query(() => {
+  parseCSV: protectedProcedure.input(z.any()).query(() => {
     // CSV parsing requires file upload - stub
     return [];
   }),

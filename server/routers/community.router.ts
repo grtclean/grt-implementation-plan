@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   communityMembers,
@@ -13,14 +13,14 @@ import { eq, desc, and, count, sql } from "drizzle-orm";
 
 export const communityRouter = router({
   // 社群列表（按成员统计分组展示）
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const members = await db.select().from(communityMembers).orderBy(desc(communityMembers.createdAt)).limit(100);
     return { items: members, total: members.length, page: 1, pageSize: members.length };
   }),
 
   // 获取成员详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const [member] = await db.select().from(communityMembers).where(eq(communityMembers.id, parseInt(input.id)));
     return member || null;
@@ -66,7 +66,7 @@ export const communityRouter = router({
   }),
 
   // 获取帖子/消息
-  getPosts: publicProcedure.query(async () => {
+  getPosts: protectedProcedure.query(async () => {
     const db = await requireDb();
     const messages = await db.select().from(communityMessages)
       .where(eq(communityMessages.publishStatus, "published"))
@@ -89,7 +89,7 @@ export const communityRouter = router({
   }),
 
   // 统计
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [memberCount] = await db.select({ count: count() }).from(communityMembers);
     const [activeCount] = await db.select({ count: count() }).from(communityMembers).where(eq(communityMembers.status, "active"));
@@ -116,7 +116,7 @@ export const communityRouter = router({
   }),
 
   // 成员列表
-  getMembers: publicProcedure.query(async () => {
+  getMembers: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(communityMembers).orderBy(desc(communityMembers.lastActiveAt)).limit(100);
   }),
@@ -172,7 +172,7 @@ export const communityRouter = router({
   }),
 
   // 获取待审核内容
-  getPendingContent: publicProcedure.query(async () => {
+  getPendingContent: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(contentLibrary)
       .where(eq(contentLibrary.approvalStatus, "draft"))
@@ -197,7 +197,7 @@ export const communityRouter = router({
   }),
 
   // 敏感词列表
-  getSensitiveWords: publicProcedure.query(async () => {
+  getSensitiveWords: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(sensitiveWords).where(eq(sensitiveWords.isActive, 1)).orderBy(desc(sensitiveWords.createdAt));
   }),
@@ -239,7 +239,7 @@ export const communityRouter = router({
   }),
 
   // 待审核外发消息
-  getPendingMessages: publicProcedure.query(async () => {
+  getPendingMessages: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(communityMessages)
       .where(and(

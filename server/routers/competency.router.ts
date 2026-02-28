@@ -3,13 +3,13 @@
  * Reads from the flat `employee_competence_assessments` table.
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 
 export const competencyRouter = router({
   // ── Flat assessment list (new table) ──
-  getAssessments: publicProcedure
+  getAssessments: protectedProcedure
     .input(
       z
         .object({
@@ -60,7 +60,7 @@ export const competencyRouter = router({
     }),
 
   // ── Distinct departments ──
-  getDepartments: publicProcedure.query(async () => {
+  getDepartments: protectedProcedure.query(async () => {
     const db = await requireDb();
     const result = await db.execute(sql`
       SELECT DISTINCT department

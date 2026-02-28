@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { protectedProcedure, publicProcedure, router } from '../_core/trpc';
+import { protectedProcedure, router } from '../_core/trpc';
 import {
   testDingTalkConnection,
   sendTestAlert,
@@ -24,7 +24,7 @@ import {
 
 export const dingtalkRouter = router({
   // 获取钉钉配置状态（不返回敏感信息）
-  getStatus: publicProcedure.query(() => {
+  getStatus: protectedProcedure.query(() => {
     const config = getDingTalkConfig();
     return {
       enabled: config.enabled,

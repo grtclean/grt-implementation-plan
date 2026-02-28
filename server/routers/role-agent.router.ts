@@ -8,7 +8,7 @@
  *   - list: legacy stub
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ── Role Action Configs ──
 
@@ -129,14 +129,14 @@ const MOCK_ACTIVITIES: ActivityItem[] = [
 
 export const roleAgentRouter = router({
   /** Legacy stub */
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({ limit: z.number().default(50), offset: z.number().default(0) }).optional())
     .query(async () => {
       return { items: [], total: 0 };
     }),
 
   /** Get role-specific quick action cards */
-  getQuickActions: publicProcedure
+  getQuickActions: protectedProcedure
     .input(z.object({ role: z.string() }))
     .query(async ({ input }) => {
       // Try exact role match first, then fallback to employee defaults
@@ -145,7 +145,7 @@ export const roleAgentRouter = router({
     }),
 
   /** Get contextual AI suggestions for the given role */
-  getSuggestions: publicProcedure
+  getSuggestions: protectedProcedure
     .input(z.object({ role: z.string() }))
     .query(async ({ input }) => {
       const suggestions = ROLE_SUGGESTIONS[input.role] ?? ROLE_SUGGESTIONS["default"] ?? [];
@@ -153,7 +153,7 @@ export const roleAgentRouter = router({
     }),
 
   /** Get recent activity feed */
-  getRecentActivity: publicProcedure
+  getRecentActivity: protectedProcedure
     .input(z.object({ limit: z.number().default(5) }))
     .query(async ({ input }) => {
       return MOCK_ACTIVITIES.slice(0, input.limit);

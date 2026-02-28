@@ -1,15 +1,15 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
 
 export const ruleVersionRouter = router({
-  list: publicProcedure.query(() => {
+  list: protectedProcedure.query(() => {
     return emptyListResponse;
   }),
 
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(() => {
       return null;
@@ -33,11 +33,11 @@ export const ruleVersionRouter = router({
       return successResponse;
     }),
 
-  getAll: publicProcedure.query(() => {
+  getAll: protectedProcedure.query(() => {
     return [];
   }),
 
-  compare: publicProcedure
+  compare: protectedProcedure
     .input(z.any())
     .query(() => {
       return { comparison: null as any };

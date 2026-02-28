@@ -11,7 +11,7 @@
  *   7. getAuditStats        — Count of logs by action type
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sysGlobalControls } from "../../drizzle/security-gateway-schema";
 import { knowledgeDocuments } from "../../drizzle/ai-genesis-schema";
@@ -35,7 +35,7 @@ export const aiSecurityGovernanceRouter = router({
   // 1. verifyOtp — Validate a 6-digit OTP code
   // ══════════════════════════════════════════════════
 
-  verifyOtp: publicProcedure
+  verifyOtp: protectedProcedure
     .input(z.object({ code: z.string() }))
     .mutation(async ({ input }) => {
       return { valid: verifyOtpCode(input.code) };
@@ -45,7 +45,7 @@ export const aiSecurityGovernanceRouter = router({
   // 2. getSystemStatus — Read pipeline frozen state
   // ══════════════════════════════════════════════════
 
-  getSystemStatus: publicProcedure.query(async () => {
+  getSystemStatus: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [control] = await db
       .select()
@@ -63,7 +63,7 @@ export const aiSecurityGovernanceRouter = router({
   // 3. togglePipelineFreeze — Freeze/unfreeze (OTP-gated)
   // ══════════════════════════════════════════════════
 
-  togglePipelineFreeze: publicProcedure
+  togglePipelineFreeze: protectedProcedure
     .input(
       z.object({
         frozen: z.boolean(),
@@ -123,7 +123,7 @@ export const aiSecurityGovernanceRouter = router({
   // 4. rollbackKnowledge — Purge a knowledge doc (OTP-gated)
   // ══════════════════════════════════════════════════
 
-  rollbackKnowledge: publicProcedure
+  rollbackKnowledge: protectedProcedure
     .input(
       z.object({
         documentId: z.number(),
@@ -172,7 +172,7 @@ export const aiSecurityGovernanceRouter = router({
   // 5. listKnowledgeForRollback — Non-purged docs
   // ══════════════════════════════════════════════════
 
-  listKnowledgeForRollback: publicProcedure
+  listKnowledgeForRollback: protectedProcedure
     .input(
       z
         .object({
@@ -209,7 +209,7 @@ export const aiSecurityGovernanceRouter = router({
   // 6. listAuditLogs — Paginated governance audit logs
   // ══════════════════════════════════════════════════
 
-  listAuditLogs: publicProcedure
+  listAuditLogs: protectedProcedure
     .input(
       z
         .object({
@@ -252,7 +252,7 @@ export const aiSecurityGovernanceRouter = router({
   // 7. getAuditStats — Count logs by action type
   // ══════════════════════════════════════════════════
 
-  getAuditStats: publicProcedure.query(async () => {
+  getAuditStats: protectedProcedure.query(async () => {
     const db = await requireDb();
 
     const stats = await db

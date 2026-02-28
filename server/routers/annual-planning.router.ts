@@ -13,7 +13,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, and, count, sql, ne } from "drizzle-orm";
 import {
@@ -26,13 +26,13 @@ const successResponse = { success: true, message: "操作成功" };
 export const annualPlanningRouter = router({
   // ==================== CRUD (annualPlans) ====================
 
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(annualPlans).orderBy(desc(annualPlans.year), desc(annualPlans.id));
     return { items: rows, total: rows.length, page: 1, pageSize: 10 };
   }),
 
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -86,7 +86,7 @@ export const annualPlanningRouter = router({
 
   // ==================== Goals (targets from annual plans) ====================
 
-  getGoals: publicProcedure.query(async () => {
+  getGoals: protectedProcedure.query(async () => {
     const db = await requireDb();
     const currentYear = new Date().getFullYear();
     const plans = await db.select().from(annualPlans).where(eq(annualPlans.year, currentYear));
@@ -106,7 +106,7 @@ export const annualPlanningRouter = router({
 
   // ==================== Progress ====================
 
-  getProgress: publicProcedure.query(async () => {
+  getProgress: protectedProcedure.query(async () => {
     const db = await requireDb();
     // Find active config
     const [activeConfig] = await db.select().from(annualPlanningConfigs).where(eq(annualPlanningConfigs.status, "active")).limit(1);
@@ -123,12 +123,12 @@ export const annualPlanningRouter = router({
 
   // ==================== Config Management ====================
 
-  getConfigs: publicProcedure.query(async () => {
+  getConfigs: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(annualPlanningConfigs).orderBy(desc(annualPlanningConfigs.year), desc(annualPlanningConfigs.createdAt));
   }),
 
-  getActiveConfig: publicProcedure.query(async () => {
+  getActiveConfig: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [config] = await db.select().from(annualPlanningConfigs).where(eq(annualPlanningConfigs.status, "active")).limit(1);
     return { config: config ?? null };
@@ -236,7 +236,7 @@ export const annualPlanningRouter = router({
 
   // ==================== Items ====================
 
-  getItems: publicProcedure.query(async () => {
+  getItems: protectedProcedure.query(async () => {
     const db = await requireDb();
     // Try to use active config, else return all
     const [activeConfig] = await db.select().from(annualPlanningConfigs).where(eq(annualPlanningConfigs.status, "active")).limit(1);
@@ -317,7 +317,7 @@ export const annualPlanningRouter = router({
 
   // ==================== Logs ====================
 
-  getUpdateLogs: publicProcedure.query(async () => {
+  getUpdateLogs: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(annualPlanningUpdateLogs).orderBy(desc(annualPlanningUpdateLogs.createdAt)).limit(200);
   }),

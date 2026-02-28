@@ -9,7 +9,7 @@
  * - Analytics & dashboards
  */
 
-import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 import { requireDb } from "../db";
 import { eq, desc, and, sql } from "drizzle-orm";

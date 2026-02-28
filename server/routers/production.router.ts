@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import { eq, desc, and, or, count, sql } from "drizzle-orm";
@@ -133,7 +133,7 @@ function mapEquipment(row: any) {
 export const productionRouter = router({
   // ===== 工单管理 =====
 
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       status: z.enum(['draft', 'planned', 'in_progress', 'quality_check', 'completed', 'on_hold', 'cancelled']).optional(),
       priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
@@ -168,7 +168,7 @@ export const productionRouter = router({
       return { items: rows.map(mapWorkOrder), total: totalResult[0].value, page, pageSize };
     }),
 
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({
       id: z.number().optional(),
       orderCode: z.string().optional(),
@@ -297,7 +297,7 @@ export const productionRouter = router({
 
   // ===== QC质检 =====
 
-  getQCRecords: publicProcedure
+  getQCRecords: protectedProcedure
     .input(z.object({
       workOrderId: z.number().optional(),
       checkType: z.enum(['incoming', 'process', 'final', 'patrol']).optional(),
@@ -347,7 +347,7 @@ export const productionRouter = router({
       return mapQCRecord(result[0]);
     }),
 
-  getQCStats: publicProcedure
+  getQCStats: protectedProcedure
     .input(z.object({
       startDate: z.string().optional(),
       endDate: z.string().optional(),
@@ -393,7 +393,7 @@ export const productionRouter = router({
 
   // ===== 设备管理 =====
 
-  getEquipments: publicProcedure
+  getEquipments: protectedProcedure
     .input(z.object({
       status: z.enum(['idle', 'running', 'maintenance', 'fault', 'offline']).optional(),
       type: z.string().optional(),
@@ -487,7 +487,7 @@ export const productionRouter = router({
       };
     }),
 
-  getEquipmentStatusHistory: publicProcedure
+  getEquipmentStatusHistory: protectedProcedure
     .input(z.object({
       equipmentId: z.number().optional(),
       startDate: z.string().optional(),
@@ -518,7 +518,7 @@ export const productionRouter = router({
 
   // ===== 生产统计 =====
 
-  getDashboardStats: publicProcedure.query(async () => {
+  getDashboardStats: protectedProcedure.query(async () => {
     const db = await requireDb();
 
     const [statusCounts, priorityCounts, teamCounts, quantityResult, equipStatusCounts, utilizationResult, recentRows] = await Promise.all([
@@ -562,7 +562,7 @@ export const productionRouter = router({
     };
   }),
 
-  getProgressTrend: publicProcedure
+  getProgressTrend: protectedProcedure
     .input(z.object({ days: z.number().default(7) }).optional())
     .query(({ input }) => {
       const days = input?.days || 7;
@@ -581,7 +581,7 @@ export const productionRouter = router({
       return trend;
     }),
 
-  getTeamCapacity: publicProcedure.query(async () => {
+  getTeamCapacity: protectedProcedure.query(async () => {
     const db = await requireDb();
     const teamData = await db.select({
       team: productionWorkOrders.assignedTeam,

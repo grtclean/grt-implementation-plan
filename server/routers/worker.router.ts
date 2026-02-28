@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { workers } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -7,7 +7,7 @@ import { eq, desc } from "drizzle-orm";
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 
 export const workerRouter = router({
-  getWorkers: publicProcedure.input(z.object({
+  getWorkers: protectedProcedure.input(z.object({
     department: z.string().optional(),
     status: z.string().optional(),
     skillLevel: z.string().optional(),
@@ -25,7 +25,7 @@ export const workerRouter = router({
     return { workers: items, total: items.length };
   }),
 
-  getWorkerRanking: publicProcedure.input(z.any()).query(async () => {
+  getWorkerRanking: protectedProcedure.input(z.any()).query(async () => {
     const db = await requireDb();
     const items = await db.select().from(workers).where(eq(workers.status, "Active"));
     const levels = ["L1", "L2", "L3", "L4", "L5"];
@@ -42,7 +42,7 @@ export const workerRouter = router({
     }));
   }),
 
-  getWorkHourAlerts: publicProcedure.input(z.any()).query(async () => {
+  getWorkHourAlerts: protectedProcedure.input(z.any()).query(async () => {
     return [];
   }),
 

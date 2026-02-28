@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { annualPlanningDependencies } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
@@ -7,7 +7,7 @@ import { eq, and } from "drizzle-orm";
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 
 export const planningDependencyRouter = router({
-  getAll: publicProcedure.input(z.object({ configId: z.number().optional() }).optional()).query(async ({ input }) => {
+  getAll: protectedProcedure.input(z.object({ configId: z.number().optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     if (input?.configId) {
       return await db.select().from(annualPlanningDependencies).where(eq(annualPlanningDependencies.configId, input.configId));
@@ -39,7 +39,7 @@ export const planningDependencyRouter = router({
     return { success: true };
   }),
 
-  calculateCriticalPath: publicProcedure.input(z.object({ configId: z.number() })).query(async ({ input }) => {
+  calculateCriticalPath: protectedProcedure.input(z.object({ configId: z.number() })).query(async ({ input }) => {
     const db = await requireDb();
     const deps = await db.select().from(annualPlanningDependencies).where(eq(annualPlanningDependencies.configId, input.configId));
     return { dependencies: deps, criticalPath: [], totalDuration: 0 };

@@ -4,7 +4,10 @@
  */
 
 import { z } from "zod";
-import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
+import { requirePermission, router } from "../_core/trpc";
+
+// All salary report procedures require hrm_salary_detail permission
+const salaryProcedure = requirePermission('hrm_salary_detail');
 import {
   getMonthlyBonusDistribution,
   getProcessComparisonData,
@@ -16,7 +19,7 @@ import {
 
 export const salaryReportRouter = router({
   /** 获取月度奖金分布 */
-  bonusDistribution: protectedProcedure
+  bonusDistribution: salaryProcedure
     .input(z.object({
       periodStart: z.number(),
       periodEnd: z.number(),
@@ -26,7 +29,7 @@ export const salaryReportRouter = router({
     }),
 
   /** 获取工序对比分析 */
-  processComparison: protectedProcedure
+  processComparison: salaryProcedure
     .input(z.object({
       periodStart: z.number(),
       periodEnd: z.number(),
@@ -36,7 +39,7 @@ export const salaryReportRouter = router({
     }),
 
   /** 获取绩效-薪酬相关性 */
-  correlation: protectedProcedure
+  correlation: salaryProcedure
     .input(z.object({
       periodStart: z.number(),
       periodEnd: z.number(),
@@ -47,7 +50,7 @@ export const salaryReportRouter = router({
     }),
 
   /** 获取薪酬趋势数据 */
-  trend: protectedProcedure
+  trend: salaryProcedure
     .input(z.object({
       periodType: z.enum(['weekly', 'monthly', 'quarterly']),
       periodsCount: z.number().min(2).max(52).optional(),
@@ -57,7 +60,7 @@ export const salaryReportRouter = router({
     }),
 
   /** 获取员工个人薪酬趋势 */
-  workerTrend: protectedProcedure
+  workerTrend: salaryProcedure
     .input(z.object({
       workerId: z.string(),
       limit: z.number().min(1).max(52).optional(),
@@ -67,7 +70,7 @@ export const salaryReportRouter = router({
     }),
 
   /** 获取薪酬仪表盘数据 */
-  dashboard: protectedProcedure
+  dashboard: salaryProcedure
     .input(z.object({
       periodStart: z.number(),
       periodEnd: z.number(),

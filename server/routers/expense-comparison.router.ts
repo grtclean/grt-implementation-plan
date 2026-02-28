@@ -1,19 +1,19 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { expenseClaims } from "../../drizzle/schema";
 import { desc, count, sql } from "drizzle-orm";
 
 export const expenseComparisonRouter = router({
   // 费用列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(expenseClaims).orderBy(desc(expenseClaims.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 对比查询
-  compare: publicProcedure.input(z.any()).query(async ({ input }) => {
+  compare: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     // Return all claims for client-side comparison
     const items = await db.select().from(expenseClaims).orderBy(desc(expenseClaims.createdAt)).limit(200);
@@ -21,7 +21,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 获取对比数据
-  getComparison: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getComparison: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const [totalResult] = await db.select({
       totalExpense: sql<string>`COALESCE(SUM(CAST(${expenseClaims.totalAmount} AS NUMERIC)), 0)`,
@@ -43,7 +43,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 月度趋势
-  getMonthlyTrend: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getMonthlyTrend: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const results = await db.select({
       month: sql<string>`TO_CHAR(${expenseClaims.createdAt}, 'YYYY-MM')`,
@@ -62,7 +62,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 季度对比
-  getQuarterComparison: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getQuarterComparison: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const results = await db.select({
       quarter: sql<string>`TO_CHAR(${expenseClaims.createdAt}, 'YYYY-Q')`,

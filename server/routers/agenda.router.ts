@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { annualAgendas, annualMilestones, departmentAgendas } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -7,11 +7,11 @@ import { eq, desc } from "drizzle-orm";
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 
 export const agendaRouter = router({
-  getTrainings: publicProcedure.query(async () => {
+  getTrainings: protectedProcedure.query(async () => {
     return { trainings: [] as any[] };
   }),
 
-  getMeetingTypes: publicProcedure.query(async () => {
+  getMeetingTypes: protectedProcedure.query(async () => {
     return [
       { id: "Q4_Strategy", name: "Q4战略规划", description: "第四季度战略规划会议", level: "company", frequency: "yearly", code: "Q4S", defaultDuration: 120, defaultStartTime: "09:00" },
       { id: "Q1_Kickoff", name: "Q1启动会", description: "第一季度启动会议", level: "company", frequency: "yearly", code: "Q1K", defaultDuration: 90, defaultStartTime: "09:00" },
@@ -21,13 +21,13 @@ export const agendaRouter = router({
     ];
   }),
 
-  getMeetings: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getMeetings: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const milestones = await db.select().from(annualMilestones).orderBy(annualMilestones.scheduledDate);
     return milestones;
   }),
 
-  getAnnualPlans: publicProcedure.query(async () => {
+  getAnnualPlans: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(annualAgendas).orderBy(desc(annualAgendas.createdAt));
     return items.map(p => ({
@@ -102,7 +102,7 @@ export const agendaRouter = router({
     return { success: true, message: "培训数据已清除" };
   }),
 
-  getParticipants: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getParticipants: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const milestoneId = toNum(input?.milestoneId || input?.id || input?.trainingId || 0);
     if (!milestoneId) return [];

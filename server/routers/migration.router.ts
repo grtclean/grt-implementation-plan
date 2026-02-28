@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { migrationTasks } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -7,7 +7,7 @@ import { eq, desc } from "drizzle-orm";
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 
 export const migrationRouter = router({
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(migrationTasks).orderBy(desc(migrationTasks.createdAt));
   }),

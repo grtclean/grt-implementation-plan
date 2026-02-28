@@ -7,7 +7,7 @@
  * - Quarterly dashboard aggregation
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import { performanceRecords } from "../../drizzle/performance-schema";
@@ -17,7 +17,7 @@ export const performanceRecordRouter = router({
   /**
    * list — paginated performance records with filters
    */
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       buId: z.number().optional(),
       userId: z.number().optional(),
@@ -59,7 +59,7 @@ export const performanceRecordRouter = router({
   /**
    * getById — single record with full detail
    */
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -71,7 +71,7 @@ export const performanceRecordRouter = router({
   /**
    * create — new quarterly performance record
    */
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       buId: z.number().optional(),
       departmentId: z.number().optional(),
@@ -108,7 +108,7 @@ export const performanceRecordRouter = router({
   /**
    * update — with optimistic lock check (version must match)
    */
-  update: publicProcedure
+  update: protectedProcedure
     .input(z.object({
       id: z.number(),
       version: z.number(),  // must match current DB version
@@ -163,7 +163,7 @@ export const performanceRecordRouter = router({
   /**
    * freeze — freeze a performance record (e.g., during violation investigation)
    */
-  freeze: publicProcedure
+  freeze: protectedProcedure
     .input(z.object({
       id: z.number(),
       reason: z.string(),
@@ -188,7 +188,7 @@ export const performanceRecordRouter = router({
   /**
    * unfreeze — unfreeze a performance record (after violation resolved)
    */
-  unfreeze: publicProcedure
+  unfreeze: protectedProcedure
     .input(z.object({
       id: z.number(),
       reason: z.string().optional(),
@@ -211,7 +211,7 @@ export const performanceRecordRouter = router({
   /**
    * dashboard — quarterly summary with BU breakdown
    */
-  dashboard: publicProcedure
+  dashboard: protectedProcedure
     .input(z.object({
       year: z.number().optional(),
       quarter: z.number().min(1).max(4).optional(),
@@ -279,7 +279,7 @@ export const performanceRecordRouter = router({
   /**
    * seedDemo — create demo performance records
    */
-  seedDemo: publicProcedure.mutation(async () => {
+  seedDemo: protectedProcedure.mutation(async () => {
     const db = await requireDb();
 
     // Ensure table exists

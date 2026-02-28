@@ -30,7 +30,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -343,7 +343,7 @@ export const supplierRiskRouter = router({
    * dashboard — returns all suppliers with risk evaluation.
    * The core fusion: QMS (IQC) × SCM (Procurement) in one response.
    */
-  dashboard: publicProcedure.query(async () => {
+  dashboard: protectedProcedure.query(async () => {
     const results = MOCK_SUPPLIERS.map(({ supplier, inspections }) => {
       const eval_ = evaluateSupplierRisk({ supplier, inspections });
       return {
@@ -375,7 +375,7 @@ export const supplierRiskRouter = router({
   /**
    * evaluateOne — evaluate a single supplier by ID.
    */
-  evaluateOne: publicProcedure
+  evaluateOne: protectedProcedure
     .input(z.object({ supplierId: z.number() }))
     .query(async ({ input }) => {
       const mock = MOCK_SUPPLIERS.find(s => s.supplier.id === input.supplierId);

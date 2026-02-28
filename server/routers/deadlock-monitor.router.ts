@@ -1,17 +1,17 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
 
 export const deadlockMonitorRouter = router({
   // 死锁监控列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     return emptyListResponse;
   }),
 
   // 获取死锁详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async () => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async () => {
     return null;
   }),
 
@@ -31,12 +31,12 @@ export const deadlockMonitorRouter = router({
   }),
 
   // 获取监控状态
-  getStatus: publicProcedure.query(async () => {
+  getStatus: protectedProcedure.query(async () => {
     return { status: "ok" };
   }),
 
   // 获取死锁列表
-  getDeadlocks: publicProcedure.query(async () => {
+  getDeadlocks: protectedProcedure.query(async () => {
     return [];
   }),
 
@@ -46,7 +46,7 @@ export const deadlockMonitorRouter = router({
   }),
 
   // 获取历史记录
-  getHistory: publicProcedure.query(async () => {
+  getHistory: protectedProcedure.query(async () => {
     return [];
   }),
 });

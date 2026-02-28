@@ -3,7 +3,7 @@
  * Reusable test plan management across domains: Software UAT, PLC, FAT/SAT, custom
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   testTemplates,
@@ -20,7 +20,7 @@ const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : i
 export const testEngineRouter = router({
   // ── Templates ──
 
-  listTemplates: publicProcedure.input(z.object({
+  listTemplates: protectedProcedure.input(z.object({
     domain: z.string().optional(),
     status: z.string().optional(),
     search: z.string().optional(),
@@ -54,7 +54,7 @@ export const testEngineRouter = router({
     return { items, total: Number(total) };
   }),
 
-  getTemplate: publicProcedure.input(idInput).query(async ({ input }) => {
+  getTemplate: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const id = toNum(input.id);
     const [template] = await db.select().from(testTemplates).where(eq(testTemplates.id, id));
@@ -67,7 +67,7 @@ export const testEngineRouter = router({
     return { ...template, caseCount: cases.length, cases };
   }),
 
-  createTemplate: publicProcedure.input(z.object({
+  createTemplate: protectedProcedure.input(z.object({
     name: z.string().min(1),
     domain: z.enum(['software_uat', 'plc_test', 'fat_checklist', 'sat_checklist', 'custom']),
     description: z.string().optional(),
@@ -97,7 +97,7 @@ export const testEngineRouter = router({
     return created;
   }),
 
-  updateTemplate: publicProcedure.input(z.object({
+  updateTemplate: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     name: z.string().optional(),
     status: z.enum(['draft', 'active', 'archived']).optional(),
@@ -119,7 +119,7 @@ export const testEngineRouter = router({
     return updated;
   }),
 
-  cloneTemplate: publicProcedure.input(z.object({
+  cloneTemplate: protectedProcedure.input(z.object({
     sourceTemplateId: z.union([z.string(), z.number()]),
     newName: z.string().optional(),
     createdBy: z.number().optional(),
@@ -175,7 +175,7 @@ export const testEngineRouter = router({
 
   // ── Test Cases ──
 
-  listCases: publicProcedure.input(z.object({
+  listCases: protectedProcedure.input(z.object({
     templateId: z.union([z.string(), z.number()]),
     includeInactive: z.boolean().default(false),
   })).query(async ({ input }) => {
@@ -191,7 +191,7 @@ export const testEngineRouter = router({
     return { items, total: items.length };
   }),
 
-  createCase: publicProcedure.input(z.object({
+  createCase: protectedProcedure.input(z.object({
     templateId: z.union([z.string(), z.number()]),
     sortOrder: z.number().default(0),
     code: z.string().optional(),
@@ -233,7 +233,7 @@ export const testEngineRouter = router({
     return created;
   }),
 
-  updateCase: publicProcedure.input(z.object({
+  updateCase: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     sortOrder: z.number().optional(),
     code: z.string().optional(),
@@ -263,7 +263,7 @@ export const testEngineRouter = router({
     return updated;
   }),
 
-  deleteCase: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  deleteCase: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [updated] = await db.update(testCases)
       .set({ isActive: false, updatedAt: new Date().toISOString() })
@@ -274,7 +274,7 @@ export const testEngineRouter = router({
 
   // ── Executions ──
 
-  listExecutions: publicProcedure.input(z.object({
+  listExecutions: protectedProcedure.input(z.object({
     templateId: z.union([z.string(), z.number()]).optional(),
     status: z.string().optional(),
     environment: z.string().optional(),
@@ -308,7 +308,7 @@ export const testEngineRouter = router({
     return { items, total: Number(total) };
   }),
 
-  createExecution: publicProcedure.input(z.object({
+  createExecution: protectedProcedure.input(z.object({
     templateId: z.union([z.string(), z.number()]),
     projectId: z.number().optional(),
     executionName: z.string().min(1),
@@ -353,7 +353,7 @@ export const testEngineRouter = router({
     return { ...execution, totalCases: cases.length };
   }),
 
-  updateExecution: publicProcedure.input(z.object({
+  updateExecution: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     status: z.enum(['planned', 'in_progress', 'paused', 'completed', 'aborted']).optional(),
     actualStartDate: z.string().optional(),
@@ -369,7 +369,7 @@ export const testEngineRouter = router({
     return updated;
   }),
 
-  getExecution: publicProcedure.input(idInput).query(async ({ input }) => {
+  getExecution: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const id = toNum(input.id);
     const [execution] = await db.select().from(testExecutions).where(eq(testExecutions.id, id));
@@ -398,7 +398,7 @@ export const testEngineRouter = router({
 
   // ── Results ──
 
-  recordResult: publicProcedure.input(z.object({
+  recordResult: protectedProcedure.input(z.object({
     executionId: z.union([z.string(), z.number()]),
     testCaseId: z.union([z.string(), z.number()]),
     status: z.enum(['not_started', 'pass', 'fail', 'blocked', 'skipped', 'partial']),
@@ -463,7 +463,7 @@ export const testEngineRouter = router({
     return result;
   }),
 
-  updateResult: publicProcedure.input(z.object({
+  updateResult: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     status: z.enum(['not_started', 'pass', 'fail', 'blocked', 'skipped', 'partial']).optional(),
     executedBy: z.number().optional(),
@@ -490,7 +490,7 @@ export const testEngineRouter = router({
     return updated;
   }),
 
-  getExecutionResults: publicProcedure.input(z.object({
+  getExecutionResults: protectedProcedure.input(z.object({
     executionId: z.union([z.string(), z.number()]),
     status: z.string().optional(),
   })).query(async ({ input }) => {
@@ -511,7 +511,7 @@ export const testEngineRouter = router({
 
   // ── AI Generation Logs ──
 
-  logAiGeneration: publicProcedure.input(z.object({
+  logAiGeneration: protectedProcedure.input(z.object({
     templateId: z.number().optional(),
     source: z.enum(['template_generation', 'test_suggestion', 'case_optimization', 'risk_analysis']),
     promptInputConditions: z.record(z.string(), z.unknown()),
@@ -545,7 +545,7 @@ export const testEngineRouter = router({
     return created;
   }),
 
-  getAiLogs: publicProcedure.input(z.object({
+  getAiLogs: protectedProcedure.input(z.object({
     templateId: z.union([z.string(), z.number()]).optional(),
     source: z.string().optional(),
     limit: z.number().default(50),

@@ -14,7 +14,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
 import {
@@ -38,13 +38,13 @@ function generateId(prefix: string): string {
 export const complianceRouter = router({
   // ==================== CRUD (alerts as default entity) ====================
 
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(grtComplianceAlerts).orderBy(desc(grtComplianceAlerts.createdAt));
     return { items: rows, total: rows.length, page: 1, pageSize: 10 };
   }),
 
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -90,7 +90,7 @@ export const complianceRouter = router({
 
   // ==================== Rules ====================
 
-  getRules: publicProcedure.query(async () => {
+  getRules: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(grtComplianceRules).orderBy(grtComplianceRules.priority);
   }),
@@ -145,7 +145,7 @@ export const complianceRouter = router({
     return { success: true, message: "操作成功" };
   }),
 
-  getRuleStats: publicProcedure.query(async () => {
+  getRuleStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(grtComplianceRules);
     const total = rows.length;
@@ -161,7 +161,7 @@ export const complianceRouter = router({
 
   // ==================== Templates ====================
 
-  getTemplates: publicProcedure.query(async () => {
+  getTemplates: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(grtComplianceEmailTemplates).orderBy(desc(grtComplianceEmailTemplates.createdAt));
   }),
@@ -212,7 +212,7 @@ export const complianceRouter = router({
     return { success: true, message: "操作成功" };
   }),
 
-  getTemplateStats: publicProcedure.query(async () => {
+  getTemplateStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(grtComplianceEmailTemplates);
     const total = rows.length;
@@ -224,7 +224,7 @@ export const complianceRouter = router({
 
   // ==================== Compliance Checks ====================
 
-  checkCompliance: publicProcedure.input(z.any()).query(async ({ input }) => {
+  checkCompliance: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const employeeId = Number(input?.employeeId);
     if (!employeeId) return { compliant: true, issues: [] };
@@ -354,7 +354,7 @@ export const complianceRouter = router({
 
   // ==================== Audit Statistics ====================
 
-  getAuditStatistics: publicProcedure.query(async () => {
+  getAuditStatistics: protectedProcedure.query(async () => {
     const db = await requireDb();
     const allAlerts = await db.select().from(grtComplianceAlerts);
     const total = allAlerts.length;
@@ -365,12 +365,12 @@ export const complianceRouter = router({
 
   // ==================== Reports ====================
 
-  getReportHistory: publicProcedure.query(async () => {
+  getReportHistory: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(grtComplianceReports).orderBy(desc(grtComplianceReports.createdAt));
   }),
 
-  getReportStats: publicProcedure.query(async () => {
+  getReportStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(grtComplianceReports);
     const byType: Record<string, number> = {};
@@ -412,12 +412,12 @@ export const complianceRouter = router({
 
   // ==================== Alerts ====================
 
-  getAlerts: publicProcedure.query(async () => {
+  getAlerts: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(grtComplianceAlerts).orderBy(desc(grtComplianceAlerts.createdAt)).limit(200);
   }),
 
-  getPendingAlertCount: publicProcedure.query(async () => {
+  getPendingAlertCount: protectedProcedure.query(async () => {
     const db = await requireDb();
     const result = await db.select({ count: count() }).from(grtComplianceAlerts).where(eq(grtComplianceAlerts.status, "open"));
     return { count: result[0]?.count ?? 0 };
@@ -425,7 +425,7 @@ export const complianceRouter = router({
 
   // ==================== Approval Queue ====================
 
-  getApprovalQueue: publicProcedure.query(async () => {
+  getApprovalQueue: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select()
       .from(grtTimeEntries)
@@ -442,7 +442,7 @@ export const complianceRouter = router({
 
   // ==================== Dashboard Stats ====================
 
-  getDashboardStats: publicProcedure.query(async () => {
+  getDashboardStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [empRes, alertRes, entryRes, reportRes, ruleRes, tmplRes] = await Promise.all([
       db.select({ count: count() }).from(grtEmployees).where(eq(grtEmployees.isActive, 1)),
@@ -474,7 +474,7 @@ export const complianceRouter = router({
 
   // ==================== Employee Status & Time Details ====================
 
-  getEmployeeStatus: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getEmployeeStatus: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const empId = Number(input?.employeeId ?? input?.id);
     if (!empId) return { status: null };
@@ -499,7 +499,7 @@ export const complianceRouter = router({
     };
   }),
 
-  getEmployeeTimeDetails: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getEmployeeTimeDetails: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const empId = Number(input?.employeeId ?? input?.id);
     if (!empId) return [];
@@ -523,14 +523,14 @@ export const complianceRouter = router({
 
   // ==================== AI (stub) ====================
 
-  getGeminiAnalysis: publicProcedure.input(z.any()).query(() => ({
+  getGeminiAnalysis: protectedProcedure.input(z.any()).query(() => ({
     analysis: null,
     message: "Gemini AI integration not configured. Requires GEMINI_API_KEY.",
   })),
 
   // ==================== Scheduler (stubs) ====================
 
-  getSchedulerStatus: publicProcedure.query(() => ({
+  getSchedulerStatus: protectedProcedure.query(() => ({
     status: "stopped",
     schedulers: {
       germanDailyCheck: { enabled: false, interval: "daily", lastRun: null, nextRun: null },

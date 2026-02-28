@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiAgentTriggers, aiAgentTriggerExecutions } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -12,7 +12,7 @@ export const aiTriggerRouter = router({
   /**
    * List all AI agent triggers, ordered by creation date descending.
    */
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db
       .select()
@@ -24,7 +24,7 @@ export const aiTriggerRouter = router({
   /**
    * Get recent trigger execution history (last 100 records).
    */
-  getExecutionHistory: publicProcedure.query(async () => {
+  getExecutionHistory: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db
       .select()

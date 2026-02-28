@@ -9,7 +9,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 
 // ── QR session in-memory store (ephemeral, no DB needed) ──
 const qrSessions = new Map<string, {
@@ -33,7 +33,7 @@ export const kioskRouter = router({
    * Fast identity lookup — returns operator info + qualification status
    * Used by barcode scanner / manual ID entry at kiosk terminal
    */
-  identifyOperator: publicProcedure
+  identifyOperator: protectedProcedure
     .input(z.object({ employeeId: z.string().min(1) }))
     .query(async ({ input }) => {
       try {
@@ -463,7 +463,7 @@ export const kioskRouter = router({
   /**
    * Create a new QR session — kiosk displays the resulting QR code
    */
-  createQrSession: publicProcedure
+  createQrSession: protectedProcedure
     .input(z.object({ stationId: z.string(), departmentCode: z.string() }))
     .mutation(({ input }) => {
       const sessionId = randomUUID();
@@ -480,7 +480,7 @@ export const kioskRouter = router({
   /**
    * Poll QR session status — kiosk calls every 2s
    */
-  pollQrSession: publicProcedure
+  pollQrSession: protectedProcedure
     .input(z.object({ sessionId: z.string() }))
     .query(({ input }) => {
       const session = qrSessions.get(input.sessionId);
@@ -491,7 +491,7 @@ export const kioskRouter = router({
   /**
    * Confirm QR session — called from mobile page after operator enters employee ID
    */
-  confirmQrSession: publicProcedure
+  confirmQrSession: protectedProcedure
     .input(z.object({ sessionId: z.string(), employeeId: z.string().min(1) }))
     .mutation(async ({ input }) => {
       const session = qrSessions.get(input.sessionId);
@@ -533,7 +533,7 @@ export const kioskRouter = router({
   /**
    * Get QR session info — mobile page calls this to show station context
    */
-  getQrSessionInfo: publicProcedure
+  getQrSessionInfo: protectedProcedure
     .input(z.object({ sessionId: z.string() }))
     .query(({ input }) => {
       const session = qrSessions.get(input.sessionId);

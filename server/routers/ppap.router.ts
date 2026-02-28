@@ -3,7 +3,7 @@
  * IATF 16949 — 18-element PPAP submission management
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { ppapSubmissions, ppapElements, fmeaDocuments, controlPlans, msaStudies } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -44,7 +44,7 @@ const LEVEL_REQUIREMENTS: Record<string, number[]> = {
 
 export const ppapRouter = router({
   // 列表
-  list: publicProcedure.input(z.object({
+  list: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     status: z.string().optional(),
   }).optional()).query(async ({ input }) => {
@@ -56,7 +56,7 @@ export const ppapRouter = router({
   }),
 
   // 详情（含18元素）
-  getById: publicProcedure.input(idInput).query(async ({ input }) => {
+  getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     const [sub] = await db.select().from(ppapSubmissions).where(eq(ppapSubmissions.id, numId));
@@ -70,7 +70,7 @@ export const ppapRouter = router({
   }),
 
   // 创建PPAP提交（自动生成18元素清单）
-  create: publicProcedure.input(z.object({
+  create: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     partName: z.string().min(1),
     partNumber: z.string().min(1),
@@ -112,7 +112,7 @@ export const ppapRouter = router({
   }),
 
   // 更新提交
-  update: publicProcedure.input(z.object({
+  update: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     partName: z.string().optional(),
     partNumber: z.string().optional(),
@@ -133,7 +133,7 @@ export const ppapRouter = router({
   }),
 
   // 删除
-  delete: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     await db.delete(ppapElements).where(eq(ppapElements.submissionId, numId));
@@ -142,7 +142,7 @@ export const ppapRouter = router({
   }),
 
   // 更新元素状态
-  updateElement: publicProcedure.input(z.object({
+  updateElement: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     status: z.enum(["not_started", "in_progress", "completed", "not_applicable", "rejected"]),
     documentPath: z.string().optional(),
@@ -158,7 +158,7 @@ export const ppapRouter = router({
   }),
 
   // Auto-link PPAP elements to related FMEA, Control Plan, and MSA documents
-  autoLinkDocuments: publicProcedure.input(z.object({
+  autoLinkDocuments: protectedProcedure.input(z.object({
     submissionId: z.number(),
     projectId: z.number().optional(),
   })).mutation(async ({ input }) => {
@@ -243,10 +243,10 @@ export const ppapRouter = router({
   }),
 
   // 获取18元素定义
-  getElementDefinitions: publicProcedure.query(() => PPAP_18_ELEMENTS),
+  getElementDefinitions: protectedProcedure.query(() => PPAP_18_ELEMENTS),
 
   // 获取等级要求
-  getLevelRequirements: publicProcedure.input(z.object({
+  getLevelRequirements: protectedProcedure.input(z.object({
     level: z.enum(["1", "2", "3", "4", "5"]),
   })).query(({ input }) => {
     const required = LEVEL_REQUIREMENTS[input.level] || [];
@@ -254,7 +254,7 @@ export const ppapRouter = router({
   }),
 
   // 统计
-  getStats: publicProcedure.input(z.object({ projectId: z.number().optional() }).optional()).query(async ({ input }) => {
+  getStats: protectedProcedure.input(z.object({ projectId: z.number().optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     let subs = await db.select().from(ppapSubmissions);
     if (input?.projectId) subs = subs.filter(s => s.projectId === input.projectId);

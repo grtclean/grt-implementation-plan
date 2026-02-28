@@ -6,7 +6,7 @@
  *   Mutations  (6): createArticle, updateArticle, deleteArticle, reorderArticles, askCopilot, recordCopilotFeedback
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { helpArticles, HELP_CATEGORIES } from "../../drizzle/help-schema";
 import { aiLearningRecords, feedback } from "../../drizzle/schema";
@@ -233,7 +233,7 @@ export const helpRouter = router({
   // Mutations
   // ══════════════════════════════════════════════════
 
-  askCopilot: publicProcedure
+  askCopilot: protectedProcedure
     .input(
       z.object({
         query: z.string().min(1),
@@ -377,7 +377,7 @@ export const helpRouter = router({
       return { answer, sources, suggestedActions };
     }),
 
-  recordCopilotFeedback: publicProcedure
+  recordCopilotFeedback: protectedProcedure
     .input(
       z.object({
         query: z.string(),
@@ -422,7 +422,7 @@ export const helpRouter = router({
       return { success: true };
     }),
 
-  createArticle: publicProcedure
+  createArticle: protectedProcedure
     .input(
       z.object({
         routePath: z.string().max(500).optional(),
@@ -463,7 +463,7 @@ export const helpRouter = router({
       return item;
     }),
 
-  updateArticle: publicProcedure
+  updateArticle: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -511,7 +511,7 @@ export const helpRouter = router({
       return item;
     }),
 
-  deleteArticle: publicProcedure
+  deleteArticle: protectedProcedure
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -527,7 +527,7 @@ export const helpRouter = router({
       return item;
     }),
 
-  reorderArticles: publicProcedure
+  reorderArticles: protectedProcedure
     .input(
       z.object({
         items: z.array(

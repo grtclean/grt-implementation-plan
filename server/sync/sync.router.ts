@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
+import { protectedProcedure, router } from '../_core/trpc';
 import {
   DataSyncService,
   SyncQueue,
@@ -50,14 +50,14 @@ export const syncRouter = router({
   // ---------------------------------------------------------------------------
   // 获取节点信息
   // ---------------------------------------------------------------------------
-  getNodeInfo: publicProcedure.query(() => {
+  getNodeInfo: protectedProcedure.query(() => {
     return syncService.getNodeInfo();
   }),
 
   // ---------------------------------------------------------------------------
   // 获取队列统计
   // ---------------------------------------------------------------------------
-  getQueueStats: publicProcedure.query(() => {
+  getQueueStats: protectedProcedure.query(() => {
     return syncQueue.getStats();
   }),
 
@@ -186,7 +186,7 @@ export const syncRouter = router({
   // ---------------------------------------------------------------------------
   // 验证同步包
   // ---------------------------------------------------------------------------
-  verifyPacket: publicProcedure
+  verifyPacket: protectedProcedure
     .input(z.object({
       packet: z.unknown(),
     }))

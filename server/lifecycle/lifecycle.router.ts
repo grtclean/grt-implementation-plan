@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
+import { protectedProcedure, router } from '../_core/trpc';
 import {
   ProjectLifecycleStateMachine,
   ProjectPhase,
@@ -32,7 +32,7 @@ export const lifecycleRouter = router({
   // ---------------------------------------------------------------------------
   // 获取所有阶段配置
   // ---------------------------------------------------------------------------
-  getAllPhases: publicProcedure.query(() => {
+  getAllPhases: protectedProcedure.query(() => {
     return Object.values(PHASE_CONFIGS).map(config => ({
       ...config,
       phaseNumber: getPhaseNumber(config.phase),
@@ -45,7 +45,7 @@ export const lifecycleRouter = router({
   // ---------------------------------------------------------------------------
   // 获取单个阶段配置
   // ---------------------------------------------------------------------------
-  getPhaseConfig: publicProcedure
+  getPhaseConfig: protectedProcedure
     .input(z.object({ phase: projectPhaseSchema }))
     .query(({ input }) => {
       const config = PHASE_CONFIGS[input.phase];
@@ -188,7 +188,7 @@ export const lifecycleRouter = router({
   // ---------------------------------------------------------------------------
   // 获取项目进度
   // ---------------------------------------------------------------------------
-  getProgress: publicProcedure
+  getProgress: protectedProcedure
     .input(z.object({
       serializedState: z.string(),
     }))
@@ -209,7 +209,7 @@ export const lifecycleRouter = router({
   // ---------------------------------------------------------------------------
   // 获取阶段所需角色
   // ---------------------------------------------------------------------------
-  getRequiredRoles: publicProcedure
+  getRequiredRoles: protectedProcedure
     .input(z.object({ phase: projectPhaseSchema }))
     .query(({ input }) => {
       return {
@@ -240,7 +240,7 @@ export const lifecycleRouter = router({
   // ---------------------------------------------------------------------------
   // 获取阶段转换建议
   // ---------------------------------------------------------------------------
-  getTransitionSuggestions: publicProcedure
+  getTransitionSuggestions: protectedProcedure
     .input(z.object({
       serializedState: z.string(),
     }))

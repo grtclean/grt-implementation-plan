@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiChatSessions, aiChatMessages, aiChatTemplates } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -60,7 +60,7 @@ export const aiChatRouter = router({
     return { sessionId, message: msg };
   }),
 
-  getQuickPrompts: publicProcedure.input(z.object({
+  getQuickPrompts: protectedProcedure.input(z.object({
     assistantType: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();

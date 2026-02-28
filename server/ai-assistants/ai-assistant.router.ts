@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
+import { router, protectedProcedure } from '../_core/trpc';
 import {
   createEmployeeDA,
   getEmployeeDA,
@@ -204,13 +204,13 @@ export const aiAssistantRouter = router({
 
   // ── 前端 AIAssistantPage.tsx 需要的过程 ──
 
-  listAssistants: publicProcedure
+  listAssistants: protectedProcedure
     .input(z.object({}).optional())
     .query(async () => {
       return [];
     }),
 
-  createAssistant: publicProcedure
+  createAssistant: protectedProcedure
     .input(z.any())
     .mutation(async () => {
       return { success: true, id: `ast_${Date.now()}` };

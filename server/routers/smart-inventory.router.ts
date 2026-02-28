@@ -31,7 +31,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -403,7 +403,7 @@ export const smartInventoryRouter = router({
   /**
    * dashboard — full recalculation with cash impact analysis.
    */
-  dashboard: publicProcedure.query(async () => {
+  dashboard: protectedProcedure.query(async () => {
     const report = recalculateSafetyStock(MOCK_FORECASTS, MOCK_BOM, MOCK_RULES);
     return { ...report, dataSource: "mock" as const };
   }),
@@ -411,7 +411,7 @@ export const smartInventoryRouter = router({
   /**
    * forecasts — view sales forecasts by product.
    */
-  forecasts: publicProcedure.query(async () => {
+  forecasts: protectedProcedure.query(async () => {
     return {
       forecasts: MOCK_FORECASTS,
       products: [...new Set(MOCK_FORECASTS.map(f => f.productCode))].map(code => {
@@ -438,7 +438,7 @@ export const smartInventoryRouter = router({
   /**
    * partDetail — detailed analysis for a single part.
    */
-  partDetail: publicProcedure
+  partDetail: protectedProcedure
     .input(z.object({ partNumber: z.string() }))
     .query(async ({ input }) => {
       const report = recalculateSafetyStock(MOCK_FORECASTS, MOCK_BOM, MOCK_RULES);

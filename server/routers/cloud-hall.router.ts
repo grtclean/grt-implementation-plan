@@ -9,7 +9,7 @@
  *   updateSlideContext, heartbeat, endSession, listSessions, seedDemo
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   cloudHallSessions,
@@ -71,7 +71,7 @@ export const cloudHallRouter = router({
   /**
    * createSession — field sales initiates a new session
    */
-  createSession: publicProcedure
+  createSession: protectedProcedure
     .input(
       z.object({
         initiatorName: z.string().min(1),
@@ -114,7 +114,7 @@ export const cloudHallRouter = router({
   /**
    * inviteLeadership — sales invites a specific leader to the session
    */
-  inviteLeadership: publicProcedure
+  inviteLeadership: protectedProcedure
     .input(
       z.object({
         sessionId: z.number(),
@@ -166,7 +166,7 @@ export const cloudHallRouter = router({
   /**
    * joinSession — leadership accepts / joins the session
    */
-  joinSession: publicProcedure
+  joinSession: protectedProcedure
     .input(z.object({ sessionId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
@@ -208,7 +208,7 @@ export const cloudHallRouter = router({
    * getSessionState — poll current session state
    * Auto-marks disconnected if heartbeat > 60s stale while active
    */
-  getSessionState: publicProcedure
+  getSessionState: protectedProcedure
     .input(z.object({ sessionId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -250,7 +250,7 @@ export const cloudHallRouter = router({
   /**
    * updateSlideContext — sync current slide/product context
    */
-  updateSlideContext: publicProcedure
+  updateSlideContext: protectedProcedure
     .input(
       z.object({
         sessionId: z.number(),
@@ -292,7 +292,7 @@ export const cloudHallRouter = router({
   /**
    * heartbeat — keep-alive ping with optional connection quality
    */
-  heartbeat: publicProcedure
+  heartbeat: protectedProcedure
     .input(
       z.object({
         sessionId: z.number(),
@@ -336,7 +336,7 @@ export const cloudHallRouter = router({
   /**
    * endSession — gracefully end a session
    */
-  endSession: publicProcedure
+  endSession: protectedProcedure
     .input(
       z.object({
         sessionId: z.number(),
@@ -391,7 +391,7 @@ export const cloudHallRouter = router({
   /**
    * listSessions — paginated session list with filters
    */
-  listSessions: publicProcedure
+  listSessions: protectedProcedure
     .input(
       z.object({
         status: z.string().optional(),
@@ -440,7 +440,7 @@ export const cloudHallRouter = router({
   /**
    * seedDemo — insert 3 demonstration sessions
    */
-  seedDemo: publicProcedure.mutation(async () => {
+  seedDemo: protectedProcedure.mutation(async () => {
     const db = await requireDb();
 
     const now = new Date();

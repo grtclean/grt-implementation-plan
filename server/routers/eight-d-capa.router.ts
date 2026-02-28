@@ -3,7 +3,7 @@
  * IATF 16949 — D0-D8 structured problem solving & Corrective/Preventive Actions
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eightDReports, capaRecords } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -14,7 +14,7 @@ const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : i
 export const eightDCapaRouter = router({
   // ===== 8D Reports =====
 
-  list8D: publicProcedure.input(z.object({
+  list8D: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     currentStep: z.string().optional(),
     severity: z.string().optional(),
@@ -27,7 +27,7 @@ export const eightDCapaRouter = router({
     return { items, total: items.length };
   }),
 
-  get8D: publicProcedure.input(idInput).query(async ({ input }) => {
+  get8D: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     const [report] = await db.select().from(eightDReports).where(eq(eightDReports.id, numId));
@@ -37,7 +37,7 @@ export const eightDCapaRouter = router({
     return { ...report, capas };
   }),
 
-  create8D: publicProcedure.input(z.object({
+  create8D: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     title: z.string().min(1),
     problemDescription: z.string().optional(),
@@ -69,7 +69,7 @@ export const eightDCapaRouter = router({
   }),
 
   // 更新8D步骤 (advance through D1-D8)
-  update8DStep: publicProcedure.input(z.object({
+  update8DStep: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     currentStep: z.enum(["open", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "closed", "verified"]).optional(),
     // D1 fields
@@ -130,7 +130,7 @@ export const eightDCapaRouter = router({
     return { success: true, message: `8D报告已更新至 ${input.currentStep || ''}`, data: report };
   }),
 
-  delete8D: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  delete8D: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     await db.delete(capaRecords).where(eq(capaRecords.eightDReportId, numId));
@@ -140,7 +140,7 @@ export const eightDCapaRouter = router({
 
   // ===== CAPA Records =====
 
-  listCAPA: publicProcedure.input(z.object({
+  listCAPA: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     capaType: z.enum(["corrective", "preventive"]).optional(),
     status: z.string().optional(),
@@ -153,13 +153,13 @@ export const eightDCapaRouter = router({
     return { items, total: items.length };
   }),
 
-  getCAPA: publicProcedure.input(idInput).query(async ({ input }) => {
+  getCAPA: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [capa] = await db.select().from(capaRecords).where(eq(capaRecords.id, toNum(input.id)));
     return capa || null;
   }),
 
-  createCAPA: publicProcedure.input(z.object({
+  createCAPA: protectedProcedure.input(z.object({
     eightDReportId: z.number().optional(),
     projectId: z.number().optional(),
     capaType: z.enum(["corrective", "preventive"]),
@@ -192,7 +192,7 @@ export const eightDCapaRouter = router({
     return { success: true, message: "CAPA记录已创建", data: capa };
   }),
 
-  updateCAPA: publicProcedure.input(z.object({
+  updateCAPA: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     title: z.string().optional(),
     description: z.string().optional(),
@@ -216,7 +216,7 @@ export const eightDCapaRouter = router({
     return { success: true, message: "CAPA已更新", data: capa };
   }),
 
-  deleteCAPA: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  deleteCAPA: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(capaRecords).where(eq(capaRecords.id, toNum(input.id)));
     return { success: true, message: "CAPA已删除" };
@@ -225,7 +225,7 @@ export const eightDCapaRouter = router({
   // ===== D5 → CAPA Auto-Suggestion =====
 
   // When 8D reaches D5, auto-create CAPA records from corrective actions
-  suggestCapaFromD5: publicProcedure.input(z.object({
+  suggestCapaFromD5: protectedProcedure.input(z.object({
     eightDReportId: z.number(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
@@ -288,7 +288,7 @@ export const eightDCapaRouter = router({
 
   // ===== Statistics =====
 
-  getStats: publicProcedure.input(z.object({ projectId: z.number().optional() }).optional()).query(async ({ input }) => {
+  getStats: protectedProcedure.input(z.object({ projectId: z.number().optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     let reports = await db.select().from(eightDReports);
     let capas = await db.select().from(capaRecords);

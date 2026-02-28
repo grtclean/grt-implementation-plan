@@ -1,17 +1,17 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
 
 export const expenseReportSchedulerRouter = router({
   // 报销计划列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     return emptyListResponse;
   }),
 
   // 获取报销计划详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async () => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async () => {
     return null;
   }),
 
@@ -31,7 +31,7 @@ export const expenseReportSchedulerRouter = router({
   }),
 
   // 获取调度列表
-  getSchedules: publicProcedure.query(async () => {
+  getSchedules: protectedProcedure.query(async () => {
     return [];
   }),
 
@@ -61,14 +61,14 @@ export const expenseReportSchedulerRouter = router({
   }),
 
   // 获取执行历史
-  getExecutionHistory: publicProcedure.query(async () => {
+  getExecutionHistory: protectedProcedure.query(async () => {
     return [];
   }),
 
   // ── 前端 ExpenseReportScheduler.tsx 需要的 6 个过程 ──
 
   /** 获取统计信息 */
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     return {
       totalSchedules: 2,
       enabledSchedules: 1,
@@ -78,14 +78,14 @@ export const expenseReportSchedulerRouter = router({
   }),
 
   /** 获取发送历史 */
-  getSendHistory: publicProcedure
+  getSendHistory: protectedProcedure
     .input(z.object({ limit: z.number().optional() }))
     .query(async () => {
       return [];
     }),
 
   /** 获取支持的选项（频率、维度、格式、接收人类型） */
-  getSupportedOptions: publicProcedure.query(async () => {
+  getSupportedOptions: protectedProcedure.query(async () => {
     return {
       frequencies: [
         { id: "daily", name: "每日" },
@@ -111,7 +111,7 @@ export const expenseReportSchedulerRouter = router({
   }),
 
   /** 添加接收人 */
-  addRecipient: publicProcedure
+  addRecipient: protectedProcedure
     .input(z.object({
       scheduleId: z.string(),
       recipient: z.object({
@@ -126,7 +126,7 @@ export const expenseReportSchedulerRouter = router({
     }),
 
   /** 移除接收人 */
-  removeRecipient: publicProcedure
+  removeRecipient: protectedProcedure
     .input(z.object({
       scheduleId: z.string(),
       recipientId: z.string(),
@@ -136,7 +136,7 @@ export const expenseReportSchedulerRouter = router({
     }),
 
   /** 手动触发发送 */
-  triggerSend: publicProcedure
+  triggerSend: protectedProcedure
     .input(z.object({
       scheduleId: z.string(),
     }))

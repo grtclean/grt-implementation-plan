@@ -9,12 +9,12 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 
 export const fieldMappingRecommendRouter = router({
-  getRecommendations: publicProcedure
+  getRecommendations: protectedProcedure
     .input(z.any())
     .query(() => {
       return [];

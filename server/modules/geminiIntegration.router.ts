@@ -3,7 +3,7 @@
  * 包含：液态用工、AI销售、门径管理、个人智能体、核心业务模型、社群管理
  */
 import { z } from "zod";
-import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 
@@ -435,7 +435,7 @@ export const stageGateRouter = router({
 export const personalAgentRouter = router({
   // 行为探针日志
   behaviorLogs: router({
-    record: publicProcedure
+    record: protectedProcedure
       .input(z.object({
         userDid: z.string(),
         context: z.string(),
@@ -786,7 +786,7 @@ export const socialCommunityRouter = router({
         return result[0] as any[];
       }),
 
-    ingest: publicProcedure
+    ingest: protectedProcedure
       .input(z.object({
         messageId: z.string(),
         sourcePlatform: z.enum(['wechat', 'dingtalk', 'feishu', 'custom']),

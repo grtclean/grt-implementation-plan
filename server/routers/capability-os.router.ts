@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { capabilityProofConfigs, capabilityEvidences, publicCapabilityShowcase } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -25,13 +25,13 @@ const CAPABILITY_DOMAINS = [
 
 export const capabilityOsRouter = router({
   // --- Basic CRUD ----------------------------------------------------------------
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(capabilityProofConfigs).orderBy(desc(capabilityProofConfigs.createdAt));
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
-  getById: publicProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(capabilityProofConfigs).where(eq(capabilityProofConfigs.id, toNum(input.id)));
     return item || null;
@@ -73,13 +73,13 @@ export const capabilityOsRouter = router({
     return successResponse;
   }),
 
-  getAssessmentReport: publicProcedure.input(z.any()).query(async () => {
+  getAssessmentReport: protectedProcedure.input(z.any()).query(async () => {
     const db = await requireDb();
     const configs = await db.select().from(capabilityProofConfigs).where(eq(capabilityProofConfigs.isActive, 1));
     return { report: { domains: CAPABILITY_DOMAINS, capabilities: configs } };
   }),
 
-  getEmployeeCapabilities: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getEmployeeCapabilities: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const userId = input?.employeeId || input?.userId;
     if (!userId) return [];
@@ -87,23 +87,23 @@ export const capabilityOsRouter = router({
     return evidences;
   }),
 
-  getDevelopmentPath: publicProcedure.input(z.any()).query(async () => {
+  getDevelopmentPath: protectedProcedure.input(z.any()).query(async () => {
     const db = await requireDb();
     const configs = await db.select().from(capabilityProofConfigs).where(eq(capabilityProofConfigs.isActive, 1)).limit(5);
     return configs;
   }),
 
-  getUpgradeRules: publicProcedure.query(() => UPGRADE_RULES),
+  getUpgradeRules: protectedProcedure.query(() => UPGRADE_RULES),
   upgradeCapability: protectedProcedure.input(z.any()).mutation(() => successResponse),
 
-  listCapabilities: publicProcedure.query(async () => {
+  listCapabilities: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(capabilityProofConfigs).where(eq(capabilityProofConfigs.isActive, 1));
   }),
 
-  getDomains: publicProcedure.query(() => CAPABILITY_DOMAINS.map((d, i) => ({ ...d, id: i + 1 }))),
+  getDomains: protectedProcedure.query(() => CAPABILITY_DOMAINS.map((d, i) => ({ ...d, id: i + 1 }))),
 
-  getMyCapabilities: publicProcedure.query(async () => {
+  getMyCapabilities: protectedProcedure.query(async () => {
     const db = await requireDb();
     const evidences = await db.select().from(capabilityEvidences).where(eq(capabilityEvidences.status, "approved")).limit(200);
     // Aggregate by domain → { domainId, currentLevel, totalPoints }
@@ -122,12 +122,12 @@ export const capabilityOsRouter = router({
     return Object.values(domainMap);
   }),
 
-  getMyEvidences: publicProcedure.query(async () => {
+  getMyEvidences: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(capabilityEvidences).orderBy(desc(capabilityEvidences.createdAt)).limit(50);
   }),
 
-  getEvidenceTypes: publicProcedure.query(() => [
+  getEvidenceTypes: protectedProcedure.query(() => [
     { id: 1, code: "project_delivery", name: "项目交付", description: "项目参与和完成记录", baseScore: 50, domains: "T,D,C" },
     { id: 2, code: "training_cert", name: "培训证书", description: "培训完成证书", baseScore: 30, domains: "T,K" },
     { id: 3, code: "skill_cert", name: "技能认证", description: "专业技能认证", baseScore: 40, domains: "T" },
@@ -182,43 +182,43 @@ export const capabilityOsRouter = router({
     return { success: true, message: status === "approved" ? "已通过" : "已驳回" };
   }),
 
-  getPendingEvidences: publicProcedure.query(async () => {
+  getPendingEvidences: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(capabilityEvidences).where(eq(capabilityEvidences.status, "pending")).orderBy(desc(capabilityEvidences.createdAt));
   }),
 
-  getAllEvidences: publicProcedure.query(async () => {
+  getAllEvidences: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(capabilityEvidences).orderBy(desc(capabilityEvidences.createdAt)).limit(200);
   }),
 
   // --- Badges (no DB table) ------------------------------------------------------
-  getAllBadges: publicProcedure.query(() => []),
-  getUserBadges: publicProcedure.input(z.any()).query(() => []),
-  getBadgeLeaderboard: publicProcedure.query(() => []),
-  getBadgeStatistics: publicProcedure.query(() => ({ statistics: {} })),
+  getAllBadges: protectedProcedure.query(() => []),
+  getUserBadges: protectedProcedure.input(z.any()).query(() => []),
+  getBadgeLeaderboard: protectedProcedure.query(() => []),
+  getBadgeStatistics: protectedProcedure.query(() => ({ statistics: {} })),
   updateBadgeDisplay: protectedProcedure.input(z.any()).mutation(() => successResponse),
 
   // --- Leaderboard (no DB table) -------------------------------------------------
-  getDomainLeaderboard: publicProcedure.input(z.any()).query(() => []),
-  getOverallLeaderboard: publicProcedure.query(() => []),
-  getProgressLeaderboard: publicProcedure.query(() => []),
-  getLeaderboardStats: publicProcedure.query(() => ({ stats: {} })),
+  getDomainLeaderboard: protectedProcedure.input(z.any()).query(() => []),
+  getOverallLeaderboard: protectedProcedure.query(() => []),
+  getProgressLeaderboard: protectedProcedure.query(() => []),
+  getLeaderboardStats: protectedProcedure.query(() => ({ stats: {} })),
 
   // --- Certificates (no DB table) ------------------------------------------------
-  getMyCertificates: publicProcedure.query(() => []),
-  checkCertificateEligibility: publicProcedure.input(z.any()).query(() => ({ eligible: false, requirements: [] })),
+  getMyCertificates: protectedProcedure.query(() => []),
+  checkCertificateEligibility: protectedProcedure.input(z.any()).query(() => ({ eligible: false, requirements: [] })),
   generateCertificate: protectedProcedure.input(z.any()).mutation(() => ({ url: "" })),
-  verifyCertificateByQR: publicProcedure.input(z.any()).query(() => ({ valid: false, certificate: null })),
+  verifyCertificateByQR: protectedProcedure.input(z.any()).query(() => ({ valid: false, certificate: null })),
 
   // --- Engineer Checkpoints (no DB table) ----------------------------------------
-  getAllEngineerCheckpoints: publicProcedure.query(() => []),
+  getAllEngineerCheckpoints: protectedProcedure.query(() => []),
   approveCheckpoint: protectedProcedure.input(z.any()).mutation(() => successResponse),
   rejectCheckpoint: protectedProcedure.input(z.any()).mutation(() => successResponse),
   completePhase: protectedProcedure.input(z.any()).mutation(() => successResponse),
 
   // --- Path Recommendation (static mock) -----------------------------------------
-  getPathRecommendation: publicProcedure.input(z.any()).query(() => ({
+  getPathRecommendation: protectedProcedure.input(z.any()).query(() => ({
     userId: "user1",
     currentCapabilities: {
       T: { level: 3, points: 450 },
@@ -248,38 +248,38 @@ export const capabilityOsRouter = router({
   })),
 
   // --- Agent Units (no DB table) -------------------------------------------------
-  getAgentUnits: publicProcedure.query(() => []),
+  getAgentUnits: protectedProcedure.query(() => []),
   createAgentUnit: protectedProcedure.input(z.any()).mutation(() => successResponse),
   updateAgentUnitStatus: protectedProcedure.input(z.any()).mutation(() => successResponse),
   batchImportAgentUnits: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  getAgentUnitStatistics: publicProcedure.query(() => ({ statistics: {} })),
-  getAgentUnitImportHistory: publicProcedure.query(() => []),
+  getAgentUnitStatistics: protectedProcedure.query(() => ({ statistics: {} })),
+  getAgentUnitImportHistory: protectedProcedure.query(() => []),
 
   // --- Approval Chain Configs (no DB table) --------------------------------------
-  getApprovalChainConfigs: publicProcedure.query(() => []),
+  getApprovalChainConfigs: protectedProcedure.query(() => []),
   createApprovalChainConfig: protectedProcedure.input(z.any()).mutation(() => successResponse),
   updateApprovalChainConfig: protectedProcedure.input(z.any()).mutation(() => successResponse),
   deleteApprovalChainConfig: protectedProcedure.input(z.any()).mutation(() => successResponse),
 
   // --- UWB Positioning (no DB table) ---------------------------------------------
-  getAllUWBTags: publicProcedure.query(() => []),
-  getPositionHistory: publicProcedure.input(z.any()).query(() => []),
-  getWorkshopOverview: publicProcedure.query(() => ({ overview: {} })),
+  getAllUWBTags: protectedProcedure.query(() => []),
+  getPositionHistory: protectedProcedure.input(z.any()).query(() => []),
+  getWorkshopOverview: protectedProcedure.query(() => ({ overview: {} })),
 
   // --- Calibration (no DB table) -------------------------------------------------
   executeCalibrationCheck: protectedProcedure.input(z.any()).mutation(() => successResponse),
   recordCalibrationData: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  getCalibrationTrend: publicProcedure.input(z.any()).query(() => []),
+  getCalibrationTrend: protectedProcedure.input(z.any()).query(() => []),
 
   // --- Cleaning Strategies (no DB table) -----------------------------------------
-  getAllCleaningStrategies: publicProcedure.query(() => []),
+  getAllCleaningStrategies: protectedProcedure.query(() => []),
 
   // --- Toothpaste Test (no DB table) ---------------------------------------------
-  getToothpasteTestRecords: publicProcedure.query(() => []),
-  getToothpasteTestStatistics: publicProcedure.query(() => ({ statistics: {} })),
-  getToothpasteTestTrend: publicProcedure.query(() => []),
-  getToothpasteTestCount: publicProcedure.query(() => ({ count: 0 })),
-  getToothpasteFeatureTypeStats: publicProcedure.query(() => ({ stats: {} })),
+  getToothpasteTestRecords: protectedProcedure.query(() => []),
+  getToothpasteTestStatistics: protectedProcedure.query(() => ({ statistics: {} })),
+  getToothpasteTestTrend: protectedProcedure.query(() => []),
+  getToothpasteTestCount: protectedProcedure.query(() => ({ count: 0 })),
+  getToothpasteFeatureTypeStats: protectedProcedure.query(() => ({ stats: {} })),
   exportToothpasteTestReport: protectedProcedure.input(z.any()).mutation(() => ({ url: "" })),
 
   // --- Technical Proposals (no DB table) -----------------------------------------

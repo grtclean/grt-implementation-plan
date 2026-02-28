@@ -1,13 +1,13 @@
 import { z } from "zod";
-import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { sql } from "drizzle-orm";
 
 // 工作区路由
 export const workspaceRouter = router({
-  // 获取工作区列表 - 使用publicProcedure以便在未登录时也能返回空列表
-  list: publicProcedure
+  // 获取工作区列表 - 使用protectedProcedure以便在未登录时也能返回空列表
+  list: protectedProcedure
     .input(z.object({
       status: z.enum(['active', 'archived', 'all']).optional().default('active'),
       search: z.string().optional(),

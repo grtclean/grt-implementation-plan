@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../utils/db-helpers";
 import { deliveryExecutions, siteIssueTickets } from "../../drizzle/schema";
 import { eq, sql, desc, count } from "drizzle-orm";
@@ -119,7 +119,7 @@ const mockIssues = [
 // ========== Delivery sub-router ==========
 
 const deliverySubRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z.object({
         page: z.number().default(1),
@@ -159,7 +159,7 @@ const deliverySubRouter = router({
       }
     }),
 
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       try {
@@ -223,7 +223,7 @@ const deliverySubRouter = router({
       }
     }),
 
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     try {
       const db = await requireDb();
       const stageRows = await db
@@ -270,7 +270,7 @@ const deliverySubRouter = router({
 // ========== Site Issue sub-router ==========
 
 const siteIssueSubRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z.object({
         page: z.number().default(1),
@@ -355,7 +355,7 @@ const siteIssueSubRouter = router({
       }
     }),
 
-  getStats: publicProcedure
+  getStats: protectedProcedure
     .input(z.object({}).optional())
     .query(async () => {
       try {
@@ -407,6 +407,156 @@ const siteIssueSubRouter = router({
           bySeverity: { Critical: 1, High: 3 },
           total: 19,
         };
+      }
+    }),
+});
+
+// ========== Stage Transition sub-router (M7→M8→M9→Complete) ==========
+
+const stageTransitionSubRouter = router({
+  /** Advance M7→M8: FAT passed, begin shipping/packaging */
+  completeM7: protectedProcedure
+    .input(z.object({
+      deliveryId: z.number(),
+      m7GateResult: z.enum(["Pass", "Conditional_Pass", "Fail"]),
+      m7GateNotes: z.string().optional(),
+      shippingCleanlinessReport: z.string().optional(),
+      cycleTimeActual: z.number().optional(),
+      cycleTimeTarget: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const now = new Date();
+
+        if (input.m7GateResult === "Fail") {
+          await db.update(deliveryExecutions).set({
+            m7GateResult: "Fail",
+            m7GateNotes: input.m7GateNotes ?? null,
+            status: "Blocked",
+            blockReason: "M7 FAT gate check failed",
+            updatedAt: now.toISOString(),
+          }).where(eq(deliveryExecutions.id, input.deliveryId));
+          return { success: false, message: "M7 gate check failed — delivery blocked" };
+        }
+
+        const cycleVariance = input.cycleTimeActual && input.cycleTimeTarget
+          ? String(((input.cycleTimeActual - input.cycleTimeTarget) / input.cycleTimeTarget * 100).toFixed(2))
+          : null;
+
+        await db.update(deliveryExecutions).set({
+          currentStage: "M8_Installation",
+          m7GateResult: input.m7GateResult,
+          m7GateNotes: input.m7GateNotes ?? null,
+          m7CompletedDate: now,
+          m8StartDate: now,
+          shippingCleanlinessReport: input.shippingCleanlinessReport ?? null,
+          cycleTimeActual: input.cycleTimeActual ? String(input.cycleTimeActual) : null,
+          cycleTimeTarget: input.cycleTimeTarget ? String(input.cycleTimeTarget) : null,
+          cycleTimeVariance: cycleVariance,
+          cycleTimeStatus: cycleVariance && parseFloat(cycleVariance) > 10 ? "Warning" : "Normal",
+          status: "In_Progress",
+          updatedAt: now.toISOString(),
+        }).where(eq(deliveryExecutions.id, input.deliveryId));
+
+        return { success: true, message: "M7 completed → advanced to M8 Installation" };
+      } catch (e: any) {
+        return { success: false, message: e.message };
+      }
+    }),
+
+  /** Advance M8→M9: Shipping & installation complete, begin SAT */
+  completeM8: protectedProcedure
+    .input(z.object({
+      deliveryId: z.number(),
+      siteEngineerId: z.number().optional(),
+      siteEngineerName: z.string().optional(),
+      siteEngineerPhone: z.string().optional(),
+      installationNotes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const now = new Date();
+
+        await db.update(deliveryExecutions).set({
+          currentStage: "M9_Final_Acceptance",
+          m8CompletedDate: now,
+          m9StartDate: now,
+          siteEngineerId: input.siteEngineerId ?? null,
+          siteEngineerName: input.siteEngineerName ?? null,
+          siteEngineerPhone: input.siteEngineerPhone ?? null,
+          status: "In_Progress",
+          updatedAt: now.toISOString(),
+        }).where(eq(deliveryExecutions.id, input.deliveryId));
+
+        return { success: true, message: "M8 completed → advanced to M9 Final Acceptance (SAT)" };
+      } catch (e: any) {
+        return { success: false, message: e.message };
+      }
+    }),
+
+  /** Advance M9→Complete: SAT passed, customer signoff */
+  completeM9: protectedProcedure
+    .input(z.object({
+      deliveryId: z.number(),
+      m9AcceptanceResult: z.enum(["Pass", "Conditional_Pass", "Fail"]),
+      m9AcceptanceNotes: z.string().optional(),
+      customerSignoffName: z.string().optional(),
+      customerSignoffNotes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const now = new Date();
+
+        if (input.m9AcceptanceResult === "Fail") {
+          await db.update(deliveryExecutions).set({
+            m9AcceptanceResult: "Fail",
+            m9AcceptanceNotes: input.m9AcceptanceNotes ?? null,
+            status: "Blocked",
+            blockReason: "M9 SAT failed — customer acceptance rejected",
+            updatedAt: now.toISOString(),
+          }).where(eq(deliveryExecutions.id, input.deliveryId));
+          return { success: false, message: "M9 SAT failed — delivery blocked" };
+        }
+
+        await db.update(deliveryExecutions).set({
+          currentStage: "Completed",
+          m9AcceptanceResult: input.m9AcceptanceResult,
+          m9AcceptanceNotes: input.m9AcceptanceNotes ?? null,
+          m9CompletedDate: now,
+          actualM9Date: now,
+          customerSignoffName: input.customerSignoffName ?? null,
+          customerSignoffDate: now,
+          customerSignoffNotes: input.customerSignoffNotes ?? null,
+          status: "Completed",
+          updatedAt: now.toISOString(),
+        }).where(eq(deliveryExecutions.id, input.deliveryId));
+
+        return { success: true, message: "M9 completed → delivery finished. Customer signoff recorded.", deliveryId: input.deliveryId };
+      } catch (e: any) {
+        return { success: false, message: e.message };
+      }
+    }),
+
+  /** Unblock a delivery (after fixing the blocking issue) */
+  unblock: protectedProcedure
+    .input(z.object({
+      deliveryId: z.number(),
+      resolution: z.string().min(1),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        await db.update(deliveryExecutions).set({
+          status: "In_Progress",
+          blockReason: null,
+          updatedAt: new Date().toISOString(),
+        }).where(eq(deliveryExecutions.id, input.deliveryId));
+        return { success: true, message: "Delivery unblocked" };
+      } catch (e: any) {
+        return { success: false, message: e.message };
       }
     }),
 });
@@ -488,9 +638,10 @@ export const deliveryRouter = router({
   delivery: deliverySubRouter,
   siteIssue: siteIssueSubRouter,
   gateCheck: gateCheckSubRouter,
+  stageTransition: stageTransitionSubRouter,
 
   // Backward-compat flat endpoints (old placeholder shape)
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     try {
       const db = await requireDb();
       const rows = await db
@@ -503,7 +654,7 @@ export const deliveryRouter = router({
       return { items: mockDeliveries, total: mockDeliveries.length };
     }
   }),
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       try {

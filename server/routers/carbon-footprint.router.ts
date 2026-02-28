@@ -32,7 +32,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -472,7 +472,7 @@ export const carbonFootprintRouter = router({
   /**
    * Dashboard — all products with their carbon footprints
    */
-  dashboard: publicProcedure.query(async () => {
+  dashboard: protectedProcedure.query(async () => {
     const products = MOCK_PRODUCTS.map(p => {
       const bom = getBomForProduct(p.code);
       const steps = MOCK_MACHINING_STEPS[p.code] ?? [];
@@ -499,7 +499,7 @@ export const carbonFootprintRouter = router({
   /**
    * Single product detail with full breakdown
    */
-  productDetail: publicProcedure
+  productDetail: protectedProcedure
     .input(z.object({ productCode: z.string() }))
     .query(async ({ input }) => {
       const product = MOCK_PRODUCTS.find(p => p.code === input.productCode);
@@ -513,7 +513,7 @@ export const carbonFootprintRouter = router({
   /**
    * Simulate ECO material swap — what-if analysis
    */
-  simulateSwap: publicProcedure
+  simulateSwap: protectedProcedure
     .input(z.object({
       productCode: z.string(),
       oldPartNumber: z.string(),

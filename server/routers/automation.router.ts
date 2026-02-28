@@ -12,7 +12,7 @@
  *   - triggerSupplierPenalty: simulate supplier penalty trigger
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ── In-memory triggered meetings store ──
 
@@ -49,21 +49,21 @@ function createMeeting(title: string, type: string, description: string, trigger
 
 export const automationRouter = router({
   /** Legacy stub */
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({ limit: z.number().default(50), offset: z.number().default(0) }).optional())
     .query(async () => {
       return { items: [], total: 0 };
     }),
 
   /** List all auto-triggered meetings */
-  listTriggeredMeetings: publicProcedure
+  listTriggeredMeetings: protectedProcedure
     .input(z.object({ limit: z.number().default(20) }))
     .query(async ({ input }) => {
       return triggeredMeetings.slice(0, input.limit);
     }),
 
   /** Get automation stats */
-  getAutomationStats: publicProcedure
+  getAutomationStats: protectedProcedure
     .query(async () => {
       return {
         totalTriggered: triggeredMeetings.length,
@@ -74,7 +74,7 @@ export const automationRouter = router({
     }),
 
   /** Trigger: M-phase change (e.g., M2 signed) */
-  triggerPhaseChange: publicProcedure
+  triggerPhaseChange: protectedProcedure
     .input(z.object({
       phase: z.string(),
       projectTitle: z.string(),
@@ -91,7 +91,7 @@ export const automationRouter = router({
     }),
 
   /** Trigger: T-node delay */
-  triggerTNodeDelay: publicProcedure
+  triggerTNodeDelay: protectedProcedure
     .input(z.object({
       tNode: z.string(),
       projectTitle: z.string(),
@@ -108,7 +108,7 @@ export const automationRouter = router({
     }),
 
   /** Trigger: OKR at risk */
-  triggerOKRAtRisk: publicProcedure
+  triggerOKRAtRisk: protectedProcedure
     .input(z.object({
       objectiveTitle: z.string(),
       progress: z.number(),
@@ -126,7 +126,7 @@ export const automationRouter = router({
     }),
 
   /** Trigger: Quality escalation (8D) */
-  triggerQualityEscalation: publicProcedure
+  triggerQualityEscalation: protectedProcedure
     .input(z.object({
       reportTitle: z.string(),
       severity: z.string(),
@@ -144,7 +144,7 @@ export const automationRouter = router({
     }),
 
   /** Trigger: Supplier penalty threshold */
-  triggerSupplierPenalty: publicProcedure
+  triggerSupplierPenalty: protectedProcedure
     .input(z.object({
       supplierName: z.string(),
       penaltyCount: z.number(),

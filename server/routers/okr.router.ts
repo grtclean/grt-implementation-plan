@@ -6,17 +6,17 @@
  *   - dashboard: aggregate OKR KPIs (avg progress, level breakdown, etc.)
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 export const okrRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({ limit: z.number().default(50), offset: z.number().default(0) }).optional())
     .query(async () => {
       return { items: [], total: 0 };
     }),
 
   /** Dashboard aggregate KPIs */
-  dashboard: publicProcedure
+  dashboard: protectedProcedure
     .query(async () => {
       return {
         totalObjectives: 0,

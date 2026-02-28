@@ -8,7 +8,7 @@
  *   Inventory Freeze   (3): listFreezeLogs, freeze, unfreeze
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   globalCampaigns,
@@ -64,7 +64,7 @@ export const campaignRouter = router({
   // Global Campaigns
   // ══════════════════════════════════════════════════
 
-  listCampaigns: publicProcedure
+  listCampaigns: protectedProcedure
     .input(
       z
         .object({
@@ -102,7 +102,7 @@ export const campaignRouter = router({
       return { items, total: Number(total) };
     }),
 
-  getCampaign: publicProcedure
+  getCampaign: protectedProcedure
     .input(idInput)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -123,7 +123,7 @@ export const campaignRouter = router({
       return { ...campaign, payloadCount: Number(payloadCount) };
     }),
 
-  createCampaign: publicProcedure
+  createCampaign: protectedProcedure
     .input(
       z.object({
         code: z.string().min(1).max(50),
@@ -151,7 +151,7 @@ export const campaignRouter = router({
       return campaign;
     }),
 
-  updateCampaign: publicProcedure
+  updateCampaign: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -200,7 +200,7 @@ export const campaignRouter = router({
       return campaign;
     }),
 
-  deleteCampaign: publicProcedure
+  deleteCampaign: protectedProcedure
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -234,7 +234,7 @@ export const campaignRouter = router({
   // Campaign Payloads
   // ══════════════════════════════════════════════════
 
-  listPayloads: publicProcedure
+  listPayloads: protectedProcedure
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -250,7 +250,7 @@ export const campaignRouter = router({
       return { items, total: items.length };
     }),
 
-  addPayload: publicProcedure
+  addPayload: protectedProcedure
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -299,7 +299,7 @@ export const campaignRouter = router({
       return payload;
     }),
 
-  updatePayload: publicProcedure
+  updatePayload: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -360,7 +360,7 @@ export const campaignRouter = router({
       return payload;
     }),
 
-  deletePayload: publicProcedure
+  deletePayload: protectedProcedure
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -392,7 +392,7 @@ export const campaignRouter = router({
       return { deleted: true, id: deleted.id };
     }),
 
-  reorderPayloads: publicProcedure
+  reorderPayloads: protectedProcedure
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -444,7 +444,7 @@ export const campaignRouter = router({
   // Campaign Lifecycle
   // ══════════════════════════════════════════════════
 
-  simulateCampaign: publicProcedure
+  simulateCampaign: protectedProcedure
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -454,7 +454,7 @@ export const campaignRouter = router({
       return simulateOrgShift(toNum(input.campaignId));
     }),
 
-  approveCampaign: publicProcedure
+  approveCampaign: protectedProcedure
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -493,7 +493,7 @@ export const campaignRouter = router({
       return campaign;
     }),
 
-  executeCampaign: publicProcedure
+  executeCampaign: protectedProcedure
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -504,7 +504,7 @@ export const campaignRouter = router({
       return execCampaign(toNum(input.campaignId), input.executedBy);
     }),
 
-  rollbackCampaign: publicProcedure
+  rollbackCampaign: protectedProcedure
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -529,7 +529,7 @@ export const campaignRouter = router({
   // Inventory Freeze Logs
   // ══════════════════════════════════════════════════
 
-  listFreezeLogs: publicProcedure
+  listFreezeLogs: protectedProcedure
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -547,7 +547,7 @@ export const campaignRouter = router({
       return { items, total: items.length };
     }),
 
-  freezeInventory: publicProcedure
+  freezeInventory: protectedProcedure
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -575,7 +575,7 @@ export const campaignRouter = router({
       return { freezeLogId, campaignId: toNum(input.campaignId) };
     }),
 
-  unfreezeInventory: publicProcedure
+  unfreezeInventory: protectedProcedure
     .input(
       z.object({
         freezeLogId: z.union([z.string(), z.number()]),

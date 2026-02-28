@@ -13,7 +13,7 @@
  *   generateQuiz      — calls LLM to create quiz questions from transcript
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   sysMeetings,
@@ -50,7 +50,7 @@ const chatStore = new Map<
 // ═══════════════════════════════════════════════════════════
 const meetingRouter = router({
   // List all meetings, newest first
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z
         .object({
@@ -76,7 +76,7 @@ const meetingRouter = router({
     }),
 
   // Get single meeting by ID
-  getById: publicProcedure.input(idInput).query(async ({ input }) => {
+  getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [row] = await db
       .select()
@@ -86,7 +86,7 @@ const meetingRouter = router({
   }),
 
   // Create a new meeting
-  create: publicProcedure
+  create: protectedProcedure
     .input(
       z.object({
         title: z.string().min(1),
@@ -123,7 +123,7 @@ const meetingRouter = router({
     }),
 
   // Transition meeting status: UPCOMING → LIVE → ENDED
-  updateStatus: publicProcedure
+  updateStatus: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -146,7 +146,7 @@ const meetingRouter = router({
     }),
 
   // Update transcript (for AI quiz generation)
-  updateTranscript: publicProcedure
+  updateTranscript: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -164,7 +164,7 @@ const meetingRouter = router({
     }),
 
   // Generate AI quiz from transcript
-  generateQuiz: publicProcedure
+  generateQuiz: protectedProcedure
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -248,7 +248,7 @@ Use the same language as the transcript.`,
     }),
 
   // Create Teams meeting link via Graph API mock and save to DB
-  createTeamsLink: publicProcedure
+  createTeamsLink: protectedProcedure
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -279,7 +279,7 @@ Use the same language as the transcript.`,
     }),
 
   // Dashboard aggregation
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const statusCounts = await db
       .select({ status: sysMeetings.status, count: count() })
@@ -305,7 +305,7 @@ Use the same language as the transcript.`,
 // ═══════════════════════════════════════════════════════════
 const attendanceRouter = router({
   // List attendance for a meeting
-  listByMeeting: publicProcedure.input(idInput).query(async ({ input }) => {
+  listByMeeting: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     return db
       .select()
@@ -315,7 +315,7 @@ const attendanceRouter = router({
   }),
 
   // Check in (physical or online)
-  checkIn: publicProcedure
+  checkIn: protectedProcedure
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -367,7 +367,7 @@ const attendanceRouter = router({
     }),
 
   // Request leave
-  requestLeave: publicProcedure
+  requestLeave: protectedProcedure
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -415,7 +415,7 @@ const attendanceRouter = router({
     }),
 
   // Mark user as absent (called when meeting ends, for unregistered users)
-  markAbsent: publicProcedure
+  markAbsent: protectedProcedure
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -443,7 +443,7 @@ const attendanceRouter = router({
 // ═══════════════════════════════════════════════════════════
 const interactionRouter = router({
   // Get user's interaction for a meeting
-  getByUser: publicProcedure
+  getByUser: protectedProcedure
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -465,7 +465,7 @@ const interactionRouter = router({
     }),
 
   // Save / update private notes
-  saveNotes: publicProcedure
+  saveNotes: protectedProcedure
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -511,7 +511,7 @@ const interactionRouter = router({
     }),
 
   // Submit quiz answers
-  submitQuiz: publicProcedure
+  submitQuiz: protectedProcedure
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -566,7 +566,7 @@ const interactionRouter = router({
     }),
 
   // Submit takeaway reflection
-  submitReflection: publicProcedure
+  submitReflection: protectedProcedure
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -615,7 +615,7 @@ const interactionRouter = router({
 // ═══════════════════════════════════════════════════════════
 const penaltyRouter = router({
   // List all penalties, newest first
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z
         .object({
@@ -642,7 +642,7 @@ const penaltyRouter = router({
     }),
 
   // Trigger the HR penalty engine for a meeting
-  processAbsences: publicProcedure
+  processAbsences: protectedProcedure
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -658,7 +658,7 @@ const penaltyRouter = router({
     }),
 
   // Get penalty stats summary
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const levelCounts = await db
       .select({ level: hrPenalties.penaltyLevel, count: count() })
@@ -677,13 +677,13 @@ const penaltyRouter = router({
 // ═══════════════════════════════════════════════════════════
 const chatRouter = router({
   // Get chat messages for a meeting
-  getMessages: publicProcedure.input(idInput).query(({ input }) => {
+  getMessages: protectedProcedure.input(idInput).query(({ input }) => {
     const meetingId = toNum(input.id);
     return chatStore.get(meetingId) ?? [];
   }),
 
   // Send a chat message
-  sendMessage: publicProcedure
+  sendMessage: protectedProcedure
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -713,7 +713,7 @@ const chatRouter = router({
 //  Seed demo meeting (for CEO demo)
 // ═══════════════════════════════════════════════════════════
 const seedRouter = router({
-  seedDemo: publicProcedure.mutation(async () => {
+  seedDemo: protectedProcedure.mutation(async () => {
     const db = await requireDb();
 
     // Check if demo meeting already exists
@@ -823,7 +823,7 @@ const seedRouter = router({
 // ═══════════════════════════════════════════════════════════
 const speakerRouter = router({
   // Run voice-print analysis on a meeting
-  analyze: publicProcedure
+  analyze: protectedProcedure
     .input(z.object({ meetingId: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       const result = await analyzeMeetingAudio(toNum(input.meetingId));
@@ -831,7 +831,7 @@ const speakerRouter = router({
     }),
 
   // List speakers for a meeting
-  listByMeeting: publicProcedure
+  listByMeeting: protectedProcedure
     .input(z.object({ meetingId: z.union([z.string(), z.number()]) }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -843,7 +843,7 @@ const speakerRouter = router({
     }),
 
   // Bind an unknown speaker to a known profile
-  bindProfile: publicProcedure
+  bindProfile: protectedProcedure
     .input(
       z.object({
         speakerId: z.union([z.string(), z.number()]),
@@ -870,7 +870,7 @@ const speakerRouter = router({
     }),
 
   // Unbind a speaker (reset to unknown)
-  unbindProfile: publicProcedure
+  unbindProfile: protectedProcedure
     .input(z.object({ speakerId: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -894,14 +894,14 @@ const speakerRouter = router({
 // ═══════════════════════════════════════════════════════════
 const analyticsRouter = router({
   // Calculate ROI for a single meeting
-  meetingRoi: publicProcedure
+  meetingRoi: protectedProcedure
     .input(z.object({ meetingId: z.union([z.string(), z.number()]) }))
     .query(async ({ input }) => {
       return calculateMeetingROI(toNum(input.meetingId));
     }),
 
   // Get aggregated ROI across all meetings
-  aggregatedRoi: publicProcedure.query(async () => {
+  aggregatedRoi: protectedProcedure.query(async () => {
     return getAggregatedROI();
   }),
 });
@@ -913,7 +913,7 @@ const REVIEW_DIMENSIONS = ["performance", "execution", "innovation", "teamwork",
 
 const reviewRouter = router({
   // Create a review meeting (creates sys_meetings row + returns it)
-  createReviewMeeting: publicProcedure
+  createReviewMeeting: protectedProcedure
     .input(
       z.object({
         title: z.string().min(1),
@@ -941,7 +941,7 @@ const reviewRouter = router({
     }),
 
   // Submit evaluation for one dimension
-  submitEvaluation: publicProcedure
+  submitEvaluation: protectedProcedure
     .input(
       z.object({
         meetingId: z.number(),
@@ -984,7 +984,7 @@ const reviewRouter = router({
     }),
 
   // Get all evaluations for a review meeting (grouped by speaker)
-  getEvaluations: publicProcedure
+  getEvaluations: protectedProcedure
     .input(z.object({ meetingId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -1006,7 +1006,7 @@ const reviewRouter = router({
     }),
 
   // Analysis: radar chart data + averages + ranking
-  getAnalysis: publicProcedure
+  getAnalysis: protectedProcedure
     .input(z.object({ meetingId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -1041,7 +1041,7 @@ const reviewRouter = router({
     }),
 
   // Seed demo: 徐树奎 + 李柯瑶 述职会议 with mock evaluations
-  seedDemo: publicProcedure.mutation(async () => {
+  seedDemo: protectedProcedure.mutation(async () => {
     const db = await requireDb();
 
     // Check if already seeded

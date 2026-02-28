@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ────────────────── GRT Standard Field Schema ──────────────────
 
@@ -122,7 +122,7 @@ let importCounter = 0;
 
 export const dataMigrationRouter = router({
   /** Get GRT standard field definitions */
-  getStandardFields: publicProcedure.query(() => {
+  getStandardFields: protectedProcedure.query(() => {
     return GRT_STANDARD_FIELDS.map(f => ({
       key: f.key,
       label: f.label,
@@ -132,7 +132,7 @@ export const dataMigrationRouter = router({
   }),
 
   /** Analyze a dirty JSON payload and return AI-mapped field suggestions */
-  analyzePayload: publicProcedure
+  analyzePayload: protectedProcedure
     .input(z.object({
       data: z.array(z.record(z.string(), z.unknown())).min(1),
       source: z.string().optional().default("manual"),
@@ -173,7 +173,7 @@ export const dataMigrationRouter = router({
     }),
 
   /** Commit analyzed data to sandbox (staging area) */
-  commitToSandbox: publicProcedure
+  commitToSandbox: protectedProcedure
     .input(z.object({
       data: z.array(z.record(z.string(), z.unknown())),
       fieldMappings: z.array(z.object({
@@ -203,7 +203,7 @@ export const dataMigrationRouter = router({
     }),
 
   /** List all sandbox imports */
-  listSandboxImports: publicProcedure.query(() => {
+  listSandboxImports: protectedProcedure.query(() => {
     return sandboxStore.map(r => ({
       id: r.id,
       importedAt: r.importedAt,
@@ -214,7 +214,7 @@ export const dataMigrationRouter = router({
   }),
 
   /** Wipe all sandbox/test data — for production readiness */
-  wipeSandboxData: publicProcedure
+  wipeSandboxData: protectedProcedure
     .input(z.object({
       confirmPhrase: z.literal("WIPE ALL TEST DATA"),
     }))
@@ -232,7 +232,7 @@ export const dataMigrationRouter = router({
     }),
 
   /** Get sandbox statistics */
-  getSandboxStats: publicProcedure.query(() => {
+  getSandboxStats: protectedProcedure.query(() => {
     return {
       totalImports: sandboxStore.length,
       totalRecords: sandboxStore.reduce((sum, r) => sum + r.recordCount, 0),

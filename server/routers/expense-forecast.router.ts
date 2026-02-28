@@ -10,17 +10,17 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
 
 export const expenseForecastRouter = router({
-  list: publicProcedure.query(() => {
+  list: protectedProcedure.query(() => {
     return emptyListResponse;
   }),
 
-  getForecast: publicProcedure
+  getForecast: protectedProcedure
     .input(z.any())
     .query(() => {
       return [];

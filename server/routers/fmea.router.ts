@@ -3,7 +3,7 @@
  * IATF 16949 Core Tool — DFMEA & PFMEA with RPN calculation
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { fmeaDocuments, fmeaItems, fmeaActions, controlPlans, controlPlanItems } from "../../drizzle/schema";
 import { eq, desc, and, count, sql, gte, lte } from "drizzle-orm";
@@ -15,7 +15,7 @@ export const fmeaRouter = router({
   // ===== FMEA Documents =====
 
   // 列表
-  listDocuments: publicProcedure.input(z.object({
+  listDocuments: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     fmeaType: z.enum(["DFMEA", "PFMEA"]).optional(),
     status: z.string().optional(),
@@ -32,7 +32,7 @@ export const fmeaRouter = router({
   }),
 
   // 详情（含行项）
-  getDocument: publicProcedure.input(idInput).query(async ({ input }) => {
+  getDocument: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     const [doc] = await db.select().from(fmeaDocuments).where(eq(fmeaDocuments.id, numId));
@@ -53,7 +53,7 @@ export const fmeaRouter = router({
   }),
 
   // 创建FMEA文档
-  createDocument: publicProcedure.input(z.object({
+  createDocument: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     fmeaType: z.enum(["DFMEA", "PFMEA"]),
     title: z.string().min(1),
@@ -81,7 +81,7 @@ export const fmeaRouter = router({
   }),
 
   // 更新FMEA文档
-  updateDocument: publicProcedure.input(z.object({
+  updateDocument: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     title: z.string().optional(),
     scope: z.string().optional(),
@@ -107,7 +107,7 @@ export const fmeaRouter = router({
   }),
 
   // 删除FMEA文档（级联删除）
-  deleteDocument: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  deleteDocument: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     // Delete actions for items in this document
@@ -126,7 +126,7 @@ export const fmeaRouter = router({
   // ===== FMEA Items (失效模式) =====
 
   // 添加失效模式行
-  addItem: publicProcedure.input(z.object({
+  addItem: protectedProcedure.input(z.object({
     fmeaDocumentId: z.number(),
     systemElement: z.string().optional(),
     functionRequirement: z.string().optional(),
@@ -171,7 +171,7 @@ export const fmeaRouter = router({
   }),
 
   // 更新失效模式
-  updateItem: publicProcedure.input(z.object({
+  updateItem: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     systemElement: z.string().optional(),
     functionRequirement: z.string().optional(),
@@ -228,7 +228,7 @@ export const fmeaRouter = router({
   }),
 
   // 删除失效模式
-  deleteItem: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  deleteItem: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     await db.delete(fmeaActions).where(eq(fmeaActions.fmeaItemId, numId));
@@ -238,7 +238,7 @@ export const fmeaRouter = router({
 
   // ===== FMEA Actions (改进措施) =====
 
-  addAction: publicProcedure.input(z.object({
+  addAction: protectedProcedure.input(z.object({
     fmeaItemId: z.number(),
     actionDescription: z.string().min(1),
     responsiblePerson: z.string().optional(),
@@ -257,7 +257,7 @@ export const fmeaRouter = router({
     return { success: true, message: "改进措施已添加", data: action };
   }),
 
-  updateAction: publicProcedure.input(z.object({
+  updateAction: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     actionDescription: z.string().optional(),
     responsiblePerson: z.string().optional(),
@@ -281,7 +281,7 @@ export const fmeaRouter = router({
     return { success: true, message: "改进措施已更新", data: action };
   }),
 
-  deleteAction: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  deleteAction: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(fmeaActions).where(eq(fmeaActions.id, toNum(input.id)));
     return { success: true, message: "改进措施已删除" };
@@ -290,7 +290,7 @@ export const fmeaRouter = router({
   // ===== Statistics & Dashboard =====
 
   // FMEA概览统计
-  getStats: publicProcedure.input(z.object({
+  getStats: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
@@ -331,7 +331,7 @@ export const fmeaRouter = router({
   }),
 
   // 高风险项 Top N
-  getHighRiskItems: publicProcedure.input(z.object({
+  getHighRiskItems: protectedProcedure.input(z.object({
     limit: z.number().default(20),
     projectId: z.number().optional(),
   }).optional()).query(async ({ input }) => {

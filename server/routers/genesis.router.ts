@@ -9,7 +9,7 @@
  *   Stats      (1): getGenesisStats
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   knowledgeDocuments,
@@ -90,7 +90,7 @@ export const genesisRouter = router({
   // Documents
   // ══════════════════════════════════════════════════
 
-  listDocuments: publicProcedure
+  listDocuments: protectedProcedure
     .input(
       z
         .object({
@@ -131,7 +131,7 @@ export const genesisRouter = router({
       return { items, total: Number(total) };
     }),
 
-  getDocument: publicProcedure
+  getDocument: protectedProcedure
     .input(idInput)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -146,7 +146,7 @@ export const genesisRouter = router({
       return document ?? null;
     }),
 
-  uploadDocument: publicProcedure
+  uploadDocument: protectedProcedure
     .input(
       z.object({
         fileName: z.string().min(1).max(500),
@@ -181,7 +181,7 @@ export const genesisRouter = router({
       });
     }),
 
-  reanalyzeDocument: publicProcedure
+  reanalyzeDocument: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -314,7 +314,7 @@ export const genesisRouter = router({
       return updated;
     }),
 
-  archiveDocument: publicProcedure
+  archiveDocument: protectedProcedure
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -348,7 +348,7 @@ export const genesisRouter = router({
   // Proposals
   // ══════════════════════════════════════════════════
 
-  listProposals: publicProcedure
+  listProposals: protectedProcedure
     .input(
       z
         .object({
@@ -394,13 +394,13 @@ export const genesisRouter = router({
       return { items, total: Number(total) };
     }),
 
-  getProposal: publicProcedure
+  getProposal: protectedProcedure
     .input(idInput)
     .query(async ({ input }) => {
       return getProposalWithChat(toNum(input.id));
     }),
 
-  generateProposal: publicProcedure
+  generateProposal: protectedProcedure
     .input(
       z.object({
         documentId: z.union([z.string(), z.number()]),
@@ -414,7 +414,7 @@ export const genesisRouter = router({
       );
     }),
 
-  updateProposalStatus: publicProcedure
+  updateProposalStatus: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]).optional(),
@@ -435,7 +435,7 @@ export const genesisRouter = router({
       );
     }),
 
-  commitProposal: publicProcedure
+  commitProposal: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]).optional(),
@@ -452,7 +452,7 @@ export const genesisRouter = router({
       );
     }),
 
-  updateProposalDiff: publicProcedure
+  updateProposalDiff: protectedProcedure
     .input(
       z.object({
         proposalId: z.union([z.string(), z.number()]),
@@ -495,7 +495,7 @@ export const genesisRouter = router({
   // Chat
   // ══════════════════════════════════════════════════
 
-  getChatMessages: publicProcedure
+  getChatMessages: protectedProcedure
     .input(
       z.object({
         proposalId: z.union([z.string(), z.number()]),
@@ -524,7 +524,7 @@ export const genesisRouter = router({
       return { messages, total: messages.length };
     }),
 
-  sendMessage: publicProcedure
+  sendMessage: protectedProcedure
     .input(
       z.object({
         proposalId: z.union([z.string(), z.number()]),
@@ -541,7 +541,7 @@ export const genesisRouter = router({
       );
     }),
 
-  generateAIResponse: publicProcedure
+  generateAIResponse: protectedProcedure
     .input(
       z.object({
         proposalId: z.union([z.string(), z.number()]),
@@ -652,7 +652,7 @@ export const genesisRouter = router({
   // Stats
   // ══════════════════════════════════════════════════
 
-  getGenesisStats: publicProcedure.query(async () => {
+  getGenesisStats: protectedProcedure.query(async () => {
     const db = await requireDb();
 
     // Document counts by status
@@ -720,7 +720,7 @@ export const genesisRouter = router({
    * Simulates a 2-second LLM call, persists to ai_proposal_history (DB if available,
    * in-memory fallback otherwise), and returns the generated content + history ID.
    */
-  simulateGeneration: publicProcedure
+  simulateGeneration: protectedProcedure
     .input(
       z.object({
         documentId: z.union([z.string(), z.number()]),
@@ -829,7 +829,7 @@ This proposal outlines the design and commissioning plan for a **GRT Non-Standar
     }),
 
   /** List proposal history (DB with in-memory fallback) */
-  listProposalHistory: publicProcedure
+  listProposalHistory: protectedProcedure
     .input(z.object({ limit: z.number().default(50) }).optional())
     .query(async ({ input }) => {
       try {
@@ -848,7 +848,7 @@ This proposal outlines the design and commissioning plan for a **GRT Non-Standar
     }),
 
   /** Update a proposal history entry (status, feedbackScore, content edits) */
-  updateProposalHistory: publicProcedure
+  updateProposalHistory: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -887,7 +887,7 @@ This proposal outlines the design and commissioning plan for a **GRT Non-Standar
     }),
 
   /** Feed a finalized proposal back to the knowledge base (反馈至知识炼金炉) */
-  feedbackToKnowledgeBase: publicProcedure
+  feedbackToKnowledgeBase: protectedProcedure
     .input(z.object({ historyId: z.number() }))
     .mutation(async ({ input }) => {
       // Mark as FINALIZED

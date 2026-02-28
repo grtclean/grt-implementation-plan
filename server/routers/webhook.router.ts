@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { webhookConfigs, webhookLogs, webhookTemplates, webhookTriggerConditions } from "../../drizzle/schema";
 import { eq, desc, and, count, sql } from "drizzle-orm";
 
 export const webhookRouter = router({
   // 获取所有Webhook（分页）
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(webhookConfigs).orderBy(desc(webhookConfigs.createdAt));
     return {
@@ -18,7 +18,7 @@ export const webhookRouter = router({
   }),
 
   // 获取单个Webhook
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(webhookConfigs).where(eq(webhookConfigs.id, parseInt(input.id)));
     return item || null;
@@ -96,7 +96,7 @@ export const webhookRouter = router({
   }),
 
   // 获取Webhook日志（前端传 { webhookId?, limit? }）
-  getLogs: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getLogs: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const limit = input?.limit || 100;
     if (input?.webhookId) {
@@ -125,14 +125,14 @@ export const webhookRouter = router({
   }),
 
   // 获取所有Webhook
-  getAll: publicProcedure.query(async () => {
+  getAll: protectedProcedure.query(async () => {
     const db = await requireDb();
     const webhooks = await db.select().from(webhookConfigs);
     return { webhooks };
   }),
 
   // 获取Webhook统计
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [totalResult] = await db.select({ count: count() }).from(webhookConfigs);
     const [enabledResult] = await db.select({ count: count() }).from(webhookConfigs).where(eq(webhookConfigs.enabled, 1));
@@ -203,7 +203,7 @@ export const webhookRouter = router({
   }),
 
   // 模板 CRUD
-  getTemplates: publicProcedure.query(async () => {
+  getTemplates: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(webhookTemplates).orderBy(desc(webhookTemplates.createdAt));
   }),
@@ -250,7 +250,7 @@ export const webhookRouter = router({
     return { success: true, message: "模板删除成功" };
   }),
 
-  previewTemplate: publicProcedure.input(z.any()).mutation(() => ({ preview: "" })),
+  previewTemplate: protectedProcedure.input(z.any()).mutation(() => ({ preview: "" })),
 
   // 初始化默认模板
   initTemplates: protectedProcedure.mutation(async () => {

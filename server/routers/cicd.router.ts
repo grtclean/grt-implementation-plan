@@ -17,7 +17,7 @@
  *                    addGeminiAnalysis, askGeminiPlanner, autoFetch, delete
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { cicdTasks, cicdStageLogs } from "../../drizzle/cicd-pipeline-schema";
 import { eq, desc, sql, and, count } from "drizzle-orm";
@@ -150,7 +150,7 @@ export const cicdRouter = router({
   // ══════════════════════════════════════════════════════════════
 
   // List all pipeline tasks, optionally filtered by stage/status
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z.object({
         stage: z.enum(STAGES).optional(),
@@ -177,7 +177,7 @@ export const cicdRouter = router({
     }),
 
   // Get a single task by ID
-  getById: publicProcedure.input(idInput).query(async ({ input }) => {
+  getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [row] = await db
       .select()
@@ -187,7 +187,7 @@ export const cicdRouter = router({
   }),
 
   // Get stage transition logs for a task
-  getStageLogs: publicProcedure.input(idInput).query(async ({ input }) => {
+  getStageLogs: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     return db
       .select()
@@ -197,7 +197,7 @@ export const cicdRouter = router({
   }),
 
   // Dashboard aggregation stats
-  getDashboardStats: publicProcedure.query(async () => {
+  getDashboardStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     // Count tasks per stage
     const stageCounts = await db
@@ -240,7 +240,7 @@ export const cicdRouter = router({
   // ══════════════════════════════════════════════════════════════
 
   // Create a new pipeline task (from Gemini suggestion or manual input)
-  create: publicProcedure
+  create: protectedProcedure
     .input(
       z.object({
         title: z.string().min(1),
@@ -293,7 +293,7 @@ export const cicdRouter = router({
   // CRITICAL: When status transitions to IN_PROGRESS, the backend writes
   // a Claude-prompt .md file to data/dev-queue/pending/. This is the
   // FILE-BASED QUEUE BRIDGE that connects the web UI to the CLI.
-  updateStage: publicProcedure
+  updateStage: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -355,7 +355,7 @@ export const cicdRouter = router({
     }),
 
   // Promote task to next stage (requires CEO approval flag)
-  promoteStage: publicProcedure
+  promoteStage: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -406,7 +406,7 @@ export const cicdRouter = router({
     }),
 
   // Reject / rollback a stage (CEO says No-Go)
-  rejectStage: publicProcedure
+  rejectStage: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -453,7 +453,7 @@ export const cicdRouter = router({
     }),
 
   // Store Gemini's analysis for a given stage
-  addGeminiAnalysis: publicProcedure
+  addGeminiAnalysis: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -484,7 +484,7 @@ export const cicdRouter = router({
   // ── Gemini Planner Stub ──
   // Calls LLM (or returns mock) to analyze a requirement and suggest
   // task structure. In production, this would call the Google Generative AI SDK.
-  askGeminiPlanner: publicProcedure
+  askGeminiPlanner: protectedProcedure
     .input(z.object({ prompt: z.string().min(1) }))
     .mutation(async ({ input }) => {
       // Try real LLM first; fall back to rule-based mock
@@ -542,7 +542,7 @@ Always respond in the same language as the user's prompt.`;
 
   // ── Auto-Fetch: Scrape system logs/errors/feedback ──
   // In production, this would poll monitoring endpoints, Sentry, etc.
-  autoFetch: publicProcedure.mutation(async () => {
+  autoFetch: protectedProcedure.mutation(async () => {
     // Mock: return a few "scraped" issues
     const mockIssues = [
       {
@@ -615,7 +615,7 @@ Always respond in the same language as the user's prompt.`;
   //  API REFERENCE:
   //  https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event
   //
-  triggerGitHubDispatch: publicProcedure
+  triggerGitHubDispatch: protectedProcedure
     .input(
       z.object({
         taskId: z.union([z.string(), z.number()]),
@@ -698,7 +698,7 @@ Always respond in the same language as the user's prompt.`;
     }),
 
   // Delete a task
-  delete: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(cicdStageLogs).where(eq(cicdStageLogs.taskId, toNum(input.id)));
     await db.delete(cicdTasks).where(eq(cicdTasks.id, toNum(input.id)));
@@ -710,7 +710,7 @@ Always respond in the same language as the user's prompt.`;
   // ══════════════════════════════════════════════════════════════
 
   // Get the current state of the file queue (pending + completed files)
-  getQueueStatus: publicProcedure.query(() => {
+  getQueueStatus: protectedProcedure.query(() => {
     const pendingFiles = fs.existsSync(PENDING_DIR)
       ? fs.readdirSync(PENDING_DIR).filter((f) => f.endsWith(".md"))
       : [];
@@ -735,7 +735,7 @@ Always respond in the same language as the user's prompt.`;
   // Scan the completed/ folder for finished tasks.
   // For each task_[id].md found in completed/, update the DB status
   // to COMPLETED and log the transition. Called by frontend polling.
-  checkCompletedTasks: publicProcedure.mutation(async () => {
+  checkCompletedTasks: protectedProcedure.mutation(async () => {
     const db = await requireDb();
     const updated: number[] = [];
 
@@ -808,7 +808,7 @@ Always respond in the same language as the user's prompt.`;
 
   // Poll the questions/ folder for pending questions from Claude CLI.
   // Returns all *.json files parsed into an array of question objects.
-  getQuestions: publicProcedure.query(() => {
+  getQuestions: protectedProcedure.query(() => {
     if (!fs.existsSync(QUESTIONS_DIR)) return [];
 
     const files = fs.readdirSync(QUESTIONS_DIR).filter((f) => f.endsWith(".json"));
@@ -844,7 +844,7 @@ Always respond in the same language as the user's prompt.`;
 
   // CEO writes an answer. This creates an answer file that Claude CLI
   // is watching for, allowing it to resume execution.
-  answerQuestion: publicProcedure
+  answerQuestion: protectedProcedure
     .input(
       z.object({
         taskId: z.number(),

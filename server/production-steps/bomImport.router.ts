@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 import {
   generateBomTemplate,
   parseBomCsv,
@@ -26,7 +26,7 @@ export const bomImportRouter = router({
     }),
 
   /** 获取导入历史（前端 BomImport.tsx 需要） */
-  getImportHistory: publicProcedure
+  getImportHistory: protectedProcedure
     .input(z.object({
       projectId: z.string().optional(),
       limit: z.number().min(1).max(100).optional(),
@@ -40,7 +40,7 @@ export const bomImportRouter = router({
     }),
 
   /** 获取导入统计（前端 BomImport.tsx 需要） */
-  getImportStats: publicProcedure
+  getImportStats: protectedProcedure
     .input(z.object({
       projectId: z.string().optional(),
     }))
@@ -49,7 +49,7 @@ export const bomImportRouter = router({
     }),
 
   /** 批量导入（前端 BomImport.tsx 的 handleImport 调用） */
-  batchImport: publicProcedure
+  batchImport: protectedProcedure
     .input(z.object({
       projectId: z.string(),
       processCode: z.string(),
@@ -69,7 +69,7 @@ export const bomImportRouter = router({
     }),
 
   /** 下载模板（前端 BomImport.tsx 的 downloadTemplateMutation 调用） */
-  downloadTemplate: publicProcedure
+  downloadTemplate: protectedProcedure
     .input(z.object({
       processCode: z.string().optional(),
     }))

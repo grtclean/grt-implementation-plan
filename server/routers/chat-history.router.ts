@@ -1,19 +1,19 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiChatSessions, aiChatMessages } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
 
 export const chatHistoryRouter = router({
   // 会话列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(aiChatSessions).orderBy(desc(aiChatSessions.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 获取会话详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const [session] = await db.select().from(aiChatSessions).where(eq(aiChatSessions.id, parseInt(input.id)));
     return session || null;
@@ -57,7 +57,7 @@ export const chatHistoryRouter = router({
   }),
 
   // 获取所有会话
-  getSessions: publicProcedure.query(async () => {
+  getSessions: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(aiChatSessions).orderBy(desc(aiChatSessions.lastActivityAt));
   }),
@@ -74,7 +74,7 @@ export const chatHistoryRouter = router({
   }),
 
   // 获取会话消息
-  getMessages: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getMessages: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const sessionId = typeof input?.sessionId === "string" ? parseInt(input.sessionId) : (input?.sessionId || 0);
     return await db.select().from(aiChatMessages)
@@ -107,7 +107,7 @@ export const chatHistoryRouter = router({
   }),
 
   // 统计
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [totalSessions] = await db.select({ count: count() }).from(aiChatSessions);
     const [totalMessages] = await db.select({ count: count() }).from(aiChatMessages);

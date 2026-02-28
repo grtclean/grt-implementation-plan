@@ -1,4 +1,4 @@
-import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { invokeLLM } from "../_core/llm";
@@ -12,7 +12,7 @@ export const permissionManagementRouter = router({
    * 用户登录
    * 支持用户名/密码认证
    */
-  login: publicProcedure
+  login: protectedProcedure
     .input(z.object({
       username: z.string().min(3),
       password: z.string().min(6),

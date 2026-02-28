@@ -9,7 +9,7 @@
  *   Announcements  (4): list, get, create, publish
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   oaWorkflows,
@@ -46,7 +46,7 @@ export const oaRouter = router({
   // OA Workflows
   // ══════════════════════════════════════════════════
 
-  listWorkflows: publicProcedure.input(z.object({
+  listWorkflows: protectedProcedure.input(z.object({
     type: z.enum(OA_WORKFLOW_TYPES).optional(),
     status: z.enum(OA_WORKFLOW_STATUSES).optional(),
     applicantId: z.union([z.string(), z.number()]).optional(),
@@ -74,14 +74,14 @@ export const oaRouter = router({
     return { items, total: Number(total) };
   }),
 
-  getWorkflow: publicProcedure.input(idInput).query(async ({ input }) => {
+  getWorkflow: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [workflow] = await db.select().from(oaWorkflows)
       .where(eq(oaWorkflows.id, toNum(input.id)));
     return workflow ?? null;
   }),
 
-  createWorkflow: publicProcedure.input(z.object({
+  createWorkflow: protectedProcedure.input(z.object({
     applicantId: z.number().optional(),
     type: z.enum(OA_WORKFLOW_TYPES),
     title: z.string().min(1).max(200),
@@ -99,7 +99,7 @@ export const oaRouter = router({
     });
   }),
 
-  approveWorkflow: publicProcedure.input(z.object({
+  approveWorkflow: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     approverId: z.number(),
     comment: z.string().optional(),
@@ -107,7 +107,7 @@ export const oaRouter = router({
     return approveOARequest(toNum(input.id), input.approverId, input.comment);
   }),
 
-  rejectWorkflow: publicProcedure.input(z.object({
+  rejectWorkflow: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     approverId: z.number(),
     comment: z.string().optional(),
@@ -115,7 +115,7 @@ export const oaRouter = router({
     return rejectOARequest(toNum(input.id), input.approverId, input.comment);
   }),
 
-  cancelWorkflow: publicProcedure.input(z.object({
+  cancelWorkflow: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
@@ -136,7 +136,7 @@ export const oaRouter = router({
     return workflow!;
   }),
 
-  getMyPendingApprovals: publicProcedure.input(z.object({
+  getMyPendingApprovals: protectedProcedure.input(z.object({
     approverId: z.union([z.string(), z.number()]),
   })).query(async ({ input }) => {
     const db = await requireDb();
@@ -151,7 +151,7 @@ export const oaRouter = router({
     return items;
   }),
 
-  getWorkflowStats: publicProcedure.query(async () => {
+  getWorkflowStats: protectedProcedure.query(async () => {
     const db = await requireDb();
 
     const stats = await db
@@ -180,14 +180,14 @@ export const oaRouter = router({
   // Meetings
   // ══════════════════════════════════════════════════
 
-  listMeetings: publicProcedure.query(async () => {
+  listMeetings: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(companyEventsMeetings)
       .where(eq(companyEventsMeetings.isActive, true))
       .orderBy(companyEventsMeetings.dayOfWeek);
   }),
 
-  createMeeting: publicProcedure.input(z.object({
+  createMeeting: protectedProcedure.input(z.object({
     title: z.string().min(1).max(200),
     description: z.string().optional(),
     departmentId: z.number().optional(),
@@ -219,7 +219,7 @@ export const oaRouter = router({
     return meeting;
   }),
 
-  updateMeeting: publicProcedure.input(z.object({
+  updateMeeting: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     title: z.string().optional(),
     description: z.string().optional(),
@@ -260,13 +260,13 @@ export const oaRouter = router({
     return meeting;
   }),
 
-  generateAgenda: publicProcedure.input(z.object({
+  generateAgenda: protectedProcedure.input(z.object({
     meetingId: z.union([z.string(), z.number()]),
   })).mutation(async ({ input }) => {
     return generateMondayMorningAgenda(toNum(input.meetingId));
   }),
 
-  getAgendaItems: publicProcedure.input(z.object({
+  getAgendaItems: protectedProcedure.input(z.object({
     meetingId: z.union([z.string(), z.number()]),
     meetingDate: z.string().optional(), // YYYY-MM-DD
   })).query(async ({ input }) => {
@@ -280,7 +280,7 @@ export const oaRouter = router({
       .orderBy(meetingAgendasActions.sortOrder);
   }),
 
-  updateAgendaItem: publicProcedure.input(z.object({
+  updateAgendaItem: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     decision: z.string().optional(),
     assignedTo: z.number().optional(),
@@ -303,7 +303,7 @@ export const oaRouter = router({
     return item;
   }),
 
-  concludeMeeting: publicProcedure.input(z.object({
+  concludeMeeting: protectedProcedure.input(z.object({
     meetingId: z.union([z.string(), z.number()]),
     meetingDate: z.string(),
     updates: z.array(z.object({
@@ -358,7 +358,7 @@ export const oaRouter = router({
   // Trip Reports
   // ══════════════════════════════════════════════════
 
-  listTripReports: publicProcedure.input(z.object({
+  listTripReports: protectedProcedure.input(z.object({
     employeeId: z.union([z.string(), z.number()]).optional(),
     projectId: z.union([z.string(), z.number()]).optional(),
     status: z.enum(["draft", "submitted", "reviewed"]).optional(),
@@ -386,7 +386,7 @@ export const oaRouter = router({
     return { items, total: Number(total) };
   }),
 
-  createTripReport: publicProcedure.input(z.object({
+  createTripReport: protectedProcedure.input(z.object({
     employeeId: z.number().optional(),
     projectId: z.number().optional(),
     tripRequestId: z.number().optional(),
@@ -424,7 +424,7 @@ export const oaRouter = router({
     });
   }),
 
-  getTripReport: publicProcedure.input(idInput).query(async ({ input }) => {
+  getTripReport: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [report] = await db.select().from(businessTripReports)
       .where(eq(businessTripReports.id, toNum(input.id)));
@@ -435,7 +435,7 @@ export const oaRouter = router({
   // Leave Balances (假期余额 — from JDY 考勤管理)
   // ══════════════════════════════════════════════════
 
-  getMyLeaveBalances: publicProcedure.input(z.object({
+  getMyLeaveBalances: protectedProcedure.input(z.object({
     employeeId: z.union([z.string(), z.number()]),
     year: z.number().optional(),
   })).query(async ({ input }) => {
@@ -443,7 +443,7 @@ export const oaRouter = router({
     return getLeaveBalances(toNum(input.employeeId), year);
   }),
 
-  initLeaveBalances: publicProcedure.input(z.object({
+  initLeaveBalances: protectedProcedure.input(z.object({
     employeeId: z.number(),
     year: z.number(),
     allocations: z.array(z.object({
@@ -455,7 +455,7 @@ export const oaRouter = router({
     return initLeaveBalances(input.employeeId, input.year, input.allocations);
   }),
 
-  listAllLeaveBalances: publicProcedure.input(z.object({
+  listAllLeaveBalances: protectedProcedure.input(z.object({
     year: z.number().optional(),
     limit: z.number().default(100),
     offset: z.number().default(0),
@@ -479,7 +479,7 @@ export const oaRouter = router({
   // Announcements (公告通知 — from JDY 会议管理/通知)
   // ══════════════════════════════════════════════════
 
-  listAnnouncements: publicProcedure.input(z.object({
+  listAnnouncements: protectedProcedure.input(z.object({
     status: z.enum(OA_ANNOUNCEMENT_STATUSES).optional(),
     category: z.string().optional(),
     departmentId: z.number().optional(),
@@ -506,7 +506,7 @@ export const oaRouter = router({
     return { items, total: Number(total) };
   }),
 
-  getAnnouncement: publicProcedure.input(idInput).query(async ({ input }) => {
+  getAnnouncement: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [ann] = await db.select().from(oaAnnouncements)
       .where(eq(oaAnnouncements.id, toNum(input.id)));
@@ -520,7 +520,7 @@ export const oaRouter = router({
     return ann;
   }),
 
-  createAnnouncement: publicProcedure.input(z.object({
+  createAnnouncement: protectedProcedure.input(z.object({
     title: z.string().min(1).max(300),
     content: z.string().optional(),
     category: z.string().optional(),
@@ -552,7 +552,7 @@ export const oaRouter = router({
     }, publish);
   }),
 
-  publishAnnouncement: publicProcedure.input(z.object({
+  publishAnnouncement: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
   })).mutation(async ({ input }) => {
     const db = await requireDb();

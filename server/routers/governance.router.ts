@@ -8,7 +8,7 @@
  *   Audit Logs        (3): list (paginated), create, stats
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   sysDictionaries,
@@ -30,7 +30,7 @@ export const governanceRouter = router({
   // Dictionaries — MDM (Master Data Management)
   // ══════════════════════════════════════════════════
 
-  listDictionaries: publicProcedure
+  listDictionaries: protectedProcedure
     .input(
       z
         .object({
@@ -66,7 +66,7 @@ export const governanceRouter = router({
       return { items, total: Number(total) };
     }),
 
-  getDictionary: publicProcedure
+  getDictionary: protectedProcedure
     .input(idInput)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -77,7 +77,7 @@ export const governanceRouter = router({
       return item ?? null;
     }),
 
-  createDictionary: publicProcedure
+  createDictionary: protectedProcedure
     .input(
       z.object({
         category: z.string().min(1).max(100),
@@ -108,7 +108,7 @@ export const governanceRouter = router({
       return item;
     }),
 
-  updateDictionary: publicProcedure
+  updateDictionary: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -149,7 +149,7 @@ export const governanceRouter = router({
       return item;
     }),
 
-  deleteDictionary: publicProcedure
+  deleteDictionary: protectedProcedure
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -165,7 +165,7 @@ export const governanceRouter = router({
       return item;
     }),
 
-  getDictionaryByCategory: publicProcedure
+  getDictionaryByCategory: protectedProcedure
     .input(z.object({ category: z.string().min(1) }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -186,7 +186,7 @@ export const governanceRouter = router({
   // Workflow Definitions + Nodes
   // ══════════════════════════════════════════════════
 
-  listWorkflowDefinitions: publicProcedure
+  listWorkflowDefinitions: protectedProcedure
     .input(
       z
         .object({
@@ -229,7 +229,7 @@ export const governanceRouter = router({
       return { items, total: Number(total) };
     }),
 
-  getWorkflowDefinition: publicProcedure
+  getWorkflowDefinition: protectedProcedure
     .input(idInput)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -250,7 +250,7 @@ export const governanceRouter = router({
       return { ...definition, nodes };
     }),
 
-  createWorkflowDefinition: publicProcedure
+  createWorkflowDefinition: protectedProcedure
     .input(
       z.object({
         code: z.string().min(1).max(100),
@@ -285,7 +285,7 @@ export const governanceRouter = router({
       return item;
     }),
 
-  updateWorkflowDefinition: publicProcedure
+  updateWorkflowDefinition: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -330,7 +330,7 @@ export const governanceRouter = router({
       return item;
     }),
 
-  addWorkflowNode: publicProcedure
+  addWorkflowNode: protectedProcedure
     .input(
       z.object({
         workflowDefinitionId: z.union([z.string(), z.number()]),
@@ -369,7 +369,7 @@ export const governanceRouter = router({
       return node;
     }),
 
-  updateWorkflowNode: publicProcedure
+  updateWorkflowNode: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -405,7 +405,7 @@ export const governanceRouter = router({
       return node;
     }),
 
-  deleteWorkflowNode: publicProcedure
+  deleteWorkflowNode: protectedProcedure
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -422,7 +422,7 @@ export const governanceRouter = router({
   // Data Policies — Row-Level Security
   // ══════════════════════════════════════════════════
 
-  listDataPolicies: publicProcedure
+  listDataPolicies: protectedProcedure
     .input(
       z
         .object({
@@ -460,7 +460,7 @@ export const governanceRouter = router({
       return { items, total: Number(total) };
     }),
 
-  createDataPolicy: publicProcedure
+  createDataPolicy: protectedProcedure
     .input(
       z.object({
         name: z.string().min(1).max(200),
@@ -493,7 +493,7 @@ export const governanceRouter = router({
       return item;
     }),
 
-  updateDataPolicy: publicProcedure
+  updateDataPolicy: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -537,7 +537,7 @@ export const governanceRouter = router({
       return item;
     }),
 
-  deleteDataPolicy: publicProcedure
+  deleteDataPolicy: protectedProcedure
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -557,7 +557,7 @@ export const governanceRouter = router({
   // Audit Logs — System-wide Audit Trail
   // ══════════════════════════════════════════════════
 
-  listAuditLogs: publicProcedure
+  listAuditLogs: protectedProcedure
     .input(
       z
         .object({
@@ -601,7 +601,7 @@ export const governanceRouter = router({
       return { items, total: Number(total) };
     }),
 
-  createAuditLog: publicProcedure
+  createAuditLog: protectedProcedure
     .input(
       z.object({
         entityType: z.string().min(1).max(100),
@@ -642,7 +642,7 @@ export const governanceRouter = router({
       return item;
     }),
 
-  getAuditLogStats: publicProcedure
+  getAuditLogStats: protectedProcedure
     .input(
       z.object({
         startDate: z.string().min(1), // ISO date string, e.g. "2026-01-01"

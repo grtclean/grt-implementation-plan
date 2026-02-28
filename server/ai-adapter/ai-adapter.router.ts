@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
+import { protectedProcedure, router } from '../_core/trpc';
 import {
   AIServiceFactory,
   getAIService,
@@ -31,7 +31,7 @@ export const aiAdapterRouter = router({
   // ---------------------------------------------------------------------------
   // 获取当前区域和AI服务信息
   // ---------------------------------------------------------------------------
-  getServiceInfo: publicProcedure.query(() => {
+  getServiceInfo: protectedProcedure.query(() => {
     const region = AIServiceFactory.detectRegion();
     const service = getAIService();
     const availableAdapters = AIServiceFactory.getAvailableAdapters();
@@ -46,7 +46,7 @@ export const aiAdapterRouter = router({
   // ---------------------------------------------------------------------------
   // 健康检查所有适配器
   // ---------------------------------------------------------------------------
-  healthCheckAll: publicProcedure.query(async () => {
+  healthCheckAll: protectedProcedure.query(async () => {
     const results = await AIServiceFactory.healthCheckAll();
     return {
       timestamp: new Date().toISOString(),

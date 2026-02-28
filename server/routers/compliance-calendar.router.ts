@@ -16,7 +16,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -248,7 +248,7 @@ export const complianceCalendarRouter = router({
    * dashboard — returns full compliance summary with tiered alerts.
    * Mock-first: returns demo data, overlays live DB when available.
    */
-  dashboard: publicProcedure.query(async () => {
+  dashboard: protectedProcedure.query(async () => {
     const now = new Date();
     const mockCerts = buildMockCerts(now);
 
@@ -294,7 +294,7 @@ export const complianceCalendarRouter = router({
    * history — returns recent compliance actions for audit trail.
    * Mock-first: returns demo action history.
    */
-  history: publicProcedure
+  history: protectedProcedure
     .input(z.object({ limit: z.number().min(1).max(100).default(20) }))
     .query(async ({ input }) => {
       // Phase 4: read from complianceReminderActions table

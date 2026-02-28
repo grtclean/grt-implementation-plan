@@ -8,7 +8,7 @@
  *   scrap disposal, spare parts, supplier penalties, traceability
  */
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   supplierShipmentLabels,
@@ -43,7 +43,7 @@ function generateCode(prefix: string) {
 // 1. Supplier Shipment Labels
 // ═══════════════════════════════════════════════════════════════
 const supplierLabelRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       supplierId: z.number().optional(),
       materialCode: z.string().optional(),
@@ -63,7 +63,7 @@ const supplierLabelRouter = router({
       return { items: filtered, total: filtered.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(supplierShipmentLabels).where(eq(supplierShipmentLabels.id, toNum(input.id)));
     return item ?? null;
@@ -161,7 +161,7 @@ const supplierLabelRouter = router({
     return { success: true };
   }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(supplierShipmentLabels);
     const validated = all.filter(l => l.isValidated);
@@ -178,7 +178,7 @@ const supplierLabelRouter = router({
 // 2. Incoming Inspection (IQC)
 // ═══════════════════════════════════════════════════════════════
 const incomingInspectionRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       materialCode: z.string().optional(),
       supplierId: z.number().optional(),
@@ -196,7 +196,7 @@ const incomingInspectionRouter = router({
       return { items: filtered, total: filtered.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(incomingInspectionRecords).where(eq(incomingInspectionRecords.id, toNum(input.id)));
     return item ?? null;
@@ -369,7 +369,7 @@ const incomingInspectionRouter = router({
       return updated;
     }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(incomingInspectionRecords);
     const pass = all.filter(i => i.inspectionResult === "PASS").length;
@@ -412,7 +412,7 @@ const incomingInspectionRouter = router({
 // 3. Assembly BOM Scan Verification
 // ═══════════════════════════════════════════════════════════════
 const assemblyBomScanRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       projectNumber: z.string().optional(),
       processCode: z.string().optional(),
@@ -548,7 +548,7 @@ const assemblyBomScanRouter = router({
       return updated;
     }),
 
-  processProgress: publicProcedure
+  processProgress: protectedProcedure
     .input(z.object({ projectNumber: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -567,7 +567,7 @@ const assemblyBomScanRouter = router({
       return { projectNumber: input.projectNumber, processes: Object.fromEntries(byProcess) };
     }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(assemblyBomScanLogs);
     const match = all.filter(s => s.bomMatchResult === "MATCH").length;
@@ -583,7 +583,7 @@ const assemblyBomScanRouter = router({
     };
   }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(assemblyBomScanLogs).where(eq(assemblyBomScanLogs.id, toNum(input.id)));
     return item ?? null;
@@ -600,7 +600,7 @@ const assemblyBomScanRouter = router({
 // 4. Labor Confirmations
 // ═══════════════════════════════════════════════════════════════
 const laborConfirmationRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       projectNumber: z.string().optional(),
       processCode: z.string().optional(),
@@ -618,7 +618,7 @@ const laborConfirmationRouter = router({
       return { items: filtered, total: filtered.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(assemblyLaborConfirmations).where(eq(assemblyLaborConfirmations.id, toNum(input.id)));
     return item ?? null;
@@ -692,7 +692,7 @@ const laborConfirmationRouter = router({
       return updated;
     }),
 
-  workerSummary: publicProcedure
+  workerSummary: protectedProcedure
     .input(z.object({ workerId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -713,7 +713,7 @@ const laborConfirmationRouter = router({
       };
     }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(assemblyLaborConfirmations);
     const active = all.filter(r => r.clockInTime && !r.clockOutTime).length;
@@ -755,7 +755,7 @@ const laborConfirmationRouter = router({
 // 5. Customer Quality Complaints
 // ═══════════════════════════════════════════════════════════════
 const customerComplaintRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       customerId: z.number().optional(),
       projectNumber: z.string().optional(),
@@ -773,7 +773,7 @@ const customerComplaintRouter = router({
       return { items: filtered, total: filtered.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(customerQualityComplaints).where(eq(customerQualityComplaints.id, toNum(input.id)));
     return item ?? null;
@@ -861,7 +861,7 @@ const customerComplaintRouter = router({
       return updated;
     }),
 
-  traceToSupplier: publicProcedure
+  traceToSupplier: protectedProcedure
     .input(z.object({ complaintId: z.union([z.string(), z.number()]) }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -874,7 +874,7 @@ const customerComplaintRouter = router({
       return { complaint, traceEdges: edges };
     }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(customerQualityComplaints);
     const open = all.filter(c => c.status === "open").length;
@@ -905,7 +905,7 @@ const customerComplaintRouter = router({
 // 6. Equipment Maintenance
 // ═══════════════════════════════════════════════════════════════
 const maintenanceRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       equipmentId: z.number().optional(),
       maintenanceType: z.string().optional(),
@@ -921,7 +921,7 @@ const maintenanceRouter = router({
       return { items: filtered, total: filtered.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(equipmentMaintenanceRecords).where(eq(equipmentMaintenanceRecords.id, toNum(input.id)));
     return item ?? null;
@@ -993,14 +993,14 @@ const maintenanceRouter = router({
       return updated;
     }),
 
-  upcoming: publicProcedure.query(async () => {
+  upcoming: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(equipmentMaintenanceRecords)
       .where(eq(equipmentMaintenanceRecords.status, "scheduled"));
     return all.sort((a, b) => (a.scheduledDate || "").localeCompare(b.scheduledDate || ""));
   }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(equipmentMaintenanceRecords);
     const scheduled = all.filter(r => r.status === "scheduled").length;
@@ -1016,7 +1016,7 @@ const maintenanceRouter = router({
 // 7. Scrap Disposal
 // ═══════════════════════════════════════════════════════════════
 const scrapDisposalRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       materialCode: z.string().optional(),
       disposalMethod: z.string().optional(),
@@ -1032,7 +1032,7 @@ const scrapDisposalRouter = router({
       return { items: filtered, total: filtered.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(scrapDisposalRecords).where(eq(scrapDisposalRecords.id, toNum(input.id)));
     return item ?? null;
@@ -1104,7 +1104,7 @@ const scrapDisposalRouter = router({
       return updated;
     }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(scrapDisposalRecords);
     const totalCost = all.reduce((s, r) => s + Number(r.totalScrapCost || 0), 0);
@@ -1120,7 +1120,7 @@ const scrapDisposalRouter = router({
     return { success: true };
   }),
 
-  byCategory: publicProcedure.query(async () => {
+  byCategory: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(scrapDisposalRecords);
     const byCategory = new Map<string, { count: number; cost: number }>();
@@ -1153,7 +1153,7 @@ const scrapDisposalRouter = router({
 // 8. Spare Parts
 // ═══════════════════════════════════════════════════════════════
 const sparePartsRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       category: z.string().optional(),
       isCritical: z.boolean().optional(),
@@ -1169,7 +1169,7 @@ const sparePartsRouter = router({
       return { items: filtered, total: filtered.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(spareParts).where(eq(spareParts.id, toNum(input.id)));
     return item ?? null;
@@ -1284,7 +1284,7 @@ const sparePartsRouter = router({
       return { log, autoReorderTriggered: shouldReorder, newStock };
     }),
 
-  consumptionHistory: publicProcedure
+  consumptionHistory: protectedProcedure
     .input(z.object({ sparePartId: z.number().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -1309,13 +1309,13 @@ const sparePartsRouter = router({
       return updated;
     }),
 
-  lowStockAlerts: publicProcedure.query(async () => {
+  lowStockAlerts: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(spareParts);
     return all.filter(p => p.isActive && p.currentStock <= p.reorderPoint);
   }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(spareParts).where(eq(spareParts.isActive, true));
     const lowStock = all.filter(p => p.currentStock <= p.reorderPoint).length;
@@ -1337,7 +1337,7 @@ function getEscalationLevel(occurrenceCount: number): { level: number; type: "wa
 }
 
 const supplierPenaltyRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       supplierId: z.number().optional(),
       triggerType: z.string().optional(),
@@ -1355,7 +1355,7 @@ const supplierPenaltyRouter = router({
       return { items: filtered, total: filtered.length };
     }),
 
-  get: publicProcedure.input(idInput).query(async ({ input }) => {
+  get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(supplierPenalties).where(eq(supplierPenalties.id, toNum(input.id)));
     return item ?? null;
@@ -1410,7 +1410,7 @@ const supplierPenaltyRouter = router({
       return updated;
     }),
 
-  supplierScorecard: publicProcedure
+  supplierScorecard: protectedProcedure
     .input(z.object({ supplierId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -1445,7 +1445,7 @@ const supplierPenaltyRouter = router({
       };
     }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(supplierPenalties);
     const active = all.filter(p => p.isActive).length;
@@ -1467,7 +1467,7 @@ const supplierPenaltyRouter = router({
 // ═══════════════════════════════════════════════════════════════
 const traceabilityRouter = router({
   // Forward trace: from entity → all downstream
-  forward: publicProcedure
+  forward: protectedProcedure
     .input(z.object({
       entityType: z.string(),
       entityId: z.number(),
@@ -1497,7 +1497,7 @@ const traceabilityRouter = router({
     }),
 
   // Backward trace: from entity → all upstream
-  backward: publicProcedure
+  backward: protectedProcedure
     .input(z.object({
       entityType: z.string(),
       entityId: z.number(),
@@ -1527,7 +1527,7 @@ const traceabilityRouter = router({
     }),
 
   // Project-level trace graph
-  projectGraph: publicProcedure
+  projectGraph: protectedProcedure
     .input(z.object({ projectNumber: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -1543,7 +1543,7 @@ const traceabilityRouter = router({
     }),
 
   // Dashboard overview stats
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(traceabilityGraphEdges);
     const byType = new Map<string, number>();
@@ -1579,7 +1579,7 @@ export const supplyChainRouter = router({
   trace: traceabilityRouter,
 
   // Unified dashboard stats
-  dashboardStats: publicProcedure.query(async () => {
+  dashboardStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [inspections, scans, complaints, penalties, parts, scraps] = await Promise.all([
       db.select().from(incomingInspectionRecords),

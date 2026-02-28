@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 
@@ -133,7 +133,7 @@ const ROLE_LEVELS: Record<string, number> = {
 // ---------------------------------------------------------------------------
 
 export const collaborationDocsRouter = router({
-  listFiles: publicProcedure
+  listFiles: protectedProcedure
     .input(
       z.object({
         search: z.string().optional(),
@@ -208,7 +208,7 @@ export const collaborationDocsRouter = router({
       return { items, total: items.length };
     }),
 
-  getFile: publicProcedure
+  getFile: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       await ensureTables();
@@ -227,7 +227,7 @@ export const collaborationDocsRouter = router({
       return rows[0] ?? null;
     }),
 
-  uploadFile: publicProcedure
+  uploadFile: protectedProcedure
     .input(
       z.object({
         fileName: z.string().min(1).max(500),
@@ -265,7 +265,7 @@ export const collaborationDocsRouter = router({
     }),
 
   // ── Save file content (spreadsheet edits) ──
-  saveFile: publicProcedure
+  saveFile: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -284,7 +284,7 @@ export const collaborationDocsRouter = router({
       return { success: true, id: input.id };
     }),
 
-  listFolders: publicProcedure
+  listFolders: protectedProcedure
     .input(
       z.object({
         parentId: z.number().nullable().optional(),
@@ -315,7 +315,7 @@ export const collaborationDocsRouter = router({
       return (result.rows as any[]) || [];
     }),
 
-  createFolder: publicProcedure
+  createFolder: protectedProcedure
     .input(
       z.object({
         name: z.string().min(1).max(200),
@@ -334,7 +334,7 @@ export const collaborationDocsRouter = router({
       return (result.rows as any[])[0];
     }),
 
-  approveFile: publicProcedure
+  approveFile: protectedProcedure
     .input(z.object({ fileId: z.number() }))
     .mutation(async ({ input }) => {
       await ensureTables();

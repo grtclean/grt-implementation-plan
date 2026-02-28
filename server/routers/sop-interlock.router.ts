@@ -17,7 +17,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, and, sql, desc, gt } from "drizzle-orm";
 import { qualificationCertificates } from "../../drizzle/schema";
@@ -155,9 +155,9 @@ export const sopInterlockRouter = router({
   /**
    * Core gateway: verify if operator may access machine.
    * Called from shop-floor tablet at badge scan.
-   * Uses publicProcedure because kiosk/tablet may not have user session.
+   * Uses protectedProcedure because kiosk/tablet may not have user session.
    */
-  verifyAccess: publicProcedure
+  verifyAccess: protectedProcedure
     .input(z.object({ userId: z.number(), machineId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -268,7 +268,7 @@ export const sopInterlockRouter = router({
     }),
 
   /** Get machine info + requirements (for the shop floor UI) */
-  getMachineInfo: publicProcedure
+  getMachineInfo: protectedProcedure
     .input(z.object({ machineId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();

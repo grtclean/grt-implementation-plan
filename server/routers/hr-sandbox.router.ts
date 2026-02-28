@@ -5,7 +5,7 @@
  * No new tables needed — reuses ai_tasks table.
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiTasks } from "../../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -58,7 +58,7 @@ export const hrSandboxRouter = router({
   /**
    * initSandbox — returns dictionary + roleCriteria + employees + departments
    */
-  initSandbox: publicProcedure.query(() => {
+  initSandbox: protectedProcedure.query(() => {
     const departments = [...new Set(EMPLOYEE_ASSESSMENTS.map(e => e.department))].sort();
     return {
       dictionary: CAPABILITY_DICTIONARY,
@@ -71,7 +71,7 @@ export const hrSandboxRouter = router({
   /**
    * submitParsing — create ai_task → synchronously parse → return result
    */
-  submitParsing: publicProcedure
+  submitParsing: protectedProcedure
     .input(z.object({
       employeeId: z.number().optional(),
       role: z.string(),
@@ -111,7 +111,7 @@ export const hrSandboxRouter = router({
   /**
    * getParsingResult — poll a task result by taskId
    */
-  getParsingResult: publicProcedure
+  getParsingResult: protectedProcedure
     .input(z.object({ taskId: z.number() }))
     .query(async ({ input }) => {
       await ensureTables();
@@ -131,7 +131,7 @@ export const hrSandboxRouter = router({
   /**
    * batchParse — parse all employees in a department (RBAC: roleLevel ≥ 3)
    */
-  batchParse: publicProcedure
+  batchParse: protectedProcedure
     .input(z.object({
       department: z.string(),
       userRole: z.string().optional(),
@@ -197,7 +197,7 @@ export const hrSandboxRouter = router({
   /**
    * whatIfSimulation — slider-based what-if for a single employee
    */
-  whatIfSimulation: publicProcedure
+  whatIfSimulation: protectedProcedure
     .input(z.object({
       employeeId: z.number().optional(),
       role: z.string(),
@@ -217,7 +217,7 @@ export const hrSandboxRouter = router({
   /**
    * submitDocParsing — async: submit DOC_PARSING task to worker queue
    */
-  submitDocParsing: publicProcedure
+  submitDocParsing: protectedProcedure
     .input(z.object({
       documentText: z.string(),
       employeeName: z.string().optional(),
@@ -236,7 +236,7 @@ export const hrSandboxRouter = router({
   /**
    * submitIncidentAnalysis — async: submit INCIDENT_ANALYSIS task to worker queue
    */
-  submitIncidentAnalysis: publicProcedure
+  submitIncidentAnalysis: protectedProcedure
     .input(z.object({
       incidentTitle: z.string(),
       incidentDescription: z.string(),
@@ -257,7 +257,7 @@ export const hrSandboxRouter = router({
   /**
    * submitCompensationCheck — async: submit COMPENSATION_RULE task to worker queue
    */
-  submitCompensationCheck: publicProcedure
+  submitCompensationCheck: protectedProcedure
     .input(z.object({
       ruleConfig: z.object({
         salaryCapMultiplier: z.number().optional(),
@@ -288,7 +288,7 @@ export const hrSandboxRouter = router({
   /**
    * exportReport — aggregate results for a list of task IDs
    */
-  exportReport: publicProcedure
+  exportReport: protectedProcedure
     .input(z.object({ taskIds: z.array(z.number()) }))
     .query(async ({ input }) => {
       await ensureTables();

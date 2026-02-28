@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { costAlertRuleTemplates } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -7,19 +7,19 @@ import { eq, desc, count } from "drizzle-orm";
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 
 export const ruleTemplateRouter = router({
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(costAlertRuleTemplates).orderBy(desc(costAlertRuleTemplates.createdAt));
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
-  getById: publicProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.id, toNum(input.id)));
     return item || null;
   }),
 
-  getAll: publicProcedure.query(async () => {
+  getAll: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.isActive, 1)).orderBy(desc(costAlertRuleTemplates.usageCount));
   }),

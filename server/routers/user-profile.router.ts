@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import * as userProfileService from "../services/user-profile.service";
 import * as emailReminderService from "../services/email-reminder.service";
 
@@ -139,7 +139,7 @@ export const userProfileRouter = router({
   }),
 
   // 检查是否到达提醒时间
-  checkReminderTime: publicProcedure
+  checkReminderTime: protectedProcedure
     .input(z.object({
       targetTime: z.string().optional(),
     }).optional())

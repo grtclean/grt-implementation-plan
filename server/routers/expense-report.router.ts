@@ -1,19 +1,19 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { expenseClaims, expenseLineItems } from "../../drizzle/schema";
 import { eq, desc, count, sql } from "drizzle-orm";
 
 export const expenseReportRouter = router({
   // 报销列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(expenseClaims).orderBy(desc(expenseClaims.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 获取报销详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     const [claim] = await db.select().from(expenseClaims).where(eq(expenseClaims.id, id));
@@ -117,7 +117,7 @@ export const expenseReportRouter = router({
   }),
 
   // 生成报表（前端 ExpenseReport.tsx 调用）
-  generateReport: publicProcedure.input(z.any()).query(async ({ input }) => {
+  generateReport: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const items = await db.select().from(expenseClaims).orderBy(desc(expenseClaims.createdAt)).limit(200);
 
@@ -161,7 +161,7 @@ export const expenseReportRouter = router({
   }),
 
   // 部门排名（前端 ExpenseReport.tsx 调用）
-  getDepartmentRanking: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getDepartmentRanking: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const ranking = await db.select({
       departmentId: expenseClaims.departmentId,

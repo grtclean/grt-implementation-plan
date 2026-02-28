@@ -1,19 +1,19 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { importHistory } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
 
 export const importHistoryRouter = router({
   // 导入历史列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(importHistory).orderBy(desc(importHistory.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 获取导入详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(importHistory).where(eq(importHistory.id, parseInt(input.id)));
     return item || null;
@@ -55,13 +55,13 @@ export const importHistoryRouter = router({
   }),
 
   // 获取历史记录
-  getHistory: publicProcedure.query(async () => {
+  getHistory: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(importHistory).orderBy(desc(importHistory.createdAt)).limit(50);
   }),
 
   // 获取导入详细信息
-  getDetails: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getDetails: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input?.id === "string" ? parseInt(input.id) : (input?.id || 0);
     const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id));
@@ -69,7 +69,7 @@ export const importHistoryRouter = router({
   }),
 
   // 导入统计（前端调用 getStats）
-  getStats: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getStats: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const [total] = await db.select({ count: count() }).from(importHistory);
     const [pending] = await db.select({ count: count() }).from(importHistory).where(eq(importHistory.status, "pending"));
@@ -84,7 +84,7 @@ export const importHistoryRouter = router({
   }),
 
   // 检查是否可回滚
-  canRollback: publicProcedure.input(z.any()).query(async ({ input }) => {
+  canRollback: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input?.id === "string" ? parseInt(input.id) : (input?.id || 0);
     const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id));

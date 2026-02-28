@@ -20,7 +20,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc } from "drizzle-orm";
 import { productionEquipments } from "../../drizzle/production-equipment-schema";
@@ -231,7 +231,7 @@ export const oeeDashboardRouter = router({
    * Mock-first: returns realistic data immediately.
    * When backend has real shift logs, overlays live calculations.
    */
-  dashboard: publicProcedure.query(async () => {
+  dashboard: protectedProcedure.query(async () => {
     // Try live data
     const live = await safeQuery(async () => {
       const db = await requireDb();
@@ -280,7 +280,7 @@ export const oeeDashboardRouter = router({
   }),
 
   /** Single machine OEE history (last 30 days) */
-  machineHistory: publicProcedure
+  machineHistory: protectedProcedure
     .input(z.object({ machineId: z.number(), days: z.number().default(30) }))
     .query(async ({ input }) => {
       const history = await safeQuery(async () => {

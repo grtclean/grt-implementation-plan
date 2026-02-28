@@ -4,7 +4,10 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import { requirePermission, router } from "../_core/trpc";
+
+// All salary approval procedures require hrm_salary_detail permission
+const salaryProcedure = requirePermission('hrm_salary_detail');
 import {
   getApprovalWorkflows,
   getWorkflowById,
@@ -31,21 +34,21 @@ export const salaryApprovalRouter = router({
   // ========== 工作流定义 ==========
   
   /** 获取所有审批工作流 */
-  getWorkflows: protectedProcedure
+  getWorkflows: salaryProcedure
     .input(z.object({ activeOnly: z.boolean().optional() }).optional())
     .query(async ({ input }) => {
       return getApprovalWorkflows(input?.activeOnly ?? true);
     }),
 
   /** 获取单个工作流详情 */
-  getWorkflow: protectedProcedure
+  getWorkflow: salaryProcedure
     .input(z.object({ workflowId: z.number() }))
     .query(async ({ input }) => {
       return getWorkflowById(input.workflowId);
     }),
 
   /** 创建审批工作流 */
-  createWorkflow: protectedProcedure
+  createWorkflow: salaryProcedure
     .input(z.object({
       workflowName: z.string().min(1).max(200),
       workflowCode: z.string().min(1).max(50),
@@ -62,7 +65,7 @@ export const salaryApprovalRouter = router({
     }),
 
   /** 更新审批工作流 */
-  updateWorkflow: protectedProcedure
+  updateWorkflow: salaryProcedure
     .input(z.object({
       workflowId: z.number(),
       workflowName: z.string().optional(),
@@ -80,7 +83,7 @@ export const salaryApprovalRouter = router({
   // ========== 审批操作 ==========
 
   /** 提交薪酬审批 */
-  submit: protectedProcedure
+  submit: salaryProcedure
     .input(z.object({
       workflowId: z.number(),
       bonusRecordId: z.number().optional(),
@@ -99,7 +102,7 @@ export const salaryApprovalRouter = router({
     }),
 
   /** 审批操作（批准/拒绝） */
-  process: protectedProcedure
+  process: salaryProcedure
     .input(z.object({
       recordId: z.number(),
       action: z.enum(['approve', 'reject']),
@@ -116,7 +119,7 @@ export const salaryApprovalRouter = router({
     }),
 
   /** 取消审批 */
-  cancel: protectedProcedure
+  cancel: salaryProcedure
     .input(z.object({
       recordId: z.number(),
       reason: z.string().optional(),
@@ -132,7 +135,7 @@ export const salaryApprovalRouter = router({
   // ========== 查询 ==========
 
   /** 获取审批记录列表 */
-  getRecords: protectedProcedure
+  getRecords: salaryProcedure
     .input(z.object({
       status: z.string().optional(),
       workflowId: z.number().optional(),
@@ -146,20 +149,20 @@ export const salaryApprovalRouter = router({
     }),
 
   /** 获取审批详情 */
-  getDetail: protectedProcedure
+  getDetail: salaryProcedure
     .input(z.object({ recordId: z.number() }))
     .query(async ({ input }) => {
       return getApprovalDetail(input.recordId);
     }),
 
   /** 获取审批统计 */
-  getStats: protectedProcedure
+  getStats: salaryProcedure
     .query(async () => {
       return getApprovalStats();
     }),
 
   /** 获取待审批记录（按角色） */
-  getPending: protectedProcedure
+  getPending: salaryProcedure
     .input(z.object({ role: z.string() }))
     .query(async ({ input }) => {
       return getPendingApprovalsForRole(input.role);

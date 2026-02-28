@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, adminProcedure, protectedProcedure, publicProcedure } from "../_core/trpc";
+import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 
 // ===== 审批模板Schema =====
@@ -504,7 +504,7 @@ export const approvalRouter = router({
   /**
    * 获取所有审批模板
    */
-  getTemplates: publicProcedure
+  getTemplates: protectedProcedure
     .input(z.object({
       businessType: z.string().optional(),
       isActive: z.boolean().optional(),
@@ -525,7 +525,7 @@ export const approvalRouter = router({
   /**
    * 获取单个审批模板
    */
-  getTemplate: publicProcedure
+  getTemplate: protectedProcedure
     .input(z.object({
       id: z.number().optional(),
       templateCode: z.string().optional(),
@@ -820,7 +820,7 @@ export const approvalRouter = router({
   /**
    * 获取审批实例历史
    */
-  getInstanceHistory: publicProcedure
+  getInstanceHistory: protectedProcedure
     .input(z.object({
       instanceId: z.number(),
     }))

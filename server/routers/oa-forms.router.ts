@@ -8,7 +8,7 @@
  *   Template CRUD (5)  |  Submission CRUD (5)  |  Approval Actions (2)
  *   Approval History (1)  |  Favorites (3)  |  Stats (1)
  */
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
@@ -44,7 +44,7 @@ export const oaFormsRouter = router({
   // ─────────────────────────────────────────────────
 
   /** List templates with optional filtering */
-  listTemplates: publicProcedure
+  listTemplates: protectedProcedure
     .input(
       z
         .object({
@@ -85,7 +85,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Get single template by ID */
-  getTemplate: publicProcedure.input(idInput).query(async ({ input }) => {
+  getTemplate: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db
       .select()
@@ -95,7 +95,7 @@ export const oaFormsRouter = router({
   }),
 
   /** Create a new form template */
-  createTemplate: publicProcedure
+  createTemplate: protectedProcedure
     .input(
       z.object({
         templateCode: z.string(),
@@ -134,7 +134,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Update template — saves current version as snapshot before applying changes */
-  updateTemplate: publicProcedure
+  updateTemplate: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -201,7 +201,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Soft-delete template (set isActive = false) */
-  deleteTemplate: publicProcedure
+  deleteTemplate: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -218,7 +218,7 @@ export const oaFormsRouter = router({
   // ─────────────────────────────────────────────────
 
   /** List submissions with pagination and filtering */
-  listSubmissions: publicProcedure
+  listSubmissions: protectedProcedure
     .input(
       z
         .object({
@@ -271,7 +271,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Get single submission by ID */
-  getSubmission: publicProcedure.input(idInput).query(async ({ input }) => {
+  getSubmission: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db
       .select()
@@ -281,7 +281,7 @@ export const oaFormsRouter = router({
   }),
 
   /** Create a new form submission */
-  createSubmission: publicProcedure
+  createSubmission: protectedProcedure
     .input(
       z.object({
         templateId: z.number(),
@@ -368,7 +368,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Withdraw a submission (only if pending or draft) */
-  withdrawSubmission: publicProcedure
+  withdrawSubmission: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -405,7 +405,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Get submissions pending approval for a specific approver */
-  getMyPendingApprovals: publicProcedure
+  getMyPendingApprovals: protectedProcedure
     .input(z.object({ approverId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -428,7 +428,7 @@ export const oaFormsRouter = router({
   // ─────────────────────────────────────────────────
 
   /** Approve a submission at its current step */
-  approveSubmission: publicProcedure
+  approveSubmission: protectedProcedure
     .input(
       z.object({
         submissionId: z.number(),
@@ -538,7 +538,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Reject a submission */
-  rejectSubmission: publicProcedure
+  rejectSubmission: protectedProcedure
     .input(
       z.object({
         submissionId: z.number(),
@@ -604,7 +604,7 @@ export const oaFormsRouter = router({
   // ─────────────────────────────────────────────────
 
   /** Get all approval records for a submission */
-  getApprovalHistory: publicProcedure
+  getApprovalHistory: protectedProcedure
     .input(z.object({ submissionId: z.union([z.string(), z.number()]) }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -622,7 +622,7 @@ export const oaFormsRouter = router({
   // ─────────────────────────────────────────────────
 
   /** List a user's favorite templates */
-  listFavorites: publicProcedure
+  listFavorites: protectedProcedure
     .input(z.object({ userId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -652,7 +652,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Add a template to user's favorites */
-  addFavorite: publicProcedure
+  addFavorite: protectedProcedure
     .input(z.object({ userId: z.number(), templateId: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -676,7 +676,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Remove a template from user's favorites */
-  removeFavorite: publicProcedure
+  removeFavorite: protectedProcedure
     .input(z.object({ userId: z.number(), templateId: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -696,7 +696,7 @@ export const oaFormsRouter = router({
   // ─────────────────────────────────────────────────
 
   /** Get aggregated stats across templates and submissions */
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     const db = await requireDb();
 
     const [templateStats] = await db

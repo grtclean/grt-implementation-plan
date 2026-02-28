@@ -3,7 +3,7 @@
  * 工业安全规则管理 + 参数校验
  */
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { safetyRules } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -13,7 +13,7 @@ const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : i
 
 export const safetyRuleRouter = router({
   // 规则列表
-  list: publicProcedure.input(z.object({
+  list: protectedProcedure.input(z.object({
     category: z.enum(["physical", "chemical", "electrical", "operational"]).optional(),
     materialType: z.string().optional(),
     isActive: z.boolean().optional(),
@@ -27,7 +27,7 @@ export const safetyRuleRouter = router({
   }),
 
   // 详情
-  getById: publicProcedure.input(idInput).query(async ({ input }) => {
+  getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [rule] = await db.select().from(safetyRules).where(eq(safetyRules.id, toNum(input.id)));
     return rule || null;
@@ -103,7 +103,7 @@ export const safetyRuleRouter = router({
   // ===== Safety Validation Engine =====
 
   // 校验参数是否安全
-  validate: publicProcedure.input(z.object({
+  validate: protectedProcedure.input(z.object({
     materialType: z.string(),
     equipmentModel: z.string(),
     parameters: z.array(z.object({
@@ -257,7 +257,7 @@ export const safetyRuleRouter = router({
   }),
 
   // 统计
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rules = await db.select().from(safetyRules);
     return {

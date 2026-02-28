@@ -3,7 +3,7 @@
  * 跨模块任务管理，支持看板视图
  */
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { projectTasks, projects } from "../../drizzle/schema";
 import { eq, desc, and, count, sql, inArray } from "drizzle-orm";
@@ -13,7 +13,7 @@ const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : i
 
 export const taskBoardRouter = router({
   // 任务列表（支持多种筛选）
-  list: publicProcedure.input(z.object({
+  list: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     status: z.string().optional(),
     assigneeId: z.number().optional(),
@@ -38,7 +38,7 @@ export const taskBoardRouter = router({
   }),
 
   // 看板视图（按状态分组）
-  kanban: publicProcedure.input(z.object({
+  kanban: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     assigneeId: z.number().optional(),
   }).optional()).query(async ({ input }) => {
@@ -57,7 +57,7 @@ export const taskBoardRouter = router({
   }),
 
   // 获取任务详情
-  getById: publicProcedure.input(idInput).query(async ({ input }) => {
+  getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [task] = await db.select().from(projectTasks).where(eq(projectTasks.id, toNum(input.id)));
     if (!task) return null;
@@ -203,7 +203,7 @@ export const taskBoardRouter = router({
   }),
 
   // 任务统计
-  getStats: publicProcedure.input(z.object({
+  getStats: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     assigneeId: z.number().optional(),
   }).optional()).query(async ({ input }) => {
@@ -246,7 +246,7 @@ export const taskBoardRouter = router({
   }),
 
   // 我的任务（当前用户）
-  getMyTasks: publicProcedure.input(z.object({
+  getMyTasks: protectedProcedure.input(z.object({
     assigneeId: z.number(),
     status: z.string().optional(),
   })).query(async ({ input }) => {
@@ -259,7 +259,7 @@ export const taskBoardRouter = router({
   }),
 
   // 批量获取项目的任务计数（total + overdue）
-  getCountsByProjects: publicProcedure.input(z.object({
+  getCountsByProjects: protectedProcedure.input(z.object({
     projectIds: z.array(z.number()),
   })).query(async ({ input }) => {
     if (input.projectIds.length === 0) return {};

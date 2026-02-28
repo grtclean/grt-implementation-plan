@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { analyticsEvents } from "../../drizzle/schema";
 import { eq, desc, count, sql } from "drizzle-orm";
 
 export const analyticsRouter = router({
   // 概览
-  getOverview: publicProcedure.query(async () => {
+  getOverview: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [totalResult] = await db.select({ count: count() }).from(analyticsEvents);
     // Get event type breakdown
@@ -22,7 +22,7 @@ export const analyticsRouter = router({
   }),
 
   // 详情
-  getDetails: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getDetails: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     if (input?.eventType) {
       return await db.select().from(analyticsEvents)

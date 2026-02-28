@@ -3,7 +3,7 @@
  * IATF 16949 — GR&R, Bias, Linearity, Stability studies
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { msaStudies, msaMeasurements } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -13,7 +13,7 @@ const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : i
 
 export const msaRouter = router({
   // 列表
-  list: publicProcedure.input(z.object({
+  list: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     studyType: z.enum(["gage_rr", "bias", "linearity", "stability", "attribute_agreement"]).optional(),
     status: z.string().optional(),
@@ -27,7 +27,7 @@ export const msaRouter = router({
   }),
 
   // 详情（含测量数据）
-  getById: publicProcedure.input(idInput).query(async ({ input }) => {
+  getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     const [study] = await db.select().from(msaStudies).where(eq(msaStudies.id, numId));
@@ -39,7 +39,7 @@ export const msaRouter = router({
   }),
 
   // 创建MSA研究
-  create: publicProcedure.input(z.object({
+  create: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     controlPlanItemId: z.number().optional(),
     studyType: z.enum(["gage_rr", "bias", "linearity", "stability", "attribute_agreement"]),
@@ -77,7 +77,7 @@ export const msaRouter = router({
   }),
 
   // 更新MSA研究
-  update: publicProcedure.input(z.object({
+  update: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     gaugeName: z.string().optional(),
     gaugeId: z.string().optional(),
@@ -102,7 +102,7 @@ export const msaRouter = router({
   }),
 
   // 删除
-  delete: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     await db.delete(msaMeasurements).where(eq(msaMeasurements.studyId, numId));
@@ -111,7 +111,7 @@ export const msaRouter = router({
   }),
 
   // 录入测量数据
-  addMeasurement: publicProcedure.input(z.object({
+  addMeasurement: protectedProcedure.input(z.object({
     studyId: z.number(),
     operatorId: z.number().optional(),
     operatorName: z.string().optional(),
@@ -134,7 +134,7 @@ export const msaRouter = router({
   }),
 
   // 批量录入
-  addMeasurementsBatch: publicProcedure.input(z.object({
+  addMeasurementsBatch: protectedProcedure.input(z.object({
     studyId: z.number(),
     measurements: z.array(z.object({
       operatorName: z.string().optional(),
@@ -155,7 +155,7 @@ export const msaRouter = router({
   }),
 
   // 计算GR&R（简化版 — 基于均值-极差法）
-  calculateGRR: publicProcedure.input(z.object({
+  calculateGRR: protectedProcedure.input(z.object({
     studyId: z.number(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
@@ -231,7 +231,7 @@ export const msaRouter = router({
   }),
 
   // 统计
-  getStats: publicProcedure.input(z.object({ projectId: z.number().optional() }).optional()).query(async ({ input }) => {
+  getStats: protectedProcedure.input(z.object({ projectId: z.number().optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     let studies = await db.select().from(msaStudies);
     if (input?.projectId) studies = studies.filter(s => s.projectId === input.projectId);

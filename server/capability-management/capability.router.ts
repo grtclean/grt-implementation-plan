@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { router, publicProcedure, protectedProcedure, adminProcedure } from '../_core/trpc';
+import { router, protectedProcedure, adminProcedure } from '../_core/trpc';
 import {
   getCapabilityConfigs,
   getCapabilityConfig,
@@ -26,7 +26,7 @@ import {
 
 export const capabilityRouter = router({
   // 获取能力配置列表
-  getCapabilities: publicProcedure
+  getCapabilities: protectedProcedure
     .input(z.object({
       category: z.string().optional(),
       search: z.string().optional(),
@@ -38,7 +38,7 @@ export const capabilityRouter = router({
     }),
 
   // 获取单个能力配置
-  getCapability: publicProcedure
+  getCapability: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       return getCapabilityConfig(input.id);
@@ -91,7 +91,7 @@ export const capabilityRouter = router({
     }),
 
   // 获取公开能力展示
-  getShowcases: publicProcedure
+  getShowcases: protectedProcedure
     .input(z.object({
       showcaseType: z.string().optional(),
       isPublic: z.boolean().optional(),
@@ -119,7 +119,7 @@ export const capabilityRouter = router({
     }),
 
   // 计算能力等级
-  calculateLevel: publicProcedure
+  calculateLevel: protectedProcedure
     .input(z.object({ score: z.number() }))
     .query(async ({ input }) => {
       const level = calculateCapabilityLevel(input.score);
@@ -128,27 +128,27 @@ export const capabilityRouter = router({
     }),
 
   // 获取能力等级详情
-  getLevelDetails: publicProcedure
+  getLevelDetails: protectedProcedure
     .input(z.object({ level: z.string() }))
     .query(async ({ input }) => {
       return getCapabilityLevelDetails(input.level);
     }),
 
   // 获取能力域详情
-  getDomainDetails: publicProcedure
+  getDomainDetails: protectedProcedure
     .input(z.object({ domainCode: z.string() }))
     .query(async ({ input }) => {
       return getCapabilityDomainDetails(input.domainCode);
     }),
 
   // 获取所有能力域
-  getAllDomains: publicProcedure
+  getAllDomains: protectedProcedure
     .query(async () => {
       return getAllCapabilityDomains();
     }),
 
   // 获取所有能力等级
-  getAllLevels: publicProcedure
+  getAllLevels: protectedProcedure
     .query(async () => {
       return getAllCapabilityLevels();
     }),
@@ -160,7 +160,7 @@ export const capabilityRouter = router({
     }),
 
   // 获取能力等级和域的元数据
-  getMetadata: publicProcedure
+  getMetadata: protectedProcedure
     .query(async () => {
       return {
         levels: CAPABILITY_LEVELS,

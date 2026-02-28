@@ -10,12 +10,12 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 
 export const daIntegrationRouter = router({
-  getStatus: publicProcedure.query(() => {
+  getStatus: protectedProcedure.query(() => {
     return { status: "ok" };
   }),
 
@@ -23,7 +23,7 @@ export const daIntegrationRouter = router({
     return successResponse;
   }),
 
-  getIntegrationStats: publicProcedure
+  getIntegrationStats: protectedProcedure
     .input(z.any())
     .query(() => {
       return {

@@ -41,7 +41,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -433,7 +433,7 @@ export const aiInterventionRouter = router({
    * dashboard — returns all active interventions + summary stats.
    * The AI HR Command Center data feed.
    */
-  dashboard: publicProcedure.query(async () => {
+  dashboard: protectedProcedure.query(async () => {
     const active = MOCK_INTERVENTIONS.filter(i =>
       i.status === "PENDING_TRAINING" || i.status === "IN_PROGRESS"
     );
@@ -460,7 +460,7 @@ export const aiInterventionRouter = router({
    * checkAccess — verify if user can access a machine (AI interlock layer).
    * This EXTENDS Phase 1.2 SOP interlock with training-gate check.
    */
-  checkAccess: publicProcedure
+  checkAccess: protectedProcedure
     .input(z.object({ userId: z.number(), machineId: z.number(), machineCode: z.string() }))
     .query(async ({ input }) => {
       const result = verifyOperatorAccess(

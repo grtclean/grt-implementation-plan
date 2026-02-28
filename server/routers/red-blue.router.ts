@@ -9,7 +9,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -141,7 +141,7 @@ export const redBlueRouter = router({
   // -----------------------------------------------------------------------
 
   /** List configs with optional filtering and pagination. */
-  list: publicProcedure
+  list: protectedProcedure
     .input(listInput)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -175,7 +175,7 @@ export const redBlueRouter = router({
     }),
 
   /** Get a single config by id. */
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(idInput)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -294,7 +294,7 @@ export const redBlueRouter = router({
    * configs. The frontend RedBlueBoard.tsx calls this to populate the
    * projects panel.
    */
-  getProjects: publicProcedure.query(async () => {
+  getProjects: protectedProcedure.query(async () => {
     const db = await requireDb();
     const configs = await db
       .select()
@@ -320,7 +320,7 @@ export const redBlueRouter = router({
    * getGates - returns all execution records (phases/gates) across configs.
    * The frontend uses this to render gate progress.
    */
-  getGates: publicProcedure.query(async () => {
+  getGates: protectedProcedure.query(async () => {
     const db = await requireDb();
     const executions = await db
       .select()
@@ -334,7 +334,7 @@ export const redBlueRouter = router({
    * getTasks - returns scheduled execution records (upcoming tasks).
    * The frontend uses this for the tasks panel.
    */
-  getTasks: publicProcedure.query(async () => {
+  getTasks: protectedProcedure.query(async () => {
     const db = await requireDb();
     const executions = await db
       .select()
@@ -350,7 +350,7 @@ export const redBlueRouter = router({
   // -----------------------------------------------------------------------
 
   /** List executions for a given config. */
-  listExecutions: publicProcedure
+  listExecutions: protectedProcedure
     .input(z.object({ configId: z.number().int() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -364,7 +364,7 @@ export const redBlueRouter = router({
     }),
 
   /** Get a single execution record by id. */
-  getExecution: publicProcedure
+  getExecution: protectedProcedure
     .input(idInput)
     .query(async ({ input }) => {
       const db = await requireDb();

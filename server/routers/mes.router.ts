@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 import { verifyWorkerSkillForStation, InsufficientSkillError } from "../services/mes-quality-guard";
 
 export const mesRouter = router({
-  getOperators: publicProcedure.query(async () => {
+  getOperators: protectedProcedure.query(async () => {
     const db = await requireDb();
     const result = await db.execute(sql`
       SELECT DISTINCT employee_id AS "employeeId", employee_name AS "employeeName", department, position
@@ -20,7 +20,7 @@ export const mesRouter = router({
     }));
   }),
 
-  verifySkill: publicProcedure
+  verifySkill: protectedProcedure
     .input(z.object({
       employeeId: z.number(),
       domain: z.string(),

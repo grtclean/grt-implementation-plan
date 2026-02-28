@@ -1,19 +1,19 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { taskExecutionLogs } from "../../drizzle/schema";
 import { eq, desc, count, sql, lt } from "drizzle-orm";
 
 export const taskExecutionLogRouter = router({
   // 日志列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(taskExecutionLogs).orderBy(desc(taskExecutionLogs.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 获取日志详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(taskExecutionLogs).where(eq(taskExecutionLogs.id, parseInt(input.id)));
     return item || null;
@@ -63,7 +63,7 @@ export const taskExecutionLogRouter = router({
   }),
 
   // 统计
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [total] = await db.select({ count: count() }).from(taskExecutionLogs);
     const [running] = await db.select({ count: count() }).from(taskExecutionLogs).where(eq(taskExecutionLogs.status, "running"));

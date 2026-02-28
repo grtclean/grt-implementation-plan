@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, requirePermission, router } from "../_core/trpc";
 import {
   getSalaryRules,
   getSalaryRule,
@@ -32,7 +32,7 @@ export const salaryBonusRouter = router({
       return getSalaryRule(input.ruleId);
     }),
 
-  createRule: protectedProcedure
+  createRule: requirePermission("hrm_salary_detail")
     .input(z.object({
       ruleName: z.string(),
       ruleCode: z.string(),
@@ -58,7 +58,7 @@ export const salaryBonusRouter = router({
       return createSalaryRule({ ...input, createdBy: ctx.user.openId });
     }),
 
-  updateRule: protectedProcedure
+  updateRule: requirePermission("hrm_salary_detail")
     .input(z.object({
       ruleId: z.number(),
       ruleName: z.string().optional(),
@@ -87,7 +87,7 @@ export const salaryBonusRouter = router({
     }),
 
   // ============ 薪酬计算 ============
-  calculate: protectedProcedure
+  calculate: requirePermission("hrm_salary_detail")
     .input(z.object({
       workerId: z.string(),
       workerName: z.string(),
@@ -101,7 +101,7 @@ export const salaryBonusRouter = router({
       return calculateSalaryBonus(input);
     }),
 
-  batchCalculate: protectedProcedure
+  batchCalculate: requirePermission("hrm_salary_detail")
     .input(z.object({
       periodType: z.enum(['weekly', 'monthly', 'quarterly', 'annual']),
       periodStart: z.number(),
@@ -158,7 +158,7 @@ export const salaryBonusRouter = router({
       return getSalaryBonusStats(input.periodType, input.periodStart, input.periodEnd);
     }),
 
-  exportCSV: protectedProcedure
+  exportCSV: requirePermission("hrm_salary_detail")
     .input(z.object({
       periodStart: z.number().optional(),
       periodEnd: z.number().optional(),

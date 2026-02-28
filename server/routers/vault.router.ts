@@ -3,7 +3,7 @@
  * File management, version check-in, and Engineering Change Order workflows
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   grtVaultFiles,
@@ -21,7 +21,7 @@ export const vaultRouter = router({
   // ══════════════════════════════════════════════════
 
   /** List vault files by projectId with optional fileType filter */
-  list: publicProcedure.input(z.object({
+  list: protectedProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]),
     fileType: z.enum(["SOLIDWORKS", "EPLAN", "WORD", "PDF", "EMAIL_EML", "MEETING_RECORD"]).optional(),
     limit: z.number().default(50),
@@ -51,7 +51,7 @@ export const vaultRouter = router({
   }),
 
   /** Get single vault file by ID */
-  getById: publicProcedure.input(idInput).query(async ({ input }) => {
+  getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [file] = await db.select().from(grtVaultFiles)
       .where(eq(grtVaultFiles.id, toNum(input.id)));
@@ -59,7 +59,7 @@ export const vaultRouter = router({
   }),
 
   /** Mock upload — inserts file record */
-  upload: publicProcedure.input(z.object({
+  upload: protectedProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]),
     fileName: z.string().min(1),
     fileType: z.enum(["SOLIDWORKS", "EPLAN", "WORD", "PDF", "EMAIL_EML", "MEETING_RECORD"]),
@@ -82,7 +82,7 @@ export const vaultRouter = router({
   }),
 
   /** Mock version bump — increments integer version */
-  checkin: publicProcedure.input(idInput).mutation(async ({ input }) => {
+  checkin: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [file] = await db.select().from(grtVaultFiles)
       .where(eq(grtVaultFiles.id, toNum(input.id)));
@@ -106,7 +106,7 @@ export const vaultRouter = router({
   // ══════════════════════════════════════════════════
 
   /** List ECOs by projectId */
-  listEcos: publicProcedure.input(z.object({
+  listEcos: protectedProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]),
     limit: z.number().default(50),
     offset: z.number().default(0),
@@ -127,7 +127,7 @@ export const vaultRouter = router({
   }),
 
   /** Create new ECO with affected file IDs */
-  createEco: publicProcedure.input(z.object({
+  createEco: protectedProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]),
     ecoNumber: z.string().min(1),
     title: z.string().min(1),

@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
+import { protectedProcedure, router } from '../_core/trpc';
 import { permissionService } from './permission.service';
 import { TRPCError } from '@trpc/server';
 import { createRoleMiddleware } from './permission.middleware';

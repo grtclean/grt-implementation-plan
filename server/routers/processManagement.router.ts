@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // T工序定义
 const T_PROCESS_DEFINITIONS = [
@@ -266,12 +266,12 @@ const mockRiskAlerts = [
 
 export const processManagementRouter = router({
   // 获取T工序定义列表
-  getProcessDefinitions: publicProcedure.query(() => {
+  getProcessDefinitions: protectedProcedure.query(() => {
     return T_PROCESS_DEFINITIONS;
   }),
 
   // 获取项目工序实例列表
-  getProjectProcessInstances: publicProcedure
+  getProjectProcessInstances: protectedProcedure
     .input(z.object({
       projectId: z.number().optional(),
       workOrderNo: z.string().optional(),
@@ -303,7 +303,7 @@ export const processManagementRouter = router({
     }),
 
   // 获取项目工序甘特图数据
-  getProcessGanttData: publicProcedure
+  getProcessGanttData: protectedProcedure
     .input(z.object({
       projectId: z.number(),
     }))
@@ -325,7 +325,7 @@ export const processManagementRouter = router({
     }),
 
   // 获取M2关键信息标签
-  getM2Tags: publicProcedure
+  getM2Tags: protectedProcedure
     .input(z.object({
       projectId: z.number(),
       category: z.string().optional(),
@@ -345,7 +345,7 @@ export const processManagementRouter = router({
     }),
 
   // 获取AI SOP推荐
-  getAiSopRecommendations: publicProcedure
+  getAiSopRecommendations: protectedProcedure
     .input(z.object({
       projectId: z.number().optional(),
       processCode: z.string().optional(),
@@ -376,7 +376,7 @@ export const processManagementRouter = router({
     }),
 
   // 获取BOM步骤级AI SOP推荐
-  getStepSopRecommendation: publicProcedure
+  getStepSopRecommendation: protectedProcedure
     .input(z.object({
       projectId: z.number(),
       processCode: z.string(),
@@ -458,7 +458,7 @@ export const processManagementRouter = router({
     }),
 
   // 获取风险预警列表
-  getRiskAlerts: publicProcedure
+  getRiskAlerts: protectedProcedure
     .input(z.object({
       projectId: z.number().optional(),
       processCode: z.string().optional(),
@@ -513,7 +513,7 @@ export const processManagementRouter = router({
     }),
 
   // 获取工序统计看板数据
-  getProcessDashboardStats: publicProcedure
+  getProcessDashboardStats: protectedProcedure
     .input(z.object({
       projectId: z.number().optional(),
     }))

@@ -43,7 +43,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -495,7 +495,7 @@ export const employeeProfileRouter = router({
    * getProfile — generate 360° profile for a specific user.
    * The core fusion: HR × KPI × Meetings × Certs × AI in one response.
    */
-  getProfile: publicProcedure
+  getProfile: protectedProcedure
     .input(z.object({ userId: z.number() }))
     .query(async ({ input }) => {
       const mock = MOCK_EMPLOYEES.find(e => e.employee.userId === input.userId);
@@ -510,7 +510,7 @@ export const employeeProfileRouter = router({
    * listProfiles — returns all employees with their 360° profiles.
    * For the team overview / leaderboard view.
    */
-  listProfiles: publicProcedure.query(async () => {
+  listProfiles: protectedProcedure.query(async () => {
     const profiles = MOCK_EMPLOYEES.map(mock => generate360Profile(mock));
 
     // Sort by overall score descending
@@ -540,7 +540,7 @@ export const employeeProfileRouter = router({
   /**
    * getTeamRadar — aggregated radar for a department.
    */
-  getTeamRadar: publicProcedure
+  getTeamRadar: protectedProcedure
     .input(z.object({ department: z.string().optional() }))
     .query(async ({ input }) => {
       const filtered = input.department

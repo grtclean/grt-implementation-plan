@@ -1,19 +1,19 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { trainingCertificates } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
 
 export const trainingCertificateRouter = router({
   // 证书列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(trainingCertificates).orderBy(desc(trainingCertificates.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 获取证书详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.select().from(trainingCertificates).where(eq(trainingCertificates.id, parseInt(input.id)));
     return item || null;
@@ -61,7 +61,7 @@ export const trainingCertificateRouter = router({
   }),
 
   // 按参与者获取证书
-  getByParticipant: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getByParticipant: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const participantId = typeof input?.participantId === "string" ? parseInt(input.participantId) : (input?.participantId || 0);
     return await db.select().from(trainingCertificates)

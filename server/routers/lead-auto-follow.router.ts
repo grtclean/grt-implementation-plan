@@ -1,28 +1,34 @@
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
+import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { crmLeads } from "../../drizzle/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export const leadAutoFollowRouter = router({
-  // List leads that need follow-up (status = new or contacted, sorted by AI score desc)
-  list: publicProcedure.query(async () => {
+  // List leads that need follow-up (BU-scoped)
+  list: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    const leads = await db.select().from(crmLeads).orderBy(desc(crmLeads.createdAt));
-    // Only show leads needing follow-up (new or contacted)
+    const buFilter = buScopeCondition(crmLeads.buCode, ctx);
+    const leads = buFilter
+      ? await db.select().from(crmLeads).where(buFilter).orderBy(desc(crmLeads.createdAt))
+      : await db.select().from(crmLeads).orderBy(desc(crmLeads.createdAt));
     const needsFollowUp = leads.filter(l => l.status === 'new' || l.status === 'contacted');
     return { items: needsFollowUp, total: needsFollowUp.length };
   }),
 
-  getById: publicProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const numId = typeof input.id === "string" ? parseInt(input.id) : input.id;
-    const [lead] = await db.select().from(crmLeads).where(eq(crmLeads.id, numId));
+    const buFilter = buScopeCondition(crmLeads.buCode, ctx);
+    const conditions = [eq(crmLeads.id, numId)];
+    if (buFilter) conditions.push(buFilter);
+    const [lead] = await db.select().from(crmLeads).where(and(...conditions));
     return lead || null;
   }),
 
   // Get auto-follow configuration (in-memory for now)
-  getConfig: publicProcedure.query(async () => {
+  getConfig: protectedProcedure.query(async () => {
     return {
       enabled: true,
       followUpIntervalDays: 3,
@@ -38,7 +44,7 @@ export const leadAutoFollowRouter = router({
     };
   }),
 
-  updateConfig: publicProcedure.input(z.object({
+  updateConfig: protectedProcedure.input(z.object({
     enabled: z.boolean().optional(),
     followUpIntervalDays: z.number().optional(),
     maxAutoFollowUps: z.number().optional(),
@@ -47,33 +53,36 @@ export const leadAutoFollowRouter = router({
     return { success: true, message: "配置已更新" };
   }),
 
-  create: publicProcedure.input(z.object({ data: z.any() }).optional()).mutation(async () => {
+  create: protectedProcedure.input(z.object({ data: z.any() }).optional()).mutation(async () => {
     return { success: true, message: "Auto-follow created" };
   }),
-  update: publicProcedure.input(z.object({ id: z.union([z.string(), z.number()]), data: z.any().optional() }).optional()).mutation(async () => {
+  update: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), data: z.any().optional() }).optional()).mutation(async () => {
     return { success: true, message: "Auto-follow updated" };
   }),
-  delete: publicProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async () => {
+  delete: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async () => {
     return { success: true, message: "Auto-follow deleted" };
   }),
 
   // ── 前端 LeadManagement.tsx 需要的过程 ──
 
-  getLeads: publicProcedure
+  getLeads: protectedProcedure
     .input(z.object({
       status: z.string().optional(),
       priority: z.string().optional(),
       limit: z.number().optional(),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
-      let items = await db.select().from(crmLeads).orderBy(desc(crmLeads.createdAt)).limit(input?.limit ?? 50);
+      const buFilter = buScopeCondition(crmLeads.buCode, ctx);
+      let items = buFilter
+        ? await db.select().from(crmLeads).where(buFilter).orderBy(desc(crmLeads.createdAt)).limit(input?.limit ?? 50)
+        : await db.select().from(crmLeads).orderBy(desc(crmLeads.createdAt)).limit(input?.limit ?? 50);
       if (input?.status) items = items.filter((l: any) => l.status === input.status);
       if (input?.priority) items = items.filter((l: any) => l.priority === input.priority);
       return { items, total: items.length };
     }),
 
-  getFollowUpTasks: publicProcedure
+  getFollowUpTasks: protectedProcedure
     .input(z.object({ status: z.string().optional() }).optional())
     .query(async () => {
       return { items: [], total: 0 };

@@ -14,7 +14,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, sql, count } from "drizzle-orm";
 import {
@@ -27,13 +27,13 @@ const successResponse = { success: true, message: "操作成功" };
 export const costRouter = router({
   // ==================== CRUD (cost records) ====================
 
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const rows = await db.select().from(costRecords).orderBy(desc(costRecords.createdAt));
     return { items: rows, total: rows.length, page: 1, pageSize: 10 };
   }),
 
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -84,7 +84,7 @@ export const costRouter = router({
 
   // ==================== Budget (costEstimates) ====================
 
-  getBudget: publicProcedure.input(z.any()).query(async ({ input }) => {
+  getBudget: protectedProcedure.input(z.any()).query(async ({ input }) => {
     const db = await requireDb();
     const projectId = Number(input?.projectId);
     if (!projectId) return { budget: 0, spent: 0, remaining: 0 };
@@ -98,7 +98,7 @@ export const costRouter = router({
     return { budget, spent, remaining: budget - spent };
   }),
 
-  getStatistics: publicProcedure.query(async () => {
+  getStatistics: protectedProcedure.query(async () => {
     const db = await requireDb();
     const records = await db.select().from(costRecords);
     const categories = await db.select().from(costCategories);
@@ -114,7 +114,7 @@ export const costRouter = router({
     return { total, categories: categoryStats };
   }),
 
-  getBudgets: publicProcedure.query(async () => {
+  getBudgets: protectedProcedure.query(async () => {
     const db = await requireDb();
     const estimates = await db.select().from(costEstimates).orderBy(desc(costEstimates.createdAt));
 
@@ -162,7 +162,7 @@ export const costRouter = router({
 
   // ==================== Records ====================
 
-  getRecords: publicProcedure.query(async () => {
+  getRecords: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(costRecords).orderBy(desc(costRecords.costDate));
   }),
@@ -185,7 +185,7 @@ export const costRouter = router({
 
   // ==================== Categories ====================
 
-  getCategories: publicProcedure.query(async () => {
+  getCategories: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(costCategories).orderBy(costCategories.sortOrder);
   }),
@@ -214,7 +214,7 @@ export const costRouter = router({
 
   // ==================== Labor Costs ====================
 
-  getLaborCosts: publicProcedure.query(async () => {
+  getLaborCosts: requirePermission('pm_project_cost').query(async () => {
     const db = await requireDb();
     // Filter cost records by labor category
     const laborCats = await db.select().from(costCategories).where(eq(costCategories.code, "LAB"));
@@ -235,7 +235,7 @@ export const costRouter = router({
 
   // ==================== Summary ====================
 
-  getSummary: publicProcedure.query(async () => {
+  getSummary: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [records, categories, estimates] = await Promise.all([
       db.select().from(costRecords),

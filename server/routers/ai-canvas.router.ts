@@ -8,7 +8,7 @@
  *   - list: legacy stub
  */
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 // ── Workflow Rule Definitions ──
 
@@ -251,14 +251,14 @@ function extractEntities(text: string) {
 
 export const aiCanvasRouter = router({
   /** Legacy list stub */
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({ limit: z.number().default(50), offset: z.number().default(0) }).optional())
     .query(async () => {
       return { items: [], total: 0 };
     }),
 
   /** Lightweight quick parse — returns top match only (for live intent bar) */
-  quickParse: publicProcedure
+  quickParse: protectedProcedure
     .input(z.object({
       text: z.string().min(1),
       language: z.enum(["zh", "en"]).default("zh"),
@@ -296,7 +296,7 @@ export const aiCanvasRouter = router({
     }),
 
   /** Full workflow parse — returns ranked suggestions with entity extraction */
-  parseWorkflow: publicProcedure
+  parseWorkflow: protectedProcedure
     .input(z.object({
       text: z.string().min(1),
       language: z.enum(["zh", "en"]).default("zh"),
@@ -349,7 +349,7 @@ export const aiCanvasRouter = router({
     }),
 
   /** Apply workflow — creates a task and returns workflow tracker state */
-  applyWorkflow: publicProcedure
+  applyWorkflow: protectedProcedure
     .input(z.object({
       originalText: z.string(),
       templateName: z.string(),

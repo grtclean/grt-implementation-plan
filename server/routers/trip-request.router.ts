@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   tripRequests,
@@ -13,14 +13,14 @@ import { eq, desc, and, count, sql } from "drizzle-orm";
 
 export const tripRequestRouter = router({
   // 出差申请列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(tripRequests).orderBy(desc(tripRequests.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 获取出差申请详情（含行程和预订）
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     const [request] = await db.select().from(tripRequests).where(eq(tripRequests.id, id));
@@ -218,7 +218,7 @@ export const tripRequestRouter = router({
   }),
 
   // 国家列表（从保险政策中提取适用地区）
-  countries: publicProcedure.query(async () => {
+  countries: protectedProcedure.query(async () => {
     const db = await requireDb();
     const policies = await db.select().from(insurancePolicies).where(eq(insurancePolicies.isActive, 1));
     const regions = new Set<string>();
@@ -234,7 +234,7 @@ export const tripRequestRouter = router({
   }),
 
   // 费用政策列表
-  expensePolicies: publicProcedure.query(async () => {
+  expensePolicies: protectedProcedure.query(async () => {
     const db = await requireDb();
     return await db.select().from(expensePolicies)
       .where(eq(expensePolicies.isActive, 1))
@@ -242,7 +242,7 @@ export const tripRequestRouter = router({
   }),
 
   // 统计
-  statistics: publicProcedure.query(async () => {
+  statistics: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [total] = await db.select({ count: count() }).from(tripRequests);
     const [pending] = await db.select({ count: count() }).from(tripRequests).where(eq(tripRequests.status, "submitted"));

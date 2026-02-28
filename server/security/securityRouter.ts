@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import { securityAuditLogs, ipBlacklist, userMfaConfigs, userSessions } from "../../drizzle/schema";
@@ -686,7 +686,7 @@ export const securityRouter = router({
   /**
    * 验证密码强度
    */
-  validatePassword: publicProcedure
+  validatePassword: protectedProcedure
     .input(z.object({
       password: z.string(),
     }))
@@ -873,14 +873,14 @@ export const securityRouter = router({
   /**
    * 获取安装模式和系统状态（公开 — 用于初始化页面）
    */
-  getInstallationInfo: publicProcedure.query(async () => {
+  getInstallationInfo: protectedProcedure.query(async () => {
     return await getInstallationStatus();
   }),
 
   /**
    * 获取所有安装模式定义
    */
-  getInstallationModes: publicProcedure.query(() => {
+  getInstallationModes: protectedProcedure.query(() => {
     return {
       modes: MODE_CONFIGS,
       featureLabels: FEATURE_LABELS,
@@ -890,7 +890,7 @@ export const securityRouter = router({
   /**
    * 检查功能是否可用
    */
-  checkFeature: publicProcedure
+  checkFeature: protectedProcedure
     .input(z.object({ featureKey: z.string() }))
     .query(({ input }) => {
       return checkFeatureAccess(input.featureKey);
@@ -899,7 +899,7 @@ export const securityRouter = router({
   /**
    * 验证服务器密码
    */
-  verifyPassword: publicProcedure
+  verifyPassword: protectedProcedure
     .input(z.object({ password: z.string() }))
     .mutation(({ input }) => {
       const valid = verifyServerPassword(input.password);
@@ -937,7 +937,7 @@ export const securityRouter = router({
   /**
    * 检查密码是否已设置
    */
-  isPasswordSet: publicProcedure.query(() => {
+  isPasswordSet: protectedProcedure.query(() => {
     return { configured: isPasswordConfigured() };
   }),
 

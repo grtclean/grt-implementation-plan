@@ -10,7 +10,7 @@
  * 6. 学习记录
  */
 
-import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 import { invokeLLM } from "../_core/llm";
 import { requireDb } from "../db";
@@ -378,7 +378,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 页面感知建议 — Page-Aware Suggestions
    */
-  getPageSuggestions: publicProcedure
+  getPageSuggestions: protectedProcedure
     .input(
       z.object({
         routePath: z.string(),
@@ -622,7 +622,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 一键配置所有员工AI助理
    */
-  provisionAll: publicProcedure.mutation(async () => {
+  provisionAll: protectedProcedure.mutation(async () => {
     try {
       return await provisionAllEmployees();
     } catch (error: any) {
@@ -634,7 +634,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 配置单个员工AI助理
    */
-  provisionOne: publicProcedure
+  provisionOne: protectedProcedure
     .input(z.object({ employeeId: z.number() }))
     .mutation(async ({ input }) => {
       try {
@@ -648,7 +648,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 配置状态概览
    */
-  getProvisioningStatus: publicProcedure.query(async () => {
+  getProvisioningStatus: protectedProcedure.query(async () => {
     try {
       return await getProvisioningStatus();
     } catch (error: any) {
@@ -665,7 +665,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 查看所有AI助理列表（JOIN hrmEmployees）
    */
-  listAllAssistants: publicProcedure
+  listAllAssistants: protectedProcedure
     .input(
       z
         .object({
@@ -688,7 +688,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 按角色刷新所有AI助理的预设
    */
-  refreshPresets: publicProcedure
+  refreshPresets: protectedProcedure
     .input(z.object({ roleId: z.string().optional() }).optional())
     .mutation(async ({ input }) => {
       try {
@@ -701,11 +701,11 @@ export const employeeAiAssistantRouter = router({
 
   // ==================== 基础CRUD操作 ====================
 
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     return { items: [], total: 0, page: 1, pageSize: 10 };
   }),
 
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async () => {
       return null;

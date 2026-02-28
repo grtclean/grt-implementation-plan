@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiNotebookSuggestions } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -9,7 +9,7 @@ import { searchDocuments } from "../modules/knowledge-base.service";
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 
 export const aiNotebookRouter = router({
-  getSuggestions: publicProcedure.input(z.object({
+  getSuggestions: protectedProcedure.input(z.object({
     entryId: z.union([z.string(), z.number()]).optional(),
     status: z.string().optional(),
   }).optional()).query(async ({ input }) => {

@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 import {
   generateBomExcelTemplate,
   parseExcelBom,
@@ -103,14 +103,14 @@ export const bomExcelImportRouter = router({
     }),
 
   /** 获取导入历史（前端 BomExcelImport.tsx 需要） */
-  getImportHistory: publicProcedure
+  getImportHistory: protectedProcedure
     .input(z.object({ limit: z.number().optional() }).optional())
     .query(async () => {
       return { records: [] };
     }),
 
   /** 获取支持的文件格式（前端 BomExcelImport.tsx 需要） */
-  getSupportedFormats: publicProcedure
+  getSupportedFormats: protectedProcedure
     .query(async () => {
       return {
         formats: [
@@ -122,7 +122,7 @@ export const bomExcelImportRouter = router({
     }),
 
   /** 解析Excel文件（前端 BomExcelImport.tsx parseMutation 调用） */
-  parseExcel: publicProcedure
+  parseExcel: protectedProcedure
     .input(z.object({
       fileName: z.string(),
       fileContent: z.string(),
@@ -162,7 +162,7 @@ export const bomExcelImportRouter = router({
     }),
 
   /** 验证数据（前端 BomExcelImport.tsx validateMutation 调用） */
-  validateData: publicProcedure
+  validateData: protectedProcedure
     .input(z.object({
       fieldMapping: z.record(z.string(), z.string()),
       projectId: z.string(),
@@ -172,7 +172,7 @@ export const bomExcelImportRouter = router({
     }),
 
   /** 执行Excel导入（前端 BomExcelImport.tsx importMutation 调用） */
-  importExcel: publicProcedure
+  importExcel: protectedProcedure
     .input(z.object({
       fieldMapping: z.record(z.string(), z.string()),
       projectId: z.string(),
@@ -183,7 +183,7 @@ export const bomExcelImportRouter = router({
     }),
 
   /** 下载模板（前端 BomExcelImport.tsx downloadTemplateMutation 调用） */
-  downloadTemplate: publicProcedure
+  downloadTemplate: protectedProcedure
     .input(z.object({ format: z.string().optional() }))
     .mutation(async () => {
       const buffer = generateBomExcelTemplate();

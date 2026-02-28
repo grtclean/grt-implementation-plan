@@ -1,17 +1,17 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
 
 export const hrLifecycleRouter = router({
   // 员工生命周期列表
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     return emptyListResponse;
   }),
 
   // 获取生命周期详情
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async () => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async () => {
     return null;
   }),
 
@@ -31,12 +31,12 @@ export const hrLifecycleRouter = router({
   }),
 
   // 获取阶段列表
-  getStages: publicProcedure.query(async () => {
+  getStages: protectedProcedure.query(async () => {
     return [];
   }),
 
   // 获取员工生命周期
-  getEmployeeLifecycle: publicProcedure.input(z.any()).query(async () => {
+  getEmployeeLifecycle: protectedProcedure.input(z.any()).query(async () => {
     return { lifecycle: null };
   }),
 

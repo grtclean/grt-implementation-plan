@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
@@ -15,7 +15,7 @@ const customerTypeEnum = z.enum(['OEM', 'Tier1', 'Tier2', 'Other']);
 
 export const certificationRouter = router({
   // 获取资质列表
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       status: certStatusEnum.optional(),
       certType: certTypeEnum.optional(),
@@ -48,7 +48,7 @@ export const certificationRouter = router({
     }),
 
   // 获取单个资质详情
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -118,7 +118,7 @@ export const certificationRouter = router({
     }),
 
   // 获取里程碑列表
-  getMilestones: publicProcedure
+  getMilestones: protectedProcedure
     .input(z.object({ certificationId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -165,7 +165,7 @@ export const certificationRouter = router({
     }),
 
   // 获取提醒配置
-  getReminders: publicProcedure
+  getReminders: protectedProcedure
     .input(z.object({ certificationId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -211,7 +211,7 @@ export const certificationRouter = router({
     }),
 
   // 获取客户资质要求
-  getCustomerRequirements: publicProcedure
+  getCustomerRequirements: protectedProcedure
     .input(z.object({
       customerType: customerTypeEnum.optional(),
     }).optional())
@@ -305,7 +305,7 @@ export const certificationRouter = router({
     }),
 
   // 获取差距分析历史
-  getGapAnalysisHistory: publicProcedure
+  getGapAnalysisHistory: protectedProcedure
     .input(z.object({ page: z.number().default(1), pageSize: z.number().default(10) }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -416,7 +416,7 @@ export const certificationRouter = router({
     }),
 
   // 获取统计数据
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const result = await db.execute(sql.raw(`
       SELECT 

@@ -1,22 +1,30 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, requirePermission } from "../_core/trpc";
+import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { projects } from "../../drizzle/schema";
 import { eq, ne, desc, count, sql, inArray, and } from "drizzle-orm";
 
 export const projectRouter = router({
-  // 项目列表
-  list: requirePermission('project:list:view').query(async () => {
+  // 项目列表 (BU-scoped)
+  list: requirePermission('project:list:view').query(async ({ ctx }) => {
     const db = await requireDb();
+    const buFilter = buScopeCondition(projects.buCode, ctx);
+    if (buFilter) {
+      return await db.select().from(projects).where(buFilter).orderBy(desc(projects.createdAt));
+    }
     return await db.select().from(projects).orderBy(desc(projects.createdAt));
   }),
 
-  // 获取项目详情
-  getById: requirePermission('project:list:view').input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input }) => {
+  // 获取项目详情 (BU-scoped)
+  getById: requirePermission('project:list:view').input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const numId = typeof input.id === "number" ? input.id : parseInt(input.id);
-    const [item] = await db.select().from(projects).where(eq(projects.id, numId));
+    const buFilter = buScopeCondition(projects.buCode, ctx);
+    const conditions = [eq(projects.id, numId)];
+    if (buFilter) conditions.push(buFilter);
+    const [item] = await db.select().from(projects).where(and(...conditions));
     return item || null;
   }),
 
@@ -32,7 +40,7 @@ export const projectRouter = router({
     managerId: z.number().optional(),
     plannedStartDate: z.string().optional(),
     plannedEndDate: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const projectCode = `PRJ-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
     const [project] = await db.insert(projects).values({
@@ -49,6 +57,7 @@ export const projectRouter = router({
       plannedEndDate: input.plannedEndDate ?? null,
       status: "draft",
       currentPhase: "M0",
+      buCode: ctx.bu?.buCode ?? null,
     }).returning();
     return { success: true, message: "项目创建成功", id: project.id, projectCode };
   }),
@@ -117,9 +126,11 @@ export const projectRouter = router({
     phases: z.array(z.string()).optional(),
     healthStatus: z.enum(["green", "yellow", "red"]).optional(),
     limit: z.number().default(20),
-  }).optional()).query(async ({ input }) => {
+  }).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const conditions = [ne(projects.status, "cancelled")];
+    const buFilter = buScopeCondition(projects.buCode, ctx);
+    if (buFilter) conditions.push(buFilter);
     if (input?.phases && input.phases.length > 0) {
       conditions.push(inArray(projects.currentPhase, input.phases));
     }
@@ -132,10 +143,13 @@ export const projectRouter = router({
       .limit(input?.limit ?? 20);
   }),
 
-  // 项目统计
-  statistics: requirePermission('project:list:view').query(async () => {
+  // 项目统计 (BU-scoped)
+  statistics: requirePermission('project:list:view').query(async ({ ctx }) => {
     const db = await requireDb();
-    const allProjects = await db.select().from(projects);
+    const buFilter = buScopeCondition(projects.buCode, ctx);
+    const allProjects = buFilter
+      ? await db.select().from(projects).where(buFilter)
+      : await db.select().from(projects);
 
     const byStatus: Record<string, number> = { draft: 0, active: 0, on_hold: 0, completed: 0, cancelled: 0 };
     const byType: Record<string, number> = { standard: 0, key: 0, strategic: 0 };

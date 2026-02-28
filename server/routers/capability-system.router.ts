@@ -16,7 +16,7 @@
  */
 
 import { z } from "zod";
-import { publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 
 // ─── Capability Dictionary (6 TSDCKL Pillars) ───────────────────────
 
@@ -209,10 +209,10 @@ const ROLE_LEVELS: Record<string, number> = {
 
 export const capabilitySystemRouter = router({
   /** Get the 6-pillar capability dictionary */
-  getDictionary: publicProcedure.query(() => CAPABILITY_DICTIONARY),
+  getDictionary: protectedProcedure.query(() => CAPABILITY_DICTIONARY),
 
   /** Get target criteria for a specific role */
-  getRoleCriteria: publicProcedure
+  getRoleCriteria: protectedProcedure
     .input(z.object({ role: z.string() }))
     .query(({ input }) => {
       const criteria = ROLE_CRITERIA.find(r => r.role === input.role);
@@ -220,10 +220,10 @@ export const capabilitySystemRouter = router({
     }),
 
   /** Get all role criteria (for admin comparison) */
-  getAllRoleCriteria: publicProcedure.query(() => ROLE_CRITERIA),
+  getAllRoleCriteria: protectedProcedure.query(() => ROLE_CRITERIA),
 
   /** Get an individual employee's assessment (by employeeId) */
-  getMyAssessment: publicProcedure
+  getMyAssessment: protectedProcedure
     .input(z.object({ employeeId: z.number().optional() }))
     .query(({ input }) => {
       // Default to Donnie (1017) if no ID provided — the logged-in user
@@ -232,7 +232,7 @@ export const capabilitySystemRouter = router({
     }),
 
   /** Get full team assessments (HR/admin view) */
-  getTeamAssessments: publicProcedure
+  getTeamAssessments: protectedProcedure
     .input(z.object({
       department: z.string().optional(),
       search: z.string().optional(),
@@ -264,13 +264,13 @@ export const capabilitySystemRouter = router({
     }),
 
   /** Get unique departments for filter */
-  getDepartments: publicProcedure.query(() => {
+  getDepartments: protectedProcedure.query(() => {
     const deps = [...new Set(EMPLOYEE_ASSESSMENTS.map(e => e.department))];
     return deps.sort();
   }),
 
   /** AI Compensation & Performance Analysis */
-  aiCompensationAnalysis: publicProcedure
+  aiCompensationAnalysis: protectedProcedure
     .input(z.object({ userRole: z.string().optional() }))
     .mutation(({ input }) => {
       const roleLevel = ROLE_LEVELS[input?.userRole ?? "employee"] ?? 1;
@@ -346,7 +346,7 @@ export const capabilitySystemRouter = router({
     }),
 
   /** AI Improvement Tips for a specific employee */
-  aiImprovementTips: publicProcedure
+  aiImprovementTips: protectedProcedure
     .input(z.object({
       employeeId: z.number(),
       role: z.string(),
