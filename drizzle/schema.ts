@@ -2753,6 +2753,7 @@ export const projects = pgTable("projects", {
 	completionPercent: integer().default(0),
 	remark: text(),
 	jiandaoyunId: varchar({ length: 64 }),
+	version: integer('version').default(1).notNull(),
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 },

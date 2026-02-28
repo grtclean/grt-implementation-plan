@@ -286,6 +286,7 @@ import { strategyGoalsRouter } from "./routers/strategy-goals.router";
 import { buSalesTargetRouter } from "./routers/bu-sales-target.router";
 import { cloudHallRouter } from "./routers/cloud-hall.router";
 import { serviceDashboardRouter } from "./routers/service-dashboard.router";
+import { projectAgentRouter } from "./routers/project-agent.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -745,6 +746,9 @@ export const appRouter = router({
 
   // Finance Agent — AI 费用审核拦截引擎
   financeAgent: financeAgentRouter,
+
+  // Project Agent — AI 项目生命周期评审引擎
+  projectAgent: projectAgentRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {

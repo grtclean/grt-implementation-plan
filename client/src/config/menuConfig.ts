@@ -340,6 +340,7 @@ export const menuConfig: MenuGroup[] = [
     items: [
       { name: "运营中枢", nameEn: "Operations Hub", nameDe: "Betriebszentrale", nameFr: "Centre opérations", path: "/operations", icon: Layers, isNew: true },
       { name: "新项目向导", nameEn: "New Project Wizard", nameDe: "Neues Projekt-Assistent", nameFr: "Assistant nouveau projet", path: "/operations/new-project", icon: Sparkles, isNew: true },
+      { name: "AI项目Agent", nameEn: "Project Agent", nameDe: "Projekt-Agent", nameFr: "Agent de Projet", path: "/project-agent", icon: Bot, isNew: true, allowedRoles: ["admin", "director", "bu_gm", "dept_manager", "bu_pm", "team_lead"] },
       { name: "项目列表", nameEn: "Projects", nameDe: "Projekte", nameFr: "Projets", path: "/projects", icon: FolderKanban, requiresBU: true },
     ],
     subgroups: [
@@ -1098,6 +1099,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "社群管理", nameEn: "Community", nameDe: "Community", nameFr: "Communauté", path: "/community", icon: MessageSquare },
       { name: "协作空间", nameEn: "Collaboration", nameDe: "Zusammenarbeit", nameFr: "Collaboration", path: "/collaboration", icon: Users },
       { name: "智能会议中枢", nameEn: "Meeting Hub", nameDe: "Meeting-Hub", nameFr: "Hub de réunion", path: "/meeting-hub", icon: Presentation, isNew: true },
+      { name: "述职报告", nameEn: "Review Meeting", nameDe: "Leistungsbericht", nameFr: "Rapport de performance", path: "/performance-review", icon: Presentation, isNew: true },
       { name: "跨境数据同步", nameEn: "Cross-Border Sync", nameDe: "Grenzüberschreitende Synchronisierung", nameFr: "Sync transfrontalière", path: "/cross-border-sync", icon: Globe, isNew: true },
       { name: "群通知", nameEn: "Group Alerts", nameDe: "Gruppenbenachrichtigungen", nameFr: "Alertes de groupe", path: "/group-notifications", icon: Send },
       { name: "文档管理", nameEn: "Documents", nameDe: "Dokumente", nameFr: "Documents", path: "/docs", icon: FileText },

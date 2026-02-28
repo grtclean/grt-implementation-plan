@@ -5,11 +5,14 @@
  */
 
 import { requireDb } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, eq, and, inArray } from "drizzle-orm";
 import { sendTaskReminderEmails } from "./email-reminder.service";
 import { sendEmail, generateHtmlEmail } from "./email.service";
 import { notifyOwner } from "../_core/notification";
 import { getJiandaoyunScheduler } from "./jiandaoyun-scheduler.service";
+import { projects } from "../../drizzle/schema";
+import { projectAgentReviews } from "../../drizzle/project-agent-schema";
+import { submitTask } from "./task-worker.service";
 
 // 定时任务配置
 interface ScheduledTask {
@@ -410,6 +413,70 @@ async function handleJiandaoyunOrgSync(): Promise<TaskExecutionResult> {
   }
 }
 
+// ==================== 项目延期预测 ====================
+
+async function handleProjectDelayPrediction(): Promise<TaskExecutionResult> {
+  try {
+    const db = await requireDb();
+    const activePhases = ["M4", "M5", "M6", "M7"];
+    const activeProjects = await db.select().from(projects)
+      .where(and(
+        eq(projects.status as any, "active"),
+        inArray(projects.currentPhase as any, activePhases),
+      ));
+
+    let tasksSubmitted = 0;
+    for (const project of activeProjects) {
+      try {
+        const now = new Date().toISOString();
+        const [review] = await db.insert(projectAgentReviews).values({
+          projectId: project.id,
+          reviewType: "delay_prediction",
+          triggerPhase: project.currentPhase || "M5",
+          inputSummary: `延期预测: ${project.name} (${project.currentPhase})`,
+          status: "pending",
+          reviewedBy: "scheduler",
+          createdAt: now,
+          updatedAt: now,
+        }).returning();
+
+        const { taskId } = await submitTask(
+          "PROJECT_DELAY_PREDICTION",
+          {
+            reviewId: review.id,
+            projectName: project.name,
+            currentPhase: project.currentPhase,
+            healthStatus: project.healthStatus,
+            budget: project.budget,
+            actualCost: project.actualCost,
+            completionPercent: project.completionPercent,
+          },
+          "scheduler",
+        );
+
+        await db.update(projectAgentReviews)
+          .set({ aiTaskId: taskId })
+          .where(eq(projectAgentReviews.id, review.id));
+
+        tasksSubmitted++;
+      } catch (err) {
+        console.error(`[DelayPrediction] Failed for project ${project.id}:`, err);
+      }
+    }
+
+    return {
+      success: true,
+      message: `延期预测完成: 扫描${activeProjects.length}个项目, 提交${tasksSubmitted}个AI任务`,
+      details: { projectsScanned: activeProjects.length, tasksSubmitted },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `延期预测失败: ${String(error)}`,
+    };
+  }
+}
+
 // ==================== 系统定时任务列表 ====================
 
 const scheduledTasks: ScheduledTask[] = [
@@ -466,6 +533,15 @@ const scheduledTasks: ScheduledTask[] = [
     handler: handleJiandaoyunOrgSync,
     enabled: true,
     category: 'sync',
+  },
+  {
+    id: "project-delay-prediction",
+    name: "项目延期风险预测",
+    description: "每6小时扫描M4-M7阶段活跃项目，AI预测延期风险",
+    cronExpression: "0 0 */6 * * *", // 每6小时
+    handler: handleProjectDelayPrediction,
+    enabled: true,
+    category: 'maintenance',
   },
 ];
 

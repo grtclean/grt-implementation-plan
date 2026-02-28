@@ -10,6 +10,7 @@
  */
 import { registerTaskHandler, type TaskHandler } from "./task-worker.service";
 import { registerFinanceAgentHandler } from "./finance-agent.service";
+import { registerProjectAgentHandlers } from "./project-agent-engines";
 import { invokeLLM } from "../_core/llm";
 
 // ══════════════════════════════════════════════════════════════
@@ -428,4 +429,7 @@ export function registerAllEngines(): void {
 
   // Finance Agent — AI expense review engine
   registerFinanceAgentHandler();
+
+  // Project Agent — AI project lifecycle reviews
+  registerProjectAgentHandlers();
 }

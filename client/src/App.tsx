@@ -314,6 +314,7 @@ const ShowcasePortal = React.lazy(() => import("./pages/showcase/ShowcasePortal"
 
 import DualAIMatrix from "./pages/DualAIMatrix";
 import MeetingHub from "./pages/MeetingHub";
+import PerformanceReviewMeeting from "./pages/PerformanceReviewMeeting";
 import CrossBorderSync from "./pages/CrossBorderSync";
 import UniversalWorkspace from "./pages/UniversalWorkspace";
 import PersonalizedPortal from "./pages/PersonalizedPortal";
@@ -479,6 +480,7 @@ import CeoStrategy2026 from "./pages/CeoStrategy2026";
 // Collaboration Drive & Smart Spreadsheet
 import CollaborationDocs from "./pages/CollaborationDocs";
 import SpreadsheetViewer from "./pages/SpreadsheetViewer";
+import ProjectAgentDashboard from "./pages/ProjectAgentDashboard";
 
 // Protected route wrapper component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -1689,6 +1691,10 @@ function Router() {
       <Route path="/meeting-hub">
         <ProtectedRoute component={MeetingHub} />
       </Route>
+      {/* 述职报告智能会议 (Performance Review Meeting) */}
+      <Route path="/performance-review">
+        <ProtectedRoute component={PerformanceReviewMeeting} />
+      </Route>
       {/* Office 365 Encrypted Email Ferry — Cross-Border Data Sync */}
       <Route path="/cross-border-sync">
         <ProtectedRoute component={CrossBorderSync} />
@@ -1754,6 +1760,9 @@ function Router() {
       </Route>
       <Route path="/ceo/strategy-2026">
         <ProtectedRoute component={CeoStrategy2026} />
+      </Route>
+      <Route path="/project-agent">
+        <ProtectedRoute component={ProjectAgentDashboard} />
       </Route>
 
       <Route path={"/404"} component={NotFound} />

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
 import { projects } from "../../drizzle/schema";
@@ -52,9 +53,10 @@ export const projectRouter = router({
     return { success: true, message: "项目创建成功", id: project.id, projectCode };
   }),
 
-  // 更新项目
+  // 更新项目 (with optimistic locking via version column)
   update: requirePermission('project:edit').input(z.object({
     id: z.union([z.string(), z.number()]),
+    expectedVersion: z.number().optional(),
     name: z.string().optional(),
     shortName: z.string().optional(),
     type: z.enum(["standard", "key", "strategic"]).optional(),
@@ -77,11 +79,23 @@ export const projectRouter = router({
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = typeof input.id === "number" ? input.id : parseInt(input.id);
-    const { id: _id, ...rest } = input;
+
+    // Optimistic lock check
+    if (input.expectedVersion !== undefined) {
+      const [current] = await db.select({ version: projects.version }).from(projects).where(eq(projects.id, numId));
+      if (current && current.version !== input.expectedVersion) {
+        throw new TRPCError({ code: "CONFLICT", message: "版本冲突：项目已被他人修改，请刷新后重试" });
+      }
+    }
+
+    const { id: _id, expectedVersion: _ev, ...rest } = input;
     const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
     for (const [key, value] of Object.entries(rest)) {
       if (value !== undefined) updates[key] = value;
     }
+    // Increment version
+    updates.version = sql`${projects.version} + 1`;
+
     const [project] = await db.update(projects)
       .set(updates)
       .where(eq(projects.id, numId))

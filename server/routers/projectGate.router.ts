@@ -12,6 +12,7 @@ import {
 } from "../../drizzle/schema";
 import { gateChecklists } from "../../drizzle/schema";
 import { redBlueConfigs, redBlueExecutions } from "../../drizzle/approval-engine-schema";
+import { violationEvents } from "../../drizzle/performance-schema";
 import { eq, desc, and, count, sql, lt, gte, ne, inArray } from "drizzle-orm";
 
 // Ordered M-stage codes for index-based navigation
@@ -318,6 +319,30 @@ export const projectGateRouter = router({
               .set({ currentPhase: nextPhase, updatedAt: new Date().toISOString() })
               .where(eq(projects.id, gate.projectId));
           }
+        }
+      }
+
+      // FAT/SAT failure → red-line violation event
+      if (!input.approved) {
+        try {
+          const [rejectedGate] = await db.select().from(projectGates).where(eq(projectGates.id, input.requestId));
+          if (rejectedGate && (rejectedGate.phaseCode === "M7" || rejectedGate.phaseCode === "M11")) {
+            const severity = rejectedGate.phaseCode === "M11" ? "CRITICAL" : "MAJOR";
+            const label = rejectedGate.phaseCode === "M7" ? "FAT" : "SAT";
+            await db.insert(violationEvents).values({
+              projectId: rejectedGate.projectId,
+              eventType: "quality_defect",
+              severity,
+              sourceModule: "projectGate",
+              title: `${label}测试未通过 — ${rejectedGate.phaseCode}阶段被退回`,
+              description: `项目门禁${rejectedGate.phaseCode}(${label})审批被拒绝。${input.comments || ""}`,
+              status: "open",
+            });
+            console.log(`[ProjectGate] ${label} rejection → violation event (${severity}) for project ${rejectedGate.projectId}`);
+          }
+        } catch (violationErr) {
+          // Don't block the main flow if violation creation fails
+          console.error("[ProjectGate] Failed to create violation event:", violationErr);
         }
       }
 
