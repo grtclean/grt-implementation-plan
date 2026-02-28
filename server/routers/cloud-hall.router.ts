@@ -39,7 +39,12 @@ async function generateSessionCode(db: any): Promise<string> {
     .orderBy(desc(cloudHallSessions.id))
     .limit(1);
 
-  const seq = last ? parseInt(last.code.split("-").pop() || "0", 10) + 1 : 1;
+  let seq = 1;
+  if (last) {
+    const tail = last.code.split("-").pop() || "0";
+    const parsed = parseInt(tail.replace(/\D/g, ""), 10);
+    seq = (isNaN(parsed) ? 0 : parsed) + 1;
+  }
   return `${prefix}${pad(seq)}`;
 }
 
