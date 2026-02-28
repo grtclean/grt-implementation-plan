@@ -47,6 +47,7 @@ export function createMockContext(
     req: createMockReq(),
     res: createMockRes(),
     language: 'zh' as const,
+    bu: { buId: null, buCode: null, buName: null },
   };
 }
 
@@ -59,6 +60,7 @@ export function createAnonymousContext(): TrpcContext {
     req: createMockReq(),
     res: createMockRes(),
     language: 'zh' as const,
+    bu: { buId: null, buCode: null, buName: null },
   };
 }
 
@@ -81,5 +83,6 @@ export function createAdminContext(
     req: createMockReq(),
     res: createMockRes(),
     language: 'zh' as const,
+    bu: { buId: null, buCode: null, buName: null },
   };
 }

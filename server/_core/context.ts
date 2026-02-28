@@ -6,12 +6,14 @@ import { COOKIE_NAME } from "@shared/const";
 import { parse as parseCookieHeader } from "cookie";
 import { resolveLanguageFromHeader, type Language } from "../lib/server-i18n";
 import { sanitizeName } from "@shared/sanitize";
+import type { BuContext } from "./gateway-bu-context.middleware";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
   res: CreateExpressContextOptions["res"];
   user: User | null;
   language: Language;
+  bu: BuContext;
 };
 
 const isLocalAuth = () =>
@@ -80,5 +82,6 @@ export async function createContext(
     res: opts.res,
     user,
     language,
+    bu: { buId: null, buCode: null, buName: null },
   };
 }
