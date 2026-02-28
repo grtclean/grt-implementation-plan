@@ -1,14 +1,16 @@
 /**
  * Service Dashboard Router — Global Customer Service Dashboard
  *
- * 8 tRPC procedures for the 4-region service dashboard with North America deep-dive.
+ * 14 tRPC procedures for the 4-region service dashboard with North America deep-dive.
+ * Includes 6 admin CRUD procedures for KPI/location config management.
  * Reuses existing tables: spareParts, afterSalesServiceLogs, afterSalesClients,
  * afterSalesEquipments, knowledgeDocuments.
+ * Config tables: serviceDashboardKpis, serviceDashboardLocations.
  */
 import { z } from "zod";
 import { router, publicProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
-import { eq, and, desc, sql, count, or, ilike, gte, lte } from "drizzle-orm";
+import { eq, and, desc, sql, count, or, ilike, gte, lte, isNull } from "drizzle-orm";
 
 // ─── Mock Data Constants ───────────────────────────────────────────────────────
 
@@ -90,18 +92,83 @@ const SEED_COMPLIANCE_DOCS = [
   { title: "NEC Article 70 / NFPA 70 — National Electrical Code", category: "standard", content: "NEC Article 670 covers industrial machinery. For cleaning machine installations: supply circuit sizing per nameplate FLA + 25% largest motor, disconnect means within sight and lockable, equipment grounding per Article 250. NEC 2023 updates: Arc-fault protection requirements expanded, GFCI requirements for 250V circuits in wet locations. Branch circuit calculations for cleaning machines: heater loads at 125%, motor loads per Article 430.", tags: '["NEC","NFPA70","electrical code","Article670","grounding"]', source: "manual", relevanceScore: 87 },
 ];
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Load KPIs from config table grouped by category+region */
+async function loadConfigKpis(category: string, region?: string | null) {
+  try {
+    const db = await requireDb();
+    const { serviceDashboardKpis } = await import("../../drizzle/service-dashboard-config-schema");
+    const conditions = [eq(serviceDashboardKpis.category, category)];
+    if (region) conditions.push(eq(serviceDashboardKpis.region, region));
+    else if (region === null) conditions.push(isNull(serviceDashboardKpis.region));
+    const rows = await db.select().from(serviceDashboardKpis).where(and(...conditions));
+    if (rows.length === 0) return null;
+    const map: Record<string, number> = {};
+    for (const r of rows) map[r.key] = Number(r.value);
+    return map;
+  } catch { return null; }
+}
+
+/** Load locations from config table */
+async function loadConfigLocations(region?: string) {
+  try {
+    const db = await requireDb();
+    const { serviceDashboardLocations } = await import("../../drizzle/service-dashboard-config-schema");
+    const conditions = region ? [eq(serviceDashboardLocations.region, region)] : [];
+    const rows = await db.select().from(serviceDashboardLocations)
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(serviceDashboardLocations.id);
+    if (rows.length === 0) return null;
+    return rows.map(r => ({
+      id: r.id,
+      city: r.city,
+      state: r.state ?? "",
+      country: r.country,
+      lat: Number(r.lat),
+      lng: Number(r.lng),
+      status: r.status,
+      clientName: r.clientName ?? "",
+      equipmentType: r.equipmentType ?? "",
+      engineerCount: r.engineerCount ?? 0,
+    }));
+  } catch { return null; }
+}
+
 // ─── Router ────────────────────────────────────────────────────────────────────
 
 export const serviceDashboardRouter = router({
   /**
    * getRegionOverview — 4-region summary (Asia/NA/Europe/Other)
+   * DB-first: reads from service_dashboard_kpis (category=region_overview), falls back to mock
    */
   getRegionOverview: publicProcedure.query(async () => {
     try {
+      // 1. Try config table first
+      const regions = ["Asia", "NorthAmerica", "Europe", "Other"] as const;
+      const regionCnMap: Record<string, string> = { Asia: "亚太", NorthAmerica: "北美", Europe: "欧洲", Other: "其他" };
+      const configResults = await Promise.all(regions.map(r => loadConfigKpis("region_overview", r)));
+      const hasConfig = configResults.some(c => c !== null);
+
+      if (hasConfig) {
+        return regions.map((region, i) => {
+          const cfg = configResults[i];
+          const mock = REGION_OVERVIEW_MOCK.find(m => m.region === region)!;
+          return {
+            region,
+            regionCn: regionCnMap[region],
+            projectCount: cfg?.projectCount ?? mock.projectCount,
+            engineerCount: cfg?.engineerCount ?? mock.engineerCount,
+            activeTickets: cfg?.activeTickets ?? mock.activeTickets,
+            avgResponseHours: cfg?.avgResponseHours ?? mock.avgResponseHours,
+            healthScore: cfg?.healthScore ?? mock.healthScore,
+          };
+        });
+      }
+
+      // 2. Try real DB counts
       const db = await requireDb();
       const { afterSalesClients } = await import("../../drizzle/schema");
-
-      // Try to get real client counts by region
       const regionCounts = await db
         .select({ region: afterSalesClients.region, cnt: count() })
         .from(afterSalesClients)
@@ -109,7 +176,6 @@ export const serviceDashboardRouter = router({
         .groupBy(afterSalesClients.region);
 
       if (regionCounts.length > 0) {
-        // Merge real counts into mock data
         const countMap = new Map(regionCounts.map(r => [r.region, Number(r.cnt)]));
         return REGION_OVERVIEW_MOCK.map(r => ({
           ...r,
@@ -265,9 +331,15 @@ export const serviceDashboardRouter = router({
 
   /**
    * getNAProjectLocations — project sites across US + Mexico
+   * DB-first: reads from service_dashboard_locations, falls back to equipment join, then mock
    */
   getNAProjectLocations: publicProcedure.query(async () => {
     try {
+      // 1. Try config table
+      const configLocs = await loadConfigLocations("NorthAmerica");
+      if (configLocs) return configLocs;
+
+      // 2. Try real equipment data
       const db = await requireDb();
       const { afterSalesEquipments, afterSalesClients } = await import("../../drizzle/schema");
 
@@ -284,7 +356,6 @@ export const serviceDashboardRouter = router({
         .limit(12);
 
       if (rows.length > 0) {
-        // Map real data to location markers (approximate lat/lng from location string)
         return rows.map((r, i) => {
           const mockLoc = NA_PROJECT_LOCATIONS_MOCK[i % NA_PROJECT_LOCATIONS_MOCK.length];
           return {
@@ -309,13 +380,37 @@ export const serviceDashboardRouter = router({
 
   /**
    * getServiceReplicationComparison — China HQ vs North America metrics
+   * DB-first: reads from service_dashboard_kpis (china_hq / north_america), falls back to mock
    */
   getServiceReplicationComparison: publicProcedure.query(async () => {
+    const METRICS_DEFS = [
+      { key: "avgResponseHours", label: "平均响应时间 (h)", lowerIsBetter: true },
+      { key: "firstCallResolution", label: "首次解决率 (%)", lowerIsBetter: false },
+      { key: "sparePartsAvailability", label: "备件可用率 (%)", lowerIsBetter: false },
+      { key: "mttr", label: "平均修复时间 (h)", lowerIsBetter: true },
+      { key: "customerSatisfaction", label: "客户满意度 (1-5)", lowerIsBetter: false },
+      { key: "engineerUtilization", label: "工程师利用率 (%)", lowerIsBetter: false },
+      { key: "preventiveMaintenanceRate", label: "预防性维护率 (%)", lowerIsBetter: false },
+      { key: "slaCompliance", label: "SLA 达标率 (%)", lowerIsBetter: false },
+    ];
+
     try {
+      // 1. Try config table
+      const [chinaConfig, naConfig] = await Promise.all([
+        loadConfigKpis("china_hq", null),
+        loadConfigKpis("north_america", null),
+      ]);
+
+      const chinaBase = chinaConfig
+        ? { ...CHINA_HQ_METRICS, ...chinaConfig }
+        : CHINA_HQ_METRICS;
+      const naBase = naConfig
+        ? { ...NA_METRICS_MOCK, ...naConfig }
+        : NA_METRICS_MOCK;
+
+      // 2. Try to augment with real DB data
       const db = await requireDb();
       const { afterSalesServiceLogs } = await import("../../drizzle/schema");
-
-      // Try to get real China data from service logs
       const chinaLogs = await db
         .select({ avgRating: sql<number>`avg(${afterSalesServiceLogs.satisfactionRating})`, cnt: count() })
         .from(afterSalesServiceLogs)
@@ -323,38 +418,12 @@ export const serviceDashboardRouter = router({
 
       const hasData = Number(chinaLogs[0]?.cnt ?? 0) > 0;
       const chinaMetrics = hasData
-        ? { ...CHINA_HQ_METRICS, customerSatisfaction: Number(Number(chinaLogs[0]?.avgRating ?? 4.3).toFixed(1)) }
-        : CHINA_HQ_METRICS;
+        ? { ...chinaBase, customerSatisfaction: Number(Number(chinaLogs[0]?.avgRating ?? 4.3).toFixed(1)) }
+        : chinaBase;
 
-      return {
-        china: chinaMetrics,
-        northAmerica: NA_METRICS_MOCK,
-        metrics: [
-          { key: "avgResponseHours", label: "平均响应时间 (h)", lowerIsBetter: true },
-          { key: "firstCallResolution", label: "首次解决率 (%)", lowerIsBetter: false },
-          { key: "sparePartsAvailability", label: "备件可用率 (%)", lowerIsBetter: false },
-          { key: "mttr", label: "平均修复时间 (h)", lowerIsBetter: true },
-          { key: "customerSatisfaction", label: "客户满意度 (1-5)", lowerIsBetter: false },
-          { key: "engineerUtilization", label: "工程师利用率 (%)", lowerIsBetter: false },
-          { key: "preventiveMaintenanceRate", label: "预防性维护率 (%)", lowerIsBetter: false },
-          { key: "slaCompliance", label: "SLA 达标率 (%)", lowerIsBetter: false },
-        ],
-      };
+      return { china: chinaMetrics, northAmerica: naBase, metrics: METRICS_DEFS };
     } catch {
-      return {
-        china: CHINA_HQ_METRICS,
-        northAmerica: NA_METRICS_MOCK,
-        metrics: [
-          { key: "avgResponseHours", label: "平均响应时间 (h)", lowerIsBetter: true },
-          { key: "firstCallResolution", label: "首次解决率 (%)", lowerIsBetter: false },
-          { key: "sparePartsAvailability", label: "备件可用率 (%)", lowerIsBetter: false },
-          { key: "mttr", label: "平均修复时间 (h)", lowerIsBetter: true },
-          { key: "customerSatisfaction", label: "客户满意度 (1-5)", lowerIsBetter: false },
-          { key: "engineerUtilization", label: "工程师利用率 (%)", lowerIsBetter: false },
-          { key: "preventiveMaintenanceRate", label: "预防性维护率 (%)", lowerIsBetter: false },
-          { key: "slaCompliance", label: "SLA 达标率 (%)", lowerIsBetter: false },
-        ],
-      };
+      return { china: CHINA_HQ_METRICS, northAmerica: NA_METRICS_MOCK, metrics: METRICS_DEFS };
     }
   }),
 
@@ -605,5 +674,324 @@ export const serviceDashboardRouter = router({
     }
 
     return { seeded: results.length, details: results };
+  }),
+
+  // ─── Admin CRUD Procedures ──────────────────────────────────────────────────
+
+  /**
+   * listKpis — List KPIs from config table for admin editing
+   */
+  listKpis: publicProcedure
+    .input(z.object({ category: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const { serviceDashboardKpis } = await import("../../drizzle/service-dashboard-config-schema");
+        const conditions = input?.category ? [eq(serviceDashboardKpis.category, input.category)] : [];
+        const rows = await db.select().from(serviceDashboardKpis)
+          .where(conditions.length ? and(...conditions) : undefined)
+          .orderBy(serviceDashboardKpis.category, serviceDashboardKpis.region, serviceDashboardKpis.key);
+        return rows.map(r => ({
+          id: r.id,
+          category: r.category,
+          region: r.region,
+          key: r.key,
+          value: Number(r.value),
+          label: r.label,
+          unit: r.unit,
+          source: r.source,
+          updatedAt: r.updatedAt,
+        }));
+      } catch {
+        return [];
+      }
+    }),
+
+  /**
+   * upsertKpi — Insert or update a single KPI row (by category+region+key)
+   */
+  upsertKpi: publicProcedure
+    .input(z.object({
+      category: z.string(),
+      region: z.string().nullable().optional(),
+      key: z.string(),
+      value: z.number(),
+      label: z.string(),
+      unit: z.string().optional(),
+      source: z.enum(["manual", "system", "import"]).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const { serviceDashboardKpis } = await import("../../drizzle/service-dashboard-config-schema");
+
+      // Check existing
+      const conditions = [
+        eq(serviceDashboardKpis.category, input.category),
+        eq(serviceDashboardKpis.key, input.key),
+      ];
+      if (input.region) conditions.push(eq(serviceDashboardKpis.region, input.region));
+      else conditions.push(isNull(serviceDashboardKpis.region));
+
+      const existing = await db.select({ id: serviceDashboardKpis.id }).from(serviceDashboardKpis)
+        .where(and(...conditions)).limit(1);
+
+      if (existing.length > 0) {
+        await db.update(serviceDashboardKpis)
+          .set({
+            value: String(input.value),
+            label: input.label,
+            unit: input.unit,
+            source: input.source ?? "manual",
+            updatedAt: new Date(),
+          })
+          .where(eq(serviceDashboardKpis.id, existing[0].id));
+        return { action: "updated" as const, id: existing[0].id };
+      } else {
+        const ins = await db.insert(serviceDashboardKpis).values({
+          category: input.category,
+          region: input.region ?? undefined,
+          key: input.key,
+          value: String(input.value),
+          label: input.label,
+          unit: input.unit ?? "",
+          source: input.source ?? "manual",
+        }).returning({ id: serviceDashboardKpis.id });
+        return { action: "inserted" as const, id: ins[0]?.id ?? 0 };
+      }
+    }),
+
+  /**
+   * bulkUpsertKpis — Batch insert/update KPI rows (for CSV import)
+   */
+  bulkUpsertKpis: publicProcedure
+    .input(z.object({
+      items: z.array(z.object({
+        category: z.string(),
+        region: z.string().nullable().optional(),
+        key: z.string(),
+        value: z.number(),
+        label: z.string(),
+        unit: z.string().optional(),
+      })),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const { serviceDashboardKpis } = await import("../../drizzle/service-dashboard-config-schema");
+      let inserted = 0, updated = 0;
+
+      for (const item of input.items) {
+        const conditions = [
+          eq(serviceDashboardKpis.category, item.category),
+          eq(serviceDashboardKpis.key, item.key),
+        ];
+        if (item.region) conditions.push(eq(serviceDashboardKpis.region, item.region));
+        else conditions.push(isNull(serviceDashboardKpis.region));
+
+        const existing = await db.select({ id: serviceDashboardKpis.id }).from(serviceDashboardKpis)
+          .where(and(...conditions)).limit(1);
+
+        if (existing.length > 0) {
+          await db.update(serviceDashboardKpis)
+            .set({ value: String(item.value), label: item.label, unit: item.unit, source: "import", updatedAt: new Date() })
+            .where(eq(serviceDashboardKpis.id, existing[0].id));
+          updated++;
+        } else {
+          await db.insert(serviceDashboardKpis).values({
+            category: item.category,
+            region: item.region ?? undefined,
+            key: item.key,
+            value: String(item.value),
+            label: item.label,
+            unit: item.unit ?? "",
+            source: "import",
+          });
+          inserted++;
+        }
+      }
+      return { inserted, updated, total: input.items.length };
+    }),
+
+  /**
+   * listLocations — List project site locations for admin editing
+   */
+  listLocations: publicProcedure
+    .input(z.object({ region: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const { serviceDashboardLocations } = await import("../../drizzle/service-dashboard-config-schema");
+        const conditions = input?.region ? [eq(serviceDashboardLocations.region, input.region)] : [];
+        const rows = await db.select().from(serviceDashboardLocations)
+          .where(conditions.length ? and(...conditions) : undefined)
+          .orderBy(serviceDashboardLocations.region, serviceDashboardLocations.city);
+        return rows.map(r => ({
+          id: r.id,
+          region: r.region,
+          city: r.city,
+          state: r.state,
+          country: r.country,
+          lat: Number(r.lat),
+          lng: Number(r.lng),
+          status: r.status,
+          clientName: r.clientName,
+          equipmentType: r.equipmentType,
+          engineerCount: r.engineerCount ?? 0,
+          updatedAt: r.updatedAt,
+        }));
+      } catch {
+        return [];
+      }
+    }),
+
+  /**
+   * upsertLocation — Insert or update a project site location
+   */
+  upsertLocation: publicProcedure
+    .input(z.object({
+      id: z.number().optional(),
+      region: z.string(),
+      city: z.string(),
+      state: z.string().optional(),
+      country: z.string(),
+      lat: z.number(),
+      lng: z.number(),
+      status: z.enum(["active", "completed", "planned"]).optional(),
+      clientName: z.string().optional(),
+      equipmentType: z.string().optional(),
+      engineerCount: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const { serviceDashboardLocations } = await import("../../drizzle/service-dashboard-config-schema");
+
+      const data = {
+        region: input.region,
+        city: input.city,
+        state: input.state ?? "",
+        country: input.country,
+        lat: String(input.lat),
+        lng: String(input.lng),
+        status: input.status ?? "active",
+        clientName: input.clientName ?? "",
+        equipmentType: input.equipmentType ?? "",
+        engineerCount: input.engineerCount ?? 0,
+        updatedAt: new Date(),
+      };
+
+      if (input.id) {
+        await db.update(serviceDashboardLocations).set(data).where(eq(serviceDashboardLocations.id, input.id));
+        return { action: "updated" as const, id: input.id };
+      } else {
+        const ins = await db.insert(serviceDashboardLocations).values(data)
+          .returning({ id: serviceDashboardLocations.id });
+        return { action: "inserted" as const, id: ins[0]?.id ?? 0 };
+      }
+    }),
+
+  /**
+   * deleteLocation — Delete a project site location
+   */
+  deleteLocation: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const { serviceDashboardLocations } = await import("../../drizzle/service-dashboard-config-schema");
+      await db.delete(serviceDashboardLocations).where(eq(serviceDashboardLocations.id, input.id));
+      return { deleted: true };
+    }),
+
+  /**
+   * syncFromDB — Aggregate real data from existing tables into config KPIs
+   * Returns diff of what changed
+   */
+  syncFromDB: publicProcedure.mutation(async () => {
+    const db = await requireDb();
+    const { afterSalesServiceLogs, afterSalesClients } = await import("../../drizzle/schema");
+    const { spareParts } = await import("../../drizzle/supply-chain-schema");
+    const { serviceDashboardKpis } = await import("../../drizzle/service-dashboard-config-schema");
+
+    const diffs: { key: string; oldValue: number | null; newValue: number; category: string; region: string | null }[] = [];
+
+    // Helper: upsert and track diff
+    async function syncKpi(category: string, region: string | null, key: string, newValue: number, label: string, unit: string) {
+      const conditions = [eq(serviceDashboardKpis.category, category), eq(serviceDashboardKpis.key, key)];
+      if (region) conditions.push(eq(serviceDashboardKpis.region, region));
+      else conditions.push(isNull(serviceDashboardKpis.region));
+
+      const existing = await db.select({ id: serviceDashboardKpis.id, value: serviceDashboardKpis.value })
+        .from(serviceDashboardKpis).where(and(...conditions)).limit(1);
+
+      const oldValue = existing.length > 0 ? Number(existing[0].value) : null;
+      if (oldValue !== newValue) {
+        diffs.push({ key, oldValue, newValue, category, region });
+      }
+
+      if (existing.length > 0) {
+        await db.update(serviceDashboardKpis)
+          .set({ value: String(newValue), source: "system", updatedAt: new Date() })
+          .where(eq(serviceDashboardKpis.id, existing[0].id));
+      } else {
+        await db.insert(serviceDashboardKpis).values({
+          category, region: region ?? undefined, key, value: String(newValue), label, unit, source: "system",
+        });
+      }
+    }
+
+    try {
+      // Region counts from afterSalesClients
+      const regionCounts = await db
+        .select({ region: afterSalesClients.region, cnt: count() })
+        .from(afterSalesClients)
+        .where(eq(afterSalesClients.status, "Active"))
+        .groupBy(afterSalesClients.region);
+
+      const regionMap: Record<string, string> = { "North America": "NorthAmerica", Asia: "Asia", Europe: "Europe" };
+      for (const rc of regionCounts) {
+        const mapped = regionMap[rc.region ?? ""] ?? "Other";
+        await syncKpi("region_overview", mapped, "projectCount", Number(rc.cnt), "项目数", "个");
+      }
+
+      // NA service ticket stats
+      const naClientIds = await db.select({ id: afterSalesClients.id }).from(afterSalesClients)
+        .where(eq(afterSalesClients.region, "North America"));
+      if (naClientIds.length > 0) {
+        let openTickets = 0, closedTickets = 0;
+        for (const { id } of naClientIds) {
+          const open = await db.select({ cnt: count() }).from(afterSalesServiceLogs)
+            .where(and(eq(afterSalesServiceLogs.clientId, id), or(eq(afterSalesServiceLogs.status, "Pending"), eq(afterSalesServiceLogs.status, "In Progress"))));
+          openTickets += Number(open[0]?.cnt ?? 0);
+          const closed = await db.select({ cnt: count() }).from(afterSalesServiceLogs)
+            .where(and(eq(afterSalesServiceLogs.clientId, id), eq(afterSalesServiceLogs.status, "Completed")));
+          closedTickets += Number(closed[0]?.cnt ?? 0);
+        }
+        await syncKpi("region_overview", "NorthAmerica", "activeTickets", openTickets, "活跃工单", "个");
+      }
+
+      // Spare parts coverage
+      const spareRows = await db
+        .select({ total: count(), inStock: sql<number>`count(*) filter (where ${spareParts.currentStock} > ${spareParts.reorderPoint})` })
+        .from(spareParts)
+        .where(ilike(spareParts.locationCode, "DET%"));
+      const total = Number(spareRows[0]?.total ?? 0);
+      const inStock = Number(spareRows[0]?.inStock ?? 0);
+      if (total > 0) {
+        const coverage = Math.round((inStock / total) * 100);
+        await syncKpi("north_america", null, "sparePartsAvailability", coverage, "备件可用率 (%)", "%");
+      }
+
+      // Customer satisfaction from service logs
+      const satRows = await db
+        .select({ avg: sql<number>`avg(${afterSalesServiceLogs.satisfactionRating})` })
+        .from(afterSalesServiceLogs)
+        .where(eq(afterSalesServiceLogs.status, "Completed"));
+      const avgSat = Number(Number(satRows[0]?.avg ?? 0).toFixed(1));
+      if (avgSat > 0) {
+        await syncKpi("china_hq", null, "customerSatisfaction", avgSat, "客户满意度 (1-5)", "分");
+      }
+    } catch (e: any) {
+      return { synced: diffs.length, diffs, error: e?.message?.slice(0, 100) };
+    }
+
+    return { synced: diffs.length, diffs };
   }),
 });

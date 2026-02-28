@@ -13,8 +13,9 @@ import { trpc } from "../lib/trpc";
 import {
   Globe, MapPin, Search, Shield, TicketCheck, Warehouse,
   ArrowRight, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2,
-  Clock, Users, Activity, Star, Package, Zap,
+  Clock, Users, Activity, Star, Package, Zap, Settings,
 } from "lucide-react";
+import { useLocation } from "wouter";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,19 @@ function Skeleton({ className = "" }: { className?: string }) {
 
 // ─── Region Overview Cards ─────────────────────────────────────────────────────
 
+function AdminGear({ href }: { href: string }) {
+  const [, navigate] = useLocation();
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); navigate(href); }}
+      className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/70 transition-colors"
+      title="管理设置"
+    >
+      <Settings className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
 function RegionOverviewCards({ onSelectRegion }: { onSelectRegion: (r: Region) => void }) {
   const { data, isLoading } = trpc.serviceDashboard.getRegionOverview.useQuery(undefined, {
     refetchInterval: 30000,
@@ -52,7 +66,8 @@ function RegionOverviewCards({ onSelectRegion }: { onSelectRegion: (r: Region) =
     score >= 90 ? "text-emerald-400" : score >= 80 ? "text-cyan-400" : score >= 70 ? "text-amber-400" : "text-red-400";
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6 relative">
+      <div className="absolute -top-1 right-0"><AdminGear href="/service-dashboard-admin?tab=kpi&category=region_overview" /></div>
       {data.map((r) => (
         <button
           key={r.region}
@@ -88,10 +103,13 @@ function ServiceReplicationDemo() {
 
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-5">
-      <h3 className="text-white/90 font-semibold mb-4 flex items-center gap-2">
-        <ArrowRight className="w-4 h-4 text-cyan-400" />
-        服务复制对比 — 中国总部 vs 北美
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-white/90 font-semibold flex items-center gap-2">
+          <ArrowRight className="w-4 h-4 text-cyan-400" />
+          服务复制对比 — 中国总部 vs 北美
+        </h3>
+        <AdminGear href="/service-dashboard-admin?tab=kpi&category=service_comparison" />
+      </div>
       <div className="grid grid-cols-[1fr_auto_1fr] gap-x-4 gap-y-2">
         <div className="text-center text-xs text-cyan-400 font-medium pb-2 border-b border-white/10">中国总部 (HQ)</div>
         <div className="text-center text-xs text-white/40 pb-2 border-b border-white/10">指标</div>
@@ -140,10 +158,13 @@ function DetroitDigitalFactory() {
 
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-5">
-      <h3 className="text-white/90 font-semibold mb-4 flex items-center gap-2">
-        <Warehouse className="w-4 h-4 text-cyan-400" />
-        底特律数字工厂 — 备件仓
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-white/90 font-semibold flex items-center gap-2">
+          <Warehouse className="w-4 h-4 text-cyan-400" />
+          底特律数字工厂 — 备件仓
+        </h3>
+        <AdminGear href="/service-dashboard-admin?tab=import" />
+      </div>
 
       {/* KPI Row */}
       <div className="grid grid-cols-4 gap-3 mb-4">
@@ -218,10 +239,13 @@ function InteractiveNAMap() {
 
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-5">
-      <h3 className="text-white/90 font-semibold mb-4 flex items-center gap-2">
-        <MapPin className="w-4 h-4 text-cyan-400" />
-        北美项目分布 — US + Mexico
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-white/90 font-semibold flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-cyan-400" />
+          北美项目分布 — US + Mexico
+        </h3>
+        <AdminGear href="/service-dashboard-admin?tab=locations" />
+      </div>
       <div className="flex gap-4">
         <div className="flex-1 relative">
           <svg viewBox="0 0 600 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">

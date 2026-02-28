@@ -263,6 +263,7 @@ import Gamification from "./pages/Gamification";
 import IoTDashboard from "./pages/IoTDashboard";
 import IoTFleetDashboard from "./pages/IoTFleetDashboard";
 import DigitalCloudHall from "./pages/DigitalCloudHall";
+import ServiceDashboardAdmin from "./pages/ServiceDashboardAdmin";
 import RAGTrainingCenter from "./pages/RAGTrainingCenter";
 import DelegationManagement from "./pages/DelegationManagement";
 import PerformanceSalaryQuery from "./pages/PerformanceSalaryQuery";
@@ -1387,6 +1388,11 @@ function Router() {
       {/* Digital Cloud Hall — 数字云厅 (视讯交互大厅) */}
       <Route path="/digital-cloud-hall">
         <ProtectedRoute component={DigitalCloudHall} />
+      </Route>
+
+      {/* 客服系统参数管理 */}
+      <Route path="/service-dashboard-admin">
+        <ProtectedRoute component={ServiceDashboardAdmin} />
       </Route>
 
       {/* RAG知识库训练中心 */}
