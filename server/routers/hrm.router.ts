@@ -85,7 +85,7 @@ export const hrmRouter = router({
       };
     }),
 
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('hrm_employee_management').input(z.object({
     employeeCode: z.string().max(50).optional(),
     name: z.string().max(200),
     gender: z.string().max(10).optional(),
@@ -101,31 +101,53 @@ export const hrmRouter = router({
     await db.insert(hrmEmployees).values({
       employeeCode: input.employeeCode ?? `EMP-${Date.now()}`,
       name: input.name,
-      gender: input.gender ?? "male",
+      gender: (input.gender ?? "male") as "male" | "female",
       department: input.department ?? "未分配",
       position: input.position ?? "未分配",
       level: input.level,
       hireDate: input.hireDate ?? new Date().toISOString(),
       phone: input.phone,
       email: input.email,
-      status: input.status ?? "probation",
-    } as any);
+      status: (input.status ?? "probation") as "probation" | "regular" | "resigned" | "terminated",
+    });
     return successResponse;
   }),
 
-  update: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) }).passthrough()).mutation(async ({ input }) => {
+  update: requirePermission('hrm_employee_management').input(z.object({
+    id: z.union([z.string(), z.number()]),
+    name: z.string().max(200).optional(),
+    gender: z.string().max(10).optional(),
+    department: z.string().max(100).optional(),
+    position: z.string().max(100).optional(),
+    level: z.string().max(20).optional(),
+    hireDate: z.string().optional(),
+    phone: z.string().max(30).optional(),
+    email: z.string().max(320).optional(),
+    status: z.string().max(30).optional(),
+    workLocation: z.string().max(200).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const numericId = parseInt(String(input.id).replace(/^EMP-/, ""), 10);
     if (isNaN(numericId)) return successResponse;
-    const { id: _id, ...data } = input;
+    const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+    if (input.name !== undefined) updates.name = input.name;
+    if (input.gender !== undefined) updates.gender = input.gender;
+    if (input.department !== undefined) updates.department = input.department;
+    if (input.position !== undefined) updates.position = input.position;
+    if (input.level !== undefined) updates.level = input.level;
+    if (input.hireDate !== undefined) updates.hireDate = input.hireDate;
+    if (input.phone !== undefined) updates.phone = input.phone;
+    if (input.email !== undefined) updates.email = input.email;
+    if (input.status !== undefined) updates.status = input.status;
+    if (input.workLocation !== undefined) updates.workLocation = input.workLocation;
     await db
       .update(hrmEmployees)
-      .set({ ...data, updatedAt: new Date().toISOString() })
+      .set(updates)
       .where(eq(hrmEmployees.id, numericId));
     return successResponse;
   }),
 
-  delete: protectedProcedure
+  delete: requirePermission('hrm_employee_management')
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -236,7 +258,7 @@ export const hrmRouter = router({
     return { created };
   }),
 
-  initPerformanceGrades: protectedProcedure.mutation(async () => {
+  initPerformanceGrades: requirePermission('hrm_salary_structure').mutation(async () => {
     const db = await requireDb();
     const defaults = [
       { gradeCode: "S", gradeName: "卓越", scoreMin: 90, scoreMax: 100, coefficient: "2.00", description: "卓越表现" },
@@ -418,7 +440,7 @@ export const hrmRouter = router({
       };
     }),
 
-  createSalaryCalculation: requirePermission('hrm_salary_calculation').input(z.object({ department: z.string(), baseSalary: z.number(), performanceGrade: z.string().optional() }).passthrough()).mutation(() => successResponse),
+  createSalaryCalculation: requirePermission('hrm_salary_calculation').input(z.object({ department: z.string(), baseSalary: z.number(), performanceGrade: z.string().optional() })).mutation(() => successResponse),
 
   // ==================== Scheduled Tasks (stub) ====================
 
@@ -435,9 +457,15 @@ export const hrmRouter = router({
   // ==================== Performance Score (deterministic seed algorithm) ====================
 
   calculatePerformanceScore: protectedProcedure
-    .input(z.object({ userId: z.number(), projectId: z.number(), stageCode: z.string().optional() }))
-    .query(({ input }) => {
-      const seed = input.userId * 1000 + input.projectId + (input.stageCode ? input.stageCode.length * 7 : 0);
+    .input(z.object({ userId: z.number().optional(), projectId: z.number(), stageCode: z.string().optional() }))
+    .query(({ input, ctx }) => {
+      // Non-manager roles can only query their own score
+      const HR_ROLES = new Set(["admin", "director", "hr_manager", "dept_manager", "team_lead"]);
+      const targetUserId = input.userId ?? ctx.user.id;
+      if (targetUserId !== ctx.user.id && !HR_ROLES.has(ctx.user.role ?? "employee")) {
+        return { overallScore: 0, grade: "N/A" as const, dimensions: {}, recommendations: ["无权查看他人绩效评分"] };
+      }
+      const seed = targetUserId * 1000 + input.projectId + (input.stageCode ? input.stageCode.length * 7 : 0);
 
       const plannedHours = 100 + (seed % 60);
       const actualHours = plannedHours * (0.7 + ((seed * 13) % 60) / 100);

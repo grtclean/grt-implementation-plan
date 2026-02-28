@@ -927,10 +927,9 @@ function ReviewDialog({
       gapsText: form.gapsText || undefined,
       improvementPlanText: form.improvementPlanText || undefined,
       reviewerComments: form.reviewerComments || undefined,
-      status: form.status as "draft" | "submitted" | "reviewed" | "finalized",
     };
     if (isEdit) {
-      updateMut.mutate({ id: editItem!.id, ...payload });
+      updateMut.mutate({ id: editItem!.id, ...payload, status: form.status as "draft" | "submitted" | "reviewed" | "finalized" });
     } else {
       createMut.mutate({ userId: parseInt(form.userId), ...payload });
     }
@@ -1026,11 +1025,10 @@ function MilitaryOrderDialog({
       commitmentText: form.commitmentText,
       rewardText: form.rewardText || undefined,
       consequenceText: form.consequenceText || undefined,
-      status: form.status as "active" | "inactive" | "completed",
       notes: form.notes || undefined,
     };
     if (isEdit) {
-      updateMut.mutate({ id: editItem!.id, ...payload });
+      updateMut.mutate({ id: editItem!.id, ...payload, status: form.status as "active" | "inactive" | "completed" });
     } else {
       createMut.mutate({
         userId: parseInt(form.userId),
@@ -1438,7 +1436,7 @@ export default function KpiPerformance() {
   });
 
   const handleSign = (item: MilitaryOrder) => signMut.mutate({ id: item.id });
-  const handleWitness = (item: MilitaryOrder) => witnessMut.mutate({ id: item.id, witnessedBy: 1 });
+  const handleWitness = (item: MilitaryOrder) => witnessMut.mutate({ id: item.id });
 
   // Add handlers
   const openAdd = () => {

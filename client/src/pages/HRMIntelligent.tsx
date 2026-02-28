@@ -1322,18 +1322,8 @@ function SalaryCalculator() {
     if (!calculationResult) return;
     saveSalaryCalculation.mutate({
       department,
-      calculationType: "simulation",
       baseSalary: parseFloat(baseSalary),
-      performanceSalary: calculationResult.performanceSalary,
-      bonus: calculationResult.bonus,
-      benefits: calculationResult.benefits,
-      monthlyTotal: calculationResult.monthlyTotal,
-      annualTotal: calculationResult.annualTotal,
-      calculationParams: {
-        performanceGrade,
-        projectBonus: parseFloat(projectBonus) || 0,
-      },
-      salaryBreakdown: calculationResult.breakdown,
+      performanceGrade: performanceGrade || undefined,
     });
   };
 
