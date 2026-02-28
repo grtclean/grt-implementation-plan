@@ -1,5 +1,6 @@
 /**
  * 每日工作计划 tRPC Router
+ * v2: Added getAggregatedPlan, assignToUser, addPersonalItem
  */
 
 import { z } from "zod";
@@ -60,5 +61,45 @@ export const dailyPlanRouter = router({
   refreshPlan: protectedProcedure
     .mutation(async ({ ctx }) => {
       return dailyPlanService.refreshDailyPlan(ctx.user.id);
+    }),
+
+  // ── v2: 8-source aggregated plan ──
+
+  getAggregatedPlan: protectedProcedure
+    .input(z.object({ role: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return dailyPlanService.aggregateDailyItems(
+        ctx.user.id,
+        ctx.user.name ?? 'Unknown',
+        input.role,
+      );
+    }),
+
+  assignToUser: protectedProcedure
+    .input(z.object({
+      targetUserId: z.number(),
+      title: z.string(),
+      description: z.string().optional(),
+      priority: z.enum(['P0', 'P1', 'P2', 'P3']).optional(),
+      category: z.enum(['supervisor', 'customer_assignment']),
+      sourceReference: z.string().optional(),
+      dueDate: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return dailyPlanService.assignInboxItem({
+        ...input,
+        assignedByName: ctx.user.name ?? 'Unknown',
+      });
+    }),
+
+  addPersonalItem: protectedProcedure
+    .input(z.object({
+      title: z.string(),
+      description: z.string().optional(),
+      priority: z.enum(['P0', 'P1', 'P2', 'P3']).optional(),
+      estimatedHours: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return dailyPlanService.addAdHocTask(ctx.user.id, input);
     }),
 });

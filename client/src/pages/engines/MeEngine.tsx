@@ -24,34 +24,31 @@ import {
   Zap,
 } from "lucide-react";
 
-// Role scaffold lazy mapping
-import SalesDailyTasks from "@/components/roles/sales/DailyTasks";
+// Role scaffold — unified DailyPlanView + per-role weekly/monthly
+import DailyPlanView from "@/components/roles/DailyPlanView";
 import SalesWeekly from "@/components/roles/sales/WeeklyPipeline";
 import SalesMonthly from "@/components/roles/sales/MonthlyReport";
-import RndDailyTasks from "@/components/roles/rnd/DailyTasks";
 import RndWeekly from "@/components/roles/rnd/WeeklyReview";
 import RndMonthly from "@/components/roles/rnd/MonthlyReport";
-import ManagerDailyTasks from "@/components/roles/manager/DailyTasks";
 import ManagerWeekly from "@/components/roles/manager/WeeklyReview";
 import ManagerMonthly from "@/components/roles/manager/MonthlyReport";
-import LeaderDailyTasks from "@/components/roles/team-leader/DailyTasks";
 import LeaderWeekly from "@/components/roles/team-leader/WeeklyStandup";
 import LeaderMonthly from "@/components/roles/team-leader/MonthlyReport";
 
 type TemporalTab = "daily" | "weekly" | "monthly";
 
 const ROLE_SCAFFOLD: Record<string, Record<TemporalTab, React.ComponentType>> = {
-  bu_sales:    { daily: SalesDailyTasks,   weekly: SalesWeekly,   monthly: SalesMonthly },
-  bu_mech:     { daily: RndDailyTasks,     weekly: RndWeekly,     monthly: RndMonthly },
-  bu_elec:     { daily: RndDailyTasks,     weekly: RndWeekly,     monthly: RndMonthly },
-  bu_pm:       { daily: ManagerDailyTasks, weekly: ManagerWeekly, monthly: ManagerMonthly },
-  dept_manager:{ daily: ManagerDailyTasks, weekly: ManagerWeekly, monthly: ManagerMonthly },
-  team_lead:   { daily: LeaderDailyTasks,  weekly: LeaderWeekly,  monthly: LeaderMonthly },
-  director:    { daily: ManagerDailyTasks, weekly: ManagerWeekly, monthly: ManagerMonthly },
-  bu_gm:       { daily: ManagerDailyTasks, weekly: ManagerWeekly, monthly: ManagerMonthly },
-  cs_engineer: { daily: SalesDailyTasks,   weekly: SalesWeekly,   monthly: SalesMonthly },
-  hr_manager:  { daily: ManagerDailyTasks, weekly: ManagerWeekly, monthly: ManagerMonthly },
-  finance_manager: { daily: ManagerDailyTasks, weekly: ManagerWeekly, monthly: ManagerMonthly },
+  bu_sales:    { daily: DailyPlanView, weekly: SalesWeekly,   monthly: SalesMonthly },
+  bu_mech:     { daily: DailyPlanView, weekly: RndWeekly,     monthly: RndMonthly },
+  bu_elec:     { daily: DailyPlanView, weekly: RndWeekly,     monthly: RndMonthly },
+  bu_pm:       { daily: DailyPlanView, weekly: ManagerWeekly, monthly: ManagerMonthly },
+  dept_manager:{ daily: DailyPlanView, weekly: ManagerWeekly, monthly: ManagerMonthly },
+  team_lead:   { daily: DailyPlanView, weekly: LeaderWeekly,  monthly: LeaderMonthly },
+  director:    { daily: DailyPlanView, weekly: ManagerWeekly, monthly: ManagerMonthly },
+  bu_gm:       { daily: DailyPlanView, weekly: ManagerWeekly, monthly: ManagerMonthly },
+  cs_engineer: { daily: DailyPlanView, weekly: SalesWeekly,   monthly: SalesMonthly },
+  hr_manager:  { daily: DailyPlanView, weekly: ManagerWeekly, monthly: ManagerMonthly },
+  finance_manager: { daily: DailyPlanView, weekly: ManagerWeekly, monthly: ManagerMonthly },
 };
 
 const TEMPORAL_TABS: { key: TemporalTab; labelZh: string; labelEn: string; icon: React.ComponentType<{ className?: string }> }[] = [
