@@ -156,8 +156,6 @@ export default function PerformanceReviewMeeting() {
           meetingId,
           speakerId: activeSpeaker.id,
           speakerName: activeSpeaker.name,
-          evaluatorId: currentEvaluatorId,
-          evaluatorName: currentEvaluator?.name ?? "",
           dimension: dim.key as any,
           score: s.score,
           comment: s.comment || undefined,

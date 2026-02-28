@@ -160,13 +160,20 @@ export const expenseReportRouter = router({
     return { success: true, message: "已提交", data: claim };
   }),
 
-  // 审批通过 — ctx.user.id as approver, self-approval prevention
+  // 审批通过 — ctx.user.id as approver, role gate + self-approval prevention
   approve: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     expectedVersion: z.number().optional(),
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
+
+    // Role gate: only finance/management roles can approve
+    const role = ctx.user.role ?? "employee";
+    if (!FINANCE_ROLES.has(role)) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "仅财务/管理角色可审批报销单" });
+    }
+
     await checkExpenseVersion(db, id, input.expectedVersion);
 
     // Prevent self-approval
@@ -193,7 +200,7 @@ export const expenseReportRouter = router({
     return { success: true, message: "已批准", data: claim };
   }),
 
-  // 拒绝 — ctx.user.id, self-rejection prevention
+  // 拒绝 — role gate + self-rejection prevention
   reject: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     expectedVersion: z.number().optional(),
@@ -202,12 +209,22 @@ export const expenseReportRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
+
+    // Role gate: only finance/management roles can reject
+    const role = ctx.user.role ?? "employee";
+    if (!FINANCE_ROLES.has(role)) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "仅财务/管理角色可驳回报销单" });
+    }
+
     await checkExpenseVersion(db, id, input.expectedVersion);
 
-    // Prevent self-rejection (odd but also a logic error)
     const [existing] = await db.select({ submitterId: expenseClaims.submitterId, status: expenseClaims.status })
       .from(expenseClaims).where(eq(expenseClaims.id, id));
     if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: `报销单 #${id} 不存在` });
+    // Prevent self-rejection
+    if (existing.submitterId === ctx.user.id) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "不能驳回自己提交的报销单" });
+    }
     if (existing.status !== "submitted" && existing.status !== "pending_review") {
       throw new TRPCError({ code: "BAD_REQUEST", message: `报销单状态为 ${existing.status}，无法驳回` });
     }

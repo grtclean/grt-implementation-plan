@@ -487,8 +487,6 @@ export default function MeetingHub() {
         body: JSON.stringify({
           json: {
             meetingId: meeting.id,
-            userId: currentUser.id,
-            userName: currentUser.name,
             message: msg.message,
           },
         }),

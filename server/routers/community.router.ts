@@ -76,12 +76,12 @@ export const communityRouter = router({
   }),
 
   // 点赞
-  like: protectedProcedure.input(z.object({ messageId: z.number() })).mutation(async ({ input }) => {
+  like: protectedProcedure.input(z.object({ messageId: z.number() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     // Log as interaction
     await db.insert(interactionLogs).values({
       interactionType: "feedback" as const,
-      memberId: 1,
+      memberId: ctx.user.id,
       messageId: input.messageId,
       originalContent: "like",
     });
@@ -145,7 +145,7 @@ export const communityRouter = router({
     category: z.string().optional(),
     tags: z.string().optional(),
     sourceType: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [item] = await db.insert(contentLibrary).values({
       title: input.title,
@@ -153,6 +153,7 @@ export const communityRouter = router({
       contentType: input.contentType,
       category: input.category,
       tags: input.tags,
+      authorId: ctx.user.id,
     }).returning();
     return { success: true, message: "内容已创建", data: item };
   }),
@@ -183,12 +184,13 @@ export const communityRouter = router({
   approveContent: protectedProcedure.input(z.object({
     contentId: z.number(),
     status: z.string(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const approved = input.status === "approved";
     await db.update(contentLibrary)
       .set({
         approvalStatus: approved ? ("approved" as const) : ("rejected" as const),
+        approvedBy: ctx.user.id,
         approvedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -254,12 +256,13 @@ export const communityRouter = router({
     messageId: z.number(),
     status: z.string(),
     reason: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const approved = input.status === "approved";
     await db.update(communityMessages)
       .set({
         approvalStatus: approved ? ("approved" as const) : ("rejected" as const),
+        approvedBy: ctx.user.id,
         approvedAt: new Date().toISOString(),
         rejectionReason: approved ? undefined : input.reason,
         publishStatus: approved ? ("queued" as const) : ("draft" as const),

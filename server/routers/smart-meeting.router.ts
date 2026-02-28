@@ -319,14 +319,14 @@ const attendanceRouter = router({
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
-        userId: z.number(),
-        userName: z.string().optional(),
         status: z.enum(["PRESENT_PHYSICAL", "PRESENT_ONLINE"]),
         checkInMethod: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
+      const userId = ctx.user.id;
+      const userName = ctx.user.name ?? `User#${userId}`;
       // Upsert: if user already has a record, update it
       const existing = await db
         .select()
@@ -334,7 +334,7 @@ const attendanceRouter = router({
         .where(
           and(
             eq(meetingAttendance.meetingId, toNum(input.meetingId)),
-            eq(meetingAttendance.userId, input.userId)
+            eq(meetingAttendance.userId, userId)
           )
         );
 
@@ -356,8 +356,8 @@ const attendanceRouter = router({
         .insert(meetingAttendance)
         .values({
           meetingId: toNum(input.meetingId),
-          userId: input.userId,
-          userName: input.userName ?? null,
+          userId,
+          userName,
           status: input.status,
           checkInTime: new Date(),
           checkInMethod: input.checkInMethod ?? null,
@@ -371,19 +371,19 @@ const attendanceRouter = router({
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
-        userId: z.number(),
         reason: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
+      const userId = ctx.user.id;
       const existing = await db
         .select()
         .from(meetingAttendance)
         .where(
           and(
             eq(meetingAttendance.meetingId, toNum(input.meetingId)),
-            eq(meetingAttendance.userId, input.userId)
+            eq(meetingAttendance.userId, userId)
           )
         );
 
@@ -405,7 +405,7 @@ const attendanceRouter = router({
         .insert(meetingAttendance)
         .values({
           meetingId: toNum(input.meetingId),
-          userId: input.userId,
+          userId,
           status: "LEAVED",
           leaveTime: new Date(),
           leaveReason: input.reason,
@@ -469,20 +469,20 @@ const interactionRouter = router({
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
-        userId: z.number(),
-        userName: z.string().optional(),
         personalNotes: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
+      const userId = ctx.user.id;
+      const userName = ctx.user.name ?? `User#${userId}`;
       const existing = await db
         .select()
         .from(meetingInteractions)
         .where(
           and(
             eq(meetingInteractions.meetingId, toNum(input.meetingId)),
-            eq(meetingInteractions.userId, input.userId)
+            eq(meetingInteractions.userId, userId)
           )
         );
 
@@ -502,8 +502,8 @@ const interactionRouter = router({
         .insert(meetingInteractions)
         .values({
           meetingId: toNum(input.meetingId),
-          userId: input.userId,
-          userName: input.userName ?? null,
+          userId,
+          userName,
           personalNotes: input.personalNotes,
         })
         .returning();
@@ -515,8 +515,6 @@ const interactionRouter = router({
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
-        userId: z.number(),
-        userName: z.string().optional(),
         answers: z.array(
           z.object({
             questionId: z.number(),
@@ -527,15 +525,17 @@ const interactionRouter = router({
         score: z.number(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
+      const userId = ctx.user.id;
+      const userName = ctx.user.name ?? `User#${userId}`;
       const existing = await db
         .select()
         .from(meetingInteractions)
         .where(
           and(
             eq(meetingInteractions.meetingId, toNum(input.meetingId)),
-            eq(meetingInteractions.userId, input.userId)
+            eq(meetingInteractions.userId, userId)
           )
         );
 
@@ -556,8 +556,8 @@ const interactionRouter = router({
         .insert(meetingInteractions)
         .values({
           meetingId: toNum(input.meetingId),
-          userId: input.userId,
-          userName: input.userName ?? null,
+          userId,
+          userName,
           aiQuizScore: input.score,
           aiQuizAnswers: input.answers,
         })
@@ -570,19 +570,19 @@ const interactionRouter = router({
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
-        userId: z.number(),
         reflection: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
+      const userId = ctx.user.id;
       const existing = await db
         .select()
         .from(meetingInteractions)
         .where(
           and(
             eq(meetingInteractions.meetingId, toNum(input.meetingId)),
-            eq(meetingInteractions.userId, input.userId)
+            eq(meetingInteractions.userId, userId)
           )
         );
 
@@ -602,7 +602,7 @@ const interactionRouter = router({
         .insert(meetingInteractions)
         .values({
           meetingId: toNum(input.meetingId),
-          userId: input.userId,
+          userId,
           takeawayReflection: input.reflection,
         })
         .returning();
@@ -687,17 +687,17 @@ const chatRouter = router({
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
-        userId: z.number(),
-        userName: z.string(),
         message: z.string().min(1),
       })
     )
-    .mutation(({ input }) => {
+    .mutation(({ input, ctx }) => {
       const meetingId = toNum(input.meetingId);
+      const userId = ctx.user.id;
+      const userName = ctx.user.name ?? `User#${userId}`;
       if (!chatStore.has(meetingId)) chatStore.set(meetingId, []);
       const msg = {
-        userId: input.userId,
-        userName: input.userName,
+        userId,
+        userName,
         message: input.message,
         time: new Date().toISOString(),
       };
@@ -947,15 +947,15 @@ const reviewRouter = router({
         meetingId: z.number(),
         speakerId: z.number(),
         speakerName: z.string().optional(),
-        evaluatorId: z.number(),
-        evaluatorName: z.string().optional(),
         dimension: z.enum(REVIEW_DIMENSIONS),
         score: z.number().min(1).max(10),
         comment: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
+      const evaluatorId = ctx.user.id;
+      const evaluatorName = ctx.user.name ?? `User#${evaluatorId}`;
       // Upsert: delete existing then insert
       await db
         .delete(meetingReviewEvaluations)
@@ -963,7 +963,7 @@ const reviewRouter = router({
           and(
             eq(meetingReviewEvaluations.meetingId, input.meetingId),
             eq(meetingReviewEvaluations.speakerId, input.speakerId),
-            eq(meetingReviewEvaluations.evaluatorId, input.evaluatorId),
+            eq(meetingReviewEvaluations.evaluatorId, evaluatorId),
             eq(meetingReviewEvaluations.dimension, input.dimension)
           )
         );
@@ -973,8 +973,8 @@ const reviewRouter = router({
           meetingId: input.meetingId,
           speakerId: input.speakerId,
           speakerName: input.speakerName ?? null,
-          evaluatorId: input.evaluatorId,
-          evaluatorName: input.evaluatorName ?? null,
+          evaluatorId,
+          evaluatorName,
           dimension: input.dimension,
           score: input.score,
           comment: input.comment ?? null,
