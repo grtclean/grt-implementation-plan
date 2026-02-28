@@ -6,7 +6,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
-import { eq, sql, and, or } from "drizzle-orm";
+import { eq, sql, and, or, count, desc } from "drizzle-orm";
 import {
   hrmEmployees,
   hrmCandidates,
@@ -21,23 +21,32 @@ const successResponse = { success: true, message: "操作成功" };
 export const hrmRouter = router({
   // ==================== CRUD (employees as default entity) ====================
 
-  list: protectedProcedure.query(async () => {
-    const db = await requireDb();
-    const rows = await db.select().from(hrmEmployees);
-    const items = rows.map((row) => ({
-      id: `EMP-${row.id}`,
-      employeeCode: row.employeeCode,
-      name: row.name,
-      department: row.department,
-      position: row.position,
-      level: row.level,
-      status: row.status,
-      hireDate: row.hireDate,
-      phone: row.phone,
-      email: row.email,
-    }));
-    return { items, total: items.length, page: 1, pageSize: 10 };
-  }),
+  list: protectedProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(500).default(50),
+      offset: z.number().min(0).default(0),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const limit = input?.limit ?? 50;
+      const offset = input?.offset ?? 0;
+      const [totalResult] = await db.select({ count: count() }).from(hrmEmployees);
+      const total = Number(totalResult?.count ?? 0);
+      const rows = await db.select().from(hrmEmployees).limit(limit).offset(offset);
+      const items = rows.map((row) => ({
+        id: `EMP-${row.id}`,
+        employeeCode: row.employeeCode,
+        name: row.name,
+        department: row.department,
+        position: row.position,
+        level: row.level,
+        status: row.status,
+        hireDate: row.hireDate,
+        phone: row.phone,
+        email: row.email,
+      }));
+      return { items, total, page: Math.floor(offset / limit) + 1, pageSize: limit };
+    }),
 
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
@@ -76,24 +85,35 @@ export const hrmRouter = router({
       };
     }),
 
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    employeeCode: z.string().max(50).optional(),
+    name: z.string().max(200),
+    gender: z.string().max(10).optional(),
+    department: z.string().max(100).optional(),
+    position: z.string().max(100).optional(),
+    level: z.string().max(20).optional(),
+    hireDate: z.string().optional(),
+    phone: z.string().max(30).optional(),
+    email: z.string().max(320).optional(),
+    status: z.string().max(30).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.insert(hrmEmployees).values({
       employeeCode: input.employeeCode ?? `EMP-${Date.now()}`,
       name: input.name,
       gender: input.gender ?? "male",
-      department: input.department,
-      position: input.position,
+      department: input.department ?? "未分配",
+      position: input.position ?? "未分配",
       level: input.level,
       hireDate: input.hireDate ?? new Date().toISOString(),
       phone: input.phone,
       email: input.email,
       status: input.status ?? "probation",
-    });
+    } as any);
     return successResponse;
   }),
 
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) }).passthrough()).mutation(async ({ input }) => {
     const db = await requireDb();
     const numericId = parseInt(String(input.id).replace(/^EMP-/, ""), 10);
     if (isNaN(numericId)) return successResponse;
@@ -274,7 +294,7 @@ export const hrmRouter = router({
 
   // ==================== Attendance (stub - no table) ====================
 
-  getAttendance: protectedProcedure.input(z.any()).query(() => {
+  getAttendance: protectedProcedure.input(z.object({ employeeId: z.string().optional(), startDate: z.string().optional(), endDate: z.string().optional() }).optional()).query(() => {
     return [] as Array<{ employeeId: string; date: string; checkIn: string; checkOut: string; status: string }>;
   }),
 
@@ -398,19 +418,19 @@ export const hrmRouter = router({
       };
     }),
 
-  createSalaryCalculation: requirePermission('hrm_salary_calculation').input(z.any()).mutation(() => successResponse),
+  createSalaryCalculation: requirePermission('hrm_salary_calculation').input(z.object({ department: z.string(), baseSalary: z.number(), performanceGrade: z.string().optional() }).passthrough()).mutation(() => successResponse),
 
   // ==================== Scheduled Tasks (stub) ====================
 
   getScheduledTasks: protectedProcedure.query(() => [] as Array<{ id: string; taskName: string; taskType: string; cronExpression: string; isEnabled: boolean; lastRunAt: string | null }>),
-  createScheduledTask: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  updateScheduledTask: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  createScheduledTask: protectedProcedure.input(z.object({ taskName: z.string(), taskType: z.string(), cronExpression: z.string().optional(), isEnabled: z.boolean().optional() })).mutation(() => successResponse),
+  updateScheduledTask: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), taskName: z.string().optional(), isEnabled: z.boolean().optional() })).mutation(() => successResponse),
 
   // ==================== Teams Meetings (stub) ====================
 
   getTeamsMeetings: protectedProcedure.query(() => [] as Array<{ id: string; subject: string; startTime: string; durationMinutes: number; status: string }>),
-  createTeamsMeeting: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  updateTeamsMeeting: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  createTeamsMeeting: protectedProcedure.input(z.object({ subject: z.string(), startTime: z.union([z.string(), z.date()]), durationMinutes: z.number().optional() }).passthrough()).mutation(() => successResponse),
+  updateTeamsMeeting: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), subject: z.string().optional(), startTime: z.string().optional(), durationMinutes: z.number().optional(), status: z.string().optional() })).mutation(() => successResponse),
 
   // ==================== Performance Score (deterministic seed algorithm) ====================
 

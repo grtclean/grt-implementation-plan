@@ -3,19 +3,29 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { crmLeads } from "../../drizzle/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, count, sql } from "drizzle-orm";
 
 export const leadAutoFollowRouter = router({
   // List leads that need follow-up (BU-scoped)
-  list: protectedProcedure.query(async ({ ctx }) => {
-    const db = await requireDb();
-    const buFilter = buScopeCondition(crmLeads.buCode, ctx);
-    const leads = buFilter
-      ? await db.select().from(crmLeads).where(buFilter).orderBy(desc(crmLeads.createdAt))
-      : await db.select().from(crmLeads).orderBy(desc(crmLeads.createdAt));
-    const needsFollowUp = leads.filter(l => l.status === 'new' || l.status === 'contacted');
-    return { items: needsFollowUp, total: needsFollowUp.length };
-  }),
+  list: protectedProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(500).default(50),
+      offset: z.number().min(0).default(0),
+    }).optional())
+    .query(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const limit = input?.limit ?? 50;
+      const offset = input?.offset ?? 0;
+      const buFilter = buScopeCondition(crmLeads.buCode, ctx);
+      // Count total follow-up leads (new or contacted)
+      const followUpCondition = buFilter
+        ? and(buFilter, sql`(${crmLeads.status} = 'new' OR ${crmLeads.status} = 'contacted')`)
+        : sql`(${crmLeads.status} = 'new' OR ${crmLeads.status} = 'contacted')`;
+      const [totalResult] = await db.select({ count: count() }).from(crmLeads).where(followUpCondition);
+      const total = Number(totalResult?.count ?? 0);
+      const leads = await db.select().from(crmLeads).where(followUpCondition).orderBy(desc(crmLeads.createdAt)).limit(limit).offset(offset);
+      return { items: leads, total };
+    }),
 
   getById: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input, ctx }) => {
     const db = await requireDb();

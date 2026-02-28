@@ -5,7 +5,8 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
+import { jsonValue } from "../../shared/validators";
 
 // =====================================================
 // 1. 液态用工模块 (Liquid Workforce)
@@ -70,7 +71,7 @@ export const liquidWorkforceRouter = router({
         status: z.enum(['pending', 'accepted', 'rejected']).optional()
       }))
       .query(async ({ input }) => {
-        let whereConditions: any[] = [];
+        let whereConditions: SQL[] = [];
         if (input.taskId) whereConditions.push(sql`task_id = ${input.taskId}`);
         if (input.status) whereConditions.push(sql`status = ${input.status}`);
         
@@ -90,7 +91,7 @@ export const liquidWorkforceRouter = router({
         taskId: z.number(),
         bidderAgentId: z.string(),
         bidPrice: z.number(),
-        promisedSla: z.any(),
+        promisedSla: jsonValue,
         creditScoreSnapshot: z.number()
       }))
       .mutation(async ({ input }) => {
@@ -134,7 +135,7 @@ export const liquidWorkforceRouter = router({
       .input(z.object({
         contractAddress: z.string(),
         paymentType: z.enum(['e-CNY', 'USDT', 'G-Token']),
-        triggerCondition: z.any(),
+        triggerCondition: jsonValue,
         relatedTaskId: z.number().optional(),
         amount: z.number()
       }))
@@ -167,7 +168,7 @@ export const autonomousSalesRouter = router({
         projectId: z.number().optional()
       }))
       .query(async ({ input }) => {
-        let whereConditions: any[] = [];
+        let whereConditions: SQL[] = [];
         if (input.status) whereConditions.push(sql`status = ${input.status}`);
         if (input.projectId) whereConditions.push(sql`project_id = ${input.projectId}`);
         
@@ -201,7 +202,7 @@ export const autonomousSalesRouter = router({
       .input(z.object({
         sessionId: z.string(),
         clientCounterOffer: z.number(),
-        sentimentAnalysis: z.any().optional()
+        sentimentAnalysis: jsonValue.optional()
       }))
       .mutation(async ({ input }) => {
         await (await requireDb()).execute(sql`
@@ -264,7 +265,7 @@ export const autonomousSalesRouter = router({
       .input(z.object({
         proofId: z.string(),
         proofType: z.enum(['capacity', 'compliance', 'green_energy']),
-        publicInputs: z.any(),
+        publicInputs: jsonValue,
         proofHash: z.string(),
         relatedEntityType: z.string().optional(),
         relatedEntityId: z.number().optional()
@@ -374,7 +375,7 @@ export const stageGateRouter = router({
         executionStatus: z.enum(['pending', 'sent', 'acknowledged', 'failed']).optional()
       }))
       .query(async ({ input }) => {
-        let whereConditions: any[] = [];
+        let whereConditions: SQL[] = [];
         if (input.projectId) whereConditions.push(sql`project_id = ${input.projectId}`);
         if (input.executionStatus) whereConditions.push(sql`execution_status = ${input.executionStatus}`);
         
@@ -395,7 +396,7 @@ export const stageGateRouter = router({
         upstreamGate: z.string(),
         triggerEvent: z.string(),
         targetAasId: z.string(),
-        actionPayload: z.any(),
+        actionPayload: jsonValue,
         projectId: z.number().optional()
       }))
       .mutation(async ({ input }) => {
@@ -439,7 +440,7 @@ export const personalAgentRouter = router({
       .input(z.object({
         userDid: z.string(),
         context: z.string(),
-        actionData: z.any(),
+        actionData: jsonValue,
         impliedSkill: z.string().optional(),
         sessionId: z.string().optional(),
         pageUrl: z.string().optional(),
@@ -498,7 +499,7 @@ export const personalAgentRouter = router({
         projectPhase: z.string().optional()
       }))
       .query(async ({ input }) => {
-        let whereConditions: any[] = [];
+        let whereConditions: SQL[] = [];
         if (input.projectId) whereConditions.push(sql`project_id = ${input.projectId}`);
         if (input.projectPhase) whereConditions.push(sql`project_phase = ${input.projectPhase}`);
         
@@ -563,7 +564,7 @@ export const coreBusinessRouter = router({
         currentPhase: z.string().optional()
       }))
       .query(async ({ input }) => {
-        let whereConditions: any[] = [];
+        let whereConditions: SQL[] = [];
         if (input.status) whereConditions.push(sql`status = ${input.status}`);
         if (input.currentPhase) whereConditions.push(sql`current_phase = ${input.currentPhase}`);
         
@@ -740,8 +741,8 @@ export const coreBusinessRouter = router({
       .input(z.object({
         projectId: z.number(),
         testType: z.enum(['Toothpaste_Test', 'Cycle_Time', 'Vacuum_Test', 'Particle_Count']),
-        parameters: z.any(),
-        resultData: z.any(),
+        parameters: jsonValue,
+        resultData: jsonValue,
         resultStatus: z.boolean(),
         testerId: z.string()
       }))
@@ -770,7 +771,7 @@ export const socialCommunityRouter = router({
       }))
       .query(async ({ input }) => {
         const offset = (input.page - 1) * input.pageSize;
-        let whereConditions: any[] = [];
+        let whereConditions: SQL[] = [];
         if (input.groupId) whereConditions.push(sql`group_id = ${input.groupId}`);
         if (input.replyStatus) whereConditions.push(sql`reply_status = ${input.replyStatus}`);
         
@@ -909,8 +910,8 @@ export const erpConnectionRouter = router({
         name: z.string(),
         erpType: z.enum(['SAP', 'Oracle', 'Kingdee', 'Custom']),
         connectionUrl: z.string(),
-        authConfig: z.any(),
-        syncConfig: z.any().optional()
+        authConfig: jsonValue,
+        syncConfig: jsonValue.optional()
       }))
       .mutation(async ({ input }) => {
         await (await requireDb()).execute(sql`
@@ -925,12 +926,12 @@ export const erpConnectionRouter = router({
         id: z.number(),
         name: z.string().optional(),
         connectionUrl: z.string().optional(),
-        authConfig: z.any().optional(),
-        syncConfig: z.any().optional(),
+        authConfig: jsonValue.optional(),
+        syncConfig: jsonValue.optional(),
         isActive: z.boolean().optional()
       }))
       .mutation(async ({ input }) => {
-        const updates: any[] = [];
+        const updates: SQL[] = [];
         if (input.name) updates.push(sql`name = ${input.name}`);
         if (input.connectionUrl) updates.push(sql`connection_url = ${input.connectionUrl}`);
         if (input.authConfig) updates.push(sql`auth_config = ${JSON.stringify(input.authConfig)}`);

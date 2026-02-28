@@ -3,9 +3,12 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { capabilityProofConfigs, capabilityEvidences, publicCapabilityShowcase } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
+import { jsonValue } from "../../shared/validators";
 
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 const successResponse = { success: true, message: "操作成功" };
+/** Stub procedures accept any object shape — will be replaced with proper schemas when implemented */
+const stubInput = z.record(z.string(), z.unknown()).optional();
 
 const UPGRADE_RULES = [
   { id: "RULE-001", fromLevel: "L1", toLevel: "L2", requiredEvidences: 3, description: "L1升L2需要3个能力证据" },
@@ -37,7 +40,14 @@ export const capabilityOsRouter = router({
     return item || null;
   }),
 
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    capabilityCode: z.string().max(50).optional(),
+    capabilityName: z.string().max(200).optional(),
+    name: z.string().max(200).optional(),
+    capabilityCategory: z.string().max(100).optional(),
+    publicDescription: z.string().max(5000).optional(),
+    description: z.string().max(5000).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const capCode = "CAP-" + Date.now().toString(36).toUpperCase();
     const [item] = await db.insert(capabilityProofConfigs).values({
@@ -46,11 +56,22 @@ export const capabilityOsRouter = router({
       capabilityCategory: input.capabilityCategory || "technical_expertise",
       publicDescription: input.publicDescription || input.description,
       isActive: 1,
-    }).returning();
+    } as any).returning();
     return { success: true, message: "创建成功", data: item };
   }),
 
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    capabilityName: z.string().max(200).optional(),
+    capabilityCategory: z.string().max(100).optional(),
+    publicDescription: z.string().max(5000).optional(),
+    publicEvidence: z.string().max(5000).optional(),
+    verificationRules: jsonValue.optional(),
+    requiredDataSources: jsonValue.optional(),
+    zkpEnabled: z.union([z.boolean(), z.number()]).optional(),
+    zkpCircuitType: z.string().max(100).optional(),
+    isActive: z.union([z.boolean(), z.number()]).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = toNum(input.id);
     const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
@@ -73,13 +94,13 @@ export const capabilityOsRouter = router({
     return successResponse;
   }),
 
-  getAssessmentReport: protectedProcedure.input(z.any()).query(async () => {
+  getAssessmentReport: protectedProcedure.query(async () => {
     const db = await requireDb();
     const configs = await db.select().from(capabilityProofConfigs).where(eq(capabilityProofConfigs.isActive, 1));
     return { report: { domains: CAPABILITY_DOMAINS, capabilities: configs } };
   }),
 
-  getEmployeeCapabilities: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getEmployeeCapabilities: protectedProcedure.input(z.object({ employeeId: z.number().optional(), userId: z.number().optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const userId = input?.employeeId || input?.userId;
     if (!userId) return [];
@@ -87,14 +108,14 @@ export const capabilityOsRouter = router({
     return evidences;
   }),
 
-  getDevelopmentPath: protectedProcedure.input(z.any()).query(async () => {
+  getDevelopmentPath: protectedProcedure.query(async () => {
     const db = await requireDb();
     const configs = await db.select().from(capabilityProofConfigs).where(eq(capabilityProofConfigs.isActive, 1)).limit(5);
     return configs;
   }),
 
   getUpgradeRules: protectedProcedure.query(() => UPGRADE_RULES),
-  upgradeCapability: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  upgradeCapability: protectedProcedure.input(z.object({ capabilityId: z.union([z.string(), z.number()]), fromLevel: z.string().optional(), toLevel: z.string().optional() })).mutation(() => successResponse),
 
   listCapabilities: protectedProcedure.query(async () => {
     const db = await requireDb();
@@ -106,7 +127,6 @@ export const capabilityOsRouter = router({
   getMyCapabilities: protectedProcedure.query(async () => {
     const db = await requireDb();
     const evidences = await db.select().from(capabilityEvidences).where(eq(capabilityEvidences.status, "approved")).limit(200);
-    // Aggregate by domain → { domainId, currentLevel, totalPoints }
     const domainMap: Record<string, { code: string; domainId: number; currentLevel: number; totalPoints: number }> = {};
     const domainIds: Record<string, number> = { T: 1, S: 2, D: 3, C: 4, K: 5, L: 6 };
     for (const ev of evidences) {
@@ -114,7 +134,7 @@ export const capabilityOsRouter = router({
       if (!domainMap[domain]) {
         domainMap[domain] = { code: domain, domainId: domainIds[domain] || 1, currentLevel: 1, totalPoints: 0 };
       }
-      domainMap[domain].totalPoints += 50; // base score per approved evidence
+      domainMap[domain].totalPoints += 50;
       if (ev.currentLevel && ev.currentLevel > domainMap[domain].currentLevel) {
         domainMap[domain].currentLevel = ev.currentLevel;
       }
@@ -138,7 +158,28 @@ export const capabilityOsRouter = router({
     { id: 8, code: "other", name: "其他", description: "其他类型证据", baseScore: 15, domains: "T,S,D,C,K,L" },
   ]),
 
-  submitEvidence: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  submitEvidence: protectedProcedure.input(z.object({
+    userId: z.union([z.string(), z.number()]).optional(),
+    userName: z.string().max(200).optional(),
+    evidenceType: z.string().max(100).optional(),
+    evidenceTypeId: z.union([z.string(), z.number()]).optional(),
+    capabilityDomain: z.string().max(50).optional(),
+    domainId: z.union([z.string(), z.number()]).optional(),
+    title: z.string().max(500).optional(),
+    description: z.string().max(5000).optional(),
+    projectId: z.union([z.string(), z.number()]).optional(),
+    projectName: z.string().max(200).optional(),
+    equipmentModel: z.string().max(200).optional(),
+    fileUrl: z.string().max(2048).optional(),
+    fileKey: z.string().max(500).optional(),
+    fileName: z.string().max(500).optional(),
+    fileType: z.string().max(100).optional(),
+    fileSize: z.union([z.string(), z.number()]).optional(),
+    currentLevel: z.union([z.string(), z.number()]).optional(),
+    targetLevel: z.union([z.string(), z.number()]).optional(),
+    metadata: jsonValue.optional(),
+    tags: jsonValue.optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const evidenceId = "EVD-" + Date.now().toString(36).toUpperCase();
     const [evidence] = await db.insert(capabilityEvidences).values({
@@ -161,16 +202,26 @@ export const capabilityOsRouter = router({
       status: "pending",
       currentLevel: input.currentLevel ? toNum(input.currentLevel) : undefined,
       targetLevel: input.targetLevel ? toNum(input.targetLevel) : undefined,
-      metadata: input.metadata,
-      tags: input.tags,
-    }).returning();
+      metadata: input.metadata as any,
+      tags: input.tags as any,
+    } as any).returning();
     return { success: true, message: "证据已提交", data: evidence };
   }),
 
-  reviewEvidence: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  reviewEvidence: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]).optional(),
+    evidenceId: z.union([z.string(), z.number()]).optional(),
+    approved: z.boolean().optional(),
+    status: z.string().max(20).optional(),
+    reviewerId: z.number().optional(),
+    reviewerName: z.string().max(200).optional(),
+    comment: z.string().max(5000).optional(),
+    reviewComment: z.string().max(5000).optional(),
+    awardedPoints: z.number().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const id = toNum(input.id || input.evidenceId);
-    const status = input.approved ? "approved" : "rejected";
+    const id = toNum(input.id || input.evidenceId || 0);
+    const status = input.status ?? (input.approved ? "approved" : "rejected");
     await db.update(capabilityEvidences).set({
       status: status as any,
       reviewerId: toNum(input.reviewerId || 1),
@@ -194,31 +245,31 @@ export const capabilityOsRouter = router({
 
   // --- Badges (no DB table) ------------------------------------------------------
   getAllBadges: protectedProcedure.query(() => []),
-  getUserBadges: protectedProcedure.input(z.any()).query(() => []),
+  getUserBadges: protectedProcedure.input(stubInput).query(() => []),
   getBadgeLeaderboard: protectedProcedure.query(() => []),
   getBadgeStatistics: protectedProcedure.query(() => ({ statistics: {} })),
-  updateBadgeDisplay: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  updateBadgeDisplay: protectedProcedure.input(stubInput).mutation(() => successResponse),
 
   // --- Leaderboard (no DB table) -------------------------------------------------
-  getDomainLeaderboard: protectedProcedure.input(z.any()).query(() => []),
+  getDomainLeaderboard: protectedProcedure.input(stubInput).query(() => []),
   getOverallLeaderboard: protectedProcedure.query(() => []),
   getProgressLeaderboard: protectedProcedure.query(() => []),
   getLeaderboardStats: protectedProcedure.query(() => ({ stats: {} })),
 
   // --- Certificates (no DB table) ------------------------------------------------
   getMyCertificates: protectedProcedure.query(() => []),
-  checkCertificateEligibility: protectedProcedure.input(z.any()).query(() => ({ eligible: false, requirements: [] })),
-  generateCertificate: protectedProcedure.input(z.any()).mutation(() => ({ url: "" })),
-  verifyCertificateByQR: protectedProcedure.input(z.any()).query(() => ({ valid: false, certificate: null })),
+  checkCertificateEligibility: protectedProcedure.input(stubInput).query(() => ({ eligible: false, requirements: [] })),
+  generateCertificate: protectedProcedure.input(stubInput).mutation(() => ({ url: "" })),
+  verifyCertificateByQR: protectedProcedure.input(stubInput).query(() => ({ valid: false, certificate: null })),
 
   // --- Engineer Checkpoints (no DB table) ----------------------------------------
   getAllEngineerCheckpoints: protectedProcedure.query(() => []),
-  approveCheckpoint: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  rejectCheckpoint: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  completePhase: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  approveCheckpoint: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  rejectCheckpoint: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  completePhase: protectedProcedure.input(stubInput).mutation(() => successResponse),
 
   // --- Path Recommendation (static mock) -----------------------------------------
-  getPathRecommendation: protectedProcedure.input(z.any()).query(() => ({
+  getPathRecommendation: protectedProcedure.input(stubInput).query(() => ({
     userId: "user1",
     currentCapabilities: {
       T: { level: 3, points: 450 },
@@ -249,27 +300,27 @@ export const capabilityOsRouter = router({
 
   // --- Agent Units (no DB table) -------------------------------------------------
   getAgentUnits: protectedProcedure.query(() => []),
-  createAgentUnit: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  updateAgentUnitStatus: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  batchImportAgentUnits: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  createAgentUnit: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  updateAgentUnitStatus: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  batchImportAgentUnits: protectedProcedure.input(stubInput).mutation(() => successResponse),
   getAgentUnitStatistics: protectedProcedure.query(() => ({ statistics: {} })),
   getAgentUnitImportHistory: protectedProcedure.query(() => []),
 
   // --- Approval Chain Configs (no DB table) --------------------------------------
   getApprovalChainConfigs: protectedProcedure.query(() => []),
-  createApprovalChainConfig: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  updateApprovalChainConfig: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  deleteApprovalChainConfig: protectedProcedure.input(z.any()).mutation(() => successResponse),
+  createApprovalChainConfig: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  updateApprovalChainConfig: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  deleteApprovalChainConfig: protectedProcedure.input(stubInput).mutation(() => successResponse),
 
   // --- UWB Positioning (no DB table) ---------------------------------------------
   getAllUWBTags: protectedProcedure.query(() => []),
-  getPositionHistory: protectedProcedure.input(z.any()).query(() => []),
+  getPositionHistory: protectedProcedure.input(stubInput).query(() => []),
   getWorkshopOverview: protectedProcedure.query(() => ({ overview: {} })),
 
   // --- Calibration (no DB table) -------------------------------------------------
-  executeCalibrationCheck: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  recordCalibrationData: protectedProcedure.input(z.any()).mutation(() => successResponse),
-  getCalibrationTrend: protectedProcedure.input(z.any()).query(() => []),
+  executeCalibrationCheck: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  recordCalibrationData: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  getCalibrationTrend: protectedProcedure.input(stubInput).query(() => []),
 
   // --- Cleaning Strategies (no DB table) -----------------------------------------
   getAllCleaningStrategies: protectedProcedure.query(() => []),
@@ -280,10 +331,10 @@ export const capabilityOsRouter = router({
   getToothpasteTestTrend: protectedProcedure.query(() => []),
   getToothpasteTestCount: protectedProcedure.query(() => ({ count: 0 })),
   getToothpasteFeatureTypeStats: protectedProcedure.query(() => ({ stats: {} })),
-  exportToothpasteTestReport: protectedProcedure.input(z.any()).mutation(() => ({ url: "" })),
+  exportToothpasteTestReport: protectedProcedure.input(stubInput).mutation(() => ({ url: "" })),
 
   // --- Technical Proposals (no DB table) -----------------------------------------
-  generateTechnicalProposal: protectedProcedure.input(z.any()).mutation(() => ({ proposal: "" })),
-  generateIOList: protectedProcedure.input(z.any()).mutation(() => ({ ioList: [] })),
-  analyzePartFeatures: protectedProcedure.input(z.any()).mutation(() => []),
+  generateTechnicalProposal: protectedProcedure.input(stubInput).mutation(() => ({ proposal: "" })),
+  generateIOList: protectedProcedure.input(stubInput).mutation(() => ({ ioList: [] })),
+  analyzePartFeatures: protectedProcedure.input(stubInput).mutation(() => []),
 });

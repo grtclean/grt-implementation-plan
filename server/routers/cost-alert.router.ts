@@ -14,7 +14,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, count } from "drizzle-orm";
 import {
   costAlertRules, costAlertLogs, costAlertRuleTemplates,
   costAlertRuleVersions,
@@ -23,15 +23,24 @@ import {
 export const costAlertRouter = router({
   // ==================== CRUD (alert logs as default entity) ====================
 
-  list: protectedProcedure.query(async () => {
-    try {
-      const db = await requireDb();
-      const rows = await db.select().from(costAlertLogs).orderBy(desc(costAlertLogs.createdAt));
-      return { items: rows, total: rows.length, page: 1, pageSize: 10 };
-    } catch {
-      return { items: [] as any[], total: 0, page: 1, pageSize: 10 };
-    }
-  }),
+  list: protectedProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(500).default(50),
+      offset: z.number().min(0).default(0),
+    }).optional())
+    .query(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const limit = input?.limit ?? 50;
+        const offset = input?.offset ?? 0;
+        const [totalResult] = await db.select({ count: count() }).from(costAlertLogs);
+        const total = totalResult?.count ?? 0;
+        const rows = await db.select().from(costAlertLogs).orderBy(desc(costAlertLogs.createdAt)).limit(limit).offset(offset);
+        return { items: rows, total, page: Math.floor(offset / limit) + 1, pageSize: limit };
+      } catch {
+        return { items: [] as any[], total: 0, page: 1, pageSize: 50 };
+      }
+    }),
 
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))

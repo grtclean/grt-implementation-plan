@@ -1203,11 +1203,11 @@ export async function createSolutionVersion(params: {
   meetingId: string;
   solutionTitle: string;
   solutionSummary?: string;
-  solutionContent: any;
-  equipmentConfig?: any;
-  processFlow?: any[];
-  processSteps?: any[];
-  projectPhases?: any[];
+  solutionContent: unknown;
+  equipmentConfig?: unknown;
+  processFlow?: Record<string, unknown>[];
+  processSteps?: Record<string, unknown>[];
+  projectPhases?: Record<string, unknown>[];
   estimatedCost?: number;
   quotedPrice?: number;
   deliveryTime?: number;

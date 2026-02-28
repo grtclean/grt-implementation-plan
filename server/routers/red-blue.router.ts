@@ -9,6 +9,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
@@ -47,19 +48,19 @@ const createConfigSchema = z.object({
 
   redTeamLeaderId: z.number().int().optional(),
   redTeamLeaderName: z.string().max(128).optional(),
-  redTeamMembers: z.any().optional(),
+  redTeamMembers: z.array(z.record(z.string(), z.unknown())).optional(),
   redTeamObjectives: z.string().optional(),
-  redTeamScenarios: z.any().optional(),
+  redTeamScenarios: z.array(z.record(z.string(), z.unknown())).optional(),
 
   blueTeamLeaderId: z.number().int().optional(),
   blueTeamLeaderName: z.string().max(128).optional(),
-  blueTeamMembers: z.any().optional(),
+  blueTeamMembers: z.array(z.record(z.string(), z.unknown())).optional(),
   blueTeamObjectives: z.string().optional(),
-  blueTeamResources: z.any().optional(),
+  blueTeamResources: z.array(z.record(z.string(), z.unknown())).optional(),
 
-  schedule: z.any().optional(),
-  evaluationCriteria: z.any().optional(),
-  triggerConditions: z.any().optional(),
+  schedule: jsonValue.optional(),
+  evaluationCriteria: jsonValue.optional(),
+  triggerConditions: jsonValue.optional(),
 
   createdBy: z.number().int().optional(),
   createdByName: z.string().max(128).optional(),
@@ -79,24 +80,24 @@ const updateConfigSchema = z.object({
 
   redTeamLeaderId: z.number().int().nullable().optional(),
   redTeamLeaderName: z.string().max(128).nullable().optional(),
-  redTeamMembers: z.any().optional(),
+  redTeamMembers: z.array(z.record(z.string(), z.unknown())).optional(),
   redTeamObjectives: z.string().nullable().optional(),
-  redTeamScenarios: z.any().optional(),
+  redTeamScenarios: z.array(z.record(z.string(), z.unknown())).optional(),
 
   blueTeamLeaderId: z.number().int().nullable().optional(),
   blueTeamLeaderName: z.string().max(128).nullable().optional(),
-  blueTeamMembers: z.any().optional(),
+  blueTeamMembers: z.array(z.record(z.string(), z.unknown())).optional(),
   blueTeamObjectives: z.string().nullable().optional(),
-  blueTeamResources: z.any().optional(),
+  blueTeamResources: z.array(z.record(z.string(), z.unknown())).optional(),
 
-  schedule: z.any().optional(),
-  evaluationCriteria: z.any().optional(),
-  triggerConditions: z.any().optional(),
+  schedule: jsonValue.optional(),
+  evaluationCriteria: jsonValue.optional(),
+  triggerConditions: jsonValue.optional(),
 
   status: z.string().max(50).optional(),
-  results: z.any().optional(),
+  results: jsonValue.optional(),
   lessonsLearned: z.string().nullable().optional(),
-  improvementActions: z.any().optional(),
+  improvementActions: jsonValue.optional(),
 });
 
 const listInput = z.object({
@@ -121,13 +122,13 @@ const updateExecutionSchema = z.object({
   id: z.union([z.string(), z.number()]).transform(Number),
   actualStart: z.string().datetime().nullable().optional(),
   actualEnd: z.string().datetime().nullable().optional(),
-  redTeamActions: z.any().optional(),
+  redTeamActions: jsonValue.optional(),
   redTeamFindings: z.string().nullable().optional(),
-  blueTeamResponses: z.any().optional(),
+  blueTeamResponses: jsonValue.optional(),
   blueTeamPerformance: z.string().nullable().optional(),
   redTeamScore: z.union([z.string(), z.number()]).optional(),
   blueTeamScore: z.union([z.string(), z.number()]).optional(),
-  issuesFound: z.any().optional(),
+  issuesFound: jsonValue.optional(),
   status: z.string().max(50).optional(),
 });
 

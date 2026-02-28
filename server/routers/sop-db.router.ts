@@ -7,6 +7,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sopTemplates } from "../../drizzle/production-process-schema";
 import { eq, desc, sql, ilike } from "drizzle-orm";
+import { jsonValue } from "../../shared/validators";
 
 const idInput = z.object({ id: z.union([z.string(), z.number()]) });
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
@@ -44,10 +45,10 @@ export const sopDbRouter = router({
     equipmentModels: z.array(z.string()).optional(),
     stages: z.array(z.string()).optional(),
     processCode: z.string().optional(),
-    steps: z.any().optional(),
-    requiredTools: z.any().optional(),
-    safetyPrecautions: z.any().optional(),
-    qualityCheckpoints: z.any().optional(),
+    steps: z.array(z.record(z.string(), z.unknown())).optional(),
+    requiredTools: z.array(z.string()).optional(),
+    safetyPrecautions: z.array(z.string()).optional(),
+    qualityCheckpoints: z.array(z.record(z.string(), z.unknown())).optional(),
     estimatedDurationMinutes: z.number().optional(),
     difficultyLevel: z.string().optional(),
   })).mutation(async ({ input }) => {
@@ -80,10 +81,10 @@ export const sopDbRouter = router({
     stages: z.array(z.string()).optional(),
     status: z.string().optional(),
     processCode: z.string().optional(),
-    steps: z.any().optional(),
-    requiredTools: z.any().optional(),
-    safetyPrecautions: z.any().optional(),
-    qualityCheckpoints: z.any().optional(),
+    steps: z.array(z.record(z.string(), z.unknown())).optional(),
+    requiredTools: z.array(z.string()).optional(),
+    safetyPrecautions: z.array(z.string()).optional(),
+    qualityCheckpoints: z.array(z.record(z.string(), z.unknown())).optional(),
     estimatedDurationMinutes: z.number().optional(),
     difficultyLevel: z.string().optional(),
     approver: z.string().optional(),

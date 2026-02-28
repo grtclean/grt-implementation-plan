@@ -27,7 +27,20 @@ export const expenseReportRouter = router({
   }),
 
   // 创建报销
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    submitterId: z.number().optional(),
+    travelRecordId: z.number().optional(),
+    tripRequestId: z.number().optional(),
+    projectId: z.number().optional(),
+    customerId: z.number().optional(),
+    departmentId: z.number().optional(),
+    claimType: z.string().max(50).optional(),
+    claimTitle: z.string().max(500).optional(),
+    title: z.string().max(500).optional(),
+    description: z.string().max(5000).optional(),
+    totalAmount: z.union([z.string(), z.number()]).optional(),
+    currency: z.string().max(10).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const code = `EC-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Date.now().toString(36).toUpperCase().slice(-3)}`;
     const [claim] = await db.insert(expenseClaims).values({
@@ -49,7 +62,13 @@ export const expenseReportRouter = router({
   }),
 
   // 更新报销
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    claimTitle: z.string().max(500).optional(),
+    description: z.string().max(5000).optional(),
+    totalAmount: z.union([z.string(), z.number()]).optional(),
+    notes: z.string().max(5000).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
     const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
@@ -75,7 +94,7 @@ export const expenseReportRouter = router({
   }),
 
   // 提交报销
-  submit: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  submit: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
     const [claim] = await db.update(expenseClaims)
@@ -86,7 +105,7 @@ export const expenseReportRouter = router({
   }),
 
   // 审批通过
-  approve: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  approve: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), approverId: z.number().optional() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
     const [claim] = await db.update(expenseClaims)
@@ -102,7 +121,7 @@ export const expenseReportRouter = router({
   }),
 
   // 拒绝
-  reject: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  reject: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), reason: z.string().max(2000).optional(), rejectionReason: z.string().max(2000).optional() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
     const [claim] = await db.update(expenseClaims)
@@ -117,7 +136,7 @@ export const expenseReportRouter = router({
   }),
 
   // 生成报表（前端 ExpenseReport.tsx 调用）
-  generateReport: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  generateReport: protectedProcedure.input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const items = await db.select().from(expenseClaims).orderBy(desc(expenseClaims.createdAt)).limit(200);
 
@@ -148,7 +167,7 @@ export const expenseReportRouter = router({
   }),
 
   // 导出Excel（前端 ExpenseReport.tsx 调用）
-  exportToExcel: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  exportToExcel: protectedProcedure.input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional()).mutation(async ({ input }) => {
     const db = await requireDb();
     const items = await db.select().from(expenseClaims).orderBy(desc(expenseClaims.createdAt)).limit(500);
     // Return CSV data for client-side download
@@ -161,7 +180,7 @@ export const expenseReportRouter = router({
   }),
 
   // 部门排名（前端 ExpenseReport.tsx 调用）
-  getDepartmentRanking: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getDepartmentRanking: protectedProcedure.input(z.object({ limit: z.number().optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const ranking = await db.select({
       departmentId: expenseClaims.departmentId,

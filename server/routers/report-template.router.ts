@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { reportTemplates } from "../../drizzle/schema";
@@ -26,13 +27,13 @@ export const reportTemplateRouter = router({
   create: protectedProcedure.input(z.object({
     name: z.string(),
     description: z.string().optional(),
-    category: z.any().optional(),
-    reportTypes: z.any(),
-    layout: z.any().optional(),
-    styling: z.any().optional(),
-    filters: z.any().optional(),
-    isDefault: z.any().optional(),
-    isPublic: z.any().optional(),
+    category: jsonValue.optional(),
+    reportTypes: jsonValue,
+    layout: jsonValue.optional(),
+    styling: jsonValue.optional(),
+    filters: jsonValue.optional(),
+    isDefault: z.union([z.boolean(), z.number()]).optional(),
+    isPublic: z.union([z.boolean(), z.number()]).optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [template] = await db.insert(reportTemplates).values({
@@ -54,13 +55,13 @@ export const reportTemplateRouter = router({
     id: z.union([z.string(), z.number()]),
     name: z.string().optional(),
     description: z.string().optional(),
-    category: z.any().optional(),
-    reportTypes: z.any().optional(),
-    layout: z.any().optional(),
-    styling: z.any().optional(),
-    filters: z.any().optional(),
-    isDefault: z.any().optional(),
-    isPublic: z.any().optional(),
+    category: jsonValue.optional(),
+    reportTypes: jsonValue.optional(),
+    layout: jsonValue.optional(),
+    styling: jsonValue.optional(),
+    filters: jsonValue.optional(),
+    isDefault: z.union([z.boolean(), z.number()]).optional(),
+    isPublic: z.union([z.boolean(), z.number()]).optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const { id, isDefault, isPublic, category, reportTypes, layout, styling, filters, ...rest } = input;
@@ -90,7 +91,7 @@ export const reportTemplateRouter = router({
   // 生成报表
   generate: protectedProcedure.input(z.object({
     templateId: z.union([z.string(), z.number()]),
-    params: z.record(z.string(), z.any()).optional(),
+    params: z.record(z.string(), z.unknown()).optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [template] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, toNum(input.templateId)));
@@ -113,7 +114,7 @@ export const reportTemplateRouter = router({
 
   // 导入模板 (frontend passes { data: object, rename?, makePublic? })
   import: protectedProcedure.input(z.object({
-    data: z.any(),
+    data: jsonValue,
     rename: z.string().optional(),
     makePublic: z.boolean().optional(),
   })).mutation(async ({ input }) => {
@@ -141,7 +142,7 @@ export const reportTemplateRouter = router({
   }),
 
   // 验证导入数据
-  validateImport: protectedProcedure.input(z.object({ data: z.any() })).query(({ input }) => {
+  validateImport: protectedProcedure.input(z.object({ data: jsonValue })).query(({ input }) => {
     try {
       const parsed = typeof input.data === "string" ? JSON.parse(input.data) : input.data;
       const tplData = parsed.template || parsed;

@@ -50,17 +50,28 @@ const supplierLabelRouter = router({
       poNumber: z.string().optional(),
       projectNumber: z.string().optional(),
       isValidated: z.boolean().optional(),
+      limit: z.number().min(1).max(500).default(50),
+      offset: z.number().min(0).default(0),
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const items = await db.select().from(supplierShipmentLabels).orderBy(desc(supplierShipmentLabels.createdAt));
-      let filtered = items;
-      if (input?.supplierId) filtered = filtered.filter(i => i.supplierId === input.supplierId);
-      if (input?.materialCode) filtered = filtered.filter(i => i.materialCode === input.materialCode);
-      if (input?.poNumber) filtered = filtered.filter(i => i.poNumber === input.poNumber);
-      if (input?.projectNumber) filtered = filtered.filter(i => i.projectNumber === input.projectNumber);
-      if (input?.isValidated !== undefined) filtered = filtered.filter(i => i.isValidated === input.isValidated);
-      return { items: filtered, total: filtered.length };
+      const limit = input?.limit ?? 50;
+      const offset = input?.offset ?? 0;
+
+      // Build filter conditions
+      const conditions: any[] = [];
+      if (input?.supplierId) conditions.push(eq(supplierShipmentLabels.supplierId, input.supplierId));
+      if (input?.materialCode) conditions.push(eq(supplierShipmentLabels.materialCode, input.materialCode));
+      if (input?.poNumber) conditions.push(eq(supplierShipmentLabels.poNumber, input.poNumber));
+      if (input?.projectNumber) conditions.push(eq(supplierShipmentLabels.projectNumber, input.projectNumber));
+      if (input?.isValidated !== undefined) conditions.push(eq(supplierShipmentLabels.isValidated, input.isValidated));
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [totalResult] = await db.select({ count: count() }).from(supplierShipmentLabels).where(whereClause);
+      const total = Number(totalResult?.count ?? 0);
+      const items = await db.select().from(supplierShipmentLabels).where(whereClause).orderBy(desc(supplierShipmentLabels.createdAt)).limit(limit).offset(offset);
+      return { items, total };
     }),
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
@@ -185,15 +196,26 @@ const incomingInspectionRouter = router({
       inspectionResult: z.string().optional(),
       dateFrom: z.string().optional(),
       dateTo: z.string().optional(),
+      limit: z.number().min(1).max(500).default(50),
+      offset: z.number().min(0).default(0),
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const items = await db.select().from(incomingInspectionRecords).orderBy(desc(incomingInspectionRecords.createdAt));
-      let filtered = items;
-      if (input?.materialCode) filtered = filtered.filter(i => i.materialCode === input.materialCode);
-      if (input?.supplierId) filtered = filtered.filter(i => i.supplierId === input.supplierId);
-      if (input?.inspectionResult) filtered = filtered.filter(i => i.inspectionResult === input.inspectionResult);
-      return { items: filtered, total: filtered.length };
+      const limit = input?.limit ?? 50;
+      const offset = input?.offset ?? 0;
+
+      // Build filter conditions
+      const conditions: any[] = [];
+      if (input?.materialCode) conditions.push(eq(incomingInspectionRecords.materialCode, input.materialCode));
+      if (input?.supplierId) conditions.push(eq(incomingInspectionRecords.supplierId, input.supplierId));
+      if (input?.inspectionResult) conditions.push(eq(incomingInspectionRecords.inspectionResult, input.inspectionResult as any));
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [totalResult] = await db.select({ count: count() }).from(incomingInspectionRecords).where(whereClause);
+      const total = Number(totalResult?.count ?? 0);
+      const items = await db.select().from(incomingInspectionRecords).where(whereClause).orderBy(desc(incomingInspectionRecords.createdAt)).limit(limit).offset(offset);
+      return { items, total };
     }),
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {

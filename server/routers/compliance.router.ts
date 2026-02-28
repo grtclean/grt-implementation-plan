@@ -38,11 +38,20 @@ function generateId(prefix: string): string {
 export const complianceRouter = router({
   // ==================== CRUD (alerts as default entity) ====================
 
-  list: protectedProcedure.query(async () => {
-    const db = await requireDb();
-    const rows = await db.select().from(grtComplianceAlerts).orderBy(desc(grtComplianceAlerts.createdAt));
-    return { items: rows, total: rows.length, page: 1, pageSize: 10 };
-  }),
+  list: protectedProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(500).default(50),
+      offset: z.number().min(0).default(0),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const limit = input?.limit ?? 50;
+      const offset = input?.offset ?? 0;
+      const [totalResult] = await db.select({ count: count() }).from(grtComplianceAlerts);
+      const total = totalResult?.count ?? 0;
+      const rows = await db.select().from(grtComplianceAlerts).orderBy(desc(grtComplianceAlerts.createdAt)).limit(limit).offset(offset);
+      return { items: rows, total, page: Math.floor(offset / limit) + 1, pageSize: limit };
+    }),
 
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
@@ -54,7 +63,15 @@ export const complianceRouter = router({
       return rows[0] ?? null;
     }),
 
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    employeeId: z.number().optional(),
+    alertType: z.string().max(100).optional(),
+    jurisdiction: z.string().max(10).optional(),
+    severity: z.string().max(20).optional(),
+    description: z.string().max(5000).optional(),
+    legalReference: z.string().max(500).optional(),
+    recommendedAction: z.string().max(2000).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.insert(grtComplianceAlerts).values({
       employeeId: input.employeeId,
@@ -66,11 +83,11 @@ export const complianceRouter = router({
       recommendedAction: input.recommendedAction,
       status: "open",
       notificationSent: 0,
-    });
+    } as any);
     return { success: true, message: "Alert created" };
   }),
 
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) }).passthrough()).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id);
     if (!id) return { success: true, message: "操作成功" };
@@ -95,7 +112,23 @@ export const complianceRouter = router({
     return db.select().from(grtComplianceRules).orderBy(grtComplianceRules.priority);
   }),
 
-  createRule: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  createRule: protectedProcedure.input(z.object({
+    ruleId: z.string().max(100).optional(),
+    ruleName: z.string().max(200).optional(),
+    name: z.string().max(200).optional(),
+    ruleDescription: z.string().max(5000).optional(),
+    description: z.string().max(5000).optional(),
+    jurisdiction: z.string().max(10).optional(),
+    ruleType: z.string().max(50),
+    thresholdValue: z.union([z.string(), z.number()]),
+    thresholdUnit: z.string().max(20).optional(),
+    warningThreshold: z.union([z.string(), z.number()]).optional(),
+    criticalThreshold: z.union([z.string(), z.number()]).optional(),
+    legalReference: z.string().max(500).optional(),
+    recommendedAction: z.string().max(2000).optional(),
+    isEnabled: z.union([z.number(), z.boolean()]).optional(),
+    priority: z.number().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.insert(grtComplianceRules).values({
       ruleId: input.ruleId ?? generateId("rule"),
@@ -111,11 +144,11 @@ export const complianceRouter = router({
       recommendedAction: input.recommendedAction,
       isEnabled: input.isEnabled ?? 1,
       priority: input.priority ?? 100,
-    });
+    } as any);
     return { success: true, message: "Rule created" };
   }),
 
-  updateRule: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  updateRule: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) }).passthrough()).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id);
     if (!id) return { success: true, message: "操作成功" };
@@ -127,16 +160,16 @@ export const complianceRouter = router({
     return { success: true, message: "Rule updated" };
   }),
 
-  deleteRule: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  deleteRule: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]).optional(), ruleId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const id = Number(input.id);
+    const id = Number(input.id ?? input.ruleId);
     if (id) await db.delete(grtComplianceRules).where(eq(grtComplianceRules.id, id));
     return { success: true, message: "Rule deleted" };
   }),
 
-  toggleRuleEnabled: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  toggleRuleEnabled: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]).optional(), ruleId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const id = Number(input.id);
+    const id = Number(input.id ?? input.ruleId);
     if (!id) return { success: true, message: "操作成功" };
     const [rule] = await db.select().from(grtComplianceRules).where(eq(grtComplianceRules.id, id));
     if (rule) {
@@ -166,7 +199,23 @@ export const complianceRouter = router({
     return db.select().from(grtComplianceEmailTemplates).orderBy(desc(grtComplianceEmailTemplates.createdAt));
   }),
 
-  createTemplate: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  createTemplate: protectedProcedure.input(z.object({
+    templateId: z.string().max(100).optional(),
+    templateName: z.string().max(200).optional(),
+    name: z.string().max(200).optional(),
+    templateDescription: z.string().max(5000).optional(),
+    description: z.string().max(5000).optional(),
+    alertType: z.string().max(100).optional(),
+    severity: z.string().max(20).optional(),
+    jurisdiction: z.string().max(10).optional(),
+    subjectTemplate: z.string().max(500).optional(),
+    subject: z.string().max(500).optional(),
+    bodyTemplate: z.string().max(10000).optional(),
+    body: z.string().max(10000).optional(),
+    isHtml: z.union([z.number(), z.boolean()]).optional(),
+    recipientTypes: z.union([z.string(), z.array(z.string())]).optional(),
+    isEnabled: z.union([z.number(), z.boolean()]).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.insert(grtComplianceEmailTemplates).values({
       templateId: input.templateId ?? generateId("tmpl"),
@@ -180,11 +229,11 @@ export const complianceRouter = router({
       isHtml: input.isHtml ?? 1,
       recipientTypes: typeof input.recipientTypes === 'string' ? input.recipientTypes : JSON.stringify(input.recipientTypes ?? []),
       isEnabled: input.isEnabled ?? 1,
-    });
+    } as any);
     return { success: true, message: "Template created" };
   }),
 
-  updateTemplate: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  updateTemplate: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) }).passthrough()).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id);
     if (!id) return { success: true, message: "操作成功" };
@@ -194,16 +243,16 @@ export const complianceRouter = router({
     return { success: true, message: "Template updated" };
   }),
 
-  deleteTemplate: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  deleteTemplate: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]).optional(), templateId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const id = Number(input.id);
+    const id = Number(input.id ?? input.templateId);
     if (id) await db.delete(grtComplianceEmailTemplates).where(eq(grtComplianceEmailTemplates.id, id));
     return { success: true, message: "Template deleted" };
   }),
 
-  toggleTemplateEnabled: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  toggleTemplateEnabled: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]).optional(), templateId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const id = Number(input.id);
+    const id = Number(input.id ?? input.templateId);
     if (!id) return { success: true, message: "操作成功" };
     const [tmpl] = await db.select().from(grtComplianceEmailTemplates).where(eq(grtComplianceEmailTemplates.id, id));
     if (tmpl) {
@@ -224,7 +273,7 @@ export const complianceRouter = router({
 
   // ==================== Compliance Checks ====================
 
-  checkCompliance: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  checkCompliance: protectedProcedure.input(z.object({ employeeId: z.union([z.string(), z.number()]).optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const employeeId = Number(input?.employeeId);
     if (!employeeId) return { compliant: true, issues: [] };
@@ -279,7 +328,10 @@ export const complianceRouter = router({
     return { compliant: issues.length === 0, issues, employeeId, jurisdiction: employee.jurisdiction, entriesChecked: entries.length, weeklyTotalHours: +(weeklyTotal / 60).toFixed(2) };
   }),
 
-  triggerComplianceCheck: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  triggerComplianceCheck: protectedProcedure.input(z.object({
+    employeeIds: z.array(z.union([z.string(), z.number()])).optional(),
+    employeeId: z.union([z.string(), z.number()]).optional(),
+  }).optional()).mutation(async ({ input }) => {
     const db = await requireDb();
     let employeeIds: number[] = input?.employeeIds?.map(Number) ?? (input?.employeeId ? [Number(input.employeeId)] : []);
 
@@ -382,13 +434,23 @@ export const complianceRouter = router({
     return { stats: { total: rows.length, byType, byFormat } };
   }),
 
-  deleteReport: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  deleteReport: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]).optional(), reportId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
     const db = await requireDb();
-    await db.delete(grtComplianceReports).where(eq(grtComplianceReports.id, Number(input.id)));
+    await db.delete(grtComplianceReports).where(eq(grtComplianceReports.id, Number(input.id ?? input.reportId)));
     return { success: true, message: "Report deleted" };
   }),
 
-  exportReport: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  exportReport: protectedProcedure.input(z.object({
+    reportType: z.string().max(50).optional(),
+    format: z.string().max(20).optional(),
+    jurisdiction: z.string().max(10).optional(),
+    dateRangeStart: z.string().optional(),
+    dateRangeEnd: z.string().optional(),
+    generatedBy: z.number().optional(),
+    generatedByName: z.string().max(200).optional(),
+    employeesIncluded: z.number().optional(),
+    alertsIncluded: z.number().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const reportId = generateId("rpt");
     const result = await db.insert(grtComplianceReports).values({
@@ -406,7 +468,7 @@ export const complianceRouter = router({
       employeesIncluded: input.employeesIncluded ?? 0,
       alertsIncluded: input.alertsIncluded ?? 0,
       status: "completed",
-    }).returning();
+    } as any).returning();
     return { url: result[0]?.fileUrl ?? "" };
   }),
 
@@ -474,7 +536,7 @@ export const complianceRouter = router({
 
   // ==================== Employee Status & Time Details ====================
 
-  getEmployeeStatus: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getEmployeeStatus: protectedProcedure.input(z.object({ employeeId: z.union([z.string(), z.number()]).optional(), id: z.union([z.string(), z.number()]).optional(), jurisdiction: z.string().max(10).optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const empId = Number(input?.employeeId ?? input?.id);
     if (!empId) return { status: null };
@@ -499,7 +561,13 @@ export const complianceRouter = router({
     };
   }),
 
-  getEmployeeTimeDetails: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getEmployeeTimeDetails: protectedProcedure.input(z.object({
+    employeeId: z.union([z.string(), z.number()]).optional(),
+    id: z.union([z.string(), z.number()]).optional(),
+    dateFrom: z.string().optional(),
+    dateTo: z.string().optional(),
+    limit: z.number().optional(),
+  }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const empId = Number(input?.employeeId ?? input?.id);
     if (!empId) return [];
@@ -523,7 +591,7 @@ export const complianceRouter = router({
 
   // ==================== AI (stub) ====================
 
-  getGeminiAnalysis: protectedProcedure.input(z.any()).query(() => ({
+  getGeminiAnalysis: protectedProcedure.input(z.object({ employeeId: z.number().optional() }).optional()).query(() => ({
     analysis: null,
     message: "Gemini AI integration not configured. Requires GEMINI_API_KEY.",
   })),

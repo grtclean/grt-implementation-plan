@@ -186,7 +186,7 @@ import { UserProfileProvider } from "./contexts/UserProfileContext";
 
 // v1.4.5 项目型组织操作系统 (POS) 页面
 import POSDashboard from "./pages/pos/Dashboard";
-import POSProjects from "./pages/pos/Projects";
+
 import POSProjectDetail from "./pages/pos/ProjectDetail";
 import POSCustomers from "./pages/pos/Customers";
 import StageM2Detail from "./pages/pos/StageM2Detail";
@@ -482,11 +482,14 @@ import CollaborationDocs from "./pages/CollaborationDocs";
 import SpreadsheetViewer from "./pages/SpreadsheetViewer";
 import ProjectAgentDashboard from "./pages/ProjectAgentDashboard";
 
-// Protected route wrapper component
+// Protected route wrapper component — ErrorBoundary auto-resets on navigation
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const [loc] = useLocation();
   return (
     <RequireAuth>
-      <Component />
+      <ErrorBoundary level="page" resetKeys={[loc]}>
+        <Component />
+      </ErrorBoundary>
     </RequireAuth>
   );
 }
@@ -683,12 +686,6 @@ function Router() {
       </Route>
       <Route path={"/concurrent-command-center"}>
         <ProtectedRoute component={ConcurrentCommandCenter} />
-      </Route>
-      <Route path={"/workspace/docs/spreadsheet/:id"}>
-        <ProtectedRoute component={SpreadsheetViewer} />
-      </Route>
-      <Route path={"/workspace/docs"}>
-        <ProtectedRoute component={CollaborationDocs} />
       </Route>
       <Route path={"/collaboration-docs/spreadsheet/:id"}>
         <ProtectedRoute component={SpreadsheetViewer} />
@@ -1099,10 +1096,6 @@ function Router() {
       {/* v1.3.92 用户Profile设置 */}
       <Route path="/user-profile">
         <ProtectedRoute component={UserProfileSettings} />
-      </Route>
-      {/* v1.3.94 定时任务管理 */}
-      <Route path="/scheduler-management">
-        <ProtectedRoute component={SchedulerManagement} />
       </Route>
       {/* v1.3.94 用户状态管理 */}
       <Route path="/user-status-management">

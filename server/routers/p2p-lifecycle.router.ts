@@ -73,7 +73,7 @@ const frameworkAgreementRouter = router({
       title: z.string().optional(),
       startDate: z.string(),
       endDate: z.string(),
-      pricingItems: z.any().optional(),
+      pricingItems: z.union([z.string(), z.array(z.record(z.string(), z.unknown()))]).optional(),
       totalBudget: z.string().optional(),
       paymentTerms: z.string().optional(),
       currency: z.string().optional(),
@@ -92,7 +92,7 @@ const frameworkAgreementRouter = router({
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       title: z.string().optional(),
-      pricingItems: z.any().optional(),
+      pricingItems: z.array(z.record(z.string(), z.unknown())).optional(),
       totalBudget: z.string().optional(),
       paymentTerms: z.string().optional(),
       notes: z.string().optional(),
@@ -161,8 +161,8 @@ const rfqRouter = router({
       unit: z.string().optional(),
       biddingType: z.enum(["sealed", "open", "reverse", "negotiated"]).optional(),
       deadline: z.string().optional(),
-      evaluationCriteria: z.any().optional(),
-      invitedSupplierIds: z.any().optional(),
+      evaluationCriteria: z.array(z.record(z.string(), z.unknown())).optional(),
+      invitedSupplierIds: z.array(z.number()).optional(),
       frameworkAgreementId: z.number().optional(),
       notes: z.string().optional(),
     }))
@@ -214,7 +214,7 @@ const rfqRouter = router({
       warrantyMonths: z.number().optional(),
       paymentTerms: z.string().optional(),
       technicalNotes: z.string().optional(),
-      attachmentUrls: z.any().optional(),
+      attachmentUrls: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -361,8 +361,8 @@ const deliveryRouter = router({
       deliveredQuantity: z.string().optional(),
       unit: z.string().optional(),
       trackingNumber: z.string().optional(),
-      packingList: z.any().optional(),
-      testReportUrls: z.any().optional(),
+      packingList: z.array(z.record(z.string(), z.unknown())).optional(),
+      testReportUrls: z.array(z.string()).optional(),
       receivedByName: z.string().optional(),
       notes: z.string().optional(),
     }))
@@ -818,8 +818,8 @@ const qualificationRouter = router({
       qualificationType: z.enum(["initial", "annual", "special"]).optional(),
       auditDate: z.string().optional(),
       auditorName: z.string().optional(),
-      isoSystemCertifications: z.any().optional(),
-      specialRequirements: z.any().optional(),
+      isoSystemCertifications: z.array(z.string()).optional(),
+      specialRequirements: z.array(z.string()).optional(),
       qualitySystemScore: z.string().optional(),
       processCapabilityScore: z.string().optional(),
       deliveryCapabilityScore: z.string().optional(),
@@ -845,8 +845,8 @@ const qualificationRouter = router({
   update: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
-      isoSystemCertifications: z.any().optional(),
-      specialRequirements: z.any().optional(),
+      isoSystemCertifications: z.array(z.string()).optional(),
+      specialRequirements: z.array(z.string()).optional(),
       qualitySystemScore: z.string().optional(),
       processCapabilityScore: z.string().optional(),
       deliveryCapabilityScore: z.string().optional(),
@@ -1004,7 +1004,7 @@ const qualityLossIncidentRouter = router({
       lossAmount: z.string(),
       lossDescription: z.string().optional(),
       rootCause: z.string().optional(),
-      evidenceUrls: z.any().optional(),
+      evidenceUrls: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();

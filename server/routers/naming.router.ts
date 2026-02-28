@@ -15,11 +15,20 @@ import { eq, desc, and, count, sql } from "drizzle-orm";
 
 export const namingRouter = router({
   // 命名规则列表 (returns naming versions as "rules")
-  list: protectedProcedure.query(async () => {
-    const db = await requireDb();
-    const items = await db.select().from(namingVersions).orderBy(desc(namingVersions.createdAt));
-    return { items, total: items.length, page: 1, pageSize: items.length };
-  }),
+  list: protectedProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(500).default(50),
+      offset: z.number().min(0).default(0),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const limit = input?.limit ?? 50;
+      const offset = input?.offset ?? 0;
+      const [totalResult] = await db.select({ count: count() }).from(namingVersions);
+      const total = totalResult?.count ?? 0;
+      const items = await db.select().from(namingVersions).orderBy(desc(namingVersions.createdAt)).limit(limit).offset(offset);
+      return { items, total, page: Math.floor(offset / limit) + 1, pageSize: limit };
+    }),
 
   // 获取命名版本详情
   getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {

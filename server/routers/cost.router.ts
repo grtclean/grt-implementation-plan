@@ -27,11 +27,20 @@ const successResponse = { success: true, message: "操作成功" };
 export const costRouter = router({
   // ==================== CRUD (cost records) ====================
 
-  list: protectedProcedure.query(async () => {
-    const db = await requireDb();
-    const rows = await db.select().from(costRecords).orderBy(desc(costRecords.createdAt));
-    return { items: rows, total: rows.length, page: 1, pageSize: 10 };
-  }),
+  list: protectedProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(500).default(50),
+      offset: z.number().min(0).default(0),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const limit = input?.limit ?? 50;
+      const offset = input?.offset ?? 0;
+      const [totalResult] = await db.select({ count: count() }).from(costRecords);
+      const total = totalResult?.count ?? 0;
+      const rows = await db.select().from(costRecords).orderBy(desc(costRecords.createdAt)).limit(limit).offset(offset);
+      return { items: rows, total, page: Math.floor(offset / limit) + 1, pageSize: limit };
+    }),
 
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))

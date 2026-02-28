@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { router, protectedProcedure } from '../_core/trpc';
+import { jsonValue } from '../../shared/validators';
 import {
   createCustomerSolutionMeeting,
   getCustomerSolutionMeeting,
@@ -42,17 +43,17 @@ export const customerSolutionMeetingRouter = router({
       customerRequirements: z.string().optional(),
       cleanlinessLevel: z.string().optional(),
       cleanlinessStandard: z.string().optional(),
-      cleanlinessDetails: z.any().optional(),
+      cleanlinessDetails: z.record(z.string(), z.unknown()).optional(),
       productType: z.string().optional(),
       partName: z.string().optional(),
       partMaterial: z.string().optional(),
-      partDimensions: z.any().optional(),
+      partDimensions: z.record(z.string(), z.unknown()).optional(),
       cycleTime: z.number().optional(),
       loadingForm: z.string().optional(),
       scheduledStart: z.string().optional(),
       scheduledEnd: z.string().optional(),
-      internalParticipants: z.array(z.any()).optional(),
-      externalParticipants: z.array(z.any()).optional(),
+      internalParticipants: z.array(z.record(z.string(), z.unknown())).optional(),
+      externalParticipants: z.array(z.record(z.string(), z.unknown())).optional(),
       aiCaseMatchingEnabled: z.boolean().optional(),
       aiSolutionSuggestionEnabled: z.boolean().optional(),
       aiVoiceRecognitionEnabled: z.boolean().optional(),
@@ -290,11 +291,11 @@ export const customerSolutionMeetingRouter = router({
       meetingId: z.string(),
       solutionTitle: z.string(),
       solutionSummary: z.string().optional(),
-      solutionContent: z.any(),
-      equipmentConfig: z.any().optional(),
-      processFlow: z.array(z.any()).optional(),
-      processSteps: z.array(z.any()).optional(),
-      projectPhases: z.array(z.any()).optional(),
+      solutionContent: jsonValue,
+      equipmentConfig: jsonValue.optional(),
+      processFlow: z.array(z.record(z.string(), z.unknown())).optional(),
+      processSteps: z.array(z.record(z.string(), z.unknown())).optional(),
+      projectPhases: z.array(z.record(z.string(), z.unknown())).optional(),
       estimatedCost: z.number().optional(),
       quotedPrice: z.number().optional(),
       deliveryTime: z.number().optional(),
@@ -306,7 +307,22 @@ export const customerSolutionMeetingRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       return createSolutionVersion({
-        ...input,
+        meetingId: input.meetingId,
+        solutionTitle: input.solutionTitle,
+        solutionSummary: input.solutionSummary,
+        solutionContent: input.solutionContent,
+        equipmentConfig: input.equipmentConfig,
+        processFlow: input.processFlow,
+        processSteps: input.processSteps,
+        projectPhases: input.projectPhases,
+        estimatedCost: input.estimatedCost,
+        quotedPrice: input.quotedPrice,
+        deliveryTime: input.deliveryTime,
+        aiGenerated: input.aiGenerated,
+        aiModel: input.aiModel,
+        aiPrompt: input.aiPrompt,
+        aiConfidence: input.aiConfidence,
+        referenceCases: input.referenceCases,
         createdBy: String(ctx.user.id)
       });
     }),

@@ -7,11 +7,20 @@ import { eq, desc, count } from "drizzle-orm";
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 
 export const ruleTemplateRouter = router({
-  list: protectedProcedure.query(async () => {
-    const db = await requireDb();
-    const items = await db.select().from(costAlertRuleTemplates).orderBy(desc(costAlertRuleTemplates.createdAt));
-    return { items, total: items.length, page: 1, pageSize: items.length };
-  }),
+  list: protectedProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(500).default(50),
+      offset: z.number().min(0).default(0),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const limit = input?.limit ?? 50;
+      const offset = input?.offset ?? 0;
+      const [totalResult] = await db.select({ count: count() }).from(costAlertRuleTemplates);
+      const total = totalResult?.count ?? 0;
+      const items = await db.select().from(costAlertRuleTemplates).orderBy(desc(costAlertRuleTemplates.createdAt)).limit(limit).offset(offset);
+      return { items, total, page: Math.floor(offset / limit) + 1, pageSize: limit };
+    }),
 
   getById: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input }) => {
     const db = await requireDb();
@@ -19,10 +28,17 @@ export const ruleTemplateRouter = router({
     return item || null;
   }),
 
-  getAll: protectedProcedure.query(async () => {
-    const db = await requireDb();
-    return await db.select().from(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.isActive, 1)).orderBy(desc(costAlertRuleTemplates.usageCount));
-  }),
+  getAll: protectedProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(500).default(50),
+      offset: z.number().min(0).default(0),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const limit = input?.limit ?? 50;
+      const offset = input?.offset ?? 0;
+      return await db.select().from(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.isActive, 1)).orderBy(desc(costAlertRuleTemplates.usageCount)).limit(limit).offset(offset);
+    }),
 
   create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
     const db = await requireDb();
