@@ -154,7 +154,7 @@ export const personalAgentEnhancedRouter = router({
       const targetUserId = userId || ctx.user!.id;
 
       let query = `SELECT * FROM behavior_probes WHERE user_id = ?`;
-      const params: any[] = [targetUserId];
+      const params: unknown[] = [targetUserId];
 
       if (probeType) {
         query += ` AND probe_type = ?`;
@@ -237,7 +237,7 @@ export const personalAgentEnhancedRouter = router({
       const targetUserId = userId || ctx.user!.id;
 
       let query = `SELECT * FROM inferred_skills WHERE user_id = ?`;
-      const params: any[] = [targetUserId];
+      const params: unknown[] = [targetUserId];
 
       if (domain) {
         query += ` AND skill_domain = ?`;
@@ -327,7 +327,7 @@ export const personalAgentEnhancedRouter = router({
       let query = `SELECT skill_name, inferred_level, confidence, updated_at
                    FROM inferred_skills_history
                    WHERE user_id = ? AND updated_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)`;
-      const params: any[] = [targetUserId, months];
+      const params: unknown[] = [targetUserId, months];
 
       if (skillName) {
         query += ` AND skill_name = ?`;
@@ -422,7 +422,7 @@ export const personalAgentEnhancedRouter = router({
                    LEFT JOIN inferred_skills ins 
                      ON sg.user_id = ins.user_id AND sg.skill_name = ins.skill_name
                    WHERE sg.user_id = ?`;
-      const params: any[] = [targetUserId];
+      const params: unknown[] = [targetUserId];
 
       if (status === "achieved") {
         query += ` AND ins.inferred_level >= sg.target_level`;

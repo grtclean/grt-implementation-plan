@@ -3,6 +3,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { processNotebooks } from "../../drizzle/schema";
 import { eq, desc, and } from "drizzle-orm";
+import { jsonValue } from "../../shared/validators";
 
 export const processNotebookRouter = router({
   // 笔记本列表
@@ -20,7 +21,13 @@ export const processNotebookRouter = router({
   }),
 
   // 创建笔记本
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    processType: z.string().max(50).optional(),
+    processId: z.string().max(100).optional(),
+    processStep: z.string().max(50).optional(),
+    title: z.string().max(200).optional(),
+    createdBy: z.number().int().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [notebook] = await db.insert(processNotebooks).values({
       processType: input.processType || "general",
@@ -29,12 +36,17 @@ export const processNotebookRouter = router({
       title: input.title,
       createdBy: input.createdBy || 1,
       status: "active" as const,
-    }).returning();
+    } as any).returning();
     return { success: true, message: "笔记本已创建", data: notebook };
   }),
 
   // 更新笔记本
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    title: z.string().max(200).optional(),
+    processStep: z.string().max(50).optional(),
+    status: z.enum(["active", "archived"]).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
     const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
@@ -43,7 +55,7 @@ export const processNotebookRouter = router({
     if (input.status !== undefined) updates.status = input.status;
 
     const [notebook] = await db.update(processNotebooks)
-      .set(updates)
+      .set(updates as any)
       .where(eq(processNotebooks.id, id))
       .returning();
     return { success: true, message: "更新成功", data: notebook };
@@ -57,7 +69,10 @@ export const processNotebookRouter = router({
   }),
 
   // 按流程获取笔记本
-  getByProcess: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getByProcess: protectedProcedure.input(z.object({
+    processType: z.string().max(50).optional(),
+    processId: z.string().max(100).optional(),
+  }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const processType = input?.processType || "";
     const processId = input?.processId || "";
@@ -73,7 +88,10 @@ export const processNotebookRouter = router({
   }),
 
   // 获取笔记本及其条目（无entries子表，返回笔记本本身）
-  getNotebookWithEntries: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getNotebookWithEntries: protectedProcedure.input(z.object({
+    notebookId: z.union([z.string(), z.number()]).optional(),
+    id: z.union([z.string(), z.number()]).optional(),
+  }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     // Frontend sends notebookId, also accept id
     const rawId = input?.notebookId ?? input?.id ?? 0;
@@ -83,13 +101,25 @@ export const processNotebookRouter = router({
   }),
 
   // 添加条目（processNotebooks无子条目表，存储为JSON或占位）
-  addEntry: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  addEntry: protectedProcedure.input(z.object({
+    notebookId: z.union([z.string(), z.number()]).optional(),
+    title: z.string().max(200).optional(),
+    content: z.string().max(50000).optional(),
+    entryType: z.string().max(50).optional(),
+    metadata: jsonValue.optional(),
+  })).mutation(async ({ input }) => {
     // No separate entries table exists — return success placeholder
     return { success: true, message: "条目已添加", data: { id: Date.now(), ...input } };
   }),
 
   // 文件上传（占位）
-  uploadFile: protectedProcedure.input(z.any()).mutation(() => {
+  uploadFile: protectedProcedure.input(z.object({
+    notebookId: z.number().int().optional(),
+    fileName: z.string().max(500).optional(),
+    fileSize: z.number().int().optional(),
+    fileType: z.string().max(100).optional(),
+    fileData: z.string().optional(),
+  }).optional()).mutation(() => {
     return { url: "" };
   }),
 });

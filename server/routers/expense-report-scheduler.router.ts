@@ -16,12 +16,23 @@ export const expenseReportSchedulerRouter = router({
   }),
 
   // 创建报销计划
-  create: protectedProcedure.input(z.any()).mutation(async () => {
+  create: protectedProcedure.input(z.object({
+    name: z.string().min(1).max(200),
+    description: z.string().max(2000).optional(),
+    frequency: z.string().max(50).optional(),
+    config: z.record(z.string(), z.unknown()).optional(),
+  })).mutation(async () => {
     return successResponse;
   }),
 
   // 更新报销计划
-  update: protectedProcedure.input(z.any()).mutation(async () => {
+  update: protectedProcedure.input(z.object({
+    id: z.string(),
+    name: z.string().min(1).max(200).optional(),
+    description: z.string().max(2000).optional(),
+    frequency: z.string().max(50).optional(),
+    config: z.record(z.string(), z.unknown()).optional(),
+  })).mutation(async () => {
     return successResponse;
   }),
 
@@ -36,27 +47,55 @@ export const expenseReportSchedulerRouter = router({
   }),
 
   // 创建调度
-  createSchedule: protectedProcedure.input(z.any()).mutation(async () => {
+  createSchedule: protectedProcedure.input(z.object({
+    name: z.string().min(1).max(200),
+    description: z.string().max(2000).optional(),
+    frequency: z.enum(["daily", "weekly", "monthly", "quarterly"]),
+    cronExpression: z.string().max(100).optional(),
+    enabled: z.boolean().optional(),
+    reportConfig: z.record(z.string(), z.unknown()).optional(),
+    recipients: z.array(z.object({
+      type: z.string().max(50),
+      target: z.string().max(500),
+      name: z.string().max(200).optional(),
+      enabled: z.boolean().optional(),
+    })).optional(),
+  })).mutation(async () => {
     return successResponse;
   }),
 
   // 更新调度
-  updateSchedule: protectedProcedure.input(z.any()).mutation(async () => {
+  updateSchedule: protectedProcedure.input(z.object({
+    scheduleId: z.string(),
+    enabled: z.boolean().optional(),
+    cronExpression: z.string().max(100).optional(),
+    name: z.string().min(1).max(200).optional(),
+    description: z.string().max(2000).optional(),
+    frequency: z.enum(["daily", "weekly", "monthly", "quarterly"]).optional(),
+    reportConfig: z.record(z.string(), z.unknown()).optional(),
+  })).mutation(async () => {
     return successResponse;
   }),
 
   // 删除调度
-  deleteSchedule: protectedProcedure.input(z.any()).mutation(async () => {
+  deleteSchedule: protectedProcedure.input(z.object({
+    scheduleId: z.string(),
+  })).mutation(async () => {
     return successResponse;
   }),
 
   // 启停调度
-  toggleSchedule: protectedProcedure.input(z.any()).mutation(async () => {
+  toggleSchedule: protectedProcedure.input(z.object({
+    scheduleId: z.string(),
+    enabled: z.boolean(),
+  })).mutation(async () => {
     return successResponse;
   }),
 
   // 立即触发
-  triggerNow: protectedProcedure.input(z.any()).mutation(async () => {
+  triggerNow: protectedProcedure.input(z.object({
+    scheduleId: z.string(),
+  })).mutation(async () => {
     return successResponse;
   }),
 

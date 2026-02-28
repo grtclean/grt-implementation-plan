@@ -20,7 +20,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { cicdTasks, cicdStageLogs } from "../../drizzle/cicd-pipeline-schema";
-import { eq, desc, sql, and, count } from "drizzle-orm";
+import { eq, desc, sql, and, count, type SQL } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import fs from "fs";
 import path from "path";
@@ -161,7 +161,7 @@ export const cicdRouter = router({
     )
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: any[] = [];
+      const conditions: SQL[] = [];
       if (input?.stage) conditions.push(eq(cicdTasks.currentStage, input.stage));
       if (input?.scope) conditions.push(eq(cicdTasks.scope, input.scope));
 

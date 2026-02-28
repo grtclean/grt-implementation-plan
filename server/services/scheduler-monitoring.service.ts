@@ -323,7 +323,7 @@ export function exportDashboardData(dashboard: MonitoringDashboard): string {
     devices[id] = metrics;
   }
 
-  const queues: Record<string, any> = {};
+  const queues: Record<string, unknown> = {};
   for (const [id, metrics] of dashboard.queues) {
     queues[id] = {
       ...metrics,

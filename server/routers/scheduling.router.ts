@@ -100,7 +100,7 @@ export const schedulingRouter = router({
       const filters = (input || {}) as any;
 
       let query = 'SELECT * FROM scheduling_tasks WHERE 1=1';
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (filters.projectId) {
         query += ' AND project_id = ?';
@@ -168,7 +168,7 @@ export const schedulingRouter = router({
       const { id, ...updates } = input;
       
       const setClauses: string[] = [];
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (updates.taskName !== undefined) {
         setClauses.push('task_name = ?');
@@ -233,7 +233,7 @@ export const schedulingRouter = router({
       const filters = input || {};
       
       let query = 'SELECT * FROM scheduling_resources WHERE 1=1';
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (filters.resourceType) {
         query += ' AND resource_type = ?';
@@ -346,7 +346,7 @@ export const schedulingRouter = router({
       const filters = input || {};
       
       let query = 'SELECT * FROM scheduling_constraints WHERE 1=1';
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (filters.constraintType) {
         query += ' AND constraint_type = ?';
@@ -601,7 +601,7 @@ export const schedulingRouter = router({
       const filters = (input || {}) as any;
 
       let query = 'SELECT * FROM scheduling_jobs WHERE 1=1';
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (filters.status) {
         query += ' AND status = ?';
@@ -1168,7 +1168,7 @@ export const schedulingRouter = router({
       const db: any = await getDb();
 
       let query = 'SELECT * FROM scheduling_dispatches WHERE 1=1';
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (input.workerId !== undefined) {
         query += ' AND resource_id = ?';

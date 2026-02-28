@@ -27,7 +27,7 @@ async function pushActivity(
   action: string,
   target: string,
   userName: string,
-  extraData?: Record<string, any>,
+  extraData?: Record<string, unknown>,
 ) {
   const db = await requireDb();
   const [entry] = await db
@@ -41,7 +41,7 @@ async function broadcast(
   action: string,
   target: string,
   userName: string,
-  extra?: Record<string, any>,
+  extra?: Record<string, unknown>,
 ) {
   const entry = await pushActivity(action, target, userName, extra);
   try {
@@ -368,7 +368,7 @@ export const concurrentCommandRouter = router({
         id: r.id,
         userName: r.userName,
         target: r.target,
-        data: r.extraData as Record<string, any> | null,
+        data: r.extraData as Record<string, unknown> | null,
         createdAt: r.createdAt,
       }));
 

@@ -289,8 +289,8 @@ export function analyzeMultipleParameters(
 /**
  * Get multi-parameter trends for a given agent unit
  */
-export async function getMultiParameterTrends(agentUnitId: number): Promise<Record<string, any>> {
-  const results: Record<string, any> = {};
+export async function getMultiParameterTrends(agentUnitId: number): Promise<Record<string, unknown>> {
+  const results: Record<string, unknown> = {};
   for (const paramType of Object.keys(CALIBRATION_PARAMETER_CONFIG)) {
     results[paramType] = await analyzeCalibrationTrend(agentUnitId, paramType);
   }

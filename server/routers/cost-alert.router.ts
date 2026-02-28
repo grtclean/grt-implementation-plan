@@ -12,6 +12,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, and, count } from "drizzle-orm";
@@ -56,7 +57,19 @@ export const costAlertRouter = router({
       }
     }),
 
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    name: z.string().min(1),
+    description: z.string().optional(),
+    scope: z.string().default("all"),
+    projectId: z.number().optional(),
+    categoryId: z.number().optional(),
+    alertType: z.string().default("budget_percent"),
+    threshold: z.number(),
+    alertLevel: z.string().default("warning"),
+    notifyType: z.string().default("system"),
+    notifyUserIds: z.union([z.string(), z.array(z.number())]).optional(),
+    isActive: z.union([z.boolean(), z.number()]).default(1),
+  })).mutation(async ({ input }) => {
     try {
       const db = await requireDb();
       await db.insert(costAlertRules).values({
@@ -71,21 +84,34 @@ export const costAlertRouter = router({
         notifyType: input.notifyType ?? "system",
         notifyUserIds: input.notifyUserIds ? (typeof input.notifyUserIds === 'string' ? input.notifyUserIds : JSON.stringify(input.notifyUserIds)) : null,
         isActive: input.isActive ?? 1,
-      });
+      } as any);
       return { success: true, message: "操作成功" };
     } catch (e: any) {
       return { success: false, message: e.message };
     }
   }),
 
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    name: z.string().min(1).optional(),
+    description: z.string().optional(),
+    scope: z.string().optional(),
+    projectId: z.number().optional(),
+    categoryId: z.number().optional(),
+    alertType: z.string().optional(),
+    threshold: z.number().optional(),
+    alertLevel: z.string().optional(),
+    notifyType: z.string().optional(),
+    notifyUserIds: z.union([z.string(), z.array(z.number())]).optional(),
+    isActive: z.union([z.boolean(), z.number()]).optional(),
+  })).mutation(async ({ input }) => {
     try {
       const db = await requireDb();
       const id = Number(input.id);
       if (!id) return { success: true, message: "操作成功" };
       const { id: _id, ...data } = input;
       if (data.notifyUserIds && typeof data.notifyUserIds !== 'string') data.notifyUserIds = JSON.stringify(data.notifyUserIds);
-      await db.update(costAlertRules).set({ ...data, updatedAt: new Date().toISOString() }).where(eq(costAlertRules.id, id));
+      await db.update(costAlertRules).set({ ...data, updatedAt: new Date().toISOString() } as any).where(eq(costAlertRules.id, id));
       return { success: true, message: "操作成功" };
     } catch (e: any) {
       return { success: false, message: e.message };
@@ -107,7 +133,12 @@ export const costAlertRouter = router({
 
   // ==================== Acknowledge alert log ====================
 
-  acknowledge: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  acknowledge: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    handlerId: z.number().optional(),
+    handleNote: z.string().optional(),
+    note: z.string().optional(),
+  })).mutation(async ({ input }) => {
     try {
       const db = await requireDb();
       const id = Number(input.id);
@@ -117,7 +148,7 @@ export const costAlertRouter = router({
         handlerId: input.handlerId,
         handleNote: input.handleNote ?? input.note,
         handledAt: new Date().toISOString(),
-      }).where(eq(costAlertLogs.id, id));
+      } as any).where(eq(costAlertLogs.id, id));
       return { success: true, message: "操作成功" };
     } catch (e: any) {
       return { success: false, message: e.message };
@@ -137,7 +168,9 @@ export const costAlertRouter = router({
 
   // ==================== Project Logs ====================
 
-  getProjectLogs: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getProjectLogs: protectedProcedure.input(z.object({
+    projectId: z.number().optional(),
+  }).optional()).query(async ({ input }) => {
     try {
       const db = await requireDb();
       const projectId = Number(input?.projectId);
@@ -152,7 +185,34 @@ export const costAlertRouter = router({
 
   // ==================== Batch Import ====================
 
-  batchImport: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  batchImport: protectedProcedure.input(z.object({
+    rules: z.array(z.object({
+      name: z.string().optional(),
+      description: z.string().optional(),
+      scope: z.string().optional(),
+      projectId: z.number().optional(),
+      categoryId: z.number().optional(),
+      alertType: z.string().optional(),
+      threshold: z.number().optional(),
+      alertLevel: z.string().optional(),
+      notifyType: z.string().optional(),
+      isActive: z.union([z.boolean(), z.number()]).optional(),
+      csvContent: z.string().optional(),
+    })).optional(),
+    items: z.array(z.object({
+      name: z.string().optional(),
+      description: z.string().optional(),
+      scope: z.string().optional(),
+      projectId: z.number().optional(),
+      categoryId: z.number().optional(),
+      alertType: z.string().optional(),
+      threshold: z.number().optional(),
+      alertLevel: z.string().optional(),
+      notifyType: z.string().optional(),
+      isActive: z.union([z.boolean(), z.number()]).optional(),
+      csvContent: z.string().optional(),
+    })).optional(),
+  })).mutation(async ({ input }) => {
     try {
       const db = await requireDb();
       const rules = input.rules ?? input.items ?? [];
@@ -169,7 +229,7 @@ export const costAlertRouter = router({
           alertLevel: rule.alertLevel ?? "warning",
           notifyType: rule.notifyType ?? "system",
           isActive: rule.isActive ?? 1,
-        });
+        } as any);
         imported++;
       }
       return { success: true, message: `${imported} rules imported`, imported };
@@ -178,7 +238,10 @@ export const costAlertRouter = router({
     }
   }),
 
-  parseCSV: protectedProcedure.input(z.any()).query(() => {
+  parseCSV: protectedProcedure.input(z.object({
+    content: z.string().optional(),
+    fileName: z.string().optional(),
+  }).optional()).query(() => {
     return [];
   }),
 

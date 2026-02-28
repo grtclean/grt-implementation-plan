@@ -212,7 +212,7 @@ export async function addTestItem(input: AddTestItemInput) {
 
 export async function updateTestItem(input: UpdateTestItemInput) {
   const db = await requireDb();
-  const updateData: Record<string, any> = {};
+  const updateData: Record<string, unknown> = {};
   if (input.actualValue !== undefined) updateData.actualValue = input.actualValue;
   if (input.result !== undefined) updateData.result = input.result;
   if (input.testerId !== undefined) updateData.testerId = input.testerId;
@@ -271,7 +271,7 @@ export async function addChecklist(input: AddChecklistInput) {
 
 export async function updateChecklist(input: UpdateChecklistInput) {
   const db = await requireDb();
-  const updateData: Record<string, any> = {};
+  const updateData: Record<string, unknown> = {};
   if (input.isCompleted !== undefined) updateData.isCompleted = input.isCompleted;
   if (input.responsiblePerson !== undefined) updateData.responsiblePerson = input.responsiblePerson;
   if (input.notes !== undefined) updateData.notes = input.notes;
@@ -314,7 +314,7 @@ export async function addSignoff(input: AddSignoffInput) {
 
 export async function updateSignoff(input: UpdateSignoffInput) {
   const db = await requireDb();
-  const updateData: Record<string, any> = { status: input.status };
+  const updateData: Record<string, unknown> = { status: input.status };
   if (input.signerName !== undefined) updateData.signerName = input.signerName;
   if (input.comment !== undefined) updateData.comment = input.comment;
   if (input.signatureUrl !== undefined) updateData.signatureUrl = input.signatureUrl;
@@ -361,7 +361,7 @@ export async function addSiteCondition(input: AddSiteConditionInput) {
 
 export async function updateSiteCondition(input: UpdateSiteConditionInput) {
   const db = await requireDb();
-  const updateData: Record<string, any> = {};
+  const updateData: Record<string, unknown> = {};
   if (input.actualValue !== undefined) updateData.actualValue = input.actualValue;
   if (input.isWithinSpec !== undefined) updateData.isWithinSpec = input.isWithinSpec;
   if (input.notes !== undefined) updateData.notes = input.notes;

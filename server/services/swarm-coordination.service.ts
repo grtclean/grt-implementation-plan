@@ -14,7 +14,7 @@ export interface AgentNode {
   currentLoad: number;
   maxLoad: number;
   lastHeartbeat: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface Task {

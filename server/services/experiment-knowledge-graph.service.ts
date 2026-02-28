@@ -6,7 +6,7 @@
 interface NodeData {
   type: string;
   label: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 interface GraphNode extends NodeData {
@@ -317,7 +317,7 @@ export function analyzeGraph(graph: KnowledgeGraph): GraphAnalytics {
 }
 
 export function exportGraphToJSON(graph: KnowledgeGraph): string {
-  const nodes: Array<{ id: string; type: string; label: string; properties: Record<string, any> }> = [];
+  const nodes: Array<{ id: string; type: string; label: string; properties: Record<string, unknown> }> = [];
   for (const [id, node] of graph.nodes) {
     nodes.push({ id, type: node.type, label: node.label, properties: node.properties });
   }

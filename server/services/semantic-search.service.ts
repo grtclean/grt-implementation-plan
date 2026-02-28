@@ -7,7 +7,7 @@ export interface Entity {
   id: string;
   type: string;
   name: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 export interface Relation {
@@ -15,7 +15,7 @@ export interface Relation {
   sourceId: string;
   targetId: string;
   type: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   weight: number;
 }
 

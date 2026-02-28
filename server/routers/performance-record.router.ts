@@ -11,7 +11,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import { performanceRecords } from "../../drizzle/performance-schema";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { eq, and, desc, sql, count, type SQL } from "drizzle-orm";
 
 export const performanceRecordRouter = router({
   /**
@@ -31,7 +31,7 @@ export const performanceRecordRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
 
-      const conditions: any[] = [];
+      const conditions: SQL[] = [];
       if (input.buId) conditions.push(eq(performanceRecords.buId, input.buId));
       if (input.userId) conditions.push(eq(performanceRecords.userId, input.userId));
       if (input.year) conditions.push(eq(performanceRecords.year, input.year));

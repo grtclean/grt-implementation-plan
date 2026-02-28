@@ -289,7 +289,7 @@ export const oaRouter = router({
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const { id, ...updates } = input;
-    const setData: Record<string, any> = { updatedAt: new Date().toISOString() };
+    const setData: Record<string, unknown> = { updatedAt: new Date().toISOString() };
     if (updates.decision !== undefined) setData.decision = updates.decision;
     if (updates.assignedTo !== undefined) setData.assignedTo = updates.assignedTo;
     if (updates.deadline !== undefined) setData.deadline = updates.deadline;
@@ -320,7 +320,7 @@ export const oaRouter = router({
 
     // 1. Batch-update each item with inline edits
     for (const item of input.updates) {
-      const setData: Record<string, any> = { updatedAt: now };
+      const setData: Record<string, unknown> = { updatedAt: now };
       if (item.decision !== undefined) setData.decision = item.decision;
       if (item.assignedTo !== undefined) setData.assignedTo = item.assignedTo;
       if (item.deadline !== undefined) setData.deadline = item.deadline;

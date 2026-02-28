@@ -41,7 +41,7 @@ export interface NotificationPayload {
   taskId?: string;
   recipientId?: number;
   actionUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -75,7 +75,7 @@ ${meeting.description ? `描述: ${meeting.description}` : ''}
  */
 export async function notifyMeetingUpdated(
   meeting: Meeting,
-  changes: Record<string, any>,
+  changes: Record<string, unknown>,
   updatedByName: string
 ): Promise<boolean> {
   const title = `会议已更新: ${meeting.title}`;
@@ -365,7 +365,7 @@ ${meetingsList}
 export async function sendCustomNotification(
   title: string,
   content: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<boolean> {
   return await notifyOwner({
     title,

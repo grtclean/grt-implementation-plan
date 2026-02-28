@@ -13,7 +13,7 @@ import {
 } from "./cleanlinessQc.service";
 import { requireDb } from "../db";
 import { cleanlinessReports } from "../../drizzle/cleaning-machine-schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, type SQL } from "drizzle-orm";
 
 export const cleanlinessQcRouter = router({
   // US-001: 清洁度检测数据结构化 (mutation — invokes LLM)
@@ -120,7 +120,7 @@ export const cleanlinessQcRouter = router({
       try {
         const db = await requireDb();
         if (!db) return [];
-        const conditions: any[] = [];
+        const conditions: SQL[] = [];
         if (input.projectId) conditions.push(eq(cleanlinessReports.projectId, input.projectId));
         if (input.projectPhase) conditions.push(eq(cleanlinessReports.projectPhase, input.projectPhase));
         if (input.verdict) conditions.push(eq(cleanlinessReports.overallVerdict, input.verdict));

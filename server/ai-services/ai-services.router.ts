@@ -33,7 +33,7 @@ export const aiSolutionRouter = router({
   chat: protectedProcedure
     .input(z.object({
       messages: z.array(chatMessageSchema),
-      context: z.record(z.string(), z.any()).optional()
+      context: z.record(z.string(), z.unknown()).optional()
     }))
     .mutation(async ({ input }) => {
       const response = await chatWithAssistant(
@@ -83,7 +83,7 @@ export const aiQuotationRouter = router({
   chat: protectedProcedure
     .input(z.object({
       messages: z.array(chatMessageSchema),
-      context: z.record(z.string(), z.any()).optional()
+      context: z.record(z.string(), z.unknown()).optional()
     }))
     .mutation(async ({ input }) => {
       const response = await chatWithAssistant(
@@ -99,7 +99,7 @@ export const aiQuotationRouter = router({
     .input(z.object({
       projectName: z.string().min(1, "项目名称不能为空"),
       equipmentType: z.string().min(1, "设备类型不能为空"),
-      specifications: z.record(z.string(), z.any()),
+      specifications: z.record(z.string(), z.unknown()),
       quantity: z.number().positive("数量必须为正数"),
       customerId: z.string().optional()
     }))
@@ -129,7 +129,7 @@ export const aiPlanningRouter = router({
   chat: protectedProcedure
     .input(z.object({
       messages: z.array(chatMessageSchema),
-      context: z.record(z.string(), z.any()).optional()
+      context: z.record(z.string(), z.unknown()).optional()
     }))
     .mutation(async ({ input }) => {
       const response = await chatWithAssistant(
@@ -185,7 +185,7 @@ export const aiKpiRouter = router({
   chat: protectedProcedure
     .input(z.object({
       messages: z.array(chatMessageSchema),
-      context: z.record(z.string(), z.any()).optional()
+      context: z.record(z.string(), z.unknown()).optional()
     }))
     .mutation(async ({ input }) => {
       const response = await chatWithAssistant(

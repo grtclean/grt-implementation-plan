@@ -10,7 +10,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
-import { eq, and, desc, sql, count, or, ilike, gte, lte, isNull } from "drizzle-orm";
+import { eq, and, desc, sql, count, or, ilike, gte, lte, isNull, type SQL } from "drizzle-orm";
 
 // ─── Mock Data Constants ───────────────────────────────────────────────────────
 
@@ -273,7 +273,7 @@ export const serviceDashboardRouter = router({
         const db = await requireDb();
         const { spareParts } = await import("../../drizzle/supply-chain-schema");
 
-        const conditions: any[] = [ilike(spareParts.locationCode, "DET%")];
+        const conditions: SQL[] = [ilike(spareParts.locationCode, "DET%")];
         if (category) conditions.push(eq(spareParts.category, category));
         if (criticalOnly) conditions.push(eq(spareParts.isCritical, true));
 

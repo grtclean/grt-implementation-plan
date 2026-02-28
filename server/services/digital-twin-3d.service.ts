@@ -27,7 +27,7 @@ interface Transform {
 
 interface Geometry {
   type: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
 interface Component {
@@ -39,7 +39,7 @@ interface Component {
   transform: Transform;
   visible: boolean;
   children: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 interface Material {
@@ -74,7 +74,7 @@ interface DigitalTwin {
   components: Map<string, Component>;
   materials: Map<string, Material>;
   sensors: Map<string, Sensor>;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   createdAt: number;
   updatedAt: number;
 }
@@ -691,8 +691,8 @@ export function addKeyframe(
   };
 }
 
-export function evaluateAnimation(clip: AnimationClip, time: number): Record<string, any> {
-  const result: Record<string, any> = {};
+export function evaluateAnimation(clip: AnimationClip, time: number): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
   const properties = new Set(clip.keyframes.map(kf => kf.property));
 
   for (const prop of properties) {

@@ -12,6 +12,7 @@
 
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { analyzeKpiPerformance } from "./kpiAiAnalysis.service";
 import {
   listKpiPositions,
@@ -328,7 +329,7 @@ const skillsRouter = router({
         targetLevel: z.number().min(1).max(5),
         assessmentDate: z.string().optional(),
         assessedBy: z.number().optional(),
-        historyJson: z.any().optional(),
+        historyJson: jsonValue.optional(),
         notes: z.string().optional(),
       })
     )
@@ -348,7 +349,7 @@ const skillsRouter = router({
         targetLevel: z.number().min(1).max(5).optional(),
         assessmentDate: z.string().optional(),
         assessedBy: z.number().optional(),
-        historyJson: z.any().optional(),
+        historyJson: jsonValue.optional(),
         notes: z.string().optional(),
       })
     )
@@ -403,7 +404,7 @@ const reviewsRouter = router({
         monthDate: z.string().regex(/^\d{4}-\d{2}$/),
         overallKpiScore: z.string().optional(),
         bonusCoefficient: z.string().optional(),
-        kpiDetailsJson: z.any().optional(),
+        kpiDetailsJson: jsonValue.optional(),
         gapsText: z.string().optional(),
         improvementPlanText: z.string().optional(),
         reviewerComments: z.string().optional(),
@@ -427,7 +428,7 @@ const reviewsRouter = router({
         monthDate: z.string().regex(/^\d{4}-\d{2}$/).optional(),
         overallKpiScore: z.string().optional(),
         bonusCoefficient: z.string().optional(),
-        kpiDetailsJson: z.any().optional(),
+        kpiDetailsJson: jsonValue.optional(),
         gapsText: z.string().optional(),
         improvementPlanText: z.string().optional(),
         reviewerComments: z.string().optional(),
@@ -488,7 +489,7 @@ const militaryOrdersRouter = router({
         year: z.number().min(2020).max(2100),
         positionId: z.number().optional(),
         commitmentText: z.string().min(1),
-        targetSummaryJson: z.any().optional(),
+        targetSummaryJson: jsonValue.optional(),
         rewardText: z.string().optional(),
         consequenceText: z.string().optional(),
         signatureStatus: z
@@ -510,7 +511,7 @@ const militaryOrdersRouter = router({
         id: z.number(),
         positionId: z.number().optional(),
         commitmentText: z.string().min(1).optional(),
-        targetSummaryJson: z.any().optional(),
+        targetSummaryJson: jsonValue.optional(),
         rewardText: z.string().optional(),
         consequenceText: z.string().optional(),
         documentUrl: z.string().optional(),

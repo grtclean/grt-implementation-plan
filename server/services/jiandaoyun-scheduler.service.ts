@@ -17,7 +17,7 @@ export interface SyncTaskConfig {
   jdyFormId?: string;
   syncDirection: 'jdy_to_grt' | 'grt_to_jdy' | 'bidirectional';
   fieldMapping?: Record<string, string>;
-  filterCondition?: Record<string, any>;
+  filterCondition?: Record<string, unknown>;
   cronExpression?: string;
   isEnabled: boolean;
 }

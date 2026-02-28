@@ -9,7 +9,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { violationEvents, performanceRecords } from "../../drizzle/performance-schema";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { eq, and, desc, sql, count, type SQL } from "drizzle-orm";
 
 export const violationEventRouter = router({
   /**
@@ -27,7 +27,7 @@ export const violationEventRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
 
-      const conditions: any[] = [];
+      const conditions: SQL[] = [];
       if (input.buId) conditions.push(eq(violationEvents.buId, input.buId));
       if (input.userId) conditions.push(eq(violationEvents.userId, input.userId));
       if (input.severity) conditions.push(eq(violationEvents.severity, input.severity));

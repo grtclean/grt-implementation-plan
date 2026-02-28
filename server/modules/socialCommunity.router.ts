@@ -33,7 +33,7 @@ export const socialCommunityRouter = router({
       const { status, type, page = 1, pageSize = 20 } = input || {};
 
       let query = `SELECT * FROM social_groups WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (status) {
         query += ` AND status = ?`;
@@ -106,7 +106,7 @@ export const socialCommunityRouter = router({
       const { id, ...updates } = input;
       
       const setClauses: string[] = [];
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (updates.name !== undefined) {
         setClauses.push('name = ?');
@@ -161,7 +161,7 @@ export const socialCommunityRouter = router({
       
       let query = `SELECT m.*, g.name as group_name FROM social_messages m 
                    LEFT JOIN social_groups g ON m.group_id = g.id WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (groupId) {
         query += ` AND m.group_id = ?`;
@@ -277,7 +277,7 @@ export const socialCommunityRouter = router({
                    LEFT JOIN social_messages m ON d.message_id = m.id
                    LEFT JOIN social_groups g ON m.group_id = g.id
                    WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (status) {
         query += ` AND d.review_status = ?`;
@@ -391,7 +391,7 @@ export const socialCommunityRouter = router({
                    FROM publish_queue pq
                    LEFT JOIN social_groups g ON pq.target_group_id = g.id
                    WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (status) {
         query += ` AND pq.status = ?`;
@@ -495,7 +495,7 @@ export const socialCommunityRouter = router({
       const { groupId, role, page, pageSize } = input;
       
       let query = `SELECT * FROM social_members WHERE group_id = ?`;
-      const params: any[] = [groupId];
+      const params: unknown[] = [groupId];
       
       if (role) {
         query += ` AND role = ?`;

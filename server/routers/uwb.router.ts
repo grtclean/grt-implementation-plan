@@ -495,7 +495,7 @@ export const uwbRouter = router({
         LEFT JOIN users u ON l.employee_id = u.id
         WHERE l.tag_id = ? AND DATE(l.timestamp) = ?
       `;
-      const params: any[] = [tagId, date];
+      const params: unknown[] = [tagId, date];
       
       if (startTime) {
         query += ` AND TIME(l.timestamp) >= ?`;

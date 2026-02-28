@@ -27,7 +27,7 @@ export interface VisualizationNode {
   x: number;
   y: number;
   style: GraphNodeStyle;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 // Keep GraphNode as alias for backward compatibility

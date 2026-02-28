@@ -289,7 +289,7 @@ export const stageGateEnhancedRouter = router({
                    FROM erp_sync_history esh
                    LEFT JOIN user u ON esh.user_id = u.id
                    WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (type) {
         query += ` AND esh.erp_type = ?`;
@@ -321,7 +321,7 @@ export const stageGateEnhancedRouter = router({
        GROUP BY erp_type`
     );
 
-    const status: Record<string, any> = {};
+    const status: Record<string, unknown> = {};
     const erpTypes = ["sap", "oracle", "kingdee"];
 
     for (const type of erpTypes) {

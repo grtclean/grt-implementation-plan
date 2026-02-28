@@ -168,7 +168,7 @@ export async function updateTicket(
     }
   }
 
-  const setFields: Record<string, any> = { updatedAt: sql`now()` };
+  const setFields: Record<string, unknown> = { updatedAt: sql`now()` };
   if (params.title !== undefined) setFields.title = params.title;
   if (params.description !== undefined) setFields.description = params.description;
   if (params.status !== undefined) setFields.status = params.status;

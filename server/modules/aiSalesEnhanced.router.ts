@@ -156,7 +156,7 @@ export const aiSalesEnhancedRouter = router({
       // 否则从数据库获取历史分析
       let query = `SELECT primary_emotion, emotion_score, created_at 
                    FROM emotion_analyses WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (opportunityId) {
         query += ` AND opportunity_id = ?`;
@@ -366,7 +366,7 @@ export const aiSalesEnhancedRouter = router({
         AVG(our_position) as avg_our_position,
         AVG(their_position) as avg_their_position
       FROM negotiation_records WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (targetUserId) {
         query += ` AND user_id = ?`;

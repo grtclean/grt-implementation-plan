@@ -68,7 +68,7 @@ interface BattleAnalysis {
   summary: string;
   playerPerformance: Array<{ playerId: string; score: number; moves: number }>;
   recommendations: string[];
-  statistics: Record<string, any>;
+  statistics: Record<string, unknown>;
 }
 
 // ==================== Session Management ====================

@@ -90,7 +90,7 @@ export async function createSalaryRule(params: {
 }
 
 /** 更新薪酬计算规则 */
-export async function updateSalaryRule(ruleId: number, params: Record<string, any>) {
+export async function updateSalaryRule(ruleId: number, params: Record<string, unknown>) {
   const db = await requireDb();
   const now = Date.now();
   

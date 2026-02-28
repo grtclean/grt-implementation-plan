@@ -712,7 +712,7 @@ export async function generateAiPresetsForRange(
   }
 
   const targetCodes = allCodes.slice(startIdx, endIdx + 1);
-  const results: Record<string, any> = {};
+  const results: Record<string, unknown> = {};
 
   // 获取目标项目的工序实例
   const db = await requireDb();

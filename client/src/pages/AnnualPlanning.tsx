@@ -357,8 +357,8 @@ export default function AnnualPlanning() {
       updateItemMutation.mutate({
         id: item.id,
         month: newStartMonth,
-        startDate: new Date(selectedYear, newStartMonth - 1, 1),
-        endDate: new Date(selectedYear, newEndMonth - 1, 28),
+        startDate: new Date(selectedYear, newStartMonth - 1, 1).toISOString(),
+        endDate: new Date(selectedYear, newEndMonth - 1, 28).toISOString(),
       });
       toast.success(`已调整 "${item.name}" 到 ${monthNames[newStartMonth]} - ${monthNames[newEndMonth]}`);
     }
@@ -416,8 +416,8 @@ export default function AnnualPlanning() {
       updateItemMutation.mutate({
         id: item.id,
         month: newStartMonth,
-        startDate: new Date(selectedYear, newStartMonth - 1, 1),
-        endDate: new Date(selectedYear, newEndMonth - 1, 28),
+        startDate: new Date(selectedYear, newStartMonth - 1, 1).toISOString(),
+        endDate: new Date(selectedYear, newEndMonth - 1, 28).toISOString(),
       });
       toast.success(`已调整 "${item.name}" 时间范围`);
       

@@ -8,7 +8,7 @@ export interface GraphData {
     id: string;
     label: string;
     type: string;
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
   }>;
   edges: Array<{
     id: string;
@@ -577,7 +577,7 @@ export function filterGraph(
   options: {
     nodeTypes?: string[];
     edgeTypes?: string[];
-    properties?: Record<string, any>;
+    properties?: Record<string, unknown>;
   }
 ): GraphData {
   let filteredNodes = [...graph.nodes];
@@ -608,7 +608,7 @@ export function filterGraph(
 export function searchNodes(
   graph: GraphData,
   query: string
-): Array<{ id: string; label: string; type: string; properties: Record<string, any> }> {
+): Array<{ id: string; label: string; type: string; properties: Record<string, unknown> }> {
   const lowerQuery = query.toLowerCase();
   return graph.nodes.filter(n => {
     if (n.label.toLowerCase().includes(lowerQuery)) return true;

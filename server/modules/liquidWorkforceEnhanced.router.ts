@@ -101,7 +101,7 @@ export const liquidWorkforceEnhancedRouter = router({
 
       // 获取证明
       let query = `SELECT * FROM zkp_skill_proofs WHERE skill_id = ?`;
-      const params: any[] = [skillId];
+      const params: unknown[] = [skillId];
       if (proofId) {
         query += ` AND id = ?`;
         params.push(proofId);
@@ -159,7 +159,7 @@ export const liquidWorkforceEnhancedRouter = router({
                    FROM zkp_skill_proofs zsp
                    LEFT JOIN skill_capsules sc ON zsp.skill_id = sc.skill_id
                    WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (skillId) {
         query += ` AND zsp.skill_id = ?`;

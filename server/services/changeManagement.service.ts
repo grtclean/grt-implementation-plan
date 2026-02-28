@@ -79,7 +79,7 @@ export interface AuditLog {
   userId: number;
   action: string;
   changeId?: string;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   status: 'Success' | 'Failure' | 'Warning';
   errorMessage?: string;
 }
@@ -335,7 +335,7 @@ export async function createExecutionPlan(
  */
 export async function createBackup(
   changeId: string,
-  backupData: Record<string, any>
+  backupData: Record<string, unknown>
 ): Promise<Backup> {
   try {
     // Convert backup data to JSON
@@ -372,7 +372,7 @@ export async function createBackup(
  */
 export async function verifyBackup(
   backup: Backup,
-  originalData: Record<string, any>
+  originalData: Record<string, unknown>
 ): Promise<boolean> {
   try {
     // Get backup from S3

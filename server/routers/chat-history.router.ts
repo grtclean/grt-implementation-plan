@@ -3,6 +3,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiChatSessions, aiChatMessages } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
+import { jsonValue } from "../../shared/validators";
 
 export const chatHistoryRouter = router({
   // 会话列表
@@ -20,7 +21,14 @@ export const chatHistoryRouter = router({
   }),
 
   // 创建会话
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    userId: z.number().int().optional(),
+    assistantType: z.enum(["solution", "quotation", "planning", "kpi", "personal"]).optional(),
+    title: z.string().max(200).optional(),
+    projectId: z.number().int().optional(),
+    customerId: z.number().int().optional(),
+    metadata: jsonValue.optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [session] = await db.insert(aiChatSessions).values({
       userId: input.userId || 1,
@@ -29,19 +37,23 @@ export const chatHistoryRouter = router({
       projectId: input.projectId,
       customerId: input.customerId,
       metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
-    }).returning();
+    } as any).returning();
     return { success: true, message: "会话已创建", data: session };
   }),
 
   // 更新会话
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    title: z.string().max(200).optional(),
+    status: z.enum(["active", "archived", "deleted"]).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
     const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
     if (input.title !== undefined) updates.title = input.title;
     if (input.status !== undefined) updates.status = input.status;
     const [session] = await db.update(aiChatSessions)
-      .set(updates)
+      .set(updates as any)
       .where(eq(aiChatSessions.id, id))
       .returning();
     return { success: true, message: "更新成功", data: session };
@@ -63,18 +75,25 @@ export const chatHistoryRouter = router({
   }),
 
   // 创建新会话
-  createSession: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  createSession: protectedProcedure.input(z.object({
+    userId: z.number().int().optional(),
+    assistantType: z.enum(["solution", "quotation", "planning", "kpi", "personal"]).optional(),
+    title: z.string().max(200).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [session] = await db.insert(aiChatSessions).values({
       userId: input.userId || 1,
       assistantType: input.assistantType || "solution",
       title: input.title || "新会话",
-    }).returning();
+    } as any).returning();
     return { success: true, message: "会话已创建", data: session };
   }),
 
   // 获取会话消息
-  getMessages: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getMessages: protectedProcedure.input(z.object({
+    sessionId: z.union([z.string(), z.number()]).optional(),
+    limit: z.number().int().min(1).max(500).optional(),
+  }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const sessionId = typeof input?.sessionId === "string" ? parseInt(input.sessionId) : (input?.sessionId || 0);
     return await db.select().from(aiChatMessages)
@@ -83,7 +102,13 @@ export const chatHistoryRouter = router({
   }),
 
   // 添加消息
-  addMessage: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  addMessage: protectedProcedure.input(z.object({
+    sessionId: z.union([z.string(), z.number()]),
+    role: z.enum(["user", "assistant", "system"]).optional(),
+    content: z.string().max(50000).optional(),
+    contentType: z.enum(["text", "table", "code", "file"]).optional(),
+    metadata: jsonValue.optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const sessionId = typeof input.sessionId === "string" ? parseInt(input.sessionId) : input.sessionId;
     const [message] = await db.insert(aiChatMessages).values({
@@ -92,7 +117,7 @@ export const chatHistoryRouter = router({
       content: input.content || "",
       contentType: input.contentType || "text",
       metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
-    }).returning();
+    } as any).returning();
 
     // Update session message count and last activity
     await db.update(aiChatSessions)

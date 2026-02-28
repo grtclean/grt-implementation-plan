@@ -3,6 +3,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { importHistory } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
+import { jsonValue } from "../../shared/validators";
 
 export const importHistoryRouter = router({
   // 导入历史列表
@@ -20,7 +21,15 @@ export const importHistoryRouter = router({
   }),
 
   // 创建导入记录
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    importType: z.string().max(100).optional(),
+    fileName: z.string().max(255).optional(),
+    fileSize: z.number().int().optional(),
+    filePath: z.string().max(500).optional(),
+    totalRows: z.number().int().optional(),
+    fieldMapping: jsonValue.optional(),
+    createdBy: z.number().int().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [record] = await db.insert(importHistory).values({
       importType: input.importType || "general",
@@ -31,17 +40,31 @@ export const importHistoryRouter = router({
       fieldMapping: input.fieldMapping ? JSON.stringify(input.fieldMapping) : undefined,
       status: "pending",
       createdBy: input.createdBy || 1,
-    }).returning();
+    } as any).returning();
     return { success: true, message: "导入记录已创建", data: record };
   }),
 
   // 更新导入记录
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    importType: z.string().max(100).optional(),
+    fileName: z.string().max(255).optional(),
+    fileSize: z.number().int().optional(),
+    filePath: z.string().max(500).optional(),
+    totalRows: z.number().int().optional(),
+    successCount: z.number().int().optional(),
+    failedCount: z.number().int().optional(),
+    skippedCount: z.number().int().optional(),
+    fieldMapping: z.string().optional(),
+    errorLog: z.string().optional(),
+    importedData: z.string().optional(),
+    status: z.string().max(50).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
     const { id: _id, ...updates } = input;
     const [record] = await db.update(importHistory)
-      .set(updates)
+      .set(updates as any)
       .where(eq(importHistory.id, id))
       .returning();
     return { success: true, message: "更新成功", data: record };
@@ -61,7 +84,9 @@ export const importHistoryRouter = router({
   }),
 
   // 获取导入详细信息
-  getDetails: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getDetails: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]).optional(),
+  }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input?.id === "string" ? parseInt(input.id) : (input?.id || 0);
     const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id));
@@ -69,7 +94,7 @@ export const importHistoryRouter = router({
   }),
 
   // 导入统计（前端调用 getStats）
-  getStats: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getStats: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const [total] = await db.select({ count: count() }).from(importHistory);
     const [pending] = await db.select({ count: count() }).from(importHistory).where(eq(importHistory.status, "pending"));
@@ -84,7 +109,9 @@ export const importHistoryRouter = router({
   }),
 
   // 检查是否可回滚
-  canRollback: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  canRollback: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]).optional(),
+  }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input?.id === "string" ? parseInt(input.id) : (input?.id || 0);
     const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id));
@@ -95,7 +122,10 @@ export const importHistoryRouter = router({
   }),
 
   // 回滚导入
-  rollback: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  rollback: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]).optional(),
+    rollbackBy: z.number().int().optional(),
+  }).optional()).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input?.id === "string" ? parseInt(input.id) : (input?.id || 0);
     const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id));
@@ -103,7 +133,7 @@ export const importHistoryRouter = router({
     if (item.rollbackAt) return { success: false, message: "已经回滚过" };
 
     const [updated] = await db.update(importHistory)
-      .set({ rollbackAt: new Date(), rollbackBy: input.rollbackBy || 1, status: "rolled_back" })
+      .set({ rollbackAt: new Date(), rollbackBy: input?.rollbackBy || 1, status: "rolled_back" } as any)
       .where(eq(importHistory.id, id))
       .returning();
     return { success: true, message: "回滚成功", data: updated };

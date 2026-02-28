@@ -265,7 +265,7 @@ export const meetingTaskLoopRouter = router({
     }).optional())
     .query(async ({ input, ctx }) => {
       let query = `SELECT * FROM task_completion_reports WHERE reporter_id = ?`;
-      const params: any[] = [String(ctx.user.id)];
+      const params: unknown[] = [String(ctx.user.id)];
 
       if (input?.status) {
         query += ` AND status = ?`;
@@ -369,7 +369,7 @@ export const meetingTaskLoopRouter = router({
     }).optional())
     .query(async ({ input }) => {
       let query = `SELECT * FROM meeting_owners WHERE status = 'active'`;
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (input?.meetingTypeId) {
         query += ` AND meeting_type_id = ?`;

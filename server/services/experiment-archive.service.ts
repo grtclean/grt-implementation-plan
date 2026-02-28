@@ -10,7 +10,7 @@ export interface VariantConfig {
   id: string;
   name: string;
   description: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
 export interface VariantResult {

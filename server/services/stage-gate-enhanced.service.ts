@@ -279,7 +279,7 @@ ${JSON.stringify(sampleData.slice(0, 3), null, 2)}
 
       try {
         // 转换数据
-        const projectData: Record<string, any> = {};
+        const projectData: Record<string, unknown> = {};
         for (const [source, target] of Object.entries(mapping)) {
           if (target && row[source] !== undefined) {
             projectData[target] = row[source];

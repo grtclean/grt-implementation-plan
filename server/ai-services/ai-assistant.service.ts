@@ -33,7 +33,7 @@ export interface SolutionInput {
 export interface QuotationInput {
   projectName: string;
   equipmentType: string;
-  specifications: Record<string, any>;
+  specifications: Record<string, unknown>;
   quantity: number;
   customerId?: string;
 }
@@ -123,7 +123,7 @@ const SYSTEM_PROMPTS: Record<AIAssistantType, string> = {
 export async function chatWithAssistant(
   type: AIAssistantType,
   messages: ChatMessage[],
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ): Promise<string> {
   const systemPrompt = SYSTEM_PROMPTS[type];
   

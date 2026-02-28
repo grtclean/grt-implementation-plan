@@ -72,7 +72,7 @@ export const erpRouter = router({
   getSystemDocumentation: protectedProcedure
     .input(z.object({ systemType: z.enum(['sap', 'oracle', 'kingdee']) }))
     .query(async ({ input }) => {
-      const docs: Record<string, any> = {
+      const docs: Record<string, unknown> = {
         sap: {
           name: 'SAP ERP',
           description: 'SAP企业资源规划系统',

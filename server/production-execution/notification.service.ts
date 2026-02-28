@@ -63,7 +63,7 @@ export interface NotificationPayload {
   status?: string;
   actionUrl?: string;
   priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface NotificationResult {
@@ -709,7 +709,7 @@ export async function notifyStageStatus(
   stageCode: string,
   stageName: string,
   status: 'STARTED' | 'COMPLETED' | 'ALERT',
-  metadata: Record<string, any>,
+  metadata: Record<string, unknown>,
   recipients: NotificationRecipient[]
 ): Promise<NotificationResult[]> {
   const typeMap: Record<string, NotificationType> = {

@@ -33,7 +33,7 @@ export interface MeetingRecord {
     deadline?: string;
   }>;
   summary?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // 批量导出结果

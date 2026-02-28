@@ -27,7 +27,7 @@ export interface AlertEvent {
   message: string;
   timestamp: number;
   tags: Record<string, string>;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface NotificationMessage {

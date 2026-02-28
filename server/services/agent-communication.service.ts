@@ -12,7 +12,7 @@ interface Agent {
   status: 'idle' | 'busy' | 'offline' | 'error';
   capabilities: string[];
   lastHeartbeat: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 interface Message {
@@ -75,7 +75,7 @@ interface CoordinatedTask {
 
 interface StateSyncData {
   agentId: string;
-  state: Record<string, any>;
+  state: Record<string, unknown>;
   version: number;
   checksum: string;
   timestamp: number;
@@ -380,7 +380,7 @@ function computeChecksum(data: any): string {
   return Math.abs(hash).toString(16).padStart(8, '0');
 }
 
-export function createStateSyncData(agentId: string, state: Record<string, any>, version: number = 1): StateSyncData {
+export function createStateSyncData(agentId: string, state: Record<string, unknown>, version: number = 1): StateSyncData {
   return { agentId, state, version, checksum: computeChecksum(state), timestamp: Date.now() };
 }
 

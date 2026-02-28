@@ -29,7 +29,7 @@ import {
   calculateMeetingROI,
   getAggregatedROI,
 } from "../services/meeting-analytics-engine.service";
-import { eq, desc, and, count, sql } from "drizzle-orm";
+import { eq, desc, and, count, sql, type SQL } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { processAbsences } from "../services/hr-meeting-engine";
 
@@ -62,7 +62,7 @@ const meetingRouter = router({
     )
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: any[] = [];
+      const conditions: SQL[] = [];
       if (input?.status)
         conditions.push(eq(sysMeetings.status, input.status));
       if (input?.type) conditions.push(eq(sysMeetings.type, input.type));
@@ -133,7 +133,7 @@ const meetingRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const now = new Date();
-      const extra: Record<string, any> = {};
+      const extra: Record<string, unknown> = {};
       if (input.status === "LIVE") extra.actualStart = now;
       if (input.status === "ENDED") extra.actualEnd = now;
 
@@ -627,7 +627,7 @@ const penaltyRouter = router({
     )
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: any[] = [];
+      const conditions: SQL[] = [];
       if (input?.userId)
         conditions.push(eq(hrPenalties.userId, input.userId));
       if (input?.penaltyLevel)

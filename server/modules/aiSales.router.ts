@@ -29,7 +29,7 @@ export const aiSalesRouter = router({
       const { opportunityId, clientAgentId, status, page = 1, pageSize = 20 } = input || {};
       
       let query = `SELECT * FROM negotiation_sessions WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (opportunityId) {
         query += ` AND opportunity_id = ?`;
@@ -67,7 +67,7 @@ export const aiSalesRouter = router({
       const { id, sessionId } = input;
       
       let query = `SELECT * FROM negotiation_sessions WHERE `;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (id) {
         query += `id = ?`;
@@ -329,7 +329,7 @@ export const aiSalesRouter = router({
       const { proofType, entityType, entityId, verifiedByClient, page = 1, pageSize = 20 } = input || {};
       
       let query = `SELECT * FROM zkp_registry WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (proofType) {
         query += ` AND proof_type = ?`;

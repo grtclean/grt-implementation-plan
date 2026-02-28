@@ -14,7 +14,7 @@ export interface DataSourceConfig {
   name: string;
   type: string;
   enabled: boolean;
-  connection: Record<string, any>;
+  connection: Record<string, unknown>;
   mapping: FieldMapping[];
   createdAt: number;
   updatedAt: number;
@@ -98,7 +98,7 @@ export interface DataSourceTemplate {
   name: string;
   type: string;
   description: string;
-  defaultConnection: Record<string, any>;
+  defaultConnection: Record<string, unknown>;
   defaultMapping: FieldMapping[];
 }
 
@@ -118,7 +118,7 @@ export function createDataSourceConfig(input: {
   name: string;
   type: string;
   enabled: boolean;
-  connection: Record<string, any>;
+  connection: Record<string, unknown>;
   mapping: FieldMapping[];
 }): DataSourceConfig {
   dsCounter++;
@@ -307,7 +307,7 @@ export function getDataSourceTemplates(): DataSourceTemplate[] {
  */
 export function createDataSourceFromTemplate(
   templateIndex: number,
-  overrides: { name?: string; connection?: Record<string, any> } = {}
+  overrides: { name?: string; connection?: Record<string, unknown> } = {}
 ): DataSourceConfig {
   const template = DATA_SOURCE_TEMPLATES[templateIndex] ?? DATA_SOURCE_TEMPLATES[0];
   dsCounter++;

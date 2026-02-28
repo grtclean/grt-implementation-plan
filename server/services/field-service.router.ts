@@ -14,7 +14,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
-import { eq, desc, and, sql, count } from "drizzle-orm";
+import { eq, desc, and, sql, count, type SQL } from "drizzle-orm";
 import * as schema from "../../drizzle/schema";
 import { searchDocuments } from "../modules/knowledge-base.service";
 import { triggerProcessLock } from "../production-steps/qualityInterlock.service";
@@ -132,7 +132,7 @@ const getEscalations = protectedProcedure
     const { projectId, status, page, pageSize } = input;
     const offset = (page - 1) * pageSize;
 
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (projectId) {
       conditions.push(eq(schema.fieldQualityEscalations.projectId, projectId));
     }
@@ -176,7 +176,7 @@ const updateEscalation = protectedProcedure
     const db = await requireDb();
     const now = new Date().toISOString();
 
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
     if (input.status) updateData.status = input.status;
     if (input.resolution) updateData.resolution = input.resolution;
 
@@ -262,7 +262,7 @@ const listPartRequests = protectedProcedure
     const { serviceLogId, status, page, pageSize } = input;
     const offset = (page - 1) * pageSize;
 
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (serviceLogId) {
       conditions.push(eq(schema.sparePartRequests.serviceLogId, serviceLogId));
     }
@@ -309,7 +309,7 @@ const updatePartRequest = protectedProcedure
     const db = await requireDb();
     const now = new Date().toISOString();
 
-    const updateData: Record<string, any> = { updatedAt: now };
+    const updateData: Record<string, unknown> = { updatedAt: now };
     if (input.status) updateData.status = input.status;
     if (input.shipmentTracking) updateData.shipmentTracking = input.shipmentTracking;
     if (input.estimatedArrival) updateData.estimatedArrival = input.estimatedArrival;

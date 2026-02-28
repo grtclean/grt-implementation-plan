@@ -15,7 +15,7 @@ import {
   cloudHallSessions,
   cloudHallSessionLogs,
 } from "../../drizzle/cloud-hall-schema";
-import { eq, and, desc, sql, count, or } from "drizzle-orm";
+import { eq, and, desc, sql, count, or, type SQL } from "drizzle-orm";
 
 // ─── Helpers ────────────────────────────────────────────────
 
@@ -304,7 +304,7 @@ export const cloudHallRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
 
-      const updates: Record<string, any> = {
+      const updates: Record<string, unknown> = {
         lastHeartbeat: sql`NOW()`,
         updatedAt: sql`NOW()`,
       };
@@ -404,7 +404,7 @@ export const cloudHallRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
 
-      const conditions: any[] = [];
+      const conditions: SQL[] = [];
       if (input.status)
         conditions.push(eq(cloudHallSessions.status, input.status));
       if (input.initiatorUserId)

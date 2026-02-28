@@ -21,7 +21,7 @@ export const agendaRouter = router({
     ];
   }),
 
-  getMeetings: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getMeetings: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const milestones = await db.select().from(annualMilestones).orderBy(annualMilestones.scheduledDate);
     return milestones;
@@ -52,7 +52,23 @@ export const agendaRouter = router({
     return { success: true, message: "会议类型已初始化" };
   }),
 
-  createMeeting: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  createMeeting: protectedProcedure.input(z.object({
+    agendaId: z.number().optional(),
+    title: z.string().optional(),
+    milestoneType: z.string().optional(),
+    scheduledDate: z.string().optional(),
+    scheduledTime: z.string().optional(),
+    startTime: z.string().optional(),
+    endTime: z.string().optional(),
+    description: z.string().optional(),
+    isRecurring: z.union([z.boolean(), z.number()]).optional(),
+    recurrenceRule: z.string().optional(),
+    typeId: z.number().optional(),
+    level: z.string().optional(),
+    location: z.string().optional(),
+    onlineLink: z.string().optional(),
+    agenda: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     let agendaId = input.agendaId;
     if (!agendaId) {
@@ -90,7 +106,7 @@ export const agendaRouter = router({
     return { success: true, data: milestone };
   }),
 
-  createTraining: protectedProcedure.input(z.any()).mutation(async () => {
+  createTraining: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).mutation(async () => {
     return { success: true, message: "培训已创建" };
   }),
 
@@ -102,7 +118,11 @@ export const agendaRouter = router({
     return { success: true, message: "培训数据已清除" };
   }),
 
-  getParticipants: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getParticipants: protectedProcedure.input(z.object({
+    milestoneId: z.union([z.string(), z.number()]).optional(),
+    id: z.union([z.string(), z.number()]).optional(),
+    trainingId: z.union([z.string(), z.number()]).optional(),
+  }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const milestoneId = toNum(input?.milestoneId || input?.id || input?.trainingId || 0);
     if (!milestoneId) return [];
@@ -119,7 +139,15 @@ export const agendaRouter = router({
     }));
   }),
 
-  addParticipant: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  addParticipant: protectedProcedure.input(z.object({
+    agendaId: z.number().optional(),
+    milestoneId: z.union([z.string(), z.number()]).optional(),
+    trainingId: z.union([z.string(), z.number()]).optional(),
+    userId: z.union([z.string(), z.number()]).optional(),
+    departmentCode: z.string().optional(),
+    departmentName: z.string().optional(),
+    notes: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const agendaId = input.agendaId || 1;
     const milestoneId = input.milestoneId || input.trainingId || 1;
@@ -131,28 +159,47 @@ export const agendaRouter = router({
       departmentName: input.departmentName,
       notes: input.notes,
       status: "scheduled",
-    }).returning();
+    } as any).returning();
     return { success: true, data: item };
   }),
 
-  batchAddParticipants: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  batchAddParticipants: protectedProcedure.input(z.object({
+    agendaId: z.number().optional(),
+    milestoneId: z.union([z.string(), z.number()]).optional(),
+    trainingId: z.union([z.string(), z.number()]).optional(),
+    departments: z.array(z.record(z.string(), z.unknown())).optional(),
+    userIds: z.array(z.union([z.string(), z.number()])).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const agendaId = input.agendaId || 1;
     const milestoneId = input.milestoneId || input.trainingId || 1;
-    const departments = input.departments || (input.userIds || []).map((uid: any) => ({ departmentCode: String(uid) }));
+    const departments: Record<string, unknown>[] = input.departments || (input.userIds || []).map((uid) => ({ departmentCode: String(uid) }));
     for (const dept of departments) {
       await db.insert(departmentAgendas).values({
         agendaId,
         milestoneId,
-        departmentCode: dept.departmentCode || String(dept),
-        departmentName: dept.departmentName,
+        departmentCode: (dept.departmentCode as string) || String(dept),
+        departmentName: dept.departmentName as string,
         status: "scheduled",
-      });
+      } as any);
     }
     return { success: true, message: `${departments.length} 个参与者已添加` };
   }),
 
-  updateParticipant: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  updateParticipant: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    status: z.string().optional(),
+    adjustedDate: z.string().optional(),
+    adjustedTime: z.string().optional(),
+    adjustmentReason: z.string().optional(),
+    notes: z.string().optional(),
+    registrationStatus: z.string().optional(),
+    attendanceStatus: z.string().optional(),
+    score: z.number().optional(),
+    passed: z.boolean().optional(),
+    feedbackRating: z.number().optional(),
+    feedback: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = toNum(input.id);
     const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
@@ -163,7 +210,7 @@ export const agendaRouter = router({
     if (input.notes !== undefined) updates.notes = input.notes;
     // Map training-specific fields to status
     if (input.registrationStatus !== undefined) updates.status = input.registrationStatus === "completed" ? "completed" : "scheduled";
-    const [item] = await db.update(departmentAgendas).set(updates).where(eq(departmentAgendas.id, id)).returning();
+    const [item] = await db.update(departmentAgendas).set(updates as any).where(eq(departmentAgendas.id, id)).returning();
     return { success: true, data: item };
   }),
 });

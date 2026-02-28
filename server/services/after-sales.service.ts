@@ -80,7 +80,7 @@ export async function updateClient(data: {
 }) {
   const d = await db();
   const { id, ...rest } = data;
-  const updateData: Record<string, any> = {};
+  const updateData: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(rest)) {
     if (val !== undefined) updateData[key] = val;
   }
@@ -170,7 +170,7 @@ export async function updateEquipment(data: {
 }) {
   const d = await db();
   const { id, ...rest } = data;
-  const updateData: Record<string, any> = {};
+  const updateData: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(rest)) {
     if (val !== undefined) updateData[key] = val;
   }
@@ -258,7 +258,7 @@ export async function updateServiceLog(data: {
 }) {
   const d = await db();
   const { id, ...rest } = data;
-  const updateData: Record<string, any> = {};
+  const updateData: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(rest)) {
     if (val !== undefined) updateData[key] = val;
   }

@@ -211,7 +211,7 @@ export const warehouseRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const { id, ...updates } = input;
-      const u: Record<string, any> = { updatedAt: new Date().toISOString() };
+      const u: Record<string, unknown> = { updatedAt: new Date().toISOString() };
       if (updates.warehouseCode !== undefined) u.warehouseCode = updates.warehouseCode;
       if (updates.warehouseName !== undefined) u.warehouseName = updates.warehouseName;
       if (updates.warehouseType !== undefined) u.warehouseType = updates.warehouseType;
@@ -454,7 +454,7 @@ export const warehouseRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
-      const u: Record<string, any> = { status: input.status, updatedAt: now };
+      const u: Record<string, unknown> = { status: input.status, updatedAt: now };
       if (input.status === 'shelved') u.receivedAt = now;
       if (input.status === 'qc_passed' || input.status === 'qc_failed') {
         u.qcResult = input.status === 'qc_passed' ? 'passed' : 'failed';
@@ -566,7 +566,7 @@ export const warehouseRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
-      const u: Record<string, any> = { status: input.status, updatedAt: now };
+      const u: Record<string, unknown> = { status: input.status, updatedAt: now };
       if (input.status === 'approved') { u.approvedBy = ctx.user?.id; u.approvedAt = now; }
       if (input.status === 'issued') u.issuedAt = now;
       await db.update(warehouseIssues).set(u).where(eq(warehouseIssues.id, input.id));
@@ -641,7 +641,7 @@ export const warehouseRouter = router({
       const db = await requireDb();
       const now = new Date().toISOString();
       const { id, ...updates } = input;
-      const u: Record<string, any> = { status: updates.status, updatedAt: now };
+      const u: Record<string, unknown> = { status: updates.status, updatedAt: now };
       if (updates.totalItems !== undefined) u.totalItems = updates.totalItems;
       if (updates.matchedItems !== undefined) u.matchedItems = updates.matchedItems;
       if (updates.discrepancyItems !== undefined) u.discrepancyItems = updates.discrepancyItems;
@@ -760,7 +760,7 @@ export const warehouseRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const u: Record<string, any> = { qcStatus: input.qcStatus, updatedAt: new Date().toISOString() };
+      const u: Record<string, unknown> = { qcStatus: input.qcStatus, updatedAt: new Date().toISOString() };
       if (input.qcCertificateNumber) u.qcCertificateNumber = input.qcCertificateNumber;
       if (input.qcStatus === 'failed') u.status = 'quarantine';
       await db.update(inventoryLots).set(u).where(eq(inventoryLots.id, input.id));
@@ -851,7 +851,7 @@ export const warehouseRouter = router({
       const currentRows = await db.select().from(serialNumbers).where(eq(serialNumbers.id, input.id));
       if (!currentRows[0]) throw new Error('Serial number not found');
 
-      const u: Record<string, any> = { status: input.status, updatedAt: now };
+      const u: Record<string, unknown> = { status: input.status, updatedAt: now };
       if (input.projectCode !== undefined) u.currentProjectCode = input.projectCode;
       if (input.processCode !== undefined) u.currentProcessCode = input.processCode;
       if (input.holderId !== undefined) u.currentHolderId = input.holderId;

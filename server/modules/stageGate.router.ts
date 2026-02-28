@@ -38,7 +38,7 @@ export const stageGateRouter = router({
                    FROM gate_checklists gc
                    LEFT JOIN projects p ON gc.project_id = p.id
                    WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (projectId) {
         query += ` AND gc.project_id = ?`;
@@ -552,7 +552,7 @@ export const stageGateRouter = router({
                    FROM production_pull_signals ps
                    LEFT JOIN projects p ON ps.project_id = p.id
                    WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (projectId) {
         query += ` AND ps.project_id = ?`;

@@ -267,7 +267,7 @@ export class VisitorService {
     } else {
       // 更新申请状态为等待下一步审批
       const nextStep = remainingSteps[0];
-      const statusMap: Record<string, any> = {
+      const statusMap: Record<string, unknown> = {
         supervisor: 'pending_supervisor',
         security: 'pending_security',
         manager: 'pending_manager',

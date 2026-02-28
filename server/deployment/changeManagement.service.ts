@@ -64,7 +64,7 @@ export interface ConsistencyCheck {
   actualValue: string;
   result: CheckResult;
   severity: 'info' | 'warning' | 'error' | 'critical';
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface ChangeExecution {

@@ -42,7 +42,23 @@ export const annualPlanningRouter = router({
       return rows[0] ?? null;
     }),
 
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    year: z.number().optional(),
+    type: z.string().optional(),
+    departmentId: z.number().optional(),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    revenueTarget: z.number().optional(),
+    profitTarget: z.number().optional(),
+    customerTarget: z.number().optional(),
+    investmentBudget: z.number().optional(),
+    hiringBudget: z.number().optional(),
+    trainingBudget: z.number().optional(),
+    keyInitiatives: z.union([z.string(), z.array(z.string())]).optional(),
+    risksAndChallenges: z.union([z.string(), z.array(z.string())]).optional(),
+    status: z.string().optional(),
+    creatorId: z.number().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.insert(annualPlans).values({
       year: input.year ?? new Date().getFullYear(),
@@ -60,18 +76,35 @@ export const annualPlanningRouter = router({
       risksAndChallenges: typeof input.risksAndChallenges === 'string' ? input.risksAndChallenges : JSON.stringify(input.risksAndChallenges),
       status: input.status ?? "draft",
       creatorId: input.creatorId ?? 1,
-    });
+    } as any);
     return successResponse;
   }),
 
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    year: z.number().optional(),
+    type: z.string().optional(),
+    departmentId: z.number().optional(),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    revenueTarget: z.number().optional(),
+    profitTarget: z.number().optional(),
+    customerTarget: z.number().optional(),
+    investmentBudget: z.number().optional(),
+    hiringBudget: z.number().optional(),
+    trainingBudget: z.number().optional(),
+    keyInitiatives: z.union([z.string(), z.array(z.string())]).optional(),
+    risksAndChallenges: z.union([z.string(), z.array(z.string())]).optional(),
+    status: z.string().optional(),
+    creatorId: z.number().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id);
     if (!id) return successResponse;
     const { id: _id, ...data } = input;
     if (data.keyInitiatives && typeof data.keyInitiatives !== 'string') data.keyInitiatives = JSON.stringify(data.keyInitiatives);
     if (data.risksAndChallenges && typeof data.risksAndChallenges !== 'string') data.risksAndChallenges = JSON.stringify(data.risksAndChallenges);
-    await db.update(annualPlans).set({ ...data, updatedAt: new Date().toISOString() }).where(eq(annualPlans.id, id));
+    await db.update(annualPlans).set({ ...data, updatedAt: new Date().toISOString() } as any).where(eq(annualPlans.id, id));
     return successResponse;
   }),
 
@@ -134,7 +167,15 @@ export const annualPlanningRouter = router({
     return { config: config ?? null };
   }),
 
-  createConfig: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  createConfig: protectedProcedure.input(z.object({
+    year: z.number().optional(),
+    version: z.string().optional(),
+    versionName: z.string().optional(),
+    status: z.string().optional(),
+    basedOnId: z.number().optional(),
+    creatorId: z.number().optional(),
+    notes: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const result = await db.insert(annualPlanningConfigs).values({
       year: input.year ?? new Date().getFullYear(),
@@ -144,11 +185,15 @@ export const annualPlanningRouter = router({
       basedOnId: input.basedOnId,
       creatorId: input.creatorId ?? 1,
       notes: input.notes,
-    }).returning();
+    } as any).returning();
     return { success: true, message: "Config created", id: result[0]?.id };
   }),
 
-  activateConfig: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  activateConfig: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]).optional(),
+    configId: z.union([z.string(), z.number()]).optional(),
+    operatorId: z.number().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const configId = Number(input.id ?? input.configId);
     if (!configId) return successResponse;
@@ -181,7 +226,14 @@ export const annualPlanningRouter = router({
     return successResponse;
   }),
 
-  copyToNewYear: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  copyToNewYear: protectedProcedure.input(z.object({
+    sourceConfigId: z.union([z.string(), z.number()]).optional(),
+    configId: z.union([z.string(), z.number()]).optional(),
+    id: z.union([z.string(), z.number()]).optional(),
+    targetYear: z.number().optional(),
+    year: z.number().optional(),
+    operatorId: z.number().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const sourceConfigId = Number(input.sourceConfigId ?? input.configId ?? input.id);
     const targetYear = Number(input.targetYear ?? input.year ?? new Date().getFullYear() + 1);
@@ -246,7 +298,24 @@ export const annualPlanningRouter = router({
     return db.select().from(annualPlanningItems).orderBy(desc(annualPlanningItems.createdAt));
   }),
 
-  createItem: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  createItem: protectedProcedure.input(z.object({
+    configId: z.number().optional(),
+    category: z.string().optional(),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    tasks: z.union([z.string(), z.array(z.record(z.string(), z.unknown()))]).optional(),
+    frequency: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    weekNumber: z.number().optional(),
+    month: z.number().optional(),
+    responsibleUserId: z.number().optional(),
+    responsibleUserName: z.string().optional(),
+    participantIds: z.union([z.string(), z.array(z.union([z.string(), z.number()]))]).optional(),
+    status: z.string().optional(),
+    sortOrder: z.number().optional(),
+    operatorId: z.number().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const configId = Number(input.configId);
     if (!configId) {
@@ -272,7 +341,7 @@ export const annualPlanningRouter = router({
       participantIds: input.participantIds ? (typeof input.participantIds === 'string' ? input.participantIds : JSON.stringify(input.participantIds)) : null,
       status: input.status ?? "pending",
       sortOrder: input.sortOrder ?? 0,
-    });
+    } as any);
 
     // Log the creation
     await db.insert(annualPlanningUpdateLogs).values({
@@ -286,7 +355,25 @@ export const annualPlanningRouter = router({
     return successResponse;
   }),
 
-  updateItem: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  updateItem: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    configId: z.number().optional(),
+    category: z.string().optional(),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    tasks: z.union([z.string(), z.array(z.record(z.string(), z.unknown()))]).optional(),
+    frequency: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    weekNumber: z.number().optional(),
+    month: z.number().optional(),
+    responsibleUserId: z.number().optional(),
+    responsibleUserName: z.string().optional(),
+    participantIds: z.union([z.string(), z.array(z.union([z.string(), z.number()]))]).optional(),
+    status: z.string().optional(),
+    sortOrder: z.number().optional(),
+    operatorId: z.number().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id);
     if (!id) return successResponse;
@@ -298,7 +385,7 @@ export const annualPlanningRouter = router({
     if (data.tasks && typeof data.tasks !== 'string') data.tasks = JSON.stringify(data.tasks);
     if (data.participantIds && typeof data.participantIds !== 'string') data.participantIds = JSON.stringify(data.participantIds);
 
-    await db.update(annualPlanningItems).set({ ...data, updatedAt: new Date().toISOString() }).where(eq(annualPlanningItems.id, id));
+    await db.update(annualPlanningItems).set({ ...data, updatedAt: new Date().toISOString() } as any).where(eq(annualPlanningItems.id, id));
 
     // Log update
     if (before) {

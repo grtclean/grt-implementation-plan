@@ -116,7 +116,7 @@ export const reportCenterRouter = router({
     )
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const updates: Record<string, any> = {
+      const updates: Record<string, unknown> = {
         updatedAt: new Date().toISOString(),
       };
       if (input.title !== undefined) updates.title = input.title;

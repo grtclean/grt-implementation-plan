@@ -527,7 +527,7 @@ export class PermissionService {
   ): Promise<void> {
     const db: any = await requireDb();
 
-    const actionTypeMap: Record<string, any> = {
+    const actionTypeMap: Record<string, unknown> = {
       'grant_permission': 'grant_permission',
       'revoke_permission': 'revoke_permission',
       'create_role': 'create_role',

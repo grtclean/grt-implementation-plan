@@ -253,7 +253,7 @@ export class LogArchiveService {
   static async getStorageStats(): Promise<any> {
     const db = await requireDb() as any;
     const tables = [{ name: "security_alerts", type: "security_alert" }, { name: "behavior_probes", type: "behavior_probe" }];
-    const stats: Record<string, any> = {};
+    const stats: Record<string, unknown> = {};
     for (const table of tables) {
       try {
         const [countRows] = await db.execute(`SELECT COUNT(*) as count, MIN(created_at) as oldest FROM ${table.name}`);

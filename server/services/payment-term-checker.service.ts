@@ -52,7 +52,7 @@ export async function runPaymentTermCheck(): Promise<PaymentTermCheckResult> {
       // Compare dates
       if (wf.paymentDueDate <= today) {
         try {
-          const updates: Record<string, any> = {
+          const updates: Record<string, unknown> = {
             paymentTermExpired: true,
             updatedAt: now,
           };

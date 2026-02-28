@@ -26,7 +26,7 @@ export interface TemplateDefinition {
   description: string;
   version: string;
   columns: ColumnDefinition[];
-  sampleData: Record<string, any>[];
+  sampleData: Record<string, unknown>[];
   instructions: string;
 }
 
@@ -242,7 +242,7 @@ export function generateExcelTemplateData(type: TemplateType): ExcelTemplateData
  */
 export function validateImportData(
   type: TemplateType,
-  data: Record<string, any>[]
+  data: Record<string, unknown>[]
 ): ValidationResult {
   const template = TEMPLATE_DEFINITIONS[type];
   if (!template) {

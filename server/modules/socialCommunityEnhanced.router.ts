@@ -203,7 +203,7 @@ export const socialCommunityEnhancedRouter = router({
         FROM social_messages
         WHERE received_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
       `;
-      const params: any[] = [days];
+      const params: unknown[] = [days];
       
       if (groupId) {
         query += ` AND group_id = ?`;
@@ -254,7 +254,7 @@ export const socialCommunityEnhancedRouter = router({
         LEFT JOIN social_groups sg ON sm.group_id = sg.id
         WHERE 1=1
       `;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (groupId) {
         query += ` AND sm.group_id = ?`;

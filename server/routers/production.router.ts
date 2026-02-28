@@ -218,7 +218,7 @@ export const productionRouter = router({
       const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id));
       if (existing.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
 
-      const u: Record<string, any> = { updatedAt: new Date().toISOString() };
+      const u: Record<string, unknown> = { updatedAt: new Date().toISOString() };
       if (input.orderCode !== undefined) u.workOrderCode = input.orderCode;
       if (input.projectId !== undefined) u.projectId = input.projectId;
       if (input.productName !== undefined) u.productName = input.productName;
@@ -248,7 +248,7 @@ export const productionRouter = router({
       if (existing.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
 
       const wo = existing[0];
-      const u: Record<string, any> = { status: input.status, updatedAt: new Date().toISOString() };
+      const u: Record<string, unknown> = { status: input.status, updatedAt: new Date().toISOString() };
       if (input.status === 'in_progress' && !wo.actualStartDate) u.actualStartDate = new Date().toISOString().split('T')[0];
       if (input.status === 'completed') { u.actualEndDate = new Date().toISOString().split('T')[0]; u.completionRate = '100.00'; }
       if (input.notes !== undefined) u.notes = input.notes;
@@ -270,7 +270,7 @@ export const productionRouter = router({
       if (existing.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
 
       const wo = existing[0];
-      const u: Record<string, any> = { completionRate: String(input.progress.toFixed(2)), updatedAt: new Date().toISOString() };
+      const u: Record<string, unknown> = { completionRate: String(input.progress.toFixed(2)), updatedAt: new Date().toISOString() };
       if (input.actualHours !== undefined) u.actualHours = String(input.actualHours);
 
       if (input.progress === 100 && wo.status !== 'completed') u.status = 'quality_check';
@@ -426,7 +426,7 @@ export const productionRouter = router({
       const previousStatus = equipment.status;
       const previousWorkOrderId = equipment.currentWorkOrderId;
 
-      const u: Record<string, any> = { status: input.status, updatedAt: new Date().toISOString() };
+      const u: Record<string, unknown> = { status: input.status, updatedAt: new Date().toISOString() };
       if (input.currentWorkOrderId !== undefined) u.currentWorkOrderId = input.currentWorkOrderId;
       if (['maintenance', 'fault', 'offline'].includes(input.status)) u.utilization = '0.00';
 

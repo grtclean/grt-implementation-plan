@@ -34,7 +34,7 @@ export const personalAgentRouter = router({
                    FROM behavior_logs bl
                    LEFT JOIN user u ON bl.user_id = u.id
                    WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       // 非管理员只能查看自己的日志
       if (ctx.user?.role !== 'admin') {
@@ -244,7 +244,7 @@ export const personalAgentRouter = router({
                    LEFT JOIN user u ON pn.author_id = u.id
                    LEFT JOIN projects p ON pn.project_id = p.id
                    WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (projectId) {
         query += ` AND pn.project_id = ?`;
@@ -293,7 +293,7 @@ export const personalAgentRouter = router({
                    FROM process_notes pn
                    LEFT JOIN user u ON pn.author_id = u.id
                    WHERE `;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (id) {
         query += `pn.id = ?`;
@@ -383,7 +383,7 @@ export const personalAgentRouter = router({
       const { id, ...updates } = input;
       
       const setClauses: string[] = [];
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (updates.title !== undefined) {
         setClauses.push('title = ?');

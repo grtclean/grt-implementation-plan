@@ -28,7 +28,7 @@ import {
 // userRoles mapped to the old "user_roles" table (integer IDs, smallint is_active).
 // The RBAC system uses "grt_user_roles" (varchar user_id, boolean is_active).
 import { userRoles } from '../../drizzle/permission-schema';
-import { eq, and, inArray, gte, lte, isNull, or, desc, sql } from 'drizzle-orm';
+import { eq, and, inArray, gte, lte, isNull, or, desc, sql, type SQL } from 'drizzle-orm';
 
 /**
  * 权限管理路由
@@ -163,7 +163,7 @@ export const permissionRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
 
-      const updateData: Record<string, any> = {};
+      const updateData: Record<string, unknown> = {};
       if (input.displayName !== undefined) updateData.displayName = input.displayName;
       if (input.description !== undefined) updateData.description = input.description;
       if (input.isActive !== undefined) updateData.isActive = input.isActive;
@@ -536,7 +536,7 @@ export const permissionRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
 
-      const conditions: any[] = [];
+      const conditions: SQL[] = [];
 
       if (input.userId) {
         conditions.push(eq(permissionAuditLogs.operatorId, input.userId));

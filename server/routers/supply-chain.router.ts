@@ -23,7 +23,7 @@ import {
   supplierPenalties,
   traceabilityGraphEdges,
 } from "../../drizzle/supply-chain-schema";
-import { eq, desc, and, sql, count, gte, lte, isNull, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, count, gte, lte, isNull, inArray, type SQL } from "drizzle-orm";
 import { bomItems } from "../../drizzle/bom-schema";
 import { inventoryLots } from "../../drizzle/inventory-lot-schema";
 import { deliveryRegistrations } from "../../drizzle/p2p-lifecycle-schema";
@@ -59,7 +59,7 @@ const supplierLabelRouter = router({
       const offset = input?.offset ?? 0;
 
       // Build filter conditions
-      const conditions: any[] = [];
+      const conditions: SQL[] = [];
       if (input?.supplierId) conditions.push(eq(supplierShipmentLabels.supplierId, input.supplierId));
       if (input?.materialCode) conditions.push(eq(supplierShipmentLabels.materialCode, input.materialCode));
       if (input?.poNumber) conditions.push(eq(supplierShipmentLabels.poNumber, input.poNumber));
@@ -205,7 +205,7 @@ const incomingInspectionRouter = router({
       const offset = input?.offset ?? 0;
 
       // Build filter conditions
-      const conditions: any[] = [];
+      const conditions: SQL[] = [];
       if (input?.materialCode) conditions.push(eq(incomingInspectionRecords.materialCode, input.materialCode));
       if (input?.supplierId) conditions.push(eq(incomingInspectionRecords.supplierId, input.supplierId));
       if (input?.inspectionResult) conditions.push(eq(incomingInspectionRecords.inspectionResult, input.inspectionResult as any));
@@ -241,7 +241,7 @@ const incomingInspectionRouter = router({
       testReportGrtMaterialMatch: z.boolean().optional(),
       testReportOrderMatch: z.boolean().optional(),
       controlPlanId: z.number().optional(),
-      measurementData: z.any().optional(),
+      measurementData: z.array(z.record(z.string(), z.unknown())).optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -273,7 +273,7 @@ const incomingInspectionRouter = router({
       disposition: z.enum(["accept", "reject", "rework", "return_to_supplier", "hold"]),
       dispositionReason: z.string().optional(),
       defectCount: z.number().optional(),
-      measurementData: z.any().optional(),
+      measurementData: z.array(z.record(z.string(), z.unknown())).optional(),
       inspectedByName: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
@@ -809,7 +809,7 @@ const customerComplaintRouter = router({
       equipmentSerialNumber: z.string().optional(),
       severity: z.enum(["low", "medium", "high", "critical"]).default("medium"),
       description: z.string(),
-      affectedParts: z.any().optional(),
+      affectedParts: z.array(z.record(z.string(), z.unknown())).optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -983,7 +983,7 @@ const maintenanceRouter = router({
       id: z.union([z.string(), z.number()]),
       workPerformed: z.string().optional(),
       findings: z.string().optional(),
-      partsConsumed: z.any().optional(),
+      partsConsumed: z.array(z.record(z.string(), z.unknown())).optional(),
       laborCost: z.string().optional(),
       partsCost: z.string().optional(),
       nextMaintenanceDate: z.string().optional(),
@@ -1203,7 +1203,7 @@ const sparePartsRouter = router({
       materialName: z.string(),
       specification: z.string().optional(),
       category: z.string().optional(),
-      applicableEquipmentTypes: z.any().optional(),
+      applicableEquipmentTypes: z.array(z.string()).optional(),
       minStockLevel: z.number().optional(),
       reorderPoint: z.number().optional(),
       maxStockLevel: z.number().optional(),

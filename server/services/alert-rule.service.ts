@@ -8,7 +8,7 @@ export interface AlertRule {
   id?: string;
   name: string;
   ruleType: 'consecutive_failure' | 'timeout' | 'error_rate';
-  conditions: Record<string, any>;
+  conditions: Record<string, unknown>;
   actions: {
     channels: string[];
     webhookUrl?: string;

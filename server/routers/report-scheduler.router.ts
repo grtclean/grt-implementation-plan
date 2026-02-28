@@ -16,12 +16,32 @@ export const reportSchedulerRouter = router({
   }),
 
   // 创建报表调度
-  create: protectedProcedure.input(z.any()).mutation(async () => {
+  create: protectedProcedure.input(z.object({
+    name: z.string().min(1).max(200),
+    description: z.string().max(2000).optional(),
+    frequency: z.enum(["daily", "weekly", "monthly"]),
+    cronExpression: z.string().max(100).optional(),
+    reportTypes: z.array(z.string().max(50)).optional(),
+    enabled: z.boolean().optional(),
+    recipients: z.array(z.object({
+      type: z.string().max(50),
+      target: z.string().max(500),
+      name: z.string().max(200).optional(),
+    })).optional(),
+  })).mutation(async () => {
     return successResponse;
   }),
 
   // 更新报表调度
-  update: protectedProcedure.input(z.any()).mutation(async () => {
+  update: protectedProcedure.input(z.object({
+    id: z.string(),
+    name: z.string().min(1).max(200).optional(),
+    description: z.string().max(2000).optional(),
+    frequency: z.enum(["daily", "weekly", "monthly"]).optional(),
+    cronExpression: z.string().max(100).optional(),
+    reportTypes: z.array(z.string().max(50)).optional(),
+    enabled: z.boolean().optional(),
+  })).mutation(async () => {
     return successResponse;
   }),
 
@@ -36,17 +56,33 @@ export const reportSchedulerRouter = router({
   }),
 
   // 更新调度
-  updateSchedule: protectedProcedure.input(z.any()).mutation(async () => {
+  updateSchedule: protectedProcedure.input(z.object({
+    scheduleId: z.string(),
+    enabled: z.boolean().optional(),
+    cronExpression: z.string().max(100).optional(),
+    name: z.string().min(1).max(200).optional(),
+    description: z.string().max(2000).optional(),
+    frequency: z.enum(["daily", "weekly", "monthly"]).optional(),
+    reportTypes: z.array(z.string().max(50)).optional(),
+  })).mutation(async () => {
     return successResponse;
   }),
 
   // 添加接收人
-  addRecipient: protectedProcedure.input(z.any()).mutation(async () => {
+  addRecipient: protectedProcedure.input(z.object({
+    scheduleId: z.string(),
+    type: z.string().max(50),
+    target: z.string().max(500),
+    name: z.string().max(200).optional(),
+  })).mutation(async () => {
     return successResponse;
   }),
 
   // 移除接收人
-  removeRecipient: protectedProcedure.input(z.any()).mutation(async () => {
+  removeRecipient: protectedProcedure.input(z.object({
+    scheduleId: z.string(),
+    target: z.string().max(500),
+  })).mutation(async () => {
     return successResponse;
   }),
 
@@ -56,12 +92,18 @@ export const reportSchedulerRouter = router({
   }),
 
   // 立即发送
-  triggerSend: protectedProcedure.input(z.any()).mutation(async () => {
+  triggerSend: protectedProcedure.input(z.object({
+    scheduleId: z.string(),
+  })).mutation(async () => {
     return successResponse;
   }),
 
   // 预览报表
-  previewReport: protectedProcedure.input(z.any()).mutation(async () => {
+  previewReport: protectedProcedure.input(z.object({
+    reportTypes: z.array(z.string().max(50)),
+    period: z.string().max(50),
+    format: z.string().max(50).optional(),
+  })).mutation(async () => {
     return { preview: "" };
   }),
 });

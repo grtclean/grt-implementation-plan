@@ -14,6 +14,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, sql, count } from "drizzle-orm";
@@ -52,7 +53,22 @@ export const costRouter = router({
       return rows[0] ?? null;
     }),
 
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    projectId: z.number(),
+    categoryId: z.number().optional(),
+    costCode: z.string().optional(),
+    description: z.string().optional(),
+    amount: z.number(),
+    costDate: z.string().optional(),
+    vendor: z.string().optional(),
+    invoiceNo: z.string().optional(),
+    taskId: z.number().optional(),
+    milestoneId: z.number().optional(),
+    phaseCode: z.string().optional(),
+    status: z.string().optional(),
+    submitterId: z.number().optional(),
+    remark: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.insert(costRecords).values({
       projectId: input.projectId,
@@ -69,16 +85,32 @@ export const costRouter = router({
       status: input.status ?? "pending",
       submitterId: input.submitterId,
       remark: input.remark,
-    });
+    } as any);
     return successResponse;
   }),
 
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    projectId: z.number().optional(),
+    categoryId: z.number().optional(),
+    costCode: z.string().optional(),
+    description: z.string().optional(),
+    amount: z.number().optional(),
+    costDate: z.string().optional(),
+    vendor: z.string().optional(),
+    invoiceNo: z.string().optional(),
+    taskId: z.number().optional(),
+    milestoneId: z.number().optional(),
+    phaseCode: z.string().optional(),
+    status: z.string().optional(),
+    submitterId: z.number().optional(),
+    remark: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id);
     if (!id) return successResponse;
     const { id: _id, ...data } = input;
-    await db.update(costRecords).set({ ...data, updatedAt: new Date().toISOString() }).where(eq(costRecords.id, id));
+    await db.update(costRecords).set({ ...data, updatedAt: new Date().toISOString() } as any).where(eq(costRecords.id, id));
     return successResponse;
   }),
 
@@ -93,7 +125,9 @@ export const costRouter = router({
 
   // ==================== Budget (costEstimates) ====================
 
-  getBudget: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getBudget: protectedProcedure.input(z.object({
+    projectId: z.number().optional(),
+  }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const projectId = Number(input?.projectId);
     if (!projectId) return { budget: 0, spent: 0, remaining: 0 };
@@ -150,7 +184,25 @@ export const costRouter = router({
     }));
   }),
 
-  createBudget: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  createBudget: protectedProcedure.input(z.object({
+    projectId: z.number(),
+    categoryId: z.number().optional(),
+    name: z.string().optional(),
+    estimateType: z.string().optional(),
+    estimatedAmount: z.number().optional(),
+    amount: z.number().optional(),
+    budgetAmount: z.number().optional(),
+    budgetYear: z.number().optional(),
+    budgetMonth: z.number().optional(),
+    lowEstimate: z.number().optional(),
+    highEstimate: z.number().optional(),
+    confidence: z.number().optional(),
+    phaseCode: z.string().optional(),
+    basis: z.string().optional(),
+    assumptions: z.string().optional(),
+    estimatorId: z.number().optional(),
+    remark: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.insert(costEstimates).values({
       projectId: input.projectId,
@@ -165,7 +217,7 @@ export const costRouter = router({
       basis: input.basis,
       assumptions: input.assumptions,
       estimatorId: input.estimatorId,
-    });
+    } as any);
     return successResponse;
   }),
 
@@ -176,7 +228,18 @@ export const costRouter = router({
     return db.select().from(costRecords).orderBy(desc(costRecords.costDate));
   }),
 
-  createRecord: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  createRecord: protectedProcedure.input(z.object({
+    projectId: z.number(),
+    categoryId: z.number().optional(),
+    costCode: z.string().optional(),
+    description: z.string().optional(),
+    amount: z.number(),
+    costDate: z.string().optional(),
+    vendor: z.string().optional(),
+    invoiceNo: z.string().optional(),
+    phaseCode: z.string().optional(),
+    remark: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.insert(costRecords).values({
       projectId: input.projectId,
@@ -188,7 +251,7 @@ export const costRouter = router({
       vendor: input.vendor,
       invoiceNo: input.invoiceNo,
       status: "pending",
-    });
+    } as any);
     return successResponse;
   }),
 

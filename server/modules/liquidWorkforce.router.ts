@@ -31,7 +31,7 @@ export const liquidWorkforceRouter = router({
       const { ownerId, ownerDid, domain, level, isActive, search, page = 1, pageSize = 20 } = input || {};
       
       let query = `SELECT * FROM skill_capsules WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (ownerId) {
         query += ` AND owner_id = ?`;
@@ -81,7 +81,7 @@ export const liquidWorkforceRouter = router({
       const { id, skillId } = input;
       
       let query = `SELECT * FROM skill_capsules WHERE `;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (id) {
         query += `id = ?`;
@@ -151,7 +151,7 @@ export const liquidWorkforceRouter = router({
       const { id, ...updates } = input;
       
       const setClauses: string[] = [];
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (updates.name !== undefined) {
         setClauses.push('name = ?');
@@ -236,7 +236,7 @@ export const liquidWorkforceRouter = router({
                    LEFT JOIN tasks t ON tb.task_id = t.id
                    LEFT JOIN user u ON tb.bidder_id = u.id
                    WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (taskId) {
         query += ` AND tb.task_id = ?`;
@@ -394,7 +394,7 @@ export const liquidWorkforceRouter = router({
                    LEFT JOIN user payer ON sc.payer_id = payer.id
                    LEFT JOIN user payee ON sc.payee_id = payee.id
                    WHERE 1=1`;
-      const params: any[] = [];
+      const params: unknown[] = [];
       
       if (payerId) {
         query += ` AND sc.payer_id = ?`;

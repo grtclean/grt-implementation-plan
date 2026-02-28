@@ -13,7 +13,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 对比查询
-  compare: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  compare: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input }) => {
     const db = await requireDb();
     // Return all claims for client-side comparison
     const items = await db.select().from(expenseClaims).orderBy(desc(expenseClaims.createdAt)).limit(200);
@@ -21,7 +21,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 获取对比数据
-  getComparison: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getComparison: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const [totalResult] = await db.select({
       totalExpense: sql<string>`COALESCE(SUM(CAST(${expenseClaims.totalAmount} AS NUMERIC)), 0)`,
@@ -43,7 +43,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 月度趋势
-  getMonthlyTrend: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getMonthlyTrend: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const results = await db.select({
       month: sql<string>`TO_CHAR(${expenseClaims.createdAt}, 'YYYY-MM')`,
@@ -62,7 +62,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 季度对比
-  getQuarterComparison: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getQuarterComparison: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const results = await db.select({
       quarter: sql<string>`TO_CHAR(${expenseClaims.createdAt}, 'YYYY-Q')`,
@@ -81,7 +81,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 导出
-  expenseComparisonExport: protectedProcedure.input(z.any()).mutation(async () => {
+  expenseComparisonExport: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).mutation(async () => {
     return { url: "" };
   }),
 });

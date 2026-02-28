@@ -48,7 +48,7 @@ export interface SchedulingConstraint {
   constraintType: 'time_window' | 'resource_capacity' | 'task_dependency' | 'bu_sequence' | 'skill_requirement' | 'changeover_time';
   constraintName: string;
   description?: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   priority: number;
   isHardConstraint: boolean;
   penaltyWeight: number;
