@@ -37,10 +37,16 @@ export const aiPerformanceRouter = router({
       }
     }),
 
-  /** Dashboard aggregate KPIs from hr_ai_performance */
+  /** Dashboard aggregate KPIs from hr_ai_performance (user-scoped for non-admin) */
   dashboard: protectedProcedure
     .input(z.object({}).optional())
-    .query(async () => {
+    .query(async ({ ctx }) => {
+      const EMPTY = {
+        avgMeetingScore: 0,
+        actionItemCompletionRate: 0,
+        employeesEvaluated: 0,
+        topPerformer: null as { name: string; score: number } | null,
+      };
       try {
         const db = await requireDb();
         // Get latest month's data
@@ -49,18 +55,22 @@ export const aiPerformanceRouter = router({
           .orderBy(desc(hrAiPerformance.month))
           .limit(1);
 
-        if (latestMonth.length === 0) {
-          return {
-            avgMeetingScore: 0,
-            actionItemCompletionRate: 0,
-            employeesEvaluated: 0,
-            topPerformer: null as { name: string; score: number } | null,
-          };
-        }
+        if (latestMonth.length === 0) return EMPTY;
 
         const targetMonth = latestMonth[0].month;
+
+        // Non-admin roles: scope to own data only
+        const role = ctx.user?.role ?? "employee";
+        const GLOBAL_ROLES = new Set(["admin", "director", "hr_manager"]);
+        const isGlobal = GLOBAL_ROLES.has(role);
+
+        const conditions = [eq(hrAiPerformance.month, targetMonth)];
+        if (!isGlobal && ctx.user?.id) {
+          conditions.push(eq(hrAiPerformance.userId, ctx.user.id));
+        }
+
         const monthData = await db.select().from(hrAiPerformance)
-          .where(eq(hrAiPerformance.month, targetMonth))
+          .where(and(...conditions))
           .orderBy(desc(hrAiPerformance.meetingScore));
 
         const avgScore = monthData.length > 0
@@ -80,19 +90,14 @@ export const aiPerformanceRouter = router({
           topPerformer: top ? { name: top.userName ?? `User#${top.userId}`, score: top.meetingScore ?? 0 } : null,
         };
       } catch {
-        return {
-          avgMeetingScore: 0,
-          actionItemCompletionRate: 0,
-          employeesEvaluated: 0,
-          topPerformer: null as { name: string; score: number } | null,
-        };
+        return EMPTY;
       }
     }),
 
-  /** Leaderboard — ranked employees by meeting score */
+  /** Leaderboard — ranked employees by meeting score (admin sees all, others see own) */
   leaderboard: protectedProcedure
     .input(z.object({ limit: z.number().default(10), month: z.string().optional() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
         const db = await requireDb();
         let targetMonth = input.month;
@@ -105,8 +110,15 @@ export const aiPerformanceRouter = router({
         }
         if (!targetMonth) return [];
 
+        const role = ctx.user?.role ?? "employee";
+        const GLOBAL_ROLES = new Set(["admin", "director", "hr_manager"]);
+        const conditions = [eq(hrAiPerformance.month, targetMonth)];
+        if (!GLOBAL_ROLES.has(role) && ctx.user?.id) {
+          conditions.push(eq(hrAiPerformance.userId, ctx.user.id));
+        }
+
         const rows = await db.select().from(hrAiPerformance)
-          .where(eq(hrAiPerformance.month, targetMonth))
+          .where(and(...conditions))
           .orderBy(desc(hrAiPerformance.meetingScore))
           .limit(input.limit);
 

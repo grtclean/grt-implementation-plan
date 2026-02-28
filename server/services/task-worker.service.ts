@@ -102,6 +102,21 @@ export async function submitTask(
   return { taskId: task.id };
 }
 
+/** Get task status + result by ID (for frontend polling) */
+export async function getTaskStatus(taskId: number) {
+  const db = await requireDb();
+  const [task] = await db.select({
+    id: aiTasks.id,
+    taskType: aiTasks.taskType,
+    status: aiTasks.status,
+    resultData: aiTasks.resultData,
+    errorMessage: aiTasks.errorMessage,
+    createdAt: aiTasks.createdAt,
+    completedAt: aiTasks.completedAt,
+  }).from(aiTasks).where(eq(aiTasks.id, taskId));
+  return task ?? null;
+}
+
 // ── Internal: Poll & Process ─────────────────────────────────
 
 async function pollAndProcess(): Promise<void> {

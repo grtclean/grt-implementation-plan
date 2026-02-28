@@ -6,6 +6,7 @@
  * recentReviews, seedDemo
  */
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { expenseClaims, aiTasks } from "../../drizzle/schema";
@@ -16,6 +17,9 @@ import {
   fetchBuBudgetContext,
   type AiDiagnosticReport,
 } from "../services/finance-agent.service";
+
+// Roles allowed to see all pending reviews (not just own claims)
+const FINANCE_ROLES = new Set(["admin", "director", "finance_manager", "finance_specialist"]);
 
 export const financeAgentRouter = router({
   /**
@@ -33,9 +37,15 @@ export const financeAgentRouter = router({
         .from(expenseClaims)
         .where(eq(expenseClaims.id, input.claimId));
 
-      if (!claim) throw new Error("报销单不存在");
+      if (!claim) throw new TRPCError({ code: "NOT_FOUND", message: "报销单不存在" });
+
+      // Ownership check: only submitter can trigger AI review
+      if (claim.submitterId !== ctx.user.id && !FINANCE_ROLES.has(ctx.user.role ?? "")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "只能提交自己的报销单进行AI审核" });
+      }
+
       if (claim.status !== "submitted" && claim.status !== "draft") {
-        throw new Error(`报销单状态为 ${claim.status}, 无法提交AI审核`);
+        throw new TRPCError({ code: "BAD_REQUEST", message: `报销单状态为 ${claim.status}, 无法提交AI审核` });
       }
 
       // Set status to ai_reviewing
@@ -62,7 +72,7 @@ export const financeAgentRouter = router({
       taskId: z.number().optional(),
       claimId: z.number().optional(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
 
       // If taskId provided, check ai_tasks
@@ -119,14 +129,20 @@ export const financeAgentRouter = router({
    */
   getAiDiagnosticReport: protectedProcedure
     .input(z.object({ claimId: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
       const [claim] = await db
         .select()
         .from(expenseClaims)
         .where(eq(expenseClaims.id, input.claimId));
 
-      if (!claim) throw new Error("报销单不存在");
+      if (!claim) throw new TRPCError({ code: "NOT_FOUND", message: "报销单不存在" });
+
+      // Ownership check: only submitter or finance roles can view diagnostic report
+      if (claim.submitterId !== ctx.user.id && !FINANCE_ROLES.has(ctx.user.role ?? "")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "无权查看该报销单的AI诊断报告" });
+      }
+
       if (!claim.aiAuditResult) return null;
 
       return {
@@ -154,9 +170,15 @@ export const financeAgentRouter = router({
         .from(expenseClaims)
         .where(eq(expenseClaims.id, input.claimId));
 
-      if (!claim) throw new Error("报销单不存在");
+      if (!claim) throw new TRPCError({ code: "NOT_FOUND", message: "报销单不存在" });
+
+      // Prevent submitter from overriding their own claim
+      if (claim.submitterId === ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "不能对自己的报销单进行例外审批" });
+      }
+
       if (claim.status !== "ai_reviewing") {
-        throw new Error("仅拦截中的报销单可以申请例外审批");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "仅拦截中的报销单可以申请例外审批" });
       }
 
       // Update existing report with override info
@@ -169,15 +191,22 @@ export const financeAgentRouter = router({
         overriddenAt: new Date().toISOString(),
       };
 
-      await db
+      // Atomic status guard: WHERE status='ai_reviewing' prevents race
+      const [updated] = await db
         .update(expenseClaims)
         .set({
           status: "pending_review",
           aiAuditResult: updatedReport,
           reviewNotes: `[例外审批] ${input.justification}`,
           updatedAt: new Date().toISOString(),
+          version: sql`${expenseClaims.version} + 1`,
         })
-        .where(eq(expenseClaims.id, input.claimId));
+        .where(and(eq(expenseClaims.id, input.claimId), eq(expenseClaims.status, "ai_reviewing")))
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({ code: "CONFLICT", message: "报销单状态已变更，请刷新后重试" });
+      }
 
       return { success: true, newStatus: "pending_review" };
     }),
@@ -190,9 +219,17 @@ export const financeAgentRouter = router({
       page: z.number().default(1),
       pageSize: z.number().default(20),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
       const offset = (input.page - 1) * input.pageSize;
+      const role = ctx.user.role ?? "employee";
+      const isFinance = FINANCE_ROLES.has(role);
+
+      // Non-finance users only see their own pending reviews
+      const statusCondition = inArray(expenseClaims.status, ["ai_reviewing", "pending_review"]);
+      const conditions = isFinance
+        ? statusCondition
+        : and(statusCondition, eq(expenseClaims.submitterId, ctx.user.id));
 
       const rows = await db
         .select({
@@ -207,7 +244,7 @@ export const financeAgentRouter = router({
           createdAt: expenseClaims.createdAt,
         })
         .from(expenseClaims)
-        .where(inArray(expenseClaims.status, ["ai_reviewing", "pending_review"]))
+        .where(conditions)
         .orderBy(desc(expenseClaims.createdAt))
         .limit(input.pageSize)
         .offset(offset);
@@ -215,7 +252,7 @@ export const financeAgentRouter = router({
       const [{ count }] = await db
         .select({ count: sql<number>`count(*)` })
         .from(expenseClaims)
-        .where(inArray(expenseClaims.status, ["ai_reviewing", "pending_review"]));
+        .where(conditions);
 
       return { rows, total: Number(count), page: input.page, pageSize: input.pageSize };
     }),
@@ -239,8 +276,17 @@ export const financeAgentRouter = router({
   /**
    * recentReviews — Last 20 claims with AI results
    */
-  recentReviews: protectedProcedure.query(async () => {
+  recentReviews: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
+    const role = ctx.user.role ?? "employee";
+    const isFinance = FINANCE_ROLES.has(role);
+
+    // Non-finance users only see their own reviewed claims
+    const auditCondition = sql`${expenseClaims.aiAuditResult} IS NOT NULL`;
+    const conditions = isFinance
+      ? auditCondition
+      : and(auditCondition, eq(expenseClaims.submitterId, ctx.user.id));
+
     const rows = await db
       .select({
         id: expenseClaims.id,
@@ -256,7 +302,7 @@ export const financeAgentRouter = router({
         updatedAt: expenseClaims.updatedAt,
       })
       .from(expenseClaims)
-      .where(sql`${expenseClaims.aiAuditResult} IS NOT NULL`)
+      .where(conditions)
       .orderBy(desc(expenseClaims.updatedAt))
       .limit(20);
 

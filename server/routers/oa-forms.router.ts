@@ -285,8 +285,6 @@ export const oaFormsRouter = router({
     .input(
       z.object({
         templateId: z.number(),
-        applicantId: z.number(),
-        applicantName: z.string(),
         departmentName: z.string().optional(),
         title: z.string(),
         formData: z.record(z.string(), z.unknown()),
@@ -294,8 +292,10 @@ export const oaFormsRouter = router({
         linkedProjectId: z.number().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
+      const applicantId = ctx.user.id;
+      const applicantName = ctx.user.name ?? `User#${applicantId}`;
 
       // Look up template
       const [template] = await db
@@ -349,8 +349,8 @@ export const oaFormsRouter = router({
           templateId: input.templateId,
           templateCode: template.templateCode,
           templateName: template.templateName,
-          applicantId: input.applicantId,
-          applicantName: input.applicantName,
+          applicantId,
+          applicantName,
           departmentName: input.departmentName,
           title: input.title,
           formData: input.formData,
@@ -404,17 +404,16 @@ export const oaFormsRouter = router({
       return updated;
     }),
 
-  /** Get submissions pending approval for a specific approver */
+  /** Get submissions pending approval for the current user */
   getMyPendingApprovals: protectedProcedure
-    .input(z.object({ approverId: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx }) => {
       const db = await requireDb();
       const items = await db
         .select()
         .from(oaFormSubmissions)
         .where(
           and(
-            eq(oaFormSubmissions.currentApproverId, input.approverId),
+            eq(oaFormSubmissions.currentApproverId, ctx.user.id),
             eq(oaFormSubmissions.status, "pending"),
           ),
         )
@@ -432,13 +431,13 @@ export const oaFormsRouter = router({
     .input(
       z.object({
         submissionId: z.number(),
-        approverId: z.number(),
-        approverName: z.string(),
         comment: z.string().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
+      const approverId = ctx.user.id;
+      const approverName = ctx.user.name ?? `User#${approverId}`;
 
       // Fetch submission
       const [submission] = await db
@@ -455,7 +454,7 @@ export const oaFormsRouter = router({
 
       if (submission.status !== "pending") {
         throw new TRPCError({
-          code: "BAD_REQUEST",
+          code: "CONFLICT",
           message: `Submission is not pending (current status: "${submission.status}")`,
         });
       }
@@ -466,8 +465,8 @@ export const oaFormsRouter = router({
       await db.insert(oaFormApprovalRecords).values({
         submissionId: input.submissionId,
         stepIndex: currentStep,
-        approverId: input.approverId,
-        approverName: input.approverName,
+        approverId,
+        approverName,
         action: "approve",
         comment: input.comment ?? null,
       });
@@ -542,13 +541,13 @@ export const oaFormsRouter = router({
     .input(
       z.object({
         submissionId: z.number(),
-        approverId: z.number(),
-        approverName: z.string(),
         comment: z.string().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
+      const approverId = ctx.user.id;
+      const approverName = ctx.user.name ?? `User#${approverId}`;
 
       // Fetch submission
       const [submission] = await db
@@ -565,7 +564,7 @@ export const oaFormsRouter = router({
 
       if (submission.status !== "pending") {
         throw new TRPCError({
-          code: "BAD_REQUEST",
+          code: "CONFLICT",
           message: `Submission is not pending (current status: "${submission.status}")`,
         });
       }
@@ -576,8 +575,8 @@ export const oaFormsRouter = router({
       await db.insert(oaFormApprovalRecords).values({
         submissionId: input.submissionId,
         stepIndex: currentStep,
-        approverId: input.approverId,
-        approverName: input.approverName,
+        approverId,
+        approverName,
         action: "reject",
         comment: input.comment ?? null,
       });
@@ -621,10 +620,9 @@ export const oaFormsRouter = router({
   // 5. Favorites
   // ─────────────────────────────────────────────────
 
-  /** List a user's favorite templates */
+  /** List current user's favorite templates */
   listFavorites: protectedProcedure
-    .input(z.object({ userId: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx }) => {
       const db = await requireDb();
       const items = await db
         .select({
@@ -645,22 +643,22 @@ export const oaFormsRouter = router({
         })
         .from(oaFormFavorites)
         .innerJoin(oaFormTemplates, eq(oaFormFavorites.templateId, oaFormTemplates.id))
-        .where(eq(oaFormFavorites.userId, input.userId))
+        .where(eq(oaFormFavorites.userId, ctx.user.id))
         .orderBy(asc(oaFormFavorites.sortOrder));
 
       return { items, total: items.length };
     }),
 
-  /** Add a template to user's favorites */
+  /** Add a template to current user's favorites */
   addFavorite: protectedProcedure
-    .input(z.object({ userId: z.number(), templateId: z.number() }))
-    .mutation(async ({ input }) => {
+    .input(z.object({ templateId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       try {
         const [created] = await db
           .insert(oaFormFavorites)
           .values({
-            userId: input.userId,
+            userId: ctx.user.id,
             templateId: input.templateId,
             sortOrder: 0,
           })
@@ -675,16 +673,16 @@ export const oaFormsRouter = router({
       }
     }),
 
-  /** Remove a template from user's favorites */
+  /** Remove a template from current user's favorites */
   removeFavorite: protectedProcedure
-    .input(z.object({ userId: z.number(), templateId: z.number() }))
-    .mutation(async ({ input }) => {
+    .input(z.object({ templateId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       await db
         .delete(oaFormFavorites)
         .where(
           and(
-            eq(oaFormFavorites.userId, input.userId),
+            eq(oaFormFavorites.userId, ctx.user.id),
             eq(oaFormFavorites.templateId, input.templateId),
           ),
         );

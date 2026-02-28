@@ -114,7 +114,7 @@ export default function NewProjectWizard() {
     setTimeout(() => {
       setCreating(false);
       toast.success(isZh ? "项目已创建！" : "Project created!");
-      setLocation("/project-management");
+      setLocation("/projects");
     }, 1200);
   };
 

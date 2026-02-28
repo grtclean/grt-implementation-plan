@@ -1,21 +1,54 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { expenseClaims, expenseLineItems } from "../../drizzle/schema";
-import { eq, desc, count, sql } from "drizzle-orm";
+import { eq, and, desc, count, sql } from "drizzle-orm";
+
+// Roles allowed to see ALL expenses (not just their own)
+const FINANCE_ROLES = new Set(["admin", "director", "finance_manager", "finance_specialist", "hr_manager"]);
+
+/** Check optimistic lock version — throws CONFLICT if stale */
+async function checkExpenseVersion(db: any, id: number, expectedVersion?: number) {
+  if (expectedVersion === undefined) return;
+  const [current] = await db.select({ version: expenseClaims.version }).from(expenseClaims).where(eq(expenseClaims.id, id));
+  if (current && current.version !== expectedVersion) {
+    throw new TRPCError({ code: "CONFLICT", message: "版本冲突：报销单已被他人修改，请刷新后重试" });
+  }
+}
+
+/** Verify the claim belongs to the current user (for non-finance roles) */
+async function assertClaimOwnership(db: any, claimId: number, userId: number, role: string) {
+  if (FINANCE_ROLES.has(role)) return; // finance roles can access any claim
+  const [claim] = await db.select({ submitterId: expenseClaims.submitterId })
+    .from(expenseClaims).where(eq(expenseClaims.id, claimId));
+  if (!claim) throw new TRPCError({ code: "NOT_FOUND", message: `报销单 #${claimId} 不存在` });
+  if (claim.submitterId !== userId) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "无权操作他人的报销单" });
+  }
+}
 
 export const expenseReportRouter = router({
-  // 报销列表
-  list: protectedProcedure.query(async () => {
+  // 报销列表 — scoped by user role
+  list: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    const items = await db.select().from(expenseClaims).orderBy(desc(expenseClaims.createdAt)).limit(100);
+    const role = ctx.user.role ?? "employee";
+    const isFinance = FINANCE_ROLES.has(role);
+
+    const whereCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user.id);
+    const items = await db.select().from(expenseClaims)
+      .where(whereCondition)
+      .orderBy(desc(expenseClaims.createdAt))
+      .limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
-  // 获取报销详情
-  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  // 获取报销详情 — ownership check
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
+    await assertClaimOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+
     const [claim] = await db.select().from(expenseClaims).where(eq(expenseClaims.id, id));
     if (!claim) return null;
 
@@ -26,9 +59,8 @@ export const expenseReportRouter = router({
     return { ...claim, lineItems };
   }),
 
-  // 创建报销
+  // 创建报销 — ctx.user.id as submitter
   create: protectedProcedure.input(z.object({
-    submitterId: z.number().optional(),
     travelRecordId: z.number().optional(),
     tripRequestId: z.number().optional(),
     projectId: z.number().optional(),
@@ -40,12 +72,12 @@ export const expenseReportRouter = router({
     description: z.string().max(5000).optional(),
     totalAmount: z.union([z.string(), z.number()]).optional(),
     currency: z.string().max(10).optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const code = `EC-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Date.now().toString(36).toUpperCase().slice(-3)}`;
     const [claim] = await db.insert(expenseClaims).values({
       claimCode: code,
-      submitterId: input.submitterId || 1,
+      submitterId: ctx.user.id,
       travelRecordId: input.travelRecordId,
       tripRequestId: input.tripRequestId,
       projectId: input.projectId,
@@ -61,17 +93,23 @@ export const expenseReportRouter = router({
     return { success: true, message: "报销已创建", data: claim };
   }),
 
-  // 更新报销
+  // 更新报销 (with optimistic locking + ownership check)
   update: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
+    expectedVersion: z.number().optional(),
     claimTitle: z.string().max(500).optional(),
     description: z.string().max(5000).optional(),
     totalAmount: z.union([z.string(), z.number()]).optional(),
     notes: z.string().max(5000).optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
-    const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+    await assertClaimOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+    await checkExpenseVersion(db, id, input.expectedVersion);
+    const updates: Record<string, unknown> = {
+      updatedAt: new Date().toISOString(),
+      version: sql`${expenseClaims.version} + 1`,
+    };
     if (input.claimTitle !== undefined) updates.claimTitle = input.claimTitle;
     if (input.description !== undefined) updates.description = input.description;
     if (input.totalAmount !== undefined) updates.totalAmount = String(input.totalAmount);
@@ -84,73 +122,130 @@ export const expenseReportRouter = router({
     return { success: true, message: "更新成功", data: claim };
   }),
 
-  // 删除报销
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  // 删除报销 — ownership check, only draft can be deleted
+  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
+    await assertClaimOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+
+    // Only draft claims can be deleted
+    const [claim] = await db.select({ status: expenseClaims.status }).from(expenseClaims).where(eq(expenseClaims.id, id));
+    if (claim && claim.status !== "draft") {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "仅草稿状态的报销单可以删除" });
+    }
+
     await db.delete(expenseLineItems).where(eq(expenseLineItems.expenseClaimId, id));
     await db.delete(expenseClaims).where(eq(expenseClaims.id, id));
     return { success: true, message: "删除成功" };
   }),
 
-  // 提交报销
-  submit: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
+  // 提交报销 (with optimistic locking + ownership check)
+  submit: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    expectedVersion: z.number().optional(),
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
+    await assertClaimOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+    await checkExpenseVersion(db, id, input.expectedVersion);
     const [claim] = await db.update(expenseClaims)
-      .set({ status: "submitted", submittedAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+      .set({
+        status: "submitted",
+        submittedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        version: sql`${expenseClaims.version} + 1`,
+      })
       .where(eq(expenseClaims.id, id))
       .returning();
     return { success: true, message: "已提交", data: claim };
   }),
 
-  // 审批通过
-  approve: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), approverId: z.number().optional() })).mutation(async ({ input }) => {
+  // 审批通过 — ctx.user.id as approver, self-approval prevention
+  approve: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    expectedVersion: z.number().optional(),
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
+    await checkExpenseVersion(db, id, input.expectedVersion);
+
+    // Prevent self-approval
+    const [existing] = await db.select({ submitterId: expenseClaims.submitterId, status: expenseClaims.status })
+      .from(expenseClaims).where(eq(expenseClaims.id, id));
+    if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: `报销单 #${id} 不存在` });
+    if (existing.submitterId === ctx.user.id) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "不能审批自己提交的报销单" });
+    }
+    if (existing.status !== "submitted" && existing.status !== "pending_review") {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `报销单状态为 ${existing.status}，无法审批` });
+    }
+
     const [claim] = await db.update(expenseClaims)
       .set({
         status: "approved",
         managerApprovedAt: new Date().toISOString(),
-        managerApprovedBy: input.approverId || 1,
+        managerApprovedBy: ctx.user.id,
         updatedAt: new Date().toISOString(),
+        version: sql`${expenseClaims.version} + 1`,
       })
       .where(eq(expenseClaims.id, id))
       .returning();
     return { success: true, message: "已批准", data: claim };
   }),
 
-  // 拒绝
-  reject: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), reason: z.string().max(2000).optional(), rejectionReason: z.string().max(2000).optional() })).mutation(async ({ input }) => {
+  // 拒绝 — ctx.user.id, self-rejection prevention
+  reject: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    expectedVersion: z.number().optional(),
+    reason: z.string().max(2000).optional(),
+    rejectionReason: z.string().max(2000).optional(),
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
+    await checkExpenseVersion(db, id, input.expectedVersion);
+
+    // Prevent self-rejection (odd but also a logic error)
+    const [existing] = await db.select({ submitterId: expenseClaims.submitterId, status: expenseClaims.status })
+      .from(expenseClaims).where(eq(expenseClaims.id, id));
+    if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: `报销单 #${id} 不存在` });
+    if (existing.status !== "submitted" && existing.status !== "pending_review") {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `报销单状态为 ${existing.status}，无法驳回` });
+    }
+
     const [claim] = await db.update(expenseClaims)
       .set({
         status: "rejected",
         rejectionReason: input.reason || input.rejectionReason,
         updatedAt: new Date().toISOString(),
+        version: sql`${expenseClaims.version} + 1`,
       })
       .where(eq(expenseClaims.id, id))
       .returning();
     return { success: true, message: "已拒绝", data: claim };
   }),
 
-  // 生成报表（前端 ExpenseReport.tsx 调用）
-  generateReport: protectedProcedure.input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional()).query(async ({ input }) => {
+  // 生成报表 — scoped by role
+  generateReport: protectedProcedure.input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
-    const items = await db.select().from(expenseClaims).orderBy(desc(expenseClaims.createdAt)).limit(200);
+    const role = ctx.user.role ?? "employee";
+    const isFinance = FINANCE_ROLES.has(role);
+    const scopeCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user.id);
+
+    const items = await db.select().from(expenseClaims)
+      .where(scopeCondition)
+      .orderBy(desc(expenseClaims.createdAt)).limit(200);
 
     // Group by claimType for dimension breakdown
     const byType = await db.select({
       claimType: expenseClaims.claimType,
       total: sql<string>`COALESCE(SUM(CAST(${expenseClaims.totalAmount} AS NUMERIC)), 0)`,
       count: count(),
-    }).from(expenseClaims).groupBy(expenseClaims.claimType);
+    }).from(expenseClaims).where(scopeCondition).groupBy(expenseClaims.claimType);
 
     const [totalResult] = await db.select({
       total: sql<string>`COALESCE(SUM(CAST(${expenseClaims.totalAmount} AS NUMERIC)), 0)`,
       count: count(),
-    }).from(expenseClaims);
+    }).from(expenseClaims).where(scopeCondition);
 
     return {
       items,
@@ -166,10 +261,16 @@ export const expenseReportRouter = router({
     };
   }),
 
-  // 导出Excel（前端 ExpenseReport.tsx 调用）
-  exportToExcel: protectedProcedure.input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional()).mutation(async ({ input }) => {
+  // 导出Excel — scoped by role
+  exportToExcel: protectedProcedure.input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional()).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
-    const items = await db.select().from(expenseClaims).orderBy(desc(expenseClaims.createdAt)).limit(500);
+    const role = ctx.user.role ?? "employee";
+    const isFinance = FINANCE_ROLES.has(role);
+    const scopeCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user.id);
+
+    const items = await db.select().from(expenseClaims)
+      .where(scopeCondition)
+      .orderBy(desc(expenseClaims.createdAt)).limit(500);
     // Return CSV data for client-side download
     const header = "报销编号,标题,类型,金额,币种,状态,提交时间\n";
     const rows = items.map(i =>
@@ -179,8 +280,13 @@ export const expenseReportRouter = router({
     return { data: Buffer.from(csvContent).toString("base64"), mimeType: "text/csv" };
   }),
 
-  // 部门排名（前端 ExpenseReport.tsx 调用）
-  getDepartmentRanking: protectedProcedure.input(z.object({ limit: z.number().optional() }).optional()).query(async ({ input }) => {
+  // 部门排名 — finance roles only
+  getDepartmentRanking: protectedProcedure.input(z.object({ limit: z.number().optional() }).optional()).query(async ({ input, ctx }) => {
+    const role = ctx.user.role ?? "employee";
+    if (!FINANCE_ROLES.has(role)) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "仅财务/管理角色可查看部门排名" });
+    }
+
     const db = await requireDb();
     const ranking = await db.select({
       departmentId: expenseClaims.departmentId,

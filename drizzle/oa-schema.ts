@@ -217,6 +217,9 @@ export const oaWorkflows = pgTable("oa_workflows", {
   /** Whether DingTalk webhook notification was successfully sent */
   dingtalkNotified: boolean("dingtalk_notified").default(false),
 
+  /** Optimistic locking — incremented on every state transition */
+  version: integer("version").default(1).notNull(),
+
   createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
 }, (table) => [

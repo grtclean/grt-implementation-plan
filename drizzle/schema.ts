@@ -2407,6 +2407,27 @@ export const planningTasks = pgTable("planning_tasks", {
 	index("planning_tasks_taskId").on(table.taskId),
 ]);
 
+// ── Daily Plan Inbox — supervisor/customer task assignment to users ──
+export const dailyPlanInbox = pgTable("daily_plan_inbox", {
+	id: serial("id").primaryKey(),
+	targetUserId: integer("target_user_id").notNull(),
+	assignedByUserId: integer("assigned_by_user_id"),
+	assignedByName: varchar("assigned_by_name", { length: 100 }),
+	category: varchar("category", { length: 50 }).notNull(), // 'customer_assignment' | 'supervisor'
+	title: varchar("title", { length: 200 }).notNull(),
+	description: text("description"),
+	priority: varchar("priority", { length: 10 }).default("P2"),
+	sourceReference: varchar("source_reference", { length: 200 }),
+	dueDate: varchar("due_date", { length: 20 }),
+	status: varchar("status", { length: 20 }).default("pending").notNull(), // pending | accepted | completed | dismissed
+	completedAt: timestamp("completed_at", { mode: "string" }),
+	createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
+},
+(table) => [
+	index("daily_plan_inbox_target_user_idx").on(table.targetUserId),
+	index("daily_plan_inbox_status_idx").on(table.status),
+]);
+
 export const planningTrackingRecords = pgTable("planning_tracking_records", {
 	id: serial('id').primaryKey(),
 	trackingId: varchar({ length: 50 }).notNull(),
@@ -2556,6 +2577,7 @@ export const projectGates = pgTable("project_gates", {
 	checklistCompleted: integer().default(0),
 	checklistTotal: integer().default(0),
 	remark: text(),
+	version: integer("version").default(1).notNull(),
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 });
@@ -3358,6 +3380,7 @@ export const expenseClaims = pgTable("expense_claims", {
 	notes: text("notes"),
 	submittedAt: timestamp("submitted_at", { mode: 'string' }),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	version: integer("version").default(1).notNull(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
 },
 (table) => [

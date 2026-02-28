@@ -9,8 +9,10 @@
  */
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
-import { desc, sql } from "drizzle-orm";
+import { projects } from "../../drizzle/schema";
+import { desc, sql, eq } from "drizzle-orm";
 
 // ── Role Action Configs ──
 
@@ -112,10 +114,16 @@ const ROLE_SUGGESTIONS: Record<string, Suggestion[]> = {
 
 // ── Activity from real DB (projects, OA forms, etc.) ──
 
-async function fetchRecentActivity(limit: number) {
+async function fetchRecentActivity(
+  limit: number,
+  userId: number | null,
+  buCode: string | null,
+) {
   try {
     const db = await requireDb();
-    // Query recent project updates + OA form submissions as activity feed
+    // BU-scoped projects + user-scoped action items
+    const buWhere = buCode ? sql`AND bu_code = ${buCode}` : sql``;
+    const userWhere = userId ? sql`AND assigned_to = ${userId}` : sql``;
     const rows = await db.execute(sql`
       (SELECT
         'project' AS type,
@@ -125,7 +133,7 @@ async function fetchRecentActivity(limit: number) {
         TO_CHAR(updated_at, 'YYYY-MM-DD HH24:MI') AS time,
         TO_CHAR(updated_at, 'MM-DD HH24:MI') AS "timeZh"
       FROM projects
-      WHERE updated_at IS NOT NULL
+      WHERE updated_at IS NOT NULL ${buWhere}
       ORDER BY updated_at DESC
       LIMIT ${Math.ceil(limit / 2)})
       UNION ALL
@@ -137,13 +145,14 @@ async function fetchRecentActivity(limit: number) {
         TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') AS time,
         TO_CHAR(created_at, 'MM-DD HH24:MI') AS "timeZh"
       FROM meeting_action_items
+      WHERE 1=1 ${userWhere}
       ORDER BY created_at DESC
       LIMIT ${Math.ceil(limit / 2)})
       ORDER BY time DESC
       LIMIT ${limit}
     `);
-    const items = (rows.rows ?? []) as any[];
-    if (items.length > 0) return items;
+    const items = rows.rows ?? [];
+    if (items.length > 0) return items as Record<string, unknown>[];
   } catch { /* fall through to fallback */ }
 
   // Fallback static data when DB unavailable
@@ -162,27 +171,31 @@ export const roleAgentRouter = router({
       return { items: [], total: 0 };
     }),
 
-  /** Get role-specific quick action cards */
+  /** Get role-specific quick action cards (uses server-side role, not client input) */
   getQuickActions: protectedProcedure
-    .input(z.object({ role: z.string() }))
-    .query(async ({ input }) => {
-      // Try exact role match first, then fallback to employee defaults
-      const actions = ROLE_ACTIONS[input.role] ?? ROLE_ACTIONS["bu_sales"] ?? [];
+    .input(z.object({ role: z.string().optional() }).optional())
+    .query(async ({ input, ctx }) => {
+      // Canonical role from authenticated context; input.role only as admin preview fallback
+      const role = ctx.user?.role ?? input?.role ?? "employee";
+      const actions = ROLE_ACTIONS[role] ?? ROLE_ACTIONS["bu_sales"] ?? [];
       return actions;
     }),
 
-  /** Get contextual AI suggestions for the given role */
+  /** Get contextual AI suggestions (uses server-side role, not client input) */
   getSuggestions: protectedProcedure
-    .input(z.object({ role: z.string() }))
-    .query(async ({ input }) => {
-      const suggestions = ROLE_SUGGESTIONS[input.role] ?? ROLE_SUGGESTIONS["default"] ?? [];
+    .input(z.object({ role: z.string().optional() }).optional())
+    .query(async ({ input, ctx }) => {
+      const role = ctx.user?.role ?? input?.role ?? "employee";
+      const suggestions = ROLE_SUGGESTIONS[role] ?? ROLE_SUGGESTIONS["default"] ?? [];
       return suggestions;
     }),
 
-  /** Get recent activity feed (DB-backed with fallback) */
+  /** Get recent activity feed (DB-backed with fallback, BU/user scoped) */
   getRecentActivity: protectedProcedure
     .input(z.object({ limit: z.number().default(5) }))
-    .query(async ({ input }) => {
-      return fetchRecentActivity(input.limit);
+    .query(async ({ input, ctx }) => {
+      const userId = ctx.user?.id ?? null;
+      const buCode = (ctx as any).bu?.buCode ?? null;
+      return fetchRecentActivity(input.limit, userId, buCode);
     }),
 });

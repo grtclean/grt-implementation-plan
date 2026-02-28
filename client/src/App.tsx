@@ -317,7 +317,7 @@ import MeetingHub from "./pages/MeetingHub";
 import PerformanceReviewMeeting from "./pages/PerformanceReviewMeeting";
 import CrossBorderSync from "./pages/CrossBorderSync";
 import UniversalWorkspace from "./pages/UniversalWorkspace";
-import PersonalizedPortal from "./pages/PersonalizedPortal";
+// PersonalizedPortal removed — superseded by MeEngine at /me
 import DataMigrationHub from "./pages/DataMigrationHub";
 import CustomerDigitalTwinPortal from "./pages/CustomerDigitalTwinPortal";
 
@@ -594,7 +594,7 @@ function Router() {
         <ProtectedRoute component={ResourcesEngine} />
       </Route>
 
-      <Route path={"/my-workspace"} component={PersonalizedPortal} />
+      <Route path={"/my-workspace"}><ProtectedRoute component={MeEngine} /></Route>
       <Route path={"/workspace"} component={UniversalWorkspace} />
       <Route path={"/data-migration"} component={DataMigrationHub} />
       <Route path={"/customer-digital-twin"} component={CustomerDigitalTwinPortal} />

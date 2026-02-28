@@ -14,7 +14,7 @@
  *   - DB type: `DbClient` alias avoids `any` while staying DRY
  */
 
-import { eq, and, lt, gt, ne } from "drizzle-orm";
+import { eq, and, lt, gt, ne, sql } from "drizzle-orm";
 import { requireDb } from "../db";
 import {
   oaWorkflows,
@@ -215,9 +215,7 @@ export async function approveOARequest(
 ): Promise<OaWorkflow> {
   const db = await requireDb();
 
-  // Pre-flight: verify workflow exists and is PENDING
-  await assertWorkflowPending(db, id);
-
+  // Atomic status guard: WHERE status='PENDING' prevents double-approve race
   const now = nowISO();
   const [workflow] = await db.update(oaWorkflows)
     .set({
@@ -225,12 +223,15 @@ export async function approveOARequest(
       approverId,
       approvedAt: now,
       approverComment: comment ?? null,
+      version: sql`${oaWorkflows.version} + 1`,
       updatedAt: now,
     })
-    .where(eq(oaWorkflows.id, id))
+    .where(and(eq(oaWorkflows.id, id), eq(oaWorkflows.status, "PENDING")))
     .returning();
 
-  if (!workflow) throw new Error(`Workflow #${id} not found after update`);
+  if (!workflow) {
+    throw new Error(`Workflow #${id} not found or already processed (not PENDING)`);
+  }
 
   // Notify applicant
   if (workflow.applicantId) {
@@ -269,9 +270,7 @@ export async function rejectOARequest(
 ): Promise<OaWorkflow> {
   const db = await requireDb();
 
-  // Pre-flight: verify workflow exists and is PENDING
-  await assertWorkflowPending(db, id);
-
+  // Atomic status guard: WHERE status='PENDING' prevents double-reject race
   const now = nowISO();
   const [workflow] = await db.update(oaWorkflows)
     .set({
@@ -279,12 +278,15 @@ export async function rejectOARequest(
       approverId,
       approvedAt: now,
       approverComment: comment ?? null,
+      version: sql`${oaWorkflows.version} + 1`,
       updatedAt: now,
     })
-    .where(eq(oaWorkflows.id, id))
+    .where(and(eq(oaWorkflows.id, id), eq(oaWorkflows.status, "PENDING")))
     .returning();
 
-  if (!workflow) throw new Error(`Workflow #${id} not found after update`);
+  if (!workflow) {
+    throw new Error(`Workflow #${id} not found or already processed (not PENDING)`);
+  }
 
   // Notify applicant
   if (workflow.applicantId) {

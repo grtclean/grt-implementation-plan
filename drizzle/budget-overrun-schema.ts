@@ -44,6 +44,7 @@ export const budgetOverrunRequests = pgTable("budget_overrun_requests", {
   approvedAt: timestamp("approved_at"),
   /** BU scope */
   buCode: varchar("bu_code", { length: 50 }),
+  version: integer("version").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
@@ -225,7 +226,7 @@ export const projectGateRouter = router({
       summary: z.string(),
       attachments: z.array(z.string()).optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       // Check if gate record exists for this project+stage
       const existing = await db.select().from(projectGates)
@@ -264,18 +265,33 @@ export const projectGateRouter = router({
   approveGatePass: protectedProcedure
     .input(z.object({
       requestId: z.number(),
+      expectedVersion: z.number().optional(),
       approved: z.boolean(),
       score: z.number().min(0).max(100).optional(),
       comments: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
+
+      // Optimistic lock check on gate record
+      if (input.expectedVersion !== undefined) {
+        const [current] = await db.select({ version: projectGates.version }).from(projectGates).where(eq(projectGates.id, input.requestId));
+        if (current && current.version !== input.expectedVersion) {
+          throw new TRPCError({ code: "CONFLICT", message: "版本冲突：门禁记录已被他人修改，请刷新后重试" });
+        }
+      }
+
+      // Fetch gate to validate
+      const [gate] = await db.select().from(projectGates).where(eq(projectGates.id, input.requestId));
+      if (!gate) throw new TRPCError({ code: "NOT_FOUND", message: "Gate record not found" });
+
+      // Status guard: only in_review gates can be approved/rejected
+      if (gate.status !== "in_review" && gate.status !== "pending") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `门禁状态为 ${gate.status}，无法审批` });
+      }
 
       // ── Checklist enforcement (W2-02 hardening) ──
       if (input.approved) {
-        const [gate] = await db.select().from(projectGates).where(eq(projectGates.id, input.requestId));
-        if (!gate) throw new Error("Gate record not found");
-
         const checklistItems = await db.select().from(gateChecklists)
           .where(and(
             eq(gateChecklists.projectId, gate.projectId),
@@ -287,59 +303,66 @@ export const projectGateRouter = router({
         const notReady = mandatoryItems.filter(i => i.status !== "verified" && i.status !== "waived" && i.status !== "failed");
 
         if (failed.length > 0) {
-          throw new Error(
-            `无法批准：${failed.length} 个必填检查项未通过 (${failed.map(i => i.checkItem).join(", ")})`
-          );
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `无法批准：${failed.length} 个必填检查项未通过 (${failed.map(i => i.checkItem).join(", ")})`,
+          });
         }
         if (notReady.length > 0) {
-          throw new Error(
-            `无法批准：${notReady.length} 个必填检查项尚未完成验证 (${notReady.map(i => i.checkItem).join(", ")})`
-          );
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `无法批准：${notReady.length} 个必填检查项尚未完成验证 (${notReady.map(i => i.checkItem).join(", ")})`,
+          });
         }
       }
 
-      await db.update(projectGates)
+      // Atomic status guard: WHERE status IN ('in_review','pending') prevents race
+      const [updatedGate] = await db.update(projectGates)
         .set({
           status: input.approved ? "approved" : "rejected",
           actualDate: input.approved ? new Date().toISOString() : undefined,
-          approverId: 1, // TODO: get from auth context
+          approverId: ctx.user.id,
           approvalComment: input.comments,
           updatedAt: new Date().toISOString(),
+          version: sql`${projectGates.version} + 1`,
         })
-        .where(eq(projectGates.id, input.requestId));
+        .where(and(
+          eq(projectGates.id, input.requestId),
+          inArray(projectGates.status, ["in_review", "pending"]),
+        ))
+        .returning();
 
-      // If approved, advance project to next phase
+      if (!updatedGate) {
+        throw new TRPCError({ code: "CONFLICT", message: "门禁状态已变更，请刷新后重试" });
+      }
+
+      // If approved, advance project to next phase (reuse `gate` fetched above)
       if (input.approved) {
-        const [gate] = await db.select().from(projectGates).where(eq(projectGates.id, input.requestId));
-        if (gate) {
-          const currentIdx = M_STAGE_DEFINITIONS.findIndex(d => d.code === gate.phaseCode);
-          if (currentIdx >= 0 && currentIdx < M_STAGE_DEFINITIONS.length - 1) {
-            const nextPhase = M_STAGE_DEFINITIONS[currentIdx + 1].code;
-            await db.update(projects)
-              .set({ currentPhase: nextPhase, updatedAt: new Date().toISOString() })
-              .where(eq(projects.id, gate.projectId));
-          }
+        const currentIdx = M_STAGE_DEFINITIONS.findIndex(d => d.code === gate.phaseCode);
+        if (currentIdx >= 0 && currentIdx < M_STAGE_DEFINITIONS.length - 1) {
+          const nextPhase = M_STAGE_DEFINITIONS[currentIdx + 1].code;
+          await db.update(projects)
+            .set({ currentPhase: nextPhase, updatedAt: new Date().toISOString() })
+            .where(eq(projects.id, gate.projectId));
         }
       }
 
-      // FAT/SAT failure → red-line violation event (reuse gate already fetched above for approved path)
+      // FAT/SAT failure → red-line violation event (reuse `gate` fetched above)
       if (!input.approved) {
         try {
-          const [rejGate] = await db.select({ phaseCode: projectGates.phaseCode, projectId: projectGates.projectId })
-            .from(projectGates).where(eq(projectGates.id, input.requestId));
-          if (rejGate && (rejGate.phaseCode === "M7" || rejGate.phaseCode === "M11")) {
-            const severity = rejGate.phaseCode === "M11" ? "CRITICAL" : "MAJOR";
-            const label = rejGate.phaseCode === "M7" ? "FAT" : "SAT";
+          if (gate.phaseCode === "M7" || gate.phaseCode === "M11") {
+            const severity = gate.phaseCode === "M11" ? "CRITICAL" : "MAJOR";
+            const label = gate.phaseCode === "M7" ? "FAT" : "SAT";
             await db.insert(violationEvents).values({
-              projectId: rejGate.projectId,
+              projectId: gate.projectId,
               eventType: "quality_defect",
               severity,
               sourceModule: "projectGate",
-              title: `${label}测试未通过 — ${rejGate.phaseCode}阶段被退回`,
-              description: `项目门禁${rejGate.phaseCode}(${label})审批被拒绝。${input.comments || ""}`,
+              title: `${label}测试未通过 — ${gate.phaseCode}阶段被退回`,
+              description: `项目门禁${gate.phaseCode}(${label})审批被拒绝。${input.comments || ""}`,
               status: "open",
             });
-            console.log(`[ProjectGate] ${label} rejection → violation event (${severity}) for project ${rejGate.projectId}`);
+            console.log(`[ProjectGate] ${label} rejection → violation event (${severity}) for project ${gate.projectId}`);
           }
         } catch (violationErr) {
           console.error("[ProjectGate] Failed to create violation event:", violationErr);
@@ -385,7 +408,7 @@ export const projectGateRouter = router({
       scheduledDate: z.string(),
       objectives: z.array(z.string()).optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const configCode = `RB-${input.projectId}-${input.stageCode}-${Date.now().toString(36)}`;
       const [config] = await db.insert(redBlueConfigs).values({
@@ -396,7 +419,7 @@ export const projectGateRouter = router({
         blueTeamLeaderName: input.blueTeamLeader,
         redTeamObjectives: input.objectives?.join("\n"),
         status: "scheduled",
-        createdBy: 1, // TODO: from auth context
+        createdBy: ctx.user.id,
       }).returning();
       return { success: true, sessionId: config.id, message: "红蓝对抗会议已创建" };
     }),

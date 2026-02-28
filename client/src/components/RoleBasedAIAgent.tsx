@@ -96,11 +96,11 @@ export default function RoleBasedAIAgent({
 
   // ── tRPC queries ──
   const quickActionsQuery = trpc.roleAgent.getQuickActions.useQuery(
-    { role: currentUserRole },
+    undefined,
     { staleTime: 60000, enabled: isOpen }
   );
   const suggestionsQuery = trpc.roleAgent.getSuggestions.useQuery(
-    { role: currentUserRole },
+    undefined,
     { staleTime: 60000, enabled: isOpen }
   );
   const activityQuery = trpc.roleAgent.getRecentActivity.useQuery(

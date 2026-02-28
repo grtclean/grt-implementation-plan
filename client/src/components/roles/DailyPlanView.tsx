@@ -4,7 +4,7 @@
  * Queries dailyPlan.getAggregatedPlan (8 parallel DB sources)
  * and renders categorised accordion sections with task completion.
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -77,15 +77,45 @@ export default function DailyPlanView() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [newTitle, setNewTitle] = useState("");
   const [newPriority, setNewPriority] = useState<"P0" | "P1" | "P2" | "P3">("P2");
+  const [asyncTaskId, setAsyncTaskId] = useState<number | null>(null);
 
   // tRPC calls
+  // Role resolved server-side from auth context
   const aggregateQuery = trpc.dailyPlan.getAggregatedPlan.useQuery(
-    { role: currentUserRole },
+    undefined,
     { refetchOnWindowFocus: false },
   );
   const statsQuery = trpc.dailyPlan.getStats.useQuery(undefined, { refetchOnWindowFocus: false });
+
+  // Async task polling — poll every 2s while task is pending/processing
+  const taskStatusQuery = trpc.dailyPlan.getGenerateStatus.useQuery(
+    { taskId: asyncTaskId! },
+    {
+      enabled: asyncTaskId !== null,
+      refetchInterval: (query) => {
+        const status = query.state.data?.status;
+        return status === "pending" || status === "processing" ? 2000 : false;
+      },
+    },
+  );
+
+  // When async task completes, clear taskId and refetch plan
+  useEffect(() => {
+    if (taskStatusQuery.data?.status === "completed" || taskStatusQuery.data?.status === "failed") {
+      setAsyncTaskId(null);
+      aggregateQuery.refetch();
+    }
+  }, [taskStatusQuery.data?.status]);
+
   const generateMut = trpc.dailyPlan.generatePlan.useMutation({
-    onSuccess: () => aggregateQuery.refetch(),
+    onSuccess: (data) => {
+      if (data.status === "submitted" && data.taskId) {
+        setAsyncTaskId(data.taskId);
+      } else {
+        // already_exists — just refetch
+        aggregateQuery.refetch();
+      }
+    },
   });
   const refreshMut = trpc.dailyPlan.refreshPlan.useMutation({
     onSuccess: () => aggregateQuery.refetch(),
@@ -201,11 +231,11 @@ export default function DailyPlanView() {
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => generateMut.mutate()}
-          disabled={generateMut.isPending}
+          disabled={generateMut.isPending || asyncTaskId !== null}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
-          {generateMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-          {isZh ? "生成计划" : "Generate Plan"}
+          {(generateMut.isPending || asyncTaskId !== null) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+          {asyncTaskId ? (isZh ? "AI 生成中…" : "Generating…") : (isZh ? "生成计划" : "Generate Plan")}
         </button>
         <button
           onClick={() => refreshMut.mutate()}

@@ -12,10 +12,20 @@
  *   - seedDemo: insert demo data
  */
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
-import { eq, desc, count, and } from "drizzle-orm";
+import { eq, desc, count, and, sql } from "drizzle-orm";
 import { budgetOverrunRequests } from "../../drizzle/budget-overrun-schema";
+
+/** Check optimistic lock version — throws CONFLICT if stale */
+async function checkOverrunVersion(db: any, id: number, expectedVersion?: number) {
+  if (expectedVersion === undefined) return;
+  const [current] = await db.select({ version: budgetOverrunRequests.version }).from(budgetOverrunRequests).where(eq(budgetOverrunRequests.id, id));
+  if (current && current.version !== expectedVersion) {
+    throw new TRPCError({ code: "CONFLICT", message: "版本冲突：审批记录已被他人修改，请刷新后重试" });
+  }
+}
 
 export const budgetOverrunApprovalRouter = router({
   list: protectedProcedure
@@ -110,49 +120,47 @@ export const budgetOverrunApprovalRouter = router({
   approve: protectedProcedure
     .input(z.object({
       id: z.number(),
+      expectedVersion: z.number().optional(),
       approverId: z.number().optional(),
       approverName: z.string().optional(),
       comment: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      try {
-        const db = await requireDb();
-        await db.update(budgetOverrunRequests).set({
-          status: "approved",
-          approverId: input.approverId ?? null,
-          approverName: input.approverName ?? null,
-          approverComment: input.comment ?? null,
-          approvedAt: new Date(),
-          updatedAt: new Date(),
-        }).where(eq(budgetOverrunRequests.id, input.id));
-        return { success: true, message: "已批准" };
-      } catch (e: any) {
-        return { success: false, message: e.message };
-      }
+      const db = await requireDb();
+      await checkOverrunVersion(db, input.id, input.expectedVersion);
+      await db.update(budgetOverrunRequests).set({
+        status: "approved",
+        approverId: input.approverId ?? null,
+        approverName: input.approverName ?? null,
+        approverComment: input.comment ?? null,
+        approvedAt: new Date(),
+        updatedAt: new Date(),
+        version: sql`${budgetOverrunRequests.version} + 1`,
+      }).where(eq(budgetOverrunRequests.id, input.id));
+      return { success: true, message: "已批准" };
     }),
 
   reject: protectedProcedure
     .input(z.object({
       id: z.number(),
+      expectedVersion: z.number().optional(),
       approverId: z.number().optional(),
       approverName: z.string().optional(),
       comment: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      try {
-        const db = await requireDb();
-        await db.update(budgetOverrunRequests).set({
-          status: "rejected",
-          approverId: input.approverId ?? null,
-          approverName: input.approverName ?? null,
-          approverComment: input.comment ?? null,
-          approvedAt: new Date(),
-          updatedAt: new Date(),
-        }).where(eq(budgetOverrunRequests.id, input.id));
-        return { success: true, message: "已驳回" };
-      } catch (e: any) {
-        return { success: false, message: e.message };
-      }
+      const db = await requireDb();
+      await checkOverrunVersion(db, input.id, input.expectedVersion);
+      await db.update(budgetOverrunRequests).set({
+        status: "rejected",
+        approverId: input.approverId ?? null,
+        approverName: input.approverName ?? null,
+        approverComment: input.comment ?? null,
+        approvedAt: new Date(),
+        updatedAt: new Date(),
+        version: sql`${budgetOverrunRequests.version} + 1`,
+      }).where(eq(budgetOverrunRequests.id, input.id));
+      return { success: true, message: "已驳回" };
     }),
 
   getPendingApprovals: protectedProcedure.query(async () => {

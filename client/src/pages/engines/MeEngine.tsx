@@ -10,6 +10,7 @@ import { trpc } from "@/lib/trpc";
 import { useUserProfile, ROLE_HIERARCHY } from "@/contexts/UserProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import EngineNavBar from "@/components/Layout/EngineNavBar";
 import {
@@ -66,9 +67,9 @@ export default function MeEngine() {
 
   const roleLevel = ROLE_HIERARCHY[currentUserRole] ?? 0;
 
-  // tRPC queries
-  const actionsQuery = trpc.roleAgent.getQuickActions.useQuery({ role: currentUserRole });
-  const suggestionsQuery = trpc.roleAgent.getSuggestions.useQuery({ role: currentUserRole });
+  // tRPC queries — role resolved server-side from auth context (not client input)
+  const actionsQuery = trpc.roleAgent.getQuickActions.useQuery();
+  const suggestionsQuery = trpc.roleAgent.getSuggestions.useQuery();
   const perfQuery = trpc.aiPerformance.dashboard.useQuery();
 
   const actions = actionsQuery.data ?? [];
@@ -112,8 +113,10 @@ export default function MeEngine() {
             {isZh ? "快捷操作" : "Quick Actions"}
           </h2>
           {actionsQuery.isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[1, 2, 3, 4].map(i => (
+                <Card key={i}><CardContent className="p-4"><Skeleton className="h-4 w-24 mb-2" /><Skeleton className="h-3 w-32" /></CardContent></Card>
+              ))}
             </div>
           ) : actions.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">{isZh ? "暂无快捷操作" : "No quick actions available"}</p>

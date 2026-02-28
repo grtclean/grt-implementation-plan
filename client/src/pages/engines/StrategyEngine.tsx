@@ -11,6 +11,7 @@ import { useUserProfile, ROLE_HIERARCHY } from "@/contexts/UserProfileContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
@@ -245,8 +246,12 @@ export default function StrategyEngine() {
       {/* ─── Main Content ─── */}
       <div className="flex-1 p-6 space-y-6">
         {modelQuery.isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <Card key={i}><CardContent className="p-4"><Skeleton className="h-5 w-28 mb-2" /><Skeleton className="h-3 w-full mb-2" /><Skeleton className="h-2 w-full" /></CardContent></Card>
+              ))}
+            </div>
           </div>
         ) : (
           <>

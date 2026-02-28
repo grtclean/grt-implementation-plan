@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -125,9 +124,6 @@ export default function OADashboard() {
   const searchString = useSearch();
   const tabFromUrl = new URLSearchParams(searchString).get("tab");
   const [activeTab, setActiveTab] = useState(tabFromUrl || "overview");
-  const { user } = useAuth();
-  const currentUserId = user?.id ?? 0;
-
   // Sync tab when URL query changes (e.g. sidebar nav)
   useEffect(() => {
     if (tabFromUrl) setActiveTab(tabFromUrl);
@@ -135,10 +131,10 @@ export default function OADashboard() {
 
   // ── Data fetching ──
   const statsQuery = trpc.oa.getWorkflowStats.useQuery();
-  const pendingQuery = trpc.oa.getMyPendingApprovals.useQuery({ approverId: currentUserId });
+  const pendingQuery = trpc.oa.getMyPendingApprovals.useQuery();
   const meetingsQuery = trpc.oa.listMeetings.useQuery();
   const tripsQuery = trpc.oa.listTripReports.useQuery({ limit: 10 });
-  const leaveQuery = trpc.oa.getMyLeaveBalances.useQuery({ employeeId: currentUserId });
+  const leaveQuery = trpc.oa.getMyLeaveBalances.useQuery();
   const announcementsQuery = trpc.oa.listAnnouncements.useQuery({ status: "published", limit: 5 });
 
   const firstMeeting = meetingsQuery.data?.[0];
@@ -266,11 +262,11 @@ export default function OADashboard() {
                           </TableCell>
                           <TableCell className="text-right space-x-1">
                             <Button size="sm" disabled={approveMut.isPending}
-                              onClick={() => approveMut.mutate({ id: wf.id, approverId: currentUserId })}>
+                              onClick={() => approveMut.mutate({ id: wf.id })}>
                               <Check className="h-3 w-3 mr-1" /> 批准
                             </Button>
                             <Button size="sm" variant="destructive" disabled={rejectMut.isPending}
-                              onClick={() => rejectMut.mutate({ id: wf.id, approverId: currentUserId })}>
+                              onClick={() => rejectMut.mutate({ id: wf.id })}>
                               <X className="h-3 w-3 mr-1" /> 驳回
                             </Button>
                           </TableCell>
@@ -501,7 +497,7 @@ export default function OADashboard() {
 
       {/* Dialogs */}
       <NewWorkflowDialog open={showNewWorkflow} onOpenChange={setShowNewWorkflow}
-        onSubmit={(data) => createWorkflowMut.mutate(data)} isPending={createWorkflowMut.isPending} currentUserId={currentUserId} />
+        onSubmit={(data) => createWorkflowMut.mutate(data)} isPending={createWorkflowMut.isPending} />
       <TripReportSheet report={selectedReport} open={!!selectedReport}
         onOpenChange={(open) => !open && setSelectedReport(null)} />
     </div>
@@ -512,12 +508,11 @@ export default function OADashboard() {
 
 type WorkflowType = typeof WORKFLOW_TYPES[number]["value"];
 
-function NewWorkflowDialog({ open, onOpenChange, onSubmit, isPending, currentUserId }: {
+function NewWorkflowDialog({ open, onOpenChange, onSubmit, isPending }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onSubmit: (data: { type: WorkflowType; title: string; content?: Record<string, unknown>; applicantId?: number }) => void;
+  onSubmit: (data: { type: WorkflowType; title: string; content?: Record<string, unknown> }) => void;
   isPending: boolean;
-  currentUserId: number;
 }) {
   const [type, setType] = useState<WorkflowType>("LEAVE");
   const [title, setTitle] = useState("");
@@ -525,7 +520,7 @@ function NewWorkflowDialog({ open, onOpenChange, onSubmit, isPending, currentUse
 
   const handleSubmit = () => {
     if (!title.trim()) return;
-    onSubmit({ type, title: title.trim(), content: details ? { details } : undefined, applicantId: currentUserId });
+    onSubmit({ type, title: title.trim(), content: details ? { details } : undefined });
     setType("LEAVE"); setTitle(""); setDetails("");
   };
 

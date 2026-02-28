@@ -82,15 +82,14 @@ export const oaRouter = router({
   }),
 
   createWorkflow: protectedProcedure.input(z.object({
-    applicantId: z.number().optional(),
     type: z.enum(OA_WORKFLOW_TYPES),
     title: z.string().min(1).max(200),
     content: z.record(z.string(), z.unknown()).optional(),
     linkedProjectId: z.number().optional(),
     approverId: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     return createOARequest({
-      applicantId: input.applicantId,
+      applicantId: ctx.user.id,
       type: input.type,
       title: input.title,
       content: input.content as Record<string, unknown> | undefined,
@@ -101,49 +100,45 @@ export const oaRouter = router({
 
   approveWorkflow: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
-    approverId: z.number(),
     comment: z.string().optional(),
-  })).mutation(async ({ input }) => {
-    return approveOARequest(toNum(input.id), input.approverId, input.comment);
+  })).mutation(async ({ input, ctx }) => {
+    return approveOARequest(toNum(input.id), ctx.user.id, input.comment);
   }),
 
   rejectWorkflow: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
-    approverId: z.number(),
     comment: z.string().optional(),
-  })).mutation(async ({ input }) => {
-    return rejectOARequest(toNum(input.id), input.approverId, input.comment);
+  })).mutation(async ({ input, ctx }) => {
+    return rejectOARequest(toNum(input.id), ctx.user.id, input.comment);
   }),
 
   cancelWorkflow: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
-    // Status guard: only PENDING workflows can be cancelled
-    const [existing] = await db.select().from(oaWorkflows).where(eq(oaWorkflows.id, numId)).limit(1);
-    if (!existing) throw new Error(`Workflow #${input.id} not found`);
-    if (existing.status !== "PENDING") {
-      throw new Error(`Workflow #${input.id} is ${existing.status}; only PENDING workflows can be cancelled`);
-    }
+    // Atomic status guard: WHERE status='PENDING' prevents race condition
     const [workflow] = await db.update(oaWorkflows)
       .set({
         status: "CANCELLED",
+        version: sql`${oaWorkflows.version} + 1`,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(oaWorkflows.id, numId))
+      .where(and(eq(oaWorkflows.id, numId), eq(oaWorkflows.status, "PENDING")))
       .returning();
-    return workflow!;
+    if (!workflow) {
+      throw new Error(`Workflow #${input.id} not found or not PENDING`);
+    }
+    return workflow;
   }),
 
-  getMyPendingApprovals: protectedProcedure.input(z.object({
-    approverId: z.union([z.string(), z.number()]),
-  })).query(async ({ input }) => {
+  getMyPendingApprovals: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
+    const userId = ctx.user.id;
     const items = await db.select().from(oaWorkflows)
       .where(
         and(
-          eq(oaWorkflows.approverId, toNum(input.approverId)),
+          eq(oaWorkflows.approverId, userId),
           eq(oaWorkflows.status, "PENDING"),
         )
       )
@@ -436,11 +431,10 @@ export const oaRouter = router({
   // ══════════════════════════════════════════════════
 
   getMyLeaveBalances: protectedProcedure.input(z.object({
-    employeeId: z.union([z.string(), z.number()]),
     year: z.number().optional(),
-  })).query(async ({ input }) => {
-    const year = input.year ?? new Date().getFullYear();
-    return getLeaveBalances(toNum(input.employeeId), year);
+  }).optional()).query(async ({ input, ctx }) => {
+    const year = input?.year ?? new Date().getFullYear();
+    return getLeaveBalances(ctx.user.id, year);
   }),
 
   initLeaveBalances: protectedProcedure.input(z.object({

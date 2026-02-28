@@ -9,6 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import EngineNavBar from "@/components/Layout/EngineNavBar";
 import {
@@ -71,8 +72,13 @@ export default function OperationsEngine() {
 
       <div className="flex-1 p-6 space-y-6">
         {stageQuery.isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <Card key={i}><CardContent className="p-4 text-center"><Skeleton className="h-8 w-16 mx-auto mb-1" /><Skeleton className="h-3 w-20 mx-auto" /></CardContent></Card>
+              ))}
+            </div>
+            <Card><CardContent className="p-4 space-y-2">{[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-5 w-full" />)}</CardContent></Card>
           </div>
         ) : (
           <>
@@ -158,8 +164,8 @@ export default function OperationsEngine() {
               </CardHeader>
               <CardContent>
                 {gatesQuery.isLoading ? (
-                  <div className="flex items-center justify-center py-6">
-                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  <div className="space-y-3 py-2">
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-8 w-full" />)}
                   </div>
                 ) : gates.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-4">{isZh ? "近期无门控评审" : "No upcoming gates"}</p>

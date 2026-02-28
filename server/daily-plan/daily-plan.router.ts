@@ -1,11 +1,12 @@
 /**
  * 每日工作计划 tRPC Router
- * v2: Added getAggregatedPlan, assignToUser, addPersonalItem
+ * v3: generatePlan → async task-worker, added getGenerateStatus polling
  */
 
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import * as dailyPlanService from "../services/daily-work-plan.service";
+import { submitTask, getTaskStatus } from "../services/task-worker.service";
 
 export const dailyPlanRouter = router({
   getTodayPlan: protectedProcedure
@@ -13,9 +14,36 @@ export const dailyPlanRouter = router({
       return dailyPlanService.getTodayPlan(ctx.user.id);
     }),
 
+  /** Submit daily plan generation to async task-worker queue */
   generatePlan: protectedProcedure
     .mutation(async ({ ctx }) => {
-      return dailyPlanService.generateDailyPlan(ctx.user.id);
+      // Check if plan already exists today (idempotent)
+      const existing = await dailyPlanService.getTodayPlan(ctx.user.id);
+      if (existing && existing.tasks && existing.tasks.length > 0) {
+        return { taskId: null, status: "already_exists", plan: existing };
+      }
+      // Submit async task
+      const { taskId } = await submitTask(
+        "DAILY_PLAN_GENERATION",
+        { userId: ctx.user.id },
+        String(ctx.user.id),
+        { maxRetries: 2 },
+      );
+      return { taskId, status: "submitted" };
+    }),
+
+  /** Poll async task status for generatePlan */
+  getGenerateStatus: protectedProcedure
+    .input(z.object({ taskId: z.number() }))
+    .query(async ({ input }) => {
+      const task = await getTaskStatus(input.taskId);
+      if (!task) return { status: "not_found" };
+      return {
+        status: task.status,
+        result: task.resultData,
+        error: task.errorMessage,
+        completedAt: task.completedAt,
+      };
     }),
 
   getPlanHistory: protectedProcedure
@@ -66,12 +94,14 @@ export const dailyPlanRouter = router({
   // ── v2: 8-source aggregated plan ──
 
   getAggregatedPlan: protectedProcedure
-    .input(z.object({ role: z.string() }))
+    .input(z.object({ role: z.string().optional() }).optional())
     .query(async ({ ctx, input }) => {
+      // Canonical role from server auth context, not client input
+      const role = ctx.user.role ?? input?.role ?? 'employee';
       return dailyPlanService.aggregateDailyItems(
         ctx.user.id,
         ctx.user.name ?? 'Unknown',
-        input.role,
+        role,
       );
     }),
 

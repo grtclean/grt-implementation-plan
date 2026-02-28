@@ -420,16 +420,35 @@ function futureDate(days: number): string {
 
 // ── Registration ─────────────────────────────────────────────
 
+// ══════════════════════════════════════════════════════════════
+// Engine 4: DAILY_PLAN_GENERATION — Async daily work plan via LLM
+// ══════════════════════════════════════════════════════════════
+
+const dailyPlanGenerationHandler: TaskHandler = async (_taskId, input) => {
+  const userId = Number(input.userId);
+  if (!userId) return { ok: false, error: "Missing userId" };
+
+  try {
+    // Dynamic import to avoid circular dependency
+    const { generateDailyPlan } = await import("./daily-work-plan.service");
+    const result = await generateDailyPlan(userId);
+    return { ok: true, ...result };
+  } catch (err: any) {
+    return { ok: false, error: err.message ?? "Daily plan generation failed" };
+  }
+};
+
 export function registerAllEngines(): void {
   registerTaskHandler("DOC_PARSING", docParsingHandler);
   registerTaskHandler("COMPENSATION_RULE", compensationRuleHandler);
   registerTaskHandler("INCIDENT_ANALYSIS", incidentAnalysisHandler);
-  // The existing HR_CAPABILITY_PARSING stays in hr-sandbox.service.ts (synchronous)
-  // but can optionally be migrated here in a future iteration.
 
   // Finance Agent — AI expense review engine
   registerFinanceAgentHandler();
 
   // Project Agent — AI project lifecycle reviews
   registerProjectAgentHandlers();
+
+  // Daily Plan — async LLM-powered daily work plan generation
+  registerTaskHandler("DAILY_PLAN_GENERATION", dailyPlanGenerationHandler);
 }
