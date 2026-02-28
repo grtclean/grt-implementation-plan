@@ -135,17 +135,16 @@ export const costAlertRouter = router({
 
   acknowledge: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
-    handlerId: z.number().optional(),
     handleNote: z.string().optional(),
     note: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     try {
       const db = await requireDb();
       const id = Number(input.id);
       if (!id) return { success: true, message: "操作成功" };
       await db.update(costAlertLogs).set({
         status: "acknowledged",
-        handlerId: input.handlerId,
+        handlerId: ctx.user.id,
         handleNote: input.handleNote ?? input.note,
         handledAt: new Date().toISOString(),
       } as any).where(eq(costAlertLogs.id, id));

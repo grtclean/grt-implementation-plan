@@ -235,12 +235,15 @@ export const projectGateRouter = router({
           eq(projectGates.phaseCode, input.stageCode),
         ));
 
+      // Embed requestor ID in remark for self-approval prevention
+      const remarkWithRequestor = `[REQ:${ctx.user.id}] ${input.summary}`;
+
       if (existing.length > 0) {
         // Update existing gate to in_review
         await db.update(projectGates)
           .set({
             status: "in_review",
-            remark: input.summary,
+            remark: remarkWithRequestor,
             attachments: input.attachments ? JSON.stringify(input.attachments) : undefined,
             updatedAt: new Date().toISOString(),
           })
@@ -254,7 +257,7 @@ export const projectGateRouter = router({
           phaseCode: input.stageCode,
           name: stageDef?.nameZh || input.stageCode,
           status: "in_review",
-          remark: input.summary,
+          remark: remarkWithRequestor,
           attachments: input.attachments ? JSON.stringify(input.attachments) : undefined,
         }).returning();
         return { success: true, requestId: gate.id, message: "门禁通过申请已提交" };
@@ -288,6 +291,12 @@ export const projectGateRouter = router({
       // Status guard: only in_review gates can be approved/rejected
       if (gate.status !== "in_review" && gate.status !== "pending") {
         throw new TRPCError({ code: "BAD_REQUEST", message: `门禁状态为 ${gate.status}，无法审批` });
+      }
+
+      // Self-approval prevention: extract requestor ID from remark [REQ:N]
+      const reqMatch = gate.remark?.match(/\[REQ:(\d+)\]/);
+      if (reqMatch && Number(reqMatch[1]) === ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "不能审批自己提交的门禁申请" });
       }
 
       // ── Checklist enforcement (W2-02 hardening) ──
@@ -508,11 +517,10 @@ export const projectGateRouter = router({
     .input(z.object({
       projectId: z.number(),
       currentStageCode: z.string(),
-      approvedBy: z.string(),
       score: z.number().min(0).max(100).optional(),
       comments: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       // 1. Verify project exists and current stage matches (stale-race guard)
@@ -560,11 +568,12 @@ export const projectGateRouter = router({
       const now = new Date().toISOString();
 
       // 4a. Mark current stage as Completed
+      const approverName = ctx.user.name ?? `User#${ctx.user.id}`;
       const auditEntry = {
         type: "ADVANCE",
         from: input.currentStageCode,
         to: nextStageCode,
-        approvedBy: input.approvedBy,
+        approvedBy: approverName,
         score: input.score ?? null,
         comments: input.comments ?? null,
         timestamp: now,
@@ -690,9 +699,8 @@ export const projectGateRouter = router({
       projectId: z.number(),
       targetStageCode: z.string(),
       reason: z.string().min(1),
-      regressedBy: z.string(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       // 1. Verify project
@@ -711,12 +719,13 @@ export const projectGateRouter = router({
       }
 
       const now = new Date().toISOString();
+      const regressorName = ctx.user.name ?? `User#${ctx.user.id}`;
       const regressAudit = {
         type: "REGRESS",
         from: project.currentStage,
         to: input.targetStageCode,
         reason: input.reason,
-        regressedBy: input.regressedBy,
+        regressedBy: regressorName,
         timestamp: now,
       };
 

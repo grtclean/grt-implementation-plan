@@ -108,10 +108,9 @@ export const oaFormsRouter = router({
         fields: z.any(),
         approvalFlow: z.any().optional(),
         isSystem: z.boolean().optional(),
-        createdBy: z.number().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [created] = await db
         .insert(oaFormTemplates)
@@ -126,7 +125,7 @@ export const oaFormsRouter = router({
           fields: input.fields,
           approvalFlow: input.approvalFlow ?? null,
           isSystem: input.isSystem ?? false,
-          createdBy: input.createdBy,
+          createdBy: ctx.user.id,
           version: 1,
         })
         .returning();
@@ -367,10 +366,10 @@ export const oaFormsRouter = router({
       return created;
     }),
 
-  /** Withdraw a submission (only if pending or draft) */
+  /** Withdraw a submission (only if pending or draft, only by owner) */
   withdrawSubmission: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       const [submission] = await db
@@ -382,6 +381,14 @@ export const oaFormsRouter = router({
         throw new TRPCError({
           code: "NOT_FOUND",
           message: `Submission ${input.id} not found`,
+        });
+      }
+
+      // Only the applicant can withdraw their own submission
+      if (submission.applicantId !== ctx.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "只能撤回自己提交的表单",
         });
       }
 
@@ -459,6 +466,22 @@ export const oaFormsRouter = router({
         });
       }
 
+      // Self-approval prevention
+      if (submission.applicantId === approverId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "不能审批自己提交的表单",
+        });
+      }
+
+      // Verify caller is the designated approver
+      if (submission.currentApproverId && submission.currentApproverId !== approverId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `当前审批人为 ${submission.currentApproverName ?? submission.currentApproverId}，您无权审批`,
+        });
+      }
+
       const currentStep = submission.currentApprovalStep ?? 0;
 
       // Insert approval record
@@ -506,6 +529,7 @@ export const oaFormsRouter = router({
           }
         }
 
+        // Atomic update — only update if still pending at current step
         const [updated] = await db
           .update(oaFormSubmissions)
           .set({
@@ -514,12 +538,16 @@ export const oaFormsRouter = router({
             currentApproverName: nextApproverName,
             updatedAt: new Date().toISOString(),
           })
-          .where(eq(oaFormSubmissions.id, input.submissionId))
+          .where(and(
+            eq(oaFormSubmissions.id, input.submissionId),
+            eq(oaFormSubmissions.status, "pending"),
+          ))
           .returning();
 
+        if (!updated) throw new TRPCError({ code: "CONFLICT", message: "表单状态已变更，请刷新后重试" });
         return updated;
       } else {
-        // Last step — mark as approved
+        // Last step — mark as approved (atomic)
         const [updated] = await db
           .update(oaFormSubmissions)
           .set({
@@ -529,9 +557,13 @@ export const oaFormsRouter = router({
             currentApproverName: null,
             updatedAt: new Date().toISOString(),
           })
-          .where(eq(oaFormSubmissions.id, input.submissionId))
+          .where(and(
+            eq(oaFormSubmissions.id, input.submissionId),
+            eq(oaFormSubmissions.status, "pending"),
+          ))
           .returning();
 
+        if (!updated) throw new TRPCError({ code: "CONFLICT", message: "表单状态已变更，请刷新后重试" });
         return updated;
       }
     }),
@@ -569,6 +601,22 @@ export const oaFormsRouter = router({
         });
       }
 
+      // Self-rejection prevention
+      if (submission.applicantId === approverId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "不能驳回自己提交的表单",
+        });
+      }
+
+      // Verify caller is the designated approver
+      if (submission.currentApproverId && submission.currentApproverId !== approverId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `当前审批人为 ${submission.currentApproverName ?? submission.currentApproverId}，您无权驳回`,
+        });
+      }
+
       const currentStep = submission.currentApprovalStep ?? 0;
 
       // Insert rejection record
@@ -581,7 +629,7 @@ export const oaFormsRouter = router({
         comment: input.comment ?? null,
       });
 
-      // Mark submission as rejected
+      // Atomic reject — only if still pending
       const [updated] = await db
         .update(oaFormSubmissions)
         .set({
@@ -592,9 +640,13 @@ export const oaFormsRouter = router({
           currentApproverName: null,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(oaFormSubmissions.id, input.submissionId))
+        .where(and(
+          eq(oaFormSubmissions.id, input.submissionId),
+          eq(oaFormSubmissions.status, "pending"),
+        ))
         .returning();
 
+      if (!updated) throw new TRPCError({ code: "CONFLICT", message: "表单状态已变更，请刷新后重试" });
       return updated;
     }),
 

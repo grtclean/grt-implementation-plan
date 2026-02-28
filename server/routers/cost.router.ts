@@ -66,9 +66,8 @@ export const costRouter = router({
     milestoneId: z.number().optional(),
     phaseCode: z.string().optional(),
     status: z.string().optional(),
-    submitterId: z.number().optional(),
     remark: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     await db.insert(costRecords).values({
       projectId: input.projectId,
@@ -83,7 +82,7 @@ export const costRouter = router({
       milestoneId: input.milestoneId,
       phaseCode: input.phaseCode,
       status: input.status ?? "pending",
-      submitterId: input.submitterId,
+      submitterId: ctx.user.id,
       remark: input.remark,
     } as any);
     return successResponse;
@@ -103,7 +102,6 @@ export const costRouter = router({
     milestoneId: z.number().optional(),
     phaseCode: z.string().optional(),
     status: z.string().optional(),
-    submitterId: z.number().optional(),
     remark: z.string().optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
@@ -200,9 +198,8 @@ export const costRouter = router({
     phaseCode: z.string().optional(),
     basis: z.string().optional(),
     assumptions: z.string().optional(),
-    estimatorId: z.number().optional(),
     remark: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     await db.insert(costEstimates).values({
       projectId: input.projectId,
@@ -216,7 +213,7 @@ export const costRouter = router({
       phaseCode: input.phaseCode,
       basis: input.basis,
       assumptions: input.assumptions,
-      estimatorId: input.estimatorId,
+      estimatorId: ctx.user.id,
     } as any);
     return successResponse;
   }),
