@@ -8,6 +8,7 @@
  *   scrap disposal, spare parts, supplier penalties, traceability
  */
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
@@ -30,7 +31,7 @@ import { deliveryRegistrations } from "../../drizzle/p2p-lifecycle-schema";
 import { suppliers } from "../../drizzle/procurement-schema";
 
 const idInput = z.object({ id: z.union([z.string(), z.number()]) });
-const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
+const toNum = (id: string | number) => typeof id === "string" ? parseInt(id, 10) : id;
 
 function generateCode(prefix: string) {
   const d = new Date();
@@ -274,9 +275,8 @@ const incomingInspectionRouter = router({
       dispositionReason: z.string().optional(),
       defectCount: z.number().optional(),
       measurementData: z.array(z.record(z.string(), z.unknown())).optional(),
-      inspectedByName: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const numId = toNum(input.id);
       const [record] = await db.select().from(incomingInspectionRecords).where(eq(incomingInspectionRecords.id, numId));
@@ -288,7 +288,7 @@ const incomingInspectionRouter = router({
         dispositionReason: input.dispositionReason,
         defectCount: input.defectCount ?? 0,
         measurementData: input.measurementData,
-        inspectedByName: input.inspectedByName,
+        inspectedByName: ctx.user.name ?? `User#${ctx.user.id}`,
         inspectedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }).where(eq(incomingInspectionRecords.id, numId)).returning();
@@ -456,10 +456,8 @@ const assemblyBomScanRouter = router({
       projectNumber: z.string(),
       processCode: z.string(),
       scannedBarcode: z.string(),
-      scannedBy: z.number().optional(),
-      scannedByName: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       // Step 1: Try to resolve barcode to material code via supplier labels
@@ -529,8 +527,8 @@ const assemblyBomScanRouter = router({
         bomMatchResult,
         lotNumber,
         serialNumber,
-        scannedBy: input.scannedBy,
-        scannedByName: input.scannedByName,
+        scannedBy: ctx.user.id,
+        scannedByName: ctx.user.name ?? `User#${ctx.user.id}`,
       }).returning();
 
       // Create traceability edge
@@ -555,15 +553,14 @@ const assemblyBomScanRouter = router({
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       deviationReason: z.string(),
-      deviationConfirmedBy: z.number().optional(),
       bomAdjustmentApplied: z.boolean().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [updated] = await db.update(assemblyBomScanLogs).set({
         deviationConfirmed: true,
         deviationReason: input.deviationReason,
-        deviationConfirmedBy: input.deviationConfirmedBy,
+        deviationConfirmedBy: ctx.user.id,
         deviationConfirmedAt: new Date().toISOString(),
         bomAdjustmentApplied: input.bomAdjustmentApplied ?? false,
       }).where(eq(assemblyBomScanLogs.id, toNum(input.id))).returning();
@@ -650,17 +647,15 @@ const laborConfirmationRouter = router({
     .input(z.object({
       projectNumber: z.string(),
       processCode: z.string(),
-      workerId: z.number(),
-      workerName: z.string().optional(),
       plannedMinutes: z.number().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [record] = await db.insert(assemblyLaborConfirmations).values({
         projectNumber: input.projectNumber,
         processCode: input.processCode,
-        workerId: input.workerId,
-        workerName: input.workerName,
+        workerId: ctx.user.id,
+        workerName: ctx.user.name ?? `User#${ctx.user.id}`,
         clockInTime: new Date().toISOString(),
         plannedMinutes: input.plannedMinutes,
       }).returning();
@@ -701,13 +696,12 @@ const laborConfirmationRouter = router({
   supervisorConfirm: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
-      supervisorId: z.number(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [updated] = await db.update(assemblyLaborConfirmations).set({
         confirmedBySupervisor: true,
-        supervisorId: input.supervisorId,
+        supervisorId: ctx.user.id,
         supervisorConfirmedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }).where(eq(assemblyLaborConfirmations.id, toNum(input.id))).returning();
@@ -1072,19 +1066,19 @@ const scrapDisposalRouter = router({
       scrapCategory: z.string().optional(),
       projectNumber: z.string().optional(),
       processCode: z.string().optional(),
-      authorizedBy: z.number(),
-      authorizedByName: z.string().optional(),
       disposalMethod: z.enum(["recycle", "destroy", "return", "salvage"]).default("recycle"),
       replacementRequired: z.boolean().optional(),
       unitCost: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const qty = Number(input.quantity || 1);
       const unitCost = Number(input.unitCost || 0);
       const [record] = await db.insert(scrapDisposalRecords).values({
         scrapCode: generateCode("SCR"),
         ...input,
+        authorizedBy: ctx.user.id,
+        authorizedByName: ctx.user.name ?? `User#${ctx.user.id}`,
         totalScrapCost: String(qty * unitCost),
         authorizedAt: new Date().toISOString(),
       }).returning();
@@ -1419,14 +1413,13 @@ const supplierPenaltyRouter = router({
   resolve: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
-      resolvedBy: z.number().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [updated] = await db.update(supplierPenalties).set({
         isActive: false,
         resolvedAt: new Date().toISOString(),
-        resolvedBy: input.resolvedBy,
+        resolvedBy: ctx.user.id,
         updatedAt: new Date().toISOString(),
       }).where(eq(supplierPenalties.id, toNum(input.id))).returning();
       return updated;

@@ -461,11 +461,10 @@ const interactionsRouter = router({
         isComplaint: z.boolean().optional(),
         complaintSeverity: z.enum(["low", "medium", "high", "critical"]).optional(),
         resolution: z.string().optional(),
-        createdBy: z.number(),
       })
     )
-    .mutation(async ({ input }) => {
-      return createInteraction(input);
+    .mutation(async ({ input, ctx }) => {
+      return createInteraction({ ...input, createdBy: ctx.user.id });
     }),
 
   /** Resolve a complaint interaction */

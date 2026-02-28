@@ -556,7 +556,7 @@ function InteractionsTab() {
               try {
                 await createM.mutateAsync({
                   customerId: Number(form.customerId) || 1, type: form.type,
-                  subject: form.subject, content: form.content || undefined, createdBy: 1,
+                  subject: form.subject, content: form.content || undefined,
                 });
               } catch (err) {
                 console.error("Create interaction failed:", err);

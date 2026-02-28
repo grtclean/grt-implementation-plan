@@ -7,11 +7,14 @@
  * - Quarterly dashboard aggregation
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import { performanceRecords } from "../../drizzle/performance-schema";
 import { eq, and, desc, sql, count, type SQL } from "drizzle-orm";
+
+/** Roles that can view/manage all employees' performance records */
+const PERF_MANAGER_ROLES = new Set(["admin", "director", "hr_manager", "hr_specialist", "dept_manager", "finance_manager"]);
 
 export const performanceRecordRouter = router({
   /**
@@ -28,12 +31,17 @@ export const performanceRecordRouter = router({
       limit: z.number().min(1).max(100).default(20),
       offset: z.number().min(0).default(0),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
 
       const conditions: SQL[] = [];
+      // Non-manager roles can only see their own records
+      if (!PERF_MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
+        conditions.push(eq(performanceRecords.userId, ctx.user.id));
+      } else {
+        if (input.userId) conditions.push(eq(performanceRecords.userId, input.userId));
+      }
       if (input.buId) conditions.push(eq(performanceRecords.buId, input.buId));
-      if (input.userId) conditions.push(eq(performanceRecords.userId, input.userId));
       if (input.year) conditions.push(eq(performanceRecords.year, input.year));
       if (input.quarter) conditions.push(eq(performanceRecords.quarter, input.quarter));
       if (input.status) conditions.push(eq(performanceRecords.status, input.status));
@@ -94,13 +102,19 @@ export const performanceRecordRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      // Non-managers can only create their own records
+      const targetUserId = input.userId ?? ctx.user.id;
+      if (targetUserId !== ctx.user.id && !PERF_MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "无权为他人创建绩效记录" });
+      }
       const db = await requireDb();
       const [record] = await db.insert(performanceRecords).values({
         ...input,
+        userId: targetUserId,
         status: "draft",
         isFrozen: false,
         version: 1,
-        createdBy: ctx.user?.id ?? 0,
+        createdBy: ctx.user.id,
       }).returning();
       return record;
     }),
@@ -163,48 +177,50 @@ export const performanceRecordRouter = router({
   /**
    * freeze — freeze a performance record (e.g., during violation investigation)
    */
-  freeze: protectedProcedure
+  freeze: requirePermission('hrm_performance')
     .input(z.object({
       id: z.number(),
       reason: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
+      // Atomic: only freeze if not already frozen
       const [updated] = await db.update(performanceRecords)
         .set({
           isFrozen: true,
           frozenAt: new Date().toISOString(),
-          frozenBy: ctx.user?.name ?? "system",
+          frozenBy: ctx.user.name ?? `User#${ctx.user.id}`,
           frozenReason: input.reason,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(performanceRecords.id, input.id))
+        .where(and(eq(performanceRecords.id, input.id), eq(performanceRecords.isFrozen, false)))
         .returning();
 
-      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
+      if (!updated) throw new TRPCError({ code: "CONFLICT", message: "记录不存在或已冻结" });
       return updated;
     }),
 
   /**
    * unfreeze — unfreeze a performance record (after violation resolved)
    */
-  unfreeze: protectedProcedure
+  unfreeze: requirePermission('hrm_performance')
     .input(z.object({
       id: z.number(),
       reason: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
+      // Atomic: only unfreeze if currently frozen
       const [updated] = await db.update(performanceRecords)
         .set({
           isFrozen: false,
-          frozenReason: input.reason ? `解冻: ${input.reason}` : null,
+          frozenReason: input.reason ? `解冻(${ctx.user.name}): ${input.reason}` : null,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(performanceRecords.id, input.id))
+        .where(and(eq(performanceRecords.id, input.id), eq(performanceRecords.isFrozen, true)))
         .returning();
 
-      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
+      if (!updated) throw new TRPCError({ code: "CONFLICT", message: "记录不存在或未冻结" });
       return updated;
     }),
 

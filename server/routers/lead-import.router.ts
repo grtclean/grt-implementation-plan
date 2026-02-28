@@ -13,10 +13,10 @@ export const leadImportRouter = router({
   import: protectedProcedure.input(z.object({
     fileName: z.string(),
     totalRows: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [log] = await db.insert(leadImportLogs).values({
-      userId: 1,
+      userId: ctx.user.id,
       fileName: input.fileName,
       totalRows: input.totalRows || 0,
       successCount: 0,
@@ -30,10 +30,10 @@ export const leadImportRouter = router({
     fileName: z.string(),
     data: z.array(z.record(z.string(), z.any())).optional(),
     totalRows: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [log] = await db.insert(leadImportLogs).values({
-      userId: 1,
+      userId: ctx.user.id,
       fileName: input.fileName,
       totalRows: input.totalRows || input.data?.length || 0,
       successCount: input.data?.length || 0,
