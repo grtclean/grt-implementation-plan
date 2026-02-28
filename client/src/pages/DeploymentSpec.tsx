@@ -102,7 +102,6 @@ export default function DeploymentSpec() {
         description: `已下载 ${packageData.name}-v${packageData.version}.zip`,
       });
     } catch (error: any) {
-      console.error('下载部署包失败:', error);
       toast.error('下载失败', {
         description: error.message || '请稍后重试',
       });

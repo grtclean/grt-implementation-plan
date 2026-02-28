@@ -6,7 +6,6 @@ import { Link } from "wouter";
 
 export default function ToothpasteTest() {
   const handleSubmit = (data: any) => {
-    console.log("牙膏试验数据提交:", data);
     // TODO: 调用API保存数据
   };
 

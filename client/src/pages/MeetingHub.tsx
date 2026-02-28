@@ -299,7 +299,6 @@ export default function MeetingHub() {
       }
     } catch {
       // Backend not available — use demo data
-      console.log("[MeetingHub] Using demo data (backend not available)");
     }
   }, []);
 
@@ -344,7 +343,7 @@ export default function MeetingHub() {
         loadChat(data.result.data.json.meeting.id);
       }
     } catch {
-      console.log("[MeetingHub] Seed failed, using demo data");
+      // Seed failed — demo data is already loaded
     }
     setSeedLoading(false);
   };
@@ -369,7 +368,7 @@ export default function MeetingHub() {
         window.open(teamsUrl, "_blank", "noopener");
       }
     } catch {
-      console.log("[MeetingHub] Teams link creation failed");
+      // Teams link creation failed — user can still use the meeting without a Teams URL
     }
     setTeamsLoading(false);
   };

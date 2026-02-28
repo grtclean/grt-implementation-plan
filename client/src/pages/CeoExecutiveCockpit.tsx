@@ -18,6 +18,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import { trpc } from "@/lib/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -103,6 +104,20 @@ const healthRingColor = (score: number) => score >= 80 ? "#22c55e" : score >= 60
 
 export default function CeoExecutiveCockpit() {
   const [lang, setLang] = useState<"zh" | "en">("zh");
+
+  // Real backend data — overlay onto mock KPIs where available
+  const okrQuery = trpc.okr.dashboard.useQuery(undefined, { retry: false });
+  const perfQuery = trpc.aiPerformance.dashboard.useQuery(undefined, { retry: false });
+
+  // Override KPIs with real data when available
+  const okr = okrQuery.data;
+  if (okr && okr.totalObjectives > 0) {
+    KPI.projectsOnTrack = `${okr.onTrack}/${okr.totalObjectives}`;
+  }
+  const perf = perfQuery.data;
+  if (perf && perf.employeesEvaluated > 0) {
+    KPI.supplierScore = perf.avgMeetingScore;
+  }
 
   // SVG Radar chart coordinates
   const radarAxes = useMemo(() => {

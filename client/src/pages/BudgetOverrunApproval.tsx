@@ -101,7 +101,7 @@ export default function BudgetOverrunApproval() {
   const handleApprove = () => {
     if (!selectedApproval) return;
     approveMutation.mutate({
-      approvalId: selectedApproval.id,
+      id: Number(selectedApproval.id),
       comment: approvalComment,
     });
   };
@@ -113,7 +113,7 @@ export default function BudgetOverrunApproval() {
       return;
     }
     rejectMutation.mutate({
-      approvalId: selectedApproval.id,
+      id: Number(selectedApproval.id),
       comment: approvalComment,
     });
   };

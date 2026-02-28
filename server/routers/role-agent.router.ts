@@ -9,6 +9,8 @@
  */
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { requireDb } from "../db";
+import { desc, sql } from "drizzle-orm";
 
 // ── Role Action Configs ──
 
@@ -108,24 +110,49 @@ const ROLE_SUGGESTIONS: Record<string, Suggestion[]> = {
   ],
 };
 
-// ── Mock activity data ──
+// ── Activity from real DB (projects, OA forms, etc.) ──
 
-interface ActivityItem {
-  id: string;
-  type: string;
-  text: string;
-  textEn: string;
-  time: string;
-  timeZh: string;
+async function fetchRecentActivity(limit: number) {
+  try {
+    const db = await requireDb();
+    // Query recent project updates + OA form submissions as activity feed
+    const rows = await db.execute(sql`
+      (SELECT
+        'project' AS type,
+        id::text AS id,
+        COALESCE(name, 'Project #' || id) AS text,
+        COALESCE(name, 'Project #' || id) AS "textEn",
+        TO_CHAR(updated_at, 'YYYY-MM-DD HH24:MI') AS time,
+        TO_CHAR(updated_at, 'MM-DD HH24:MI') AS "timeZh"
+      FROM projects
+      WHERE updated_at IS NOT NULL
+      ORDER BY updated_at DESC
+      LIMIT ${Math.ceil(limit / 2)})
+      UNION ALL
+      (SELECT
+        'task' AS type,
+        id::text AS id,
+        COALESCE(task_desc, 'Task #' || id) AS text,
+        COALESCE(task_desc, 'Task #' || id) AS "textEn",
+        TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') AS time,
+        TO_CHAR(created_at, 'MM-DD HH24:MI') AS "timeZh"
+      FROM meeting_action_items
+      ORDER BY created_at DESC
+      LIMIT ${Math.ceil(limit / 2)})
+      ORDER BY time DESC
+      LIMIT ${limit}
+    `);
+    const items = (rows.rows ?? []) as any[];
+    if (items.length > 0) return items;
+  } catch { /* fall through to fallback */ }
+
+  // Fallback static data when DB unavailable
+  return [
+    { id: "a1", type: "project", text: "Project P-2024-018 moved to M2", textEn: "Project P-2024-018 moved to M2", time: "2h ago", timeZh: "2小时前" },
+    { id: "a2", type: "approval", text: "Travel request approved", textEn: "Travel request approved", time: "3h ago", timeZh: "3小时前" },
+    { id: "a3", type: "meeting", text: "Weekly sync scheduled for Friday", textEn: "Weekly sync scheduled for Friday", time: "5h ago", timeZh: "5小时前" },
+  ].slice(0, limit);
 }
-
-const MOCK_ACTIVITIES: ActivityItem[] = [
-  { id: "a1", type: "project", text: "Project P-2024-018 moved to M2", textEn: "Project P-2024-018 moved to M2", time: "2h ago", timeZh: "2小时前" },
-  { id: "a2", type: "approval", text: "Travel request approved by Manager Li", textEn: "Travel request approved by Manager Li", time: "3h ago", timeZh: "3小时前" },
-  { id: "a3", type: "meeting", text: "Weekly sync meeting scheduled for Friday", textEn: "Weekly sync meeting scheduled for Friday", time: "5h ago", timeZh: "5小时前" },
-  { id: "a4", type: "document", text: "BOM v2.3 uploaded for GRT-UC200", textEn: "BOM v2.3 uploaded for GRT-UC200", time: "1d ago", timeZh: "1天前" },
-  { id: "a5", type: "alert", text: "Supplier delivery delay — Huadong Steel", textEn: "Supplier delivery delay — Huadong Steel", time: "1d ago", timeZh: "1天前" },
-];
 
 export const roleAgentRouter = router({
   /** Legacy stub */
@@ -152,10 +179,10 @@ export const roleAgentRouter = router({
       return suggestions;
     }),
 
-  /** Get recent activity feed */
+  /** Get recent activity feed (DB-backed with fallback) */
   getRecentActivity: protectedProcedure
     .input(z.object({ limit: z.number().default(5) }))
     .query(async ({ input }) => {
-      return MOCK_ACTIVITIES.slice(0, input.limit);
+      return fetchRecentActivity(input.limit);
     }),
 });

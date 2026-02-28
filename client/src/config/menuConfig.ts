@@ -324,7 +324,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "BOM Excel导入", nameEn: "BOM Excel Import", nameDe: "BOM Excel-Import", nameFr: "Import BOM Excel", path: "/bom-excel-import", icon: Upload, isNew: true,
         allowedRoles: ["admin", "bu_pm", "bu_mech", "bu_elec"] },
       { name: "BDO图纸管理", nameEn: "Drawing Library", nameDe: "Zeichnungsbibliothek", nameFr: "Bibliothèque dessins", path: "/drawing-library", icon: FileText, isNew: true },
-      { name: "ECO成本影响", nameEn: "ECO Cost Impact", nameDe: "ECO-Kostenauswirkung", nameFr: "Impact coût ECO", path: "/engineering/eco-review/ECO-2026-001", icon: GitCompare, isNew: true },
+      { name: "ECO成本影响", nameEn: "ECO Cost Impact", nameDe: "ECO-Kostenauswirkung", nameFr: "Impact coût ECO", path: "/engineering/eco-review", icon: GitCompare, isNew: true },
     ],
   },
 

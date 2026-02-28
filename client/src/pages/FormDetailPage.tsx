@@ -68,7 +68,6 @@ export default function FormDetailPage() {
     : null;
 
   const handleSubmit = (values: Record<string, unknown>) => {
-    console.log("Form submitted:", values);
     toast.success(`${template?.templateName || "表单"} 提交成功（演示模式）`);
   };
 

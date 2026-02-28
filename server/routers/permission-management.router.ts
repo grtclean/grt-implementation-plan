@@ -1,3 +1,15 @@
+/**
+ * Permission Management Router — admin collaboration + AI suggestions
+ *
+ * Registered as: appRouter.permissionManagement
+ * Role: Higher-level admin features: discussion pools, external user invitations,
+ *       LLM-powered permission suggestions, audit log viewing.
+ *       Currently uses mock data — should delegate to permission router for real checks.
+ *
+ * Related routers:
+ *   - permission (server/permission-management/) = DB-backed RBAC source of truth
+ *   - rolePermission (server/permissions/) = fast config-based checks
+ */
 import { protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";

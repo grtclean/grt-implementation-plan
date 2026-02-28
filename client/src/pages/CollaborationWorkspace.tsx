@@ -191,7 +191,6 @@ export default function CollaborationWorkspace() {
 
   // 创建工作区
   const handleCreateWorkspace = () => {
-    console.log("handleCreateWorkspace called", { newWorkspaceName, newWorkspaceDesc });
     if (!newWorkspaceName.trim()) {
       toast.error(t("rnd.collab.enterWorkspaceName"));
       return;
@@ -219,8 +218,6 @@ export default function CollaborationWorkspace() {
       setNewWorkspaceDesc("");
       return;
     }
-    
-    console.log("Calling mutation...");
     createWorkspaceMutation.mutate({
       name: newWorkspaceName,
       description: newWorkspaceDesc || undefined,
@@ -637,7 +634,6 @@ export default function CollaborationWorkspace() {
                     userName={user.name || 'Anonymous'}
                     initialContent={`# ${selectedWorkspace.name}\n\n## 项目概述\n\n请在此处编辑项目方案...\n\n## 技术方案\n\n### 系统架构\n\n### 功能模块\n\n## 实施计划\n\n## 风险评估\n`}
                     onSave={async (content) => {
-                      console.log('Saving document:', content.substring(0, 100));
                       // TODO: 调用API保存文档
                       toast.success(t("rnd.collab.docSaved"));
                     }}

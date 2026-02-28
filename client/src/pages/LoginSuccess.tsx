@@ -27,9 +27,8 @@ export default function LoginSuccess() {
       try {
         localStorage.setItem(SESSION_STORAGE_KEY, token);
         setTokenStored(true);
-        console.log("[LoginSuccess] Token stored in localStorage");
       } catch (e) {
-        console.error("[LoginSuccess] Failed to store token:", e);
+        // Token storage failed - login flow will still proceed via cookies
       }
     }
 
@@ -53,14 +52,13 @@ export default function LoginSuccess() {
         // Send immediately
         sendMessage();
         setMessageSent(true);
-        console.log("[LoginSuccess] Sent LOGIN_SUCCESS message to opener");
         
         // Also send after a short delay in case opener wasn't ready
         setTimeout(sendMessage, 300);
         setTimeout(sendMessage, 800);
         setTimeout(sendMessage, 1500);
-      } catch (e) {
-        console.log("Could not notify opener:", e);
+      } catch {
+        // Opener notification failed - countdown redirect will handle navigation
       }
     }
 

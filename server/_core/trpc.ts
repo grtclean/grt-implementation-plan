@@ -36,7 +36,39 @@ const requireUser = t.middleware(async opts => {
   });
 });
 
-export const protectedProcedure = publicProcedure.use(requireUser);
+/**
+ * safeMutation middleware — wraps mutations in uniform error handling.
+ * Catches any thrown error, logs it, and re-throws as a typed TRPCError
+ * so the frontend always receives { code, message } instead of raw 500s.
+ *
+ * Applied globally to protectedProcedure — all 1000+ mutations are covered.
+ */
+export const safeMutationMiddleware = t.middleware(async ({ ctx, next, type }) => {
+  if (type !== 'mutation') return next({ ctx });
+  try {
+    return await next({ ctx });
+  } catch (err) {
+    // Already a TRPCError — re-throw as-is
+    if (err instanceof TRPCError) throw err;
+
+    const message = err instanceof Error ? err.message : 'Unknown mutation error';
+    console.error(`[safeMutation] ${message}`);
+    throw new TRPCError({
+      code: 'INTERNAL_SERVER_ERROR',
+      message,
+      cause: err,
+    });
+  }
+});
+
+/**
+ * protectedProcedure — requires authenticated user + global mutation error handling.
+ * All mutations automatically get try-catch wrapping via safeMutationMiddleware.
+ */
+export const protectedProcedure = publicProcedure.use(requireUser).use(safeMutationMiddleware);
+
+/** Legacy alias — protectedProcedure now includes safeMutation globally */
+export const safeMutationProcedure = protectedProcedure;
 
 export const adminProcedure = publicProcedure.use(
   t.middleware(async opts => {
@@ -66,32 +98,6 @@ async function safeCheckPermission(userId: string, permissionCode: string): Prom
     return false;
   }
 }
-
-/**
- * safeMutation middleware — wraps mutations in uniform error handling.
- * Catches any thrown error, logs it, and re-throws as a typed TRPCError
- * so the frontend always receives { code, message } instead of raw 500s.
- */
-export const safeMutationMiddleware = t.middleware(async ({ ctx, next, type }) => {
-  if (type !== 'mutation') return next({ ctx });
-  try {
-    return await next({ ctx });
-  } catch (err) {
-    // Already a TRPCError — re-throw as-is
-    if (err instanceof TRPCError) throw err;
-
-    const message = err instanceof Error ? err.message : 'Unknown mutation error';
-    console.error(`[safeMutation] ${message}`);
-    throw new TRPCError({
-      code: 'INTERNAL_SERVER_ERROR',
-      message,
-      cause: err,
-    });
-  }
-});
-
-/** Protected procedure with uniform mutation error handling */
-export const safeMutationProcedure = protectedProcedure.use(safeMutationMiddleware);
 
 export function requirePermission(permissionCode: string) {
   return protectedProcedure.use(

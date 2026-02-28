@@ -351,7 +351,6 @@ export default function DevTaskBoard() {
         }
       }
     } catch (err) {
-      console.error('Failed to copy:', err);
       toast.info(language === "zh" ? "请手动复制提示词" : "Please copy the prompt manually");
     }
   };

@@ -1,5 +1,14 @@
 /**
- * GRT 5.0 权限管理路由
+ * Role Permission Router — fast config-based permission checks
+ *
+ * Registered as: appRouter.rolePermission
+ * Role: Lightweight, in-memory permission query layer.
+ *       Uses static ROLE_PERMISSIONS config (no DB calls).
+ *       Ideal for client-side page access checks and menu filtering.
+ *
+ * Related routers:
+ *   - permission (server/permission-management/) = DB-backed RBAC source of truth
+ *   - permissionManagement (server/routers/) = admin collaboration features
  */
 
 import { z } from "zod";

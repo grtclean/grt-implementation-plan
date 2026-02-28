@@ -107,7 +107,6 @@ export default function NotificationAggregationConfig() {
   // 保存配置
   const handleSave = () => {
     // TODO: 调用API保存配置
-    console.log('保存聚合规则:', rules);
     toast({
       title: '保存成功',
       description: '消息聚合规则已更新',

@@ -452,11 +452,7 @@ export default function MeetingIntelligence() {
                       hasTranscript: !!m.transcription,
                       hasDecisions: !!m.decisions,
                     }))}
-                    onExportComplete={(result) => {
-                      if (result.success) {
-                        console.log('批量导出完成:', result);
-                      }
-                    }}
+                    onExportComplete={() => {}}
                   />
                 </TabsContent>
               </Tabs>

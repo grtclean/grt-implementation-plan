@@ -1,5 +1,14 @@
 /**
- * 权限管理tRPC路由
+ * RBAC Permission Router — DB-backed source of truth
+ *
+ * Registered as: appRouter.permission
+ * Role: Main RBAC system with full DB persistence.
+ *       Manages roles, permissions, user-role assignments, audit logs.
+ *       This is the authoritative permission store.
+ *
+ * Related routers:
+ *   - rolePermission (server/permissions/) = fast config-based checks (read-only cache layer)
+ *   - permissionManagement (server/routers/) = admin collaboration features + AI suggestions
  */
 
 import { z } from 'zod';

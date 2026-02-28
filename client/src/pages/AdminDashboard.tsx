@@ -1,10 +1,11 @@
 import React from "react";
-import { PageHeader, StatCard } from "@/components/grt";
+import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trpc } from "@/lib/trpc";
 import {
   Shield,
   Users,
@@ -14,12 +15,13 @@ import {
   Lock,
   AlertTriangle,
   CheckCircle2,
-  Clock,
   TrendingUp,
   Server,
   HardDrive,
   Cpu,
   MemoryStick,
+  BarChart3,
+  FolderKanban,
 } from "lucide-react";
 import { useLocation } from "wouter";
 
@@ -28,7 +30,13 @@ export default function AdminDashboard() {
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
 
-  // 如果不是管理员，显示无权限页面
+  // Real backend data — OKR dashboard
+  const okrQuery = trpc.okr.dashboard.useQuery(undefined, { retry: false });
+  // Real backend data — AI performance KPIs
+  const perfQuery = trpc.aiPerformance.dashboard.useQuery(undefined, { retry: false });
+  // Real backend data — pending budget approvals
+  const budgetQuery = trpc.budgetOverrunApproval.getPendingApprovals.useQuery(undefined, { retry: false });
+
   if (currentUserRole !== "admin") {
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -46,29 +54,9 @@ export default function AdminDashboard() {
     );
   }
 
-  // 系统状态数据（模拟）
-  const systemStats = {
-    cpu: 45,
-    memory: 62,
-    disk: 38,
-    uptime: "15天 8小时",
-  };
-
-  // 用户统计（模拟）
-  const userStats = {
-    total: 156,
-    active: 89,
-    newToday: 5,
-    online: 23,
-  };
-
-  // 安全事件（模拟）
-  const securityEvents = [
-    { type: "success", message: "系统备份完成", time: "10分钟前" },
-    { type: "warning", message: "检测到异常登录尝试", time: "1小时前" },
-    { type: "success", message: "安全扫描完成，无威胁", time: "3小时前" },
-    { type: "info", message: "权限变更审计完成", time: "5小时前" },
-  ];
+  const okrData = okrQuery.data ?? { totalObjectives: 0, avgProgress: 0, onTrack: 0, atRisk: 0, behind: 0, companyLevel: 0, buLevel: 0, deptLevel: 0, teamLevel: 0 };
+  const perfData = perfQuery.data ?? { avgMeetingScore: 0, actionItemCompletionRate: 0, employeesEvaluated: 0, topPerformer: null };
+  const pendingBudgets = budgetQuery.data ?? [];
 
   return (
       <div className="space-y-6">
@@ -84,22 +72,21 @@ export default function AdminDashboard() {
           }
         />
 
-        {/* 系统状态卡片 */}
+        {/* KPI Overview Cards — real data */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">CPU 使用率</p>
-                  <p className="text-2xl font-bold">{systemStats.cpu}%</p>
+                  <p className="text-sm text-muted-foreground">OKR 目标总数</p>
+                  <p className="text-2xl font-bold">{okrData.totalObjectives}</p>
                 </div>
-                <Cpu className="w-8 h-8 text-blue-500" />
+                <BarChart3 className="w-8 h-8 text-blue-500" />
               </div>
-              <div className="mt-2 h-2 bg-secondary rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 transition-all"
-                  style={{ width: `${systemStats.cpu}%` }}
-                />
+              <div className="mt-2 flex items-center gap-2 text-xs">
+                <span className="text-green-500">{okrData.onTrack} 正常</span>
+                <span className="text-yellow-500">{okrData.atRisk} 风险</span>
+                <span className="text-red-500">{okrData.behind} 滞后</span>
               </div>
             </CardContent>
           </Card>
@@ -108,15 +95,15 @@ export default function AdminDashboard() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">内存使用</p>
-                  <p className="text-2xl font-bold">{systemStats.memory}%</p>
+                  <p className="text-sm text-muted-foreground">OKR 平均进度</p>
+                  <p className="text-2xl font-bold">{okrData.avgProgress}%</p>
                 </div>
-                <MemoryStick className="w-8 h-8 text-green-500" />
+                <TrendingUp className="w-8 h-8 text-green-500" />
               </div>
               <div className="mt-2 h-2 bg-secondary rounded-full overflow-hidden">
                 <div
                   className="h-full bg-green-500 transition-all"
-                  style={{ width: `${systemStats.memory}%` }}
+                  style={{ width: `${Math.min(100, okrData.avgProgress)}%` }}
                 />
               </div>
             </CardContent>
@@ -126,16 +113,13 @@ export default function AdminDashboard() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">磁盘使用</p>
-                  <p className="text-2xl font-bold">{systemStats.disk}%</p>
+                  <p className="text-sm text-muted-foreground">绩效评估人数</p>
+                  <p className="text-2xl font-bold">{perfData.employeesEvaluated}</p>
                 </div>
-                <HardDrive className="w-8 h-8 text-orange-500" />
+                <Users className="w-8 h-8 text-orange-500" />
               </div>
-              <div className="mt-2 h-2 bg-secondary rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-orange-500 transition-all"
-                  style={{ width: `${systemStats.disk}%` }}
-                />
+              <div className="mt-2 text-xs text-muted-foreground">
+                平均分: {perfData.avgMeetingScore} | 完成率: {perfData.actionItemCompletionRate}%
               </div>
             </CardContent>
           </Card>
@@ -144,91 +128,94 @@ export default function AdminDashboard() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">系统运行时间</p>
-                  <p className="text-2xl font-bold">{systemStats.uptime}</p>
+                  <p className="text-sm text-muted-foreground">待审批超预算</p>
+                  <p className="text-2xl font-bold">{pendingBudgets.length}</p>
                 </div>
-                <Server className="w-8 h-8 text-purple-500" />
+                <AlertTriangle className="w-8 h-8 text-red-500" />
               </div>
-              <div className="mt-2 flex items-center gap-1 text-xs text-green-500">
-                <CheckCircle2 className="w-3 h-3" />
-                系统运行正常
-              </div>
+              {pendingBudgets.length > 0 && (
+                <div className="mt-2 text-xs text-yellow-600">
+                  最新: {(pendingBudgets[0] as any)?.projectName ?? "—"}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* 主要内容区域 */}
+        {/* Main content area */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 用户管理 */}
+          {/* OKR Level Breakdown */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                用户管理
+                <FolderKanban className="w-5 h-5" />
+                OKR 层级分布
               </CardTitle>
-              <CardDescription>系统用户统计和管理</CardDescription>
+              <CardDescription>各层级目标数量</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-secondary/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">总用户数</p>
-                  <p className="text-xl font-bold">{userStats.total}</p>
+                  <p className="text-sm text-muted-foreground">公司级</p>
+                  <p className="text-xl font-bold">{okrData.companyLevel}</p>
                 </div>
                 <div className="p-3 bg-secondary/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">活跃用户</p>
-                  <p className="text-xl font-bold text-green-500">{userStats.active}</p>
+                  <p className="text-sm text-muted-foreground">BU级</p>
+                  <p className="text-xl font-bold text-blue-500">{okrData.buLevel}</p>
                 </div>
                 <div className="p-3 bg-secondary/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">今日新增</p>
-                  <p className="text-xl font-bold text-blue-500">+{userStats.newToday}</p>
+                  <p className="text-sm text-muted-foreground">部门级</p>
+                  <p className="text-xl font-bold text-green-500">{okrData.deptLevel}</p>
                 </div>
                 <div className="p-3 bg-secondary/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">当前在线</p>
-                  <p className="text-xl font-bold text-primary">{userStats.online}</p>
+                  <p className="text-sm text-muted-foreground">个人级</p>
+                  <p className="text-xl font-bold text-primary">{okrData.teamLevel}</p>
                 </div>
               </div>
-              <Button className="w-full" variant="outline">
-                管理用户
+              <Button className="w-full" variant="outline" onClick={() => setLocation("/strategy")}>
+                查看 OKR 详情
               </Button>
             </CardContent>
           </Card>
 
-          {/* 安全监控 */}
+          {/* Top Performer */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                安全监控
+                <Activity className="w-5 h-5" />
+                绩效概览
               </CardTitle>
-              <CardDescription>最近的安全事件</CardDescription>
+              <CardDescription>AI 绩效引擎数据</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {securityEvents.map((event, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors"
-                  >
-                    {event.type === "success" && (
-                      <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5" />
-                    )}
-                    {event.type === "warning" && (
-                      <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5" />
-                    )}
-                    {event.type === "info" && (
-                      <Activity className="w-4 h-4 text-blue-500 mt-0.5" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate">{event.message}</p>
-                      <p className="text-xs text-muted-foreground">{event.time}</p>
-                    </div>
-                  </div>
-                ))}
+            <CardContent className="space-y-3">
+              {perfData.topPerformer ? (
+                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                  <p className="text-sm text-muted-foreground">本月最佳</p>
+                  <p className="text-lg font-bold">{perfData.topPerformer.name}</p>
+                  <p className="text-sm text-green-600">得分: {perfData.topPerformer.score}</p>
+                </div>
+              ) : (
+                <div className="p-3 bg-secondary/50 rounded-lg text-sm text-muted-foreground">
+                  暂无绩效数据
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-secondary/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground">平均分</p>
+                  <p className="font-bold">{perfData.avgMeetingScore}</p>
+                </div>
+                <div className="p-3 bg-secondary/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground">待办完成率</p>
+                  <p className="font-bold">{perfData.actionItemCompletionRate}%</p>
+                </div>
               </div>
+              <Button className="w-full" variant="outline" onClick={() => setLocation("/meeting-executive")}>
+                查看绩效详情
+              </Button>
             </CardContent>
           </Card>
 
-          {/* 快捷操作 */}
+          {/* Quick Actions */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -238,27 +225,27 @@ export default function AdminDashboard() {
               <CardDescription>常用管理功能</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button className="w-full justify-start" variant="outline">
+              <Button className="w-full justify-start" variant="outline" onClick={() => setLocation("/employee-management")}>
+                <Users className="w-4 h-4 mr-2" />
+                用户管理
+              </Button>
+              <Button className="w-full justify-start" variant="outline" onClick={() => setLocation("/cost")}>
                 <Database className="w-4 h-4 mr-2" />
-                数据库管理
+                成本中心
               </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Lock className="w-4 h-4 mr-2" />
-                权限配置
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button className="w-full justify-start" variant="outline" onClick={() => setLocation("/report-center")}>
                 <Activity className="w-4 h-4 mr-2" />
-                审计日志
+                报表中心
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button className="w-full justify-start" variant="outline" onClick={() => setLocation("/strategy")}>
                 <TrendingUp className="w-4 h-4 mr-2" />
-                系统报表
+                战略目标
               </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* 权限说明 */}
+        {/* Permission Status */}
         <Card>
           <CardHeader>
             <CardTitle>当前权限状态</CardTitle>

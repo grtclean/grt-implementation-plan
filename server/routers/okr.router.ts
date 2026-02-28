@@ -1,33 +1,405 @@
 /**
  * OKR Engine Router — Objectives & Key Results
  *
+ * Queries real DB tables:
+ *   - okr_objectives: Company → BU → Dept → Individual hierarchy
+ *   - okr_key_results: Measurable KRs linked to objectives
+ *   - okr_check_ins: Progress check-in records
+ *
  * Provides:
- *   - list: list objectives (legacy stub)
- *   - dashboard: aggregate OKR KPIs (avg progress, level breakdown, etc.)
+ *   - listObjectives: paginated list with optional filters
+ *   - getObjective: single objective with KRs + check-ins
+ *   - createObjective / updateObjective / deleteObjective
+ *   - createKeyResult / updateKeyResult
+ *   - checkIn: record KR progress
+ *   - dashboard: aggregate OKR KPIs
+ *   - seedDemo: insert demo data
  */
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { requireDb } from "../db";
+import { eq, desc, sql, count, and, inArray } from "drizzle-orm";
+import { okrObjectives, okrKeyResults, okrCheckIns } from "../../drizzle/okr-schema";
 
 export const okrRouter = router({
+  /** Legacy list stub — now backed by real DB */
   list: protectedProcedure
     .input(z.object({ limit: z.number().default(50), offset: z.number().default(0) }).optional())
-    .query(async () => {
-      return { items: [], total: 0 };
+    .query(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const limit = input?.limit ?? 50;
+        const offset = input?.offset ?? 0;
+        const rows = await db.select().from(okrObjectives)
+          .orderBy(desc(okrObjectives.createdAt))
+          .limit(limit)
+          .offset(offset);
+        const [total] = await db.select({ value: count() }).from(okrObjectives);
+        return { items: rows, total: Number(total?.value ?? 0) };
+      } catch {
+        return { items: [], total: 0 };
+      }
+    }),
+
+  /** List objectives with filters */
+  listObjectives: protectedProcedure
+    .input(z.object({
+      level: z.enum(["company", "bu", "department", "individual"]).optional(),
+      status: z.string().optional(),
+      period: z.string().optional(),
+      buCode: z.string().optional(),
+      ownerId: z.string().optional(),
+      limit: z.number().default(50),
+    }))
+    .query(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const conditions = [];
+        if (input.level) conditions.push(eq(okrObjectives.level, input.level));
+        if (input.status) conditions.push(eq(okrObjectives.status, input.status));
+        if (input.period) conditions.push(eq(okrObjectives.period, input.period));
+        if (input.buCode) conditions.push(eq(okrObjectives.buCode, input.buCode));
+        if (input.ownerId) conditions.push(eq(okrObjectives.ownerId, input.ownerId));
+
+        const where = conditions.length > 0 ? and(...conditions) : undefined;
+        const rows = await db.select().from(okrObjectives)
+          .where(where)
+          .orderBy(desc(okrObjectives.createdAt))
+          .limit(input.limit);
+
+        return rows;
+      } catch {
+        return [];
+      }
+    }),
+
+  /** Get single objective with its KRs and recent check-ins */
+  getObjective: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const [obj] = await db.select().from(okrObjectives)
+          .where(eq(okrObjectives.id, input.id));
+        if (!obj) return null;
+
+        const krs = await db.select().from(okrKeyResults)
+          .where(eq(okrKeyResults.objectiveId, input.id))
+          .orderBy(okrKeyResults.id);
+
+        const krIds = krs.map(kr => kr.id);
+        let checkIns: (typeof okrCheckIns.$inferSelect)[] = [];
+        if (krIds.length > 0) {
+          checkIns = await db.select().from(okrCheckIns)
+            .where(inArray(okrCheckIns.keyResultId, krIds))
+            .orderBy(desc(okrCheckIns.createdAt))
+            .limit(50);
+        }
+
+        return { ...obj, keyResults: krs, checkIns };
+      } catch {
+        return null;
+      }
+    }),
+
+  /** Create objective */
+  createObjective: protectedProcedure
+    .input(z.object({
+      title: z.string().min(1),
+      description: z.string().optional(),
+      level: z.enum(["company", "bu", "department", "individual"]).default("individual"),
+      ownerId: z.string(),
+      ownerName: z.string().optional(),
+      parentId: z.number().optional(),
+      period: z.string(),
+      priority: z.enum(["P0", "P1", "P2"]).default("P1"),
+      buCode: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const [inserted] = await db.insert(okrObjectives).values({
+          title: input.title,
+          description: input.description ?? null,
+          level: input.level,
+          ownerId: input.ownerId,
+          ownerName: input.ownerName ?? null,
+          parentId: input.parentId ?? null,
+          period: input.period,
+          priority: input.priority,
+          buCode: input.buCode ?? null,
+          status: "draft",
+          progress: 0,
+        }).returning();
+        return { ok: true, id: inserted?.id };
+      } catch (e: any) {
+        return { ok: false, message: e.message };
+      }
+    }),
+
+  /** Update objective */
+  updateObjective: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      title: z.string().optional(),
+      description: z.string().optional(),
+      status: z.string().optional(),
+      priority: z.string().optional(),
+      progress: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const { id, ...data } = input;
+        await db.update(okrObjectives).set({
+          ...data,
+          updatedAt: new Date(),
+        }).where(eq(okrObjectives.id, id));
+        return { ok: true };
+      } catch (e: any) {
+        return { ok: false, message: e.message };
+      }
+    }),
+
+  /** Delete objective (cascades KRs and check-ins) */
+  deleteObjective: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        // Delete check-ins for KRs under this objective
+        const krs = await db.select({ id: okrKeyResults.id }).from(okrKeyResults)
+          .where(eq(okrKeyResults.objectiveId, input.id));
+        if (krs.length > 0) {
+          await db.delete(okrCheckIns).where(inArray(okrCheckIns.keyResultId, krs.map(k => k.id)));
+        }
+        await db.delete(okrKeyResults).where(eq(okrKeyResults.objectiveId, input.id));
+        await db.delete(okrObjectives).where(eq(okrObjectives.id, input.id));
+        return { ok: true };
+      } catch (e: any) {
+        return { ok: false, message: e.message };
+      }
+    }),
+
+  /** Create key result for an objective */
+  createKeyResult: protectedProcedure
+    .input(z.object({
+      objectiveId: z.number(),
+      title: z.string().min(1),
+      metricType: z.enum(["number", "percentage", "boolean", "currency"]).default("percentage"),
+      startValue: z.number().default(0),
+      targetValue: z.number().default(100),
+      unit: z.string().default("%"),
+      ownerId: z.string().optional(),
+      ownerName: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const [inserted] = await db.insert(okrKeyResults).values({
+          objectiveId: input.objectiveId,
+          title: input.title,
+          metricType: input.metricType,
+          startValue: input.startValue,
+          targetValue: input.targetValue,
+          currentValue: input.startValue,
+          unit: input.unit,
+          ownerId: input.ownerId ?? null,
+          ownerName: input.ownerName ?? null,
+          status: "on_track",
+          confidence: 0.5,
+        }).returning();
+        return { ok: true, id: inserted?.id };
+      } catch (e: any) {
+        return { ok: false, message: e.message };
+      }
+    }),
+
+  /** Update key result */
+  updateKeyResult: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      currentValue: z.number().optional(),
+      status: z.string().optional(),
+      confidence: z.number().optional(),
+      title: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const { id, ...data } = input;
+        await db.update(okrKeyResults).set({
+          ...data,
+          updatedAt: new Date(),
+        }).where(eq(okrKeyResults.id, id));
+
+        // Auto-update parent objective progress
+        const [kr] = await db.select().from(okrKeyResults).where(eq(okrKeyResults.id, id));
+        if (kr) {
+          const allKrs = await db.select().from(okrKeyResults)
+            .where(eq(okrKeyResults.objectiveId, kr.objectiveId));
+          const avgProgress = allKrs.length > 0
+            ? allKrs.reduce((sum, k) => {
+                const range = (k.targetValue ?? 100) - (k.startValue ?? 0);
+                const current = (k.currentValue ?? 0) - (k.startValue ?? 0);
+                return sum + (range > 0 ? Math.min(100, (current / range) * 100) : 0);
+              }, 0) / allKrs.length
+            : 0;
+          await db.update(okrObjectives).set({
+            progress: Math.round(avgProgress),
+            updatedAt: new Date(),
+          }).where(eq(okrObjectives.id, kr.objectiveId));
+        }
+        return { ok: true };
+      } catch (e: any) {
+        return { ok: false, message: e.message };
+      }
+    }),
+
+  /** Record a check-in for a key result */
+  checkIn: protectedProcedure
+    .input(z.object({
+      keyResultId: z.number(),
+      value: z.number(),
+      confidence: z.number().optional(),
+      note: z.string().optional(),
+      authorId: z.string().optional(),
+      authorName: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        await db.insert(okrCheckIns).values({
+          keyResultId: input.keyResultId,
+          value: input.value,
+          confidence: input.confidence ?? 0.5,
+          note: input.note ?? null,
+          authorId: input.authorId ?? null,
+          authorName: input.authorName ?? null,
+        });
+        // Update KR current value
+        await db.update(okrKeyResults).set({
+          currentValue: input.value,
+          confidence: input.confidence ?? undefined,
+          updatedAt: new Date(),
+        }).where(eq(okrKeyResults.id, input.keyResultId));
+        return { ok: true };
+      } catch (e: any) {
+        return { ok: false, message: e.message };
+      }
     }),
 
   /** Dashboard aggregate KPIs */
   dashboard: protectedProcedure
     .query(async () => {
-      return {
-        totalObjectives: 0,
-        avgProgress: 0,
-        onTrack: 0,
-        atRisk: 0,
-        behind: 0,
-        companyLevel: 0,
-        buLevel: 0,
-        deptLevel: 0,
-        teamLevel: 0,
-      };
+      try {
+        const db = await requireDb();
+        const allObjs = await db.select().from(okrObjectives);
+        const total = allObjs.length;
+        if (total === 0) {
+          return {
+            totalObjectives: 0, avgProgress: 0,
+            onTrack: 0, atRisk: 0, behind: 0,
+            companyLevel: 0, buLevel: 0, deptLevel: 0, teamLevel: 0,
+          };
+        }
+
+        const avgProgress = Math.round(allObjs.reduce((s, o) => s + (o.progress ?? 0), 0) / total);
+        const statusCounts = { on_track: 0, at_risk: 0, behind: 0 };
+        const levelCounts = { company: 0, bu: 0, department: 0, individual: 0 };
+
+        for (const obj of allObjs) {
+          const p = obj.progress ?? 0;
+          if (p >= 70) statusCounts.on_track++;
+          else if (p >= 40) statusCounts.at_risk++;
+          else statusCounts.behind++;
+          if (obj.level in levelCounts) levelCounts[obj.level as keyof typeof levelCounts]++;
+        }
+
+        return {
+          totalObjectives: total,
+          avgProgress,
+          onTrack: statusCounts.on_track,
+          atRisk: statusCounts.at_risk,
+          behind: statusCounts.behind,
+          companyLevel: levelCounts.company,
+          buLevel: levelCounts.bu,
+          deptLevel: levelCounts.department,
+          teamLevel: levelCounts.individual,
+        };
+      } catch {
+        return {
+          totalObjectives: 0, avgProgress: 0,
+          onTrack: 0, atRisk: 0, behind: 0,
+          companyLevel: 0, buLevel: 0, deptLevel: 0, teamLevel: 0,
+        };
+      }
     }),
+
+  /** Seed demo OKR data */
+  seedDemo: protectedProcedure.mutation(async () => {
+    try {
+      const db = await requireDb();
+      const [existing] = await db.select({ value: count() }).from(okrObjectives);
+      if (Number(existing?.value ?? 0) > 0) {
+        return { ok: true, message: "OKR demo data already exists", count: Number(existing?.value ?? 0) };
+      }
+
+      // Company-level objectives
+      const companyObjs = [
+        { title: "2026年营收突破5亿", level: "company" as const, ownerId: "CEO", ownerName: "张总", period: "2026-Q1", priority: "P0", progress: 65, status: "active" as const },
+        { title: "海外市场份额提升至25%", level: "company" as const, ownerId: "CEO", ownerName: "张总", period: "2026-Q1", priority: "P0", progress: 45, status: "active" as const },
+        { title: "新产品研发周期缩短20%", level: "company" as const, ownerId: "CTO", ownerName: "李总", period: "2026-Q1", priority: "P1", progress: 72, status: "active" as const },
+      ];
+
+      const buObjs = [
+        { title: "海外BU Q1签约2000万", level: "bu" as const, ownerId: "BU1-GM", ownerName: "王海", period: "2026-Q1", priority: "P0", buCode: "overseas", progress: 58, status: "active" as const },
+        { title: "商用车BU客户满意度95%", level: "bu" as const, ownerId: "BU2-GM", ownerName: "陈明", period: "2026-Q1", priority: "P1", buCode: "commercial_vehicle", progress: 80, status: "active" as const },
+        { title: "半导体BU产能提升30%", level: "bu" as const, ownerId: "BU4-GM", ownerName: "刘芳", period: "2026-Q1", priority: "P0", buCode: "semiconductor", progress: 35, status: "active" as const },
+      ];
+
+      const deptObjs = [
+        { title: "销售部新客户开发20家", level: "department" as const, ownerId: "DEPT-SALES", ownerName: "赵磊", period: "2026-Q1", priority: "P1", progress: 55, status: "active" as const },
+        { title: "研发部专利申请5项", level: "department" as const, ownerId: "DEPT-RD", ownerName: "孙娜", period: "2026-Q1", priority: "P2", progress: 40, status: "active" as const },
+      ];
+
+      const allObjs = [...companyObjs, ...buObjs, ...deptObjs];
+      const insertedIds: number[] = [];
+
+      for (const obj of allObjs) {
+        const [row] = await db.insert(okrObjectives).values(obj).returning();
+        if (row) insertedIds.push(row.id);
+      }
+
+      // Add KRs for first 4 objectives
+      const krData = [
+        { objectiveId: insertedIds[0], title: "Q1签约金额达1.2亿", metricType: "currency", targetValue: 12000, currentValue: 7800, unit: "万元" },
+        { objectiveId: insertedIds[0], title: "大客户续约率90%", metricType: "percentage", targetValue: 90, currentValue: 78, unit: "%" },
+        { objectiveId: insertedIds[1], title: "海外展会参展3场", metricType: "number", targetValue: 3, currentValue: 1, unit: "场" },
+        { objectiveId: insertedIds[1], title: "海外代理商新签5家", metricType: "number", targetValue: 5, currentValue: 2, unit: "家" },
+        { objectiveId: insertedIds[2], title: "平均项目周期从180天降至144天", metricType: "number", targetValue: 144, currentValue: 160, startValue: 180, unit: "天" },
+        { objectiveId: insertedIds[3], title: "海外签约2000万", metricType: "currency", targetValue: 2000, currentValue: 1160, unit: "万元" },
+        { objectiveId: insertedIds[4], title: "NPS客户满意度", metricType: "percentage", targetValue: 95, currentValue: 88, unit: "%" },
+        { objectiveId: insertedIds[5], title: "月产量达标率", metricType: "percentage", targetValue: 100, currentValue: 72, unit: "%" },
+      ];
+
+      for (const kr of krData) {
+        await db.insert(okrKeyResults).values({
+          objectiveId: kr.objectiveId,
+          title: kr.title,
+          metricType: kr.metricType as any,
+          startValue: kr.startValue ?? 0,
+          targetValue: kr.targetValue,
+          currentValue: kr.currentValue,
+          unit: kr.unit,
+          status: "on_track",
+          confidence: 0.5 + Math.random() * 0.4,
+        });
+      }
+
+      return { ok: true, objectives: insertedIds.length, keyResults: krData.length };
+    } catch (e: any) {
+      return { ok: false, message: e.message };
+    }
+  }),
 });

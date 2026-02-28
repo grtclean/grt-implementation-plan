@@ -1734,6 +1734,9 @@ function Router() {
       <Route path="/engineering/eco-review/:id">
         <ProtectedRoute component={EcoReviewDashboard} />
       </Route>
+      <Route path="/engineering/eco-review">
+        <ProtectedRoute component={EcoReviewDashboard} />
+      </Route>
       <Route path="/supply-chain/risk-radar">
         <ProtectedRoute component={SupplierRiskRadar} />
       </Route>
