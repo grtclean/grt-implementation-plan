@@ -791,6 +791,9 @@ export const annualPlans = pgTable("annual_plans", {
 	creatorId: integer().notNull(),
 	approverId: integer(),
 	approvedAt: timestamp({ mode: 'string' }),
+	// Freeze & optimistic lock (Phase: HR & Risk Control)
+	isFrozen: boolean('is_frozen').default(false),
+	version: integer('version').default(1),
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 });
@@ -12039,9 +12042,15 @@ export const aiTasks = pgTable('ai_tasks', {
   startedAt: timestamp('started_at', { mode: 'string' }),
   completedAt: timestamp('completed_at', { mode: 'string' }),
   createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
+  // Worker retry & lock fields (Phase: HR & Risk Control)
+  retryCount: integer('retry_count').default(0),
+  maxRetries: integer('max_retries').default(3),
+  timeoutAt: timestamp('timeout_at', { mode: 'string' }),
+  workerLockId: varchar('worker_lock_id', { length: 50 }),
 }, (table) => [
   index('ai_tasks_type_idx').on(table.taskType),
   index('ai_tasks_status_idx').on(table.status),
+  index('ai_tasks_worker_lock_idx').on(table.workerLockId),
 ]);
 
 export type AiTask = InferSelectModel<typeof aiTasks>;

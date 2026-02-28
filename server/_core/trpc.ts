@@ -63,6 +63,32 @@ async function safeCheckPermission(userId: string, permissionCode: string): Prom
  *
  * Usage: requirePermission('hr:employees:view').query(...)
  */
+/**
+ * safeMutation middleware — wraps mutations in uniform error handling.
+ * Catches any thrown error, logs it, and re-throws as a typed TRPCError
+ * so the frontend always receives { code, message } instead of raw 500s.
+ */
+export const safeMutationMiddleware = t.middleware(async ({ ctx, next, type }) => {
+  if (type !== 'mutation') return next({ ctx });
+  try {
+    return await next({ ctx });
+  } catch (err) {
+    // Already a TRPCError — re-throw as-is
+    if (err instanceof TRPCError) throw err;
+
+    const message = err instanceof Error ? err.message : 'Unknown mutation error';
+    console.error(`[safeMutation] ${message}`);
+    throw new TRPCError({
+      code: 'INTERNAL_SERVER_ERROR',
+      message,
+      cause: err,
+    });
+  }
+});
+
+/** Protected procedure with uniform mutation error handling */
+export const safeMutationProcedure = protectedProcedure.use(safeMutationMiddleware);
+
 export function requirePermission(permissionCode: string) {
   return protectedProcedure.use(
     t.middleware(async ({ ctx, next }) => {

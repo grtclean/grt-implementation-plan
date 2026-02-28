@@ -37,7 +37,10 @@ import {
   ChevronDown,
   ChevronRight,
   Eye,
+  FileText,
+  ShieldAlert,
 } from "lucide-react";
+import ViolationAlert from "@/components/ViolationAlert";
 
 // ─── Types ──────────────────────────────────────────────────
 type ParsedScores = { T: number; S: number; D: number; C: number; K: number; L: number };
@@ -207,7 +210,7 @@ export default function HRSandboxCapability() {
   const { currentUserRole } = useUserProfile();
   const roleLevel = ROLE_HIERARCHY[currentUserRole] ?? 1;
 
-  const [activeTab, setActiveTab] = useState<"parse" | "simulate" | "batch" | "queue">("parse");
+  const [activeTab, setActiveTab] = useState<"parse" | "simulate" | "batch" | "queue" | "docParse" | "violations">("parse");
 
   // Init data
   const { data: sandbox } = trpc.hrSandbox.initSandbox.useQuery();
@@ -224,6 +227,8 @@ export default function HRSandboxCapability() {
     { key: "parse" as const, label: "能力解析", icon: Brain },
     { key: "simulate" as const, label: "沙盘模拟", icon: SlidersHorizontal },
     { key: "batch" as const, label: "批量解析", icon: Users },
+    { key: "docParse" as const, label: "文档解析", icon: FileText },
+    { key: "violations" as const, label: "风控事件", icon: ShieldAlert },
     { key: "queue" as const, label: "任务队列", icon: ListChecks },
   ];
 
@@ -261,6 +266,12 @@ export default function HRSandboxCapability() {
       )}
       {activeTab === "batch" && (
         <TabBatch departments={departments} employees={employees} roleLevel={roleLevel} currentUserRole={currentUserRole} labels={labels} colors={colors} />
+      )}
+      {activeTab === "docParse" && (
+        <TabDocParse />
+      )}
+      {activeTab === "violations" && (
+        <TabViolations />
       )}
       {activeTab === "queue" && (
         <TabQueue />
@@ -792,6 +803,245 @@ function TabBatch({ departments, employees, roleLevel, currentUserRole, labels, 
               </table>
             </div>
           </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Tab 5: 文档解析 (Async DOC_PARSING via task worker)
+// ═══════════════════════════════════════════════════════════
+function TabDocParse() {
+  const [docText, setDocText] = useState("");
+  const [empName, setEmpName] = useState("");
+  const [role, setRole] = useState("employee");
+  const [taskId, setTaskId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const submitMut = trpc.hrSandbox.submitDocParsing.useMutation({
+    onSuccess: (data) => {
+      setTaskId(data.taskId);
+      setError(null);
+      toast.success(`文档解析任务已提交 (#${data.taskId})`);
+    },
+    onError: (err) => setError(err.message),
+  });
+
+  // Poll task result
+  const resultQuery = trpc.hrSandbox.getParsingResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: taskId !== null,
+      refetchInterval: (query) => {
+        const status = query.state.data?.status;
+        if (status === "completed" || status === "failed") return false;
+        return 2000;
+      },
+    },
+  );
+
+  const taskResult = resultQuery.data;
+  const isProcessing = taskResult?.status === "pending" || taskResult?.status === "processing";
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="space-y-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4" /> 文档能力解析（异步）
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <label className="text-sm font-medium mb-1 block">员工姓名</label>
+              <input
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                placeholder="张三"
+                value={empName}
+                onChange={e => setEmpName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">岗位角色</label>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">普通员工</SelectItem>
+                  <SelectItem value="team_lead">组长</SelectItem>
+                  <SelectItem value="bu_mech">机械工程师</SelectItem>
+                  <SelectItem value="bu_elec">电气工程师</SelectItem>
+                  <SelectItem value="dept_manager">部门经理</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">文档内容 / 简历 / 评估材料</label>
+              <Textarea
+                placeholder="粘贴员工简历、绩效评估报告、项目总结等文档内容..."
+                value={docText}
+                onChange={e => setDocText(e.target.value)}
+                rows={8}
+              />
+            </div>
+            <Button
+              onClick={() => submitMut.mutate({ documentText: docText, employeeName: empName || undefined, role })}
+              disabled={submitMut.isPending || !docText.trim()}
+              className="w-full"
+            >
+              {submitMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              提交异步解析
+            </Button>
+
+            {error && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div>{error}</div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-4">
+        {taskId !== null ? (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                任务 #{taskId}
+                {isProcessing && <Loader2 className="h-3 w-3 animate-spin text-blue-500" />}
+                {taskResult?.status === "completed" && <CheckCircle className="h-3 w-3 text-green-500" />}
+                {taskResult?.status === "failed" && <XCircle className="h-3 w-3 text-red-500" />}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isProcessing && (
+                <div className="space-y-3">
+                  {/* Skeleton loading */}
+                  <div className="animate-pulse space-y-2">
+                    <div className="h-4 bg-muted rounded w-3/4" />
+                    <div className="h-4 bg-muted rounded w-1/2" />
+                    <div className="h-32 bg-muted rounded" />
+                    <div className="h-4 bg-muted rounded w-2/3" />
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">AI正在分析文档内容，请稍候...</p>
+                </div>
+              )}
+              {taskResult?.status === "completed" && taskResult.result && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Badge className={(taskResult.result as any).source === "llm" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}>
+                      {(taskResult.result as any).source === "llm" ? "LLM分析" : "算法估算"}
+                    </Badge>
+                    <span className="text-sm font-bold">
+                      综合 {(taskResult.result as any).overallScore} · {(taskResult.result as any).overallGrade || (taskResult.result as any).grade}
+                    </span>
+                  </div>
+                  {(taskResult.result as any).scores && (
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      {PILLAR_CODES.map(code => (
+                        <div key={code} className="flex items-center gap-1">
+                          <span className="font-medium">{code}:</span>
+                          <span>{(taskResult.result as any).scores?.[code] ?? (taskResult.result as any).parsedScores?.[code] ?? "-"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {(taskResult.result as any).narrative && (
+                    <div className="text-xs bg-purple-50 p-2 rounded">{(taskResult.result as any).narrative}</div>
+                  )}
+                  {(taskResult.result as any).keyFindings?.length > 0 && (
+                    <div className="text-xs space-y-1">
+                      <div className="font-medium">关键发现:</div>
+                      {(taskResult.result as any).keyFindings.map((f: string, i: number) => (
+                        <div key={i} className="flex gap-1"><CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" /> {f}</div>
+                      ))}
+                    </div>
+                  )}
+                  {(taskResult.result as any).improvementAreas?.length > 0 && (
+                    <div className="text-xs space-y-1">
+                      <div className="font-medium">改进领域:</div>
+                      {(taskResult.result as any).improvementAreas.map((a: any, i: number) => (
+                        <div key={i} className="flex gap-1 text-amber-700">
+                          <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                          {a.dimension}: {a.recommendation} (当前{a.currentScore}分)
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {taskResult?.status === "failed" && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                  <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <div>{taskResult.error || "解析失败"}</div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="flex items-center justify-center h-64 text-muted-foreground">
+            <div className="text-center">
+              <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">粘贴文档并提交后，AI将异步分析并在此显示结果</p>
+              <p className="text-xs mt-1">解析通过后台任务队列执行，无需等待</p>
+            </div>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Tab 6: 风控事件 (Violation Events)
+// ═══════════════════════════════════════════════════════════
+function TabViolations() {
+  const violationsQuery = trpc.violationEvent.list.useQuery({ limit: 20 });
+  const statsQuery = trpc.violationEvent.stats.useQuery();
+  const violations = violationsQuery.data?.items || [];
+  const stats = statsQuery.data;
+
+  return (
+    <div className="space-y-4">
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard label="活跃事件" value={stats?.activeCount ?? 0} icon={ShieldAlert} color="#dc2626" />
+        <StatCard label="一般" value={stats?.bySeverity?.MINOR ?? 0} icon={AlertTriangle} color="#eab308" />
+        <StatCard label="重大" value={stats?.bySeverity?.MAJOR ?? 0} icon={AlertTriangle} color="#f97316" />
+        <StatCard label="严重" value={stats?.bySeverity?.CRITICAL ?? 0} icon={ShieldAlert} color="#dc2626" />
+      </div>
+
+      {/* Violation list */}
+      {violationsQuery.isLoading ? (
+        <Card>
+          <CardContent className="p-6">
+            <div className="animate-pulse space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-16 bg-muted rounded" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : violations.length > 0 ? (
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm">风控事件列表</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => violationsQuery.refetch()}>
+              <RefreshCw className="h-3 w-3 mr-1" /> 刷新
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <ViolationAlert violations={violations as any} />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="flex items-center justify-center h-48 text-muted-foreground">
+          <div className="text-center">
+            <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">暂无风控事件</p>
+          </div>
         </Card>
       )}
     </div>

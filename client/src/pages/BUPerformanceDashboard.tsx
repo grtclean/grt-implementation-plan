@@ -27,8 +27,13 @@ import {
   PieChart,
   Activity,
   Target,
-  Percent
+  Percent,
+  ShieldAlert,
+  Lock,
+  Unlock,
+  AlertTriangle,
 } from "lucide-react";
+import ViolationAlert from "@/components/ViolationAlert";
 
 // BU颜色配置
 const BU_COLORS: Record<string, { bg: string; text: string; border: string; chart: string }> = {
@@ -197,8 +202,28 @@ export default function BUPerformanceDashboard() {
     };
   }, [statsData, selectedBU]);
 
+  // Performance record query for frozen state
+  const perfDashboard = trpc.performanceRecord.dashboard.useQuery({
+    year: new Date().getFullYear(),
+    quarter: Math.ceil((new Date().getMonth() + 1) / 3),
+  });
+  const perfData = perfDashboard.data;
+
   return (
       <div className="space-y-6">
+        {/* Frozen BU Warning Banner */}
+        {perfData && perfData.frozenCount > 0 && (
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700">
+            <Lock className="h-5 w-5 flex-shrink-0" />
+            <div className="flex-1">
+              <span className="font-medium">绩效冻结警告：</span>
+              {perfData.frozenCount}个BU的Q{perfData.quarter}绩效记录已被冻结
+              （因风控事件触发自动冻结）
+            </div>
+            <Badge className="bg-red-100 text-red-700">{perfData.frozenCount} 冻结</Badge>
+          </div>
+        )}
+
         {/* 页面标题 */}
         <PageHeader
           icon={Building2}
@@ -397,6 +422,9 @@ export default function BUPerformanceDashboard() {
                 })}
             </div>
 
+            {/* Performance Records & Violations */}
+            <PerformanceRiskSection selectedBU={selectedBU} />
+
             {/* BU对比表格 */}
             <Card>
               <CardHeader>
@@ -473,5 +501,114 @@ export default function BUPerformanceDashboard() {
           </>
         )}
       </div>
+  );
+}
+
+// ── Performance Records + Violations Section ─────────────
+function PerformanceRiskSection({ selectedBU }: { selectedBU: string | null }) {
+  const buId = selectedBU ? Number(selectedBU.replace("BU", "")) : undefined;
+
+  const perfQuery = trpc.performanceRecord.list.useQuery(
+    { buId, year: new Date().getFullYear(), limit: 10 },
+  );
+  const violationQuery = trpc.violationEvent.list.useQuery(
+    { buId, limit: 5 },
+  );
+  const violationStats = trpc.violationEvent.stats.useQuery({ buId });
+
+  const records = perfQuery.data?.items || [];
+  const violations = violationQuery.data?.items || [];
+  const vStats = violationStats.data;
+
+  // Skip section entirely if no data
+  if (records.length === 0 && violations.length === 0 && !vStats?.total) {
+    return null;
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Performance Records */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            季度绩效记录
+            {records.some(r => r.isFrozen) && (
+              <Badge className="bg-red-100 text-red-700 ml-2">
+                <Lock className="h-3 w-3 mr-1" />
+                含冻结项
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {records.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">暂无绩效记录</p>
+          ) : (
+            <div className="space-y-2">
+              {records.map(r => (
+                <div key={r.id} className={`p-3 rounded-lg border ${r.isFrozen ? "bg-red-50 border-red-200" : "bg-muted/30 border-transparent"}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {r.isFrozen ? (
+                        <Lock className="h-4 w-4 text-red-500" />
+                      ) : (
+                        <Unlock className="h-4 w-4 text-green-500" />
+                      )}
+                      <span className="text-sm font-medium">
+                        BU#{r.buId} · {r.year}年Q{r.quarter}
+                      </span>
+                      <Badge variant="outline" className="text-xs">{r.status}</Badge>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <span>KPI: <strong>{r.kpiScore ?? "-"}</strong></span>
+                      <span>系数: <strong>{r.bonusCoefficient ?? "1.00"}</strong></span>
+                      <Badge className="text-xs">v{r.version}</Badge>
+                    </div>
+                  </div>
+                  {r.isFrozen && r.frozenReason && (
+                    <div className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {r.frozenReason}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Violation Events */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4" />
+            风控事件
+            {vStats && vStats.activeCount > 0 && (
+              <Badge className="bg-red-100 text-red-700 ml-2">{vStats.activeCount} 活跃</Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {violations.length === 0 ? (
+            <div className="text-center py-4">
+              <CheckCircle2 className="h-6 w-6 mx-auto text-green-400 mb-1" />
+              <p className="text-sm text-muted-foreground">暂无风控事件</p>
+            </div>
+          ) : (
+            <ViolationAlert violations={violations as any} compact />
+          )}
+          {vStats && vStats.total > 0 && (
+            <div className="flex items-center gap-3 mt-3 pt-2 border-t text-xs text-muted-foreground">
+              <span>一般: {vStats.bySeverity.MINOR}</span>
+              <span>重大: <strong className="text-orange-600">{vStats.bySeverity.MAJOR}</strong></span>
+              <span>严重: <strong className="text-red-600">{vStats.bySeverity.CRITICAL}</strong></span>
+              <span className="ml-auto">已解决: {vStats.byStatus.resolved}</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -1,0 +1,348 @@
+/**
+ * Performance Record Router — BU quarterly performance with freeze/optimistic lock
+ *
+ * Features:
+ * - CRUD with optimistic locking (version field)
+ * - Freeze/unfreeze with reason tracking
+ * - Quarterly dashboard aggregation
+ */
+import { z } from "zod";
+import { router, publicProcedure } from "../_core/trpc";
+import { TRPCError } from "@trpc/server";
+import { requireDb } from "../db";
+import { performanceRecords } from "../../drizzle/performance-schema";
+import { eq, and, desc, sql, count } from "drizzle-orm";
+
+export const performanceRecordRouter = router({
+  /**
+   * list — paginated performance records with filters
+   */
+  list: publicProcedure
+    .input(z.object({
+      buId: z.number().optional(),
+      userId: z.number().optional(),
+      year: z.number().optional(),
+      quarter: z.number().min(1).max(4).optional(),
+      status: z.string().optional(),
+      isFrozen: z.boolean().optional(),
+      limit: z.number().min(1).max(100).default(20),
+      offset: z.number().min(0).default(0),
+    }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+
+      const conditions: any[] = [];
+      if (input.buId) conditions.push(eq(performanceRecords.buId, input.buId));
+      if (input.userId) conditions.push(eq(performanceRecords.userId, input.userId));
+      if (input.year) conditions.push(eq(performanceRecords.year, input.year));
+      if (input.quarter) conditions.push(eq(performanceRecords.quarter, input.quarter));
+      if (input.status) conditions.push(eq(performanceRecords.status, input.status));
+      if (input.isFrozen !== undefined) conditions.push(eq(performanceRecords.isFrozen, input.isFrozen));
+
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [rows, totalResult] = await Promise.all([
+        db.select().from(performanceRecords)
+          .where(where)
+          .orderBy(desc(performanceRecords.year), desc(performanceRecords.quarter))
+          .limit(input.limit)
+          .offset(input.offset),
+        db.select({ total: count() }).from(performanceRecords).where(where),
+      ]);
+
+      return {
+        items: rows,
+        total: totalResult[0]?.total ?? 0,
+      };
+    }),
+
+  /**
+   * getById — single record with full detail
+   */
+  getById: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const [row] = await db.select().from(performanceRecords).where(eq(performanceRecords.id, input.id));
+      if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Performance record not found" });
+      return row;
+    }),
+
+  /**
+   * create — new quarterly performance record
+   */
+  create: publicProcedure
+    .input(z.object({
+      buId: z.number().optional(),
+      departmentId: z.number().optional(),
+      userId: z.number().optional(),
+      year: z.number(),
+      quarter: z.number().min(1).max(4),
+      revenueTarget: z.string().optional(),
+      revenueActual: z.string().optional(),
+      profitTarget: z.string().optional(),
+      profitActual: z.string().optional(),
+      kpiScore: z.string().optional(),
+      bonusCoefficient: z.string().optional(),
+      kpiDetailsJson: z.array(z.object({
+        kpiName: z.string(),
+        weight: z.number(),
+        target: z.number(),
+        actual: z.number(),
+        score: z.number(),
+      })).optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await requireDb();
+      const [record] = await db.insert(performanceRecords).values({
+        ...input,
+        status: "draft",
+        isFrozen: false,
+        version: 1,
+        createdBy: ctx.user?.id ?? 0,
+      }).returning();
+      return record;
+    }),
+
+  /**
+   * update — with optimistic lock check (version must match)
+   */
+  update: publicProcedure
+    .input(z.object({
+      id: z.number(),
+      version: z.number(),  // must match current DB version
+      revenueActual: z.string().optional(),
+      profitActual: z.string().optional(),
+      kpiScore: z.string().optional(),
+      bonusCoefficient: z.string().optional(),
+      kpiDetailsJson: z.array(z.object({
+        kpiName: z.string(),
+        weight: z.number(),
+        target: z.number(),
+        actual: z.number(),
+        score: z.number(),
+      })).optional(),
+      status: z.string().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+
+      // Check frozen
+      const [current] = await db.select().from(performanceRecords).where(eq(performanceRecords.id, input.id));
+      if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
+      if (current.isFrozen) {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "记录已冻结，无法修改。请先解冻。" });
+      }
+
+      // Optimistic lock
+      const { id, version, ...updates } = input;
+      const [updated] = await db.update(performanceRecords)
+        .set({
+          ...updates,
+          version: version + 1,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(and(
+          eq(performanceRecords.id, id),
+          eq(performanceRecords.version, version),
+        ))
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "并发冲突：记录已被其他用户修改。请刷新后重试。",
+        });
+      }
+
+      return updated;
+    }),
+
+  /**
+   * freeze — freeze a performance record (e.g., during violation investigation)
+   */
+  freeze: publicProcedure
+    .input(z.object({
+      id: z.number(),
+      reason: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await requireDb();
+      const [updated] = await db.update(performanceRecords)
+        .set({
+          isFrozen: true,
+          frozenAt: new Date().toISOString(),
+          frozenBy: ctx.user?.name ?? "system",
+          frozenReason: input.reason,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(performanceRecords.id, input.id))
+        .returning();
+
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
+      return updated;
+    }),
+
+  /**
+   * unfreeze — unfreeze a performance record (after violation resolved)
+   */
+  unfreeze: publicProcedure
+    .input(z.object({
+      id: z.number(),
+      reason: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await requireDb();
+      const [updated] = await db.update(performanceRecords)
+        .set({
+          isFrozen: false,
+          frozenReason: input.reason ? `解冻: ${input.reason}` : null,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(performanceRecords.id, input.id))
+        .returning();
+
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
+      return updated;
+    }),
+
+  /**
+   * dashboard — quarterly summary with BU breakdown
+   */
+  dashboard: publicProcedure
+    .input(z.object({
+      year: z.number().optional(),
+      quarter: z.number().min(1).max(4).optional(),
+    }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const now = new Date();
+      const year = input.year ?? now.getFullYear();
+      const quarter = input.quarter ?? Math.ceil((now.getMonth() + 1) / 3);
+
+      try {
+        const rows = await db.select().from(performanceRecords)
+          .where(and(
+            eq(performanceRecords.year, year),
+            eq(performanceRecords.quarter, quarter),
+          ));
+
+        const totalRecords = rows.length;
+        const frozenCount = rows.filter(r => r.isFrozen).length;
+        const avgKpi = totalRecords > 0
+          ? rows.reduce((sum, r) => sum + (Number(r.kpiScore) || 0), 0) / totalRecords
+          : 0;
+        const avgBonus = totalRecords > 0
+          ? rows.reduce((sum, r) => sum + (Number(r.bonusCoefficient) || 1), 0) / totalRecords
+          : 1;
+
+        // Group by BU
+        const byBU = new Map<number, { buId: number; count: number; avgKpi: number; frozenCount: number }>();
+        for (const r of rows) {
+          const buId = r.buId ?? 0;
+          const existing = byBU.get(buId) || { buId, count: 0, avgKpi: 0, frozenCount: 0 };
+          existing.count++;
+          existing.avgKpi += Number(r.kpiScore) || 0;
+          if (r.isFrozen) existing.frozenCount++;
+          byBU.set(buId, existing);
+        }
+
+        const buBreakdown = Array.from(byBU.values()).map(b => ({
+          ...b,
+          avgKpi: b.count > 0 ? Math.round((b.avgKpi / b.count) * 100) / 100 : 0,
+        }));
+
+        return {
+          year,
+          quarter,
+          totalRecords,
+          frozenCount,
+          avgKpi: Math.round(avgKpi * 100) / 100,
+          avgBonus: Math.round(avgBonus * 100) / 100,
+          buBreakdown,
+        };
+      } catch {
+        return {
+          year,
+          quarter,
+          totalRecords: 0,
+          frozenCount: 0,
+          avgKpi: 0,
+          avgBonus: 1,
+          buBreakdown: [],
+        };
+      }
+    }),
+
+  /**
+   * seedDemo — create demo performance records
+   */
+  seedDemo: publicProcedure.mutation(async () => {
+    const db = await requireDb();
+
+    // Ensure table exists
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS performance_records (
+        id SERIAL PRIMARY KEY,
+        bu_id INTEGER,
+        department_id INTEGER,
+        user_id INTEGER,
+        year INTEGER NOT NULL,
+        quarter INTEGER NOT NULL,
+        revenue_target DECIMAL(15,2),
+        revenue_actual DECIMAL(15,2),
+        profit_target DECIMAL(15,2),
+        profit_actual DECIMAL(15,2),
+        kpi_score DECIMAL(5,2),
+        bonus_coefficient DECIMAL(4,2) DEFAULT 1.00,
+        kpi_details_json JSONB,
+        is_frozen BOOLEAN NOT NULL DEFAULT FALSE,
+        frozen_at TIMESTAMP,
+        frozen_by VARCHAR(50),
+        frozen_reason VARCHAR(500),
+        version INTEGER NOT NULL DEFAULT 1,
+        reviewed_by INTEGER,
+        reviewed_at TIMESTAMP,
+        status VARCHAR(20) DEFAULT 'draft',
+        notes TEXT,
+        created_by INTEGER,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    const BU_NAMES = ["海外BU", "商用车BU", "乘用车BU", "半导体BU", "工业通用BU"];
+    const records = BU_NAMES.map((name, i) => ({
+      buId: i + 1,
+      year: 2026,
+      quarter: 1,
+      revenueTarget: String((i + 1) * 5000000),
+      revenueActual: String(Math.round((i + 1) * 5000000 * (0.85 + Math.random() * 0.3))),
+      profitTarget: String((i + 1) * 1000000),
+      profitActual: String(Math.round((i + 1) * 1000000 * (0.8 + Math.random() * 0.4))),
+      kpiScore: String(Math.round((65 + Math.random() * 30) * 100) / 100),
+      bonusCoefficient: String(Math.round((0.8 + Math.random() * 0.8) * 100) / 100),
+      status: "submitted",
+      isFrozen: i === 0,  // First BU is frozen (for demo)
+      frozenReason: i === 0 ? "MAJOR违规: 客户退货事件调查中" : undefined,
+      frozenAt: i === 0 ? new Date().toISOString() : undefined,
+      frozenBy: i === 0 ? "system" : undefined,
+      version: 1,
+      createdBy: 1,
+    }));
+
+    const results = [];
+    for (const rec of records) {
+      try {
+        const [row] = await db.insert(performanceRecords).values(rec).returning();
+        results.push({ id: row.id, buId: rec.buId, status: "created" });
+      } catch (err) {
+        results.push({ id: 0, buId: rec.buId, status: "error", error: String(err) });
+      }
+    }
+
+    return { seeded: results.length, results };
+  }),
+});

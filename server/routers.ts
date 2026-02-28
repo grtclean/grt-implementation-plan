@@ -258,6 +258,8 @@ import { roleAgentRouter } from "./routers/role-agent.router";
 import { automationRouter } from "./routers/automation.router";
 import { aiTaskRouter } from "./routers/ai-task.router";
 import { hrSandboxRouter } from "./routers/hr-sandbox.router";
+import { violationEventRouter } from "./routers/violation-event.router";
+import { performanceRecordRouter } from "./routers/performance-record.router";
 
 // GRT Value Chain Enhancement — 非标清洗设备全价值链
 import { equipmentComplianceRouter } from "./routers/equipment-compliance.router";
@@ -656,6 +658,10 @@ export const appRouter = router({
 
   // HR Sandbox Capability Model — ai_tasks queue-driven parsing
   hrSandbox: hrSandboxRouter,
+
+  // HR Performance & Risk Control (绩效冻结 + 红线事件总线)
+  violationEvent: violationEventRouter,
+  performanceRecord: performanceRecordRouter,
 
   // OKR Engine — Objectives & Key Results (Strategy Hub)
   okr: okrRouter,

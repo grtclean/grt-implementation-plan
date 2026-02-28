@@ -13,6 +13,8 @@ import { serveStatic, setupVite } from "./vite";
 import { initWebSocketServer, getWebSocketStats } from "../services/websocket.service";
 import { initIMEWebSocket, getIMEWebSocketStats } from "../ime/ime-websocket.service";
 import { initScheduler } from "../services/scheduler.service";
+import { startTaskWorker, stopTaskWorker } from "../services/task-worker.service";
+import { registerAllEngines } from "../services/sandbox-engines";
 import imeRestApi from "../ime/ime-rest-api";
 import { showcaseLeadsRouter } from "../showcase/showcase-leads.router";
 
@@ -160,10 +162,15 @@ async function startServer() {
     console.log(`WebSocket collaboration available at ws://localhost:${port}/ws/collaboration`);
     console.log(`WebSocket IME live available at ws://localhost:${port}/ws/ime-live`);
     initScheduler();
+
+    // Start async AI task worker (sandbox engines)
+    registerAllEngines();
+    startTaskWorker({ pollIntervalMs: 5000, concurrency: 2 });
   });
 
   process.on("SIGTERM", () => {
     console.log("SIGTERM received, shutting down gracefully...");
+    stopTaskWorker();
     server.close(() => {
       console.log("Server closed");
       process.exit(0);
@@ -172,6 +179,7 @@ async function startServer() {
 
   process.on("SIGINT", () => {
     console.log("SIGINT received, shutting down gracefully...");
+    stopTaskWorker();
     server.close(() => {
       console.log("Server closed");
       process.exit(0);

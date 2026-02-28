@@ -15,6 +15,7 @@ import {
   EMPLOYEE_ASSESSMENTS,
 } from "./capability-system.router";
 import { parseCapabilityModel, whatIfSimulate, type ParsingResult } from "../services/hr-sandbox.service";
+import { submitTask } from "../services/task-worker.service";
 
 const TASK_TYPE = "HR_CAPABILITY_PARSING";
 
@@ -211,6 +212,77 @@ export const hrSandboxRouter = router({
     }))
     .mutation(({ input }) => {
       return whatIfSimulate(input.baseScores, input.adjustments, input.role);
+    }),
+
+  /**
+   * submitDocParsing — async: submit DOC_PARSING task to worker queue
+   */
+  submitDocParsing: publicProcedure
+    .input(z.object({
+      documentText: z.string(),
+      employeeName: z.string().optional(),
+      role: z.string().optional(),
+      department: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { taskId } = await submitTask(
+        "DOC_PARSING",
+        input as Record<string, unknown>,
+        ctx.user?.name ?? "system",
+      );
+      return { taskId, status: "pending" as const };
+    }),
+
+  /**
+   * submitIncidentAnalysis — async: submit INCIDENT_ANALYSIS task to worker queue
+   */
+  submitIncidentAnalysis: publicProcedure
+    .input(z.object({
+      incidentTitle: z.string(),
+      incidentDescription: z.string(),
+      severity: z.enum(["MINOR", "MAJOR", "CRITICAL"]),
+      sourceModule: z.string(),
+      affectedBU: z.string().optional(),
+      relatedDocuments: z.array(z.string()).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { taskId } = await submitTask(
+        "INCIDENT_ANALYSIS",
+        input as Record<string, unknown>,
+        ctx.user?.name ?? "system",
+      );
+      return { taskId, status: "pending" as const };
+    }),
+
+  /**
+   * submitCompensationCheck — async: submit COMPENSATION_RULE task to worker queue
+   */
+  submitCompensationCheck: publicProcedure
+    .input(z.object({
+      ruleConfig: z.object({
+        salaryCapMultiplier: z.number().optional(),
+        bonusFloor: z.number().optional(),
+        bonusCeiling: z.number().optional(),
+        frozenBUIds: z.array(z.number()).optional(),
+        maxRaisePercent: z.number().optional(),
+      }),
+      employeeData: z.object({
+        userId: z.number(),
+        buId: z.number(),
+        currentSalary: z.number(),
+        bandMidpoint: z.number(),
+        proposedBonus: z.number(),
+        proposedRaise: z.number(),
+        kpiScore: z.number(),
+      }),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { taskId } = await submitTask(
+        "COMPENSATION_RULE",
+        input as Record<string, unknown>,
+        ctx.user?.name ?? "system",
+      );
+      return { taskId, status: "pending" as const };
     }),
 
   /**
