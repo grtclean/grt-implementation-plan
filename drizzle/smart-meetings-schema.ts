@@ -267,3 +267,28 @@ export const hrAiPerformance = pgTable(
     meetingScoreIdx: index("hr_ai_performance_score_idx").on(table.meetingScore),
   })
 );
+
+// ─────────────────────────────────────────────────────────────
+//  meeting_review_evaluations — 述职报告多维度评分
+// ─────────────────────────────────────────────────────────────
+export const meetingReviewEvaluations = pgTable(
+  "meeting_review_evaluations",
+  {
+    id: serial("id").primaryKey(),
+    meetingId: integer("meeting_id").notNull(),
+    speakerId: integer("speaker_id").notNull(),
+    speakerName: varchar("speaker_name", { length: 100 }),
+    evaluatorId: integer("evaluator_id").notNull(),
+    evaluatorName: varchar("evaluator_name", { length: 100 }),
+    // "performance" | "execution" | "innovation" | "teamwork" | "strategy"
+    dimension: varchar("dimension", { length: 30 }).notNull(),
+    score: integer("score"),
+    comment: text("comment"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    meetingIdx: index("meeting_review_eval_meeting_idx").on(table.meetingId),
+    speakerIdx: index("meeting_review_eval_speaker_idx").on(table.speakerId),
+    evaluatorIdx: index("meeting_review_eval_evaluator_idx").on(table.evaluatorId),
+  })
+);

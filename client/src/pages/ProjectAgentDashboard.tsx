@@ -7,7 +7,7 @@
  *  3. 风险预警 (Risk Alerts)  — Delay predictions + violation events
  *  4. 时间线 (Timeline)       — M0-M12 horizontal bar chart
  */
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,19 +81,17 @@ export default function ProjectAgentDashboard() {
     { projectId: selectedProjectId! },
     { enabled: !!selectedProjectId },
   );
+  const reviews = reviewsQuery.data || [];
 
-  // Auto-poll when reviews are processing
-  const hasProcessing = (reviewsQuery.data || []).some(r => r.status === "processing");
-
-  const reviewsPolling = trpc.projectAgent.getByProject.useQuery(
+  // Auto-poll when reviews are processing (React Query supports dynamic refetchInterval)
+  const hasProcessing = reviews.some(r => r.status === "processing");
+  trpc.projectAgent.getByProject.useQuery(
     { projectId: selectedProjectId! },
     {
       enabled: !!selectedProjectId && hasProcessing,
-      refetchInterval: hasProcessing ? 5000 : false,
+      refetchInterval: 5000,
     },
   );
-
-  const reviews = reviewsPolling.data || reviewsQuery.data || [];
 
   const dashboardQuery = trpc.projectAgent.dashboard.useQuery();
 

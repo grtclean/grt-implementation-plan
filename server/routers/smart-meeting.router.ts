@@ -21,6 +21,7 @@ import {
   meetingInteractions,
   hrPenalties,
   meetingSpeakers,
+  meetingReviewEvaluations,
 } from "../../drizzle/smart-meetings-schema";
 import { analyzeMeetingAudio } from "../services/diarization-engine.service";
 import { createTeamsMeeting } from "../services/microsoft-teams.service";
@@ -906,6 +907,237 @@ const analyticsRouter = router({
 });
 
 // ═══════════════════════════════════════════════════════════
+//  9. Review — 述职报告评分 (Performance Review Evaluation)
+// ═══════════════════════════════════════════════════════════
+const REVIEW_DIMENSIONS = ["performance", "execution", "innovation", "teamwork", "strategy"] as const;
+
+const reviewRouter = router({
+  // Create a review meeting (creates sys_meetings row + returns it)
+  createReviewMeeting: publicProcedure
+    .input(
+      z.object({
+        title: z.string().min(1),
+        speakers: z.array(z.object({ id: z.number(), name: z.string() })),
+        evaluators: z.array(z.object({ id: z.number(), name: z.string() })),
+        teamsLink: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const [meeting] = await db
+        .insert(sysMeetings)
+        .values({
+          title: input.title,
+          type: "MAJOR",
+          status: "LIVE",
+          description: `述职报告 — 发言人: ${input.speakers.map((s) => s.name).join(", ")}`,
+          organizerName: "HR",
+          expectedAttendees: input.speakers.length + input.evaluators.length,
+          actualStart: new Date(),
+          teamsUrl: input.teamsLink ?? null,
+        })
+        .returning();
+      return { meeting, speakers: input.speakers, evaluators: input.evaluators };
+    }),
+
+  // Submit evaluation for one dimension
+  submitEvaluation: publicProcedure
+    .input(
+      z.object({
+        meetingId: z.number(),
+        speakerId: z.number(),
+        speakerName: z.string().optional(),
+        evaluatorId: z.number(),
+        evaluatorName: z.string().optional(),
+        dimension: z.enum(REVIEW_DIMENSIONS),
+        score: z.number().min(1).max(10),
+        comment: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      // Upsert: delete existing then insert
+      await db
+        .delete(meetingReviewEvaluations)
+        .where(
+          and(
+            eq(meetingReviewEvaluations.meetingId, input.meetingId),
+            eq(meetingReviewEvaluations.speakerId, input.speakerId),
+            eq(meetingReviewEvaluations.evaluatorId, input.evaluatorId),
+            eq(meetingReviewEvaluations.dimension, input.dimension)
+          )
+        );
+      const [row] = await db
+        .insert(meetingReviewEvaluations)
+        .values({
+          meetingId: input.meetingId,
+          speakerId: input.speakerId,
+          speakerName: input.speakerName ?? null,
+          evaluatorId: input.evaluatorId,
+          evaluatorName: input.evaluatorName ?? null,
+          dimension: input.dimension,
+          score: input.score,
+          comment: input.comment ?? null,
+        })
+        .returning();
+      return row;
+    }),
+
+  // Get all evaluations for a review meeting (grouped by speaker)
+  getEvaluations: publicProcedure
+    .input(z.object({ meetingId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const rows = await db
+        .select()
+        .from(meetingReviewEvaluations)
+        .where(eq(meetingReviewEvaluations.meetingId, input.meetingId))
+        .orderBy(meetingReviewEvaluations.speakerId, meetingReviewEvaluations.dimension);
+
+      // Group by speaker
+      const bySpeaker: Record<number, { speakerName: string; evaluations: typeof rows }> = {};
+      for (const r of rows) {
+        if (!bySpeaker[r.speakerId]) {
+          bySpeaker[r.speakerId] = { speakerName: r.speakerName ?? "", evaluations: [] };
+        }
+        bySpeaker[r.speakerId].evaluations.push(r);
+      }
+      return bySpeaker;
+    }),
+
+  // Analysis: radar chart data + averages + ranking
+  getAnalysis: publicProcedure
+    .input(z.object({ meetingId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const rows = await db
+        .select()
+        .from(meetingReviewEvaluations)
+        .where(eq(meetingReviewEvaluations.meetingId, input.meetingId));
+
+      // Build per-speaker dimension averages
+      const speakerMap: Record<number, { name: string; dims: Record<string, number[]> }> = {};
+      for (const r of rows) {
+        if (!speakerMap[r.speakerId]) {
+          speakerMap[r.speakerId] = { name: r.speakerName ?? "", dims: {} };
+        }
+        const dim = r.dimension;
+        if (!speakerMap[r.speakerId].dims[dim]) speakerMap[r.speakerId].dims[dim] = [];
+        if (r.score != null) speakerMap[r.speakerId].dims[dim].push(r.score);
+      }
+
+      const speakers = Object.entries(speakerMap).map(([id, data]) => {
+        const radarData = REVIEW_DIMENSIONS.map((d) => {
+          const scores = data.dims[d] ?? [];
+          const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+          return { dimension: d, average: Math.round(avg * 10) / 10, count: scores.length };
+        });
+        const overall = radarData.reduce((s, r) => s + r.average, 0) / radarData.length;
+        return { speakerId: Number(id), speakerName: data.name, radarData, overall: Math.round(overall * 10) / 10 };
+      });
+
+      speakers.sort((a, b) => b.overall - a.overall);
+      return { speakers, totalEvaluations: rows.length };
+    }),
+
+  // Seed demo: 徐树奎 + 李柯瑶 述职会议 with mock evaluations
+  seedDemo: publicProcedure.mutation(async () => {
+    const db = await requireDb();
+
+    // Check if already seeded
+    const existing = await db
+      .select()
+      .from(sysMeetings)
+      .where(eq(sysMeetings.title, "2026年度述职报告 — 事业二部 & 事业三部"))
+      .limit(1);
+    if (existing.length > 0) {
+      return { message: "Review demo already exists", meetingId: existing[0].id };
+    }
+
+    // Create meeting
+    const teamsLink = `https://teams.microsoft.com/l/meetup-join/grt-review-${Date.now()}`;
+    const [meeting] = await db
+      .insert(sysMeetings)
+      .values({
+        title: "2026年度述职报告 — 事业二部 & 事业三部",
+        type: "MAJOR",
+        status: "LIVE",
+        description: "述职报告：事业二部经理徐树奎、事业三部李柯瑶进行年度述职",
+        organizerName: "人力资源部",
+        organizerId: 1,
+        expectedAttendees: 7,
+        actualStart: new Date(),
+        teamsUrl: teamsLink,
+      })
+      .returning();
+
+    // Speakers
+    const speakers = [
+      { id: 201, name: "徐树奎" },
+      { id: 202, name: "李柯瑶" },
+    ];
+    // Evaluators
+    const evaluators = [
+      { id: 301, name: "总经理" },
+      { id: 302, name: "HR总监" },
+      { id: 303, name: "技术总监" },
+      { id: 304, name: "财务总监" },
+      { id: 305, name: "运营总监" },
+    ];
+
+    // Mock scores: partial evaluators have submitted
+    const mockScores: Array<{
+      speakerId: number; speakerName: string;
+      evaluatorId: number; evaluatorName: string;
+      dimension: string; score: number; comment: string;
+    }> = [];
+
+    // 徐树奎: 3 evaluators submitted
+    for (const ev of evaluators.slice(0, 3)) {
+      for (const dim of REVIEW_DIMENSIONS) {
+        const base = dim === "performance" ? 8 : dim === "execution" ? 7 : dim === "innovation" ? 6 : dim === "teamwork" ? 8 : 7;
+        mockScores.push({
+          speakerId: 201, speakerName: "徐树奎",
+          evaluatorId: ev.id, evaluatorName: ev.name,
+          dimension: dim, score: base + Math.floor(Math.random() * 2),
+          comment: `${ev.name}评价：${dim}表现${ base >= 8 ? "优秀" : base >= 7 ? "良好" : "有待提升"}`,
+        });
+      }
+    }
+
+    // 李柯瑶: 2 evaluators submitted
+    for (const ev of evaluators.slice(0, 2)) {
+      for (const dim of REVIEW_DIMENSIONS) {
+        const base = dim === "performance" ? 7 : dim === "execution" ? 8 : dim === "innovation" ? 8 : dim === "teamwork" ? 7 : 6;
+        mockScores.push({
+          speakerId: 202, speakerName: "李柯瑶",
+          evaluatorId: ev.id, evaluatorName: ev.name,
+          dimension: dim, score: base + Math.floor(Math.random() * 2),
+          comment: `${ev.name}评价：${dim}表现${ base >= 8 ? "优秀" : base >= 7 ? "良好" : "有待提升"}`,
+        });
+      }
+    }
+
+    if (mockScores.length > 0) {
+      await db.insert(meetingReviewEvaluations).values(
+        mockScores.map((s) => ({
+          meetingId: meeting.id,
+          speakerId: s.speakerId,
+          speakerName: s.speakerName,
+          evaluatorId: s.evaluatorId,
+          evaluatorName: s.evaluatorName,
+          dimension: s.dimension,
+          score: s.score,
+          comment: s.comment,
+        }))
+      );
+    }
+
+    return { message: "Review demo seeded", meetingId: meeting.id, evaluationsCreated: mockScores.length };
+  }),
+});
+
+// ═══════════════════════════════════════════════════════════
 //  Export composed router
 // ═══════════════════════════════════════════════════════════
 export const smartMeetingRouter = router({
@@ -917,4 +1149,5 @@ export const smartMeetingRouter = router({
   seed: seedRouter,
   speaker: speakerRouter,
   analytics: analyticsRouter,
+  review: reviewRouter,
 });

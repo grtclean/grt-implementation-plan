@@ -548,21 +548,48 @@ const scheduledTasks: ScheduledTask[] = [
 // ==================== 调度器核心函数 ====================
 
 // 解析Cron表达式获取下次执行时间
+function parseCronField(field: string, currentValue: number): number {
+  if (field === '*') return currentValue;
+  // Handle step expression: */N → next multiple of N from current value
+  if (field.startsWith('*/')) {
+    const step = parseInt(field.substring(2));
+    if (!isNaN(step) && step > 0) {
+      return Math.ceil((currentValue + 1) / step) * step;
+    }
+    return currentValue;
+  }
+  const val = parseInt(field);
+  return isNaN(val) ? currentValue : val;
+}
+
 function getNextRunTime(cronExpression: string): Date {
   const parts = cronExpression.split(" ");
   if (parts.length !== 6) {
     throw new Error("Invalid cron expression");
   }
-  
+
   const [seconds, minutes, hours, dayOfMonth, month, dayOfWeek] = parts;
   const now = new Date();
   const next = new Date(now);
-  
+
   // 设置时间
-  next.setSeconds(seconds === '*' ? 0 : parseInt(seconds));
-  next.setMinutes(minutes === '*' ? 0 : parseInt(minutes));
-  next.setHours(hours === '*' ? 0 : parseInt(hours));
-  
+  next.setSeconds(seconds === '*' ? 0 : parseCronField(seconds, now.getSeconds()));
+  next.setMinutes(minutes === '*' ? 0 : parseCronField(minutes, now.getMinutes()));
+
+  // Handle hours — step expressions like */6
+  if (hours.startsWith('*/')) {
+    const step = parseInt(hours.substring(2));
+    const nextHour = Math.ceil((now.getHours() + 1) / step) * step;
+    next.setHours(nextHour >= 24 ? step : nextHour);
+    next.setMinutes(0);
+    next.setSeconds(0);
+    if (nextHour >= 24) {
+      next.setDate(next.getDate() + 1);
+    }
+  } else {
+    next.setHours(hours === '*' ? 0 : parseInt(hours));
+  }
+
   // 处理日期
   if (dayOfMonth !== '*') {
     next.setDate(parseInt(dayOfMonth));
@@ -584,7 +611,7 @@ function getNextRunTime(cronExpression: string): Date {
       next.setDate(next.getDate() + 1);
     }
   }
-  
+
   return next;
 }
 

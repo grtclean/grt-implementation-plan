@@ -322,26 +322,26 @@ export const projectGateRouter = router({
         }
       }
 
-      // FAT/SAT failure → red-line violation event
+      // FAT/SAT failure → red-line violation event (reuse gate already fetched above for approved path)
       if (!input.approved) {
         try {
-          const [rejectedGate] = await db.select().from(projectGates).where(eq(projectGates.id, input.requestId));
-          if (rejectedGate && (rejectedGate.phaseCode === "M7" || rejectedGate.phaseCode === "M11")) {
-            const severity = rejectedGate.phaseCode === "M11" ? "CRITICAL" : "MAJOR";
-            const label = rejectedGate.phaseCode === "M7" ? "FAT" : "SAT";
+          const [rejGate] = await db.select({ phaseCode: projectGates.phaseCode, projectId: projectGates.projectId })
+            .from(projectGates).where(eq(projectGates.id, input.requestId));
+          if (rejGate && (rejGate.phaseCode === "M7" || rejGate.phaseCode === "M11")) {
+            const severity = rejGate.phaseCode === "M11" ? "CRITICAL" : "MAJOR";
+            const label = rejGate.phaseCode === "M7" ? "FAT" : "SAT";
             await db.insert(violationEvents).values({
-              projectId: rejectedGate.projectId,
+              projectId: rejGate.projectId,
               eventType: "quality_defect",
               severity,
               sourceModule: "projectGate",
-              title: `${label}测试未通过 — ${rejectedGate.phaseCode}阶段被退回`,
-              description: `项目门禁${rejectedGate.phaseCode}(${label})审批被拒绝。${input.comments || ""}`,
+              title: `${label}测试未通过 — ${rejGate.phaseCode}阶段被退回`,
+              description: `项目门禁${rejGate.phaseCode}(${label})审批被拒绝。${input.comments || ""}`,
               status: "open",
             });
-            console.log(`[ProjectGate] ${label} rejection → violation event (${severity}) for project ${rejectedGate.projectId}`);
+            console.log(`[ProjectGate] ${label} rejection → violation event (${severity}) for project ${rejGate.projectId}`);
           }
         } catch (violationErr) {
-          // Don't block the main flow if violation creation fails
           console.error("[ProjectGate] Failed to create violation event:", violationErr);
         }
       }
