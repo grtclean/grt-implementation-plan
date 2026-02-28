@@ -9,6 +9,7 @@
  * the task worker when a matching `taskType` task enters the queue.
  */
 import { registerTaskHandler, type TaskHandler } from "./task-worker.service";
+import { registerFinanceAgentHandler } from "./finance-agent.service";
 import { invokeLLM } from "../_core/llm";
 
 // ══════════════════════════════════════════════════════════════
@@ -424,4 +425,7 @@ export function registerAllEngines(): void {
   registerTaskHandler("INCIDENT_ANALYSIS", incidentAnalysisHandler);
   // The existing HR_CAPABILITY_PARSING stays in hr-sandbox.service.ts (synchronous)
   // but can optionally be migrated here in a future iteration.
+
+  // Finance Agent — AI expense review engine
+  registerFinanceAgentHandler();
 }

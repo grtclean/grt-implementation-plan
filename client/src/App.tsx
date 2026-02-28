@@ -212,6 +212,7 @@ import SalaryReport from "./pages/SalaryReport";
 import CcdRealtime from "./pages/CcdRealtime";
 import BomExcelImport from "./pages/BomExcelImport";
 import SalaryApproval from "./pages/SalaryApproval";
+import FinanceAgentWorkbench from "./pages/FinanceAgentWorkbench";
 import BusinessUnits from "./pages/BusinessUnits";
 import AIProcessOptimization from "./pages/AIProcessOptimization";
 import HROffboarding from "./pages/HROffboarding";
@@ -1391,6 +1392,11 @@ function Router() {
       {/* RAG知识库训练中心 */}
       <Route path="/rag-training">
         <ProtectedRoute component={RAGTrainingCenter} />
+      </Route>
+
+      {/* Finance Agent — AI 费用审核拦截引擎 */}
+      <Route path="/finance-agent">
+        <ProtectedRoute component={FinanceAgentWorkbench} />
       </Route>
 
       {/* Mobile H5 routes */}

@@ -259,6 +259,7 @@ import { automationRouter } from "./routers/automation.router";
 import { aiTaskRouter } from "./routers/ai-task.router";
 import { hrSandboxRouter } from "./routers/hr-sandbox.router";
 import { violationEventRouter } from "./routers/violation-event.router";
+import { financeAgentRouter } from "./routers/finance-agent.router";
 import { performanceRecordRouter } from "./routers/performance-record.router";
 
 // GRT Value Chain Enhancement — 非标清洗设备全价值链
@@ -737,6 +738,9 @@ export const appRouter = router({
 
   // Digital Cloud Hall — 数字云厅 (视讯交互大厅)
   cloudHall: cloudHallRouter,
+
+  // Finance Agent — AI 费用审核拦截引擎
+  financeAgent: financeAgentRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {

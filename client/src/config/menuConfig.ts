@@ -802,6 +802,8 @@ export const menuConfig: MenuGroup[] = [
         allowedRoles: ["admin", "director", "bu_gm", "finance_manager"] },
       { name: "AI税费计算", nameEn: "AI VAT Calc", nameDe: "KI-MwSt-Rechner", nameFr: "IA Calcul TVA", path: "/ai-vat-calculator", icon: Receipt, isNew: true,
         allowedRoles: ["admin", "director", "bu_gm", "finance_manager", "finance_specialist"] },
+      { name: "Finance Agent", nameEn: "Finance Agent", nameDe: "Finanz-Agent", nameFr: "Agent financier", path: "/finance-agent", icon: Brain, isNew: true,
+        allowedRoles: ["admin", "director", "bu_gm", "finance_manager", "dept_manager"] },
     ],
   },
 
