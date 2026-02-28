@@ -138,9 +138,8 @@ export const aiSuggestionRouter = router({
       suggestionId: z.union([z.string(), z.number()]).optional(),
       actionId: z.string().optional(),
       actionName: z.string().optional(),
-      executedBy: z.string().optional(),
     }),
-  ])).mutation(async ({ input }) => {
+  ])).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const numId = typeof input === "object" ? toNum(input.suggestionId || 0) : toNum(input);
 
@@ -155,11 +154,12 @@ export const aiSuggestionRouter = router({
     }).where(eq(aiProcessSuggestions.id, numId));
 
     const inputObj = typeof input === "object" ? input : {};
+    const executorName = ctx.user.name ?? `User#${ctx.user.id}`;
     const [log] = await db.insert(aiSuggestionExecutionLogs).values({
       suggestionId: numId,
       actionId: (inputObj as any).actionId || `ACT-${Date.now()}`,
       actionName: (inputObj as any).actionName || "应用建议",
-      executedBy: (inputObj as any).executedBy || "system",
+      executedBy: executorName,
       status: "completed",
       result: "建议已应用",
     }).returning();

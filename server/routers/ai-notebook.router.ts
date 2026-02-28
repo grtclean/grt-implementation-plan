@@ -126,12 +126,13 @@ export const aiNotebookRouter = router({
     id: z.union([z.string(), z.number()]).optional(),
     suggestionId: z.union([z.string(), z.number()]).optional(),
     acceptedValue: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const numId = toNum(input.id || input.suggestionId || 0);
     const [item] = await db.update(aiNotebookSuggestions).set({
       status: "accepted",
       acceptedValue: input.acceptedValue,
+      acceptedBy: ctx.user.id,
       acceptedAt: new Date().toISOString(),
     }).where(eq(aiNotebookSuggestions.id, numId)).returning();
     return { success: true, data: item };
@@ -140,11 +141,12 @@ export const aiNotebookRouter = router({
   rejectSuggestion: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]).optional(),
     suggestionId: z.union([z.string(), z.number()]).optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const numId = toNum(input.id || input.suggestionId || 0);
     const [item] = await db.update(aiNotebookSuggestions).set({
       status: "rejected",
+      acceptedBy: ctx.user.id,
     }).where(eq(aiNotebookSuggestions.id, numId)).returning();
     return { success: true, data: item };
   }),

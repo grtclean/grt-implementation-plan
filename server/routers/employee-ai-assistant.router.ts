@@ -244,6 +244,19 @@ export const employeeAiAssistantRouter = router({
           throw new Error("用户未认证");
         }
 
+        // Verify session belongs to the current user
+        const [session] = await db
+          .select({ userId: aiAssistantSessions.userId })
+          .from(aiAssistantSessions)
+          .where(eq(aiAssistantSessions.id, input.sessionId))
+          .limit(1);
+        if (!session) {
+          throw new Error("会话不存在");
+        }
+        if (session.userId !== userId) {
+          throw new Error("无权访问此会话");
+        }
+
         // 保存用户消息
         await db.insert(aiAssistantMessages).values({
           sessionId: String(input.sessionId),

@@ -19,19 +19,22 @@ import { eq, desc, sql, count, and } from "drizzle-orm";
 import { hrAiPerformance, meetingActionItems } from "../../drizzle/smart-meetings-schema";
 
 export const aiPerformanceRouter = router({
-  /** Legacy stub — kept for backward compat */
+  /** Legacy stub — kept for backward compat, scoped by role */
   getScores: protectedProcedure
     .input(z.object({ meetingId: z.number().optional(), userId: z.number().optional() }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
         const db = await requireDb();
-        if (input?.userId) {
-          const rows = await db.select().from(hrAiPerformance)
-            .where(eq(hrAiPerformance.userId, input.userId))
-            .orderBy(desc(hrAiPerformance.month));
-          return { items: rows, total: rows.length };
+        const HR_ROLES = new Set(["admin", "director", "hr_manager", "dept_manager"]);
+        const targetUserId = input?.userId ?? ctx.user.id;
+        // Non-HR roles can only see own data
+        if (targetUserId !== ctx.user.id && !HR_ROLES.has(ctx.user.role ?? "employee")) {
+          return { items: [], total: 0 };
         }
-        return { items: [], total: 0 };
+        const rows = await db.select().from(hrAiPerformance)
+          .where(eq(hrAiPerformance.userId, targetUserId))
+          .orderBy(desc(hrAiPerformance.month));
+        return { items: rows, total: rows.length };
       } catch {
         return { items: [], total: 0 };
       }
@@ -175,11 +178,16 @@ export const aiPerformanceRouter = router({
       }
     }),
 
-  /** Single user performance detail */
+  /** Single user performance detail — scoped by role */
   userDetail: protectedProcedure
     .input(z.object({ userId: z.number(), months: z.number().default(6) }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
+        const HR_ROLES = new Set(["admin", "director", "hr_manager", "dept_manager"]);
+        // Non-HR roles can only see own data
+        if (input.userId !== ctx.user.id && !HR_ROLES.has(ctx.user.role ?? "employee")) {
+          return { history: [], actionItems: [] };
+        }
         const db = await requireDb();
         const history = await db.select().from(hrAiPerformance)
           .where(eq(hrAiPerformance.userId, input.userId))
