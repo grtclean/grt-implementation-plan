@@ -371,20 +371,20 @@ export const buSalesTargetRouter = router({
   financeReview: protectedProcedure
     .input(z.object({
       adjustmentId: z.number(),
-      reviewerId: z.string(),
       approved: z.boolean(),
       comment: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       await ensureTables();
 
+      const reviewerName = ctx.user.name ?? `User#${ctx.user.id}`;
       const finStatus = input.approved ? "approved" : "rejected";
 
       const updateData: Record<string, unknown> = {
         financePmoStatus: finStatus,
-        financePmoReviewedBy: input.reviewerId,
+        financePmoReviewedBy: reviewerName,
         financePmoReviewedAt: new Date().toISOString(),
         financePmoComment: input.comment ?? null,
       };
@@ -419,26 +419,26 @@ export const buSalesTargetRouter = router({
   ceoReview: protectedProcedure
     .input(z.object({
       adjustmentId: z.number(),
-      reviewerId: z.string(),
       approved: z.boolean(),
       comment: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       await ensureTables();
 
+      const reviewerName = ctx.user.name ?? `User#${ctx.user.id}`;
       const ceoStatus = input.approved ? "approved" : "rejected";
 
       const [adj] = await db
         .update(buSalesPlanAdjustments)
         .set({
           ceoStatus,
-          ceoReviewedBy: input.reviewerId,
+          ceoReviewedBy: reviewerName,
           ceoReviewedAt: new Date().toISOString(),
           ceoComment: input.comment ?? null,
           approvalStatus: input.approved ? "approved" : "rejected",
-          approvedBy: input.reviewerId,
+          approvedBy: reviewerName,
         })
         .where(eq(buSalesPlanAdjustments.id, input.adjustmentId))
         .returning();
@@ -492,19 +492,19 @@ export const buSalesTargetRouter = router({
   approveAdjustment: protectedProcedure
     .input(z.object({
       adjustmentId: z.number(),
-      approvedBy: z.string(),
       approved: z.boolean(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       await ensureTables();
 
       const newStatus = input.approved ? "approved" : "rejected";
+      const approverName = ctx.user.name ?? `User#${ctx.user.id}`;
 
       const [adj] = await db
         .update(buSalesPlanAdjustments)
-        .set({ approvalStatus: newStatus, approvedBy: input.approvedBy })
+        .set({ approvalStatus: newStatus, approvedBy: approverName })
         .where(eq(buSalesPlanAdjustments.id, input.adjustmentId))
         .returning();
 

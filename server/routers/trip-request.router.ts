@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
@@ -11,18 +12,35 @@ import {
 } from "../../drizzle/schema";
 import { eq, desc, and, count, sql } from "drizzle-orm";
 
+/** Roles that can see ALL trip requests and approve/reject */
+const TRIP_MANAGER_ROLES = new Set(["admin", "director", "dept_manager", "hr_manager", "finance_manager"]);
+
+/** Verify trip belongs to current user (managers bypass) */
+async function assertTripOwnership(db: any, tripId: number, userId: number, role: string) {
+  if (TRIP_MANAGER_ROLES.has(role)) return;
+  const [trip] = await db.select({ userId: tripRequests.userId }).from(tripRequests).where(eq(tripRequests.id, tripId));
+  if (!trip) throw new TRPCError({ code: "NOT_FOUND", message: `出差申请 #${tripId} 不存在` });
+  if (trip.userId !== userId) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "无权操作他人的出差申请" });
+  }
+}
+
 export const tripRequestRouter = router({
-  // 出差申请列表
-  list: protectedProcedure.query(async () => {
+  // 出差申请列表 — scoped by role
+  list: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    const items = await db.select().from(tripRequests).orderBy(desc(tripRequests.createdAt)).limit(100);
+    const role = ctx.user.role ?? "employee";
+    const isManager = TRIP_MANAGER_ROLES.has(role);
+    const whereCondition = isManager ? undefined : eq(tripRequests.userId, ctx.user.id);
+    const items = await db.select().from(tripRequests).where(whereCondition).orderBy(desc(tripRequests.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 获取出差申请详情（含行程和预订）
-  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
+    await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
     const [request] = await db.select().from(tripRequests).where(eq(tripRequests.id, id));
     if (!request) return null;
 
@@ -64,7 +82,7 @@ export const tripRequestRouter = router({
     emergencyPhone: z.string().optional(),
     specialRequirements: z.string().optional(),
     itineraries: z.array(z.any()).optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const code = `TR-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Date.now().toString(36).toUpperCase().slice(-3)}`;
 
@@ -84,7 +102,7 @@ export const tripRequestRouter = router({
 
     const [request] = await db.insert(tripRequests).values({
       requestCode: code,
-      userId: 1, // TODO: from auth context
+      userId: ctx.user.id,
       tripPurpose,
       destinationCity: destCity,
       plannedStartDate: plannedStart,
@@ -112,20 +130,23 @@ export const tripRequestRouter = router({
     estimatedBudget: z.string().optional(),
     justification: z.string().optional(),
     notes: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const { id, ...updates } = input;
+    const numId = parseInt(id);
+    await assertTripOwnership(db, numId, ctx.user.id, ctx.user.role ?? "employee");
     const [request] = await db.update(tripRequests)
       .set({ ...updates, updatedAt: new Date().toISOString() })
-      .where(eq(tripRequests.id, parseInt(id)))
+      .where(eq(tripRequests.id, numId))
       .returning();
     return { success: true, message: "更新成功", data: request };
   }),
 
-  // 删除出差申请
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  // 删除出差申请 — ownership check, only draft
+  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
+    await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
     // Delete related records first
     await db.delete(tripItineraries).where(eq(tripItineraries.tripRequestId, id));
     await db.delete(tripBookings).where(eq(tripBookings.tripRequestId, id));
@@ -134,85 +155,122 @@ export const tripRequestRouter = router({
     return { success: true, message: "删除成功" };
   }),
 
-  // 审批
+  // 审批 — role gate + self-approval prevention
   approve: protectedProcedure.input(z.object({
     id: z.string(),
     notes: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
+    const id = parseInt(input.id);
+    const role = ctx.user.role ?? "employee";
+    if (!TRIP_MANAGER_ROLES.has(role)) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "仅管理角色可审批出差申请" });
+    }
+    // Check status + self-approval
+    const [existing] = await db.select({ userId: tripRequests.userId, status: tripRequests.status })
+      .from(tripRequests).where(eq(tripRequests.id, id));
+    if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: `出差申请 #${id} 不存在` });
+    if (existing.userId === ctx.user.id) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "不能审批自己的出差申请" });
+    }
+    if (existing.status !== "submitted") {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `出差申请状态为 ${existing.status}，无法审批` });
+    }
     const [request] = await db.update(tripRequests)
       .set({
         status: "approved",
         managerApprovedAt: new Date(),
-        managerApprovedBy: 1, // TODO: from auth
+        managerApprovedBy: ctx.user.id,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(tripRequests.id, parseInt(input.id)))
+      .where(eq(tripRequests.id, id))
       .returning();
     return { success: true, message: "已批准", data: request };
   }),
 
-  // 拒绝
+  // 拒绝 — role gate + self-rejection prevention
   reject: protectedProcedure.input(z.object({
     id: z.string(),
     reason: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
+    const id = parseInt(input.id);
+    const role = ctx.user.role ?? "employee";
+    if (!TRIP_MANAGER_ROLES.has(role)) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "仅管理角色可驳回出差申请" });
+    }
+    const [existing] = await db.select({ userId: tripRequests.userId, status: tripRequests.status })
+      .from(tripRequests).where(eq(tripRequests.id, id));
+    if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: `出差申请 #${id} 不存在` });
+    if (existing.userId === ctx.user.id) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "不能驳回自己的出差申请" });
+    }
+    if (existing.status !== "submitted") {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `出差申请状态为 ${existing.status}，无法驳回` });
+    }
     const [request] = await db.update(tripRequests)
       .set({
         status: "rejected",
         rejectionReason: input.reason,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(tripRequests.id, parseInt(input.id)))
+      .where(eq(tripRequests.id, id))
       .returning();
     return { success: true, message: "已拒绝", data: request };
   }),
 
-  // 提交申请
-  submit: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  // 提交申请 — ownership check
+  submit: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
+    const id = parseInt(input.id);
+    await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
     const [request] = await db.update(tripRequests)
       .set({ status: "submitted", updatedAt: new Date().toISOString() })
-      .where(eq(tripRequests.id, parseInt(input.id)))
+      .where(eq(tripRequests.id, id))
       .returning();
     return { success: true, message: "已提交", data: request };
   }),
 
-  // 取消申请
-  cancel: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  // 取消申请 — ownership check
+  cancel: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
+    const id = parseInt(input.id);
+    await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
     const [request] = await db.update(tripRequests)
       .set({ status: "cancelled", updatedAt: new Date().toISOString() })
-      .where(eq(tripRequests.id, parseInt(input.id)))
+      .where(eq(tripRequests.id, id))
       .returning();
     return { success: true, message: "已取消", data: request };
   }),
 
-  // 开始出差
-  start: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  // 开始出差 — ownership check
+  start: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
+    const id = parseInt(input.id);
+    await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
     const [request] = await db.update(tripRequests)
       .set({
         status: "in_progress",
         actualStartDate: new Date().toISOString().slice(0, 10),
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(tripRequests.id, parseInt(input.id)))
+      .where(eq(tripRequests.id, id))
       .returning();
     return { success: true, message: "出差已开始", data: request };
   }),
 
-  // 完成出差
-  complete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  // 完成出差 — ownership check
+  complete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
+    const id = parseInt(input.id);
+    await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
     const [request] = await db.update(tripRequests)
       .set({
         status: "completed",
         actualEndDate: new Date().toISOString().slice(0, 10),
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(tripRequests.id, parseInt(input.id)))
+      .where(eq(tripRequests.id, id))
       .returning();
     return { success: true, message: "出差已完成", data: request };
   }),

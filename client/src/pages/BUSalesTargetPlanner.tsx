@@ -976,9 +976,9 @@ export default function BUSalesTargetPlanner() {
                         onClick={() => {
                           if (!reviewDialogId) return;
                           if (reviewStep === "finance") {
-                            financeReviewMutation.mutate({ adjustmentId: reviewDialogId, reviewerId: "finance-user", approved: false, comment: reviewComment });
+                            financeReviewMutation.mutate({ adjustmentId: reviewDialogId, approved: false, comment: reviewComment });
                           } else {
-                            ceoReviewMutation.mutate({ adjustmentId: reviewDialogId, reviewerId: "ceo-user", approved: false, comment: reviewComment });
+                            ceoReviewMutation.mutate({ adjustmentId: reviewDialogId, approved: false, comment: reviewComment });
                           }
                         }}
                         disabled={financeReviewMutation.isPending || ceoReviewMutation.isPending}
@@ -990,9 +990,9 @@ export default function BUSalesTargetPlanner() {
                         onClick={() => {
                           if (!reviewDialogId) return;
                           if (reviewStep === "finance") {
-                            financeReviewMutation.mutate({ adjustmentId: reviewDialogId, reviewerId: "finance-user", approved: true, comment: reviewComment });
+                            financeReviewMutation.mutate({ adjustmentId: reviewDialogId, approved: true, comment: reviewComment });
                           } else {
-                            ceoReviewMutation.mutate({ adjustmentId: reviewDialogId, reviewerId: "ceo-user", approved: true, comment: reviewComment });
+                            ceoReviewMutation.mutate({ adjustmentId: reviewDialogId, approved: true, comment: reviewComment });
                           }
                         }}
                         disabled={financeReviewMutation.isPending || ceoReviewMutation.isPending}

@@ -396,7 +396,7 @@ export default function AITriggerSettings() {
                           <Switch
                             checked={trigger.isEnabled === 1}
                             onCheckedChange={(checked) => {
-                              toggleMutation.mutate({ id: trigger.id, isEnabled: checked });
+                              toggleMutation.mutate({ id: trigger.id });
                             }}
                           />
                           <Badge variant={trigger.isEnabled === 1 ? "default" : "secondary"}>
@@ -466,7 +466,7 @@ export default function AITriggerSettings() {
                             variant="outline" 
                             size="sm" 
                             onClick={() => {
-                              executeMutation.mutate({ triggerId: trigger.id, context: {} });
+                              executeMutation.mutate({ id: trigger.id, context: {} });
                             }}
                             disabled={executeMutation.isPending}
                           >

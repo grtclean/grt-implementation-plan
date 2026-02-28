@@ -354,16 +354,15 @@ export const cicdRouter = router({
       return updated;
     }),
 
-  // Promote task to next stage (requires CEO approval flag)
+  // Promote task to next stage (requires approval)
   promoteStage: protectedProcedure
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
-        approvedBy: z.string().default("CEO"),
         note: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [task] = await db
         .select()
@@ -381,12 +380,13 @@ export const cicdRouter = router({
           ? { ceoApprovedDev: true }
           : { ceoApprovedTest: true };
 
+      const approverName = ctx.user.name ?? `User#${ctx.user.id}`;
       const [updated] = await db
         .update(cicdTasks)
         .set({
           ...approvalField,
           currentStage: nextStage,
-          approvedBy: input.approvedBy,
+          approvedBy: approverName,
           updatedAt: new Date(),
         })
         .where(eq(cicdTasks.id, toNum(input.id)))
@@ -398,7 +398,7 @@ export const cicdRouter = router({
         fromStage: task.currentStage,
         toStage: nextStage,
         action: "promote",
-        actor: input.approvedBy,
+        actor: approverName,
         note: input.note ?? `Promoted from ${task.currentStage} to ${nextStage}`,
       });
 

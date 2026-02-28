@@ -130,11 +130,10 @@ export const campaignRouter = router({
         name: z.string().min(1).max(200),
         description: z.string().optional(),
         campaignType: z.enum(CAMPAIGN_TYPES),
-        createdBy: z.number().optional(),
         metadata: z.record(z.string(), z.unknown()).optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [campaign] = await db
         .insert(globalCampaigns)
@@ -144,7 +143,7 @@ export const campaignRouter = router({
           description: input.description,
           campaignType: input.campaignType,
           status: "DRAFT",
-          createdBy: input.createdBy,
+          createdBy: ctx.user.id,
           metadata: input.metadata as Record<string, unknown> | undefined,
         })
         .returning();

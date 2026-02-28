@@ -108,22 +108,21 @@ export const okrRouter = router({
       title: z.string().min(1),
       description: z.string().optional(),
       level: z.enum(["company", "bu", "department", "individual"]).default("individual"),
-      ownerId: z.string(),
       ownerName: z.string().optional(),
       parentId: z.number().optional(),
       period: z.string(),
       priority: z.enum(["P0", "P1", "P2"]).default("P1"),
       buCode: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         const db = await requireDb();
         const [inserted] = await db.insert(okrObjectives).values({
           title: input.title,
           description: input.description ?? null,
           level: input.level,
-          ownerId: input.ownerId,
-          ownerName: input.ownerName ?? null,
+          ownerId: String(ctx.user.id),
+          ownerName: input.ownerName ?? ctx.user.name ?? null,
           parentId: input.parentId ?? null,
           period: input.period,
           priority: input.priority,
@@ -190,10 +189,9 @@ export const okrRouter = router({
       startValue: z.number().default(0),
       targetValue: z.number().default(100),
       unit: z.string().default("%"),
-      ownerId: z.string().optional(),
       ownerName: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         const db = await requireDb();
         const [inserted] = await db.insert(okrKeyResults).values({
@@ -204,8 +202,8 @@ export const okrRouter = router({
           targetValue: input.targetValue,
           currentValue: input.startValue,
           unit: input.unit,
-          ownerId: input.ownerId ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerId: String(ctx.user.id),
+          ownerName: input.ownerName ?? ctx.user.name ?? null,
           status: "on_track",
           confidence: 0.5,
         }).returning();
@@ -263,10 +261,8 @@ export const okrRouter = router({
       value: z.number(),
       confidence: z.number().optional(),
       note: z.string().optional(),
-      authorId: z.string().optional(),
-      authorName: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         const db = await requireDb();
         await db.insert(okrCheckIns).values({
@@ -274,8 +270,8 @@ export const okrRouter = router({
           value: input.value,
           confidence: input.confidence ?? 0.5,
           note: input.note ?? null,
-          authorId: input.authorId ?? null,
-          authorName: input.authorName ?? null,
+          authorId: String(ctx.user.id),
+          authorName: ctx.user.name ?? null,
         });
         // Update KR current value
         await db.update(okrKeyResults).set({

@@ -38,8 +38,25 @@ export const aiTriggerRouter = router({
    * Generates a triggerCode if not provided.
    */
   create: protectedProcedure
-    .input(z.any())
-    .mutation(async ({ input }) => {
+    .input(z.object({
+      triggerCode: z.string().optional(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      agentType: z.string().optional(),
+      triggerType: z.string().optional(),
+      triggerConditions: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+      cronExpression: z.string().optional(),
+      triggerOnStages: z.union([z.string(), z.array(z.string())]).optional(),
+      triggerOnEvents: z.union([z.string(), z.array(z.string())]).optional(),
+      inputTemplate: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+      autoApplyResult: z.boolean().optional(),
+      notifyOnSuccess: z.boolean().optional(),
+      notifyOnFailure: z.boolean().optional(),
+      notifyRecipients: z.union([z.string(), z.array(z.string())]).optional(),
+      isEnabled: z.boolean().optional(),
+      priority: z.number().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const code =
         input.triggerCode || `TRG-${Date.now().toString(36).toUpperCase()}`;
@@ -85,7 +102,7 @@ export const aiTriggerRouter = router({
           isEnabled:
             input.isEnabled !== undefined ? (input.isEnabled ? 1 : 0) : 1,
           priority: input.priority ?? 0,
-          createdBy: input.createdBy,
+          createdBy: ctx.user.id,
         })
         .returning();
 
@@ -97,7 +114,24 @@ export const aiTriggerRouter = router({
    * Only fields present in the input will be updated.
    */
   update: protectedProcedure
-    .input(z.any())
+    .input(z.object({
+      id: z.union([z.string(), z.number()]),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      agentType: z.string().optional(),
+      triggerType: z.string().optional(),
+      triggerConditions: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+      cronExpression: z.string().optional(),
+      triggerOnStages: z.union([z.string(), z.array(z.string())]).optional(),
+      triggerOnEvents: z.union([z.string(), z.array(z.string())]).optional(),
+      inputTemplate: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+      autoApplyResult: z.boolean().optional(),
+      notifyOnSuccess: z.boolean().optional(),
+      notifyOnFailure: z.boolean().optional(),
+      notifyRecipients: z.union([z.string(), z.array(z.string())]).optional(),
+      isEnabled: z.boolean().optional(),
+      priority: z.number().optional(),
+    }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const id = toNum(input.id);
@@ -188,7 +222,7 @@ export const aiTriggerRouter = router({
    * Toggle the enabled/disabled state of a trigger.
    */
   toggle: protectedProcedure
-    .input(z.any())
+    .input(z.object({ id: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const id = toNum(input.id);
@@ -220,7 +254,11 @@ export const aiTriggerRouter = router({
    * Creates an execution record and updates trigger execution statistics.
    */
   execute: protectedProcedure
-    .input(z.any())
+    .input(z.object({
+      id: z.union([z.string(), z.number()]),
+      context: z.record(z.string(), z.unknown()).optional(),
+      triggerSource: z.string().optional(),
+    }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const id = toNum(input.id);
