@@ -14,7 +14,6 @@ import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { useLocation } from "wouter";
 import {
   Video,
   VideoOff,
@@ -566,14 +565,13 @@ function AssetGallery() {
 export default function DigitalCloudHall() {
   const { currentUserRole } = useUserProfile();
   const { t } = useLanguage();
-  const [location] = useLocation();
 
   // Dual-module toggle: showcase (existing) vs service (global service dashboard)
   const [activeModule, setActiveModule] = useState<"showcase" | "service">("showcase");
 
   // Read query param for deep-linking: ?module=service
   useEffect(() => {
-    if (location.includes("module=service")) setActiveModule("service");
+    if (window.location.search.includes("module=service")) setActiveModule("service");
   }, []);
 
   // Determine mode
