@@ -725,13 +725,13 @@ export const employeeAiAssistantRouter = router({
     }),
 
   create: protectedProcedure
-    .input(z.any())
+    .input(z.object({ name: z.string().optional(), type: z.string().optional() }).optional())
     .mutation(async () => {
       return { success: true };
     }),
 
   update: protectedProcedure
-    .input(z.any())
+    .input(z.object({ id: z.string(), name: z.string().optional() }).optional())
     .mutation(async () => {
       return { success: true };
     }),

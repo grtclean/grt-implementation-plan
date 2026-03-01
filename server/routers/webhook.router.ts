@@ -105,7 +105,10 @@ export const webhookRouter = router({
   }),
 
   // 获取Webhook日志（前端传 { webhookId?, limit? }）
-  getLogs: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getLogs: protectedProcedure.input(z.object({
+    webhookId: z.union([z.string(), z.number()]).optional(),
+    limit: z.number().min(1).max(500).optional(),
+  }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const limit = input?.limit || 100;
     if (input?.webhookId) {
@@ -259,7 +262,7 @@ export const webhookRouter = router({
     return { success: true, message: "模板删除成功" };
   }),
 
-  previewTemplate: protectedProcedure.input(z.any()).mutation(() => ({ preview: "" })),
+  previewTemplate: protectedProcedure.input(z.object({ template: z.string().optional(), variables: z.record(z.string(), z.unknown()).optional() }).optional()).mutation(() => ({ preview: "" })),
 
   // 初始化默认模板
   initTemplates: protectedProcedure.mutation(async () => {

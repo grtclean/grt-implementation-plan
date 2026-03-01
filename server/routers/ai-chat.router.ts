@@ -10,7 +10,7 @@ export const aiChatRouter = router({
     sessionId: z.number().optional(),
     assistantType: z.enum(["solution", "quotation", "planning", "kpi", "personal"]).optional(),
     message: z.string().min(1),
-    context: z.any().optional(),
+    context: z.record(z.string(), z.unknown()).optional(),
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     let sessionId = input.sessionId;

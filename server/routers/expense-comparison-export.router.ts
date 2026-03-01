@@ -13,13 +13,13 @@ import { router, protectedProcedure } from "../_core/trpc";
 
 export const expenseComparisonExportRouter = router({
   export: protectedProcedure
-    .input(z.any())
+    .input(z.object({ startDate: z.string().optional(), endDate: z.string().optional(), format: z.string().optional() }).optional())
     .mutation(() => {
       return { url: "" };
     }),
 
   exportReport: protectedProcedure
-    .input(z.any())
+    .input(z.object({ startDate: z.string().optional(), endDate: z.string().optional(), format: z.string().optional() }).optional())
     .mutation(() => {
       return {
         data: "",

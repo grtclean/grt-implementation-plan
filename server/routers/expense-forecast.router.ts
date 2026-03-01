@@ -21,13 +21,13 @@ export const expenseForecastRouter = router({
   }),
 
   getForecast: protectedProcedure
-    .input(z.any())
+    .input(z.object({ startDate: z.string().optional(), endDate: z.string().optional(), category: z.string().optional() }).optional())
     .query(() => {
       return [];
     }),
 
   generateForecast: protectedProcedure
-    .input(z.any())
+    .input(z.object({ startDate: z.string().optional(), endDate: z.string().optional(), category: z.string().optional() }).optional())
     .mutation(() => {
       return [];
     }),

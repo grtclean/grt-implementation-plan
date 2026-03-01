@@ -24,7 +24,7 @@ export const daIntegrationRouter = router({
   }),
 
   getIntegrationStats: protectedProcedure
-    .input(z.any())
+    .input(z.object({ assistantType: z.string().optional() }).optional())
     .query(() => {
       return {
         totalIntegrations: 0,

@@ -20,13 +20,13 @@ export const employeeDARouter = router({
     }),
 
   create: protectedProcedure
-    .input(z.any())
+    .input(z.object({ name: z.string().optional(), type: z.string().optional(), config: z.record(z.string(), z.unknown()).optional(), employeeId: z.string().optional(), assistantCode: z.string().optional(), displayName: z.string().optional(), workHabits: z.string().optional(), preferences: z.string().optional(), expertise: z.string().optional(), communicationStyle: z.string().optional(), canTaskAssist: z.boolean().optional(), canScheduleManage: z.boolean().optional(), canDocumentDraft: z.boolean().optional(), canDataAnalysis: z.boolean().optional(), canCommunicationProxy: z.boolean().optional() }))
     .mutation(() => {
       return successResponse;
     }),
 
   update: protectedProcedure
-    .input(z.any())
+    .input(z.object({ id: z.string(), name: z.string().optional(), config: z.record(z.string(), z.unknown()).optional(), displayName: z.string().optional(), workHabits: z.string().optional(), preferences: z.string().optional(), expertise: z.string().optional(), communicationStyle: z.string().optional(), canTaskAssist: z.boolean().optional(), canScheduleManage: z.boolean().optional(), canDocumentDraft: z.boolean().optional(), canDataAnalysis: z.boolean().optional(), canCommunicationProxy: z.boolean().optional() }))
     .mutation(() => {
       return successResponse;
     }),
@@ -38,7 +38,7 @@ export const employeeDARouter = router({
     }),
 
   toggleStatus: protectedProcedure
-    .input(z.any())
+    .input(z.object({ id: z.union([z.string(), z.number()]) }))
     .mutation(() => {
       return successResponse;
     }),
@@ -48,7 +48,7 @@ export const employeeDARouter = router({
   }),
 
   chat: protectedProcedure
-    .input(z.any())
+    .input(z.object({ message: z.string().optional(), sessionId: z.string().optional() }))
     .mutation(() => {
       return { response: "" };
     }),

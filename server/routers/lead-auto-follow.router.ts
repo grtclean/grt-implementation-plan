@@ -63,10 +63,10 @@ export const leadAutoFollowRouter = router({
     return { success: true, message: "配置已更新" };
   }),
 
-  create: protectedProcedure.input(z.object({ data: z.any() }).optional()).mutation(async () => {
+  create: protectedProcedure.input(z.object({ data: z.record(z.string(), z.unknown()).optional() }).optional()).mutation(async () => {
     return { success: true, message: "Auto-follow created" };
   }),
-  update: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), data: z.any().optional() }).optional()).mutation(async () => {
+  update: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), data: z.record(z.string(), z.unknown()).optional() }).optional()).mutation(async () => {
     return { success: true, message: "Auto-follow updated" };
   }),
   delete: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async () => {

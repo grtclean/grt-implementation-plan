@@ -15,13 +15,13 @@ const successResponse = { success: true, message: "操作成功" };
 
 export const fieldMappingRecommendRouter = router({
   getRecommendations: protectedProcedure
-    .input(z.any())
+    .input(z.object({ sourceFormat: z.string().optional(), targetFormat: z.string().optional(), sourceFields: z.array(z.string()).optional(), importType: z.string().optional() }).optional())
     .query(() => {
       return [];
     }),
 
   applyRecommendation: protectedProcedure
-    .input(z.any())
+    .input(z.object({ recommendationId: z.union([z.string(), z.number()]) }))
     .mutation(() => {
       return successResponse;
     }),

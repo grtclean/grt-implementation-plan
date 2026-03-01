@@ -16,12 +16,12 @@ export const deadlockMonitorRouter = router({
   }),
 
   // 创建监控规则
-  create: protectedProcedure.input(z.any()).mutation(async () => {
+  create: protectedProcedure.input(z.object({ name: z.string().optional(), resourceType: z.string().optional(), threshold: z.number().optional() })).mutation(async () => {
     return successResponse;
   }),
 
   // 更新监控规则
-  update: protectedProcedure.input(z.any()).mutation(async () => {
+  update: protectedProcedure.input(z.object({ id: z.string(), name: z.string().optional(), threshold: z.number().optional(), isActive: z.boolean().optional() })).mutation(async () => {
     return successResponse;
   }),
 
@@ -41,7 +41,7 @@ export const deadlockMonitorRouter = router({
   }),
 
   // 解决死锁
-  resolveDeadlock: protectedProcedure.input(z.any()).mutation(async () => {
+  resolveDeadlock: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), resolution: z.string().optional() })).mutation(async () => {
     return successResponse;
   }),
 

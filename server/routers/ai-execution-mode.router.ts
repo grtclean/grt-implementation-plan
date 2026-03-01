@@ -118,12 +118,12 @@ export const aiExecutionModeRouter = router({
   
   // 创建（兼容占位符接口）
   create: protectedProcedure
-    .input(z.any())
+    .input(z.object({ name: z.string().optional(), mode: z.string().optional(), config: z.record(z.string(), z.unknown()).optional() }))
     .mutation(() => ({ success: true })),
-  
+
   // 更新（兼容占位符接口）
   update: protectedProcedure
-    .input(z.any())
+    .input(z.object({ id: z.string(), name: z.string().optional(), mode: z.string().optional(), config: z.record(z.string(), z.unknown()).optional() }))
     .mutation(() => ({ success: true })),
   
   // 删除（兼容占位符接口）

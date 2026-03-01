@@ -419,18 +419,16 @@ const attendanceRouter = router({
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
-        userId: z.number(),
-        userName: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [record] = await db
         .insert(meetingAttendance)
         .values({
           meetingId: toNum(input.meetingId),
-          userId: input.userId,
-          userName: input.userName ?? null,
+          userId: ctx.user.id,
+          userName: ctx.user.name ?? null,
           status: "ABSENT",
         })
         .returning();

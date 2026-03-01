@@ -77,10 +77,10 @@ export const leadAnalyticsRouter = router({
   }),
 
   // Keep stub CRUD for compat
-  create: protectedProcedure.input(z.object({ data: z.any() }).optional()).mutation(async () => {
+  create: protectedProcedure.input(z.object({ data: z.record(z.string(), z.unknown()).optional() }).optional()).mutation(async () => {
     return { success: true, message: "Use crm.leads.create instead" };
   }),
-  update: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), data: z.any().optional() }).optional()).mutation(async () => {
+  update: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), data: z.record(z.string(), z.unknown()).optional() }).optional()).mutation(async () => {
     return { success: true, message: "Use crm.leads.update instead" };
   }),
   delete: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async () => {

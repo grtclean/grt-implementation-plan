@@ -81,7 +81,7 @@ export const tripRequestRouter = router({
     emergencyContact: z.string().optional(),
     emergencyPhone: z.string().optional(),
     specialRequirements: z.string().optional(),
-    itineraries: z.array(z.any()).optional(),
+    itineraries: z.array(z.object({ city: z.string().optional(), date: z.string().optional(), hotel: z.string().optional(), transport: z.string().optional(), notes: z.string().optional() })).optional(),
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const code = `TR-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Date.now().toString(36).toUpperCase().slice(-3)}`;

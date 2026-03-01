@@ -16,13 +16,13 @@ export const notificationChannelTestRouter = router({
     }),
 
   create: protectedProcedure
-    .input(z.any())
+    .input(z.object({ channelType: z.string().optional(), name: z.string().optional(), config: z.record(z.string(), z.unknown()).optional() }))
     .mutation(() => {
       return successResponse;
     }),
 
   update: protectedProcedure
-    .input(z.any())
+    .input(z.object({ id: z.string(), name: z.string().optional(), config: z.record(z.string(), z.unknown()).optional() }))
     .mutation(() => {
       return successResponse;
     }),
@@ -34,7 +34,7 @@ export const notificationChannelTestRouter = router({
     }),
 
   testChannel: protectedProcedure
-    .input(z.any())
+    .input(z.object({ channelId: z.union([z.string(), z.number()]).optional(), message: z.string().optional() }))
     .mutation(() => {
       return { success: true };
     }),
