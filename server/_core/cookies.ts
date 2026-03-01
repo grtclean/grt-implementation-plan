@@ -32,10 +32,8 @@ export function getSessionCookieOptions(
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "lax",
-    secure: false,
-    // Partitioned attribute for CHIPS (Cookies Having Independent Partitioned State)
-    // This allows cookies to work in third-party contexts (iframes) in modern browsers
+    sameSite: isSecure ? "none" : "lax",
+    secure: isSecure,
     partitioned: isSecure,
   };
 }

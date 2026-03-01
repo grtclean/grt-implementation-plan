@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
+import helmet from "helmet";
+import cors from "cors";
 import crypto from "crypto";
 import { sql } from "drizzle-orm";
 import { createServer } from "http";
@@ -43,6 +45,29 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }));
+
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const allowed = [
+        /localhost/,
+        /127\.0\.0\.1/,
+        /\.manus\.computer$/,
+        /\.manuspre\.computer$/,
+        /\.manus-asia\.computer$/,
+        /\.manuscomputer\.ai$/,
+        /\.manusvm\.computer$/,
+      ];
+      if (allowed.some(re => re.test(origin))) return callback(null, true);
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  }));
+
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
