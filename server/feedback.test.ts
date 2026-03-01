@@ -1,6 +1,27 @@
-import { describe, expect, it } from "vitest";
-import { appRouter } from "./routers";
+import { describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
+
+// Mock requireDb to avoid real DB connection
+const mockDbChain: any = {};
+mockDbChain.from = vi.fn(() => mockDbChain);
+mockDbChain.where = vi.fn(() => mockDbChain);
+mockDbChain.orderBy = vi.fn(() => mockDbChain);
+mockDbChain.limit = vi.fn(() => mockDbChain);
+mockDbChain.values = vi.fn(() => mockDbChain);
+mockDbChain.set = vi.fn(() => mockDbChain);
+mockDbChain.returning = vi.fn(async () => [{ id: 1 }]);
+mockDbChain.then = (resolve: any) => resolve([]);
+
+vi.mock("./db", () => ({
+  requireDb: vi.fn(async () => ({
+    select: vi.fn(() => mockDbChain),
+    insert: vi.fn(() => mockDbChain),
+    update: vi.fn(() => mockDbChain),
+    delete: vi.fn(() => mockDbChain),
+  })),
+}));
+
+import { appRouter } from "./routers";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
