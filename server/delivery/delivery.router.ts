@@ -30,7 +30,7 @@ const mockDeliveries = [
     projectId: 2,
     projectNo: "PRJ-2026-002",
     customerName: "大众汽车",
-    currentStage: "M8_Installation",
+    currentStage: "M10_Site_Installation",
     status: "In_Progress",
     plannedM7Date: "2026-01-15",
     plannedM8Date: "2026-02-15",
@@ -237,6 +237,7 @@ const deliverySubRouter = router({
       const byStage: Record<string, number> = {
         M7_Pre_Acceptance: 0,
         M8_Installation: 0,
+        M10_Site_Installation: 0,
         M9_Final_Acceptance: 0,
         Completed: 0,
       };
@@ -257,10 +258,11 @@ const deliverySubRouter = router({
         byStage: {
           M7_Pre_Acceptance: 5,
           M8_Installation: 3,
+          M10_Site_Installation: 2,
           M9_Final_Acceptance: 2,
           Completed: 10,
         },
-        total: 20,
+        total: 22,
         blocked: 1,
       };
     }
@@ -465,14 +467,14 @@ const stageTransitionSubRouter = router({
       }
     }),
 
-  /** Advance M8→M9: Shipping & installation complete, begin SAT */
+  /** Advance M8→M10: Shipping complete, begin site installation */
   completeM8: protectedProcedure
     .input(z.object({
       deliveryId: z.number(),
       siteEngineerId: z.number().optional(),
       siteEngineerName: z.string().optional(),
       siteEngineerPhone: z.string().optional(),
-      installationNotes: z.string().optional(),
+      arrivalNotes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       try {
@@ -480,9 +482,9 @@ const stageTransitionSubRouter = router({
         const now = new Date();
 
         await db.update(deliveryExecutions).set({
-          currentStage: "M9_Final_Acceptance",
+          currentStage: "M10_Site_Installation",
           m8CompletedDate: now,
-          m9StartDate: now,
+          m10StartDate: now,
           siteEngineerId: input.siteEngineerId ?? null,
           siteEngineerName: input.siteEngineerName ?? null,
           siteEngineerPhone: input.siteEngineerPhone ?? null,
@@ -490,7 +492,46 @@ const stageTransitionSubRouter = router({
           updatedAt: now.toISOString(),
         }).where(eq(deliveryExecutions.id, input.deliveryId));
 
-        return { success: true, message: "M8 completed → advanced to M9 Final Acceptance (SAT)" };
+        return { success: true, message: "M8 completed → advanced to M10 Site Installation" };
+      } catch (e: any) {
+        return { success: false, message: e.message };
+      }
+    }),
+
+  /** Advance M10→M9(SAT): Site installation complete, begin Site Acceptance Test */
+  completeM10: protectedProcedure
+    .input(z.object({
+      deliveryId: z.number(),
+      installationNotes: z.string().optional(),
+      commissioningResult: z.enum(["Pass", "Conditional_Pass", "Fail"]).optional(),
+      trainingCompleted: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const now = new Date();
+
+        if (input.commissioningResult === "Fail") {
+          await db.update(deliveryExecutions).set({
+            m10InstallationNotes: input.installationNotes ?? null,
+            status: "Blocked",
+            blockReason: "M10 site installation/commissioning failed",
+            updatedAt: now.toISOString(),
+          }).where(eq(deliveryExecutions.id, input.deliveryId));
+          return { success: false, message: "M10 commissioning failed — delivery blocked" };
+        }
+
+        await db.update(deliveryExecutions).set({
+          currentStage: "M9_Final_Acceptance",
+          m10CompletedDate: now,
+          m10InstallationNotes: input.installationNotes ?? null,
+          actualM10Date: now,
+          m9StartDate: now,
+          status: "In_Progress",
+          updatedAt: now.toISOString(),
+        }).where(eq(deliveryExecutions.id, input.deliveryId));
+
+        return { success: true, message: "M10 completed → advanced to SAT (Final Acceptance)" };
       } catch (e: any) {
         return { success: false, message: e.message };
       }
@@ -572,6 +613,7 @@ const gateCheckSubRouter = router({
         currentStage: z.enum([
           "M7_Pre_Acceptance",
           "M8_Installation",
+          "M10_Site_Installation",
           "M9_Final_Acceptance",
         ]),
         shippingCleanlinessReport: z.string().optional(),

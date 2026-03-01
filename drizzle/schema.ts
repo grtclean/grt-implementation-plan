@@ -5834,7 +5834,14 @@ export const deliveryExecutions = pgTable("delivery_executions", {
   m8CompletedDate: timestamp("m8_completed_date"),
   m9StartDate: timestamp("m9_start_date"),
   m9CompletedDate: timestamp("m9_completed_date"),
-  
+
+  // M10 现场安装 (Site Installation) timeline
+  plannedM10Date: timestamp("planned_m10_date"),
+  actualM10Date: timestamp("actual_m10_date"),
+  m10StartDate: timestamp("m10_start_date"),
+  m10CompletedDate: timestamp("m10_completed_date"),
+  m10InstallationNotes: text("m10_installation_notes"),
+
   createdBy: integer("created_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),

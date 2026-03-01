@@ -353,6 +353,55 @@ export const projectGateRouter = router({
           await db.update(projects)
             .set({ currentPhase: nextPhase, updatedAt: new Date().toISOString() })
             .where(eq(projects.id, gate.projectId));
+
+          // M12 auto-trigger: create after-sales equipment + warranty record
+          if (nextPhase === "M12") {
+            try {
+              const { afterSalesClients, afterSalesEquipments } = await import("../../drizzle/schema");
+              const projectInfo = await db.select().from(projects)
+                .where(eq(projects.id, gate.projectId)).limit(1);
+              const proj = projectInfo[0];
+
+              if (proj) {
+                const existingClients = await db.select().from(afterSalesClients)
+                  .where(eq(afterSalesClients.name, proj.name ?? ""));
+
+                let clientId: number;
+                if (existingClients.length > 0) {
+                  clientId = existingClients[0].id;
+                } else {
+                  const [newClient] = await db.insert(afterSalesClients).values({
+                    name: proj.name || `Project #${proj.id}`,
+                    tier: "standard",
+                    contactPerson: "",
+                    slaLevel: "standard",
+                    responseTimeHours: 48,
+                    status: "active",
+                  }).returning();
+                  clientId = newClient.id;
+                }
+
+                const warrantyEnd = new Date();
+                warrantyEnd.setFullYear(warrantyEnd.getFullYear() + 1);
+
+                await db.insert(afterSalesEquipments).values({
+                  serialNumber: `EQ-${proj.projectCode || proj.id}-001`,
+                  modelName: proj.name || "清洗设备",
+                  clientId,
+                  equipmentType: "cleaning_line",
+                  installationDate: new Date().toISOString(),
+                  warrantyEndDate: warrantyEnd.toISOString(),
+                  maintenanceCycleMonths: 3,
+                  operationalStatus: "running",
+                  status: "active",
+                }).returning();
+
+                console.log(`[ProjectGate:V1] M12 reached for project ${gate.projectId} — after-sales equipment + warranty created`);
+              }
+            } catch (e: any) {
+              console.warn(`[ProjectGate:V1] M12 after-sales auto-trigger failed:`, e.message);
+            }
+          }
         }
       }
 
