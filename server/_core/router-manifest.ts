@@ -69,11 +69,11 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
   // ===== Project Management =====
   { name: "project", file: "routers/project.router.ts", domain: "pm", authLevel: "public", buScoped: true, owner: "bu_pm", status: "production", procedureCount: 12 },
   { name: "projectGate", file: "routers/projectGate.router.ts", domain: "pm", authLevel: "public", buScoped: true, owner: "bu_pm", status: "production", procedureCount: 15 },
-  { name: "cleaningProject", file: "routers/cleaning-project.router.ts", domain: "pm", authLevel: "public", buScoped: true, owner: "bu_sales", status: "production", procedureCount: 9 },
+
   { name: "taskBoard", file: "routers/task-board.router.ts", domain: "pm", authLevel: "public", buScoped: true, owner: "bu_pm", status: "production", procedureCount: 8 },
   { name: "taskCockpit", file: "routers/task-cockpit.router.ts", domain: "pm", authLevel: "public", buScoped: false, owner: "team_lead", status: "beta", procedureCount: 6 },
   { name: "project360", file: "routers/project360.router.ts", domain: "pm", authLevel: "public", buScoped: true, owner: "bu_pm", status: "beta", procedureCount: 5 },
-  { name: "projectDrawings", file: "routers/project-drawings.router.ts", domain: "pm", authLevel: "public", buScoped: true, owner: "bu_mech", status: "beta", procedureCount: 6 },
+
   { name: "m7m9", file: "delivery/delivery.router.ts", domain: "pm", authLevel: "public", buScoped: true, owner: "bu_pm", status: "beta", procedureCount: 8 },
   { name: "lifecycle", file: "lifecycle/lifecycle.router.ts", domain: "pm", authLevel: "public", buScoped: true, owner: "bu_pm", status: "beta", procedureCount: 5 },
   { name: "aiPlanning", file: "routers/ai-planning.router.ts", domain: "pm", authLevel: "public", buScoped: true, owner: "bu_pm", status: "production", procedureCount: 6 },
@@ -137,7 +137,7 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
   { name: "qualityMaterialPerformance", file: "production-steps/qualityMaterialPerformance.router.ts", domain: "quality", authLevel: "public", buScoped: false, owner: "quality_eng", status: "beta", procedureCount: 5 },
   { name: "compliance", file: "routers/compliance.router.ts", domain: "quality", authLevel: "public", buScoped: false, owner: "quality_eng", status: "production", procedureCount: 10 },
   { name: "complianceCalendar", file: "routers/compliance-calendar.router.ts", domain: "quality", authLevel: "public", buScoped: false, owner: "quality_eng", status: "beta", procedureCount: 5 },
-  { name: "equipmentCompliance", file: "routers/equipment-compliance.router.ts", domain: "quality", authLevel: "public", buScoped: false, owner: "quality_eng", status: "beta", procedureCount: 6 },
+
   { name: "regionalCompliance", file: "regional-compliance/regionalCompliance.router.ts", domain: "quality", authLevel: "public", buScoped: false, owner: "quality_eng", status: "beta", procedureCount: 8 },
 
   // ===== Sales / CRM =====
@@ -146,8 +146,7 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
   { name: "leadImport", file: "routers/lead-import.router.ts", domain: "sales", authLevel: "public", buScoped: true, owner: "bu_sales", status: "production", procedureCount: 4 },
   { name: "leadAnalytics", file: "routers/lead-analytics.router.ts", domain: "sales", authLevel: "public", buScoped: true, owner: "bu_sales", status: "production", procedureCount: 5 },
   { name: "leadAutoFollow", file: "routers/lead-auto-follow.router.ts", domain: "sales", authLevel: "public", buScoped: true, owner: "bu_sales", status: "production", procedureCount: 4 },
-  { name: "salesMaterials", file: "routers/sales-materials.router.ts", domain: "sales", authLevel: "public", buScoped: true, owner: "bu_sales", status: "beta", procedureCount: 5 },
-  { name: "customerNda", file: "routers/customer-nda.router.ts", domain: "sales", authLevel: "public", buScoped: true, owner: "bu_sales", status: "beta", procedureCount: 4 },
+
   { name: "campaign", file: "routers/campaign.router.ts", domain: "sales", authLevel: "public", buScoped: false, owner: "bu_sales", status: "beta", procedureCount: 6 },
   { name: "aiSales", file: "modules/aiSales.router.ts", domain: "sales", authLevel: "public", buScoped: true, owner: "bu_sales", status: "beta", procedureCount: 5 },
   { name: "aiSalesEnhanced", file: "modules/aiSalesEnhanced.router.ts", domain: "sales", authLevel: "public", buScoped: true, owner: "bu_sales", status: "beta", procedureCount: 5 },
@@ -273,7 +272,7 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
   { name: "sop", file: "routers/sop-db.router.ts", domain: "manufacturing", authLevel: "public", buScoped: false, owner: "quality_eng", status: "production", procedureCount: 8 },
   { name: "sopEditor", file: "sop-editor/sopEditor.router.ts", domain: "manufacturing", authLevel: "public", buScoped: false, owner: "quality_eng", status: "production", procedureCount: 6 },
   { name: "sopInterlock", file: "routers/sop-interlock.router.ts", domain: "manufacturing", authLevel: "public", buScoped: false, owner: "quality_eng", status: "beta", procedureCount: 4 },
-  { name: "processTrial", file: "routers/process-trial.router.ts", domain: "manufacturing", authLevel: "public", buScoped: false, owner: "quality_eng", status: "beta", procedureCount: 5 },
+
   { name: "visionDashboard", file: "routers/vision-dashboard.router.ts", domain: "platform", authLevel: "public", buScoped: false, owner: "director", status: "beta", procedureCount: 5 },
   { name: "reportCenter", file: "routers/report-center.router.ts", domain: "platform", authLevel: "public", buScoped: false, owner: "director", status: "beta", procedureCount: 6 },
   { name: "cicd", file: "routers/cicd.router.ts", domain: "platform", authLevel: "admin", buScoped: false, owner: "admin", status: "beta", procedureCount: 5 },

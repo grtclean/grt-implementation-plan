@@ -258,7 +258,7 @@ import { aiCanvasRouter } from "./routers/ai-canvas.router";
 import { okrRouter } from "./routers/okr.router";
 import { excellenceCultureRouter } from "./routers/excellence-culture.router";
 import { capabilitySystemRouter } from "./routers/capability-system.router";
-import { cleaningProjectRouter } from "./routers/cleaning-project.router";
+
 import { rndPipelineRouter } from "./routers/rnd-pipeline.router";
 import { roleAgentRouter } from "./routers/role-agent.router";
 import { automationRouter } from "./routers/automation.router";
@@ -269,11 +269,6 @@ import { financeAgentRouter } from "./routers/finance-agent.router";
 import { performanceRecordRouter } from "./routers/performance-record.router";
 
 // GRT Value Chain Enhancement — 非标清洗设备全价值链
-import { equipmentComplianceRouter } from "./routers/equipment-compliance.router";
-import { processTrialRouter } from "./routers/process-trial.router";
-import { customerNdaRouter } from "./routers/customer-nda.router";
-import { salesMaterialsRouter } from "./routers/sales-materials.router";
-import { projectDrawingsRouter } from "./routers/project-drawings.router";
 import { vaultRouter } from "./routers/vault.router";
 import { project360Router } from "./routers/project360.router";
 import { sopInterlockRouter } from "./routers/sop-interlock.router";
@@ -685,9 +680,6 @@ export const appRouter = router({
   excellenceCulture: excellenceCultureRouter,
   capabilitySystem: capabilitySystemRouter,
 
-  // Cleaning Machine Project Wizard (M0→M2 lifecycle + T1-T15 milestones)
-  cleaningProject: cleaningProjectRouter,
-
   // R&D Pipeline (Quotation + Requirements + Solution Design)
   rndPipeline: rndPipelineRouter,
 
@@ -696,13 +688,6 @@ export const appRouter = router({
 
   // Automation Hooks — Management Rhythm (OKR → Meetings closed-loop)
   automation: automationRouter,
-
-  // GRT Value Chain Enhancement — 非标清洗设备全价值链
-  equipmentCompliance: equipmentComplianceRouter,
-  processTrial: processTrialRouter,
-  customerNda: customerNdaRouter,
-  salesMaterials: salesMaterialsRouter,
-  projectDrawings: projectDrawingsRouter,
 
   // Digital Thread — Cloud Vault & Engineering Change Orders
   vault: vaultRouter,
