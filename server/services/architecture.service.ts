@@ -91,7 +91,7 @@ export async function syncUnifiedProjects(): Promise<{ synced: number; errors: s
   const errors: string[] = [];
 
   try {
-    const v1Projects = await db.select().from(projects);
+    const v1Projects = await db.select().from(projects).limit(1000);
     for (const p of v1Projects) {
       try {
         const existing = await db.select().from(unifiedProjects)
@@ -124,7 +124,7 @@ export async function syncUnifiedProjects(): Promise<{ synced: number; errors: s
   }
 
   try {
-    const v2Projects = await db.select().from(projectsV2);
+    const v2Projects = await db.select().from(projectsV2).limit(1000);
     for (const p of v2Projects) {
       try {
         const existing = await db.select().from(unifiedProjects)
@@ -205,7 +205,8 @@ export async function listFKConstraints(filters?: { sourceTable?: string; target
   if (filters?.targetTable) { conditions.push(eq(fkConstraintRegistry.targetTable, filters.targetTable)); }
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
   return db.select().from(fkConstraintRegistry).where(whereClause)
-    .orderBy(asc(fkConstraintRegistry.sourceTable), asc(fkConstraintRegistry.sourceColumn));
+    .orderBy(asc(fkConstraintRegistry.sourceTable), asc(fkConstraintRegistry.sourceColumn))
+    .limit(1000);
 }
 
 // ============================================================
@@ -293,7 +294,7 @@ export async function syncCustomerMaster(): Promise<{ synced: number; errors: st
   const errors: string[] = [];
 
   try {
-    const rows = await db.select().from(crmCustomers);
+    const rows = await db.select().from(crmCustomers).limit(1000);
     for (const c of rows) {
       try {
         const existing = await db.select().from(customerMaster).where(eq(customerMaster.sourceCrmV1Id, c.id));
@@ -320,7 +321,7 @@ export async function syncCustomerMaster(): Promise<{ synced: number; errors: st
   }
 
   try {
-    const rows = await db.select().from(crmCustomersV2);
+    const rows = await db.select().from(crmCustomersV2).limit(1000);
     for (const c of rows) {
       try {
         const existing = await db.select().from(customerMaster).where(eq(customerMaster.sourceCrmV2Id, c.id));
@@ -345,7 +346,7 @@ export async function syncCustomerMaster(): Promise<{ synced: number; errors: st
   }
 
   try {
-    const rows = await db.select().from(customersV2);
+    const rows = await db.select().from(customersV2).limit(1000);
     for (const c of rows) {
       try {
         const existing = await db.select().from(customerMaster).where(eq(customerMaster.sourceCustomersV2Id, c.id));
@@ -369,7 +370,7 @@ export async function syncCustomerMaster(): Promise<{ synced: number; errors: st
   }
 
   try {
-    const rows = await db.select().from(afterSalesClients);
+    const rows = await db.select().from(afterSalesClients).limit(1000);
     for (const c of rows) {
       try {
         const existing = await db.select().from(customerMaster).where(eq(customerMaster.sourceAfterSalesId, c.id));
@@ -432,7 +433,8 @@ export async function listExtendedChecklist(stageCode?: string) {
   const conditions = [eq(gateChecklistItemsExtended.isActive, true)];
   if (stageCode) { conditions.push(eq(gateChecklistItemsExtended.stageCode, stageCode)); }
   return db.select().from(gateChecklistItemsExtended).where(and(...conditions))
-    .orderBy(asc(gateChecklistItemsExtended.stageCode), asc(gateChecklistItemsExtended.sortOrder));
+    .orderBy(asc(gateChecklistItemsExtended.stageCode), asc(gateChecklistItemsExtended.sortOrder))
+    .limit(1000);
 }
 
 export async function createExtendedChecklistItem(data: ExtendedChecklistInput) {

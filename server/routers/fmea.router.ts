@@ -17,7 +17,7 @@ async function buScopedProjectIds(ctx: any): Promise<number[] | undefined> {
   const buFilter = buScopeCondition(projects.buCode, ctx);
   if (!buFilter) return undefined; // global scope — no restriction
   const db = await requireDb();
-  const rows = await db.select({ id: projects.id }).from(projects).where(buFilter);
+  const rows = await db.select({ id: projects.id }).from(projects).where(buFilter).limit(1000);
   return rows.map(r => r.id);
 }
 
@@ -69,7 +69,7 @@ export const fmeaRouter = router({
     // Get actions for each item
     const itemIds = items.map(i => i.id);
     const allActions = itemIds.length > 0
-      ? await db.select().from(fmeaActions)
+      ? await db.select().from(fmeaActions).limit(1000)
       : [];
     const itemsWithActions = items.map(item => ({
       ...item,
@@ -138,7 +138,8 @@ export const fmeaRouter = router({
     const numId = toNum(input.id);
     // Delete actions for items in this document
     const items = await db.select({ id: fmeaItems.id }).from(fmeaItems)
-      .where(eq(fmeaItems.fmeaDocumentId, numId));
+      .where(eq(fmeaItems.fmeaDocumentId, numId))
+      .limit(1000);
     for (const item of items) {
       await db.delete(fmeaActions).where(eq(fmeaActions.fmeaItemId, item.id));
     }
@@ -327,13 +328,13 @@ export const fmeaRouter = router({
       buConditions.push(inArray(fmeaDocuments.projectId, scopedIds.length > 0 ? scopedIds : [0]));
     }
     const docs = buConditions.length > 0
-      ? await db.select().from(fmeaDocuments).where(and(...buConditions))
+      ? await db.select().from(fmeaDocuments).where(and(...buConditions)).limit(1000)
       : await db.select().from(fmeaDocuments).limit(1000);
     const filteredDocs = input?.projectId ? docs.filter(d => d.projectId === input.projectId) : docs;
     const docIds = filteredDocs.map(d => d.id);
 
     const allItems = docIds.length > 0
-      ? await db.select().from(fmeaItems)
+      ? await db.select().from(fmeaItems).limit(1000)
       : [];
     const filteredItems = allItems.filter(i => docIds.includes(i.fmeaDocumentId));
 
@@ -341,7 +342,7 @@ export const fmeaRouter = router({
     const mediumRpnItems = filteredItems.filter(i => i.rpn >= 80 && i.rpn < 200);
 
     const allActions = filteredItems.length > 0
-      ? await db.select().from(fmeaActions)
+      ? await db.select().from(fmeaActions).limit(1000)
       : [];
     const itemIds = filteredItems.map(i => i.id);
     const filteredActions = allActions.filter(a => itemIds.includes(a.fmeaItemId));
@@ -376,7 +377,8 @@ export const fmeaRouter = router({
     let buDocIds: number[] | undefined;
     if (scopedIds) {
       const buDocs = await db.select({ id: fmeaDocuments.id }).from(fmeaDocuments)
-        .where(inArray(fmeaDocuments.projectId, scopedIds.length > 0 ? scopedIds : [0]));
+        .where(inArray(fmeaDocuments.projectId, scopedIds.length > 0 ? scopedIds : [0]))
+        .limit(1000);
       buDocIds = buDocs.map(d => d.id);
     }
 
@@ -391,7 +393,8 @@ export const fmeaRouter = router({
 
     // Filter by project
     const docs = await db.select({ id: fmeaDocuments.id }).from(fmeaDocuments)
-      .where(eq(fmeaDocuments.projectId, input.projectId));
+      .where(eq(fmeaDocuments.projectId, input.projectId))
+      .limit(1000);
     const docIds = docs.map(d => d.id);
     return items.filter(i => docIds.includes(i.fmeaDocumentId));
   }),

@@ -49,15 +49,15 @@ export async function runInventoryReorderCheck(): Promise<ReorderResult> {
     const db = await requireDb();
 
     // Get all inventory rows
-    const allInventory = await db.select().from(inventory);
+    const allInventory = await db.select().from(inventory).limit(1000);
     // Get all materials for reorder points
-    const allMaterials = await db.select().from(materials);
+    const allMaterials = await db.select().from(materials).limit(1000);
     const materialMap = new Map(allMaterials.map(m => [m.id, m]));
 
     result.checked = allInventory.length;
 
     // Check existing pending purchase requests to avoid duplicates
-    const pendingPRs = await db.select().from(purchaseRequests);
+    const pendingPRs = await db.select().from(purchaseRequests).limit(1000);
     const pendingMaterialIds = new Set(
       pendingPRs
         .filter(pr => pr.status === "draft" || pr.status === "pending" || pr.status === "submitted")
@@ -136,8 +136,8 @@ export async function runInventoryReorderCheck(): Promise<ReorderResult> {
 export async function getReorderAlerts() {
   try {
     const db = await requireDb();
-    const allInventory = await db.select().from(inventory);
-    const allMaterials = await db.select().from(materials);
+    const allInventory = await db.select().from(inventory).limit(1000);
+    const allMaterials = await db.select().from(materials).limit(1000);
     const materialMap = new Map(allMaterials.map(m => [m.id, m]));
 
     const alerts = [];

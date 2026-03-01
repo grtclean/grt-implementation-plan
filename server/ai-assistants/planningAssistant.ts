@@ -276,8 +276,8 @@ export async function getPlanById(planId: string) {
   if (plans.length === 0) return null;
 
   const plan = plans[0];
-  const tasks = await db.select().from(planningTasks).where(eq(planningTasks.planId, planId));
-  const dataSources = await db.select().from(planningDataSources).where(eq(planningDataSources.planId, planId));
+  const tasks = await db.select().from(planningTasks).where(eq(planningTasks.planId, planId)).limit(1000);
+  const dataSources = await db.select().from(planningDataSources).where(eq(planningDataSources.planId, planId)).limit(1000);
 
   return {
     ...plan,
@@ -316,7 +316,7 @@ export async function updateTaskStatus(taskId: string, status: "pending" | "in_p
   const tasks = await db.select().from(planningTasks).where(eq(planningTasks.taskId, taskId));
   if (tasks.length > 0) {
     const planId = tasks[0].planId;
-    const allTasks = await db.select().from(planningTasks).where(eq(planningTasks.planId, planId));
+    const allTasks = await db.select().from(planningTasks).where(eq(planningTasks.planId, planId)).limit(1000);
     const completedCount = allTasks.filter(t => t.status === "completed").length;
     const completionRate = (completedCount / allTasks.length) * 100;
 
@@ -345,7 +345,7 @@ export async function getIncompleteTasks(ownerId: number) {
   if (!db) throw new Error("Database not available");
   return await db.select().from(planningTasks)
     .where(and(eq(planningTasks.ownerId, ownerId), sql`${planningTasks.status} IN ('pending', 'in_progress', 'blocked')`))
-    .orderBy(planningTasks.priority);
+    .orderBy(planningTasks.priority).limit(1000);
 }
 
 export async function getExecutionNotes(planId: string) {
@@ -353,5 +353,5 @@ export async function getExecutionNotes(planId: string) {
   if (!db) throw new Error("Database not available");
   return await db.select().from(planningExecutionNotes)
     .where(and(eq(planningExecutionNotes.planId, planId), eq(planningExecutionNotes.asNewPlanInput, 1)))
-    .orderBy(desc(planningExecutionNotes.createdAt));
+    .orderBy(desc(planningExecutionNotes.createdAt)).limit(1000);
 }

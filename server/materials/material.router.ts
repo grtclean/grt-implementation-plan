@@ -285,7 +285,8 @@ export const materialRouter = router({
       const categories = await db
         .select()
         .from(materialCategories)
-        .orderBy(materialCategories.level, materialCategories.sortOrder);
+        .orderBy(materialCategories.level, materialCategories.sortOrder)
+        .limit(1000);
       return { categories };
     } catch (e) {
       console.error("[materials.getCategories] DB error:", e);
@@ -395,7 +396,8 @@ export const materialRouter = router({
       const items = await db
         .select()
         .from(inventory)
-        .where(whereClause);
+        .where(whereClause)
+        .limit(1000);
 
       return {
         items,
@@ -524,7 +526,8 @@ export const materialRouter = router({
         .select()
         .from(materialChangeHistory)
         .where(eq(materialChangeHistory.materialId, input.materialId))
-        .orderBy(desc(materialChangeHistory.id));
+        .orderBy(desc(materialChangeHistory.id))
+        .limit(1000);
 
       return {
         items,

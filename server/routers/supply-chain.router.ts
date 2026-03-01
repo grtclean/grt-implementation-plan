@@ -1603,12 +1603,12 @@ export const supplyChainRouter = router({
   dashboardStats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const [inspections, scans, complaints, penalties, parts, scraps] = await Promise.all([
-      db.select().from(incomingInspectionRecords),
-      db.select().from(assemblyBomScanLogs),
-      db.select().from(customerQualityComplaints),
-      db.select().from(supplierPenalties),
-      db.select().from(spareParts),
-      db.select().from(scrapDisposalRecords),
+      db.select().from(incomingInspectionRecords).limit(1000),
+      db.select().from(assemblyBomScanLogs).limit(1000),
+      db.select().from(customerQualityComplaints).limit(1000),
+      db.select().from(supplierPenalties).limit(1000),
+      db.select().from(spareParts).limit(1000),
+      db.select().from(scrapDisposalRecords).limit(1000),
     ]);
 
     const iqcTotal = inspections.length;

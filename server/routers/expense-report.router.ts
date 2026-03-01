@@ -18,7 +18,7 @@ async function buScopedProjectIds(ctx: any): Promise<number[] | undefined> {
   const buFilter = buScopeCondition(projects.buCode, ctx);
   if (!buFilter) return undefined;
   const db = await requireDb();
-  const rows = await db.select({ id: projects.id }).from(projects).where(buFilter);
+  const rows = await db.select({ id: projects.id }).from(projects).where(buFilter).limit(1000);
   return rows.map(r => r.id);
 }
 

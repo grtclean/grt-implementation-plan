@@ -361,7 +361,8 @@ export const securityRouter = router({
       const list = await db.select()
         .from(ipBlacklist)
         .where(conditions)
-        .orderBy(desc(ipBlacklist.blockedAt));
+        .orderBy(desc(ipBlacklist.blockedAt))
+        .limit(1000);
       
       // 合并内存中的黑名单
       const memoryBlocked = getBlockedIPs();
@@ -610,7 +611,8 @@ export const securityRouter = router({
         eq(userSessions.userId, ctx.user!.id),
         eq(userSessions.isActive, true)
       ))
-      .orderBy(desc(userSessions.lastActivityAt));
+      .orderBy(desc(userSessions.lastActivityAt))
+      .limit(1000);
     
     return sessions.map(s => ({
       id: s.id,

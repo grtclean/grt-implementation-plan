@@ -37,7 +37,7 @@ export async function runPaymentTermCheck(): Promise<PaymentTermCheckResult> {
     const now = new Date().toISOString();
 
     // Get all in-progress workflows
-    const workflows = await db.select().from(paymentWorkflows);
+    const workflows = await db.select().from(paymentWorkflows).limit(1000);
     const active = workflows.filter(w => w.status === "in_progress" || w.status === "pending");
     result.checked = active.length;
 
@@ -87,7 +87,7 @@ export async function getUpcomingPaymentDueDates(withinDays = 7) {
     const futureDate = new Date(today.getTime() + withinDays * 86400000).toISOString().split("T")[0];
     const todayStr = today.toISOString().split("T")[0];
 
-    const workflows = await db.select().from(paymentWorkflows);
+    const workflows = await db.select().from(paymentWorkflows).limit(1000);
     const upcoming = workflows.filter(w =>
       w.paymentDueDate &&
       w.paymentDueDate >= todayStr &&

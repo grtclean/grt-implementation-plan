@@ -32,7 +32,7 @@ async function buScopedProjectIds(ctx: any): Promise<number[] | undefined> {
   const buFilter = buScopeCondition(projects.buCode, ctx);
   if (!buFilter) return undefined;
   const db = await requireDb();
-  const rows = await db.select({ id: projects.id }).from(projects).where(buFilter);
+  const rows = await db.select({ id: projects.id }).from(projects).where(buFilter).limit(1000);
   return rows.map(r => r.id);
 }
 
@@ -367,9 +367,9 @@ export const costRouter = router({
       : undefined;
 
     const [records, categories, estimates] = await Promise.all([
-      db.select().from(costRecords).where(recordWhere),
-      db.select().from(costCategories),
-      db.select().from(costEstimates).where(estimateWhere),
+      db.select().from(costRecords).where(recordWhere).limit(1000),
+      db.select().from(costCategories).limit(1000),
+      db.select().from(costEstimates).where(estimateWhere).limit(1000),
     ]);
 
     const totalBudget = estimates.reduce((sum, e) => sum + (e.estimatedAmount ?? 0), 0);

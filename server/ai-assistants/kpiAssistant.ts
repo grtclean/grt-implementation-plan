@@ -101,14 +101,15 @@ export async function calculateKpiScore(input: KpiCalculationInput): Promise<Kpi
   const { employeeId, periodType, periodValue } = input;
 
   // 获取活跃的KPI配置
-  const kpiConfigs = await db.select().from(kpiConfigurations).where(eq(kpiConfigurations.isActive, 1));
+  const kpiConfigs = await db.select().from(kpiConfigurations).where(eq(kpiConfigurations.isActive, 1)).limit(1000);
 
   // 获取员工在该周期的任务完成情况
   const tasks = await db.select().from(planningTasks)
     .where(and(
       eq(planningTasks.ownerId, employeeId),
       sql`${planningTasks.createdAt} >= DATE_SUB(NOW(), INTERVAL 30 DAY)`
-    ));
+    ))
+    .limit(1000);
 
   // 计算各项KPI得分
   const scoreBreakdown: ScoreBreakdownItem[] = [];
@@ -512,7 +513,8 @@ export async function getPendingCommunicationSuggestions(supervisorId: number) {
       eq(kpiCommunicationSuggestions.supervisorId, supervisorId),
       eq(kpiCommunicationSuggestions.approvalStatus, "pending")
     ))
-    .orderBy(desc(kpiCommunicationSuggestions.createdAt));
+    .orderBy(desc(kpiCommunicationSuggestions.createdAt))
+    .limit(1000);
 }
 
 /**
@@ -528,7 +530,8 @@ export async function getPendingEmailNotifications(supervisorId: number) {
       eq(kpiEmailNotifications.recipientId, supervisorId),
       eq(kpiEmailNotifications.approvalStatus, "pending")
     ))
-    .orderBy(desc(kpiEmailNotifications.createdAt));
+    .orderBy(desc(kpiEmailNotifications.createdAt))
+    .limit(1000);
 }
 
 /**

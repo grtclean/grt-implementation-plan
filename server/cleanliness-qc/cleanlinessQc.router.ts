@@ -126,8 +126,8 @@ export const cleanlinessQcRouter = router({
         if (input.verdict) conditions.push(eq(cleanlinessReports.overallVerdict, input.verdict));
 
         const rows = conditions.length > 0
-          ? await db.select().from(cleanlinessReports).where(and(...conditions)).orderBy(desc(cleanlinessReports.createdAt))
-          : await db.select().from(cleanlinessReports).orderBy(desc(cleanlinessReports.createdAt));
+          ? await db.select().from(cleanlinessReports).where(and(...conditions)).orderBy(desc(cleanlinessReports.createdAt)).limit(1000)
+          : await db.select().from(cleanlinessReports).orderBy(desc(cleanlinessReports.createdAt)).limit(1000);
         return rows;
       } catch {
         return [];
@@ -168,7 +168,7 @@ export const cleanlinessQcRouter = router({
         if (!db) return [];
         const rows = await db.select().from(cleanlinessReports)
           .where(eq(cleanlinessReports.projectId, input.projectId))
-          .orderBy(desc(cleanlinessReports.createdAt));
+          .orderBy(desc(cleanlinessReports.createdAt)).limit(1000);
         return rows;
       } catch {
         return [];

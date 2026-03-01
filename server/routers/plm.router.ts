@@ -29,7 +29,7 @@ async function buScopedProjectIds(ctx: any): Promise<number[] | undefined> {
   const buFilter = buScopeCondition(projects.buCode, ctx);
   if (!buFilter) return undefined; // global scope — no restriction
   const db = await requireDb();
-  const rows = await db.select({ id: projects.id }).from(projects).where(buFilter);
+  const rows = await db.select({ id: projects.id }).from(projects).where(buFilter).limit(1000);
   return rows.map(r => r.id);
 }
 
@@ -101,14 +101,16 @@ export const plmRouter = router({
     const [versions, allReviews] = await Promise.all([
       db.select().from(plmDocumentVersions)
         .where(eq(plmDocumentVersions.documentId, doc.id))
-        .orderBy(desc(plmDocumentVersions.versionMajor), desc(plmDocumentVersions.versionMinor)),
+        .orderBy(desc(plmDocumentVersions.versionMajor), desc(plmDocumentVersions.versionMinor))
+        .limit(1000),
       db.select().from(plmDesignReviews)
         .where(
           sql`${plmDesignReviews.documentVersionId} IN (
             SELECT id FROM plm_document_versions WHERE document_id = ${doc.id}
           )`
         )
-        .orderBy(desc(plmDesignReviews.createdAt)),
+        .orderBy(desc(plmDesignReviews.createdAt))
+        .limit(1000),
     ]);
 
     // Group reviews by version for the frontend

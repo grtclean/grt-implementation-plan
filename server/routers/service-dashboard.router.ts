@@ -217,7 +217,8 @@ export const serviceDashboardRouter = router({
       const naClientIds = await db
         .select({ id: afterSalesClients.id })
         .from(afterSalesClients)
-        .where(eq(afterSalesClients.region, "North America"));
+        .where(eq(afterSalesClients.region, "North America"))
+        .limit(1000);
       const naIds = naClientIds.map(c => c.id);
 
       let ticketsOpen = 0;
@@ -588,7 +589,7 @@ export const serviceDashboardRouter = router({
     }
 
     // 2. Seed Equipments for NA clients
-    const naClients = await db.select({ id: afterSalesClients.id, name: afterSalesClients.name }).from(afterSalesClients).where(eq(afterSalesClients.region, "North America"));
+    const naClients = await db.select({ id: afterSalesClients.id, name: afterSalesClients.name }).from(afterSalesClients).where(eq(afterSalesClients.region, "North America")).limit(1000);
     const equipmentSeeds = [
       { serialNumber: "GRT-NA-UCL-001", modelName: "UltraClean Pro 3000", equipmentType: "Ultrasonic Cleaning Line", location: "Detroit, MI" },
       { serialNumber: "GRT-NA-SPW-002", modelName: "SprayWash Turbo X", equipmentType: "Spray Wash System", location: "Detroit, MI" },
@@ -620,7 +621,8 @@ export const serviceDashboardRouter = router({
     // 3. Seed Service Tickets
     const naEquipments = await db.select({ id: afterSalesEquipments.id }).from(afterSalesEquipments)
       .innerJoin(afterSalesClients, eq(afterSalesEquipments.clientId, afterSalesClients.id))
-      .where(eq(afterSalesClients.region, "North America"));
+      .where(eq(afterSalesClients.region, "North America"))
+      .limit(1000);
     const ticketSeeds = [
       { ticketId: "NA-2026-0041", serviceType: "Corrective", priority: "High", issueDescription: "Ultrasonic transducer frequency drift causing inconsistent cleaning", status: "Completed" },
       { ticketId: "NA-2026-0042", serviceType: "Corrective", priority: "High", issueDescription: "Hydraulic pump pressure drop below spec on wash line 2", status: "In Progress" },
@@ -953,7 +955,7 @@ export const serviceDashboardRouter = router({
 
       // NA service ticket stats
       const naClientIds = await db.select({ id: afterSalesClients.id }).from(afterSalesClients)
-        .where(eq(afterSalesClients.region, "North America"));
+        .where(eq(afterSalesClients.region, "North America")).limit(1000);
       if (naClientIds.length > 0) {
         let openTickets = 0, closedTickets = 0;
         for (const { id } of naClientIds) {

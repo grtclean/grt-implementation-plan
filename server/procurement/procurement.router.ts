@@ -332,7 +332,8 @@ export const procurementRouter = router({
       const allReceipts = await db
         .select()
         .from(purchaseReceipts)
-        .where(eq(purchaseReceipts.purchaseOrderId, input.purchaseOrderId));
+        .where(eq(purchaseReceipts.purchaseOrderId, input.purchaseOrderId))
+        .limit(1000);
 
       let totalReceived = 0;
       for (const receipt of allReceipts) {

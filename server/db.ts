@@ -201,7 +201,7 @@ export async function getAllFeedback() {
     return [];
   }
 
-  return db.select().from(feedback).orderBy(desc(feedback.createdAt));
+  return db.select().from(feedback).orderBy(desc(feedback.createdAt)).limit(1000);
 }
 
 export async function updateFeedbackStatus(id: number, status: "pending" | "reviewed" | "resolved") {
@@ -268,7 +268,7 @@ export async function getAllMigrationTasks() {
     return [];
   }
 
-  return db.select().from(migrationTasks).orderBy(desc(migrationTasks.createdAt));
+  return db.select().from(migrationTasks).orderBy(desc(migrationTasks.createdAt)).limit(1000);
 }
 
 export async function getMigrationTaskById(id: number) {
@@ -458,7 +458,7 @@ export async function getAllCustomers(filters?: {
     query = query.where(and(...conditions)) as any;
   }
 
-  return query.orderBy(desc(crmCustomers.createdAt));
+  return query.orderBy(desc(crmCustomers.createdAt)).limit(1000);
 }
 
 export async function getCustomerById(id: number) {
@@ -506,7 +506,8 @@ export async function getContactsByCustomerId(customerId: number) {
 
   return db.select().from(crmContacts)
     .where(eq(crmContacts.customerId, customerId))
-    .orderBy(desc(crmContacts.createdAt));
+    .orderBy(desc(crmContacts.createdAt))
+    .limit(1000);
 }
 
 export async function getAllContacts(filters?: { search?: string; customerId?: number }) {
@@ -532,7 +533,7 @@ export async function getAllContacts(filters?: { search?: string; customerId?: n
     query = query.where(and(...conditions)) as any;
   }
 
-  return query.orderBy(desc(crmContacts.createdAt));
+  return query.orderBy(desc(crmContacts.createdAt)).limit(1000);
 }
 
 export async function updateContact(id: number, data: Partial<Omit<CrmContact, "id" | "createdAt" | "updatedAt">>) {
@@ -607,7 +608,7 @@ export async function getAllOpportunities(filters?: {
     query = query.where(and(...conditions)) as any;
   }
 
-  return query.orderBy(desc(crmOpportunities.createdAt));
+  return query.orderBy(desc(crmOpportunities.createdAt)).limit(1000);
 }
 
 export async function getOpportunityById(id: number) {
@@ -701,7 +702,8 @@ export async function getFollowUpsByRelated(relatedType: "customer" | "opportuni
       eq(crmFollowUps.relatedType, relatedType),
       eq(crmFollowUps.relatedId, relatedId)
     ))
-    .orderBy(desc(crmFollowUps.followedAt));
+    .orderBy(desc(crmFollowUps.followedAt))
+    .limit(1000);
 }
 
 // ============= Development Tasks Functions =============
@@ -764,7 +766,7 @@ export async function getAllDevTasks(filters?: {
     query = query.where(and(...conditions)) as any;
   }
 
-  return query.orderBy(desc(devTasks.createdAt));
+  return query.orderBy(desc(devTasks.createdAt)).limit(1000);
 }
 
 export async function getDevTaskById(id: number) {
@@ -1432,7 +1434,7 @@ export async function getAllProjects() {
   const db = await requireDb();
   if (!db) return [];
 
-  return db.select().from(projects).orderBy(desc(projects.createdAt));
+  return db.select().from(projects).orderBy(desc(projects.createdAt)).limit(1000);
 }
 
 export async function getProjectById(id: number) {
@@ -1498,7 +1500,7 @@ export async function getAllProjectPhases() {
   const db = await requireDb();
   if (!db) return [];
 
-  return db.select().from(projectPhases).orderBy(projectPhases.sequence);
+  return db.select().from(projectPhases).orderBy(projectPhases.sequence).limit(1000);
 }
 
 // --- Project Gates ---
@@ -1515,7 +1517,7 @@ export async function getProjectGates(projectId: number) {
   const db = await requireDb();
   if (!db) return [];
 
-  return db.select().from(projectGates).where(eq(projectGates.projectId, projectId));
+  return db.select().from(projectGates).where(eq(projectGates.projectId, projectId)).limit(1000);
 }
 
 export async function updateProjectGate(id: number, data: Partial<InsertProjectGate>) {
@@ -1564,7 +1566,7 @@ export async function getProjectMilestones(projectId: number) {
   const db = await requireDb();
   if (!db) return [];
 
-  return db.select().from(projectMilestones).where(eq(projectMilestones.projectId, projectId));
+  return db.select().from(projectMilestones).where(eq(projectMilestones.projectId, projectId)).limit(1000);
 }
 
 export async function updateProjectMilestone(id: number, data: Partial<InsertProjectMilestone>) {
@@ -1598,7 +1600,7 @@ export async function getProjectTasks(projectId: number) {
   const db = await requireDb();
   if (!db) return [];
 
-  return db.select().from(projectTasks).where(eq(projectTasks.projectId, projectId));
+  return db.select().from(projectTasks).where(eq(projectTasks.projectId, projectId)).limit(1000);
 }
 
 export async function updateProjectTask(id: number, data: Partial<InsertProjectTask>) {
@@ -1632,7 +1634,7 @@ export async function getProjectTeamMembers(projectId: number) {
   const db = await requireDb();
   if (!db) return [];
 
-  return db.select().from(projectTeamMembers).where(eq(projectTeamMembers.projectId, projectId));
+  return db.select().from(projectTeamMembers).where(eq(projectTeamMembers.projectId, projectId)).limit(1000);
 }
 
 export async function removeProjectTeamMember(id: number) {
@@ -1657,7 +1659,7 @@ export async function getProjectDocuments(projectId: number) {
   const db = await requireDb();
   if (!db) return [];
 
-  return db.select().from(projectDocuments).where(eq(projectDocuments.projectId, projectId));
+  return db.select().from(projectDocuments).where(eq(projectDocuments.projectId, projectId)).limit(1000);
 }
 
 export async function deleteProjectDocument(id: number) {
@@ -1674,8 +1676,8 @@ export async function getProjectStatistics() {
   const db = await requireDb();
   if (!db) return null;
 
-  const allProjects = await db.select().from(projects);
-  
+  const allProjects = await db.select().from(projects).limit(1000);
+
   const stats = {
     total: allProjects.length,
     byStatus: {
@@ -1708,7 +1710,7 @@ export async function getCostCategories() {
   const db = await requireDb();
   if (!db) return [];
 
-  return db.select().from(costCategories).orderBy(costCategories.sortOrder);
+  return db.select().from(costCategories).orderBy(costCategories.sortOrder).limit(1000);
 }
 
 export async function getCostCategoryById(id: number) {
@@ -1741,7 +1743,7 @@ export async function getProjectBudgets(projectId: number) {
   const db = await requireDb();
   if (!db) return [];
 
-  return db.select().from(projectBudgets).where(eq(projectBudgets.projectId, projectId));
+  return db.select().from(projectBudgets).where(eq(projectBudgets.projectId, projectId)).limit(1000);
 }
 
 export async function createProjectBudget(data: InsertProjectBudget) {
@@ -1768,7 +1770,8 @@ export async function getCostRecords(projectId: number) {
 
   return db.select().from(costRecords)
     .where(eq(costRecords.projectId, projectId))
-    .orderBy(desc(costRecords.costDate));
+    .orderBy(desc(costRecords.costDate))
+    .limit(1000);
 }
 
 export async function getCostRecordById(id: number) {
@@ -1801,7 +1804,7 @@ export async function getCostEstimates(projectId: number) {
   const db = await requireDb();
   if (!db) return [];
 
-  return db.select().from(costEstimates).where(eq(costEstimates.projectId, projectId));
+  return db.select().from(costEstimates).where(eq(costEstimates.projectId, projectId)).limit(1000);
 }
 
 export async function createCostEstimate(data: InsertCostEstimate) {
@@ -1820,7 +1823,8 @@ export async function getLaborCosts(projectId: number) {
 
   return db.select().from(laborCosts)
     .where(eq(laborCosts.projectId, projectId))
-    .orderBy(desc(laborCosts.workDate));
+    .orderBy(desc(laborCosts.workDate))
+    .limit(1000);
 }
 
 export async function createLaborCost(data: InsertLaborCost) {
@@ -1847,7 +1851,8 @@ export async function getCostVarianceAnalysis(projectId: number) {
 
   return db.select().from(costVarianceAnalysis)
     .where(eq(costVarianceAnalysis.projectId, projectId))
-    .orderBy(desc(costVarianceAnalysis.periodStart));
+    .orderBy(desc(costVarianceAnalysis.periodStart))
+    .limit(1000);
 }
 
 export async function createCostVarianceAnalysis(data: InsertCostVarianceAnalysis) {
@@ -1870,13 +1875,13 @@ export async function getProjectCostSummary(projectId: number) {
   if (!project) return null;
 
   // Get all cost records
-  const records = await db.select().from(costRecords).where(eq(costRecords.projectId, projectId));
-  
+  const records = await db.select().from(costRecords).where(eq(costRecords.projectId, projectId)).limit(1000);
+
   // Get all labor costs
-  const labor = await db.select().from(laborCosts).where(eq(laborCosts.projectId, projectId));
-  
+  const labor = await db.select().from(laborCosts).where(eq(laborCosts.projectId, projectId)).limit(1000);
+
   // Get budgets
-  const budgets = await db.select().from(projectBudgets).where(eq(projectBudgets.projectId, projectId));
+  const budgets = await db.select().from(projectBudgets).where(eq(projectBudgets.projectId, projectId)).limit(1000);
 
   // Calculate totals
   const totalBudget = budgets.reduce((sum, b) => sum + Number(b.budgetAmount), 0);
@@ -1972,7 +1977,7 @@ import {
 export async function getMeetingTypes() {
   const db = await requireDb();
   if (!db) return [];
-  return db.select().from(meetingTypes).orderBy(meetingTypes.sortOrder);
+  return db.select().from(meetingTypes).orderBy(meetingTypes.sortOrder).limit(1000);
 }
 
 export async function getMeetingTypeById(id: number) {
@@ -2056,7 +2061,7 @@ export async function getMeetingSchedules(filters?: {
     query = query.where(and(...conditions)) as any;
   }
   
-  return query.orderBy(meetingSchedules.startTime);
+  return query.orderBy(meetingSchedules.startTime).limit(1000);
 }
 
 export async function getMeetingScheduleById(id: number) {
@@ -2120,7 +2125,7 @@ export async function updateMeetingSchedule(id: number, data: Partial<{
 export async function getMeetingAttendees(meetingId: number) {
   const db = await requireDb();
   if (!db) return [];
-  return db.select().from(meetingAttendees).where(eq(meetingAttendees.meetingId, meetingId));
+  return db.select().from(meetingAttendees).where(eq(meetingAttendees.meetingId, meetingId)).limit(1000);
 }
 
 export async function addMeetingAttendee(data: {
@@ -2184,7 +2189,7 @@ export async function getTrainingPlans(filters?: {
     query = query.where(and(...conditions)) as any;
   }
   
-  return query.orderBy(trainingPlans.plannedStartDate);
+  return query.orderBy(trainingPlans.plannedStartDate).limit(1000);
 }
 
 export async function getTrainingPlanById(id: number) {
@@ -2258,7 +2263,7 @@ export async function updateTrainingPlan(id: number, data: Partial<{
 export async function getTrainingParticipants(trainingId: number) {
   const db = await requireDb();
   if (!db) return [];
-  return db.select().from(trainingParticipants).where(eq(trainingParticipants.trainingId, trainingId));
+  return db.select().from(trainingParticipants).where(eq(trainingParticipants.trainingId, trainingId)).limit(1000);
 }
 
 export async function addTrainingParticipant(data: {
@@ -2358,7 +2363,7 @@ export async function getAnnualPlans(filters?: {
     query = query.where(and(...conditions)) as any;
   }
   
-  return query.orderBy(annualPlans.year);
+  return query.orderBy(annualPlans.year).limit(1000);
 }
 
 export async function getAnnualPlanById(id: number) {
@@ -2487,7 +2492,7 @@ export async function getMeetingReminders(meetingId: number) {
   const db = await requireDb();
   if (!db) return [];
   
-  return db.select().from(meetingReminders).where(eq(meetingReminders.meetingId, meetingId));
+  return db.select().from(meetingReminders).where(eq(meetingReminders.meetingId, meetingId)).limit(1000);
 }
 
 /**
@@ -2497,7 +2502,7 @@ export async function getPendingReminders() {
   const db = await requireDb();
   if (!db) return [];
   
-  return db.select().from(meetingReminders).where(eq(meetingReminders.isSent, 0));
+  return db.select().from(meetingReminders).where(eq(meetingReminders.isSent, 0)).limit(1000);
 }
 
 /**
@@ -2533,7 +2538,7 @@ export async function getTrainingAssessments(trainingId: number) {
   const db = await requireDb();
   if (!db) return [];
   
-  return db.select().from(trainingAssessments).where(eq(trainingAssessments.trainingId, trainingId));
+  return db.select().from(trainingAssessments).where(eq(trainingAssessments.trainingId, trainingId)).limit(1000);
 }
 
 /**
@@ -2572,7 +2577,7 @@ export async function getParticipantAssessmentResults(participantId: number) {
   const db = await requireDb();
   if (!db) return [];
   
-  return db.select().from(trainingAssessmentResults).where(eq(trainingAssessmentResults.participantId, participantId));
+  return db.select().from(trainingAssessmentResults).where(eq(trainingAssessmentResults.participantId, participantId)).limit(1000);
 }
 
 /**
@@ -2582,8 +2587,8 @@ export async function getAssessmentStatistics(assessmentId: number) {
   const db = await requireDb();
   if (!db) return null;
   
-  const results = await db.select().from(trainingAssessmentResults).where(eq(trainingAssessmentResults.assessmentId, assessmentId));
-  
+  const results = await db.select().from(trainingAssessmentResults).where(eq(trainingAssessmentResults.assessmentId, assessmentId)).limit(1000);
+
   if (results.length === 0) {
     return { totalParticipants: 0, passedCount: 0, averageScore: 0, passRate: 0 };
   }
@@ -2621,7 +2626,8 @@ export async function getParticipantCertificates(participantId: number) {
   
   return db.select().from(trainingCertificates)
     .where(eq(trainingCertificates.participantId, participantId))
-    .orderBy(desc(trainingCertificates.issueDate));
+    .orderBy(desc(trainingCertificates.issueDate))
+    .limit(1000);
 }
 
 /**
@@ -2666,7 +2672,7 @@ export async function getActiveCostAlertRules() {
   const db = await requireDb();
   if (!db) return [];
   
-  return db.select().from(costAlertRules).where(eq(costAlertRules.isActive, 1));
+  return db.select().from(costAlertRules).where(eq(costAlertRules.isActive, 1)).limit(1000);
 }
 
 /**
@@ -2681,7 +2687,7 @@ export async function getProjectCostAlertRules(projectId: number) {
       eq(costAlertRules.scope, "all"),
       and(eq(costAlertRules.scope, "project"), eq(costAlertRules.projectId, projectId))
     )
-  );
+  ).limit(1000);
 }
 
 /**
@@ -2746,7 +2752,8 @@ export async function getProjectCostAlertLogs(projectId: number) {
   
   return db.select().from(costAlertLogs)
     .where(eq(costAlertLogs.projectId, projectId))
-    .orderBy(desc(costAlertLogs.createdAt));
+    .orderBy(desc(costAlertLogs.createdAt))
+    .limit(1000);
 }
 
 /**
@@ -2756,7 +2763,7 @@ export async function getPendingCostAlerts() {
   const db = await requireDb();
   if (!db) return [];
   
-  return db.select().from(costAlertLogs).where(eq(costAlertLogs.status, "pending"));
+  return db.select().from(costAlertLogs).where(eq(costAlertLogs.status, "pending")).limit(1000);
 }
 
 /**
@@ -2968,7 +2975,8 @@ export async function getRemindersToSend() {
   })
   .from(meetingReminders)
   .innerJoin(meetingSchedules, eq(meetingReminders.meetingId, meetingSchedules.id))
-  .where(eq(meetingReminders.isSent, 0));
+  .where(eq(meetingReminders.isSent, 0))
+  .limit(1000);
   
   // Filter reminders that should be sent now
   return pendingReminders.filter(item => {
@@ -3154,7 +3162,7 @@ export async function getAnnualPlanningConfigs(filters?: {
     query = query.where(and(...conditions)) as any;
   }
   
-  return query.orderBy(desc(annualPlanningConfigs.year));
+  return query.orderBy(desc(annualPlanningConfigs.year)).limit(1000);
 }
 
 /**
@@ -3306,7 +3314,7 @@ export async function getAnnualPlanningItems(configId: number, filters?: {
   
   query = query.where(and(...conditions)) as any;
   
-  return query.orderBy(annualPlanningItems.sortOrder, annualPlanningItems.startDate);
+  return query.orderBy(annualPlanningItems.sortOrder, annualPlanningItems.startDate).limit(1000);
 }
 
 /**
@@ -3415,7 +3423,8 @@ export async function getAnnualPlanningUpdateLogs(configId: number) {
   return db.select()
     .from(annualPlanningUpdateLogs)
     .where(eq(annualPlanningUpdateLogs.configId, configId))
-    .orderBy(desc(annualPlanningUpdateLogs.createdAt));
+    .orderBy(desc(annualPlanningUpdateLogs.createdAt))
+    .limit(1000);
 }
 
 // --- AI Auto-Update Functions ---
@@ -3752,8 +3761,8 @@ export async function getAllUsersForSelection(): Promise<{ id: number; name: str
     id: users.id,
     name: users.name,
     email: users.email,
-  }).from(users).orderBy(users.name);
-  
+  }).from(users).orderBy(users.name).limit(1000);
+
   return result;
 }
 

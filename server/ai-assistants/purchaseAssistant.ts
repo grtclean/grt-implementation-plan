@@ -85,7 +85,7 @@ export async function recommendSupplier(
   }).from(purchaseOrders).where(eq(purchaseOrders.materialId, materialId))
     .groupBy(purchaseOrders.supplierId, purchaseOrders.supplierCode, purchaseOrders.supplierName);
 
-  const activeSuppliers = await db.select().from(suppliers).where(eq(suppliers.status, "active"));
+  const activeSuppliers = await db.select().from(suppliers).where(eq(suppliers.status, "active")).limit(1000);
   const supplierMap = new Map(activeSuppliers.map((s) => [s.id, s]));
 
   return orderData.filter((od) => supplierMap.has(od.supplierId)).map((od) => {
@@ -114,7 +114,7 @@ export async function compareSupplierPrices(materialId: number, supplierIds: num
   for (const sid of supplierIds) {
     const orders = await db.select().from(purchaseOrders)
       .where(and(eq(purchaseOrders.materialId, materialId), eq(purchaseOrders.supplierId, sid)))
-      .orderBy(desc(purchaseOrders.poDate));
+      .orderBy(desc(purchaseOrders.poDate)).limit(1000);
     if (orders.length === 0) continue;
     const prices = orders.map((o) => Number(o.unitPrice));
     const avg = prices.reduce((s, p) => s + p, 0) / prices.length;
@@ -200,7 +200,7 @@ export async function assessSupplierRisk(supplierId: number): Promise<SupplierRi
   const rows = await db.select().from(suppliers).where(eq(suppliers.id, supplierId)).limit(1);
   if (rows.length === 0) throw new Error(`Supplier ${supplierId} not found`);
   const supplier = rows[0];
-  const orders = await db.select().from(purchaseOrders).where(eq(purchaseOrders.supplierId, supplierId)).orderBy(desc(purchaseOrders.poDate));
+  const orders = await db.select().from(purchaseOrders).where(eq(purchaseOrders.supplierId, supplierId)).orderBy(desc(purchaseOrders.poDate)).limit(1000);
   let onTime = 0, delaySum = 0, delivered = 0;
   for (const o of orders) {
     if (o.actualDeliveryDate && o.expectedDeliveryDate) {
@@ -212,7 +212,7 @@ export async function assessSupplierRisk(supplierId: number): Promise<SupplierRi
   const onTimeRate = delivered > 0 ? (onTime / delivered) * 100 : 50;
   const avgDelay = delivered > 0 ? delaySum / delivered : 0;
   const receipts = await db.select().from(purchaseReceipts)
-    .where(sql`${purchaseReceipts.purchaseOrderId} IN (SELECT ${purchaseOrders.id} FROM ${purchaseOrders} WHERE ${purchaseOrders.supplierId} = ${supplierId})`);
+    .where(sql`${purchaseReceipts.purchaseOrderId} IN (SELECT ${purchaseOrders.id} FROM ${purchaseOrders} WHERE ${purchaseOrders.supplierId} = ${supplierId})`).limit(1000);
   let pass = 0, totQty = 0, defQty = 0;
   for (const r of receipts) { totQty += r.receivedQuantity; defQty += r.defectiveQuantity || 0; if (r.qualityStatus === "passed") pass++; }
   const passRate = receipts.length > 0 ? (pass / receipts.length) * 100 : 50;

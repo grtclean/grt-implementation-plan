@@ -371,7 +371,7 @@ export const productionRouter = router({
       const conditionalCount = conditionalR[0].value;
 
       // Aggregate item counts from checklistItems JSON
-      const allRows = await db.select({ checklistItems: qcInspectionRecords.checklistItems }).from(qcInspectionRecords).where(where);
+      const allRows = await db.select({ checklistItems: qcInspectionRecords.checklistItems }).from(qcInspectionRecords).where(where).limit(1000);
       let totalItems = 0, totalPass = 0, totalFail = 0;
       for (const row of allRows) {
         try {

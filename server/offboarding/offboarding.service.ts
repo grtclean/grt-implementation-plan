@@ -238,16 +238,20 @@ export async function getOffboardingDetail(id: number) {
   const [handoverItems, perfAttributions, assets, approvals] = await Promise.all([
     db.select().from(offboardingHandoverItems)
       .where(eq(offboardingHandoverItems.offboardingId, id))
-      .orderBy(asc(offboardingHandoverItems.id)),
+      .orderBy(asc(offboardingHandoverItems.id))
+      .limit(1000),
     db.select().from(performanceAttribution)
       .where(eq(performanceAttribution.offboardingId, id))
-      .orderBy(asc(performanceAttribution.id)),
+      .orderBy(asc(performanceAttribution.id))
+      .limit(1000),
     db.select().from(assetHandover)
       .where(eq(assetHandover.offboardingId, id))
-      .orderBy(asc(assetHandover.id)),
+      .orderBy(asc(assetHandover.id))
+      .limit(1000),
     db.select().from(offboardingApprovals)
       .where(eq(offboardingApprovals.offboardingId, id))
-      .orderBy(asc(offboardingApprovals.approvalOrder)),
+      .orderBy(asc(offboardingApprovals.approvalOrder))
+      .limit(1000),
   ]);
 
   // 计算交接进度
@@ -406,7 +410,8 @@ export async function getHandoverItems(offboardingId: number) {
   return db.select()
     .from(offboardingHandoverItems)
     .where(eq(offboardingHandoverItems.offboardingId, offboardingId))
-    .orderBy(asc(offboardingHandoverItems.priority), asc(offboardingHandoverItems.id));
+    .orderBy(asc(offboardingHandoverItems.priority), asc(offboardingHandoverItems.id))
+    .limit(1000);
 }
 
 // ============================================================
@@ -484,7 +489,8 @@ export async function autoAnnotatePerformanceData(offboardingId: number) {
     .where(and(
       eq(performanceAttribution.offboardingId, offboardingId),
       eq(performanceAttribution.status, 'pending_confirmation')
-    ));
+    ))
+    .limit(1000);
 
   const offboardingDate = new Date(record.offboardingDate);
   let annotatedCount = 0;
@@ -521,7 +527,8 @@ export async function getPerformanceAttributions(offboardingId: number) {
   return db.select()
     .from(performanceAttribution)
     .where(eq(performanceAttribution.offboardingId, offboardingId))
-    .orderBy(desc(performanceAttribution.period));
+    .orderBy(desc(performanceAttribution.period))
+    .limit(1000);
 }
 
 // ============================================================
@@ -579,7 +586,8 @@ export async function getAssetHandovers(offboardingId: number) {
   return db.select()
     .from(assetHandover)
     .where(eq(assetHandover.offboardingId, offboardingId))
-    .orderBy(asc(assetHandover.id));
+    .orderBy(asc(assetHandover.id))
+    .limit(1000);
 }
 
 /** 自动生成默认资产交接项 */
@@ -691,7 +699,8 @@ export async function processApprovalDecision(input: ApprovalDecisionInput) {
     const allApprovals = await db.select()
       .from(offboardingApprovals)
       .where(eq(offboardingApprovals.offboardingId, approval.offboardingId))
-      .orderBy(asc(offboardingApprovals.approvalOrder));
+      .orderBy(asc(offboardingApprovals.approvalOrder))
+      .limit(1000);
 
     const currentIndex = allApprovals.findIndex(a => a.id === input.approvalId);
     const nextApproval = allApprovals[currentIndex + 1];
@@ -805,7 +814,8 @@ export async function getApprovals(offboardingId: number) {
   return db.select()
     .from(offboardingApprovals)
     .where(eq(offboardingApprovals.offboardingId, offboardingId))
-    .orderBy(asc(offboardingApprovals.approvalOrder));
+    .orderBy(asc(offboardingApprovals.approvalOrder))
+    .limit(1000);
 }
 
 /** 获取待审批列表（某个审批人的） */
@@ -817,14 +827,16 @@ export async function getPendingApprovals(approverId: number) {
       eq(offboardingApprovals.approverId, approverId),
       eq(offboardingApprovals.decision, 'pending')
     ))
-    .orderBy(desc(offboardingApprovals.createdAt));
+    .orderBy(desc(offboardingApprovals.createdAt))
+    .limit(1000);
 
   const offboardingIds = pendingApprovals.map(a => a.offboardingId);
   if (offboardingIds.length === 0) return [];
 
   const offboardings = await db.select()
     .from(employeeOffboarding)
-    .where(inArray(employeeOffboarding.id, offboardingIds));
+    .where(inArray(employeeOffboarding.id, offboardingIds))
+    .limit(1000);
 
   const offboardingMap = new Map(offboardings.map(o => [o.id, o]));
 
@@ -870,7 +882,8 @@ export async function queryOffboardedEmployeeData(params: {
     performanceData = await db.select()
       .from(performanceAttribution)
       .where(and(...perfConditions))
-      .orderBy(desc(performanceAttribution.period));
+      .orderBy(desc(performanceAttribution.period))
+      .limit(1000);
   }
 
   const annotatedData = performanceData.map(item => ({
@@ -909,7 +922,8 @@ export async function completeOffboarding(id: number) {
   const db = await requireDb();
   const handoverItems = await db.select()
     .from(offboardingHandoverItems)
-    .where(eq(offboardingHandoverItems.offboardingId, id));
+    .where(eq(offboardingHandoverItems.offboardingId, id))
+    .limit(1000);
 
   const pendingHandover = handoverItems.filter(i => i.status === 'pending' || i.status === 'in_progress');
   if (pendingHandover.length > 0) {
@@ -918,7 +932,8 @@ export async function completeOffboarding(id: number) {
 
   const approvals = await db.select()
     .from(offboardingApprovals)
-    .where(eq(offboardingApprovals.offboardingId, id));
+    .where(eq(offboardingApprovals.offboardingId, id))
+    .limit(1000);
 
   const pendingApprovals = approvals.filter(a => a.decision !== 'approved');
   if (pendingApprovals.length > 0) {
@@ -972,7 +987,8 @@ export async function getOffboardingDashboardStats() {
       eq(employeeOffboarding.status, 'in_progress'),
       eq(employeeOffboarding.status, 'approval_complete')
     ))
-    .orderBy(asc(employeeOffboarding.offboardingDate));
+    .orderBy(asc(employeeOffboarding.offboardingDate))
+    .limit(1000);
 
   // 获取每个离职记录的交接进度
   const dashboardItems = [];
@@ -980,7 +996,8 @@ export async function getOffboardingDashboardStats() {
     // 交接项统计
     const handoverItems = await db.select()
       .from(offboardingHandoverItems)
-      .where(eq(offboardingHandoverItems.offboardingId, record.id));
+      .where(eq(offboardingHandoverItems.offboardingId, record.id))
+      .limit(1000);
 
     const totalHandover = handoverItems.length;
     const completedHandover = handoverItems.filter(i => i.status === 'completed' || i.status === 'verified').length;
@@ -989,7 +1006,8 @@ export async function getOffboardingDashboardStats() {
     // 资产交接统计
     const assetItems = await db.select()
       .from(assetHandover)
-      .where(eq(assetHandover.offboardingId, record.id));
+      .where(eq(assetHandover.offboardingId, record.id))
+      .limit(1000);
 
     const totalAssets = assetItems.length;
     const completedAssets = assetItems.filter(i => i.status === 'completed' || i.status === 'verified').length;
@@ -999,7 +1017,8 @@ export async function getOffboardingDashboardStats() {
     const approvals = await db.select()
       .from(offboardingApprovals)
       .where(eq(offboardingApprovals.offboardingId, record.id))
-      .orderBy(asc(offboardingApprovals.approvalOrder));
+      .orderBy(asc(offboardingApprovals.approvalOrder))
+      .limit(1000);
 
     const totalApprovals = approvals.length;
     const completedApprovals = approvals.filter(a => a.decision === 'approved').length;
@@ -1009,7 +1028,8 @@ export async function getOffboardingDashboardStats() {
     // 绩效归属统计
     const perfRecords = await db.select()
       .from(performanceAttribution)
-      .where(eq(performanceAttribution.offboardingId, record.id));
+      .where(eq(performanceAttribution.offboardingId, record.id))
+      .limit(1000);
 
     const totalPerf = perfRecords.length;
     const confirmedPerf = perfRecords.filter(p => p.confirmedBy !== null).length;
