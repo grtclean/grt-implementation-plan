@@ -43,7 +43,7 @@ describe("m7m9.delivery.list", () => {
 
     const stages = result.items.map((d: any) => d.currentStage);
     expect(stages).toContain("M7_Pre_Acceptance");
-    expect(stages).toContain("M8_Installation");
+    expect(stages).toContain("M10_Site_Installation");
   });
 });
 

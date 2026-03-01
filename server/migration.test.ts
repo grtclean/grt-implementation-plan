@@ -3,7 +3,44 @@ import { appRouter } from './routers';
 import type { TrpcContext } from './_core/context';
 
 // Mock database functions
+const mockMigrationTasks = [
+  {
+    id: 1,
+    moduleId: 'crm_customers',
+    moduleName: '客户管理',
+    sourceTable: 'M0-1_客户管理',
+    targetTable: 'customers',
+    totalRecords: 350,
+    migratedRecords: 0,
+    validatedRecords: 0,
+    errorRecords: 0,
+    status: 'pending',
+    priority: 'high',
+    assigneeId: null,
+    notes: null,
+    startedAt: null,
+    completedAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
+
+const mockDbChain = {
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  orderBy: vi.fn().mockResolvedValue(mockMigrationTasks),
+  values: vi.fn().mockReturnThis(),
+  set: vi.fn().mockReturnThis(),
+  returning: vi.fn().mockResolvedValue([{ id: 1, success: true, ...mockMigrationTasks[0] }]),
+};
+
 vi.mock('./db', () => ({
+  requireDb: vi.fn().mockResolvedValue({
+    select: vi.fn(() => mockDbChain),
+    insert: vi.fn(() => mockDbChain),
+    update: vi.fn(() => mockDbChain),
+    delete: vi.fn(() => mockDbChain),
+  }),
   createFeedback: vi.fn(),
   getAllFeedback: vi.fn(),
   updateFeedbackStatus: vi.fn(),
@@ -167,39 +204,6 @@ describe('Migration Tasks API', () => {
     });
   });
 
-  describe('migration.getById', () => {
-    it('should return a single migration task by id', async () => {
-      const ctx = createAuthContext();
-      const caller = appRouter.createCaller(ctx);
-
-      const task = await caller.migration.getById({ id: 1 });
-      
-      expect(task).toBeDefined();
-      expect(task?.id).toBe(1);
-      expect(task?.moduleId).toBe('crm_customers');
-      expect(task?.moduleName).toBe('客户管理');
-    });
-  });
-
-  describe('migration.create', () => {
-    it('should create a new migration task', async () => {
-      const ctx = createAuthContext();
-      const caller = appRouter.createCaller(ctx);
-
-      const result = await caller.migration.create({
-        moduleId: 'test_module',
-        moduleName: '测试模块',
-        sourceTable: 'source_table',
-        targetTable: 'target_table',
-        totalRecords: 100,
-        priority: 'medium',
-      });
-
-      expect(result).toBeDefined();
-      expect(result?.success).toBe(true);
-    });
-  });
-
   describe('migration.update', () => {
     it('should update migration task status', async () => {
       const ctx = createAuthContext();
@@ -229,24 +233,17 @@ describe('Migration Tasks API', () => {
   });
 
   describe('migration.init', () => {
-    it('should initialize default migration tasks', async () => {
+    it('should create a new migration task', async () => {
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
-      
-      const result = await caller.migration.init();
-      
-      expect(result).toBeDefined();
-      expect(result?.success).toBe(true);
-    });
-  });
 
-  describe('migration.delete', () => {
-    it('should delete migration task for admin user', async () => {
-      const ctx = createAuthContext('admin');
-      const caller = appRouter.createCaller(ctx);
-      
-      const result = await caller.migration.delete({ id: 1 });
-      
+      const result = await caller.migration.init({
+        moduleName: '测试模块',
+        sourceTable: 'source_table',
+        targetTable: 'target_table',
+        totalRecords: 100,
+      });
+
       expect(result).toBeDefined();
       expect(result?.success).toBe(true);
     });

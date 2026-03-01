@@ -108,7 +108,7 @@ export const buContextMiddleware = t.middleware(async ({ ctx, next }) => {
     return next({ ctx: { ...ctx, bu: NULL_BU } });
   }
 
-  const requestBuCode = ctx.req.headers["x-bu-code"] as string | undefined ?? null;
+  const requestBuCode = ctx.req?.headers?.["x-bu-code"] as string | undefined ?? null;
   const bu = await resolveBuContext(ctx.user.id, ctx.user.role, requestBuCode);
 
   return next({

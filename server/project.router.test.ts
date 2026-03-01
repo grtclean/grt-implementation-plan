@@ -1,39 +1,44 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "./_test/trpc-test-utils";
+import { createAuthenticatedCaller, createAnonymousCaller, createAdminCaller } from "./_test/trpc-test-utils";
 
 // Mock requireDb so we never hit a real database
-const mockSelect = vi.fn();
-const mockInsert = vi.fn();
-const mockFrom = vi.fn();
-const mockWhere = vi.fn();
-const mockOrderBy = vi.fn();
-const mockValues = vi.fn();
-const mockReturning = vi.fn();
+// Default result for queries — can be overridden per-test via mockQueryResult
+let mockQueryResult: any[] = [];
+let mockReturningResult: any[] = [{ id: 1 }];
+
+const createMockDbChain = () => {
+  const chain: any = {};
+  chain.from = vi.fn(() => chain);
+  chain.where = vi.fn(() => chain);
+  chain.and = vi.fn(() => chain);
+  chain.orderBy = vi.fn(() => chain);
+  chain.limit = vi.fn(() => chain);
+  chain.values = vi.fn(() => chain);
+  chain.set = vi.fn(() => chain);
+  chain.returning = vi.fn(async () => mockReturningResult);
+  // Make chain thenable so await db.select().from(x).where(y) resolves
+  chain.then = (resolve: any, reject?: any) => {
+    try { resolve(mockQueryResult); } catch (e) { reject?.(e); }
+  };
+  return chain;
+};
 
 vi.mock("./db", () => ({
-  requireDb: vi.fn(async () => ({
-    select: () => ({
-      from: (table: unknown) => ({
-        orderBy: mockOrderBy,
-        where: mockWhere,
-      }),
-    }),
-    insert: () => ({
-      values: () => ({
-        returning: mockReturning,
-      }),
-    }),
-  })),
-  getAllMigrationTasks: vi.fn(async () => []),
-  getMigrationTaskById: vi.fn(async () => null),
-  createMigrationTask: vi.fn(async () => ({ id: "1" })),
-  updateMigrationTask: vi.fn(async () => ({ id: "1" })),
-  deleteMigrationTask: vi.fn(async () => true),
-  initDefaultMigrationTasks: vi.fn(async () => {}),
+  requireDb: vi.fn(async () => {
+    const chain = createMockDbChain();
+    return {
+      select: vi.fn(() => chain),
+      insert: vi.fn(() => chain),
+      update: vi.fn(() => chain),
+      delete: vi.fn(() => chain),
+    };
+  }),
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockQueryResult = [];
+  mockReturningResult = [{ id: 1 }];
 });
 
 describe("project.list", () => {
@@ -56,24 +61,21 @@ describe("project.list", () => {
         updatedAt: new Date().toISOString(),
       },
     ];
-    mockOrderBy.mockResolvedValueOnce(dbRows);
+    mockQueryResult = dbRows;
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.project.list();
 
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe("Test Project");
   });
 
-  it("falls back to mock data when DB throws", async () => {
-    mockOrderBy.mockRejectedValueOnce(new Error("DB connection failed"));
+  it("throws when DB is unavailable", async () => {
+    const { requireDb } = await import("./db");
+    vi.mocked(requireDb).mockRejectedValueOnce(new Error("DB connection failed"));
 
-    const caller = createAuthenticatedCaller();
-    const result = await caller.project.list();
-
-    // Should return the fallback mock data (non-empty)
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
+    const caller = createAdminCaller();
+    await expect(caller.project.list()).rejects.toThrow();
   });
 });
 
@@ -95,32 +97,30 @@ describe("project.getById", () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    mockWhere.mockResolvedValueOnce([row]);
+    mockQueryResult = [row];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.project.getById({ id: 1 });
 
     expect(result).not.toBeNull();
     expect(result!.name).toBe("Found Project");
   });
 
-  it("falls back to mock for non-existent id when DB returns empty", async () => {
-    mockWhere.mockResolvedValueOnce([]);
+  it("returns null for non-existent id when DB returns empty", async () => {
+    mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.project.getById({ id: 99999 });
 
-    // Either null or a mock entry — both are acceptable
-    // The router tries mockProjectList fallback
-    expect(result === null || typeof result === "object").toBe(true);
+    expect(result).toBeNull();
   });
 });
 
 describe("project.create", () => {
   it("creates project with valid input", async () => {
-    mockReturning.mockResolvedValueOnce([{ id: 42 }]);
+    mockReturningResult = [{ id: 42 }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.project.create({
       name: "New Project",
       type: "standard",
@@ -141,7 +141,7 @@ describe("project.create", () => {
   });
 
   it("rejects empty name via Zod validation", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     await expect(
       caller.project.create({ name: "", type: "standard", priority: "medium" }),
@@ -151,7 +151,8 @@ describe("project.create", () => {
 
 describe("project.delete", () => {
   it("returns success for valid delete request", async () => {
-    const caller = createAuthenticatedCaller();
+    mockReturningResult = [{ id: 1 }];
+    const caller = createAdminCaller();
     const result = await caller.project.delete({ id: 1 });
 
     expect(result).toMatchObject({ success: true });
@@ -160,10 +161,9 @@ describe("project.delete", () => {
 
 describe("project.statistics", () => {
   it("returns expected structure", async () => {
-    // DB returns empty → computeStats uses mockProjectList
-    mockOrderBy.mockResolvedValueOnce([]);
+    mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.project.statistics();
 
     expect(result).toHaveProperty("total");
@@ -177,14 +177,11 @@ describe("project.statistics", () => {
     expect(typeof result.total).toBe("number");
   });
 
-  it("falls back to mock data on DB error", async () => {
-    // Mock the full chain for statistics — requireDb().select().from(projects) throws
+  it("throws when DB is unavailable", async () => {
     const { requireDb } = await import("./db");
     vi.mocked(requireDb).mockRejectedValueOnce(new Error("DB down"));
 
-    const caller = createAuthenticatedCaller();
-    const result = await caller.project.statistics();
-
-    expect(result.total).toBeGreaterThan(0);
+    const caller = createAdminCaller();
+    await expect(caller.project.statistics()).rejects.toThrow();
   });
 });
