@@ -113,7 +113,7 @@ export const salaryBonusRouter = router({
     }),
 
   // ============ 薪酬记录查询 ============
-  list: protectedProcedure
+  list: requirePermission("hrm_salary_detail")
     .input(z.object({
       workerId: z.string().optional(),
       periodType: z.string().optional(),
@@ -126,13 +126,13 @@ export const salaryBonusRouter = router({
       return getSalaryBonusRecords(input);
     }),
 
-  detail: protectedProcedure
+  detail: requirePermission("hrm_salary_detail")
     .input(z.object({ recordId: z.number() }))
     .query(async ({ input }) => {
       return getSalaryBonusDetail(input.recordId);
     }),
 
-  updateStatus: protectedProcedure
+  updateStatus: requirePermission("hrm_salary_detail")
     .input(z.object({
       recordId: z.number(),
       status: z.string(),
@@ -148,7 +148,7 @@ export const salaryBonusRouter = router({
     }),
 
   // ============ 统计和导出 ============
-  stats: protectedProcedure
+  stats: requirePermission("hrm_salary_detail")
     .input(z.object({
       periodType: z.string().optional(),
       periodStart: z.number().optional(),

@@ -332,6 +332,135 @@ export const okrRouter = router({
       }
     }),
 
+  /**
+   * Auto-decompose BU sales targets → OKR objectives + key results.
+   * Completes the L1 (Strategy) → L2 (BU Target) → L3 (OKR) cascade.
+   *
+   * For each approved BU sales plan:
+   *   - Creates a BU-level objective (if not already linked)
+   *   - Creates 2 KRs: quarterly sales target, quarterly output target
+   *   - Links to parent company-level objective if one exists for the same period
+   */
+  decomposeToOkr: protectedProcedure
+    .input(z.object({
+      year: z.number().default(2026),
+      period: z.string().optional(), // e.g. "2026-Q1"
+    }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const db = await requireDb();
+
+        // 1. Read approved BU sales plans for the year
+        const plans = await db.execute(sql`
+          SELECT id, year, department_id, total_sales_target, total_output_target, status
+          FROM bu_sales_plans
+          WHERE year = ${input.year} AND status IN ('approved', 'submitted', 'draft')
+          ORDER BY id
+        `);
+        const planRows = (plans.rows ?? []) as any[];
+        if (planRows.length === 0) {
+          return { ok: true, message: "No BU sales plans found for this year", created: 0 };
+        }
+
+        // 2. Find parent company-level objectives for linking
+        const period = input.period ?? `${input.year}-Q1`;
+        const companyObjs = await db.select().from(okrObjectives)
+          .where(and(
+            eq(okrObjectives.level, "company"),
+            eq(okrObjectives.period, period),
+          ));
+        const parentId = companyObjs.length > 0 ? companyObjs[0].id : null;
+
+        // 3. Map departmentId → buCode
+        const deptToBu: Record<string, string> = {
+          "overseas": "overseas",
+          "commercial_vehicle": "commercial_vehicle",
+          "passenger_vehicle": "passenger_vehicle",
+          "semiconductor": "semiconductor",
+          "industrial_general": "industrial_general",
+          "BU1": "overseas",
+          "BU2": "commercial_vehicle",
+          "BU3": "passenger_vehicle",
+          "BU4": "semiconductor",
+          "BU5": "industrial_general",
+        };
+
+        let createdCount = 0;
+
+        for (const plan of planRows) {
+          const buCode = deptToBu[plan.department_id] ?? plan.department_id;
+          const totalSales = Number(plan.total_sales_target ?? 0);
+          const totalOutput = Number(plan.total_output_target ?? 0);
+
+          // Check if OKR already exists for this BU + period
+          const existing = await db.select().from(okrObjectives)
+            .where(and(
+              eq(okrObjectives.level, "bu"),
+              eq(okrObjectives.buCode, buCode),
+              eq(okrObjectives.period, period),
+            ));
+          if (existing.length > 0) continue; // Skip — already decomposed
+
+          // 4. Create BU-level objective
+          const [obj] = await db.insert(okrObjectives).values({
+            title: `${buCode} ${input.year}年度销售目标 ${(totalSales / 10000).toFixed(0)}万`,
+            description: `来源: BU年度计划 #${plan.id}, 年度销售 ${totalSales.toFixed(0)}, 年度产值 ${totalOutput.toFixed(0)}`,
+            level: "bu",
+            ownerId: String(ctx.user.id),
+            ownerName: ctx.user.name ?? null,
+            parentId,
+            period,
+            priority: "P0",
+            buCode,
+            status: "active",
+            progress: 0,
+          }).returning();
+
+          if (!obj) continue;
+
+          // 5. Create KR: quarterly sales target (Q1 = total / 4 as baseline)
+          const qSales = totalSales / 4;
+          const qOutput = totalOutput / 4;
+
+          await db.insert(okrKeyResults).values([
+            {
+              objectiveId: obj.id,
+              title: `季度签约金额达 ${(qSales / 10000).toFixed(0)} 万`,
+              metricType: "currency" as const,
+              startValue: 0,
+              targetValue: Math.round(qSales),
+              currentValue: 0,
+              unit: "元",
+              status: "on_track",
+              confidence: 0.5,
+            },
+            {
+              objectiveId: obj.id,
+              title: `季度产值达 ${(qOutput / 10000).toFixed(0)} 万`,
+              metricType: "currency" as const,
+              startValue: 0,
+              targetValue: Math.round(qOutput),
+              currentValue: 0,
+              unit: "元",
+              status: "on_track",
+              confidence: 0.5,
+            },
+          ]);
+
+          createdCount++;
+        }
+
+        return {
+          ok: true,
+          message: `Created ${createdCount} BU OKR objectives from ${planRows.length} sales plans`,
+          created: createdCount,
+          parentObjectiveId: parentId,
+        };
+      } catch (e: any) {
+        return { ok: false, message: e.message };
+      }
+    }),
+
   /** Seed demo OKR data */
   seedDemo: protectedProcedure.mutation(async () => {
     try {
