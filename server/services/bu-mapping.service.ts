@@ -4,7 +4,7 @@
  */
 
 import { requireDb } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, SQL } from "drizzle-orm";
 
 // BU代码类型
 export type BUCode = 'BU1' | 'BU2' | 'BU3' | 'BU4' | 'BU5';
@@ -167,32 +167,33 @@ export async function updateMapping(id: number, data: {
   isActive?: boolean;
 }): Promise<boolean> {
   const db = await requireDb();
-  const updates: string[] = [];
-  
+  const updates: SQL[] = [];
+
   if (data.buCode !== undefined) {
-    updates.push(`bu_code = '${data.buCode}'`);
+    updates.push(sql`bu_code = ${data.buCode}`);
   }
   if (data.jdyDeptNo !== undefined) {
-    updates.push(`jdy_dept_no = ${data.jdyDeptNo}`);
+    updates.push(sql`jdy_dept_no = ${data.jdyDeptNo}`);
   }
   if (data.jdyDeptName !== undefined) {
-    updates.push(`jdy_dept_name = '${data.jdyDeptName}'`);
+    updates.push(sql`jdy_dept_name = ${data.jdyDeptName}`);
   }
   if (data.roleType !== undefined) {
-    updates.push(`role_type = '${data.roleType}'`);
+    updates.push(sql`role_type = ${data.roleType}`);
   }
   if (data.isActive !== undefined) {
-    updates.push(`is_active = ${data.isActive ? 1 : 0}`);
+    updates.push(sql`is_active = ${data.isActive ? 1 : 0}`);
   }
-  
+
   if (updates.length === 0) return false;
-  
-  const result = await db.execute(sql.raw(`
-    UPDATE bu_department_mappings 
-    SET ${updates.join(', ')}
+
+  const setClause = sql.join(updates, sql`, `);
+  const result = await db.execute(sql`
+    UPDATE bu_department_mappings
+    SET ${setClause}
     WHERE id = ${id}
-  `));
-  
+  `);
+
   return (result[0] as any).affectedRows > 0;
 }
 
@@ -419,20 +420,24 @@ export async function getPerformanceStats(params: {
 }): Promise<BUPerformanceStats[]> {
   const db = await requireDb();
   
-  let whereClause = '1=1';
+  const conditions: SQL[] = [];
   if (params.buCode) {
-    whereClause += ` AND bu_code = '${params.buCode}'`;
+    conditions.push(sql`bu_code = ${params.buCode}`);
   }
   if (params.periodType) {
-    whereClause += ` AND period_type = '${params.periodType}'`;
+    conditions.push(sql`period_type = ${params.periodType}`);
   }
   if (params.period) {
-    whereClause += ` AND stat_period = '${params.period}'`;
+    conditions.push(sql`stat_period = ${params.period}`);
   }
-  
-  const result = await db.execute(sql.raw(`
-    SELECT * FROM bu_performance_stats WHERE ${whereClause} ORDER BY stat_period DESC, bu_code
-  `));
+
+  const whereClause = conditions.length > 0
+    ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+    : sql``;
+
+  const result = await db.execute(sql`
+    SELECT * FROM bu_performance_stats ${whereClause} ORDER BY stat_period DESC, bu_code
+  `);
   
   const rows = result[0] as any[];
   return rows.map(row => ({

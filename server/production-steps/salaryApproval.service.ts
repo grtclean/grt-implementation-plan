@@ -11,7 +11,7 @@
  */
 
 import { requireDb } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, SQL } from "drizzle-orm";
 
 // ============================================================
 // 类型定义
@@ -340,28 +340,28 @@ export async function getApprovalRecords(params: {
   offset?: number;
 }) {
   const db = await requireDb();
-  const conditions: string[] = [];
-  if (params.status) conditions.push(`r.status = '${params.status}'`);
-  if (params.workflowId) conditions.push(`r.workflow_id = ${params.workflowId}`);
-  if (params.startTime) conditions.push(`r.submitted_at >= ${params.startTime}`);
-  if (params.endTime) conditions.push(`r.submitted_at <= ${params.endTime}`);
+  const conditions: SQL[] = [];
+  if (params.status) conditions.push(sql`r.status = ${params.status}`);
+  if (params.workflowId) conditions.push(sql`r.workflow_id = ${params.workflowId}`);
+  if (params.startTime) conditions.push(sql`r.submitted_at >= ${params.startTime}`);
+  if (params.endTime) conditions.push(sql`r.submitted_at <= ${params.endTime}`);
 
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const whereClause = conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
   const limit = params.limit || 50;
   const offset = params.offset || 0;
 
-  const rows = (await db.execute(sql.raw(`
+  const rows = (await db.execute(sql`
     SELECT r.*, w.workflow_name, w.steps as workflow_steps
     FROM salary_approval_records r
     LEFT JOIN salary_approval_workflows w ON r.workflow_id = w.id
-    ${where}
+    ${whereClause}
     ORDER BY r.created_at DESC
     LIMIT ${limit} OFFSET ${offset}
-  `))).rows;
+  `)).rows;
 
-  const countResult = (await db.execute(sql.raw(`
-    SELECT COUNT(*) as total FROM salary_approval_records r ${where}
-  `))).rows;
+  const countResult = (await db.execute(sql`
+    SELECT COUNT(*) as total FROM salary_approval_records r ${whereClause}
+  `)).rows;
 
   return {
     records: (rows as any[]).map(row => ({

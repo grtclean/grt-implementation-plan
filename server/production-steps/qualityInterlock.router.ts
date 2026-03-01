@@ -174,17 +174,17 @@ export const qualityInterlockRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const result = await db.execute(sql.raw(`
+      const result = await db.execute(sql`
         INSERT INTO quality_defect_attachments (lock_id, file_name, file_url, file_type, file_size, description, uploaded_by)
         VALUES (
-          '${input.lockId}', '${input.fileName}', '${input.fileUrl}',
-          ${input.fileType ? `'${input.fileType}'` : 'NULL'},
-          ${input.fileSize !== undefined ? input.fileSize : 'NULL'},
-          ${input.description ? `'${input.description}'` : 'NULL'},
+          ${input.lockId}, ${input.fileName}, ${input.fileUrl},
+          ${input.fileType ?? null},
+          ${input.fileSize ?? null},
+          ${input.description ?? null},
           ${ctx.user.id}
         )
         RETURNING *
-      `));
+      `);
       return { success: true, attachment: (result[0] as any[])[0] };
     }),
 
@@ -194,11 +194,11 @@ export const qualityInterlockRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const result = await db.execute(sql.raw(`
+      const result = await db.execute(sql`
         SELECT * FROM quality_defect_attachments
-        WHERE lock_id = '${input.lockId}'
+        WHERE lock_id = ${input.lockId}
         ORDER BY uploaded_at DESC
-      `));
+      `);
       return (result[0] as any[]) || [];
     }),
 
@@ -208,7 +208,7 @@ export const qualityInterlockRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      await db.execute(sql.raw(`DELETE FROM quality_defect_attachments WHERE id = ${input.id}`));
+      await db.execute(sql`DELETE FROM quality_defect_attachments WHERE id = ${input.id}`);
       return { success: true };
     }),
 });

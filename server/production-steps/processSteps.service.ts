@@ -718,7 +718,7 @@ export async function generateAiPresetsForRange(
   const db = await requireDb();
   const instancesResult = await db.execute(sql`
     SELECT id, process_code FROM project_process_instances 
-    WHERE project_id = ${targetProjectId} AND process_code IN (${sql.raw(targetCodes.map(c => `'${c}'`).join(','))})
+    WHERE project_id = ${targetProjectId} AND process_code IN (${sql.join(targetCodes.map(c => sql`${c}`), sql`, `)})
   `);
   const instances = (instancesResult as any)[0] || [];
   const instanceMap = new Map<string, number>(instances.map((i: any) => [i.process_code, i.id]));
@@ -1475,10 +1475,10 @@ export async function batchAdoptAiPresetsByProject(
   let presets: any[];
   if (presetIds && presetIds.length > 0) {
     // 只采纳指定的预设
-    const idList = presetIds.map(Number).join(',');
-    const result = await db.execute(sql.raw(
-      `SELECT * FROM process_ai_preset_steps WHERE id IN (${idList}) AND project_id = ${Number(projectId)} AND process_code = '${String(processCode).replace(/'/g, "''")}'`
-    ));
+    const idPlaceholders = presetIds.map(id => sql`${Number(id)}`);
+    const result = await db.execute(sql`
+      SELECT * FROM process_ai_preset_steps WHERE id IN (${sql.join(idPlaceholders, sql`, `)}) AND project_id = ${Number(projectId)} AND process_code = ${String(processCode)}
+    `);
     presets = (result as any)[0] || [];
   } else {
     // 采纳该项目/工序下所有未确认的AI预设

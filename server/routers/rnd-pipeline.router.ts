@@ -11,7 +11,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, SQL } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
 // Table bootstrap helpers
@@ -237,19 +237,19 @@ const requirementRouter = router({
       const status = input?.status;
 
       // Build dynamic query
-      const conditions: string[] = [];
-      if (bu) conditions.push(`bu_code = '${bu}'`);
-      if (status && status !== "all") conditions.push(`status = '${status}'`);
-      if (search) conditions.push(`(title ILIKE '%${search}%' OR customer ILIKE '%${search}%')`);
+      const conditions: SQL[] = [];
+      if (bu) conditions.push(sql`bu_code = ${bu}`);
+      if (status && status !== "all") conditions.push(sql`status = ${status}`);
+      if (search) conditions.push(sql`(title ILIKE ${'%' + search + '%'} OR customer ILIKE ${'%' + search + '%'})`);
 
-      const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-      const result = await db.execute(sql.raw(`
+      const whereClause = conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+      const result = await db.execute(sql`
         SELECT id, req_number AS "reqNumber", customer, title, status, priority,
                bu_code AS "bu", assignee, created_at AS "date"
         FROM rnd_requirements
-        ${where}
+        ${whereClause}
         ORDER BY created_at DESC
-      `));
+      `);
 
       const items = ((result.rows as any[]) || []).map((r: any) => ({
         ...r,

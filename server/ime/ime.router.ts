@@ -6,7 +6,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, SQL } from "drizzle-orm";
 import * as imeService from "./ime.service";
 
 export const imeRouter = router({
@@ -74,13 +74,13 @@ export const imeRouter = router({
       const db = await requireDb();
       const limit = input?.limit ?? 20;
 
-      const conditions: string[] = ["1=1"];
-      if (input?.channelId) conditions.push(`mr.channel_id = '${input.channelId}'`);
-      if (input?.dateFrom) conditions.push(`mr.meeting_date >= '${input.dateFrom}'`);
-      if (input?.dateTo) conditions.push(`mr.meeting_date <= '${input.dateTo}'`);
-      const where = conditions.join(" AND ");
+      const conditions: SQL[] = [sql`1=1`];
+      if (input?.channelId) conditions.push(sql`mr.channel_id = ${input.channelId}`);
+      if (input?.dateFrom) conditions.push(sql`mr.meeting_date >= ${input.dateFrom}`);
+      if (input?.dateTo) conditions.push(sql`mr.meeting_date <= ${input.dateTo}`);
+      const where = sql.join(conditions, sql` AND `);
 
-      const result = await db.execute(sql.raw(`
+      const result = await db.execute(sql`
         SELECT
           mes.*,
           mr.title as meeting_title,
@@ -92,7 +92,7 @@ export const imeRouter = router({
         WHERE ${where}
         ORDER BY mr.meeting_date DESC
         LIMIT ${limit}
-      `));
+      `);
       return result.rows;
     }),
 
@@ -236,23 +236,32 @@ export const imeRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: string[] = ["1=1"];
-      if (input?.signalType) conditions.push(`hs.signal_type = '${input.signalType}'`);
-      if (input?.minConfidence) conditions.push(`hs.confidence >= ${input.minConfidence}`);
-      const deptJoin = input?.department
-        ? `JOIN hrm_employees he ON hs.employee_id = he."employeeCode" AND he.department = '${input.department}'`
-        : `LEFT JOIN hrm_employees he ON hs.employee_id = he."employeeCode"`;
-      const where = conditions.join(" AND ");
+      const conditions: SQL[] = [sql`1=1`];
+      if (input?.signalType) conditions.push(sql`hs.signal_type = ${input.signalType}`);
+      if (input?.minConfidence) conditions.push(sql`hs.confidence >= ${input.minConfidence}`);
+      const where = sql.join(conditions, sql` AND `);
 
-      const result = await db.execute(sql.raw(`
-        SELECT hs.*, he.department, he.position
-        FROM ime_hr_signals hs
-        ${deptJoin}
-        WHERE ${where}
-        ORDER BY hs.created_at DESC
-        LIMIT 100
-      `));
-      return result.rows;
+      if (input?.department) {
+        const result = await db.execute(sql`
+          SELECT hs.*, he.department, he.position
+          FROM ime_hr_signals hs
+          JOIN hrm_employees he ON hs.employee_id = he."employeeCode" AND he.department = ${input.department}
+          WHERE ${where}
+          ORDER BY hs.created_at DESC
+          LIMIT 100
+        `);
+        return result.rows;
+      } else {
+        const result = await db.execute(sql`
+          SELECT hs.*, he.department, he.position
+          FROM ime_hr_signals hs
+          LEFT JOIN hrm_employees he ON hs.employee_id = he."employeeCode"
+          WHERE ${where}
+          ORDER BY hs.created_at DESC
+          LIMIT 100
+        `);
+        return result.rows;
+      }
     }),
 
   promotionCandidates: protectedProcedure
@@ -613,14 +622,22 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const filters = input ?? {};
-      const whereParts: string[] = [];
-      if (filters.reportType) whereParts.push(`report_type = '${filters.reportType.replace(/'/g, "''")}'`);
-      const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+      const conditions: SQL[] = [];
+      if (filters.reportType) conditions.push(sql`report_type = ${filters.reportType}`);
       const limitVal = filters.limit || 50;
-      const result = await db.execute(sql.raw(`
-        SELECT * FROM ime_report_exports ${whereClause} ORDER BY generated_at DESC LIMIT ${limitVal}
-      `));
-      return result.rows;
+
+      if (conditions.length > 0) {
+        const where = sql.join(conditions, sql` AND `);
+        const result = await db.execute(sql`
+          SELECT * FROM ime_report_exports WHERE ${where} ORDER BY generated_at DESC LIMIT ${limitVal}
+        `);
+        return result.rows;
+      } else {
+        const result = await db.execute(sql`
+          SELECT * FROM ime_report_exports ORDER BY generated_at DESC LIMIT ${limitVal}
+        `);
+        return result.rows;
+      }
     }),
 
   // ========================================================================
@@ -643,16 +660,17 @@ export const imeRouter = router({
     .input(z.object({ meetingId: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const safeId = input.meetingId.replace(/'/g, "''");
-      const entities = await db.execute(sql.raw(
-        `SELECT * FROM ime_knowledge_entities WHERE meeting_id = '${safeId}' ORDER BY confidence DESC`
-      ));
+      const entities = await db.execute(sql`
+        SELECT * FROM ime_knowledge_entities WHERE meeting_id = ${input.meetingId} ORDER BY confidence DESC
+      `);
       const entityIds = (entities.rows as any[]).map((e: any) => e.id);
       let relationships: any[] = [];
       if (entityIds.length > 0) {
-        const relRes = await db.execute(sql.raw(
-          `SELECT * FROM ime_entity_relationships WHERE entity_from_id IN (${entityIds.join(",")}) OR entity_to_id IN (${entityIds.join(",")})`
-        ));
+        // Build an IN clause using sql.join for the entity IDs
+        const idPlaceholders = sql.join(entityIds.map((id: number) => sql`${id}`), sql`, `);
+        const relRes = await db.execute(sql`
+          SELECT * FROM ime_entity_relationships WHERE entity_from_id IN (${idPlaceholders}) OR entity_to_id IN (${idPlaceholders})
+        `);
         relationships = relRes.rows as any[];
       }
       return { entities: entities.rows, relationships };
@@ -666,16 +684,22 @@ export const imeRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const safeQuery = input.query.replace(/'/g, "''");
-      const typeFilter = input.entityType ? `AND ke.entity_type = '${input.entityType.replace(/'/g, "''")}'` : "";
+      const searchPattern = `%${input.query}%`;
       const limitVal = input.limit || 20;
-      const result = await db.execute(sql.raw(`
+
+      const conditions: SQL[] = [
+        sql`(ke.entity_value LIKE ${searchPattern} OR ke.context LIKE ${searchPattern})`
+      ];
+      if (input.entityType) conditions.push(sql`ke.entity_type = ${input.entityType}`);
+      const where = sql.join(conditions, sql` AND `);
+
+      const result = await db.execute(sql`
         SELECT ke.*, mr.title as meeting_title
         FROM ime_knowledge_entities ke
         JOIN meeting_records mr ON ke.meeting_id = mr.id
-        WHERE (ke.entity_value LIKE '%${safeQuery}%' OR ke.context LIKE '%${safeQuery}%') ${typeFilter}
+        WHERE ${where}
         ORDER BY ke.confidence DESC LIMIT ${limitVal}
-      `));
+      `);
       return result.rows;
     }),
 
@@ -699,17 +723,28 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const filters = input ?? {};
-      const whereParts: string[] = [];
-      if (filters.status) whereParts.push(`d.outcome_status = '${filters.status.replace(/'/g, "''")}'`);
-      const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+      const conditions: SQL[] = [];
+      if (filters.status) conditions.push(sql`d.outcome_status = ${filters.status}`);
       const limitVal = filters.limit || 50;
-      const result = await db.execute(sql.raw(`
-        SELECT d.*, mr.title as meeting_title
-        FROM ime_decision_outcomes d
-        JOIN meeting_records mr ON d.meeting_id = mr.id
-        ${whereClause} ORDER BY d.created_at DESC LIMIT ${limitVal}
-      `));
-      return result.rows;
+
+      if (conditions.length > 0) {
+        const where = sql.join(conditions, sql` AND `);
+        const result = await db.execute(sql`
+          SELECT d.*, mr.title as meeting_title
+          FROM ime_decision_outcomes d
+          JOIN meeting_records mr ON d.meeting_id = mr.id
+          WHERE ${where} ORDER BY d.created_at DESC LIMIT ${limitVal}
+        `);
+        return result.rows;
+      } else {
+        const result = await db.execute(sql`
+          SELECT d.*, mr.title as meeting_title
+          FROM ime_decision_outcomes d
+          JOIN meeting_records mr ON d.meeting_id = mr.id
+          ORDER BY d.created_at DESC LIMIT ${limitVal}
+        `);
+        return result.rows;
+      }
     }),
 
   generateRetrospective: protectedProcedure
@@ -723,12 +758,12 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const limitVal = input?.limit || 20;
-      const result = await db.execute(sql.raw(`
+      const result = await db.execute(sql`
         SELECT r.*, mr.title as meeting_title
         FROM ime_meeting_retrospectives r
         JOIN meeting_records mr ON r.meeting_id = mr.id
         ORDER BY r.generated_at DESC LIMIT ${limitVal}
-      `));
+      `);
       return result.rows;
     }),
 
@@ -746,14 +781,22 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const filters = input ?? {};
-      const whereParts: string[] = [];
-      if (filters.department) whereParts.push(`department = '${filters.department.replace(/'/g, "''")}'`);
-      const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+      const conditions: SQL[] = [];
+      if (filters.department) conditions.push(sql`department = ${filters.department}`);
       const limitVal = filters.limit || 30;
-      const result = await db.execute(sql.raw(`
-        SELECT * FROM ime_expert_profiles ${whereClause} ORDER BY credibility_score DESC LIMIT ${limitVal}
-      `));
-      return result.rows;
+
+      if (conditions.length > 0) {
+        const where = sql.join(conditions, sql` AND `);
+        const result = await db.execute(sql`
+          SELECT * FROM ime_expert_profiles WHERE ${where} ORDER BY credibility_score DESC LIMIT ${limitVal}
+        `);
+        return result.rows;
+      } else {
+        const result = await db.execute(sql`
+          SELECT * FROM ime_expert_profiles ORDER BY credibility_score DESC LIMIT ${limitVal}
+        `);
+        return result.rows;
+      }
     }),
 
   knowledgeDashboard: protectedProcedure
@@ -780,10 +823,9 @@ export const imeRouter = router({
     .input(z.object({ meetingId: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const safeId = input.meetingId.replace(/'/g, "''");
-      const result = await db.execute(sql.raw(
-        `SELECT * FROM ime_meeting_briefs WHERE meeting_id = '${safeId}' ORDER BY generated_at DESC LIMIT 1`
-      ));
+      const result = await db.execute(sql`
+        SELECT * FROM ime_meeting_briefs WHERE meeting_id = ${input.meetingId} ORDER BY generated_at DESC LIMIT 1
+      `);
       return (result.rows as any[])[0] || null;
     }),
 
@@ -807,10 +849,9 @@ export const imeRouter = router({
     .input(z.object({ meetingId: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const safeId = input.meetingId.replace(/'/g, "''");
-      const result = await db.execute(sql.raw(
-        `SELECT * FROM ime_meeting_minutes WHERE meeting_id = '${safeId}' ORDER BY generated_at DESC LIMIT 1`
-      ));
+      const result = await db.execute(sql`
+        SELECT * FROM ime_meeting_minutes WHERE meeting_id = ${input.meetingId} ORDER BY generated_at DESC LIMIT 1
+      `);
       return (result.rows as any[])[0] || null;
     }),
 
@@ -834,10 +875,9 @@ export const imeRouter = router({
     .input(z.object({ sessionId: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const safeSession = input.sessionId.replace(/'/g, "''");
-      const result = await db.execute(sql.raw(
-        `SELECT role, content, created_at FROM ime_ai_conversations WHERE session_id = '${safeSession}' ORDER BY created_at ASC LIMIT 100`
-      ));
+      const result = await db.execute(sql`
+        SELECT role, content, created_at FROM ime_ai_conversations WHERE session_id = ${input.sessionId} ORDER BY created_at ASC LIMIT 100
+      `);
       return result.rows;
     }),
 
@@ -864,9 +904,13 @@ export const imeRouter = router({
     .input(z.object({ activeOnly: z.boolean().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const where = input?.activeOnly !== false ? "WHERE is_active = 1" : "";
-      const result = await db.execute(sql.raw(`SELECT * FROM ime_workflow_rules ${where} ORDER BY created_at DESC`));
-      return result.rows;
+      if (input?.activeOnly !== false) {
+        const result = await db.execute(sql`SELECT * FROM ime_workflow_rules WHERE is_active = 1 ORDER BY created_at DESC`);
+        return result.rows;
+      } else {
+        const result = await db.execute(sql`SELECT * FROM ime_workflow_rules ORDER BY created_at DESC`);
+        return result.rows;
+      }
     }),
 
   updateRule: protectedProcedure
@@ -884,18 +928,19 @@ export const imeRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const sets: string[] = [];
-      if (input.name) sets.push(`name = '${input.name.replace(/'/g, "''")}'`);
-      if (input.description !== undefined) sets.push(`description = '${(input.description || "").replace(/'/g, "''")}'`);
-      if (input.triggerEvent) sets.push(`trigger_event = '${input.triggerEvent}'`);
-      if (input.conditionField !== undefined) sets.push(`condition_field = ${input.conditionField ? `'${input.conditionField}'` : "NULL"}`);
-      if (input.conditionOperator !== undefined) sets.push(`condition_operator = ${input.conditionOperator ? `'${input.conditionOperator}'` : "NULL"}`);
-      if (input.conditionValue !== undefined) sets.push(`condition_value = ${input.conditionValue ? `'${input.conditionValue}'` : "NULL"}`);
-      if (input.actionType) sets.push(`action_type = '${input.actionType}'`);
-      if (input.actionConfig !== undefined) sets.push(`action_config = '${JSON.stringify(input.actionConfig).replace(/'/g, "''")}'`);
-      if (input.isActive !== undefined) sets.push(`is_active = ${input.isActive}`);
-      sets.push("updated_at = NOW()");
-      await db.execute(sql.raw(`UPDATE ime_workflow_rules SET ${sets.join(", ")} WHERE id = ${input.id}`));
+      const updates: SQL[] = [];
+      if (input.name) updates.push(sql`name = ${input.name}`);
+      if (input.description !== undefined) updates.push(sql`description = ${input.description ?? null}`);
+      if (input.triggerEvent) updates.push(sql`trigger_event = ${input.triggerEvent}`);
+      if (input.conditionField !== undefined) updates.push(sql`condition_field = ${input.conditionField ?? null}`);
+      if (input.conditionOperator !== undefined) updates.push(sql`condition_operator = ${input.conditionOperator ?? null}`);
+      if (input.conditionValue !== undefined) updates.push(sql`condition_value = ${input.conditionValue ?? null}`);
+      if (input.actionType) updates.push(sql`action_type = ${input.actionType}`);
+      if (input.actionConfig !== undefined) updates.push(sql`action_config = ${JSON.stringify(input.actionConfig)}`);
+      if (input.isActive !== undefined) updates.push(sql`is_active = ${input.isActive}`);
+      updates.push(sql`updated_at = NOW()`);
+      const setClause = sql.join(updates, sql`, `);
+      await db.execute(sql`UPDATE ime_workflow_rules SET ${setClause} WHERE id = ${input.id}`);
       return { success: true };
     }),
 
@@ -903,7 +948,7 @@ export const imeRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      await db.execute(sql.raw(`DELETE FROM ime_workflow_rules WHERE id = ${input.id}`));
+      await db.execute(sql`DELETE FROM ime_workflow_rules WHERE id = ${input.id}`);
       return { success: true };
     }),
 
@@ -918,9 +963,9 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const limit = input?.limit || 50;
-      const result = await db.execute(sql.raw(
-        `SELECT * FROM ime_workflow_executions ORDER BY executed_at DESC LIMIT ${limit}`
-      ));
+      const result = await db.execute(sql`
+        SELECT * FROM ime_workflow_executions ORDER BY executed_at DESC LIMIT ${limit}
+      `);
       return result.rows;
     }),
 
@@ -961,7 +1006,7 @@ export const imeRouter = router({
   listIntegrations: protectedProcedure
     .query(async () => {
       const db = await requireDb();
-      const result = await db.execute(sql.raw(`SELECT * FROM ime_integrations ORDER BY created_at DESC`));
+      const result = await db.execute(sql`SELECT * FROM ime_integrations ORDER BY created_at DESC`);
       return result.rows;
     }),
 
@@ -976,14 +1021,15 @@ export const imeRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const sets: string[] = [];
-      if (input.name) sets.push(`name = '${input.name.replace(/'/g, "''")}'`);
-      if (input.config !== undefined) sets.push(`config = '${JSON.stringify(input.config).replace(/'/g, "''")}'`);
-      if (input.syncDirection) sets.push(`sync_direction = '${input.syncDirection}'`);
-      if (input.syncFrequency) sets.push(`sync_frequency = '${input.syncFrequency}'`);
-      if (input.status) sets.push(`status = '${input.status}'`);
-      sets.push("updated_at = NOW()");
-      await db.execute(sql.raw(`UPDATE ime_integrations SET ${sets.join(", ")} WHERE id = ${input.id}`));
+      const updates: SQL[] = [];
+      if (input.name) updates.push(sql`name = ${input.name}`);
+      if (input.config !== undefined) updates.push(sql`config = ${JSON.stringify(input.config)}`);
+      if (input.syncDirection) updates.push(sql`sync_direction = ${input.syncDirection}`);
+      if (input.syncFrequency) updates.push(sql`sync_frequency = ${input.syncFrequency}`);
+      if (input.status) updates.push(sql`status = ${input.status}`);
+      updates.push(sql`updated_at = NOW()`);
+      const setClause = sql.join(updates, sql`, `);
+      await db.execute(sql`UPDATE ime_integrations SET ${setClause} WHERE id = ${input.id}`);
       return { success: true };
     }),
 
@@ -991,7 +1037,7 @@ export const imeRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      await db.execute(sql.raw(`DELETE FROM ime_integrations WHERE id = ${input.id}`));
+      await db.execute(sql`DELETE FROM ime_integrations WHERE id = ${input.id}`);
       return { success: true };
     }),
 
@@ -1005,12 +1051,18 @@ export const imeRouter = router({
     .input(z.object({ integrationId: z.number().optional(), limit: z.number().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const where = input?.integrationId ? `WHERE integration_id = ${input.integrationId}` : "";
       const limit = input?.limit || 50;
-      const result = await db.execute(sql.raw(
-        `SELECT * FROM ime_integration_logs ${where} ORDER BY executed_at DESC LIMIT ${limit}`
-      ));
-      return result.rows;
+      if (input?.integrationId) {
+        const result = await db.execute(sql`
+          SELECT * FROM ime_integration_logs WHERE integration_id = ${input.integrationId} ORDER BY executed_at DESC LIMIT ${limit}
+        `);
+        return result.rows;
+      } else {
+        const result = await db.execute(sql`
+          SELECT * FROM ime_integration_logs ORDER BY executed_at DESC LIMIT ${limit}
+        `);
+        return result.rows;
+      }
     }),
 
   updateSetting: protectedProcedure
@@ -1050,17 +1102,16 @@ export const imeRouter = router({
     .input(z.object({ userId: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const safeUser = input.userId.replace(/'/g, "''");
-      const result = await db.execute(sql.raw(
-        `SELECT * FROM ime_achievements WHERE user_id = '${safeUser}' AND is_global = 0 ORDER BY awarded_at DESC`
-      ));
+      const result = await db.execute(sql`
+        SELECT * FROM ime_achievements WHERE user_id = ${input.userId} AND is_global = 0 ORDER BY awarded_at DESC
+      `);
       return result.rows;
     }),
 
   achievementDefinitions: protectedProcedure
     .query(async () => {
       const db = await requireDb();
-      const result = await db.execute(sql.raw(`SELECT * FROM ime_achievements WHERE is_global = 1 ORDER BY points ASC`));
+      const result = await db.execute(sql`SELECT * FROM ime_achievements WHERE is_global = 1 ORDER BY points ASC`);
       return result.rows;
     }),
 
@@ -1091,9 +1142,13 @@ export const imeRouter = router({
     .input(z.object({ status: z.string().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const where = input?.status ? `WHERE status = '${input.status}'` : "";
-      const result = await db.execute(sql.raw(`SELECT * FROM ime_team_challenges ${where} ORDER BY created_at DESC`));
-      return result.rows;
+      if (input?.status) {
+        const result = await db.execute(sql`SELECT * FROM ime_team_challenges WHERE status = ${input.status} ORDER BY created_at DESC`);
+        return result.rows;
+      } else {
+        const result = await db.execute(sql`SELECT * FROM ime_team_challenges ORDER BY created_at DESC`);
+        return result.rows;
+      }
     }),
 
   updateChallengeProgress: protectedProcedure
@@ -1151,9 +1206,13 @@ export const imeRouter = router({
     .input(z.object({ status: z.string().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const where = input?.status ? `WHERE status = '${input.status}'` : "";
-      const result = await db.execute(sql.raw(`SELECT * FROM ime_improvement_initiatives ${where} ORDER BY created_at DESC`));
-      return result.rows;
+      if (input?.status) {
+        const result = await db.execute(sql`SELECT * FROM ime_improvement_initiatives WHERE status = ${input.status} ORDER BY created_at DESC`);
+        return result.rows;
+      } else {
+        const result = await db.execute(sql`SELECT * FROM ime_improvement_initiatives ORDER BY created_at DESC`);
+        return result.rows;
+      }
     }),
 
   updateImprovement: protectedProcedure
@@ -1165,12 +1224,13 @@ export const imeRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const sets: string[] = [];
-      if (input.status) sets.push(`status = '${input.status}'`);
-      if (input.owner) sets.push(`owner = '${input.owner.replace(/'/g, "''")}'`);
-      if (input.currentValue !== undefined) sets.push(`current_value = ${input.currentValue}`);
-      sets.push("updated_at = NOW()");
-      await db.execute(sql.raw(`UPDATE ime_improvement_initiatives SET ${sets.join(", ")} WHERE id = ${input.id}`));
+      const updates: SQL[] = [];
+      if (input.status) updates.push(sql`status = ${input.status}`);
+      if (input.owner) updates.push(sql`owner = ${input.owner}`);
+      if (input.currentValue !== undefined) updates.push(sql`current_value = ${input.currentValue}`);
+      updates.push(sql`updated_at = NOW()`);
+      const setClause = sql.join(updates, sql`, `);
+      await db.execute(sql`UPDATE ime_improvement_initiatives SET ${setClause} WHERE id = ${input.id}`);
       return { success: true };
     }),
 
@@ -1187,9 +1247,9 @@ export const imeRouter = router({
       if (input?.meetingId) {
         return imeService.getMeetingFeedbackSummary(input.meetingId);
       }
-      const result = await db.execute(sql.raw(
-        `SELECT meeting_id, COUNT(*) as responses, AVG(overall_rating) as avg_rating FROM ime_meeting_feedback GROUP BY meeting_id ORDER BY MAX(submitted_at) DESC LIMIT 20`
-      ));
+      const result = await db.execute(sql`
+        SELECT meeting_id, COUNT(*) as responses, AVG(overall_rating) as avg_rating FROM ime_meeting_feedback GROUP BY meeting_id ORDER BY MAX(submitted_at) DESC LIMIT 20
+      `);
       return result.rows;
     }),
 
@@ -1215,9 +1275,13 @@ export const imeRouter = router({
     .input(z.object({ activeOnly: z.boolean().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const where = input?.activeOnly !== false ? "WHERE is_active = 1" : "";
-      const result = await db.execute(sql.raw(`SELECT * FROM ime_compliance_policies ${where} ORDER BY created_at DESC`));
-      return result.rows;
+      if (input?.activeOnly !== false) {
+        const result = await db.execute(sql`SELECT * FROM ime_compliance_policies WHERE is_active = 1 ORDER BY created_at DESC`);
+        return result.rows;
+      } else {
+        const result = await db.execute(sql`SELECT * FROM ime_compliance_policies ORDER BY created_at DESC`);
+        return result.rows;
+      }
     }),
 
   updatePolicy: protectedProcedure
@@ -1231,14 +1295,15 @@ export const imeRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const sets: string[] = [];
-      if (input.name) sets.push(`name = '${input.name.replace(/'/g, "''")}'`);
-      if (input.description !== undefined) sets.push(`description = '${(input.description || "").replace(/'/g, "''")}'`);
-      if (input.threshold) sets.push(`threshold = '${input.threshold}'`);
-      if (input.severity) sets.push(`severity = '${input.severity}'`);
-      if (input.isActive !== undefined) sets.push(`is_active = ${input.isActive}`);
-      sets.push("updated_at = NOW()");
-      await db.execute(sql.raw(`UPDATE ime_compliance_policies SET ${sets.join(", ")} WHERE id = ${input.id}`));
+      const updates: SQL[] = [];
+      if (input.name) updates.push(sql`name = ${input.name}`);
+      if (input.description !== undefined) updates.push(sql`description = ${input.description ?? null}`);
+      if (input.threshold) updates.push(sql`threshold = ${input.threshold}`);
+      if (input.severity) updates.push(sql`severity = ${input.severity}`);
+      if (input.isActive !== undefined) updates.push(sql`is_active = ${input.isActive}`);
+      updates.push(sql`updated_at = NOW()`);
+      const setClause = sql.join(updates, sql`, `);
+      await db.execute(sql`UPDATE ime_compliance_policies SET ${setClause} WHERE id = ${input.id}`);
       return { success: true };
     }),
 
@@ -1246,7 +1311,7 @@ export const imeRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      await db.execute(sql.raw(`DELETE FROM ime_compliance_policies WHERE id = ${input.id}`));
+      await db.execute(sql`DELETE FROM ime_compliance_policies WHERE id = ${input.id}`);
       return { success: true };
     }),
 

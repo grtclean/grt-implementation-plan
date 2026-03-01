@@ -4,7 +4,7 @@
  */
 
 import { requireDb } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, SQL } from "drizzle-orm";
 
 // ============================================================================
 // 类型定义
@@ -269,16 +269,20 @@ export async function getTimeRecords(params: {
   startDate?: string;
   endDate?: string;
 }): Promise<TimeRecord[]> {
-  let whereClause = 'WHERE 1=1';
-  
-  if (params.projectId) whereClause += ` AND project_id = ${params.projectId}`;
-  if (params.userId) whereClause += ` AND user_id = ${params.userId}`;
-  if (params.stageId) whereClause += ` AND production_stage_id = ${params.stageId}`;
-  if (params.startDate) whereClause += ` AND record_date >= '${params.startDate}'`;
-  if (params.endDate) whereClause += ` AND record_date <= '${params.endDate}'`;
-  
-  const result = await (await requireDb()).execute(sql.raw(`
-    SELECT 
+  const conditions: SQL[] = [];
+
+  if (params.projectId) conditions.push(sql`project_id = ${params.projectId}`);
+  if (params.userId) conditions.push(sql`user_id = ${params.userId}`);
+  if (params.stageId) conditions.push(sql`production_stage_id = ${params.stageId}`);
+  if (params.startDate) conditions.push(sql`record_date >= ${params.startDate}`);
+  if (params.endDate) conditions.push(sql`record_date <= ${params.endDate}`);
+
+  const whereClause = conditions.length > 0
+    ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+    : sql``;
+
+  const result = await (await requireDb()).execute(sql`
+    SELECT
       id, user_id as userId, user_name as userName, project_id as projectId,
       production_stage_id as productionStageId, stage_code as stageCode,
       record_date as recordDate, start_time as startTime, end_time as endTime,
@@ -288,7 +292,7 @@ export async function getTimeRecords(params: {
     FROM time_records
     ${whereClause}
     ORDER BY record_date DESC, start_time DESC
-  `));
+  `);
   return result.rows as unknown as TimeRecord[];
 }
 

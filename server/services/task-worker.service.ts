@@ -150,7 +150,7 @@ async function pollAndProcess(): Promise<void> {
   if (taskTypes.length === 0) return;
 
   try {
-    const typeList = taskTypes.map(t => `'${t}'`).join(",");
+    const typePlaceholders = taskTypes.map(t => sql`${t}`);
     const timeoutAt = new Date(Date.now() + config.taskTimeoutMs).toISOString();
 
     // Claim up to `slotsAvailable` pending tasks
@@ -163,7 +163,7 @@ async function pollAndProcess(): Promise<void> {
       WHERE id IN (
         SELECT id FROM ai_tasks
         WHERE status = 'pending'
-          AND task_type IN (${sql.raw(typeList)})
+          AND task_type IN (${sql.join(typePlaceholders, sql`, `)})
         ORDER BY created_at ASC
         LIMIT ${slotsAvailable}
         FOR UPDATE SKIP LOCKED

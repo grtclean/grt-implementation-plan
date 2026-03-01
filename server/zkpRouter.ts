@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { requireDb } from './utils/db-helpers';
-import { sql } from "drizzle-orm";
+import { sql, SQL } from "drizzle-orm";
 import crypto from "crypto";
 
 // ZKP验证请求类型
@@ -337,19 +337,20 @@ export const zkpRouter = router({
       const db = await requireDb();
       if (!db) return [];
       
-      let whereClause = "status = 'published'";
-      if (input?.category) whereClause += ` AND category = '${input.category}'`;
-      if (input?.slug) whereClause += ` AND slug = '${input.slug}'`;
-      if (input?.featured) whereClause += ` AND is_featured = 1`;
-      
-      const results = await db.execute(sql.raw(`
+      const conditions: SQL[] = [sql`status = 'published'`];
+      if (input?.category) conditions.push(sql`category = ${input.category}`);
+      if (input?.slug) conditions.push(sql`slug = ${input.slug}`);
+      if (input?.featured) conditions.push(sql`is_featured = 1`);
+
+      const whereClause = sql.join(conditions, sql` AND `);
+      const results = await db.execute(sql`
         SELECT id, showcase_code, title, title_en, slug, meta_description, meta_keywords,
           category, summary, summary_en, content, content_en, featured_image, gallery,
           videos, public_stats, published_at, sort_order, is_featured
         FROM public_capability_showcase
         WHERE ${whereClause}
         ORDER BY sort_order ASC, published_at DESC
-      `));
+      `);
       
       return ((results as any)[0] || []).map((row: any) => ({
         id: row.id,
