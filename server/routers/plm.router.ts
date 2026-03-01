@@ -108,9 +108,8 @@ export const plmRouter = router({
     fileExtension: z.string().optional(),
     mimeType: z.string().optional(),
     tags: z.array(z.string()).optional(),
-    createdBy: z.number().optional(),
-  })).mutation(async ({ input }) => {
-    return createDocument(input);
+  })).mutation(async ({ input, ctx }) => {
+    return createDocument({ ...input, createdBy: ctx.user.id });
   }),
 
   updateDocument: protectedProcedure.input(z.object({
@@ -122,8 +121,7 @@ export const plmRouter = router({
     ownerUserId: z.number().optional(),
     ownerName: z.string().optional(),
     tags: z.array(z.string()).optional(),
-    updatedBy: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
 
     // Validate FK references before update
@@ -132,15 +130,10 @@ export const plmRouter = router({
         .where(eq(users.id, input.ownerUserId)).limit(1);
       if (!user) throw new Error(`FK violation: users.id=${input.ownerUserId} does not exist`);
     }
-    if (input.updatedBy) {
-      const [user] = await db.select({ id: users.id }).from(users)
-        .where(eq(users.id, input.updatedBy)).limit(1);
-      if (!user) throw new Error(`FK violation: users.id=${input.updatedBy} does not exist`);
-    }
 
     const { id, ...data } = input;
     const [updated] = await db.update(plmDocuments)
-      .set({ ...data, updatedAt: new Date().toISOString() })
+      .set({ ...data, updatedBy: ctx.user.id, updatedAt: new Date().toISOString() })
       .where(eq(plmDocuments.id, toNum(id)))
       .returning();
     return updated;
@@ -157,26 +150,24 @@ export const plmRouter = router({
     fileSizeBytes: z.number().optional(),
     fileHash: z.string().optional(),
     changeReason: z.string().min(1),
-    uploadedBy: z.number(),
-    uploadedByName: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     return uploadNewVersion({
       ...input,
       documentId: toNum(input.documentId),
+      uploadedBy: ctx.user.id,
+      uploadedByName: ctx.user.name ?? `User#${ctx.user.id}`,
     });
   }),
 
   promoteMajorVersion: protectedProcedure.input(z.object({
     documentId: z.union([z.string(), z.number()]),
     fileUrlPath: z.string().min(1),
-    uploadedBy: z.number(),
-    uploadedByName: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     return promoteToMajorVersion(
       toNum(input.documentId),
       input.fileUrlPath,
-      input.uploadedBy,
-      input.uploadedByName,
+      ctx.user.id,
+      ctx.user.name ?? `User#${ctx.user.id}`,
     );
   }),
 
@@ -200,12 +191,12 @@ export const plmRouter = router({
     reviewerName: z.string().optional(),
     reviewerRole: z.string().optional(),
     dueDate: z.string().optional(),
-    requestedBy: z.number().optional(),
     isDesignFreezeReview: z.boolean().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     return submitForReview({
       ...input,
       documentVersionId: toNum(input.documentVersionId),
+      requestedBy: ctx.user.id,
     });
   }),
 

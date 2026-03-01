@@ -77,8 +77,7 @@ export const testEngineRouter = router({
     tags: z.array(z.string()).optional(),
     estimatedTotalHours: z.string().optional(),
     passingScorePercent: z.number().optional(),
-    createdBy: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [created] = await db.insert(testTemplates).values({
       name: input.name,
@@ -91,8 +90,8 @@ export const testEngineRouter = router({
       tags: input.tags,
       estimatedTotalHours: input.estimatedTotalHours,
       passingScorePercent: input.passingScorePercent,
-      createdBy: input.createdBy,
-      updatedBy: input.createdBy,
+      createdBy: ctx.user.id,
+      updatedBy: ctx.user.id,
     }).returning();
     return created;
   }),
@@ -108,12 +107,11 @@ export const testEngineRouter = router({
     tags: z.array(z.string()).optional(),
     estimatedTotalHours: z.string().optional(),
     passingScorePercent: z.number().optional(),
-    updatedBy: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const { id, ...data } = input;
     const [updated] = await db.update(testTemplates)
-      .set({ ...data, updatedAt: new Date().toISOString() })
+      .set({ ...data, updatedBy: ctx.user.id, updatedAt: new Date().toISOString() })
       .where(eq(testTemplates.id, toNum(id)))
       .returning();
     return updated;
@@ -122,8 +120,7 @@ export const testEngineRouter = router({
   cloneTemplate: protectedProcedure.input(z.object({
     sourceTemplateId: z.union([z.string(), z.number()]),
     newName: z.string().optional(),
-    createdBy: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const srcId = toNum(input.sourceTemplateId);
 
@@ -143,8 +140,8 @@ export const testEngineRouter = router({
       tags: source.tags,
       estimatedTotalHours: source.estimatedTotalHours,
       passingScorePercent: source.passingScorePercent,
-      createdBy: input.createdBy,
-      updatedBy: input.createdBy,
+      createdBy: ctx.user.id,
+      updatedBy: ctx.user.id,
     }).returning();
 
     const cases = await db.select().from(testCases)
@@ -318,8 +315,7 @@ export const testEngineRouter = router({
     leadUserId: z.number().optional(),
     teamUserIds: z.array(z.number()).optional(),
     notes: z.string().optional(),
-    createdBy: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const templateId = toNum(input.templateId);
 
@@ -338,7 +334,7 @@ export const testEngineRouter = router({
       teamUserIds: input.teamUserIds,
       totalCases: cases.length,
       notes: input.notes,
-      createdBy: input.createdBy,
+      createdBy: ctx.user.id,
     }).returning();
 
     // Pre-create result entries for all active cases

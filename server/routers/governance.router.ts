@@ -262,10 +262,9 @@ export const governanceRouter = router({
           .record(z.string(), z.unknown())
           .optional(),
         isActive: z.boolean().default(true),
-        createdBy: z.number().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [item] = await db
         .insert(sysWorkflowDefinitions)
@@ -279,7 +278,7 @@ export const governanceRouter = router({
             | Record<string, unknown>
             | undefined,
           isActive: input.isActive,
-          createdBy: input.createdBy,
+          createdBy: ctx.user.id,
         })
         .returning();
       return item;
@@ -471,10 +470,9 @@ export const governanceRouter = router({
         allowedBus: z.array(z.string()).optional(),
         priority: z.number().default(0),
         isActive: z.boolean().default(true),
-        createdBy: z.number().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [item] = await db
         .insert(sysDataPolicies)
@@ -487,7 +485,7 @@ export const governanceRouter = router({
           allowedBus: input.allowedBus,
           priority: input.priority,
           isActive: input.isActive,
-          createdBy: input.createdBy,
+          createdBy: ctx.user.id,
         })
         .returning();
       return item;
@@ -607,8 +605,6 @@ export const governanceRouter = router({
         entityType: z.string().min(1).max(100),
         entityId: z.number().optional(),
         action: z.enum(SYS_AUDIT_ACTIONS),
-        actorId: z.number().optional(),
-        actorName: z.string().max(200).optional(),
         previousData: z.record(z.string(), z.unknown()).optional(),
         newData: z.record(z.string(), z.unknown()).optional(),
         ipAddress: z.string().max(45).optional(),
@@ -617,7 +613,7 @@ export const governanceRouter = router({
         metadata: z.record(z.string(), z.unknown()).optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [item] = await db
         .insert(sysAuditLogs)
@@ -625,8 +621,8 @@ export const governanceRouter = router({
           entityType: input.entityType,
           entityId: input.entityId,
           action: input.action,
-          actorId: input.actorId,
-          actorName: input.actorName,
+          actorId: ctx.user.id,
+          actorName: ctx.user.name ?? `User#${ctx.user.id}`,
           previousData: input.previousData as
             | Record<string, unknown>
             | undefined,

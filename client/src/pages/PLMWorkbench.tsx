@@ -403,8 +403,6 @@ function VersionsTab({ selectedDocId }: { selectedDocId: number | null }) {
         documentId: selectedDocId,
         fileUrlPath: uploadForm.fileUrlPath,
         changeReason: uploadForm.changeReason,
-        uploadedBy: 1,
-        uploadedByName: uploadForm.uploadedByName || undefined,
       });
       toast.success("New version uploaded");
       setShowUpload(false);
@@ -421,7 +419,6 @@ function VersionsTab({ selectedDocId }: { selectedDocId: number | null }) {
       await promoteMut.mutateAsync({
         documentId: selectedDocId,
         fileUrlPath: versions[0]?.fileUrlPath ?? "/promoted",
-        uploadedBy: 1,
       });
       toast.success("Promoted to major version");
       docQ.refetch();

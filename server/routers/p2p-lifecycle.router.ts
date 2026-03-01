@@ -566,14 +566,13 @@ const paymentRouter = router({
   submitBuApproval: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
-      approvedBy: z.number().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
       const [item] = await db.update(paymentWorkflows)
         .set({
-          buApprovedBy: input.approvedBy,
+          buApprovedBy: ctx.user.id,
           buApprovedAt: now,
           currentStep: "quality_prod_approval",
           updatedAt: now,
@@ -586,14 +585,13 @@ const paymentRouter = router({
   submitQualityApproval: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
-      approvedBy: z.number().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
       const [item] = await db.update(paymentWorkflows)
         .set({
-          qualityApprovedBy: input.approvedBy,
+          qualityApprovedBy: ctx.user.id,
           qualityApprovedAt: now,
           currentStep: "payment_approved",
           updatedAt: now,
@@ -606,14 +604,13 @@ const paymentRouter = router({
   approvePayment: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
-      approvedBy: z.number().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
       const [item] = await db.update(paymentWorkflows)
         .set({
-          paymentApprovedBy: input.approvedBy,
+          paymentApprovedBy: ctx.user.id,
           paymentApprovedAt: now,
           currentStep: "procurement_confirmed",
           updatedAt: now,
@@ -626,9 +623,8 @@ const paymentRouter = router({
   procurementConfirm: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
-      confirmedBy: z.number().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
       // Calculate net payment (deduct quality losses)
@@ -636,7 +632,7 @@ const paymentRouter = router({
       const net = Number(wf?.paymentAmount || 0) - Number(wf?.qualityDeductionAmount || 0);
       const [item] = await db.update(paymentWorkflows)
         .set({
-          procurementConfirmedBy: input.confirmedBy,
+          procurementConfirmedBy: ctx.user.id,
           procurementConfirmedAt: now,
           netPaymentAmount: net.toFixed(2),
           currentStep: "supplier_confirmed",

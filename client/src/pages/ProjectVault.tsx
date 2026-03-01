@@ -282,7 +282,6 @@ export default function ProjectVault() {
         fileExtension: ext,
         mimeType,
         projectId,
-        createdBy: CURRENT_USER_ID,
       }, {
         onSuccess: (doc) => {
           uploadVersionMut.mutate({
@@ -291,8 +290,6 @@ export default function ProjectVault() {
             originalFileName: file.name,
             fileSizeBytes: file.size,
             changeReason: "Initial upload",
-            uploadedBy: CURRENT_USER_ID,
-            uploadedByName: CURRENT_USER_NAME,
           });
         },
       });

@@ -332,12 +332,12 @@ export const stageGateRouter = router({
       .input(z.object({
         checklistId: z.number(),
         status: z.enum(['pending', 'pass', 'fail']),
-        verifiedBy: z.string()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const verifiedBy = ctx.user.name ?? `User#${ctx.user.id}`;
         await (await requireDb()).execute(sql`
-          UPDATE grt_gate_checklists 
-          SET status = ${input.status}, verified_by = ${input.verifiedBy}, verified_at = NOW()
+          UPDATE grt_gate_checklists
+          SET status = ${input.status}, verified_by = ${verifiedBy}, verified_at = NOW()
           WHERE id = ${input.checklistId}
         `);
         return { success: true };
@@ -521,19 +521,19 @@ export const personalAgentRouter = router({
         projectPhase: z.string().optional(),
         problemDesc: z.string(),
         solutionDesc: z.string(),
-        createdBy: z.string()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         // AI提取知识（模拟）
         const aiExtractedKnowledge = {
           keywords: input.problemDesc.split(' ').slice(0, 5),
           category: 'technical',
           confidence: 0.85
         };
-        
+        const createdBy = ctx.user.name ?? `User#${ctx.user.id}`;
+
         await (await requireDb()).execute(sql`
           INSERT INTO grt_process_notes (note_id, project_id, project_phase, problem_desc, solution_desc, ai_extracted_knowledge, created_by)
-          VALUES (${input.noteId}, ${input.projectId || null}, ${input.projectPhase || null}, ${input.problemDesc}, ${input.solutionDesc}, ${JSON.stringify(aiExtractedKnowledge)}, ${input.createdBy})
+          VALUES (${input.noteId}, ${input.projectId || null}, ${input.projectPhase || null}, ${input.problemDesc}, ${input.solutionDesc}, ${JSON.stringify(aiExtractedKnowledge)}, ${createdBy})
         `);
         return { success: true, aiExtractedKnowledge };
       }),
@@ -706,12 +706,12 @@ export const coreBusinessRouter = router({
     approve: protectedProcedure
       .input(z.object({
         deliverableId: z.number(),
-        approvedBy: z.string()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const approvedBy = ctx.user.name ?? `User#${ctx.user.id}`;
         await (await requireDb()).execute(sql`
-          UPDATE grt_project_deliverables 
-          SET status = 'approved', approved_by = ${input.approvedBy}, approved_at = NOW()
+          UPDATE grt_project_deliverables
+          SET status = 'approved', approved_by = ${approvedBy}, approved_at = NOW()
           WHERE id = ${input.deliverableId}
         `);
         return { success: true };
@@ -834,12 +834,12 @@ export const socialCommunityRouter = router({
       .input(z.object({
         messageId: z.number(),
         approvedReply: z.string(),
-        approvedBy: z.string()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const approvedBy = ctx.user.name ?? `User#${ctx.user.id}`;
         await (await requireDb()).execute(sql`
-          UPDATE grt_social_messages 
-          SET approved_reply = ${input.approvedReply}, reply_status = 'approved', approved_by = ${input.approvedBy}, approved_at = NOW()
+          UPDATE grt_social_messages
+          SET approved_reply = ${input.approvedReply}, reply_status = 'approved', approved_by = ${approvedBy}, approved_at = NOW()
           WHERE id = ${input.messageId}
         `);
         return { success: true };
@@ -882,12 +882,12 @@ export const socialCommunityRouter = router({
         reviewStatus: z.enum(['approved', 'rejected', 'modified']),
         finalReply: z.string().optional(),
         reviewNotes: z.string().optional(),
-        reviewerId: z.string()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const reviewerId = String(ctx.user.id);
         await (await requireDb()).execute(sql`
-          UPDATE grt_social_reply_queue 
-          SET review_status = ${input.reviewStatus}, final_reply = ${input.finalReply || null}, review_notes = ${input.reviewNotes || null}, reviewer_id = ${input.reviewerId}, reviewed_at = NOW()
+          UPDATE grt_social_reply_queue
+          SET review_status = ${input.reviewStatus}, final_reply = ${input.finalReply || null}, review_notes = ${input.reviewNotes || null}, reviewer_id = ${reviewerId}, reviewed_at = NOW()
           WHERE id = ${input.queueId}
         `);
         return { success: true };

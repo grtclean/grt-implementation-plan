@@ -114,10 +114,9 @@ export const digitalTwinRouter = router({
     vertexCount: z.number().optional(),
     faceCount: z.number().optional(),
     thumbnailUrl: z.string().optional(),
-    createdBy: z.number().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
-  })).mutation(async ({ input }) => {
-    return createAsset(input);
+  })).mutation(async ({ input, ctx }) => {
+    return createAsset({ ...input, createdBy: ctx.user.id });
   }),
 
   updateAsset: protectedProcedure.input(z.object({
@@ -128,8 +127,7 @@ export const digitalTwinRouter = router({
     ownerName: z.string().optional(),
     tags: z.array(z.string()).optional(),
     thumbnailUrl: z.string().optional(),
-    updatedBy: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const assetId = toNum(input.id);
 
@@ -147,15 +145,10 @@ export const digitalTwinRouter = router({
         .where(eq(users.id, input.ownerUserId)).limit(1);
       if (!user) throw new Error(`FK violation: users.id=${input.ownerUserId} does not exist`);
     }
-    if (input.updatedBy) {
-      const [user] = await db.select({ id: users.id }).from(users)
-        .where(eq(users.id, input.updatedBy)).limit(1);
-      if (!user) throw new Error(`FK violation: users.id=${input.updatedBy} does not exist`);
-    }
 
     const { id, ...data } = input;
     const [updated] = await db.update(dtAssets)
-      .set({ ...data, updatedAt: new Date().toISOString() })
+      .set({ ...data, updatedBy: ctx.user.id, updatedAt: new Date().toISOString() })
       .where(eq(dtAssets.id, assetId))
       .returning();
     return updated;
@@ -163,9 +156,7 @@ export const digitalTwinRouter = router({
 
   submitForReview: protectedProcedure.input(z.object({
     assetId: z.union([z.string(), z.number()]),
-    submittedBy: z.number(),
-    submittedByName: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const assetId = toNum(input.assetId);
 
@@ -177,7 +168,7 @@ export const digitalTwinRouter = router({
     }
 
     const [updated] = await db.update(dtAssets)
-      .set({ status: "pending_review", updatedBy: input.submittedBy, updatedAt: new Date().toISOString() })
+      .set({ status: "pending_review", updatedBy: ctx.user.id, updatedAt: new Date().toISOString() })
       .where(eq(dtAssets.id, assetId))
       .returning();
 
@@ -185,8 +176,8 @@ export const digitalTwinRouter = router({
     await db.insert(iatfAuditLogs).values({
       assetId,
       action: "upload",
-      actorId: input.submittedBy,
-      actorName: input.submittedByName,
+      actorId: ctx.user.id,
+      actorName: ctx.user.name ?? `User#${ctx.user.id}`,
       hashAtAction: asset.sha256Hash,
       previousStatus: "draft",
       newStatus: "pending_review",
@@ -210,55 +201,55 @@ export const digitalTwinRouter = router({
     mimeType: z.string().optional(),
     sha256Hash: z.string().min(1),
     fileFormat: z.enum(["glb", "gltf", "step", "zw1", "sldprt", "sldasm", "fbx", "obj", "stl", "other"]).optional(),
-    uploadedBy: z.number(),
-    uploadedByName: z.string().optional(),
     description: z.string().optional(),
     vertexCount: z.number().optional(),
     faceCount: z.number().optional(),
     thumbnailUrl: z.string().optional(),
     ipAddress: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     return publishAssetVersion({
       ...input,
       previousAssetId: toNum(input.previousAssetId),
+      uploadedBy: ctx.user.id,
+      uploadedByName: ctx.user.name ?? `User#${ctx.user.id}`,
     });
   }),
 
   approveAsset: protectedProcedure.input(z.object({
     assetId: z.union([z.string(), z.number()]),
-    approvedBy: z.number(),
-    approvedByName: z.string().optional(),
     ipAddress: z.string().optional(),
     comments: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     return approveAsset({
       ...input,
       assetId: toNum(input.assetId),
+      approvedBy: ctx.user.id,
+      approvedByName: ctx.user.name ?? `User#${ctx.user.id}`,
     });
   }),
 
   freezeAsset: protectedProcedure.input(z.object({
     assetId: z.union([z.string(), z.number()]),
-    frozenBy: z.number(),
-    frozenByName: z.string().optional(),
     ipAddress: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     return freezeAsset({
       ...input,
       assetId: toNum(input.assetId),
+      frozenBy: ctx.user.id,
+      frozenByName: ctx.user.name ?? `User#${ctx.user.id}`,
     });
   }),
 
   verifyHash: protectedProcedure.input(z.object({
     assetId: z.union([z.string(), z.number()]),
     computedHash: z.string().min(1),
-    verifiedBy: z.number(),
-    verifiedByName: z.string().optional(),
     ipAddress: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     return verifyHash({
       ...input,
       assetId: toNum(input.assetId),
+      verifiedBy: ctx.user.id,
+      verifiedByName: ctx.user.name ?? `User#${ctx.user.id}`,
     });
   }),
 
@@ -293,8 +284,7 @@ export const digitalTwinRouter = router({
     safetyClearanceMm: z.string().optional(),
     nodeType: z.string().optional(),
     instructions: z.string().optional(),
-    createdBy: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const assetId = toNum(input.dtAssetId);
     const [asset] = await db.select({ id: dtAssets.id }).from(dtAssets)
@@ -317,7 +307,7 @@ export const digitalTwinRouter = router({
       safetyClearanceMm: input.safetyClearanceMm,
       nodeType: input.nodeType,
       instructions: input.instructions,
-      createdBy: input.createdBy,
+      createdBy: ctx.user.id,
     }).returning();
     return node;
   }),

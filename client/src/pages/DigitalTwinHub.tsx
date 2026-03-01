@@ -968,7 +968,6 @@ function ViewerDialogContent({
                     try {
                       submitForReview.mutate({
                         assetId,
-                        submittedBy: CURRENT_USER_ID,
                       });
                     } catch (e) {
                       toast.error("Operation failed");
@@ -994,7 +993,6 @@ function ViewerDialogContent({
                     try {
                       approveAsset.mutate({
                         assetId,
-                        approvedBy: CURRENT_USER_ID,
                       });
                     } catch (e) {
                       toast.error("Operation failed");
@@ -1020,7 +1018,6 @@ function ViewerDialogContent({
                     try {
                       freezeAsset.mutate({
                         assetId,
-                        frozenBy: CURRENT_USER_ID,
                       });
                     } catch (e) {
                       toast.error("Operation failed");
@@ -1046,7 +1043,6 @@ function ViewerDialogContent({
                     verifyHash.mutate({
                       assetId,
                       computedHash: String(asset.sha256Hash ?? ""),
-                      verifiedBy: CURRENT_USER_ID,
                     });
                   } catch (e) {
                     toast.error("Operation failed");
@@ -1073,7 +1069,6 @@ function ViewerDialogContent({
                         previousAssetId: assetId,
                         storageUrl: `pending://upload/${Date.now()}`,
                         sha256Hash: "0000000000000000000000000000000000000000000000000000000000000000",
-                        uploadedBy: CURRENT_USER_ID,
                       });
                     } catch (e) {
                       toast.error("Operation failed");
@@ -1407,7 +1402,6 @@ function CreateAssetDialog({
       tags: form.tags.trim() ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : undefined,
       storageUrl: `pending://upload/${Date.now()}`,
       sha256Hash: "0000000000000000000000000000000000000000000000000000000000000000",
-      createdBy: selectedUser ? selectedUser.id : CURRENT_USER_ID,
       metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
     });
   };

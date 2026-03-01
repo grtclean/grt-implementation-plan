@@ -71,11 +71,10 @@ export const contractRouter = router({
         endDate: z.string().optional(),
         terms: z.string().optional(),
         notes: z.string().optional(),
-        createdBy: z.number().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return createContract(input);
+    .mutation(async ({ input, ctx }) => {
+      return createContract({ ...input, createdBy: ctx.user.id });
     }),
 
   update: protectedProcedure
@@ -168,11 +167,10 @@ export const contractRouter = router({
           "other",
         ]),
         fileBase64: z.string().min(1),
-        uploadedBy: z.number().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return uploadDocument(input);
+    .mutation(async ({ input, ctx }) => {
+      return uploadDocument({ ...input, uploadedBy: ctx.user.id });
     }),
 
   getDocuments: protectedProcedure
@@ -215,8 +213,8 @@ export const contractRouter = router({
     }),
 
   applyAnalysis: protectedProcedure
-    .input(z.object({ analysisId: z.number(), userId: z.number() }))
-    .mutation(async ({ input }) => {
-      return applyAnalysis(input.analysisId, input.userId);
+    .input(z.object({ analysisId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      return applyAnalysis(input.analysisId, ctx.user.id);
     }),
 });
