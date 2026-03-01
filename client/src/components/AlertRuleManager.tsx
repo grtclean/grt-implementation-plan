@@ -97,10 +97,19 @@ export default function AlertRuleManager({ open, onOpenChange }: AlertRuleManage
   const { data: rules, refetch: refetchRules } = trpc.alertRule.list.useQuery();
 
   // 获取告警历史
-  const { data: history, refetch: refetchHistory } = (trpc.alertRule.listHistory as any).useQuery({ limit: 50 });
+  const { data: history, refetch: refetchHistory } = trpc.alertRule.listHistory.useQuery();
 
   // 获取统计数据
-  const { data: statistics } = trpc.alertRule.getStatistics.useQuery();
+  const { data: statisticsRaw } = trpc.alertRule.getStatistics.useQuery();
+  // Derive a flat stats view from the router's nested { statistics: { ... } } shape
+  const statistics = statisticsRaw ? {
+    totalRules: Number(statisticsRaw.statistics?.totalRules ?? 0),
+    enabledRules: Number(statisticsRaw.statistics?.activeRules ?? 0),
+    totalAlerts: Number(statisticsRaw.statistics?.totalAlerts ?? 0),
+    unacknowledgedAlerts: Number(statisticsRaw.statistics?.pendingAlerts ?? 0),
+    alertsBySeverity: {} as Record<string, number>,
+    recentAlerts: [] as Array<{ id: number; severity: string; message: string; createdAt: string }>,
+  } : null;
 
   // 创建规则
   const createMutation = trpc.alertRule.create.useMutation({
@@ -241,20 +250,20 @@ export default function AlertRuleManager({ open, onOpenChange }: AlertRuleManage
           <div className="grid grid-cols-4 gap-3 mb-4">
             <Card className="p-3">
               <div className="text-xs text-muted-foreground">启用规则</div>
-              <div className="text-xl font-bold">{(statistics as any).enabledRules}/{(statistics as any).totalRules}</div>
+              <div className="text-xl font-bold">{statistics.enabledRules}/{statistics.totalRules}</div>
             </Card>
             <Card className="p-3">
               <div className="text-xs text-muted-foreground">待处理告警</div>
-              <div className="text-xl font-bold text-yellow-500">{(statistics as any).unacknowledgedAlerts}</div>
+              <div className="text-xl font-bold text-yellow-500">{statistics.unacknowledgedAlerts}</div>
             </Card>
             <Card className="p-3">
               <div className="text-xs text-muted-foreground">7天告警数</div>
-              <div className="text-xl font-bold">{(statistics as any).totalAlerts}</div>
+              <div className="text-xl font-bold">{statistics.totalAlerts}</div>
             </Card>
             <Card className="p-3">
               <div className="text-xs text-muted-foreground">严重告警</div>
               <div className="text-xl font-bold text-red-500">
-                {((statistics as any).alertsBySeverity?.critical || 0) + ((statistics as any).alertsBySeverity?.error || 0)}
+                {(statistics.alertsBySeverity?.critical || 0) + (statistics.alertsBySeverity?.error || 0)}
               </div>
             </Card>
           </div>
@@ -285,9 +294,9 @@ export default function AlertRuleManager({ open, onOpenChange }: AlertRuleManage
                 </Button>
               </div>
 
-              {rules && (rules as any).length > 0 ? (
+              {rules && rules.items.length > 0 ? (
                 <div className="space-y-2">
-                  {(rules as any).map((rule: any) => {
+                  {rules.items.map((rule: any) => {
                     const typeConfig = RULE_TYPES.find(t => t.value === rule.ruleType);
                     const TypeIcon = typeConfig?.icon || Settings;
                     return (
@@ -358,10 +367,12 @@ export default function AlertRuleManager({ open, onOpenChange }: AlertRuleManage
               {history && history.length > 0 ? (
                 <div className="space-y-2">
                   {history.map((alert) => {
-                    const severityConfig = SEVERITY_CONFIG[alert.severity as keyof typeof SEVERITY_CONFIG];
+                    const severity = alert.alertLevel as keyof typeof SEVERITY_CONFIG;
+                    const severityConfig = SEVERITY_CONFIG[severity];
                     const SeverityIcon = severityConfig?.icon || AlertTriangle;
+                    const isAcknowledged = alert.status === "acknowledged" || alert.status === "resolved";
                     return (
-                      <Card key={alert.id} className={alert.acknowledged ? "opacity-60" : ""}>
+                      <Card key={alert.id} className={isAcknowledged ? "opacity-60" : ""}>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
                             <div className="flex items-start gap-3">
@@ -370,22 +381,22 @@ export default function AlertRuleManager({ open, onOpenChange }: AlertRuleManage
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium">{alert.ruleName}</span>
+                                  <span className="font-medium">{alert.title}</span>
                                   <Badge variant="outline">{severityConfig?.label}</Badge>
-                                  {alert.acknowledged && (
+                                  {isAcknowledged && (
                                     <Badge variant="secondary">
                                       <Check className="w-3 h-3 mr-1" />
                                       已确认
                                     </Badge>
                                   )}
                                 </div>
-                                <p className="text-sm text-muted-foreground mt-1">{alert.message}</p>
+                                <p className="text-sm text-muted-foreground mt-1">{alert.content}</p>
                                 <div className="text-xs text-muted-foreground mt-2">
                                   {new Date(alert.createdAt!).toLocaleString("zh-CN")}
                                 </div>
                               </div>
                             </div>
-                            {!alert.acknowledged && (
+                            {!isAcknowledged && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -419,8 +430,8 @@ export default function AlertRuleManager({ open, onOpenChange }: AlertRuleManage
                     <CardContent>
                       <div className="space-y-2">
                         {Object.entries(SEVERITY_CONFIG).map(([key, config]) => {
-                          const count = (statistics as any).alertsBySeverity?.[key] || 0;
-                          const total = (statistics as any).totalAlerts || 1;
+                          const count = statistics.alertsBySeverity?.[key] || 0;
+                          const total = statistics.totalAlerts || 1;
                           const percentage = (count / total) * 100;
                           return (
                             <div key={key} className="flex items-center gap-2">
@@ -440,14 +451,14 @@ export default function AlertRuleManager({ open, onOpenChange }: AlertRuleManage
                     </CardContent>
                   </Card>
 
-                  {(statistics as any).recentAlerts && (statistics as any).recentAlerts.length > 0 && (
+                  {statistics.recentAlerts && statistics.recentAlerts.length > 0 && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="text-sm">最近告警</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
-                          {(statistics as any).recentAlerts.map((alert: any) => (
+                          {statistics.recentAlerts.map((alert: any) => (
                             <div key={alert.id} className="flex items-center gap-2 text-sm">
                               <div className={`w-2 h-2 rounded-full ${SEVERITY_CONFIG[alert.severity as keyof typeof SEVERITY_CONFIG]?.color}`} />
                               <span className="flex-1 truncate">{alert.message}</span>

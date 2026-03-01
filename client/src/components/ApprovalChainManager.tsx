@@ -175,7 +175,7 @@ export default function ApprovalChainManager() {
       toast({ title: "验证失败", description: "请填写名称并添加至少一个审批节点", variant: "destructive" });
       return;
     }
-    createMutation.mutate(newConfig as any);
+    createMutation.mutate(newConfig as Record<string, unknown>);
   };
 
   const handleDelete = (id: string) => {

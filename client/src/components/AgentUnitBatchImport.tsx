@@ -107,29 +107,31 @@ export default function AgentUnitBatchImport() {
     setIsImporting(true);
     setImportProgress(0);
 
-    try {
-      const text = await file.text();
-      const data = parseCSV(text);
-      
-      // 模拟进度
-      const progressInterval = setInterval(() => {
-        setImportProgress(prev => Math.min(prev + 10, 90));
-      }, 200);
+    const text = await file.text();
+    const data = parseCSV(text);
 
+    // 模拟进度
+    const progressInterval = setInterval(() => {
+      setImportProgress(prev => Math.min(prev + 10, 90));
+    }, 200);
+
+    try {
       const result = await importMutation.mutateAsync({ data });
 
-      clearInterval(progressInterval);
       setImportProgress(100);
-      setImportResult(result as any);
+      // Router currently returns stub response; cast through unknown for future-proofing
+      const typedResult = result as unknown as ImportResult;
+      setImportResult(typedResult);
 
-      if ((result as any).success) {
-        toast.success(`成功导入 ${(result as any).successCount} 个智能体单体`);
+      if (typedResult.success) {
+        toast.success(`成功导入 ${typedResult.successCount ?? 0} 个智能体单体`);
       } else {
-        toast.warning(`导入完成，成功 ${(result as any).successCount} 个，失败 ${(result as any).failedCount} 个`);
+        toast.warning(`导入完成，成功 ${typedResult.successCount ?? 0} 个，失败 ${typedResult.failedCount ?? 0} 个`);
       }
     } catch (error: any) {
       toast.error(error.message || "导入失败");
     } finally {
+      clearInterval(progressInterval);
       setIsImporting(false);
     }
   };

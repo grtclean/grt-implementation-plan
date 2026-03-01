@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
+import crypto from "crypto";
 import { sql } from "drizzle-orm";
 import { createServer } from "http";
 import net from "net";
@@ -45,6 +46,14 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // X-Request-ID: propagate or generate a unique request identifier
+  app.use((req, res, next) => {
+    const requestId = (req.headers['x-request-id'] as string) || crypto.randomUUID();
+    req.headers['x-request-id'] = requestId;
+    res.setHeader('X-Request-ID', requestId);
+    next();
+  });
+
   // Register auth routes based on deployment mode
   if (isLocalAuth) {
     registerLocalAuthRoutes(app);
@@ -56,9 +65,10 @@ async function startServer() {
 
   // Health check endpoint for production monitoring
   app.get("/health", async (req, res) => {
+    const startMs = Date.now();
     let dbStatus = "unknown";
     let dbLatency = 0;
-    
+
     try {
       const { getDb } = await import("../db");
       const startTime = Date.now();
@@ -74,25 +84,31 @@ async function startServer() {
       dbStatus = "error";
       console.error("[Health] Database check failed:", error);
     }
-    
+
+    const wsStats = getWebSocketStats();
+    const imeStats = getIMEWebSocketStats();
     const isHealthy = dbStatus === "connected" || dbStatus === "not_configured";
-    
+
     res.status(isHealthy ? 200 : 503).json({
       status: isHealthy ? "healthy" : "unhealthy",
       timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
+      uptime: Math.round(process.uptime()),
       version: process.env.npm_package_version || "1.0.0",
       environment: process.env.NODE_ENV || "development",
+      checkDurationMs: Date.now() - startMs,
       memory: {
-        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-        unit: "MB"
+        heapUsedMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        heapTotalMB: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+        rssMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
       },
       database: {
         status: dbStatus,
-        latency: dbLatency,
-        unit: "ms"
-      }
+        latencyMs: dbLatency,
+      },
+      websockets: {
+        collaboration: wsStats?.totalConnections ?? 0,
+        ime: imeStats?.totalConnections ?? 0,
+      },
     });
   });
 
@@ -121,6 +137,10 @@ async function startServer() {
       }
       const pathMod = await import("path");
       const filePath = pathMod.resolve(process.cwd(), doc.filePath);
+      const basePath = pathMod.resolve(process.cwd(), 'uploads');
+      if (!filePath.startsWith(basePath)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(doc.originalName)}`);
       res.setHeader("Content-Type", doc.mimeType || "application/octet-stream");
       res.sendFile(filePath);

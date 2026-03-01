@@ -8,9 +8,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ─── Mock DB ─────────────────────────────────────────────────────────
-// Shared mutable results that each test can override before calling
+// Shared mutable results that each test can override before calling.
+// For tests that need different results on successive select() calls,
+// push multiple entries to `selectResultsQueue`. When the queue is empty,
+// fallback to `mockQueryResult`.
 let mockQueryResult: any[] = [];
 let mockReturningResult: any[] = [{ id: 1 }];
+let selectResultsQueue: any[][] = [];
 
 const createMockDbChain = () => {
   const chain: any = {};
@@ -36,12 +40,19 @@ const createMockDbChain = () => {
 
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => {
-    const chain = createMockDbChain();
     return {
-      select: vi.fn(() => chain),
-      insert: vi.fn(() => chain),
-      update: vi.fn(() => chain),
-      delete: vi.fn(() => chain),
+      select: vi.fn(() => {
+        const chain = createMockDbChain();
+        // If the queue has entries, use the next one instead of the default
+        if (selectResultsQueue.length > 0) {
+          const nextResult = selectResultsQueue.shift()!;
+          chain.then = (resolve: any) => resolve(nextResult);
+        }
+        return chain;
+      }),
+      insert: vi.fn(() => createMockDbChain()),
+      update: vi.fn(() => createMockDbChain()),
+      delete: vi.fn(() => createMockDbChain()),
     };
   }),
 }));
@@ -135,6 +146,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockQueryResult = [];
   mockReturningResult = [{ id: 1 }];
+  selectResultsQueue = [];
 });
 
 // ═════════════════════════════════════════════════════════════════════
@@ -202,11 +214,17 @@ describe("supplyChain.label", () => {
   });
 
   it("label.batchValidate processes multiple IDs", async () => {
-    // For each id in the loop, select returns the label, then update is called
-    mockQueryResult = [{ id: 1, materialCode: "MAT-001", poNumber: "PO-001" }];
+    // batchValidate now does one bulk SELECT (all labels), then N individual UPDATEs
+    mockQueryResult = [
+      { id: 1, materialCode: "MAT-001", poNumber: "PO-001" },
+      { id: 2, materialCode: "MAT-002", poNumber: "PO-002" },
+    ];
     const caller = createAuthenticatedCaller();
     const result = await caller.supplyChain.label.batchValidate({ ids: [1, 2] });
     expect(Array.isArray(result)).toBe(true);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({ id: 1, valid: true });
+    expect(result[1]).toEqual({ id: 2, valid: true });
   });
 
   it("label.markPrinted increments print count", async () => {
@@ -223,17 +241,19 @@ describe("supplyChain.label", () => {
   });
 
   it("label.stats returns aggregated counts", async () => {
-    mockQueryResult = [
-      { isValidated: true },
-      { isValidated: true },
-      { isValidated: false },
+    // stats now issues two SELECT COUNT(*) queries:
+    //   1. total count (all labels)
+    //   2. validated count (where isValidated = true)
+    selectResultsQueue = [
+      [{ count: 3 }],  // total
+      [{ count: 2 }],  // validated
     ];
     const caller = createAuthenticatedCaller();
     const result = await caller.supplyChain.label.stats();
     expect(result).toHaveProperty("total", 3);
     expect(result).toHaveProperty("validated", 2);
     expect(result).toHaveProperty("pending", 1);
-    expect(result).toHaveProperty("validationRate");
+    expect(result).toHaveProperty("validationRate", 67);
   });
 });
 

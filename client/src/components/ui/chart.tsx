@@ -77,6 +77,8 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   }
 
   return (
+    // SECURITY: CSS variables derived from chart config (developer-defined, not user input).
+    // No DOMPurify needed — values are controlled color strings from ChartConfig.
     <style
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)

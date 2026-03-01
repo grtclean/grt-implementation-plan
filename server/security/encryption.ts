@@ -14,7 +14,18 @@ const KEY_LENGTH = 32;
 const PBKDF2_ITERATIONS = 100000;
 
 // 从环境变量获取主密钥（生产环境应使用HSM或密钥管理服务）
-const MASTER_KEY = process.env.ENCRYPTION_MASTER_KEY || 'grt-default-master-key-change-in-production';
+function getMasterKey(): string {
+  const key = process.env.ENCRYPTION_MASTER_KEY;
+  if (!key) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("FATAL: ENCRYPTION_MASTER_KEY is not set.");
+    }
+    console.warn("[SECURITY] ENCRYPTION_MASTER_KEY not set — using insecure dev default.");
+    return "grt-dev-only-insecure-default-key-32ch";
+  }
+  return key;
+}
+const MASTER_KEY = getMasterKey();
 
 /**
  * 从主密钥派生加密密钥

@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -430,9 +431,11 @@ export default function MaintenanceAlertDashboard({
               </CardHeader>
               <CardContent>
                 <p className="text-sm" dangerouslySetInnerHTML={{
-                  __html: t("maintenance.urgentAlertText")
-                    .replace("{overdue}", `<span class="font-bold text-destructive">${stats.overdue}</span>`)
-                    .replace("{due}", `<span class="font-bold text-yellow-500">${stats.due}</span>`)
+                  __html: DOMPurify.sanitize(
+                    t("maintenance.urgentAlertText")
+                      .replace("{overdue}", `<span class="font-bold text-destructive">${stats.overdue}</span>`)
+                      .replace("{due}", `<span class="font-bold text-yellow-500">${stats.due}</span>`)
+                  )
                 }} />
                 <Button 
                   size="sm" 

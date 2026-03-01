@@ -14,6 +14,7 @@ export type TrpcContext = {
   user: User | null;
   language: Language;
   bu: BuContext;
+  requestId: string;
 };
 
 const isLocalAuth = () =>
@@ -83,5 +84,6 @@ export async function createContext(
     user,
     language,
     bu: { buId: null, buCode: null, buName: null },
+    requestId: (opts.req.headers['x-request-id'] as string) || 'unknown',
   };
 }

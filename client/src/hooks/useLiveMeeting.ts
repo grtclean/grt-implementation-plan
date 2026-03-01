@@ -34,6 +34,7 @@ export function useLiveMeeting() {
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef = useRef<number | null>(null);
+  const isDisconnectingRef = useRef(false);
 
   const cleanup = useCallback(() => {
     if (pingIntervalRef.current) {
@@ -49,6 +50,7 @@ export function useLiveMeeting() {
   const connect = useCallback((sessionId: number, userId?: string, userName?: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
+    isDisconnectingRef.current = false;
     sessionIdRef.current = sessionId;
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws/ime-live?sessionId=${sessionId}&userId=${encodeURIComponent(userId || "user")}&userName=${encodeURIComponent(userName || "User")}`;
@@ -109,8 +111,8 @@ export function useLiveMeeting() {
         setState((s) => ({ ...s, isConnected: false }));
         cleanup();
 
-        // Auto-reconnect on abnormal close
-        if (event.code !== 1000 && event.code !== 4001 && sessionIdRef.current) {
+        // Auto-reconnect on abnormal close (skip if intentionally disconnecting)
+        if (event.code !== 1000 && event.code !== 4001 && sessionIdRef.current && !isDisconnectingRef.current) {
           reconnectTimeoutRef.current = setTimeout(() => {
             console.log("[IME-Live] Reconnecting...");
             connect(sessionIdRef.current!, userId, userName);
@@ -127,6 +129,7 @@ export function useLiveMeeting() {
   }, [cleanup]);
 
   const disconnect = useCallback(() => {
+    isDisconnectingRef.current = true;
     cleanup();
     sessionIdRef.current = null;
     if (wsRef.current) {

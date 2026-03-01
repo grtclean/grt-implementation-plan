@@ -3,7 +3,7 @@
  * 会议语音转录组件 - 支持录音上传、实时录制、转录结果展示
  */
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -105,7 +105,10 @@ export function MeetingTranscription({ meetingId, onTranscriptionComplete }: Mee
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingIntervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const uploadIntervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const transcribeIntervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const transcriptionTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -216,21 +219,21 @@ export function MeetingTranscription({ meetingId, onTranscriptionComplete }: Mee
     setIsTranscribing(true);
     setTranscriptionProgress(0);
 
-    const uploadInterval = setInterval(() => {
+    uploadIntervalRef.current = setInterval(() => {
       setUploadProgress((prev) => {
         if (prev >= 100) {
-          clearInterval(uploadInterval);
+          if (uploadIntervalRef.current) clearInterval(uploadIntervalRef.current);
           return 100;
         }
         return prev + 10;
       });
     }, 200);
 
-    setTimeout(() => {
-      const transcribeInterval = setInterval(() => {
+    transcriptionTimeoutRef.current = setTimeout(() => {
+      transcribeIntervalRef.current = setInterval(() => {
         setTranscriptionProgress((prev) => {
           if (prev >= 100) {
-            clearInterval(transcribeInterval);
+            if (transcribeIntervalRef.current) clearInterval(transcribeIntervalRef.current);
             const mockResult: TranscriptionResult = {
               id: `trans_${Date.now()}`,
               meetingId,
@@ -290,6 +293,16 @@ export function MeetingTranscription({ meetingId, onTranscriptionComplete }: Mee
     setShowExportDialog(false);
     toast.success("导出成功");
   };
+
+  // Cleanup all intervals/timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+      if (uploadIntervalRef.current) clearInterval(uploadIntervalRef.current);
+      if (transcribeIntervalRef.current) clearInterval(transcribeIntervalRef.current);
+      if (transcriptionTimeoutRef.current) clearTimeout(transcriptionTimeoutRef.current);
+    };
+  }, []);
 
   const clearSelectedFile = () => {
     setSelectedFile(null);

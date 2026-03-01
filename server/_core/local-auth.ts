@@ -18,7 +18,14 @@ async function getDbAndSchema() {
 }
 
 function getJwtSecret() {
-  const secret = ENV.cookieSecret || process.env.JWT_SECRET || "grt-local-default-secret-change-me";
+  const secret = ENV.cookieSecret || process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("FATAL: JWT_SECRET is not set. Set JWT_SECRET env var (≥32 chars).");
+    }
+    console.warn("[SECURITY] JWT_SECRET not set — using insecure dev default. Set JWT_SECRET in .env");
+    return new TextEncoder().encode("grt-local-dev-only-insecure-default");
+  }
   return new TextEncoder().encode(secret);
 }
 

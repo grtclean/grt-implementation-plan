@@ -139,10 +139,12 @@ const supplierLabelRouter = router({
     .input(z.object({ ids: z.array(z.number()) }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
+      // Bulk-fetch all labels in one query instead of N queries
+      const labels = await db.select().from(supplierShipmentLabels)
+        .where(inArray(supplierShipmentLabels.id, input.ids))
+        .limit(1000);
       const results: { id: number; valid: boolean }[] = [];
-      for (const id of input.ids) {
-        const [label] = await db.select().from(supplierShipmentLabels).where(eq(supplierShipmentLabels.id, id)).limit(1000);
-        if (!label) continue;
+      for (const label of labels) {
         const errors: string[] = [];
         if (!label.materialCode) errors.push("物料编码缺失");
         if (!label.poNumber) errors.push("采购订单号缺失");
@@ -151,8 +153,8 @@ const supplierLabelRouter = router({
           isValidated: isValid,
           validationErrors: errors.length > 0 ? JSON.stringify(errors) : null,
           updatedAt: new Date().toISOString(),
-        }).where(eq(supplierShipmentLabels.id, id));
-        results.push({ id, valid: isValid });
+        }).where(eq(supplierShipmentLabels.id, label.id));
+        results.push({ id: label.id, valid: isValid });
       }
       return results;
     }),
@@ -175,13 +177,17 @@ const supplierLabelRouter = router({
 
   stats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(supplierShipmentLabels).limit(1000);
-    const validated = all.filter(l => l.isValidated);
+    // Use SQL COUNT aggregation instead of loading all rows
+    const [totalRow] = await db.select({ count: count() }).from(supplierShipmentLabels);
+    const [validatedRow] = await db.select({ count: count() }).from(supplierShipmentLabels)
+      .where(eq(supplierShipmentLabels.isValidated, true));
+    const total = Number(totalRow?.count ?? 0);
+    const validated = Number(validatedRow?.count ?? 0);
     return {
-      total: all.length,
-      validated: validated.length,
-      pending: all.length - validated.length,
-      validationRate: all.length > 0 ? Math.round((validated.length / all.length) * 100) : 0,
+      total,
+      validated,
+      pending: total - validated,
+      validationRate: total > 0 ? Math.round((validated / total) * 100) : 0,
     };
   }),
 });

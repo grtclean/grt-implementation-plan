@@ -14,7 +14,7 @@ import {
 import { gateChecklists } from "../../drizzle/schema";
 import { redBlueConfigs, redBlueExecutions } from "../../drizzle/approval-engine-schema";
 import { violationEvents } from "../../drizzle/performance-schema";
-import { eq, desc, and, count, sql, lt, gte, ne, inArray } from "drizzle-orm";
+import { eq, desc, and, count, sql, lt, gte, ne, inArray, type SQL } from "drizzle-orm";
 
 // Ordered M-stage codes for index-based navigation
 const M_STAGE_CODES = [
@@ -55,21 +55,26 @@ export const projectGateRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
 
-      // Get all projects with their current phase
-      let projectList = await db.select().from(projects).orderBy(desc(projects.createdAt)).limit(1000);
+      // Build WHERE conditions dynamically to push filtering to DB
+      const conditions: SQL[] = [];
+      if (input?.projectId) conditions.push(eq(projects.id, input.projectId));
+      if (input?.currentStage) conditions.push(eq(projects.currentPhase, input.currentStage));
 
-      if (input?.projectId) {
-        projectList = projectList.filter(p => p.id === input.projectId);
-      }
-      if (input?.currentStage) {
-        projectList = projectList.filter(p => p.currentPhase === input.currentStage);
-      }
+      const projectList = await db.select().from(projects)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(projects.createdAt))
+        .limit(1000);
 
-      // Get gates for all projects to build stage data
-      const allGates = await db.select().from(projectGates).limit(1000);
+      if (projectList.length === 0) return [];
+
+      // Only fetch gates for the filtered projects (not all gates)
+      const projectIds = projectList.map(p => p.id);
+      const relevantGates = await db.select().from(projectGates)
+        .where(inArray(projectGates.projectId, projectIds))
+        .limit(1000);
 
       return projectList.map(p => {
-        const projectGateList = allGates.filter(g => g.projectId === p.id);
+        const projectGateList = relevantGates.filter(g => g.projectId === p.id);
         const stages = M_STAGE_DEFINITIONS.map(def => {
           const gate = projectGateList.find(g => g.phaseCode === def.code);
           let status = "NOT_STARTED";

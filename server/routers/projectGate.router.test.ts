@@ -189,13 +189,21 @@ describe("projectGate.getStageDefinitions", () => {
 // ─── 2. getProjectStages ────────────────────────────────────────────
 describe("projectGate.getProjectStages", () => {
   it("returns project list with stage info", async () => {
-    mockQueryResult = [
-      {
-        id: 1, name: "TestProject", projectCode: "PRJ-001",
-        currentPhase: "M3", status: "active", completionPercent: 40,
-        managerId: 5, plannedStartDate: "2026-01-01", plannedEndDate: "2026-12-31",
-        actualStartDate: "2026-01-15", actualEndDate: null, createdAt: "2026-01-01",
-      },
+    // getProjectStages now issues two queries:
+    //   1. db.select().from(projects) — project list
+    //   2. db.select().from(projectGates).where(inArray(...)) — gates for those projects
+    selectResultsQueue = [
+      // 1st select: projects
+      [
+        {
+          id: 1, name: "TestProject", projectCode: "PRJ-001",
+          currentPhase: "M3", status: "active", completionPercent: 40,
+          managerId: 5, plannedStartDate: "2026-01-01", plannedEndDate: "2026-12-31",
+          actualStartDate: "2026-01-15", actualEndDate: null, createdAt: "2026-01-01",
+        },
+      ],
+      // 2nd select: gates (empty — no gate records)
+      [],
     ];
     const caller = createAuthenticatedCaller();
     const result = await caller.projectGate.getProjectStages({});
@@ -215,13 +223,17 @@ describe("projectGate.getProjectStages", () => {
   });
 
   it("computes stageProgress from currentPhase index", async () => {
-    mockQueryResult = [
-      {
-        id: 2, name: "Proj", projectCode: "P-2", currentPhase: "M6",
-        status: "active", completionPercent: 60, managerId: null,
-        plannedStartDate: null, plannedEndDate: null,
-        actualStartDate: null, actualEndDate: null, createdAt: "2026-01-01",
-      },
+    // Two queries: projects list, then gates for those project IDs
+    selectResultsQueue = [
+      [
+        {
+          id: 2, name: "Proj", projectCode: "P-2", currentPhase: "M6",
+          status: "active", completionPercent: 60, managerId: null,
+          plannedStartDate: null, plannedEndDate: null,
+          actualStartDate: null, actualEndDate: null, createdAt: "2026-01-01",
+        },
+      ],
+      [], // gates
     ];
     const caller = createAuthenticatedCaller();
     const result = await caller.projectGate.getProjectStages({});

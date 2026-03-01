@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import DOMPurify from "dompurify";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -195,7 +196,7 @@ export function ProcessNotebook({
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             {entry.entryType === 'text' && (
-              <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: entry.content || '' }} />
+              <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(entry.content || '') }} />
             )}
             {entry.entryType === 'file' && (
               <div className="flex items-center gap-2">

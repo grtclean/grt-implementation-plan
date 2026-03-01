@@ -88,10 +88,13 @@ export function useCollaboration(options: UseCollaborationOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isDisconnectingRef = useRef(false);
 
   // 连接WebSocket
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
+
+    isDisconnectingRef.current = false;
 
     // 构建WebSocket URL
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -145,8 +148,8 @@ export function useCollaboration(options: UseCollaborationOptions) {
         setIsConnected(false);
         cleanup();
 
-        // 自动重连（非正常关闭时）
-        if (event.code !== 1000 && event.code !== 4001) {
+        // 自动重连（非正常关闭时，且非主动断开）
+        if (event.code !== 1000 && event.code !== 4001 && !isDisconnectingRef.current) {
           reconnectTimeoutRef.current = setTimeout(() => {
             console.log('[Collaboration] Attempting to reconnect...');
             connect();
@@ -266,6 +269,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
 
   // 断开连接
   const disconnect = useCallback(() => {
+    isDisconnectingRef.current = true;
     cleanup();
     if (wsRef.current) {
       wsRef.current.close(1000, 'User disconnect');

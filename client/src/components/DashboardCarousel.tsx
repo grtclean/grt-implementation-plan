@@ -27,6 +27,7 @@ export default function DashboardCarousel({
   const [fading, setFading] = useState(false);
   const isPaused = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const total = views.length;
   const current = views[activeIndex] || views[0];
@@ -43,7 +44,7 @@ export default function DashboardCarousel({
         }
         // Start fade-out
         setFading(true);
-        setTimeout(() => {
+        fadeTimerRef.current = setTimeout(() => {
           setActiveIndex((prev) => (prev + 1) % total);
           setFading(false);
         }, 500); // 500ms fade transition
@@ -53,6 +54,7 @@ export default function DashboardCarousel({
     scheduleNext();
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
     };
   }, [activeIndex, total, views]);
 
@@ -80,7 +82,7 @@ export default function DashboardCarousel({
               key={v.key}
               onClick={() => {
                 setFading(true);
-                setTimeout(() => {
+                fadeTimerRef.current = setTimeout(() => {
                   setActiveIndex(idx);
                   setFading(false);
                 }, 300);

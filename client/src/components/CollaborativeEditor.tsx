@@ -57,6 +57,7 @@ export default function CollaborativeEditor({
   const [cursorPosition, setCursorPosition] = useState({ line: 0, column: 0 });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const contentRef = useRef(initialContent);
 
   // 使用协作hook
   const {
@@ -76,7 +77,8 @@ export default function CollaborativeEditor({
     onContentChange: (content, ver) => {
       // 当远程内容更新时，合并到本地
       // 实际实现需要使用OT或CRDT算法处理冲突
-      if (content && content !== localContent) {
+      if (content && content !== contentRef.current) {
+        contentRef.current = content;
         setLocalContent(content);
       }
     },
@@ -94,7 +96,8 @@ export default function CollaborativeEditor({
   // 处理内容变化
   const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
-    const oldContent = localContent;
+    const oldContent = contentRef.current;
+    contentRef.current = newContent;
     setLocalContent(newContent);
 
     // 计算差异并发送编辑操作
@@ -124,7 +127,7 @@ export default function CollaborativeEditor({
     saveTimeoutRef.current = setTimeout(() => {
       handleAutoSave(newContent);
     }, 2000);
-  }, [localContent, sendEdit, calculateCursorPosition]);
+  }, [sendEdit, calculateCursorPosition]);
 
   // 处理光标位置变化
   const handleSelectionChange = useCallback(() => {

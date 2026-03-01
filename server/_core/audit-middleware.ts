@@ -29,7 +29,7 @@ export function createAuditMiddleware(tInstance: any) {
         actorName: ctx.user?.name ?? ctx.user?.openId ?? "system",
         newData: typeof rawInput === "object" ? rawInput : { input: rawInput },
         ipAddress: ctx.ip ?? undefined,
-        metadata: { route: path, type: "mutation-auto-audit" },
+        metadata: { route: path, type: "mutation-auto-audit", requestId: ctx.requestId },
       }).then(() => {}).catch(() => {});
     } catch {
       // Never throw from audit — it's non-critical
