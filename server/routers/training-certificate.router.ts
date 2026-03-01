@@ -20,7 +20,15 @@ export const trainingCertificateRouter = router({
   }),
 
   // 创建证书
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    trainingId: z.number(),
+    participantId: z.number(),
+    certificateNo: z.string().optional(),
+    name: z.string().optional(),
+    issueDate: z.string().optional(),
+    expiryDate: z.string().optional(),
+    fileUrl: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const certNo = input.certificateNo || `CERT-${Date.now().toString(36).toUpperCase()}`;
     const [cert] = await db.insert(trainingCertificates).values({
@@ -37,7 +45,13 @@ export const trainingCertificateRouter = router({
   }),
 
   // 更新证书
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    name: z.string().optional(),
+    expiryDate: z.string().optional(),
+    status: z.string().optional(),
+    fileUrl: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
     const updates: Record<string, unknown> = {};
@@ -61,16 +75,25 @@ export const trainingCertificateRouter = router({
   }),
 
   // 按参与者获取证书
-  getByParticipant: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getByParticipant: protectedProcedure.input(z.object({
+    participantId: z.union([z.string(), z.number()]),
+  })).query(async ({ input }) => {
     const db = await requireDb();
-    const participantId = typeof input?.participantId === "string" ? parseInt(input.participantId) : (input?.participantId || 0);
+    const participantId = typeof input.participantId === "string" ? parseInt(input.participantId) : input.participantId;
     return await db.select().from(trainingCertificates)
       .where(eq(trainingCertificates.participantId, participantId))
       .orderBy(desc(trainingCertificates.issueDate));
   }),
 
   // 颁发证书
-  issue: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  issue: protectedProcedure.input(z.object({
+    trainingId: z.number(),
+    participantId: z.number(),
+    certificateNo: z.string().optional(),
+    name: z.string().optional(),
+    expiryDate: z.string().optional(),
+    fileUrl: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const certNo = `CERT-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Date.now().toString(36).toUpperCase().slice(-4)}`;
     const [cert] = await db.insert(trainingCertificates).values({

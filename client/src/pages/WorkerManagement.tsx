@@ -105,16 +105,10 @@ export default function WorkerManagement() {
   });
 
   // tRPC查询 - 获取工人效率排名
-  const { data: rankingData, isLoading: isLoadingRanking } = trpc.worker.getWorkerRanking.useQuery({
-    period: "week",
-    limit: 10,
-  });
+  const { data: rankingData, isLoading: isLoadingRanking } = trpc.worker.getWorkerRanking.useQuery();
 
   // tRPC查询 - 获取工时预警
-  const { data: alertsData } = trpc.worker.getWorkHourAlerts.useQuery({
-    status: "Pending",
-    limit: 10,
-  });
+  const { data: alertsData } = trpc.worker.getWorkHourAlerts.useQuery();
 
   // tRPC mutations
   const createWorkerMutation = trpc.worker.createWorker.useMutation({
@@ -230,7 +224,7 @@ export default function WorkerManagement() {
 
   // 处理预警确认
   const handleAcknowledgeAlert = (alertId: number, action: "acknowledge" | "resolve" | "ignore") => {
-    acknowledgeAlertMutation.mutate({ alertId, action });
+    acknowledgeAlertMutation.mutate({ id: alertId });
   };
 
   // 下载导入模板

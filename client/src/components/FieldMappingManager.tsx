@@ -160,10 +160,9 @@ export default function FieldMappingManager({
     }
 
     createMutation.mutate({
-      name: saveName,
-      description: saveDescription,
-      importType,
-      mappings: currentMappings,
+      sourceField: saveName,
+      targetField: importType,
+      transformRule: saveDescription || undefined,
     });
   };
 

@@ -22,7 +22,7 @@ export const analyticsRouter = router({
   }),
 
   // 详情
-  getDetails: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getDetails: protectedProcedure.input(z.object({ eventType: z.string().optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     if (input?.eventType) {
       return await db.select().from(analyticsEvents)
@@ -36,10 +36,13 @@ export const analyticsRouter = router({
   }),
 
   // 追踪事件
-  track: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  track: protectedProcedure.input(z.object({
+    eventType: z.string().optional(),
+    eventData: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [event] = await db.insert(analyticsEvents).values({
-      userId: input.userId,
+      userId: ctx.user.id,
       eventType: input.eventType || "page_view",
       eventData: input.eventData ? (typeof input.eventData === "string" ? input.eventData : JSON.stringify(input.eventData)) : undefined,
     }).returning();

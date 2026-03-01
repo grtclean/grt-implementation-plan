@@ -26,7 +26,15 @@ export const trainingAssessmentRouter = router({
   }),
 
   // 创建评估
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    trainingId: z.number(),
+    assessmentType: z.string().optional(),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    totalScore: z.number().optional(),
+    passingScore: z.number().optional(),
+    questions: z.union([z.string(), z.array(z.unknown())]).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [assessment] = await db.insert(trainingAssessments).values({
       trainingId: input.trainingId,
@@ -42,7 +50,15 @@ export const trainingAssessmentRouter = router({
   }),
 
   // 更新评估
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    totalScore: z.number().optional(),
+    passingScore: z.number().optional(),
+    questions: z.union([z.string(), z.array(z.unknown())]).optional(),
+    status: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
     const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
@@ -70,9 +86,11 @@ export const trainingAssessmentRouter = router({
   }),
 
   // 按培训获取评估
-  getByTraining: protectedProcedure.input(z.any()).query(async ({ input }) => {
+  getByTraining: protectedProcedure.input(z.object({
+    trainingId: z.union([z.string(), z.number()]),
+  })).query(async ({ input }) => {
     const db = await requireDb();
-    const trainingId = typeof input?.trainingId === "string" ? parseInt(input.trainingId) : (input?.trainingId || 0);
+    const trainingId = typeof input.trainingId === "string" ? parseInt(input.trainingId) : input.trainingId;
     return await db.select().from(trainingAssessments)
       .where(eq(trainingAssessments.trainingId, trainingId))
       .orderBy(desc(trainingAssessments.createdAt));

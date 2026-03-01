@@ -90,7 +90,7 @@ export const hrSandboxRouter = router({
         taskType: TASK_TYPE,
         inputData: input as Record<string, unknown>,
         status: "pending",
-        createdBy: ctx.user?.name ?? "system",
+        createdBy: String(ctx.user.id),
       }).returning();
 
       // Synchronously parse
@@ -155,7 +155,7 @@ export const hrSandboxRouter = router({
           taskType: TASK_TYPE,
           inputData: { employeeId: emp.employeeId, role: emp.role } as Record<string, unknown>,
           status: "pending",
-          createdBy: ctx.user?.name ?? "system",
+          createdBy: String(ctx.user.id),
         }).returning();
         taskIds.push(task.id);
       }
@@ -228,7 +228,7 @@ export const hrSandboxRouter = router({
       const { taskId } = await submitTask(
         "DOC_PARSING",
         input as Record<string, unknown>,
-        ctx.user?.name ?? "system",
+        String(ctx.user.id),
       );
       return { taskId, status: "pending" as const };
     }),
@@ -249,7 +249,7 @@ export const hrSandboxRouter = router({
       const { taskId } = await submitTask(
         "INCIDENT_ANALYSIS",
         input as Record<string, unknown>,
-        ctx.user?.name ?? "system",
+        String(ctx.user.id),
       );
       return { taskId, status: "pending" as const };
     }),
@@ -280,7 +280,7 @@ export const hrSandboxRouter = router({
       const { taskId } = await submitTask(
         "COMPENSATION_RULE",
         input as Record<string, unknown>,
-        ctx.user?.name ?? "system",
+        String(ctx.user.id),
       );
       return { taskId, status: "pending" as const };
     }),

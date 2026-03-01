@@ -245,7 +245,7 @@ export const namingRouter = router({
       description: z.string(),
       reason: z.string(),
       impactScope: z.string().optional(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const code = `NCR-${Date.now().toString(36).toUpperCase()}`;
       const [request] = await db.insert(namingChangeRequests).values({
@@ -256,7 +256,7 @@ export const namingRouter = router({
         description: input.description,
         reason: input.reason,
         impactScope: input.impactScope,
-        requestorId: 1,
+        requestorId: ctx.user.id,
       }).returning();
       return { success: true, message: "变更请求已创建", data: request };
     }),

@@ -16,12 +16,12 @@ export const hrLifecycleRouter = router({
   }),
 
   // 创建生命周期记录
-  create: protectedProcedure.input(z.any()).mutation(async () => {
+  create: protectedProcedure.input(z.object({ employeeId: z.union([z.string(), z.number()]), stage: z.string().optional(), notes: z.string().optional() })).mutation(async () => {
     return successResponse;
   }),
 
   // 更新生命周期记录
-  update: protectedProcedure.input(z.any()).mutation(async () => {
+  update: protectedProcedure.input(z.object({ id: z.string(), stage: z.string().optional(), notes: z.string().optional() })).mutation(async () => {
     return successResponse;
   }),
 
@@ -36,12 +36,12 @@ export const hrLifecycleRouter = router({
   }),
 
   // 获取员工生命周期
-  getEmployeeLifecycle: protectedProcedure.input(z.any()).query(async () => {
+  getEmployeeLifecycle: protectedProcedure.input(z.object({ employeeId: z.union([z.string(), z.number()]) })).query(async () => {
     return { lifecycle: null };
   }),
 
   // 更新阶段
-  updateStage: protectedProcedure.input(z.any()).mutation(async () => {
+  updateStage: protectedProcedure.input(z.object({ lifecycleId: z.union([z.string(), z.number()]), stage: z.string() })).mutation(async () => {
     return successResponse;
   }),
 });

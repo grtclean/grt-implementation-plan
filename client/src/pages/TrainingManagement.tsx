@@ -660,7 +660,7 @@ export default function TrainingManagement() {
                           participantId: parseInt(formData.get("assessmentId") as string),
                           certificateNo: formData.get("certificateNo") as string,
                           name: formData.get("certificateName") as string,
-                          expiryDate: formData.get("validUntil") ? new Date(formData.get("validUntil") as string) : undefined,
+                          expiryDate: formData.get("validUntil") ? new Date(formData.get("validUntil") as string).toISOString() : undefined,
                         });
                       }}
                       className="space-y-4"

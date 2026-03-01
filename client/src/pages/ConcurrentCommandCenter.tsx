@@ -259,7 +259,6 @@ function RoleImprovementPanel({ currentUserName, utils }: { currentUserName: str
       role: activeRole,
       area: selectedArea,
       requirement: requirement.trim(),
-      userName: currentUserName,
       assignedTo: assignedTo.trim() || undefined,
     });
   };
@@ -571,7 +570,6 @@ function RoleImprovementPanel({ currentUserName, utils }: { currentUserName: str
                   stepNumber: progressDialog.stepNum,
                   content: progressContent.trim(),
                   completionPct: progressPct[0],
-                  userName: currentUserName,
                 });
               }}
             >
@@ -632,7 +630,6 @@ function RoleImprovementPanel({ currentUserName, utils }: { currentUserName: str
                   id: resultDialog,
                   resultSummary: resultSummary.trim(),
                   resultEvidence: (resultBefore || resultAfter) ? { before: resultBefore, after: resultAfter } : undefined,
-                  userName: currentUserName,
                 });
               }}
             >
@@ -671,7 +668,6 @@ function RoleImprovementPanel({ currentUserName, utils }: { currentUserName: str
                   id: verifyDialog.id,
                   approved: verifyDialog.action === "approve",
                   comment: verifyComment.trim() || undefined,
-                  userName: currentUserName,
                 });
               }}
             >
@@ -881,7 +877,7 @@ export default function ConcurrentCommandCenter() {
                         <Button
                           size="sm"
                           className="bg-amber-500 hover:bg-amber-600 text-white shrink-0"
-                          onClick={() => approveMerge.mutate({ id: sandbox.id, userName: currentUser.name })}
+                          onClick={() => approveMerge.mutate({ id: sandbox.id })}
                           disabled={approveMerge.isPending}
                         >
                           <ShieldCheck className="h-4 w-4 mr-1" />
@@ -956,7 +952,6 @@ export default function ConcurrentCommandCenter() {
                             onClick={() =>
                               claimRoom.mutate({
                                 id: room.id,
-                                engineerName: currentUser.name,
                               })
                             }
                             disabled={claimRoom.isPending}
@@ -975,7 +970,6 @@ export default function ConcurrentCommandCenter() {
                               updateRoomStatus.mutate({
                                 id: room.id,
                                 testStatus: "PASSED",
-                                userName: currentUser.name,
                               })
                             }
                             disabled={updateRoomStatus.isPending}
@@ -1041,7 +1035,7 @@ export default function ConcurrentCommandCenter() {
                 ) : (
                   <Button
                     className="bg-green-600 hover:bg-green-700 text-white w-full"
-                    onClick={() => approveReport.mutate({ userName: currentUser.name })}
+                    onClick={() => approveReport.mutate()}
                     disabled={approveReport.isPending}
                   >
                     <ShieldCheck className="h-4 w-4 mr-1.5" />

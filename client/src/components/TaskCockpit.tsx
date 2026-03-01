@@ -59,7 +59,7 @@ function TimeTrackerWidget({ taskId, projectId, userId }: { taskId: number; proj
   const isEn = language === "en";
   const utils = trpc.useUtils();
 
-  const { data: activeSession } = trpc.taskCockpit.getActiveSession.useQuery({ userId });
+  const { data: activeSession } = trpc.taskCockpit.getActiveSession.useQuery();
   const startMut = trpc.taskCockpit.startTimer.useMutation({
     onSuccess: () => utils.taskCockpit.getActiveSession.invalidate(),
   });
@@ -103,7 +103,7 @@ function TimeTrackerWidget({ taskId, projectId, userId }: { taskId: number; proj
       ) : (
         <Button
           size="sm"
-          onClick={() => startMut.mutate({ taskId, projectId, userId })}
+          onClick={() => startMut.mutate({ taskId, projectId })}
           disabled={startMut.isPending}
         >
           <Play className="w-4 h-4 mr-1" />
@@ -291,7 +291,7 @@ function TaskDetailSheet({
 function ActiveTimerBanner({ userId }: { userId: number }) {
   const { language } = useLanguage();
   const isEn = language === "en";
-  const { data: session } = trpc.taskCockpit.getActiveSession.useQuery({ userId });
+  const { data: session } = trpc.taskCockpit.getActiveSession.useQuery();
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {

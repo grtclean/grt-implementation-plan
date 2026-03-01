@@ -36,13 +36,12 @@ export const taskCockpitRouter = router({
   startTimer: protectedProcedure.input(z.object({
     taskId: z.union([z.string(), z.number()]),
     projectId: z.number(),
-    userId: z.number(),
     phaseCode: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     // Close any active session for this user
     const activeSessions = await db.select().from(taskTimeSessions)
-      .where(and(eq(taskTimeSessions.userId, input.userId), eq(taskTimeSessions.isActive, true)));
+      .where(and(eq(taskTimeSessions.userId, ctx.user.id), eq(taskTimeSessions.isActive, true)));
     for (const session of activeSessions) {
       const now = new Date();
       const started = new Date(session.startedAt);
@@ -55,7 +54,7 @@ export const taskCockpitRouter = router({
     const [newSession] = await db.insert(taskTimeSessions).values({
       taskId: toNum(input.taskId),
       projectId: input.projectId,
-      userId: input.userId,
+      userId: ctx.user.id,
       phaseCode: input.phaseCode ?? null,
       startedAt: new Date().toISOString(),
       isActive: true,
@@ -96,12 +95,10 @@ export const taskCockpitRouter = router({
   }),
 
   // Get the currently running timer for a user
-  getActiveSession: protectedProcedure.input(z.object({
-    userId: z.number(),
-  })).query(async ({ input }) => {
+  getActiveSession: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
     const [session] = await db.select().from(taskTimeSessions)
-      .where(and(eq(taskTimeSessions.userId, input.userId), eq(taskTimeSessions.isActive, true)))
+      .where(and(eq(taskTimeSessions.userId, ctx.user.id), eq(taskTimeSessions.isActive, true)))
       .limit(1);
     return session ?? null;
   }),

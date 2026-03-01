@@ -16,12 +16,12 @@ export const fieldMappingRouter = router({
   }),
 
   // 创建字段映射
-  create: protectedProcedure.input(z.any()).mutation(async () => {
+  create: protectedProcedure.input(z.object({ sourceField: z.string(), targetField: z.string(), transformRule: z.string().optional() })).mutation(async () => {
     return successResponse;
   }),
 
   // 更新字段映射
-  update: protectedProcedure.input(z.any()).mutation(async () => {
+  update: protectedProcedure.input(z.object({ id: z.string(), sourceField: z.string().optional(), targetField: z.string().optional(), transformRule: z.string().optional() })).mutation(async () => {
     return successResponse;
   }),
 
@@ -36,12 +36,12 @@ export const fieldMappingRouter = router({
   }),
 
   // 保存映射
-  saveMappings: protectedProcedure.input(z.any()).mutation(async () => {
+  saveMappings: protectedProcedure.input(z.object({ mappings: z.array(z.object({ sourceField: z.string(), targetField: z.string(), transformRule: z.string().optional() })) })).mutation(async () => {
     return successResponse;
   }),
 
   // 获取推荐映射
-  getRecommendations: protectedProcedure.input(z.any()).query(async () => {
+  getRecommendations: protectedProcedure.input(z.object({ sourceFormat: z.string().optional(), targetFormat: z.string().optional() }).optional()).query(async () => {
     return [];
   }),
 });

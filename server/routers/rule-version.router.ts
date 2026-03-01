@@ -16,13 +16,13 @@ export const ruleVersionRouter = router({
     }),
 
   create: protectedProcedure
-    .input(z.any())
+    .input(z.object({ ruleId: z.union([z.string(), z.number()]).optional(), versionNumber: z.number().optional(), description: z.string().optional() }))
     .mutation(() => {
       return successResponse;
     }),
 
   update: protectedProcedure
-    .input(z.any())
+    .input(z.object({ id: z.union([z.string(), z.number()]), description: z.string().optional(), status: z.string().optional() }))
     .mutation(() => {
       return successResponse;
     }),
@@ -38,13 +38,13 @@ export const ruleVersionRouter = router({
   }),
 
   compare: protectedProcedure
-    .input(z.any())
+    .input(z.object({ versionA: z.union([z.string(), z.number()]), versionB: z.union([z.string(), z.number()]) }))
     .query(() => {
       return { comparison: null as any };
     }),
 
   rollback: protectedProcedure
-    .input(z.any())
+    .input(z.object({ ruleId: z.union([z.string(), z.number()]), versionNumber: z.number() }))
     .mutation(() => {
       return successResponse;
     }),

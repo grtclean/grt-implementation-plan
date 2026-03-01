@@ -20,7 +20,16 @@ export const taskExecutionLogRouter = router({
   }),
 
   // 创建日志
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    taskId: z.string().optional(),
+    taskName: z.string().optional(),
+    taskType: z.string().optional(),
+    cronExpression: z.string().optional(),
+    status: z.string().optional(),
+    inputParams: z.unknown().optional(),
+    triggeredBy: z.string().optional(),
+    metadata: z.unknown().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [log] = await db.insert(taskExecutionLogs).values({
       taskId: input.taskId || `task-${Date.now()}`,
@@ -37,7 +46,15 @@ export const taskExecutionLogRouter = router({
   }),
 
   // 更新日志
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    status: z.string().optional(),
+    endTime: z.string().optional(),
+    duration: z.number().optional(),
+    outputResult: z.unknown().optional(),
+    errorMessage: z.string().optional(),
+    errorStack: z.string().optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
     const updates: Record<string, unknown> = {};
@@ -88,7 +105,9 @@ export const taskExecutionLogRouter = router({
   }),
 
   // 清理旧日志
-  cleanup: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  cleanup: protectedProcedure.input(z.object({
+    daysToKeep: z.number().int().min(1).max(365).optional(),
+  }).optional()).mutation(async ({ input }) => {
     const db = await requireDb();
     const daysToKeep = input?.daysToKeep || 30;
     const cutoff = new Date();

@@ -72,10 +72,9 @@ export const concurrentCommandRouter = router({
       z.object({
         id: z.number(),
         branchStatus: z.enum(["ISOLATED", "TESTING", "READY_FOR_MERGE"]),
-        userName: z.string().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
 
@@ -94,7 +93,7 @@ export const concurrentCommandRouter = router({
       await broadcast(
         "updateSandboxStatus",
         updated.moduleName,
-        input.userName ?? "System",
+        ctx.user.name ?? `User#${ctx.user.id}`,
         { branchStatus: input.branchStatus },
       );
       return updated;
@@ -104,10 +103,9 @@ export const concurrentCommandRouter = router({
     .input(
       z.object({
         id: z.number(),
-        userName: z.string().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       const [sandbox] = await db
@@ -126,7 +124,7 @@ export const concurrentCommandRouter = router({
         .where(eq(cccSandboxes.id, input.id))
         .returning();
 
-      await broadcast("approveMerge", updated.moduleName, input.userName ?? "Manager");
+      await broadcast("approveMerge", updated.moduleName, ctx.user.name ?? `User#${ctx.user.id}`);
       return updated;
     }),
 
@@ -141,10 +139,9 @@ export const concurrentCommandRouter = router({
     .input(
       z.object({
         id: z.number(),
-        engineerName: z.string().min(1),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       const [room] = await db
@@ -154,7 +151,8 @@ export const concurrentCommandRouter = router({
       if (!room) throw new Error("Room not found");
       if (room.testStatus === "PASSED")
         throw new Error("Cannot claim a sub-system that already passed");
-      if (room.engineerAssigned && room.engineerAssigned !== input.engineerName) {
+      const engineerName = ctx.user.name ?? `User#${ctx.user.id}`;
+      if (room.engineerAssigned && room.engineerAssigned !== engineerName) {
         throw new Error(`Already claimed by ${room.engineerAssigned}`);
       }
 
@@ -162,14 +160,14 @@ export const concurrentCommandRouter = router({
       const [updated] = await db
         .update(cccRooms)
         .set({
-          engineerAssigned: input.engineerName,
+          engineerAssigned: engineerName,
           testStatus: "DEBUGGING",
           updatedAt: now,
         })
         .where(eq(cccRooms.id, input.id))
         .returning();
 
-      await broadcast("claimRoom", updated.subSystem, input.engineerName);
+      await broadcast("claimRoom", updated.subSystem, engineerName);
       return updated;
     }),
 
@@ -178,10 +176,9 @@ export const concurrentCommandRouter = router({
       z.object({
         id: z.number(),
         testStatus: z.enum(["IDLE", "DEBUGGING", "PASSED"]),
-        userName: z.string().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       const [room] = await db
@@ -200,7 +197,7 @@ export const concurrentCommandRouter = router({
       await broadcast(
         "updateRoomStatus",
         updated.subSystem,
-        input.userName ?? room.engineerAssigned ?? "System",
+        ctx.user.name ?? `User#${ctx.user.id}`,
         { testStatus: input.testStatus },
       );
       return updated;
@@ -240,8 +237,7 @@ export const concurrentCommandRouter = router({
   }),
 
   approveCommissioningReport: protectedProcedure
-    .input(z.object({ userName: z.string().optional() }).optional())
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
 
@@ -253,11 +249,11 @@ export const concurrentCommandRouter = router({
       await broadcast(
         "approveCommissioningReport",
         "Commissioning Report",
-        input?.userName ?? "Chief Engineer",
+        ctx.user.name ?? `User#${ctx.user.id}`,
       );
       return {
         success: true,
-        approvedBy: input?.userName ?? "Chief Engineer",
+        approvedBy: ctx.user.name ?? `User#${ctx.user.id}`,
         approvedAt: now,
       };
     }),
@@ -280,9 +276,8 @@ export const concurrentCommandRouter = router({
       role: z.string().min(1),
       area: z.string().min(1),
       requirement: z.string().min(2),
-      userName: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       // Role-specific improvement analysis
@@ -346,7 +341,7 @@ export const concurrentCommandRouter = router({
       const entry = await broadcast(
         "submitImprovement",
         `[${input.role}] ${input.area}: ${input.requirement.slice(0, 60)}`,
-        input.userName ?? input.role,
+        ctx.user.name ?? `User#${ctx.user.id}`,
         result,
       );
 
@@ -385,11 +380,10 @@ export const concurrentCommandRouter = router({
       role: z.string().min(1),
       area: z.string().min(1),
       requirement: z.string().min(2),
-      userName: z.string().min(1),
       assignedTo: z.string().optional(),
       dueDate: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       // Priority detection
@@ -436,7 +430,7 @@ export const concurrentCommandRouter = router({
         assignedTo,
         dueDate,
         completionPct: 0,
-        createdBy: input.userName,
+        createdBy: ctx.user.name ?? `User#${ctx.user.id}`,
         createdAt: now,
         updatedAt: now,
       }).returning();
@@ -447,14 +441,14 @@ export const concurrentCommandRouter = router({
         stepNumber: 0,
         action: "create",
         content: `创建改进需求: ${input.area} — ${input.requirement.slice(0, 80)}`,
-        userName: input.userName,
+        userName: ctx.user.name ?? `User#${ctx.user.id}`,
       });
 
       // Activity log + broadcast for compatibility
       await broadcast(
         "createImprovement",
         `[${input.role}] ${input.area}: ${input.requirement.slice(0, 60)}`,
-        input.userName,
+        ctx.user.name ?? `User#${ctx.user.id}`,
         { improvementId: row.id, priority, area: input.area },
       );
 
@@ -503,9 +497,8 @@ export const concurrentCommandRouter = router({
       stepNumber: z.number().min(1).max(6),
       content: z.string().min(1),
       completionPct: z.number().min(0).max(100),
-      userName: z.string().min(1),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id));
@@ -533,13 +526,13 @@ export const concurrentCommandRouter = router({
         stepNumber: input.stepNumber,
         action: "progress",
         content: input.content,
-        userName: input.userName,
+        userName: ctx.user.name ?? `User#${ctx.user.id}`,
       });
 
       await broadcast(
         "updateProgress",
         `[${imp.role}] ${imp.area} — 步骤${input.stepNumber}: ${input.content.slice(0, 40)}`,
-        input.userName,
+        ctx.user.name ?? `User#${ctx.user.id}`,
         { improvementId: input.id, completionPct: input.completionPct },
       );
 
@@ -550,10 +543,9 @@ export const concurrentCommandRouter = router({
     .input(z.object({
       id: z.number(),
       resultSummary: z.string().min(1),
-      resultEvidence: z.record(z.string(), z.any()).optional(),
-      userName: z.string().min(1),
+      resultEvidence: z.record(z.string(), z.unknown()).optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id));
@@ -563,7 +555,7 @@ export const concurrentCommandRouter = router({
       const [updated] = await db.update(cccImprovements).set({
         status: "completed",
         resultSummary: input.resultSummary,
-        resultEvidence: input.resultEvidence ?? null,
+        resultEvidence: (input.resultEvidence as Record<string, unknown> | undefined) ?? null,
         completionPct: 100,
         updatedAt: now,
       }).where(eq(cccImprovements.id, input.id)).returning();
@@ -574,13 +566,13 @@ export const concurrentCommandRouter = router({
         action: "submit_result",
         content: input.resultSummary,
         evidenceData: input.resultEvidence ?? null,
-        userName: input.userName,
+        userName: ctx.user.name ?? `User#${ctx.user.id}`,
       });
 
       await broadcast(
         "submitResult",
         `[${imp.role}] ${imp.area} — 已提交改进结果`,
-        input.userName,
+        ctx.user.name ?? `User#${ctx.user.id}`,
         { improvementId: input.id },
       );
 
@@ -592,9 +584,8 @@ export const concurrentCommandRouter = router({
       id: z.number(),
       approved: z.boolean(),
       comment: z.string().optional(),
-      userName: z.string().min(1),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id));
@@ -605,7 +596,7 @@ export const concurrentCommandRouter = router({
       if (input.approved) {
         const [updated] = await db.update(cccImprovements).set({
           status: "verified",
-          verifiedBy: input.userName,
+          verifiedBy: ctx.user.name ?? `User#${ctx.user.id}`,
           verifiedAt: now,
           updatedAt: now,
         }).where(eq(cccImprovements.id, input.id)).returning();
@@ -615,10 +606,10 @@ export const concurrentCommandRouter = router({
           stepNumber: 0,
           action: "verify",
           content: input.comment || "验收通过",
-          userName: input.userName,
+          userName: ctx.user.name ?? `User#${ctx.user.id}`,
         });
 
-        await broadcast("verifyImprovement", `[${imp.role}] ${imp.area} — 验收通过`, input.userName, { improvementId: input.id });
+        await broadcast("verifyImprovement", `[${imp.role}] ${imp.area} — 验收通过`, ctx.user.name ?? `User#${ctx.user.id}`, { improvementId: input.id });
         return updated;
       } else {
         // Reject — back to in_progress
@@ -633,10 +624,10 @@ export const concurrentCommandRouter = router({
           stepNumber: 0,
           action: "reject",
           content: input.comment || "打回修改",
-          userName: input.userName,
+          userName: ctx.user.name ?? `User#${ctx.user.id}`,
         });
 
-        await broadcast("verifyImprovement", `[${imp.role}] ${imp.area} — 打回修改`, input.userName, { improvementId: input.id });
+        await broadcast("verifyImprovement", `[${imp.role}] ${imp.area} — 打回修改`, ctx.user.name ?? `User#${ctx.user.id}`, { improvementId: input.id });
         return updated;
       }
     }),

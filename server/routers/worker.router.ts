@@ -25,7 +25,7 @@ export const workerRouter = router({
     return { workers: items, total: items.length };
   }),
 
-  getWorkerRanking: protectedProcedure.input(z.any()).query(async () => {
+  getWorkerRanking: protectedProcedure.query(async () => {
     const db = await requireDb();
     const items = await db.select().from(workers).where(eq(workers.status, "Active"));
     const levels = ["L1", "L2", "L3", "L4", "L5"];
@@ -42,7 +42,7 @@ export const workerRouter = router({
     }));
   }),
 
-  getWorkHourAlerts: protectedProcedure.input(z.any()).query(async () => {
+  getWorkHourAlerts: protectedProcedure.query(async () => {
     return [];
   }),
 
@@ -94,7 +94,7 @@ export const workerRouter = router({
     return { success: true, message: "已删除" };
   }),
 
-  acknowledgeAlert: protectedProcedure.input(z.any()).mutation(() => {
+  acknowledgeAlert: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(() => {
     return { success: true, message: "已确认" };
   }),
 });

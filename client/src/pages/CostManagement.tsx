@@ -167,7 +167,7 @@ export default function CostManagement() {
   );
 
   const { data: versionComparison } = trpc.ruleVersion.compare.useQuery(
-    { ruleId: selectedRuleForVersion!, version1: compareVersions?.v1 || 0, version2: compareVersions?.v2 || 0 },
+    { versionA: compareVersions?.v1 || 0, versionB: compareVersions?.v2 || 0 },
     { enabled: !!selectedRuleForVersion && !!compareVersions }
   );
   
