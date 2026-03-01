@@ -22,16 +22,15 @@ export const chatHistoryRouter = router({
 
   // 创建会话
   create: protectedProcedure.input(z.object({
-    userId: z.number().int().optional(),
     assistantType: z.enum(["solution", "quotation", "planning", "kpi", "personal"]).optional(),
     title: z.string().max(200).optional(),
     projectId: z.number().int().optional(),
     customerId: z.number().int().optional(),
     metadata: jsonValue.optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [session] = await db.insert(aiChatSessions).values({
-      userId: input.userId || 1,
+      userId: ctx.user.id,
       assistantType: input.assistantType || "solution",
       title: input.title,
       projectId: input.projectId,
@@ -76,13 +75,12 @@ export const chatHistoryRouter = router({
 
   // 创建新会话
   createSession: protectedProcedure.input(z.object({
-    userId: z.number().int().optional(),
     assistantType: z.enum(["solution", "quotation", "planning", "kpi", "personal"]).optional(),
     title: z.string().max(200).optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [session] = await db.insert(aiChatSessions).values({
-      userId: input.userId || 1,
+      userId: ctx.user.id,
       assistantType: input.assistantType || "solution",
       title: input.title || "新会话",
     } as any).returning();

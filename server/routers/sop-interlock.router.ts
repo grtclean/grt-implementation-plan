@@ -240,11 +240,10 @@ export const sopInterlockRouter = router({
   /** Record an SOP acknowledgment (operator signs latest version) */
   acknowledgeSop: protectedProcedure
     .input(z.object({
-      userId: z.number(),
       sopTemplateId: z.number(),
       signatureMethod: z.enum(["badge_scan", "manual", "digital_signature"]).default("badge_scan"),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       // Get current SOP version
@@ -258,7 +257,7 @@ export const sopInterlockRouter = router({
       }
 
       await db.insert(sopAcknowledgments).values({
-        userId: input.userId,
+        userId: ctx.user.id,
         sopTemplateId: input.sopTemplateId,
         versionSigned: sopDoc.version,
         signatureMethod: input.signatureMethod,

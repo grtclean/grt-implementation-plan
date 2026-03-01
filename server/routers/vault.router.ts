@@ -63,9 +63,8 @@ export const vaultRouter = router({
     projectId: z.union([z.string(), z.number()]),
     fileName: z.string().min(1),
     fileType: z.enum(["SOLIDWORKS", "EPLAN", "WORD", "PDF", "EMAIL_EML", "MEETING_RECORD"]),
-    uploadedBy: z.string().min(1),
     size: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
 
     const [inserted] = await db.insert(grtVaultFiles).values({
@@ -73,8 +72,7 @@ export const vaultRouter = router({
       fileName: input.fileName,
       fileType: input.fileType,
       version: 1,
-      // uploadedBy is integer in schema — store 0 as placeholder since we receive a string name
-      uploadedBy: 0,
+      uploadedBy: ctx.user.id,
       fileSizeBytes: input.size ?? null,
     } as any).returning();
 
@@ -132,9 +130,8 @@ export const vaultRouter = router({
     ecoNumber: z.string().min(1),
     title: z.string().min(1),
     description: z.string().optional(),
-    requestedBy: z.number().optional(),
     affectedFiles: z.array(z.number()).optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
 
     const [inserted] = await db.insert(engineeringChangeOrders).values({
@@ -142,7 +139,7 @@ export const vaultRouter = router({
       ecoNumber: input.ecoNumber,
       title: input.title,
       description: input.description ?? "",
-      requestedBy: input.requestedBy ?? null,
+      requestedBy: ctx.user.id,
       affectedFiles: input.affectedFiles ?? [],
       status: "DRAFT",
     } as any).returning();

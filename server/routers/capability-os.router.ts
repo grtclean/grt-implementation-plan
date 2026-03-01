@@ -159,8 +159,6 @@ export const capabilityOsRouter = router({
   ]),
 
   submitEvidence: protectedProcedure.input(z.object({
-    userId: z.union([z.string(), z.number()]).optional(),
-    userName: z.string().max(200).optional(),
     evidenceType: z.string().max(100).optional(),
     evidenceTypeId: z.union([z.string(), z.number()]).optional(),
     capabilityDomain: z.string().max(50).optional(),
@@ -179,14 +177,14 @@ export const capabilityOsRouter = router({
     targetLevel: z.union([z.string(), z.number()]).optional(),
     metadata: jsonValue.optional(),
     tags: jsonValue.optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const evidenceId = "EVD-" + Date.now().toString(36).toUpperCase();
     const [evidence] = await db.insert(capabilityEvidences).values({
       id: Date.now(),
       evidenceId,
-      userId: toNum(input.userId || 1),
-      userName: input.userName,
+      userId: ctx.user.id,
+      userName: ctx.user.name,
       evidenceType: input.evidenceType || "project_delivery",
       capabilityDomain: input.capabilityDomain || "T",
       title: input.title || "新证据",

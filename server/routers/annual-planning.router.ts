@@ -57,8 +57,7 @@ export const annualPlanningRouter = router({
     keyInitiatives: z.union([z.string(), z.array(z.string())]).optional(),
     risksAndChallenges: z.union([z.string(), z.array(z.string())]).optional(),
     status: z.string().optional(),
-    creatorId: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     await db.insert(annualPlans).values({
       year: input.year ?? new Date().getFullYear(),
@@ -75,7 +74,7 @@ export const annualPlanningRouter = router({
       keyInitiatives: typeof input.keyInitiatives === 'string' ? input.keyInitiatives : JSON.stringify(input.keyInitiatives),
       risksAndChallenges: typeof input.risksAndChallenges === 'string' ? input.risksAndChallenges : JSON.stringify(input.risksAndChallenges),
       status: input.status ?? "draft",
-      creatorId: input.creatorId ?? 1,
+      creatorId: ctx.user.id,
     } as any);
     return successResponse;
   }),
@@ -96,7 +95,6 @@ export const annualPlanningRouter = router({
     keyInitiatives: z.union([z.string(), z.array(z.string())]).optional(),
     risksAndChallenges: z.union([z.string(), z.array(z.string())]).optional(),
     status: z.string().optional(),
-    creatorId: z.number().optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id);

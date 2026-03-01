@@ -77,7 +77,6 @@ export default function ProjectCloudVault({ projectId }: ProjectCloudVaultProps)
       projectId,
       fileName: uploadForm.fileName.trim(),
       fileType: uploadForm.fileType,
-      uploadedBy: "Current User",
     });
   };
 

@@ -113,18 +113,16 @@ export const msaRouter = router({
   // 录入测量数据
   addMeasurement: protectedProcedure.input(z.object({
     studyId: z.number(),
-    operatorId: z.number().optional(),
-    operatorName: z.string().optional(),
     partNumber: z.number(),
     trialNumber: z.number(),
     measuredValue: z.string(),
     referenceValue: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [m] = await db.insert(msaMeasurements).values({
       studyId: input.studyId,
-      operatorId: input.operatorId,
-      operatorName: input.operatorName,
+      operatorId: ctx.user.id,
+      operatorName: ctx.user.name,
       partNumber: input.partNumber,
       trialNumber: input.trialNumber,
       measuredValue: input.measuredValue,

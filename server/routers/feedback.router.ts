@@ -13,10 +13,13 @@ export const feedbackRouter = router({
   }),
 
   // 创建反馈
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    type: z.enum(["suggestion", "bug", "other"]).optional(),
+    content: z.string().max(5000).optional(),
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [item] = await db.insert(feedback).values({
-      userId: input.userId || 1,
+      userId: ctx.user.id,
       type: (input.type || "suggestion") as "suggestion" | "bug" | "other",
       content: input.content || "",
       status: "pending" as const,
@@ -25,10 +28,13 @@ export const feedbackRouter = router({
   }),
 
   // 提交反馈（前端调用 submit）
-  submit: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  submit: protectedProcedure.input(z.object({
+    type: z.enum(["suggestion", "bug", "other"]).optional(),
+    content: z.string().max(5000).optional(),
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [item] = await db.insert(feedback).values({
-      userId: input.userId || 1,
+      userId: ctx.user.id,
       type: (input.type || "suggestion") as "suggestion" | "bug" | "other",
       content: input.content || "",
       status: "pending" as const,

@@ -437,10 +437,9 @@ export const helpRouter = router({
         videoUrl: z.string().max(1000).optional(),
         sortOrder: z.number().default(0),
         isActive: z.boolean().default(true),
-        createdBy: z.union([z.string(), z.number()]).optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [item] = await db
         .insert(helpArticles)
@@ -457,7 +456,7 @@ export const helpRouter = router({
           videoUrl: input.videoUrl,
           sortOrder: input.sortOrder,
           isActive: input.isActive,
-          createdBy: input.createdBy ? toNum(input.createdBy) : undefined,
+          createdBy: ctx.user.id,
         })
         .returning();
       return item;

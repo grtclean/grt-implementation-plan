@@ -1619,7 +1619,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                 </div>
                                 <Button
                                   size="sm"
-                                  onClick={() => createRuleFromTemplateMutation.mutate({ templateId: template.id })}
+                                  onClick={() => createRuleFromTemplateMutation.mutate({ name: template.name, description: template.description, category: template.category, ruleConfig: template.ruleConfig })}
                                   disabled={createRuleFromTemplateMutation.isPending}
                                 >
                                   {createRuleFromTemplateMutation.isPending ? (
@@ -1711,9 +1711,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                             if (ruleToSaveAsTemplate && newTemplateName) {
                               saveAsTemplateMutation.mutate({
                                 ruleId: ruleToSaveAsTemplate,
-                                templateName: newTemplateName,
-                                category: newTemplateCategory,
-                                description: newTemplateDescription || undefined,
+                                name: newTemplateName,
                               });
                             }
                           }}

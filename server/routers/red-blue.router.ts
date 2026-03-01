@@ -62,8 +62,6 @@ const createConfigSchema = z.object({
   evaluationCriteria: jsonValue.optional(),
   triggerConditions: jsonValue.optional(),
 
-  createdBy: z.number().int().optional(),
-  createdByName: z.string().max(128).optional(),
 });
 
 const updateConfigSchema = z.object({
@@ -226,8 +224,8 @@ export const redBlueRouter = router({
           triggerConditions: input.triggerConditions,
 
           status: "draft",
-          createdBy: input.createdBy ?? ctx.user?.id ?? 1,
-          createdByName: input.createdByName ?? ctx.user?.name,
+          createdBy: ctx.user.id,
+          createdByName: ctx.user.name,
         })
         .returning();
 

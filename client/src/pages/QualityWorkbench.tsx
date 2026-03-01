@@ -1518,7 +1518,6 @@ function MsaDetailModal({ studyId, open, onClose }: { studyId: number; open: boo
                   disabled={!mf.measuredValue || !mf.operatorName || addMut.isPending}
                   onClick={() => addMut.mutate({
                     studyId: study.id,
-                    operatorName: mf.operatorName,
                     partNumber: mf.partNumber,
                     trialNumber: mf.trialNumber,
                     measuredValue: mf.measuredValue,

@@ -40,7 +40,13 @@ export const ruleTemplateRouter = router({
       return await db.select().from(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.isActive, 1)).orderBy(desc(costAlertRuleTemplates.usageCount)).limit(limit).offset(offset);
     }),
 
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    name: z.string().max(200).optional(),
+    description: z.string().max(1000).optional(),
+    templateType: z.string().max(50).optional(),
+    category: z.string().max(50).optional(),
+    ruleConfig: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [template] = await db.insert(costAlertRuleTemplates).values({
       name: input.name || "新模板",
@@ -49,12 +55,18 @@ export const ruleTemplateRouter = router({
       category: input.category || "budget",
       ruleConfig: typeof input.ruleConfig === "string" ? input.ruleConfig : JSON.stringify(input.ruleConfig || {}),
       isActive: 1,
-      createdBy: input.createdBy,
-    }).returning();
+      createdBy: ctx.user.id,
+    } as any).returning();
     return { success: true, message: "模板创建成功", data: template };
   }),
 
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    name: z.string().max(200).optional(),
+    description: z.string().max(1000).optional(),
+    ruleConfig: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+    isActive: z.union([z.boolean(), z.number()]).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = toNum(input.id);
     const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
@@ -72,7 +84,12 @@ export const ruleTemplateRouter = router({
     return { success: true, message: "模板已删除" };
   }),
 
-  createRule: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  createRule: protectedProcedure.input(z.object({
+    name: z.string().max(200).optional(),
+    description: z.string().max(1000).optional(),
+    category: z.string().max(50).optional(),
+    ruleConfig: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [template] = await db.insert(costAlertRuleTemplates).values({
       name: input.name || "新规则",
@@ -81,11 +98,15 @@ export const ruleTemplateRouter = router({
       category: input.category || "budget",
       ruleConfig: typeof input.ruleConfig === "string" ? input.ruleConfig : JSON.stringify(input.ruleConfig || {}),
       isActive: 1,
-    }).returning();
+    } as any).returning();
     return { success: true, message: "规则创建成功", data: template };
   }),
 
-  saveAsTemplate: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  saveAsTemplate: protectedProcedure.input(z.object({
+    ruleId: z.union([z.string(), z.number()]).optional(),
+    id: z.union([z.string(), z.number()]).optional(),
+    name: z.string().max(200).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const sourceId = toNum(input.ruleId || input.id);
     const [source] = await db.select().from(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.id, sourceId));

@@ -446,11 +446,9 @@ export const complianceRouter = router({
     jurisdiction: z.string().max(10).optional(),
     dateRangeStart: z.string().optional(),
     dateRangeEnd: z.string().optional(),
-    generatedBy: z.number().optional(),
-    generatedByName: z.string().max(200).optional(),
     employeesIncluded: z.number().optional(),
     alertsIncluded: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const reportId = generateId("rpt");
     const result = await db.insert(grtComplianceReports).values({
@@ -460,8 +458,8 @@ export const complianceRouter = router({
       jurisdiction: input.jurisdiction ?? "ALL",
       dateRangeStart: input.dateRangeStart ?? null,
       dateRangeEnd: input.dateRangeEnd ?? null,
-      generatedBy: input.generatedBy ?? 1,
-      generatedByName: input.generatedByName ?? "System",
+      generatedBy: ctx.user.id,
+      generatedByName: ctx.user.name ?? `User#${ctx.user.id}`,
       fileUrl: `/reports/${reportId}.${input.format ?? "pdf"}`,
       fileKey: reportId,
       fileSizeBytes: 0,

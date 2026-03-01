@@ -170,7 +170,6 @@ export const kioskRouter = router({
         defectType: z.string().optional(),
         defectCode: z.string().optional(),
         remark: z.string().optional(),
-        operatorId: z.number(),
         stationId: z.string(),
         clientTimestamp: z.string().optional(),
         // IATF 16949 §8.5.2 — material traceability fields
@@ -191,7 +190,7 @@ export const kioskRouter = router({
           (checkpoint_id, project_id, process_code, inspector_id, inspector_name,
            result, score, defect_count, remarks, checked_at, created_at)
           VALUES (${input.checkpointId || 0}, ${input.projectId}, ${input.processCode},
-                  ${String(input.operatorId)}, ${ctx.user?.name || "kiosk"},
+                  ${String(ctx.user.id)}, ${ctx.user?.name || "kiosk"},
                   ${input.result}, ${null}, ${input.result === "fail" ? 1 : 0},
                   ${input.remark || null}, ${now}, ${now})
         `)) as any;
@@ -256,7 +255,7 @@ export const kioskRouter = router({
               projectNumber: input.projectId,
               batchId: input.batchId || null,
               materialBarcode: input.materialBarcode,
-              operatorId: String(input.operatorId),
+              operatorId: String(ctx.user.id),
               stationId: stationFkId,
               equipmentParams: null,
               aiCcdResult: null,
@@ -275,7 +274,7 @@ export const kioskRouter = router({
               (project_number, batch_id, material_barcode, operator_id, station_id,
                human_final_result, cycle_time_seconds, remarks, created_at, updated_at)
               VALUES (${input.projectId}, ${input.batchId || null}, ${input.materialBarcode},
-                      ${String(input.operatorId)}, ${0},
+                      ${String(ctx.user.id)}, ${0},
                       ${humanFinalResult}, ${input.clientTimestamp ? Math.round((Date.now() - new Date(input.clientTimestamp).getTime()) / 1000) : null},
                       ${input.remark || null}, NOW(), NOW())
             `);
@@ -287,7 +286,7 @@ export const kioskRouter = router({
         }
 
         console.log(
-          `[Kiosk] Inspection submitted: project=${input.projectId}, process=${input.processCode}, result=${input.result}, operator=${input.operatorId}, station=${input.stationId}, barcode=${input.materialBarcode}`
+          `[Kiosk] Inspection submitted: project=${input.projectId}, process=${input.processCode}, result=${input.result}, operator=${ctx.user.id}, station=${input.stationId}, barcode=${input.materialBarcode}`
         );
 
         return {
@@ -406,12 +405,11 @@ export const kioskRouter = router({
   operatorPunchIn: protectedProcedure
     .input(
       z.object({
-        operatorId: z.number(),
         stationId: z.string(),
         processCode: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         const dbModule = await import("../db");
         const { sql } = await import("drizzle-orm");
@@ -448,7 +446,7 @@ export const kioskRouter = router({
         }
 
         console.log(
-          `[Kiosk] Operator ${input.operatorId} punched in at station ${input.stationId} for process ${input.processCode}`
+          `[Kiosk] Operator ${ctx.user.id} punched in at station ${input.stationId} for process ${input.processCode}`
         );
 
         return { allowed: true };
