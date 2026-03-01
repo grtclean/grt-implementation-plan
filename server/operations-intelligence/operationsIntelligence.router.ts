@@ -1,19 +1,15 @@
 /**
  * 运营智能路由 (Operations Intelligence Router)
  * Phase E: 供应商评估 · 库存优化 · 质量预测 · 生产效率
+ *
+ * All LLM operations now use async task queue.
  */
 
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import {
-  assessSupplier,
-  optimizeInventory,
-  predictQualityTrend,
-  analyzeProductionEfficiency,
-} from "./operationsIntelligence.service";
+import { submitTask, getTaskStatus } from "../services/task-worker.service";
 
 export const operationsIntelligenceRouter = router({
-  // 供应商评估 (mutation — invokes LLM)
   assessSupplier: protectedProcedure
     .input(
       z.object({
@@ -27,11 +23,15 @@ export const operationsIntelligenceRouter = router({
         certifications: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await assessSupplier(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "OPS_ASSESS_SUPPLIER",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
-  // 库存优化 (mutation — invokes LLM)
   optimizeInventory: protectedProcedure
     .input(
       z.object({
@@ -44,11 +44,15 @@ export const operationsIntelligenceRouter = router({
         serviceLevel: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await optimizeInventory(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "OPS_OPTIMIZE_INVENTORY",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
-  // 质量趋势预测 (mutation — invokes LLM)
   predictQuality: protectedProcedure
     .input(
       z.object({
@@ -60,11 +64,15 @@ export const operationsIntelligenceRouter = router({
         equipmentAge: z.number().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await predictQualityTrend(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "OPS_PREDICT_QUALITY",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
-  // 生产效率分析 (mutation — invokes LLM)
   analyzeEfficiency: protectedProcedure
     .input(
       z.object({
@@ -77,7 +85,23 @@ export const operationsIntelligenceRouter = router({
         defectRate: z.number().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await analyzeProductionEfficiency(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "OPS_ANALYZE_EFFICIENCY",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
+    }),
+
+  /** Generic task status poller */
+  getTaskResult: protectedProcedure
+    .input(z.object({ taskId: z.number() }))
+    .query(async ({ input }) => {
+      const task = await getTaskStatus(input.taskId);
+      if (!task) return { taskStatus: "not_found" as const, result: null };
+      if (task.status === "completed") return { taskStatus: "completed" as const, result: task.resultData };
+      if (task.status === "failed") return { taskStatus: "failed" as const, result: null, error: task.errorMessage };
+      return { taskStatus: task.status as "pending" | "processing", result: null };
     }),
 });

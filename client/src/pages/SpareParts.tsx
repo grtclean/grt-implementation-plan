@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/PageSkeleton";
 import { Package, Plus, Search, AlertTriangle, CheckCircle2, Truck, DollarSign } from "lucide-react";
 
 const stockStatusColorMap = createStatusColorMap({
@@ -54,6 +55,8 @@ export default function SpareParts() {
   const stats = statsQuery.data;
 
   const createMutation = trpc.supplyChain.sparePart.create.useMutation();
+
+  if (partsQuery.isLoading && statsQuery.isLoading) return <ListPageSkeleton />;
 
   const parts = partsData.map((p: any) => ({
     id: p.partCode || `SP-${p.id}`,

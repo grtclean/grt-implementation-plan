@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardSkeleton } from "@/components/PageSkeleton";
 import {
   Package, AlertTriangle, TrendingUp, ArrowDownToLine, ArrowUpFromLine,
   Search, Clock, CalendarClock, ShieldAlert, ChevronRight, Boxes,
@@ -225,6 +226,8 @@ export default function InventoryDashboard() {
   const { t } = useLanguage();
   const query = trpc.warehouse.getWarehouseStats.useQuery();
   const stats = query.data;
+
+  if (query.isLoading) return <DashboardSkeleton />;
 
   return (
     <div className="space-y-6">

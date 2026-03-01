@@ -21,8 +21,9 @@
 
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { productionEquipments } from "../../drizzle/production-equipment-schema";
 import { productionShiftLogs, oeeSnapshots } from "../../drizzle/oee-schema";
 
@@ -231,11 +232,13 @@ export const oeeDashboardRouter = router({
    * Mock-first: returns realistic data immediately.
    * When backend has real shift logs, overlays live calculations.
    */
-  dashboard: protectedProcedure.query(async () => {
+  dashboard: protectedProcedure.query(async ({ ctx }) => {
     // Try live data
     const live = await safeQuery(async () => {
       const db = await requireDb();
-      const machines = await db.select().from(productionEquipments);
+      // BU isolation: filter machines by user's BU
+      const buFilter = buScopeCondition(productionEquipments.buCode, ctx);
+      const machines = await db.select().from(productionEquipments).where(buFilter ?? undefined);
       if (!machines.length) return null;
 
       const entries: MachineDashboardEntry[] = [];
@@ -282,9 +285,18 @@ export const oeeDashboardRouter = router({
   /** Single machine OEE history (last 30 days) */
   machineHistory: protectedProcedure
     .input(z.object({ machineId: z.number(), days: z.number().default(30) }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const history = await safeQuery(async () => {
         const db = await requireDb();
+        // BU isolation: verify machine belongs to user's BU before returning history
+        const buFilter = buScopeCondition(productionEquipments.buCode, ctx);
+        const machineConditions = [eq(productionEquipments.id, input.machineId)];
+        if (buFilter) machineConditions.push(buFilter);
+        const [machine] = await db.select({ id: productionEquipments.id })
+          .from(productionEquipments)
+          .where(and(...machineConditions));
+        if (!machine) return null;
+
         return db
           .select()
           .from(oeeSnapshots)

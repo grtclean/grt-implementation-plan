@@ -35,17 +35,11 @@ export default function ProjectKnowledgeQA() {
   const [input, setInput] = useState("");
   const [expandedSources, setExpandedSources] = useState<Set<number>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const askMutation = trpc.projectIntelligence.askKnowledge.useMutation({
     onSuccess: (data) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.answer,
-          sources: data.sources,
-        },
-      ]);
+      setTaskId(data.taskId);
     },
     onError: () => {
       setMessages((prev) => [
@@ -55,13 +49,46 @@ export default function ProjectKnowledgeQA() {
     },
   });
 
+  const taskQuery = trpc.projectIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (!taskQuery.data || !taskId) return;
+    if (taskQuery.data.taskStatus === "completed") {
+      const result = taskQuery.data.result as { answer: string; sources: Array<{ title: string; category: string; matchScore: number }> };
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: result.answer,
+          sources: result.sources,
+        },
+      ]);
+      setTaskId(null);
+    } else if (taskQuery.data.taskStatus === "failed") {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: t("projects.knowledge.aiUnavailable") },
+      ]);
+      setTaskId(null);
+    }
+  }, [taskQuery.data, taskId, t]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSend = (question?: string) => {
     const q = question || input.trim();
-    if (!q || askMutation.isPending) return;
+    if (!q || askMutation.isPending || !!taskId) return;
 
     setMessages((prev) => [...prev, { role: "user", content: q }]);
     setInput("");
@@ -171,7 +198,7 @@ export default function ProjectKnowledgeQA() {
                   </div>
                 ))}
 
-                {askMutation.isPending && (
+                {(askMutation.isPending || !!taskId) && (
                   <div className="flex justify-start">
                     <div className="bg-muted rounded-lg p-3 flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -196,13 +223,13 @@ export default function ProjectKnowledgeQA() {
                     handleSend();
                   }
                 }}
-                disabled={askMutation.isPending}
+                disabled={askMutation.isPending || !!taskId}
               />
               <Button
                 onClick={() => handleSend()}
-                disabled={!input.trim() || askMutation.isPending}
+                disabled={!input.trim() || askMutation.isPending || !!taskId}
               >
-                {askMutation.isPending ? (
+                {askMutation.isPending || !!taskId ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Send className="h-4 w-4" />
@@ -220,7 +247,7 @@ export default function ProjectKnowledgeQA() {
                   <button
                     key={q}
                     onClick={() => handleSend(q)}
-                    disabled={askMutation.isPending}
+                    disabled={askMutation.isPending || !!taskId}
                     className="w-full text-left text-sm p-2 rounded-md hover:bg-muted transition-colors disabled:opacity-50"
                   >
                     {q}

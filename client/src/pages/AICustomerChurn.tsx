@@ -2,7 +2,7 @@
  * AI客户流失预测 (AI Customer Churn Prediction)
  * Phase G: 流失概率 · 健康评分 · 风险因子 · 挽留策略
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,14 +44,36 @@ export default function AICustomerChurn() {
   const [complaintCount, setComplaintCount] = useState("");
   const [competitorActivity, setCompetitorActivity] = useState("");
   const [result, setResult] = useState<ChurnResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const mutation = trpc.salesFinanceIntelligence.predictChurn.useMutation({
-    onSuccess: (data) => setResult(data as ChurnResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.salesFinanceIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (taskQuery.data?.taskStatus === "completed" && taskQuery.data.result) {
+      setResult(taskQuery.data.result as unknown as ChurnResult);
+      setTaskId(null);
+    } else if (taskQuery.data?.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data]);
+
   const handleSubmit = () => {
-    if (!customerName.trim() || !contractValue || !lastOrderDate || mutation.isPending) return;
+    if (!customerName.trim() || !contractValue || !lastOrderDate || mutation.isPending || !!taskId) return;
     mutation.mutate({
       customerName,
       industry,
@@ -175,8 +197,8 @@ export default function AICustomerChurn() {
               <Textarea placeholder="如: 某竞争对手近期在该客户所在区域推出低价促销活动..." value={competitorActivity} onChange={(e) => setCompetitorActivity(e.target.value)} rows={2} />
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSubmit} disabled={!customerName.trim() || !contractValue || !lastOrderDate || mutation.isPending}>
-                {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              <Button onClick={handleSubmit} disabled={!customerName.trim() || !contractValue || !lastOrderDate || mutation.isPending || !!taskId}>
+                {mutation.isPending || !!taskId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 {t("ai.churn.aiPredict")}
               </Button>
             </div>

@@ -4,7 +4,7 @@
  *
  * Rewrites the former mock HistoricalCases page with real AI-powered search.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,11 +49,11 @@ export default function HistoricalCases() {
   const [results, setResults] = useState<SimilarMatch[]>([]);
   const [searched, setSearched] = useState(false);
   const [expandedIdx, setExpandedIdx] = useState<Set<number>>(new Set());
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const searchMutation = trpc.projectIntelligence.findSimilar.useMutation({
     onSuccess: (data) => {
-      setResults((data.matches || []) as SimilarMatch[]);
-      setSearched(true);
+      setTaskId(data.taskId);
     },
     onError: () => {
       setResults([]);
@@ -61,9 +61,34 @@ export default function HistoricalCases() {
     },
   });
 
+  const taskQuery = trpc.projectIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (!taskQuery.data || !taskId) return;
+    if (taskQuery.data.taskStatus === "completed") {
+      const data = taskQuery.data.result as { matches: SimilarMatch[] };
+      setResults((data.matches || []) as SimilarMatch[]);
+      setSearched(true);
+      setTaskId(null);
+    } else if (taskQuery.data.taskStatus === "failed") {
+      setResults([]);
+      setSearched(true);
+      setTaskId(null);
+    }
+  }, [taskQuery.data, taskId]);
+
   const handleSearch = () => {
     const hasInput = Object.values(form).some((v) => v.trim());
-    if (!hasInput || searchMutation.isPending) return;
+    if (!hasInput || searchMutation.isPending || !!taskId) return;
     searchMutation.mutate(form);
   };
 
@@ -171,9 +196,9 @@ export default function HistoricalCases() {
               </Button>
               <Button
                 onClick={handleSearch}
-                disabled={searchMutation.isPending || !Object.values(form).some((v) => v.trim())}
+                disabled={searchMutation.isPending || !!taskId || !Object.values(form).some((v) => v.trim())}
               >
-                {searchMutation.isPending ? (
+                {searchMutation.isPending || !!taskId ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />

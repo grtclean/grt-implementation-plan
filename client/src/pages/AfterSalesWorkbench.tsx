@@ -8,6 +8,7 @@
 import { useState, useMemo } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
+import { useZodForm, schemas, z } from "@/lib/form-validation";
 import {
   Shield, Package, MessageSquareWarning, Gavel, LayoutDashboard,
   Search, Plus, X, AlertTriangle, CheckCircle2, Clock, XCircle,
@@ -15,6 +16,29 @@ import {
   BarChart3, Box, Truck, CalendarClock, Activity, Ban,
   CircleDot, TrendingDown, TrendingUp, Settings2,
 } from "lucide-react";
+
+// ─── Zod Schemas ─────────────────────────────────────────────────
+const sparePartSchema = z.object({
+  materialCode: schemas.materialCode("Material code is required / 物料编码必填"),
+  materialName: schemas.requiredString("Material name is required / 物料名称必填"),
+  specification: schemas.optionalString(),
+  category: z.string().default("mechanical"),
+  minStockLevel: z.coerce.number().nonnegative("Must be >= 0").default(0),
+  reorderPoint: z.coerce.number().nonnegative("Must be >= 0").default(0),
+  maxStockLevel: z.coerce.number().nonnegative("Must be >= 0").default(100),
+  currentStock: z.coerce.number().nonnegative("Must be >= 0").default(0),
+  unitPrice: z.coerce.number().nonnegative("Must be >= 0").default(0),
+  isCritical: z.boolean().default(false),
+});
+type SparePartValues = z.infer<typeof sparePartSchema>;
+
+const complaintSchema = z.object({
+  customerName: schemas.requiredString("Customer name is required / 客户名称必填"),
+  severity: schemas.severity(),
+  equipmentSerialNumber: schemas.optionalString(),
+  description: schemas.requiredString("Description is required / 问题描述必填"),
+});
+type ComplaintValues = z.infer<typeof complaintSchema>;
 
 /* Fluent Design tokens */
 const F = {
@@ -337,10 +361,14 @@ function SparePartsTab() {
   const [catFilter, setCatFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({
-    materialCode: "", materialName: "", specification: "", category: "mechanical",
-    minStockLevel: 0, reorderPoint: 0, maxStockLevel: 100, currentStock: 0,
-    unitPrice: 0, isCritical: false,
+
+  const spForm = useZodForm({
+    schema: sparePartSchema,
+    defaultValues: {
+      materialCode: "", materialName: "", specification: "", category: "mechanical",
+      minStockLevel: 0, reorderPoint: 0, maxStockLevel: 100, currentStock: 0,
+      unitPrice: 0, isCritical: false,
+    },
   });
 
   const utils = trpc.useUtils();
@@ -349,8 +377,7 @@ function SparePartsTab() {
   const createM = trpc.supplyChain.sparePart.create.useMutation({
     onSuccess: () => {
       utils.supplyChain.sparePart.list.invalidate(); utils.supplyChain.sparePart.lowStockAlerts.invalidate(); setShowCreate(false);
-      setForm({ materialCode: "", materialName: "", specification: "", category: "mechanical",
-        minStockLevel: 0, reorderPoint: 0, maxStockLevel: 100, currentStock: 0, unitPrice: 0, isCritical: false });
+      spForm.reset();
     },
   });
 
@@ -461,31 +488,39 @@ function SparePartsTab() {
         })}
       </div>
 
-      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title={t("afterSales.spare.newPart")}>
-        <div className="space-y-4">
+      <FluentDialog open={showCreate} onClose={() => { setShowCreate(false); spForm.reset(); }} title={t("afterSales.spare.newPart")}>
+        <form onSubmit={spForm.handleSubmit((data) => createM.mutate(data as any))} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div><FieldLabel>{t("afterSales.spare.materialCode")}</FieldLabel><input className={F.inputBase} value={form.materialCode} onChange={(e) => setForm({ ...form, materialCode: e.target.value })} /></div>
-            <div><FieldLabel>{t("afterSales.spare.materialName")}</FieldLabel><input className={F.inputBase} value={form.materialName} onChange={(e) => setForm({ ...form, materialName: e.target.value })} /></div>
+            <div>
+              <FieldLabel>{t("afterSales.spare.materialCode")} *</FieldLabel>
+              <input className={F.inputBase} value={spForm.watch("materialCode")} onChange={(e) => spForm.setValue("materialCode", e.target.value, { shouldValidate: true })} />
+              {spForm.formState.errors.materialCode && <p className="text-[#d83b01] text-xs mt-1">{spForm.formState.errors.materialCode.message}</p>}
+            </div>
+            <div>
+              <FieldLabel>{t("afterSales.spare.materialName")} *</FieldLabel>
+              <input className={F.inputBase} value={spForm.watch("materialName")} onChange={(e) => spForm.setValue("materialName", e.target.value, { shouldValidate: true })} />
+              {spForm.formState.errors.materialName && <p className="text-[#d83b01] text-xs mt-1">{spForm.formState.errors.materialName.message}</p>}
+            </div>
           </div>
-          <div><FieldLabel>{t("afterSales.spare.specification")}</FieldLabel><input className={F.inputBase} value={form.specification} onChange={(e) => setForm({ ...form, specification: e.target.value })} /></div>
+          <div><FieldLabel>{t("afterSales.spare.specification")}</FieldLabel><input className={F.inputBase} value={spForm.watch("specification") || ""} onChange={(e) => spForm.setValue("specification", e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-4">
-            <div><FieldLabel>{t("afterSales.spare.category")}</FieldLabel><select className={F.inputBase} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="mechanical">{t("afterSales.spare.mechanical")}</option><option value="electrical">{t("afterSales.spare.electrical")}</option><option value="hydraulic">{t("afterSales.spare.hydraulic")}</option><option value="pneumatic">{t("afterSales.spare.pneumatic")}</option><option value="consumable">{t("afterSales.spare.consumable")}</option></select></div>
-            <div><FieldLabel>{t("afterSales.spare.price")}</FieldLabel><input type="number" className={F.inputBase} value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: parseFloat(e.target.value) || 0 })} /></div>
+            <div><FieldLabel>{t("afterSales.spare.category")}</FieldLabel><select className={F.inputBase} value={spForm.watch("category")} onChange={(e) => spForm.setValue("category", e.target.value)}><option value="mechanical">{t("afterSales.spare.mechanical")}</option><option value="electrical">{t("afterSales.spare.electrical")}</option><option value="hydraulic">{t("afterSales.spare.hydraulic")}</option><option value="pneumatic">{t("afterSales.spare.pneumatic")}</option><option value="consumable">{t("afterSales.spare.consumable")}</option></select></div>
+            <div><FieldLabel>{t("afterSales.spare.price")}</FieldLabel><input type="number" className={F.inputBase} value={spForm.watch("unitPrice")} onChange={(e) => spForm.setValue("unitPrice", parseFloat(e.target.value) || 0)} /></div>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <div><FieldLabel>{t("afterSales.spare.minStock")}</FieldLabel><input type="number" className={F.inputBase} value={form.minStockLevel} onChange={(e) => setForm({ ...form, minStockLevel: parseInt(e.target.value) || 0 })} /></div>
-            <div><FieldLabel>{t("afterSales.spare.reorderPoint")}</FieldLabel><input type="number" className={F.inputBase} value={form.reorderPoint} onChange={(e) => setForm({ ...form, reorderPoint: parseInt(e.target.value) || 0 })} /></div>
-            <div><FieldLabel>{t("afterSales.spare.maxStock")}</FieldLabel><input type="number" className={F.inputBase} value={form.maxStockLevel} onChange={(e) => setForm({ ...form, maxStockLevel: parseInt(e.target.value) || 0 })} /></div>
+            <div><FieldLabel>{t("afterSales.spare.minStock")}</FieldLabel><input type="number" className={F.inputBase} value={spForm.watch("minStockLevel")} onChange={(e) => spForm.setValue("minStockLevel", parseInt(e.target.value) || 0)} /></div>
+            <div><FieldLabel>{t("afterSales.spare.reorderPoint")}</FieldLabel><input type="number" className={F.inputBase} value={spForm.watch("reorderPoint")} onChange={(e) => spForm.setValue("reorderPoint", parseInt(e.target.value) || 0)} /></div>
+            <div><FieldLabel>{t("afterSales.spare.maxStock")}</FieldLabel><input type="number" className={F.inputBase} value={spForm.watch("maxStockLevel")} onChange={(e) => spForm.setValue("maxStockLevel", parseInt(e.target.value) || 0)} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div><FieldLabel>{t("afterSales.spare.currentStock")}</FieldLabel><input type="number" className={F.inputBase} value={form.currentStock} onChange={(e) => setForm({ ...form, currentStock: parseInt(e.target.value) || 0 })} /></div>
-            <div className="flex items-end pb-1"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isCritical} onChange={(e) => setForm({ ...form, isCritical: e.target.checked })} className="w-4 h-4 accent-[#0078d4]" /><span className="text-sm text-[#323130]">{t("afterSales.spare.isCritical")}</span></label></div>
+            <div><FieldLabel>{t("afterSales.spare.currentStock")}</FieldLabel><input type="number" className={F.inputBase} value={spForm.watch("currentStock")} onChange={(e) => spForm.setValue("currentStock", parseInt(e.target.value) || 0)} /></div>
+            <div className="flex items-end pb-1"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={spForm.watch("isCritical")} onChange={(e) => spForm.setValue("isCritical", e.target.checked)} className="w-4 h-4 accent-[#0078d4]" /><span className="text-sm text-[#323130]">{t("afterSales.spare.isCritical")}</span></label></div>
           </div>
-        </div>
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#edebe9]">
-          <button className={F.btnSecondary} onClick={() => setShowCreate(false)}>{t("afterSales.spare.cancel")}</button>
-          <button className={F.btnPrimary} disabled={createM.isPending} onClick={() => createM.mutate(form as any)}>{createM.isPending ? t("afterSales.spare.creating") : t("afterSales.spare.create")}</button>
-        </div>
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#edebe9]">
+            <button type="button" className={F.btnSecondary} onClick={() => { setShowCreate(false); spForm.reset(); }}>{t("afterSales.spare.cancel")}</button>
+            <button type="submit" className={F.btnPrimary} disabled={createM.isPending}>{createM.isPending ? t("afterSales.spare.creating") : t("afterSales.spare.create")}</button>
+          </div>
+        </form>
       </FluentDialog>
     </div>
   );
@@ -498,13 +533,17 @@ function ComplaintsTab() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ customerName: "", severity: "medium", description: "", equipmentSerialNumber: "" });
+
+  const cForm = useZodForm({
+    schema: complaintSchema,
+    defaultValues: { customerName: "", severity: "medium", description: "", equipmentSerialNumber: "" },
+  });
 
   const utils = trpc.useUtils();
   const listQ = trpc.supplyChain.complaint.list.useQuery();
   const statsQ = trpc.supplyChain.complaint.stats.useQuery();
   const createM = trpc.supplyChain.complaint.create.useMutation({
-    onSuccess: () => { utils.supplyChain.complaint.list.invalidate(); utils.supplyChain.complaint.stats.invalidate(); setShowCreate(false); setForm({ customerName: "", severity: "medium", description: "", equipmentSerialNumber: "" }); },
+    onSuccess: () => { utils.supplyChain.complaint.list.invalidate(); utils.supplyChain.complaint.stats.invalidate(); setShowCreate(false); cForm.reset(); },
   });
 
   const complaints: any[] = Array.isArray((listQ.data as any)?.items) ? (listQ.data as any).items : Array.isArray(listQ.data) ? listQ.data : [];
@@ -595,17 +634,25 @@ function ComplaintsTab() {
         ))}
       </div>
 
-      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title={t("afterSales.complaints.newComplaint")}>
-        <div className="space-y-4">
-          <div><FieldLabel>{t("afterSales.complaints.customerName")}</FieldLabel><input className={F.inputBase} value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} placeholder={t("afterSales.complaints.customerName")} /></div>
-          <div><FieldLabel>{t("afterSales.complaints.severity")}</FieldLabel><select className={F.inputBase} value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })}><option value="critical">{t("afterSales.complaints.severityCritical")}</option><option value="high">{t("afterSales.complaints.severityHigh")}</option><option value="medium">{t("afterSales.complaints.severityMedium")}</option><option value="low">{t("afterSales.complaints.severityLow")}</option></select></div>
-          <div><FieldLabel>{t("afterSales.complaints.serialNo")}</FieldLabel><input className={F.inputBase} value={form.equipmentSerialNumber} onChange={(e) => setForm({ ...form, equipmentSerialNumber: e.target.value })} placeholder={t("afterSales.complaints.serialNoPlaceholder")} /></div>
-          <div><FieldLabel>{t("afterSales.complaints.description")}</FieldLabel><textarea className={`${F.inputBase} min-h-[100px] resize-y`} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t("afterSales.complaints.descPlaceholder")} /></div>
-        </div>
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#edebe9]">
-          <button className={F.btnSecondary} onClick={() => setShowCreate(false)}>{t("afterSales.complaints.cancel")}</button>
-          <button className={F.btnPrimary} disabled={createM.isPending || !form.customerName || !form.description} onClick={() => createM.mutate(form as any)}>{createM.isPending ? t("afterSales.complaints.submitting") : t("afterSales.complaints.submit")}</button>
-        </div>
+      <FluentDialog open={showCreate} onClose={() => { setShowCreate(false); cForm.reset(); }} title={t("afterSales.complaints.newComplaint")}>
+        <form onSubmit={cForm.handleSubmit((data) => createM.mutate(data as any))} className="space-y-4">
+          <div>
+            <FieldLabel>{t("afterSales.complaints.customerName")} *</FieldLabel>
+            <input className={F.inputBase} value={cForm.watch("customerName")} onChange={(e) => cForm.setValue("customerName", e.target.value, { shouldValidate: true })} placeholder={t("afterSales.complaints.customerName")} />
+            {cForm.formState.errors.customerName && <p className="text-[#d83b01] text-xs mt-1">{cForm.formState.errors.customerName.message}</p>}
+          </div>
+          <div><FieldLabel>{t("afterSales.complaints.severity")}</FieldLabel><select className={F.inputBase} value={cForm.watch("severity")} onChange={(e) => cForm.setValue("severity", e.target.value as any)}><option value="critical">{t("afterSales.complaints.severityCritical")}</option><option value="high">{t("afterSales.complaints.severityHigh")}</option><option value="medium">{t("afterSales.complaints.severityMedium")}</option><option value="low">{t("afterSales.complaints.severityLow")}</option></select></div>
+          <div><FieldLabel>{t("afterSales.complaints.serialNo")}</FieldLabel><input className={F.inputBase} value={cForm.watch("equipmentSerialNumber") || ""} onChange={(e) => cForm.setValue("equipmentSerialNumber", e.target.value)} placeholder={t("afterSales.complaints.serialNoPlaceholder")} /></div>
+          <div>
+            <FieldLabel>{t("afterSales.complaints.description")} *</FieldLabel>
+            <textarea className={`${F.inputBase} min-h-[100px] resize-y`} value={cForm.watch("description")} onChange={(e) => cForm.setValue("description", e.target.value, { shouldValidate: true })} placeholder={t("afterSales.complaints.descPlaceholder")} />
+            {cForm.formState.errors.description && <p className="text-[#d83b01] text-xs mt-1">{cForm.formState.errors.description.message}</p>}
+          </div>
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#edebe9]">
+            <button type="button" className={F.btnSecondary} onClick={() => { setShowCreate(false); cForm.reset(); }}>{t("afterSales.complaints.cancel")}</button>
+            <button type="submit" className={F.btnPrimary} disabled={createM.isPending}>{createM.isPending ? t("afterSales.complaints.submitting") : t("afterSales.complaints.submit")}</button>
+          </div>
+        </form>
       </FluentDialog>
     </div>
   );

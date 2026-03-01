@@ -1,16 +1,17 @@
 /**
  * AI Chat Router — Unit Tests
  *
- * Tests 2 procedures (both protectedProcedure):
+ * Tests 3 procedures (all protectedProcedure):
  *   Mutations (1): sendMessage
- *   Queries  (1): getQuickPrompts
+ *   Queries  (2): getQuickPrompts, getReplyStatus
  *
  * Coverage:
- *   - sendMessage: session creation, existing session, LLM failure fallback,
+ *   - sendMessage: session creation, existing session, submitTask call,
  *     input validation (empty message, assistantType enum), context passthrough
+ *   - getReplyStatus: completed task, failed task, pending task, not-found task
  *   - getQuickPrompts: DB templates returned, default prompts fallback,
  *     client-side assistantType filtering, optional input
- *   - Auth guards: both procedures reject anonymous callers
+ *   - Auth guards: all procedures reject anonymous callers
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
@@ -19,12 +20,11 @@ import {
 } from "../_test/trpc-test-utils";
 
 // ── Mock state (hoisted before vi.mock) ─────────────────────
-const { selectResultsQueue, returningQueue, mockInvokeLLM } = vi.hoisted(() => ({
+const { selectResultsQueue, returningQueue, mockSubmitTask, mockGetTaskStatus } = vi.hoisted(() => ({
   selectResultsQueue: [] as any[][],
   returningQueue: [] as any[][],
-  mockInvokeLLM: vi.fn(async () => ({
-    choices: [{ message: { content: "AI回复内容" } }],
-  })),
+  mockSubmitTask: vi.fn(async () => ({ taskId: 42 })),
+  mockGetTaskStatus: vi.fn(async () => ({ id: 42, status: "completed", resultData: { response: "AI回复内容" } })),
 }));
 
 // ── Mock DB ─────────────────────────────────────────────────
@@ -65,9 +65,10 @@ vi.mock("drizzle-orm", () => ({
   sql: Object.assign(vi.fn((..._a: any[]) => "sql-tag"), { raw: vi.fn() }),
 }));
 
-// ── Mock LLM ────────────────────────────────────────────────
-vi.mock("../_core/llm", () => ({
-  invokeLLM: (...args: any[]) => mockInvokeLLM(...args),
+// ── Mock task-worker.service ────────────────────────────────
+vi.mock("../services/task-worker.service", () => ({
+  submitTask: (...args: any[]) => mockSubmitTask(...args),
+  getTaskStatus: (...args: any[]) => mockGetTaskStatus(...args),
 }));
 
 // ── Reset between tests ─────────────────────────────────────
@@ -75,8 +76,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   selectResultsQueue.length = 0;
   returningQueue.length = 0;
-  mockInvokeLLM.mockReset().mockResolvedValue({
-    choices: [{ message: { content: "AI回复内容" } }],
+  mockSubmitTask.mockReset().mockResolvedValue({ taskId: 42 });
+  mockGetTaskStatus.mockReset().mockResolvedValue({
+    id: 42, status: "completed", resultData: { response: "AI回复内容" },
   });
 });
 
@@ -87,43 +89,32 @@ const caller = () => createAuthenticatedCaller();
 // ══════════════════════════════════════════════════════════════
 
 describe("aiChat.sendMessage", () => {
-  it("creates a new session when no sessionId is provided and returns sessionId + message", async () => {
+  it("creates a new session when no sessionId is provided and returns taskId + processing status", async () => {
     // 1st returning: new session insert
     returningQueue.push([{ id: 10 }]);
-    // 2nd returning: assistant message insert
-    returningQueue.push([{
-      id: 20,
-      sessionId: 10,
-      role: "assistant",
-      content: "AI回复内容",
-      contentType: "text",
-    }]);
-    // select for counting messages in the session
-    selectResultsQueue.push([{}, {}]); // 2 messages (user + assistant)
+    mockSubmitTask.mockResolvedValueOnce({ taskId: 99 });
 
     const result = await caller().aiChat.sendMessage({
       message: "你好，请帮我分析项目进度",
     });
 
     expect(result.sessionId).toBe(10);
-    expect(result.message).toBeDefined();
-    expect(result.message.id).toBe(20);
-    expect(result.message.role).toBe("assistant");
-    expect(result.message.content).toBe("AI回复内容");
-    expect(mockInvokeLLM).toHaveBeenCalledOnce();
+    expect(result.taskId).toBe(99);
+    expect(result.status).toBe("processing");
+    expect(mockSubmitTask).toHaveBeenCalledOnce();
+    expect(mockSubmitTask).toHaveBeenCalledWith(
+      "AI_CHAT_REPLY",
+      expect.objectContaining({
+        sessionId: 10,
+        message: "你好，请帮我分析项目进度",
+        assistantType: "personal",
+      }),
+      expect.any(String),
+    );
   });
 
   it("uses the provided sessionId without creating a new session", async () => {
-    // No session-creation returning needed — only assistant message returning
-    returningQueue.push([{
-      id: 30,
-      sessionId: 5,
-      role: "assistant",
-      content: "AI回复内容",
-      contentType: "text",
-    }]);
-    // select for counting messages
-    selectResultsQueue.push([{}, {}, {}]); // 3 messages
+    mockSubmitTask.mockResolvedValueOnce({ taskId: 77 });
 
     const result = await caller().aiChat.sendMessage({
       sessionId: 5,
@@ -131,81 +122,14 @@ describe("aiChat.sendMessage", () => {
     });
 
     expect(result.sessionId).toBe(5);
-    expect(result.message.id).toBe(30);
-    expect(result.message.sessionId).toBe(5);
-  });
-
-  it("falls back to default response when LLM throws an error", async () => {
-    mockInvokeLLM.mockRejectedValueOnce(new Error("LLM service unavailable"));
-
-    // session creation
-    returningQueue.push([{ id: 11 }]);
-    // assistant message — content should be the fallback string
-    returningQueue.push([{
-      id: 21,
-      sessionId: 11,
-      role: "assistant",
-      content: "抱歉，AI服务暂时不可用。",
-      contentType: "text",
-    }]);
-    // message count
-    selectResultsQueue.push([{}, {}]);
-
-    const result = await caller().aiChat.sendMessage({
-      message: "请帮我查看质量数据",
-    });
-
-    expect(result.sessionId).toBe(11);
-    expect(result.message).toBeDefined();
-    // The router catches the LLM error and uses the fallback
-    expect(mockInvokeLLM).toHaveBeenCalledOnce();
-  });
-
-  it("falls back to default response when LLM returns empty content", async () => {
-    mockInvokeLLM.mockResolvedValueOnce({
-      choices: [{ message: { content: "" } }],
-    });
-
-    returningQueue.push([{ id: 12 }]);
-    returningQueue.push([{
-      id: 22,
-      sessionId: 12,
-      role: "assistant",
-      content: "抱歉，AI服务暂时不可用。",
-      contentType: "text",
-    }]);
-    selectResultsQueue.push([{}, {}]);
-
-    const result = await caller().aiChat.sendMessage({
-      message: "测试空响应",
-    });
-
-    // Empty content || fallback => fallback used
-    expect(result.sessionId).toBe(12);
-    expect(result.message).toBeDefined();
-  });
-
-  it("falls back to default response when LLM returns null content", async () => {
-    mockInvokeLLM.mockResolvedValueOnce({
-      choices: [{ message: { content: null } }],
-    });
-
-    returningQueue.push([{ id: 13 }]);
-    returningQueue.push([{
-      id: 23,
-      sessionId: 13,
-      role: "assistant",
-      content: "抱歉，AI服务暂时不可用。",
-      contentType: "text",
-    }]);
-    selectResultsQueue.push([{}, {}]);
-
-    const result = await caller().aiChat.sendMessage({
-      message: "测试null响应",
-    });
-
-    expect(result.sessionId).toBe(13);
-    expect(result.message).toBeDefined();
+    expect(result.taskId).toBe(77);
+    expect(result.status).toBe("processing");
+    // No session insert returning needed — only user message insert
+    expect(mockSubmitTask).toHaveBeenCalledWith(
+      "AI_CHAT_REPLY",
+      expect.objectContaining({ sessionId: 5 }),
+      expect.any(String),
+    );
   });
 
   it("rejects empty message (min length 1)", async () => {
@@ -214,16 +138,9 @@ describe("aiChat.sendMessage", () => {
     ).rejects.toThrow();
   });
 
-  it("passes assistantType to session creation when provided", async () => {
+  it("passes assistantType to session creation and submitTask when provided", async () => {
     returningQueue.push([{ id: 14 }]);
-    returningQueue.push([{
-      id: 24,
-      sessionId: 14,
-      role: "assistant",
-      content: "AI回复内容",
-      contentType: "text",
-    }]);
-    selectResultsQueue.push([{}, {}]);
+    mockSubmitTask.mockResolvedValueOnce({ taskId: 50 });
 
     const result = await caller().aiChat.sendMessage({
       assistantType: "solution",
@@ -231,7 +148,13 @@ describe("aiChat.sendMessage", () => {
     });
 
     expect(result.sessionId).toBe(14);
-    expect(result.message).toBeDefined();
+    expect(result.taskId).toBe(50);
+    expect(result.status).toBe("processing");
+    expect(mockSubmitTask).toHaveBeenCalledWith(
+      "AI_CHAT_REPLY",
+      expect.objectContaining({ assistantType: "solution" }),
+      expect.any(String),
+    );
   });
 
   it("accepts all valid assistantType enum values", async () => {
@@ -239,8 +162,7 @@ describe("aiChat.sendMessage", () => {
 
     for (const assistantType of validTypes) {
       returningQueue.push([{ id: 100 }]);
-      returningQueue.push([{ id: 200, sessionId: 100, role: "assistant", content: "ok", contentType: "text" }]);
-      selectResultsQueue.push([{}, {}]);
+      mockSubmitTask.mockResolvedValueOnce({ taskId: 42 });
 
       const result = await caller().aiChat.sendMessage({
         assistantType,
@@ -248,6 +170,7 @@ describe("aiChat.sendMessage", () => {
       });
 
       expect(result.sessionId).toBe(100);
+      expect(result.status).toBe("processing");
     }
   });
 
@@ -260,16 +183,9 @@ describe("aiChat.sendMessage", () => {
     ).rejects.toThrow();
   });
 
-  it("accepts optional context record", async () => {
+  it("accepts optional context record and passes it to submitTask", async () => {
     returningQueue.push([{ id: 15 }]);
-    returningQueue.push([{
-      id: 25,
-      sessionId: 15,
-      role: "assistant",
-      content: "AI回复内容",
-      contentType: "text",
-    }]);
-    selectResultsQueue.push([{}, {}]);
+    mockSubmitTask.mockResolvedValueOnce({ taskId: 88 });
 
     const result = await caller().aiChat.sendMessage({
       message: "带上下文的消息",
@@ -277,65 +193,37 @@ describe("aiChat.sendMessage", () => {
     });
 
     expect(result.sessionId).toBe(15);
-    expect(result.message).toBeDefined();
-  });
-
-  it("sends the correct system and user messages to LLM", async () => {
-    returningQueue.push([{ id: 16 }]);
-    returningQueue.push([{
-      id: 26,
-      sessionId: 16,
-      role: "assistant",
-      content: "AI回复内容",
-      contentType: "text",
-    }]);
-    selectResultsQueue.push([{}, {}]);
-
-    await caller().aiChat.sendMessage({
-      message: "请分析最近的质量趋势",
-    });
-
-    expect(mockInvokeLLM).toHaveBeenCalledOnce();
-    const llmCall = mockInvokeLLM.mock.calls[0][0];
-    expect(llmCall.messages).toHaveLength(2);
-    expect(llmCall.messages[0].role).toBe("system");
-    expect(llmCall.messages[0].content).toContain("GRT");
-    expect(llmCall.messages[0].content).toContain("中文");
-    expect(llmCall.messages[1].role).toBe("user");
-    expect(llmCall.messages[1].content).toBe("请分析最近的质量趋势");
+    expect(result.taskId).toBe(88);
+    expect(result.status).toBe("processing");
+    expect(mockSubmitTask).toHaveBeenCalledWith(
+      "AI_CHAT_REPLY",
+      expect.objectContaining({
+        context: { page: "/projects", projectId: 42 },
+      }),
+      expect.any(String),
+    );
   });
 
   it("defaults assistantType to 'personal' when not provided (new session)", async () => {
-    // The router uses input.assistantType || "personal"
     returningQueue.push([{ id: 17 }]);
-    returningQueue.push([{
-      id: 27,
-      sessionId: 17,
-      role: "assistant",
-      content: "AI回复内容",
-      contentType: "text",
-    }]);
-    selectResultsQueue.push([{}, {}]);
+    mockSubmitTask.mockResolvedValueOnce({ taskId: 42 });
 
     const result = await caller().aiChat.sendMessage({
       message: "默认assistant类型",
     });
 
-    // The session was created — we verify it completed without error
     expect(result.sessionId).toBe(17);
+    expect(mockSubmitTask).toHaveBeenCalledWith(
+      "AI_CHAT_REPLY",
+      expect.objectContaining({ assistantType: "personal" }),
+      expect.any(String),
+    );
   });
 
   it("truncates session title to 50 characters from the message", async () => {
     const longMessage = "这是一个非常长的消息用于测试标题是否会被截断到五十个字符以内的功能验证场景这段话应该超过五十个字符了吧";
     returningQueue.push([{ id: 18 }]);
-    returningQueue.push([{
-      id: 28,
-      sessionId: 18,
-      role: "assistant",
-      content: "AI回复内容",
-      contentType: "text",
-    }]);
-    selectResultsQueue.push([{}, {}]);
+    mockSubmitTask.mockResolvedValueOnce({ taskId: 42 });
 
     const result = await caller().aiChat.sendMessage({
       message: longMessage,
@@ -344,6 +232,125 @@ describe("aiChat.sendMessage", () => {
     // Verify the call completed successfully — the title truncation
     // happens inside db.insert which is mocked, but validates input is accepted
     expect(result.sessionId).toBe(18);
+    expect(result.status).toBe("processing");
+  });
+
+  it("propagates submitTask errors", async () => {
+    returningQueue.push([{ id: 19 }]);
+    mockSubmitTask.mockRejectedValueOnce(new Error("Task queue full"));
+
+    await expect(
+      caller().aiChat.sendMessage({ message: "test" })
+    ).rejects.toThrow("Task queue full");
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+// getReplyStatus
+// ══════════════════════════════════════════════════════════════
+
+describe("aiChat.getReplyStatus", () => {
+  it("returns completed status with message from DB when task is completed", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42,
+      status: "completed",
+      resultData: { response: "AI回复内容" },
+    });
+    // The DB select for latest assistant message
+    selectResultsQueue.push([{
+      id: 20,
+      sessionId: 10,
+      role: "assistant",
+      content: "AI回复内容",
+      contentType: "text",
+    }]);
+
+    const result = await caller().aiChat.getReplyStatus({
+      taskId: 42,
+      sessionId: 10,
+    });
+
+    expect(result.taskStatus).toBe("completed");
+    expect(result.message).toBeDefined();
+    expect(result.message!.content).toBe("AI回复内容");
+    expect(mockGetTaskStatus).toHaveBeenCalledWith(42);
+  });
+
+  it("returns completed with fallback content when DB has no messages", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42,
+      status: "completed",
+      resultData: { response: "Fallback response" },
+    });
+    // DB returns no messages
+    selectResultsQueue.push([]);
+
+    const result = await caller().aiChat.getReplyStatus({
+      taskId: 42,
+      sessionId: 10,
+    });
+
+    expect(result.taskStatus).toBe("completed");
+    expect(result.message).toEqual({ content: "Fallback response" });
+  });
+
+  it("returns failed status with error message", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42,
+      status: "failed",
+      errorMessage: "LLM service unavailable",
+    });
+
+    const result = await caller().aiChat.getReplyStatus({
+      taskId: 42,
+      sessionId: 10,
+    });
+
+    expect(result.taskStatus).toBe("failed");
+    expect(result.message).toBeNull();
+    expect(result.error).toBe("LLM service unavailable");
+  });
+
+  it("returns pending status when task is still pending", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42,
+      status: "pending",
+    });
+
+    const result = await caller().aiChat.getReplyStatus({
+      taskId: 42,
+      sessionId: 10,
+    });
+
+    expect(result.taskStatus).toBe("pending");
+    expect(result.message).toBeNull();
+  });
+
+  it("returns processing status when task is in progress", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42,
+      status: "processing",
+    });
+
+    const result = await caller().aiChat.getReplyStatus({
+      taskId: 42,
+      sessionId: 10,
+    });
+
+    expect(result.taskStatus).toBe("processing");
+    expect(result.message).toBeNull();
+  });
+
+  it("returns not_found when task does not exist", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce(null);
+
+    const result = await caller().aiChat.getReplyStatus({
+      taskId: 999,
+      sessionId: 10,
+    });
+
+    expect(result.taskStatus).toBe("not_found");
+    expect(result.message).toBeNull();
   });
 });
 
@@ -469,6 +476,12 @@ describe("aiChat — authentication", () => {
   it("rejects anonymous caller for getQuickPrompts with input", async () => {
     await expect(
       createAnonymousCaller().aiChat.getQuickPrompts({ assistantType: "planning" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects anonymous caller for getReplyStatus", async () => {
+    await expect(
+      createAnonymousCaller().aiChat.getReplyStatus({ taskId: 1, sessionId: 1 })
     ).rejects.toThrow();
   });
 });

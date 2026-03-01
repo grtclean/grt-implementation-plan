@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useZodForm, schemas, z } from "@/lib/form-validation";
 import {
   Shield, Plus, AlertTriangle, CheckCircle2, XCircle,
   ChevronRight, ClipboardList, FileSearch, Target,
@@ -15,6 +16,30 @@ import {
   Ruler, FlaskConical, Eye, Hash, Trash2,
 } from "lucide-react";
 import QueryErrorBanner from "@/components/QueryErrorBanner";
+
+// ─── Zod Schemas ───────────────────────────────────────────────
+const create8DSchema = z.object({
+  title: schemas.requiredString("Report title is required / 报告标题必填"),
+  problemDescription: z.string().optional(),
+  severity: z.enum(["critical", "high", "medium", "low"]).default("medium"),
+  source: z.string().optional(),
+  customerName: z.string().optional(),
+  partNumber: z.string().optional(),
+  defectQuantity: z.coerce.number().int().nonnegative().optional(),
+  dueDate: z.string().optional(),
+});
+type Create8DValues = z.infer<typeof create8DSchema>;
+
+const createCapaSchema = z.object({
+  capaType: z.enum(["corrective", "preventive"]).default("corrective"),
+  title: schemas.requiredString("CAPA title is required / CAPA标题必填"),
+  description: z.string().optional(),
+  rootCause: z.string().optional(),
+  actionPlan: z.string().optional(),
+  responsibleName: z.string().optional(),
+  targetDate: z.string().optional(),
+});
+type CreateCapaValues = z.infer<typeof createCapaSchema>;
 
 // ─── Constants ────────────────────────────────────────────────
 const D_STEPS = ["open", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "closed", "verified"] as const;
@@ -209,16 +234,20 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
     onSuccess: (res) => {
       toast.success(res.message);
       setShowCreate(false);
+      cf.reset();
       listQ.refetch();
       statsQ.refetch();
     },
     onError: (err) => toast.error(err.message),
   });
 
-  // Create form state
-  const [cf, setCf] = useState({
-    title: "", problemDescription: "", severity: "medium", source: "",
-    customerName: "", partNumber: "", defectQuantity: 0, dueDate: "",
+  // Create form — Zod + react-hook-form
+  const cf = useZodForm({
+    schema: create8DSchema,
+    defaultValues: {
+      title: "", problemDescription: "", severity: "medium", source: "",
+      customerName: "", partNumber: "", defectQuantity: 0, dueDate: "",
+    },
   });
 
   const stats = statsQ.data;
@@ -330,19 +359,31 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
       )}
 
       {/* Create 8D Dialog */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t("quality.workbench.new8DDialog")} wide>
-        <div className="space-y-4">
+      <Modal open={showCreate} onClose={() => { setShowCreate(false); cf.reset(); }} title={t("quality.workbench.new8DDialog")} wide>
+        <form onSubmit={cf.handleSubmit((data) => {
+          createMut.mutate({
+            title: data.title,
+            problemDescription: data.problemDescription || undefined,
+            severity: data.severity as "critical" | "high" | "medium" | "low",
+            source: data.source || undefined,
+            customerName: data.customerName || undefined,
+            partNumber: data.partNumber || undefined,
+            defectQuantity: data.defectQuantity || undefined,
+            dueDate: data.dueDate || undefined,
+          });
+        })} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.reportTitle")} *</label>
             <input
-              type="text" value={cf.title} onChange={(e) => setCf({ ...cf, title: e.target.value })}
+              type="text" value={cf.watch("title")} onChange={(e) => cf.setValue("title", e.target.value, { shouldValidate: true })}
               className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
             />
+            {cf.formState.errors.title && <p className="text-[#d83b01] text-xs mt-1">{cf.formState.errors.title.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.problemDesc")}</label>
             <textarea
-              value={cf.problemDescription} onChange={(e) => setCf({ ...cf, problemDescription: e.target.value })}
+              value={cf.watch("problemDescription") || ""} onChange={(e) => cf.setValue("problemDescription", e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
             />
@@ -350,7 +391,7 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.severityLevel")}</label>
-              <InlineSelect value={cf.severity} onChange={(v) => setCf({ ...cf, severity: v })}
+              <InlineSelect value={cf.watch("severity")} onChange={(v) => cf.setValue("severity", v as any)}
                 options={[
                   { value: "critical", label: t("quality.eightDCapa.severityCritical") },
                   { value: "high", label: t("quality.eightDCapa.severityHigh") },
@@ -362,7 +403,7 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
             <div>
               <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.source")}</label>
               <input
-                type="text" value={cf.source} onChange={(e) => setCf({ ...cf, source: e.target.value })}
+                type="text" value={cf.watch("source") || ""} onChange={(e) => cf.setValue("source", e.target.value)}
                 placeholder="customer_complaint / internal_audit / ..."
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
               />
@@ -372,14 +413,14 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
             <div>
               <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.customerName")}</label>
               <input
-                type="text" value={cf.customerName} onChange={(e) => setCf({ ...cf, customerName: e.target.value })}
+                type="text" value={cf.watch("customerName") || ""} onChange={(e) => cf.setValue("customerName", e.target.value)}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.partNumber")}</label>
               <input
-                type="text" value={cf.partNumber} onChange={(e) => setCf({ ...cf, partNumber: e.target.value })}
+                type="text" value={cf.watch("partNumber") || ""} onChange={(e) => cf.setValue("partNumber", e.target.value)}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
               />
             </div>
@@ -388,42 +429,33 @@ function ReportsTab({ onSelectReport }: { onSelectReport: (id: number) => void }
             <div>
               <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.workbench.defectQuantity")}</label>
               <input
-                type="number" value={cf.defectQuantity || ""} onChange={(e) => setCf({ ...cf, defectQuantity: parseInt(e.target.value) || 0 })}
+                type="number" value={cf.watch("defectQuantity") || ""} onChange={(e) => cf.setValue("defectQuantity", parseInt(e.target.value) || 0)}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.targetCloseDate")}</label>
               <input
-                type="date" value={cf.dueDate} onChange={(e) => setCf({ ...cf, dueDate: e.target.value })}
+                type="date" value={cf.watch("dueDate") || ""} onChange={(e) => cf.setValue("dueDate", e.target.value)}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
               />
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-[#edebe9]">
-            <button onClick={() => setShowCreate(false)}
+            <button type="button" onClick={() => { setShowCreate(false); cf.reset(); }}
               className="h-9 px-4 text-sm text-[#323130] border border-[#8a8886] rounded-md hover:bg-[#f3f2f1]">
               {t("quality.common.cancel")}
             </button>
             <button
-              disabled={!cf.title || createMut.isPending}
-              onClick={() => createMut.mutate({
-                title: cf.title,
-                problemDescription: cf.problemDescription || undefined,
-                severity: cf.severity as "critical" | "high" | "medium" | "low",
-                source: cf.source || undefined,
-                customerName: cf.customerName || undefined,
-                partNumber: cf.partNumber || undefined,
-                defectQuantity: cf.defectQuantity || undefined,
-                dueDate: cf.dueDate || undefined,
-              })}
+              type="submit"
+              disabled={createMut.isPending}
               className="h-9 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-sm font-medium rounded-md flex items-center gap-1.5 disabled:opacity-50"
             >
               {createMut.isPending && <Loader2 size={14} className="animate-spin" />}
               {t("quality.common.create")}
             </button>
           </div>
-        </div>
+        </form>
       </Modal>
     </div>
   );
@@ -760,6 +792,7 @@ function CapaTab() {
     onSuccess: (res) => {
       toast.success(res.message);
       setShowCreate(false);
+      cf.reset();
       listQ.refetch();
     },
     onError: (err) => toast.error(err.message),
@@ -773,10 +806,14 @@ function CapaTab() {
     onError: (err) => toast.error(err.message),
   });
 
-  const [cf, setCf] = useState({
-    capaType: "corrective" as "corrective" | "preventive",
-    title: "", description: "", rootCause: "", actionPlan: "",
-    responsibleName: "", targetDate: "",
+  // Create CAPA form — Zod + react-hook-form
+  const cf = useZodForm({
+    schema: createCapaSchema,
+    defaultValues: {
+      capaType: "corrective",
+      title: "", description: "", rootCause: "", actionPlan: "",
+      responsibleName: "", targetDate: "",
+    },
   });
 
   const items = listQ.data?.items ?? [];
@@ -855,11 +892,21 @@ function CapaTab() {
       )}
 
       {/* Create CAPA Dialog */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t("quality.workbench.newCapaDialog")} wide>
-        <div className="space-y-4">
+      <Modal open={showCreate} onClose={() => { setShowCreate(false); cf.reset(); }} title={t("quality.workbench.newCapaDialog")} wide>
+        <form onSubmit={cf.handleSubmit((data) => {
+          createMut.mutate({
+            capaType: data.capaType as "corrective" | "preventive",
+            title: data.title,
+            description: data.description || undefined,
+            rootCause: data.rootCause || undefined,
+            actionPlan: data.actionPlan ? data.actionPlan.split("\n").filter(Boolean) : undefined,
+            responsibleName: data.responsibleName || undefined,
+            targetDate: data.targetDate || undefined,
+          });
+        })} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.capaType")} *</label>
-            <InlineSelect value={cf.capaType} onChange={(v) => setCf({ ...cf, capaType: v as "corrective" | "preventive" })}
+            <InlineSelect value={cf.watch("capaType")} onChange={(v) => cf.setValue("capaType", v as "corrective" | "preventive")}
               options={[
                 { value: "corrective", label: t("quality.eightDCapa.typeCorrective") },
                 { value: "preventive", label: t("quality.eightDCapa.typePreventive") },
@@ -868,57 +915,50 @@ function CapaTab() {
           </div>
           <div>
             <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.reportTitle")} *</label>
-            <input type="text" value={cf.title} onChange={(e) => setCf({ ...cf, title: e.target.value })}
+            <input type="text" value={cf.watch("title")} onChange={(e) => cf.setValue("title", e.target.value, { shouldValidate: true })}
               className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
+            {cf.formState.errors.title && <p className="text-[#d83b01] text-xs mt-1">{cf.formState.errors.title.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.capaDesc")}</label>
-            <textarea value={cf.description} onChange={(e) => setCf({ ...cf, description: e.target.value })} rows={2}
+            <textarea value={cf.watch("description") || ""} onChange={(e) => cf.setValue("description", e.target.value)} rows={2}
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
           <div>
             <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.rootCause")}</label>
-            <textarea value={cf.rootCause} onChange={(e) => setCf({ ...cf, rootCause: e.target.value })} rows={2}
+            <textarea value={cf.watch("rootCause") || ""} onChange={(e) => cf.setValue("rootCause", e.target.value)} rows={2}
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
           <div>
             <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.workbench.actionPlan")}</label>
-            <textarea value={cf.actionPlan} onChange={(e) => setCf({ ...cf, actionPlan: e.target.value })} rows={3}
+            <textarea value={cf.watch("actionPlan") || ""} onChange={(e) => cf.setValue("actionPlan", e.target.value)} rows={3}
               className="w-full px-3 py-2 border border-[#8a8886] rounded-md text-sm resize-none focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.capaResponsible")}</label>
-              <input type="text" value={cf.responsibleName} onChange={(e) => setCf({ ...cf, responsibleName: e.target.value })}
+              <input type="text" value={cf.watch("responsibleName") || ""} onChange={(e) => cf.setValue("responsibleName", e.target.value)}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#323130] mb-1">{t("quality.eightDCapa.capaTargetDate")}</label>
-              <input type="date" value={cf.targetDate} onChange={(e) => setCf({ ...cf, targetDate: e.target.value })}
+              <input type="date" value={cf.watch("targetDate") || ""} onChange={(e) => cf.setValue("targetDate", e.target.value)}
                 className="w-full h-9 px-3 border border-[#8a8886] rounded-md text-sm focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]" />
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-[#edebe9]">
-            <button onClick={() => setShowCreate(false)}
+            <button type="button" onClick={() => { setShowCreate(false); cf.reset(); }}
               className="h-9 px-4 text-sm text-[#323130] border border-[#8a8886] rounded-md hover:bg-[#f3f2f1]">{t("quality.common.cancel")}</button>
             <button
-              disabled={!cf.title || createMut.isPending}
-              onClick={() => createMut.mutate({
-                capaType: cf.capaType,
-                title: cf.title,
-                description: cf.description || undefined,
-                rootCause: cf.rootCause || undefined,
-                actionPlan: cf.actionPlan ? cf.actionPlan.split("\n").filter(Boolean) : undefined,
-                responsibleName: cf.responsibleName || undefined,
-                targetDate: cf.targetDate || undefined,
-              })}
+              type="submit"
+              disabled={createMut.isPending}
               className="h-9 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-sm font-medium rounded-md flex items-center gap-1.5 disabled:opacity-50"
             >
               {createMut.isPending && <Loader2 size={14} className="animate-spin" />}
               {t("quality.common.create")}
             </button>
           </div>
-        </div>
+        </form>
       </Modal>
 
       {/* Update Status Dialog */}

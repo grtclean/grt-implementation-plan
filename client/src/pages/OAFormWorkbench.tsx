@@ -7,6 +7,22 @@ import {
 import UniversalDynamicForm from "@/components/UniversalDynamicForm";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useZodForm, schemas, z } from "@/lib/form-validation";
+
+// ─── Zod Schema for Template Creation ──────────────────────────
+const createTemplateSchema = z.object({
+  code: schemas.requiredString("Template code is required / 模板编码必填"),
+  name: schemas.requiredString("Template name is required / 模板名称必填"),
+  nameEn: z.string().optional(),
+  desc: z.string().optional(),
+  cat: z.string().default("general"),
+  icon: z.string().optional(),
+  color: z.string().optional(),
+  fields: z.string().min(2, "Fields JSON is required / 字段定义必填").refine((val) => {
+    try { const parsed = JSON.parse(val); return Array.isArray(parsed); } catch { return false; }
+  }, { message: "Invalid JSON array / 字段 JSON 格式错误" }),
+});
+type CreateTemplateValues = z.infer<typeof createTemplateSchema>;
 
 const oaForms = trpc.oaForms;
 
@@ -60,9 +76,9 @@ function FluentCard({ children, className = "", onClick }: { children: React.Rea
 function FluentBadge({ children, bg, text }: { children: React.ReactNode; bg: string; text: string }) {
   return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${bg} ${text}`}>{children}</span>;
 }
-function FluentButton({ children, variant = "default", size = "md", onClick, disabled = false, className = "" }: {
+function FluentButton({ children, variant = "default", size = "md", onClick, disabled = false, className = "", type }: {
   children: React.ReactNode; variant?: "default" | "primary" | "danger" | "success" | "ghost";
-  size?: "sm" | "md"; onClick?: () => void; disabled?: boolean; className?: string;
+  size?: "sm" | "md"; onClick?: () => void; disabled?: boolean; className?: string; type?: "button" | "submit";
 }) {
   const base = "inline-flex items-center justify-center font-semibold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
   const sz = size === "sm" ? "px-2.5 py-1 text-xs gap-1" : "px-4 py-2 text-sm gap-2";
@@ -73,7 +89,7 @@ function FluentButton({ children, variant = "default", size = "md", onClick, dis
     success: "bg-[#107c10] text-white hover:bg-[#0b6a0b]",
     ghost: "text-[#0078d4] hover:bg-[#f3f2f1]",
   };
-  return <button className={`${base} ${sz} ${v[variant]} ${className}`} onClick={onClick} disabled={disabled}>{children}</button>;
+  return <button type={type} className={`${base} ${sz} ${v[variant]} ${className}`} onClick={onClick} disabled={disabled}>{children}</button>;
 }
 function StatCard({ label, value, icon: Icon, color = "#0078d4" }: { label: string; value: number | string; icon: any; color?: string }) {
   return (
@@ -139,7 +155,10 @@ export default function OAFormWorkbench() {
   const [appComment, setAppComment] = useState("");
   const [rejReason, setRejReason] = useState("");
   const [createDlg, setCreateDlg] = useState(false);
-  const [nt, setNt] = useState({ code: "", name: "", nameEn: "", desc: "", cat: "general", icon: "", color: "", fields: "[]" });
+  const ntForm = useZodForm({
+    schema: createTemplateSchema,
+    defaultValues: { code: "", name: "", nameEn: "", desc: "", cat: "general", icon: "", color: "", fields: "[]" },
+  });
 
   // Data
   const tplQ = oaForms.listTemplates.useQuery({ activeOnly: tab === "gallery" });
@@ -200,21 +219,20 @@ export default function OAFormWorkbench() {
       { onSuccess: () => { setRejectDlg(null); setRejReason(""); pendQ.refetch(); } },
     );
   }
-  function doCreateTpl() {
-    let f: any[];
-    try { f = JSON.parse(nt.fields); } catch { alert("字段 JSON 格式错误"); return; }
+  const doCreateTpl = ntForm.handleSubmit((data) => {
+    const f = JSON.parse(data.fields); // Already validated by Zod refine
     createTpl.mutate({
-      templateCode: nt.code, templateName: nt.name, templateNameEn: nt.nameEn || undefined,
-      description: nt.desc || undefined, category: nt.cat, icon: nt.icon || undefined,
-      color: nt.color || undefined, fields: f,
+      templateCode: data.code, templateName: data.name, templateNameEn: data.nameEn || undefined,
+      description: data.desc || undefined, category: data.cat, icon: data.icon || undefined,
+      color: data.color || undefined, fields: f,
     }, {
       onSuccess: () => {
         setCreateDlg(false);
-        setNt({ code: "", name: "", nameEn: "", desc: "", cat: "general", icon: "", color: "", fields: "[]" });
+        ntForm.reset();
         allTplQ.refetch(); tplQ.refetch();
       },
     });
-  }
+  });
   function toggleActive(t: any) {
     updateTpl.mutate({ id: t.id, isActive: !t.isActive }, { onSuccess: () => { allTplQ.refetch(); tplQ.refetch(); } });
   }
@@ -232,6 +250,24 @@ export default function OAFormWorkbench() {
   });
 
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("zh-CN") : "-";
+
+  // Top-level loading skeleton for initial page load
+  if (tplQ.isLoading && statsQ.isLoading) {
+    return (
+      <div className="min-h-screen bg-[#faf9f8] p-6 space-y-6 animate-pulse">
+        <div className="bg-white border-b border-[#edebe9] px-6 py-4 rounded-lg">
+          <div className="h-6 bg-[#f3f2f1] rounded w-48 mb-2" />
+          <div className="h-4 bg-[#f3f2f1] rounded w-80" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <FluentCard key={i} className="p-4 h-20"><Skeleton type="row" /></FluentCard>)}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1,2,3,4,5,6].map(i => <FluentCard key={i} className="p-4"><Skeleton type="card" /></FluentCard>)}
+        </div>
+      </div>
+    );
+  }
 
   // ── Render ─────────────────────────────────────────────────
   return (
@@ -637,7 +673,8 @@ export default function OAFormWorkbench() {
 
       {/* Create Template Dialog */}
       {createDlg && (
-        <Overlay onClose={() => setCreateDlg(false)}>
+        <Overlay onClose={() => { setCreateDlg(false); ntForm.reset(); }}>
+          <form onSubmit={doCreateTpl}>
           <div className="sticky top-0 bg-white px-5 py-4 border-b border-[#edebe9]">
             <h3 className="text-base font-semibold text-[#323130] flex items-center gap-2">
               <Plus className="w-5 h-5 text-[#0078d4]" /> 新建表单模板
@@ -647,19 +684,21 @@ export default function OAFormWorkbench() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-[#323130]">模板编码 <span className="text-[#d83b01]">*</span></label>
-                <input value={nt.code} onChange={(e) => setNt({ ...nt, code: e.target.value })} placeholder="如: TRAVEL_REQ" className={`mt-1 ${inputCls}`} />
+                <input value={ntForm.watch("code")} onChange={(e) => ntForm.setValue("code", e.target.value, { shouldValidate: true })} placeholder="如: TRAVEL_REQ" className={`mt-1 ${inputCls}`} />
+                {ntForm.formState.errors.code && <p className="text-[#d83b01] text-xs mt-1">{ntForm.formState.errors.code.message}</p>}
               </div>
               <div>
                 <label className="text-sm font-medium text-[#323130]">模板名称 <span className="text-[#d83b01]">*</span></label>
-                <input value={nt.name} onChange={(e) => setNt({ ...nt, name: e.target.value })} placeholder="如: 出差申请" className={`mt-1 ${inputCls}`} />
+                <input value={ntForm.watch("name")} onChange={(e) => ntForm.setValue("name", e.target.value, { shouldValidate: true })} placeholder="如: 出差申请" className={`mt-1 ${inputCls}`} />
+                {ntForm.formState.errors.name && <p className="text-[#d83b01] text-xs mt-1">{ntForm.formState.errors.name.message}</p>}
               </div>
               <div>
                 <label className="text-sm font-medium text-[#323130]">英文名称</label>
-                <input value={nt.nameEn} onChange={(e) => setNt({ ...nt, nameEn: e.target.value })} placeholder="如: Travel Request" className={`mt-1 ${inputCls}`} />
+                <input value={ntForm.watch("nameEn") || ""} onChange={(e) => ntForm.setValue("nameEn", e.target.value)} placeholder="如: Travel Request" className={`mt-1 ${inputCls}`} />
               </div>
               <div>
                 <label className="text-sm font-medium text-[#323130]">分类</label>
-                <select value={nt.cat} onChange={(e) => setNt({ ...nt, cat: e.target.value })} className={`mt-1 ${inputCls}`}>
+                <select value={ntForm.watch("cat")} onChange={(e) => ntForm.setValue("cat", e.target.value)} className={`mt-1 ${inputCls}`}>
                   <option value="general">通用</option><option value="hr">人事</option>
                   <option value="admin">行政</option><option value="finance">财务</option>
                   <option value="project">项目</option>
@@ -667,31 +706,33 @@ export default function OAFormWorkbench() {
               </div>
               <div>
                 <label className="text-sm font-medium text-[#323130]">图标</label>
-                <input value={nt.icon} onChange={(e) => setNt({ ...nt, icon: e.target.value })} placeholder="如: plane, receipt" className={`mt-1 ${inputCls}`} />
+                <input value={ntForm.watch("icon") || ""} onChange={(e) => ntForm.setValue("icon", e.target.value)} placeholder="如: plane, receipt" className={`mt-1 ${inputCls}`} />
               </div>
               <div>
                 <label className="text-sm font-medium text-[#323130]">颜色</label>
-                <input value={nt.color} onChange={(e) => setNt({ ...nt, color: e.target.value })} placeholder="如: blue-500" className={`mt-1 ${inputCls}`} />
+                <input value={ntForm.watch("color") || ""} onChange={(e) => ntForm.setValue("color", e.target.value)} placeholder="如: blue-500" className={`mt-1 ${inputCls}`} />
               </div>
             </div>
             <div>
               <label className="text-sm font-medium text-[#323130]">描述</label>
-              <textarea value={nt.desc} onChange={(e) => setNt({ ...nt, desc: e.target.value })} placeholder="模板用途描述..." rows={2} className={`mt-1 ${textareaCls}`} />
+              <textarea value={ntForm.watch("desc") || ""} onChange={(e) => ntForm.setValue("desc", e.target.value)} placeholder="模板用途描述..." rows={2} className={`mt-1 ${textareaCls}`} />
             </div>
             <div>
               <label className="text-sm font-medium text-[#323130]">字段定义 (JSON) <span className="text-[#d83b01]">*</span></label>
-              <textarea value={nt.fields} onChange={(e) => setNt({ ...nt, fields: e.target.value })}
+              <textarea value={ntForm.watch("fields")} onChange={(e) => ntForm.setValue("fields", e.target.value, { shouldValidate: true })}
                 placeholder='[{ "name": "reason", "label": "事由", "type": "textarea", "required": true }]'
                 rows={8} className={`mt-1 ${textareaCls} font-mono`} />
+              {ntForm.formState.errors.fields && <p className="text-[#d83b01] text-xs mt-1">{ntForm.formState.errors.fields.message}</p>}
               <p className="text-xs text-[#a19f9d] mt-1">JSON 数组，每个元素包含 name, label, type, required 等字段</p>
             </div>
           </div>
           <div className="sticky bottom-0 bg-white px-5 py-3 border-t border-[#edebe9] flex justify-end gap-2">
-            <FluentButton variant="default" onClick={() => setCreateDlg(false)}>取消</FluentButton>
-            <FluentButton variant="primary" onClick={doCreateTpl} disabled={createTpl.isPending || !nt.code.trim() || !nt.name.trim()}>
+            <FluentButton type="button" variant="default" onClick={() => { setCreateDlg(false); ntForm.reset(); }}>取消</FluentButton>
+            <FluentButton type="submit" variant="primary" disabled={createTpl.isPending}>
               <Send className="w-4 h-4" /> 创建模板
             </FluentButton>
           </div>
+          </form>
         </Overlay>
       )}
     </div>

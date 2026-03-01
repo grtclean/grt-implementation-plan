@@ -1,6 +1,6 @@
 /**
  * AI Suggestion Router — Unit Tests
- * Tests 4 procedures: getSuggestions, generateSuggestion, applySuggestion, recordFeedback
+ * Tests 5 procedures: getSuggestions, generateSuggestion, getSuggestionStatus, applySuggestion, recordFeedback
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
@@ -53,24 +53,21 @@ vi.mock("drizzle-orm", () => ({
   sql: Object.assign(vi.fn(), { raw: vi.fn() }),
 }));
 
-// Mock LLM
-const mockInvokeLLM = vi.fn();
-vi.mock("../_core/llm", () => ({
-  invokeLLM: (...args: any[]) => mockInvokeLLM(...args),
-}));
+// Mock task worker service (async task queue pattern)
+const mockSubmitTask = vi.fn().mockResolvedValue({ taskId: 42 });
+const mockGetTaskStatus = vi.fn().mockResolvedValue({ id: 42, status: "completed", resultData: {} });
 
-// Mock knowledge base search
-const mockSearchDocuments = vi.fn();
-vi.mock("../modules/knowledge-base.service", () => ({
-  searchDocuments: (...args: any[]) => mockSearchDocuments(...args),
+vi.mock("../services/task-worker.service", () => ({
+  submitTask: (...args: any[]) => mockSubmitTask(...args),
+  getTaskStatus: (...args: any[]) => mockGetTaskStatus(...args),
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
   selectResultsQueue.length = 0;
   returningQueue.length = 0;
-  mockInvokeLLM.mockReset();
-  mockSearchDocuments.mockReset();
+  mockSubmitTask.mockReset().mockResolvedValue({ taskId: 42 });
+  mockGetTaskStatus.mockReset().mockResolvedValue({ id: 42, status: "completed", resultData: {} });
 });
 
 const caller = () => createAuthenticatedCaller();
@@ -171,32 +168,9 @@ describe("aiSuggestion router", () => {
     });
   });
 
-  // ═══ generateSuggestion ═══
+  // ═══ generateSuggestion (async task queue) ═══
   describe("generateSuggestion", () => {
-    it("generates suggestion with LLM + RAG and saves to DB", async () => {
-      const llmSuggestion = {
-        summary: "Improve AP score",
-        details: "Focus on detection controls",
-        suggestedActions: ["Add sensor check", "Update FMEA sheet"],
-        references: ["AIAG VDA FMEA"],
-      };
-
-      mockSearchDocuments.mockResolvedValue([
-        { category: "standard", title: "FMEA Guide", content: "FMEA content here..." },
-      ]);
-
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{
-          message: {
-            role: "assistant",
-            content: JSON.stringify(llmSuggestion),
-          },
-          finish_reason: "stop",
-        }],
-      });
-
-      returningQueue.push([{ id: 42 }]);
-
+    it("submits task and returns taskId with processing status", async () => {
       const result = await caller().aiSuggestion.generateSuggestion({
         processType: "FMEA",
         processId: "P-001",
@@ -206,296 +180,155 @@ describe("aiSuggestion router", () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.suggestion.summary).toBe("Improve AP score");
-      expect(result.suggestion.suggestedActions).toEqual(["Add sensor check", "Update FMEA sheet"]);
-      expect(result.suggestion.references).toEqual(["AIAG VDA FMEA"]);
-      expect(result.id).toBe(42);
-
-      // Verify LLM was called with correct structure
-      expect(mockInvokeLLM).toHaveBeenCalledOnce();
-      const llmCall = mockInvokeLLM.mock.calls[0][0];
-      expect(llmCall.messages).toHaveLength(2);
-      expect(llmCall.messages[0].role).toBe("system");
-      expect(llmCall.messages[1].role).toBe("user");
-
-      // Verify search was called
-      expect(mockSearchDocuments).toHaveBeenCalledOnce();
+      expect(result.taskId).toBe(42);
+      expect(result.status).toBe("processing");
+      expect(result.suggestion).toBeNull();
+      expect(result.id).toBeNull();
     });
 
-    it("uses known process prompt for FMEA", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"s","details":"d","suggestedActions":[],"references":[]}' }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 1 }]);
-
-      await caller().aiSuggestion.generateSuggestion({ processType: "FMEA" });
-
-      const systemPrompt = mockInvokeLLM.mock.calls[0][0].messages[0].content;
-      expect(systemPrompt).toContain("FMEA");
-      expect(systemPrompt).toContain("AIAG VDA");
-    });
-
-    it("uses known process prompt for 8D", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"s","details":"d","suggestedActions":[],"references":[]}' }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 1 }]);
-
-      await caller().aiSuggestion.generateSuggestion({ processType: "8D" });
-
-      const systemPrompt = mockInvokeLLM.mock.calls[0][0].messages[0].content;
-      expect(systemPrompt).toContain("8D");
-      expect(systemPrompt).toContain("D1-D8");
-    });
-
-    it("uses known process prompt for CAPA", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"s","details":"d","suggestedActions":[],"references":[]}' }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 1 }]);
-
-      await caller().aiSuggestion.generateSuggestion({ processType: "CAPA" });
-
-      const systemPrompt = mockInvokeLLM.mock.calls[0][0].messages[0].content;
-      expect(systemPrompt).toContain("CAPA");
-    });
-
-    it("uses known process prompt for PPAP", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"s","details":"d","suggestedActions":[],"references":[]}' }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 1 }]);
-
-      await caller().aiSuggestion.generateSuggestion({ processType: "PPAP" });
-
-      const systemPrompt = mockInvokeLLM.mock.calls[0][0].messages[0].content;
-      expect(systemPrompt).toContain("PPAP");
-      expect(systemPrompt).toContain("18");
-    });
-
-    it("uses known process prompt for ControlPlan", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"s","details":"d","suggestedActions":[],"references":[]}' }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 1 }]);
-
-      await caller().aiSuggestion.generateSuggestion({ processType: "ControlPlan" });
-
-      const systemPrompt = mockInvokeLLM.mock.calls[0][0].messages[0].content;
-      expect(systemPrompt).toContain("控制计划");
-    });
-
-    it("uses fallback prompt for unknown processType", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"s","details":"d","suggestedActions":[],"references":[]}' }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 1 }]);
-
-      await caller().aiSuggestion.generateSuggestion({ processType: "CustomProcess" });
-
-      const systemPrompt = mockInvokeLLM.mock.calls[0][0].messages[0].content;
-      expect(systemPrompt).toContain("CustomProcess");
-      expect(systemPrompt).toContain("AI质量顾问");
-    });
-
-    it("handles LLM returning non-JSON content gracefully", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: "This is plain text without JSON" }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 5 }]);
-
-      const result = await caller().aiSuggestion.generateSuggestion({ processType: "FMEA" });
-
-      expect(result.success).toBe(true);
-      // When no JSON is found in the response, the suggestion stays as the initialized default (empty strings)
-      // because the regex /\{[\s\S]*\}/ finds no match and the initial suggestion object is returned as-is
-      expect(result.suggestion.summary).toBe("");
-      expect(result.suggestion.details).toBe("");
-      expect(result.suggestion.suggestedActions).toEqual([]);
-    });
-
-    it("handles LLM throwing an error", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockRejectedValue(new Error("LLM service unavailable"));
-      returningQueue.push([{ id: 6 }]);
-
-      const result = await caller().aiSuggestion.generateSuggestion({ processType: "FMEA" });
-
-      expect(result.success).toBe(true);
-      expect(result.suggestion.summary).toBe("AI建议生成失败");
-      expect(result.suggestion.details).toContain("稍后重试");
-    });
-
-    it("handles knowledge base search failure gracefully", async () => {
-      mockSearchDocuments.mockRejectedValue(new Error("KB unavailable"));
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"ok","details":"d","suggestedActions":[],"references":[]}' }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 7 }]);
-
-      const result = await caller().aiSuggestion.generateSuggestion({ processType: "FMEA" });
-
-      // Should still succeed; KB failure is non-fatal
-      expect(result.success).toBe(true);
-      expect(result.suggestion.summary).toBe("ok");
-    });
-
-    it("handles DB save failure and still returns suggestion", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"s","details":"d","suggestedActions":["a"],"references":["r"]}' }, finish_reason: "stop" }],
-      });
-      // Make the insert().values().returning() reject
-      returningQueue.length = 0;
-      // We need a special approach: push nothing to returningQueue so it uses the default [{ id: 1 }]
-      // But actually the code destructures [saved] from returning() and catches DB errors.
-      // Let's just let it succeed with default returning value.
-      // The DB save error path is tested by ensuring the fallback works.
-      returningQueue.push([{ id: 10 }]);
-
-      const result = await caller().aiSuggestion.generateSuggestion({
+    it("calls submitTask with correct task type and input", async () => {
+      await caller().aiSuggestion.generateSuggestion({
         processType: "FMEA",
         processId: "P-001",
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.suggestion.suggestedActions).toEqual(["a"]);
-    });
-
-    it("sets suggestionMode to 'current_step' when stepCode is provided", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"s","details":"d","suggestedActions":[],"references":[]}' }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 1 }]);
-
-      const result = await caller().aiSuggestion.generateSuggestion({
-        processType: "FMEA",
         stepCode: "S1",
+        context: "Seal failure",
+        question: "How to reduce AP?",
       });
 
-      expect(result.success).toBe(true);
+      expect(mockSubmitTask).toHaveBeenCalledOnce();
+      expect(mockSubmitTask.mock.calls[0][0]).toBe("AI_SUGGESTION_GENERATE");
+      expect(mockSubmitTask.mock.calls[0][1]).toEqual({
+        processType: "FMEA",
+        processId: "P-001",
+        stepCode: "S1",
+        context: "Seal failure",
+        question: "How to reduce AP?",
+      });
     });
 
-    it("sets suggestionMode to 'full_process' when no stepCode", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"s","details":"d","suggestedActions":[],"references":[]}' }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 1 }]);
+    it("passes user name as createdBy", async () => {
+      await caller().aiSuggestion.generateSuggestion({ processType: "8D" });
 
+      expect(mockSubmitTask).toHaveBeenCalledOnce();
+      // Third arg is the createdBy string
+      expect(mockSubmitTask.mock.calls[0][2]).toBeTruthy();
+    });
+
+    it("handles optional fields (only processType required)", async () => {
       const result = await caller().aiSuggestion.generateSuggestion({
-        processType: "FMEA",
+        processType: "CAPA",
       });
 
       expect(result.success).toBe(true);
+      expect(result.taskId).toBe(42);
+      expect(mockSubmitTask.mock.calls[0][1]).toEqual({
+        processType: "CAPA",
+        processId: undefined,
+        stepCode: undefined,
+        context: undefined,
+        question: undefined,
+      });
     });
 
-    it("includes RAG context in system prompt when KB returns results", async () => {
-      mockSearchDocuments.mockResolvedValue([
-        { category: "technical", title: "Doc A", content: "Content for doc A" },
-        { category: "standard", title: "Doc B", content: "Content for doc B" },
-      ]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"s","details":"d","suggestedActions":[],"references":[]}' }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 1 }]);
+    it("propagates submitTask failure", async () => {
+      mockSubmitTask.mockRejectedValueOnce(new Error("Queue unavailable"));
 
-      await caller().aiSuggestion.generateSuggestion({
-        processType: "FMEA",
-        question: "How to improve?",
-      });
-
-      const systemPrompt = mockInvokeLLM.mock.calls[0][0].messages[0].content;
-      expect(systemPrompt).toContain("参考知识库");
-      expect(systemPrompt).toContain("Doc A");
-      expect(systemPrompt).toContain("Doc B");
+      await expect(
+        caller().aiSuggestion.generateSuggestion({ processType: "FMEA" })
+      ).rejects.toThrow("Queue unavailable");
     });
 
-    it("builds user prompt with all optional fields", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"s","details":"d","suggestedActions":[],"references":[]}' }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 1 }]);
+    it("works with different process types", async () => {
+      for (const processType of ["FMEA", "8D", "CAPA", "PPAP", "ControlPlan", "CustomProcess"]) {
+        mockSubmitTask.mockResolvedValueOnce({ taskId: 100 });
+        const result = await caller().aiSuggestion.generateSuggestion({ processType });
+        expect(result.success).toBe(true);
+        expect(result.taskId).toBe(100);
+      }
+    });
+  });
 
-      await caller().aiSuggestion.generateSuggestion({
-        processType: "FMEA",
-        processId: "P-123",
-        stepCode: "S5",
-        context: "Seal leak found",
-        question: "Root cause?",
+  // ═══ getSuggestionStatus (polling) ═══
+  describe("getSuggestionStatus", () => {
+    it("returns completed status with suggestion data", async () => {
+      mockGetTaskStatus.mockResolvedValue({
+        id: 42,
+        status: "completed",
+        resultData: {
+          suggestion: { summary: "Improve AP", details: "Focus on detection", suggestedActions: ["Check"], references: ["AIAG"] },
+          id: 99,
+        },
       });
 
-      const userPrompt = mockInvokeLLM.mock.calls[0][0].messages[1].content;
-      expect(userPrompt).toContain("FMEA");
-      expect(userPrompt).toContain("P-123");
-      expect(userPrompt).toContain("S5");
-      expect(userPrompt).toContain("Seal leak found");
-      expect(userPrompt).toContain("Root cause?");
+      const result = await caller().aiSuggestion.getSuggestionStatus({ taskId: 42 });
+      expect(result.taskStatus).toBe("completed");
+      expect(result.suggestion).toEqual({
+        summary: "Improve AP",
+        details: "Focus on detection",
+        suggestedActions: ["Check"],
+        references: ["AIAG"],
+      });
+      expect(result.id).toBe(99);
     });
 
-    it("uses default question when none provided", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: '{"summary":"s","details":"d","suggestedActions":[],"references":[]}' }, finish_reason: "stop" }],
-      });
-      returningQueue.push([{ id: 1 }]);
+    it("returns not_found when task does not exist", async () => {
+      mockGetTaskStatus.mockResolvedValue(null);
 
-      await caller().aiSuggestion.generateSuggestion({ processType: "FMEA" });
-
-      const userPrompt = mockInvokeLLM.mock.calls[0][0].messages[1].content;
-      expect(userPrompt).toContain("改进建议");
+      const result = await caller().aiSuggestion.getSuggestionStatus({ taskId: 999 });
+      expect(result.taskStatus).toBe("not_found");
+      expect(result.suggestion).toBeNull();
+      expect(result.id).toBeNull();
     });
 
-    it("handles LLM returning empty content", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: "" }, finish_reason: "stop" }],
+    it("returns failed status with error", async () => {
+      mockGetTaskStatus.mockResolvedValue({
+        id: 42,
+        status: "failed",
+        resultData: null,
+        errorMessage: "LLM service unavailable",
       });
-      returningQueue.push([{ id: 1 }]);
 
-      const result = await caller().aiSuggestion.generateSuggestion({ processType: "FMEA" });
-      expect(result.success).toBe(true);
-      // Empty content => no JSON match => fallback with sliced content
-      expect(result.suggestion).toBeDefined();
+      const result = await caller().aiSuggestion.getSuggestionStatus({ taskId: 42 });
+      expect(result.taskStatus).toBe("failed");
+      expect(result.suggestion).toBeNull();
+      expect(result.error).toBe("LLM service unavailable");
     });
 
-    it("handles LLM returning null content", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { role: "assistant", content: null }, finish_reason: "stop" }],
+    it("returns pending status while task is queued", async () => {
+      mockGetTaskStatus.mockResolvedValue({
+        id: 42,
+        status: "pending",
+        resultData: null,
       });
-      returningQueue.push([{ id: 1 }]);
 
-      const result = await caller().aiSuggestion.generateSuggestion({ processType: "FMEA" });
-      expect(result.success).toBe(true);
+      const result = await caller().aiSuggestion.getSuggestionStatus({ taskId: 42 });
+      expect(result.taskStatus).toBe("pending");
+      expect(result.suggestion).toBeNull();
     });
 
-    it("extracts JSON from mixed LLM response", async () => {
-      mockSearchDocuments.mockResolvedValue([]);
-      mockInvokeLLM.mockResolvedValue({
-        choices: [{
-          message: {
-            role: "assistant",
-            content: 'Here is my analysis:\n```json\n{"summary":"extracted","details":"from mixed","suggestedActions":["x"],"references":["y"]}\n```\nHope this helps!',
-          },
-          finish_reason: "stop",
-        }],
+    it("returns processing status while task is running", async () => {
+      mockGetTaskStatus.mockResolvedValue({
+        id: 42,
+        status: "processing",
+        resultData: null,
       });
-      returningQueue.push([{ id: 1 }]);
 
-      const result = await caller().aiSuggestion.generateSuggestion({ processType: "FMEA" });
-      expect(result.success).toBe(true);
-      expect(result.suggestion.summary).toBe("extracted");
-      expect(result.suggestion.suggestedActions).toEqual(["x"]);
+      const result = await caller().aiSuggestion.getSuggestionStatus({ taskId: 42 });
+      expect(result.taskStatus).toBe("processing");
+      expect(result.suggestion).toBeNull();
+    });
+
+    it("handles completed task with no resultData gracefully", async () => {
+      mockGetTaskStatus.mockResolvedValue({
+        id: 42,
+        status: "completed",
+        resultData: null,
+      });
+
+      // When resultData is null but status is completed, it falls through to the status return
+      const result = await caller().aiSuggestion.getSuggestionStatus({ taskId: 42 });
+      // completed without resultData is not caught by the "completed && resultData" branch
+      expect(result.suggestion).toBeNull();
     });
   });
 
@@ -644,6 +477,12 @@ describe("aiSuggestion router", () => {
     it("rejects anonymous for generateSuggestion", async () => {
       await expect(createAnonymousCaller().aiSuggestion.generateSuggestion({
         processType: "FMEA",
+      })).rejects.toThrow();
+    });
+
+    it("rejects anonymous for getSuggestionStatus", async () => {
+      await expect(createAnonymousCaller().aiSuggestion.getSuggestionStatus({
+        taskId: 42,
       })).rejects.toThrow();
     });
 

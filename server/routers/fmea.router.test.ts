@@ -20,6 +20,12 @@ const { selectResultsQueue, mockReturningResult } = vi.hoisted(() => {
   return { selectResultsQueue, mockReturningResult };
 });
 
+// Mock BU scope — returns undefined (no BU filtering in tests)
+vi.mock("../_core/gateway-bu-context.middleware", () => ({
+  buScopeCondition: vi.fn().mockReturnValue(undefined),
+  buContextMiddleware: vi.fn((opts: any) => opts.next({ ctx: opts.ctx })),
+}));
+
 // Mock DB
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => {
@@ -66,6 +72,46 @@ vi.mock("drizzle-orm", () => ({
   sql: Object.assign(vi.fn(), { raw: vi.fn() }),
   gte: vi.fn((...args: any[]) => args),
   lte: vi.fn((...args: any[]) => args),
+  inArray: vi.fn((...args: any[]) => args),
+}));
+
+// Mock schema — provide table column references used by router
+vi.mock("../../drizzle/schema", () => ({
+  fmeaDocuments: {
+    id: "id", fmeaCode: "fmeaCode", projectId: "projectId",
+    fmeaType: "fmeaType", title: "title", scope: "scope",
+    productName: "productName", processName: "processName",
+    modelYear: "modelYear", teamMembers: "teamMembers",
+    status: { enumValues: ["draft", "in_review", "approved", "active", "archived"] },
+    createdAt: "createdAt", updatedAt: "updatedAt",
+  },
+  fmeaItems: {
+    id: "id", fmeaDocumentId: "fmeaDocumentId", itemNumber: "itemNumber",
+    systemElement: "systemElement", functionRequirement: "functionRequirement",
+    failureMode: "failureMode", failureEffect: "failureEffect",
+    failureCause: "failureCause", severity: "severity",
+    occurrence: "occurrence", detection: "detection",
+    rpn: "rpn", actionPriority: "actionPriority",
+    currentPreventionControl: "currentPreventionControl",
+    currentDetectionControl: "currentDetectionControl",
+    revisedSeverity: "revisedSeverity", revisedOccurrence: "revisedOccurrence",
+    revisedDetection: "revisedDetection", revisedRpn: "revisedRpn",
+    revisedActionPriority: "revisedActionPriority",
+    specialCharacteristic: "specialCharacteristic", notes: "notes",
+    createdAt: "createdAt", updatedAt: "updatedAt",
+  },
+  fmeaActions: {
+    id: "id", fmeaItemId: "fmeaItemId", actionDescription: "actionDescription",
+    responsiblePerson: "responsiblePerson", responsibleId: "responsibleId",
+    targetDate: "targetDate", completionDate: "completionDate",
+    status: "status", verificationResult: "verificationResult",
+    evidence: "evidence", createdAt: "createdAt", updatedAt: "updatedAt",
+  },
+  controlPlans: { id: "id" },
+  controlPlanItems: { id: "id" },
+  projects: {
+    id: "id", buCode: "buCode", name: "name", createdAt: "createdAt",
+  },
 }));
 
 beforeEach(() => {
@@ -120,20 +166,23 @@ describe("fmea router", () => {
     });
 
     it("filters by fmeaType", async () => {
-      selectResultsQueue.push([sampleDoc, { ...sampleDoc, id: 2, fmeaType: "DFMEA" }]);
+      // Mock DB returns pre-filtered results (DB-side filtering via WHERE clause)
+      selectResultsQueue.push([sampleDoc]);
       const result = await caller().fmea.listDocuments({ fmeaType: "PFMEA" });
       expect(result.items).toHaveLength(1);
       expect(result.items[0].fmeaType).toBe("PFMEA");
     });
 
     it("filters by projectId", async () => {
-      selectResultsQueue.push([sampleDoc, { ...sampleDoc, id: 2, projectId: 20 }]);
+      // Mock DB returns pre-filtered results
+      selectResultsQueue.push([sampleDoc]);
       const result = await caller().fmea.listDocuments({ projectId: 10 });
       expect(result.items).toHaveLength(1);
     });
 
     it("filters by status", async () => {
-      selectResultsQueue.push([sampleDoc, { ...sampleDoc, id: 2, status: "approved" }]);
+      // Mock DB returns pre-filtered results
+      selectResultsQueue.push([sampleDoc]);
       const result = await caller().fmea.listDocuments({ status: "draft" });
       expect(result.items).toHaveLength(1);
     });

@@ -2,7 +2,7 @@
  * AI需求智能分析 (AI Requirements Analysis)
  * Phase H: 可行性评估 · 产品线推荐 · 技术参数 · 风险识别
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,14 +51,36 @@ export default function AIRequirementsAnalysis() {
   const [specialRequirements, setSpecialRequirements] = useState("");
   const [budget, setBudget] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const mutation = trpc.rdServiceIntelligence.analyzeRequirements.useMutation({
-    onSuccess: (data) => setResult(data as AnalysisResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.rdServiceIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (taskQuery.data?.taskStatus === "completed" && taskQuery.data.result) {
+      setResult(taskQuery.data.result as unknown as AnalysisResult);
+      setTaskId(null);
+    } else if (taskQuery.data?.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data]);
+
   const handleSubmit = () => {
-    if (!projectName.trim() || !customerName.trim() || !cleaningTarget.trim() || mutation.isPending) return;
+    if (!projectName.trim() || !customerName.trim() || !cleaningTarget.trim() || mutation.isPending || !!taskId) return;
     mutation.mutate({
       projectName,
       customerName,
@@ -175,8 +197,8 @@ export default function AIRequirementsAnalysis() {
               <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder="如: 需要防爆设计、需兼容多种工件" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} />
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSubmit} disabled={!projectName.trim() || !customerName.trim() || !cleaningTarget.trim() || mutation.isPending}>
-                {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              <Button onClick={handleSubmit} disabled={!projectName.trim() || !customerName.trim() || !cleaningTarget.trim() || mutation.isPending || !!taskId}>
+                {mutation.isPending || !!taskId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 AI分析
               </Button>
             </div>

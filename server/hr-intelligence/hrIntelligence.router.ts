@@ -1,19 +1,15 @@
 /**
  * HR智能路由 (HR Intelligence Router)
  * Phase F: 人才评估 · 培训推荐 · 薪酬分析 · 人力规划
+ *
+ * All LLM operations now use async task queue.
  */
 
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import {
-  assessTalent,
-  recommendTraining,
-  analyzeCompensation,
-  planWorkforce,
-} from "./hrIntelligence.service";
+import { submitTask, getTaskStatus } from "../services/task-worker.service";
 
 export const hrIntelligenceRouter = router({
-  // 人才评估 (mutation — invokes LLM)
   assessTalent: protectedProcedure
     .input(
       z.object({
@@ -26,11 +22,15 @@ export const hrIntelligenceRouter = router({
         certifications: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await assessTalent(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "HR_ASSESS_TALENT",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
-  // 培训推荐 (mutation — invokes LLM)
   recommendTraining: protectedProcedure
     .input(
       z.object({
@@ -42,11 +42,15 @@ export const hrIntelligenceRouter = router({
         department: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await recommendTraining(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "HR_RECOMMEND_TRAINING",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
-  // 薪酬分析 (mutation — invokes LLM)
   analyzeCompensation: protectedProcedure
     .input(
       z.object({
@@ -59,11 +63,15 @@ export const hrIntelligenceRouter = router({
         education: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await analyzeCompensation(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "HR_ANALYZE_COMPENSATION",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
-  // 人力规划 (mutation — invokes LLM)
   planWorkforce: protectedProcedure
     .input(
       z.object({
@@ -76,7 +84,23 @@ export const hrIntelligenceRouter = router({
         timeHorizon: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await planWorkforce(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "HR_PLAN_WORKFORCE",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
+    }),
+
+  /** Generic task status poller */
+  getTaskResult: protectedProcedure
+    .input(z.object({ taskId: z.number() }))
+    .query(async ({ input }) => {
+      const task = await getTaskStatus(input.taskId);
+      if (!task) return { taskStatus: "not_found" as const, result: null };
+      if (task.status === "completed") return { taskStatus: "completed" as const, result: task.resultData };
+      if (task.status === "failed") return { taskStatus: "failed" as const, result: null, error: task.errorMessage };
+      return { taskStatus: task.status as "pending" | "processing", result: null };
     }),
 });

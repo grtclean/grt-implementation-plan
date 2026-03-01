@@ -2,7 +2,7 @@
  * AI成本优化 (AI Cost Allocation Optimization)
  * Phase G: 成本优化 · 节省建议 · 毛利分析 · 风险评估
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,14 +35,36 @@ export default function AICostOptimization() {
   const [laborHours, setLaborHours] = useState("");
   const [overheadRate, setOverheadRate] = useState("");
   const [result, setResult] = useState<CostResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const mutation = trpc.salesFinanceIntelligence.optimizeCost.useMutation({
-    onSuccess: (data) => setResult(data as CostResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.salesFinanceIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (taskQuery.data?.taskStatus === "completed" && taskQuery.data.result) {
+      setResult(taskQuery.data.result as unknown as CostResult);
+      setTaskId(null);
+    } else if (taskQuery.data?.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data]);
+
   const handleSubmit = () => {
-    if (!projectName.trim() || !totalBudget || !costBreakdown.trim() || !targetMargin || mutation.isPending) return;
+    if (!projectName.trim() || !totalBudget || !costBreakdown.trim() || !targetMargin || mutation.isPending || !!taskId) return;
     mutation.mutate({
       projectName,
       totalBudget: Number(totalBudget),
@@ -123,8 +145,8 @@ export default function AICostOptimization() {
               <Textarea placeholder="如: 真空泵15万, 不锈钢板20万, PLC控制系统12万, 超声波换能器8万" value={materialCosts} onChange={(e) => setMaterialCosts(e.target.value)} rows={2} />
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSubmit} disabled={!projectName.trim() || !totalBudget || !costBreakdown.trim() || !targetMargin || mutation.isPending}>
-                {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              <Button onClick={handleSubmit} disabled={!projectName.trim() || !totalBudget || !costBreakdown.trim() || !targetMargin || mutation.isPending || !!taskId}>
+                {mutation.isPending || !!taskId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 {t("ai.costOpt.aiOptimize")}
               </Button>
             </div>

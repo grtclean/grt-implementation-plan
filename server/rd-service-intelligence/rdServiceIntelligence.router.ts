@@ -1,19 +1,15 @@
 /**
  * 研发与客服智能路由 (R&D & Service Intelligence Router)
  * Phase H: 需求分析 · 设计审查 · 故障诊断 · 预防维护
+ *
+ * All LLM operations now use async task queue.
  */
 
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import {
-  analyzeRequirements,
-  reviewDesign,
-  diagnoseFault,
-  planMaintenance,
-} from "./rdServiceIntelligence.service";
+import { submitTask, getTaskStatus } from "../services/task-worker.service";
 
 export const rdServiceIntelligenceRouter = router({
-  // AI需求智能分析 (mutation — invokes LLM)
   analyzeRequirements: protectedProcedure
     .input(
       z.object({
@@ -27,11 +23,15 @@ export const rdServiceIntelligenceRouter = router({
         budget: z.number().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await analyzeRequirements(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "RD_ANALYZE_REQUIREMENTS",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
-  // AI设计审查 (mutation — invokes LLM)
   reviewDesign: protectedProcedure
     .input(
       z.object({
@@ -44,11 +44,15 @@ export const rdServiceIntelligenceRouter = router({
         standardsRequired: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await reviewDesign(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "RD_REVIEW_DESIGN",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
-  // AI故障诊断 (mutation — invokes LLM)
   diagnoseFault: protectedProcedure
     .input(
       z.object({
@@ -60,11 +64,15 @@ export const rdServiceIntelligenceRouter = router({
         equipmentAge: z.number().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await diagnoseFault(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "RD_DIAGNOSE_FAULT",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
-  // AI预防性维护 (mutation — invokes LLM)
   planMaintenance: protectedProcedure
     .input(
       z.object({
@@ -77,7 +85,23 @@ export const rdServiceIntelligenceRouter = router({
         usageIntensity: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await planMaintenance(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "RD_PLAN_MAINTENANCE",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
+    }),
+
+  /** Generic task status poller */
+  getTaskResult: protectedProcedure
+    .input(z.object({ taskId: z.number() }))
+    .query(async ({ input }) => {
+      const task = await getTaskStatus(input.taskId);
+      if (!task) return { taskStatus: "not_found" as const, result: null };
+      if (task.status === "completed") return { taskStatus: "completed" as const, result: task.resultData };
+      if (task.status === "failed") return { taskStatus: "failed" as const, result: null, error: task.errorMessage };
+      return { taskStatus: task.status as "pending" | "processing", result: null };
     }),
 });

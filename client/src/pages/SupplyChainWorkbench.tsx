@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useZodForm, schemas, z } from "@/lib/form-validation";
 import {
   Truck, LayoutDashboard, Tag, ClipboardCheck, ScanBarcode,
   Clock, MessageSquare, Wrench, Trash2, Plus, Search,
@@ -28,6 +29,44 @@ import {
   ArrowRight, ChevronRight, Ban, Timer,
 } from "lucide-react";
 import QueryErrorBanner from "@/components/QueryErrorBanner";
+
+// ─── Zod Schemas ─────────────────────────────────────────────────
+const labelCreateSchema = z.object({
+  supplierSerialNumber: schemas.requiredString("Supplier serial number is required / 供应商序列号必填"),
+  materialCode: schemas.materialCode("Material code is required / 物料编码必填"),
+  poNumber: schemas.optionalString(),
+  projectNumber: schemas.optionalString(),
+  supplierName: schemas.optionalString(),
+  materialName: schemas.optionalString(),
+  quantity: z.string().optional(),
+  batchNumber: schemas.optionalString(),
+});
+type LabelCreateValues = z.infer<typeof labelCreateSchema>;
+
+const inspectionCreateSchema = z.object({
+  materialCode: schemas.materialCode("Material code is required / 物料编码必填"),
+  materialName: schemas.optionalString(),
+  supplierName: schemas.optionalString(),
+  poNumber: schemas.optionalString(),
+  hasTestReport: z.boolean().default(false),
+  inspectedQuantity: z.string().optional(),
+});
+type InspectionCreateValues = z.infer<typeof inspectionCreateSchema>;
+
+const bomScanSchema = z.object({
+  projectNumber: schemas.requiredString("Project number is required / 项目编号必填"),
+  processCode: z.string().default("T1"),
+  barcode: schemas.requiredString("Barcode is required / 条码必填"),
+});
+type BomScanValues = z.infer<typeof bomScanSchema>;
+
+const complaintCreateSchema = z.object({
+  customerName: schemas.optionalString(),
+  projectNumber: schemas.optionalString(),
+  severity: schemas.severity(),
+  description: schemas.requiredString("Description is required / 问题描述必填"),
+});
+type ComplaintCreateValues = z.infer<typeof complaintCreateSchema>;
 
 function LoadingSkeleton({ rows = 3 }: { rows?: number }) {
   return <div className="space-y-3">{Array.from({ length: rows }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>;
@@ -85,7 +124,11 @@ function LabelsTab() {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ supplierSerialNumber: "", materialCode: "", poNumber: "", projectNumber: "", supplierName: "", materialName: "", quantity: "", batchNumber: "" });
+
+  const form = useZodForm({
+    schema: labelCreateSchema,
+    defaultValues: { supplierSerialNumber: "", materialCode: "", poNumber: "", projectNumber: "", supplierName: "", materialName: "", quantity: "", batchNumber: "" },
+  });
 
   const labelsQuery = trpc.supplyChain.label.list.useQuery({});
   const labels = labelsQuery.data?.items ?? [];
@@ -97,16 +140,24 @@ function LabelsTab() {
 
   const filtered = labels.filter((l: any) => !search || l.supplierSerialNumber?.includes(search) || l.materialCode?.includes(search));
 
-  const handleCreate = async () => {
-    if (!form.supplierSerialNumber || !form.materialCode) { toast.error(t("supply.chain.serialAndMaterialRequired")); return; }
+  const handleCreate = form.handleSubmit(async (data) => {
     try {
-      await createLabelMutation.mutateAsync(form);
+      await createLabelMutation.mutateAsync({
+        supplierSerialNumber: data.supplierSerialNumber,
+        materialCode: data.materialCode,
+        poNumber: data.poNumber || undefined,
+        projectNumber: data.projectNumber || undefined,
+        supplierName: data.supplierName || undefined,
+        materialName: data.materialName || undefined,
+        quantity: data.quantity || undefined,
+        batchNumber: data.batchNumber || undefined,
+      });
       toast.success(t("supply.chain.labelCreated"));
       setShowCreate(false);
-      setForm({ supplierSerialNumber: "", materialCode: "", poNumber: "", projectNumber: "", supplierName: "", materialName: "", quantity: "", batchNumber: "" });
+      form.reset();
       refetch();
     } catch (e: any) { toast.error(e.message || t("supply.p2p.createFailed")); }
-  };
+  });
 
   const handleValidate = async (id: number) => {
     try {
@@ -152,26 +203,34 @@ function LabelsTab() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{t("supply.chain.newLabelDialog")}</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            <div><Label>{t("supply.chain.supplierSerialNumber")} *</Label><Input value={form.supplierSerialNumber} onChange={e => setForm(p => ({ ...p, supplierSerialNumber: e.target.value }))} /></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>{t("supply.p2p.materialCode")} *</Label><Input value={form.materialCode} onChange={e => setForm(p => ({ ...p, materialCode: e.target.value }))} /></div>
-              <div><Label>{t("supply.p2p.materialName")}</Label><Input value={form.materialName} onChange={e => setForm(p => ({ ...p, materialName: e.target.value }))} /></div>
+          <form onSubmit={handleCreate} className="space-y-3 py-2">
+            <div>
+              <Label>{t("supply.chain.supplierSerialNumber")} *</Label>
+              <Input {...form.register("supplierSerialNumber")} />
+              {form.formState.errors.supplierSerialNumber && <p className="text-destructive text-sm mt-1">{form.formState.errors.supplierSerialNumber.message}</p>}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>{t("supply.p2p.poNumber")}</Label><Input value={form.poNumber} onChange={e => setForm(p => ({ ...p, poNumber: e.target.value }))} /></div>
-              <div><Label>{t("supply.chain.projectNumber")}</Label><Input value={form.projectNumber} onChange={e => setForm(p => ({ ...p, projectNumber: e.target.value }))} /></div>
+              <div>
+                <Label>{t("supply.p2p.materialCode")} *</Label>
+                <Input {...form.register("materialCode")} />
+                {form.formState.errors.materialCode && <p className="text-destructive text-sm mt-1">{form.formState.errors.materialCode.message}</p>}
+              </div>
+              <div><Label>{t("supply.p2p.materialName")}</Label><Input {...form.register("materialName")} /></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>{t("supply.p2p.supplier")}</Label><Input value={form.supplierName} onChange={e => setForm(p => ({ ...p, supplierName: e.target.value }))} /></div>
-              <div><Label>{t("supply.p2p.batchNumber")}</Label><Input value={form.batchNumber} onChange={e => setForm(p => ({ ...p, batchNumber: e.target.value }))} /></div>
+              <div><Label>{t("supply.p2p.poNumber")}</Label><Input {...form.register("poNumber")} /></div>
+              <div><Label>{t("supply.chain.projectNumber")}</Label><Input {...form.register("projectNumber")} /></div>
             </div>
-            <div><Label>{t("supply.planning.quantityLabel")}</Label><Input type="number" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
-            <Button onClick={handleCreate}>{t("supply.p2p.save")}</Button>
-          </DialogFooter>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div><Label>{t("supply.p2p.supplier")}</Label><Input {...form.register("supplierName")} /></div>
+              <div><Label>{t("supply.p2p.batchNumber")}</Label><Input {...form.register("batchNumber")} /></div>
+            </div>
+            <div><Label>{t("supply.planning.quantityLabel")}</Label><Input type="number" {...form.register("quantity")} /></div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
+              <Button type="submit">{t("supply.p2p.save")}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
@@ -182,7 +241,11 @@ function LabelsTab() {
 function InspectionTab() {
   const { t } = useLanguage();
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ materialCode: "", materialName: "", supplierName: "", poNumber: "", hasTestReport: false, inspectedQuantity: "" });
+
+  const form = useZodForm({
+    schema: inspectionCreateSchema,
+    defaultValues: { materialCode: "", materialName: "", supplierName: "", poNumber: "", hasTestReport: false, inspectedQuantity: "" },
+  });
 
   const inspectionsQuery = trpc.supplyChain.inspection.list.useQuery({});
   const inspections = inspectionsQuery.data?.items ?? [];
@@ -206,16 +269,22 @@ function InspectionTab() {
     PENDING: t("supply.chain.pendingLabel"),
   };
 
-  const handleCreate = async () => {
-    if (!form.materialCode) { toast.error(t("supply.chain.materialCodeRequired")); return; }
+  const handleCreate = form.handleSubmit(async (data) => {
     try {
-      await createInspectionMutation.mutateAsync(form);
+      await createInspectionMutation.mutateAsync({
+        materialCode: data.materialCode,
+        materialName: data.materialName || undefined,
+        supplierName: data.supplierName || undefined,
+        poNumber: data.poNumber || undefined,
+        hasTestReport: data.hasTestReport,
+        inspectedQuantity: data.inspectedQuantity || undefined,
+      });
       toast.success(t("supply.chain.inspectionCreated"));
       setShowCreate(false);
-      setForm({ materialCode: "", materialName: "", supplierName: "", poNumber: "", hasTestReport: false, inspectedQuantity: "" });
+      form.reset();
       refetch();
     } catch (e: any) { toast.error(e.message || t("supply.p2p.createFailed")); }
-  };
+  });
 
   const handleAutoReject = async (id: number) => {
     try {
@@ -271,25 +340,29 @@ function InspectionTab() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{t("supply.chain.newInspectionDialog")}</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
+          <form onSubmit={handleCreate} className="space-y-3 py-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>{t("supply.p2p.materialCode")} *</Label><Input value={form.materialCode} onChange={e => setForm(p => ({ ...p, materialCode: e.target.value }))} /></div>
-              <div><Label>{t("supply.p2p.materialName")}</Label><Input value={form.materialName} onChange={e => setForm(p => ({ ...p, materialName: e.target.value }))} /></div>
+              <div>
+                <Label>{t("supply.p2p.materialCode")} *</Label>
+                <Input {...form.register("materialCode")} />
+                {form.formState.errors.materialCode && <p className="text-destructive text-sm mt-1">{form.formState.errors.materialCode.message}</p>}
+              </div>
+              <div><Label>{t("supply.p2p.materialName")}</Label><Input {...form.register("materialName")} /></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>{t("supply.p2p.supplier")}</Label><Input value={form.supplierName} onChange={e => setForm(p => ({ ...p, supplierName: e.target.value }))} /></div>
-              <div><Label>{t("supply.p2p.poNumber")}</Label><Input value={form.poNumber} onChange={e => setForm(p => ({ ...p, poNumber: e.target.value }))} /></div>
+              <div><Label>{t("supply.p2p.supplier")}</Label><Input {...form.register("supplierName")} /></div>
+              <div><Label>{t("supply.p2p.poNumber")}</Label><Input {...form.register("poNumber")} /></div>
             </div>
-            <div><Label>{t("supply.chain.inspectedQuantity")}</Label><Input type="number" value={form.inspectedQuantity} onChange={e => setForm(p => ({ ...p, inspectedQuantity: e.target.value }))} /></div>
+            <div><Label>{t("supply.chain.inspectedQuantity")}</Label><Input type="number" {...form.register("inspectedQuantity")} /></div>
             <div className="flex items-center gap-2">
-              <input type="checkbox" id="hasReport" checked={form.hasTestReport} onChange={e => setForm(p => ({ ...p, hasTestReport: e.target.checked }))} />
+              <input type="checkbox" id="hasReport" checked={form.watch("hasTestReport")} onChange={e => form.setValue("hasTestReport", e.target.checked)} />
               <Label htmlFor="hasReport">{t("supply.chain.hasTestReport")}</Label>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
-            <Button onClick={handleCreate}>{t("supply.p2p.save")}</Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
+              <Button type="submit">{t("supply.p2p.save")}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
@@ -299,9 +372,14 @@ function InspectionTab() {
 // ─── Tab 4: Assembly BOM Scan ─────────────────────────────────
 function BomScanTab() {
   const { t } = useLanguage();
-  const [projectNumber, setProjectNumber] = useState("");
-  const [processCode, setProcessCode] = useState("T1");
-  const [barcode, setBarcode] = useState("");
+
+  const scanForm = useZodForm({
+    schema: bomScanSchema,
+    defaultValues: { projectNumber: "", processCode: "T1", barcode: "" },
+  });
+
+  const projectNumber = scanForm.watch("projectNumber");
+  const processCode = scanForm.watch("processCode");
 
   const scansQuery = trpc.supplyChain.bomScan.list.useQuery({ projectNumber: projectNumber || undefined, processCode });
   const scans = scansQuery.data?.items ?? [];
@@ -317,13 +395,12 @@ function BomScanTab() {
     NOT_FOUND: "bg-gray-100 text-gray-700",
   };
 
-  const handleScan = async () => {
-    if (!projectNumber || !barcode) { toast.error(t("supply.chain.projectAndBarcodeRequired")); return; }
+  const handleScan = scanForm.handleSubmit(async (data) => {
     try {
       const res = await scanAndVerifyMutation.mutateAsync({
-        projectNumber,
-        processCode,
-        scannedBarcode: barcode,
+        projectNumber: data.projectNumber,
+        processCode: data.processCode,
+        scannedBarcode: data.barcode,
       });
       if (res.bomMatchResult === "MATCH") {
         toast.success(`${t("supply.chain.bomMatch")}: ${res.resolvedMaterialCode}`);
@@ -332,29 +409,37 @@ function BomScanTab() {
       } else {
         toast.info(`${t("supply.chain.scanResult")}: ${res.bomMatchResult}`);
       }
-      setBarcode("");
+      scanForm.setValue("barcode", "");
       refetch();
     } catch (e: any) { toast.error(e.message || t("supply.chain.scanFailed")); }
-  };
+  });
 
   return (
     <div className="space-y-4">
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-            <div className="flex-1"><Label>{t("supply.chain.projectNumber")}</Label><Input placeholder="PRJ-2026-XXX" value={projectNumber} onChange={e => setProjectNumber(e.target.value)} /></div>
+          <form onSubmit={handleScan} className="flex flex-col sm:flex-row sm:items-end gap-3">
+            <div className="flex-1">
+              <Label>{t("supply.chain.projectNumber")}</Label>
+              <Input placeholder="PRJ-2026-XXX" {...scanForm.register("projectNumber")} />
+              {scanForm.formState.errors.projectNumber && <p className="text-destructive text-sm mt-1">{scanForm.formState.errors.projectNumber.message}</p>}
+            </div>
             <div className="w-full sm:w-32">
               <Label>{t("supply.chain.processCode")}</Label>
-              <Select value={processCode} onValueChange={setProcessCode}>
+              <Select value={scanForm.watch("processCode")} onValueChange={(v) => scanForm.setValue("processCode", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{Array.from({ length: 15 }, (_, i) => `T${i + 1}`).map(tc => (
                   <SelectItem key={tc} value={tc}>{tc}</SelectItem>
                 ))}</SelectContent>
               </Select>
             </div>
-            <div className="flex-1"><Label>{t("supply.chain.scanBarcode")}</Label><Input placeholder={t("supply.chain.scanBarcode") + "..."} value={barcode} onChange={e => setBarcode(e.target.value)} onKeyDown={e => e.key === "Enter" && handleScan()} /></div>
-            <Button className="min-h-[44px]" onClick={handleScan}><ScanBarcode className="h-4 w-4 mr-1" />{t("supply.chain.scanAndVerify")}</Button>
-          </div>
+            <div className="flex-1">
+              <Label>{t("supply.chain.scanBarcode")}</Label>
+              <Input placeholder={t("supply.chain.scanBarcode") + "..."} {...scanForm.register("barcode")} />
+              {scanForm.formState.errors.barcode && <p className="text-destructive text-sm mt-1">{scanForm.formState.errors.barcode.message}</p>}
+            </div>
+            <Button type="submit" className="min-h-[44px]"><ScanBarcode className="h-4 w-4 mr-1" />{t("supply.chain.scanAndVerify")}</Button>
+          </form>
         </CardContent>
       </Card>
 
@@ -445,7 +530,11 @@ function LaborTab() {
 function ComplaintsTab() {
   const { t } = useLanguage();
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ customerName: "", projectNumber: "", severity: "medium" as string, description: "" });
+
+  const form = useZodForm({
+    schema: complaintCreateSchema,
+    defaultValues: { customerName: "", projectNumber: "", severity: "medium", description: "" },
+  });
 
   const complaintsQuery = trpc.supplyChain.complaint.list.useQuery({});
   const complaints = complaintsQuery.data?.items ?? [];
@@ -471,16 +560,20 @@ function ComplaintsTab() {
     closed: t("supply.chain.statusClosed"),
   };
 
-  const handleCreate = async () => {
-    if (!form.description) { toast.error(t("supply.chain.descriptionRequired")); return; }
+  const handleCreate = form.handleSubmit(async (data) => {
     try {
-      await createComplaintMutation.mutateAsync({ ...form, severity: form.severity as "high" | "medium" | "low" | "critical" });
+      await createComplaintMutation.mutateAsync({
+        customerName: data.customerName || undefined,
+        projectNumber: data.projectNumber || undefined,
+        severity: data.severity as "high" | "medium" | "low" | "critical",
+        description: data.description,
+      });
       toast.success(t("supply.chain.complaintRecorded"));
       setShowCreate(false);
-      setForm({ customerName: "", projectNumber: "", severity: "medium", description: "" });
+      form.reset();
       refetch();
     } catch (e: any) { toast.error(e.message || t("supply.p2p.createFailed")); }
-  };
+  });
 
   return (
     <div className="space-y-4">
@@ -518,13 +611,13 @@ function ComplaintsTab() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{t("supply.chain.newComplaintDialog")}</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
+          <form onSubmit={handleCreate} className="space-y-3 py-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>{t("supply.chain.customerName")}</Label><Input value={form.customerName} onChange={e => setForm(p => ({ ...p, customerName: e.target.value }))} /></div>
-              <div><Label>{t("supply.chain.projectNumber")}</Label><Input value={form.projectNumber} onChange={e => setForm(p => ({ ...p, projectNumber: e.target.value }))} /></div>
+              <div><Label>{t("supply.chain.customerName")}</Label><Input {...form.register("customerName")} /></div>
+              <div><Label>{t("supply.chain.projectNumber")}</Label><Input {...form.register("projectNumber")} /></div>
             </div>
             <div><Label>{t("supply.chain.severityLevel")}</Label>
-              <Select value={form.severity} onValueChange={v => setForm(p => ({ ...p, severity: v }))}>
+              <Select value={form.watch("severity")} onValueChange={v => form.setValue("severity", v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">{t("supply.chain.severityLow")}</SelectItem><SelectItem value="medium">{t("supply.chain.severityMedium")}</SelectItem>
@@ -532,12 +625,16 @@ function ComplaintsTab() {
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>{t("supply.chain.problemDescription")} *</Label><Textarea rows={3} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
-            <Button onClick={handleCreate}>{t("supply.p2p.submit")}</Button>
-          </DialogFooter>
+            <div>
+              <Label>{t("supply.chain.problemDescription")} *</Label>
+              <Textarea rows={3} {...form.register("description")} />
+              {form.formState.errors.description && <p className="text-destructive text-sm mt-1">{form.formState.errors.description.message}</p>}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
+              <Button type="submit">{t("supply.p2p.submit")}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

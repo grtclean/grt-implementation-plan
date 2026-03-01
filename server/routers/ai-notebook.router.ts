@@ -3,8 +3,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiNotebookSuggestions } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
-import { invokeLLM } from "../_core/llm";
-import { searchDocuments } from "../modules/knowledge-base.service";
+import { submitTask, getTaskStatus } from "../services/task-worker.service";
 
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 
@@ -21,105 +20,51 @@ export const aiNotebookRouter = router({
   }),
 
   /**
-   * analyzeEntry — LLM-powered notebook entry analysis
-   * Extracts findings, improvements, and keywords from content
+   * analyzeEntry — async LLM-powered notebook entry analysis
+   * Submits to task queue, returns taskId for polling via getAnalysisStatus.
    */
   analyzeEntry: protectedProcedure.input(z.object({
     entryId: z.union([z.string(), z.number()]),
     content: z.string().optional(),
     processType: z.string().optional(),
     processId: z.string().optional(),
-  })).mutation(async ({ input }) => {
-    const db = await requireDb();
+  })).mutation(async ({ input, ctx }) => {
     const { entryId, content, processType, processId } = input;
 
     if (!content || content.trim().length === 0) {
-      return { success: true, message: "无内容可分析", suggestions: [] };
+      return { success: true, message: "无内容可分析", suggestions: [], taskId: null };
     }
 
-    // RAG: search for related knowledge
-    let kbContext = "";
-    try {
-      const kbResults = await searchDocuments(content.slice(0, 200), { limit: 3 });
-      if (kbResults.length > 0) {
-        kbContext = "\n\n参考知识:\n" + kbResults
-          .map((r) => `[${r.category}] ${r.title}: ${r.content.slice(0, 200)}`)
-          .join("\n");
-      }
-    } catch { /* non-fatal */ }
+    const { taskId } = await submitTask(
+      "AI_NOTEBOOK_ANALYZE",
+      { entryId: toNum(entryId), content, processType, processId },
+      ctx.user.name ?? `User#${ctx.user.id}`,
+    );
 
-    const systemPrompt = [
-      "你是GRT企业操作系统的AI分析助手。",
-      "分析用户的笔记内容，提取以下信息:",
-      "1. 关键发现 (findings)",
-      "2. 改进建议 (improvements)",
-      "3. 关键词 (keywords)",
-      "回复JSON格式:",
-      '[{"type":"finding","value":"...","keywords":["..."]},{"type":"improvement","value":"...","keywords":["..."]}]',
-      kbContext,
-    ].join("\n");
+    return { success: true, message: "分析任务已提交", suggestions: [], taskId };
+  }),
 
-    let suggestions: { type: string; value: string; keywords: string[] }[] = [];
+  /** Poll for notebook analysis status */
+  getAnalysisStatus: protectedProcedure.input(z.object({
+    taskId: z.number(),
+  })).query(async ({ input }) => {
+    const task = await getTaskStatus(input.taskId);
+    if (!task) return { taskStatus: "not_found" as const, suggestions: [] };
 
-    try {
-      const llmResult = await invokeLLM({
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `分析以下笔记内容:\n\n${content}` },
-        ],
-      });
-
-      const raw = llmResult.choices?.[0]?.message?.content || "";
-
-      try {
-        const jsonMatch = raw.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          suggestions = JSON.parse(jsonMatch[0]);
-        }
-      } catch {
-        suggestions = [{
-          type: "finding",
-          value: raw.slice(0, 500),
-          keywords: [],
-        }];
-      }
-    } catch (err) {
-      console.error("[analyzeEntry] LLM error:", err);
-      return { success: false, message: "AI分析失败", suggestions: [] };
+    if (task.status === "completed" && task.resultData) {
+      const result = task.resultData as Record<string, unknown>;
+      return {
+        taskStatus: "completed" as const,
+        suggestions: (result.suggestions as unknown[]) ?? [],
+        message: result.message as string,
+      };
     }
 
-    // Save suggestions to DB
-    // suggestionTypeEnum valid values: 'field_update', 'process_link', 'content_match'
-    const typeMap: Record<string, "field_update" | "process_link" | "content_match"> = {
-      finding: "content_match",
-      improvement: "field_update",
-      process: "process_link",
-    };
-
-    const savedSuggestions = [];
-    for (const s of suggestions) {
-      try {
-        const [saved] = await db.insert(aiNotebookSuggestions).values({
-          entryId: toNum(entryId),
-          suggestionType: typeMap[s.type] || "content_match",
-          targetProcessType: processType || null,
-          targetProcessId: processId || null,
-          suggestedValue: s.value,
-          extractedKeywords: s.keywords || [],
-          reasoning: `AI分析: ${s.type}`,
-          confidenceScore: "0.80",
-        }).returning();
-        if (saved) savedSuggestions.push(saved);
-      } catch (dbErr) {
-        console.error("[analyzeEntry] DB save error:", dbErr);
-      }
+    if (task.status === "failed") {
+      return { taskStatus: "failed" as const, suggestions: [], error: task.errorMessage };
     }
 
-    return {
-      success: true,
-      message: `分析完成，生成${savedSuggestions.length}条建议`,
-      suggestions: savedSuggestions,
-    };
+    return { taskStatus: task.status as "pending" | "processing", suggestions: [] };
   }),
 
   acceptSuggestion: protectedProcedure.input(z.object({

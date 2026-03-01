@@ -1,12 +1,43 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useZodForm, schemas, z } from "@/lib/form-validation";
 import {
   BarChart3, Users, Target, MessageSquare, TrendingUp, Plus, Search,
   Phone, Mail, Calendar, ChevronRight, Star, ArrowUpRight, ArrowDownRight,
   Filter, RefreshCw, Eye, Edit, UserPlus, Building2, DollarSign, Zap,
   Clock, CheckCircle2, XCircle, AlertTriangle, Sparkles, Send
 } from "lucide-react";
+
+// ─── Zod Schemas ───────────────────────────────────────────────
+const opportunitySchema = z.object({
+  name: schemas.requiredString("Opportunity name is required / 商机名称必填"),
+  customerId: z.string().min(1, "Customer ID is required / 客户ID必填"),
+  stage: z.string().default("lead"),
+  value: z.string().optional(),
+  probability: z.string().default("50"),
+  expectedCloseDate: z.string().optional(),
+});
+type OpportunityValues = z.infer<typeof opportunitySchema>;
+
+const leadSchema = z.object({
+  companyName: schemas.requiredString("Company name is required / 公司名称必填"),
+  contactName: schemas.optionalString(),
+  contactPhone: schemas.optionalString(),
+  contactEmail: schemas.optionalString(),
+  source: z.string().default("website"),
+  priority: z.string().default("medium"),
+  notes: z.string().optional(),
+});
+type LeadValues = z.infer<typeof leadSchema>;
+
+const interactionSchema = z.object({
+  customerId: z.string().min(1, "Customer ID is required / 客户ID必填"),
+  type: z.string().default("call"),
+  subject: schemas.requiredString("Subject is required / 主题必填"),
+  content: z.string().optional(),
+});
+type InteractionValues = z.infer<typeof interactionSchema>;
 
 // ── Types ──
 type TabKey = 'pipeline' | 'leads' | 'customers' | 'interactions' | 'analytics';
@@ -21,14 +52,14 @@ function FluentBadge({ children, color = '#0078d4', bg = '#e5f1fb' }: { children
   return <span style={{ color, backgroundColor: bg }} className="px-2 py-0.5 rounded-full text-xs font-medium">{children}</span>;
 }
 
-function FluentButton({ children, variant = 'primary', onClick, className = '', disabled = false }: {
-  children: React.ReactNode; variant?: 'primary' | 'secondary' | 'ghost'; onClick?: () => void; className?: string; disabled?: boolean;
+function FluentButton({ children, variant = 'primary', onClick, className = '', disabled = false, type }: {
+  children: React.ReactNode; variant?: 'primary' | 'secondary' | 'ghost'; onClick?: () => void; className?: string; disabled?: boolean; type?: 'button' | 'submit';
 }) {
   const base = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50';
   const styles = variant === 'primary' ? 'bg-[#0078d4] text-white hover:bg-[#106ebe]'
     : variant === 'secondary' ? 'bg-white border border-[#8a8886] text-[#323130] hover:bg-[#f3f2f1]'
     : 'text-[#0078d4] hover:bg-[#f3f2f1]';
-  return <button className={`${base} ${styles} ${className}`} onClick={onClick} disabled={disabled}>{children}</button>;
+  return <button type={type} className={`${base} ${styles} ${className}`} onClick={onClick} disabled={disabled}>{children}</button>;
 }
 
 function FluentInput({ value, onChange, placeholder, className = '' }: {
@@ -112,7 +143,11 @@ function PipelineTab() {
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ name: '', customerId: '', stage: 'lead', value: '', probability: '50', expectedCloseDate: '' });
+
+  const form = useZodForm({
+    schema: opportunitySchema,
+    defaultValues: { name: '', customerId: '', stage: 'lead', value: '', probability: '50', expectedCloseDate: '' },
+  });
 
   const PIPELINE_STAGES = [
     { key: 'lead', label: t("crm.workbench.stageLead"), color: '#0078d4' },
@@ -128,7 +163,7 @@ function PipelineTab() {
   const funnelQ = (trpc.crm as any).opportunities.funnel.useQuery({});
   const utils = trpc.useUtils();
   const createM = (trpc.crm as any).opportunities.create.useMutation({
-    onSuccess: () => { (utils.crm as any).opportunities.list.invalidate(); (utils.crm as any).opportunities.stats.invalidate(); setShowCreate(false); setForm({ name: '', customerId: '', stage: 'lead', value: '', probability: '50', expectedCloseDate: '' }); }
+    onSuccess: () => { (utils.crm as any).opportunities.list.invalidate(); (utils.crm as any).opportunities.stats.invalidate(); setShowCreate(false); form.reset(); }
   });
 
   const opps = oppsQ.data?.items || [];
@@ -212,34 +247,40 @@ function PipelineTab() {
       </div>
 
       {/* Create Dialog */}
-      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title={t("crm.workbench.newSalesOpp")}>
-        <div className="space-y-3">
-          <FormField label={t("crm.workbench.oppName")}><FluentInput value={form.name} onChange={v => setForm(p => ({ ...p, name: v }))} placeholder={t("crm.workbench.enterOppName")} /></FormField>
-          <FormField label={t("crm.workbench.customerId")}><FluentInput value={form.customerId} onChange={v => setForm(p => ({ ...p, customerId: v }))} placeholder={t("crm.workbench.enterCustomerId")} /></FormField>
+      <FluentDialog open={showCreate} onClose={() => { setShowCreate(false); form.reset(); }} title={t("crm.workbench.newSalesOpp")}>
+        <form onSubmit={form.handleSubmit(async (data) => {
+          try {
+            await createM.mutateAsync({
+              name: data.name, customerId: Number(data.customerId) || 1, stage: data.stage,
+              value: data.value || undefined, probability: Number(data.probability), expectedCloseDate: data.expectedCloseDate || undefined,
+            });
+          } catch (err) {
+            console.error("Create opportunity failed:", err);
+          }
+        })} className="space-y-3">
+          <FormField label={`${t("crm.workbench.oppName")} *`}>
+            <FluentInput value={form.watch("name")} onChange={v => form.setValue("name", v, { shouldValidate: true })} placeholder={t("crm.workbench.enterOppName")} />
+            {form.formState.errors.name && <p className="text-[#d83b01] text-xs mt-1">{form.formState.errors.name.message}</p>}
+          </FormField>
+          <FormField label={`${t("crm.workbench.customerId")} *`}>
+            <FluentInput value={form.watch("customerId")} onChange={v => form.setValue("customerId", v, { shouldValidate: true })} placeholder={t("crm.workbench.enterCustomerId")} />
+            {form.formState.errors.customerId && <p className="text-[#d83b01] text-xs mt-1">{form.formState.errors.customerId.message}</p>}
+          </FormField>
           <FormField label={t("crm.workbench.stage")}>
-            <FluentSelect value={form.stage} onChange={v => setForm(p => ({ ...p, stage: v }))}>
+            <FluentSelect value={form.watch("stage")} onChange={v => form.setValue("stage", v)}>
               {PIPELINE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
             </FluentSelect>
           </FormField>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label={t("crm.workbench.amount")}><FluentInput value={form.value} onChange={v => setForm(p => ({ ...p, value: v }))} placeholder="0" /></FormField>
-            <FormField label={t("crm.workbench.probabilityPct")}><FluentInput value={form.probability} onChange={v => setForm(p => ({ ...p, probability: v }))} placeholder="50" /></FormField>
+            <FormField label={t("crm.workbench.amount")}><FluentInput value={form.watch("value") || ""} onChange={v => form.setValue("value", v)} placeholder="0" /></FormField>
+            <FormField label={t("crm.workbench.probabilityPct")}><FluentInput value={form.watch("probability")} onChange={v => form.setValue("probability", v)} placeholder="50" /></FormField>
           </div>
-          <FormField label={t("crm.workbench.expectedCloseDate")}><FluentInput value={form.expectedCloseDate} onChange={v => setForm(p => ({ ...p, expectedCloseDate: v }))} placeholder="YYYY-MM-DD" /></FormField>
+          <FormField label={t("crm.workbench.expectedCloseDate")}><FluentInput value={form.watch("expectedCloseDate") || ""} onChange={v => form.setValue("expectedCloseDate", v)} placeholder="YYYY-MM-DD" /></FormField>
           <div className="flex justify-end gap-2 pt-2">
-            <FluentButton variant="secondary" onClick={() => setShowCreate(false)}>{t("crm.workbench.cancel")}</FluentButton>
-            <FluentButton onClick={async () => {
-              try {
-                await createM.mutateAsync({
-                  name: form.name, customerId: Number(form.customerId) || 1, stage: form.stage,
-                  value: form.value, probability: Number(form.probability), expectedCloseDate: form.expectedCloseDate || undefined,
-                });
-              } catch (err) {
-                console.error("Create opportunity failed:", err);
-              }
-            }} disabled={!form.name || createM.isPending}>{createM.isPending ? t("crm.workbench.creating") : t("crm.workbench.create")}</FluentButton>
+            <FluentButton type="button" variant="secondary" onClick={() => { setShowCreate(false); form.reset(); }}>{t("crm.workbench.cancel")}</FluentButton>
+            <FluentButton type="submit" disabled={createM.isPending}>{createM.isPending ? t("crm.workbench.creating") : t("crm.workbench.create")}</FluentButton>
           </div>
-        </div>
+        </form>
       </FluentDialog>
     </div>
   );
@@ -251,12 +292,16 @@ function LeadsTab() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ companyName: '', contactName: '', contactPhone: '', contactEmail: '', source: 'website', priority: 'medium', notes: '' });
+
+  const form = useZodForm({
+    schema: leadSchema,
+    defaultValues: { companyName: '', contactName: '', contactPhone: '', contactEmail: '', source: 'website', priority: 'medium', notes: '' },
+  });
 
   const leadsQ = (trpc.crm as any).leads.list.useQuery({ search: search || undefined, status: statusFilter || undefined });
   const utils = trpc.useUtils();
   const createM = (trpc.crm as any).leads.create.useMutation({
-    onSuccess: () => { (utils.crm as any).leads.list.invalidate(); setShowCreate(false); setForm({ companyName: '', contactName: '', contactPhone: '', contactEmail: '', source: 'website', priority: 'medium', notes: '' }); }
+    onSuccess: () => { (utils.crm as any).leads.list.invalidate(); setShowCreate(false); form.reset(); }
   });
   const convertM = (trpc.crm as any).leads.convertToCustomer.useMutation({
     onSuccess: () => { (utils.crm as any).leads.list.invalidate(); }
@@ -333,17 +378,29 @@ function LeadsTab() {
       </div>
 
       {/* Create Dialog */}
-      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title={t("crm.leads.newLead")}>
-        <div className="space-y-3">
-          <FormField label={t("crm.workbench.companyName")}><FluentInput value={form.companyName} onChange={v => setForm(p => ({ ...p, companyName: v }))} placeholder={t("crm.workbench.enterCompanyName")} /></FormField>
+      <FluentDialog open={showCreate} onClose={() => { setShowCreate(false); form.reset(); }} title={t("crm.leads.newLead")}>
+        <form onSubmit={form.handleSubmit(async (data) => {
+          try {
+            await createM.mutateAsync({
+              companyName: data.companyName, contactName: data.contactName || undefined, contactPhone: data.contactPhone || undefined,
+              contactEmail: data.contactEmail || undefined, source: data.source, priority: data.priority, notes: data.notes || undefined,
+            });
+          } catch (err) {
+            console.error("Create lead failed:", err);
+          }
+        })} className="space-y-3">
+          <FormField label={`${t("crm.workbench.companyName")} *`}>
+            <FluentInput value={form.watch("companyName")} onChange={v => form.setValue("companyName", v, { shouldValidate: true })} placeholder={t("crm.workbench.enterCompanyName")} />
+            {form.formState.errors.companyName && <p className="text-[#d83b01] text-xs mt-1">{form.formState.errors.companyName.message}</p>}
+          </FormField>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label={t("crm.workbench.contactPerson")}><FluentInput value={form.contactName} onChange={v => setForm(p => ({ ...p, contactName: v }))} placeholder={t("crm.contacts.name")} /></FormField>
-            <FormField label={t("crm.phone")}><FluentInput value={form.contactPhone} onChange={v => setForm(p => ({ ...p, contactPhone: v }))} placeholder={t("crm.phone")} /></FormField>
+            <FormField label={t("crm.workbench.contactPerson")}><FluentInput value={form.watch("contactName") || ""} onChange={v => form.setValue("contactName", v)} placeholder={t("crm.contacts.name")} /></FormField>
+            <FormField label={t("crm.phone")}><FluentInput value={form.watch("contactPhone") || ""} onChange={v => form.setValue("contactPhone", v)} placeholder={t("crm.phone")} /></FormField>
           </div>
-          <FormField label={t("crm.email")}><FluentInput value={form.contactEmail} onChange={v => setForm(p => ({ ...p, contactEmail: v }))} placeholder={t("crm.email")} /></FormField>
+          <FormField label={t("crm.email")}><FluentInput value={form.watch("contactEmail") || ""} onChange={v => form.setValue("contactEmail", v)} placeholder={t("crm.email")} /></FormField>
           <div className="grid grid-cols-2 gap-3">
             <FormField label={t("crm.workbench.source")}>
-              <FluentSelect value={form.source} onChange={v => setForm(p => ({ ...p, source: v }))}>
+              <FluentSelect value={form.watch("source")} onChange={v => form.setValue("source", v)}>
                 <option value="website">{t("crm.workbench.sourceWebsite")}</option>
                 <option value="referral">{t("crm.workbench.sourceReferral")}</option>
                 <option value="exhibition">{t("crm.workbench.sourceExhibition")}</option>
@@ -352,28 +409,19 @@ function LeadsTab() {
               </FluentSelect>
             </FormField>
             <FormField label={t("crm.workbench.priority")}>
-              <FluentSelect value={form.priority} onChange={v => setForm(p => ({ ...p, priority: v }))}>
+              <FluentSelect value={form.watch("priority")} onChange={v => form.setValue("priority", v)}>
                 <option value="high">{t("crm.leads.priority.high")}</option>
                 <option value="medium">{t("crm.leads.priority.medium")}</option>
                 <option value="low">{t("crm.leads.priority.low")}</option>
               </FluentSelect>
             </FormField>
           </div>
-          <FormField label={t("crm.remark")}><FluentTextarea value={form.notes} onChange={v => setForm(p => ({ ...p, notes: v }))} placeholder={t("crm.workbench.remarkInfo")} /></FormField>
+          <FormField label={t("crm.remark")}><FluentTextarea value={form.watch("notes") || ""} onChange={v => form.setValue("notes", v)} placeholder={t("crm.workbench.remarkInfo")} /></FormField>
           <div className="flex justify-end gap-2 pt-2">
-            <FluentButton variant="secondary" onClick={() => setShowCreate(false)}>{t("crm.workbench.cancel")}</FluentButton>
-            <FluentButton onClick={async () => {
-              try {
-                await createM.mutateAsync({
-                  companyName: form.companyName, contactName: form.contactName, contactPhone: form.contactPhone,
-                  contactEmail: form.contactEmail, source: form.source, priority: form.priority, notes: form.notes || undefined,
-                });
-              } catch (err) {
-                console.error("Create lead failed:", err);
-              }
-            }} disabled={!form.companyName || createM.isPending}>{createM.isPending ? t("crm.workbench.creating") : t("crm.workbench.create")}</FluentButton>
+            <FluentButton type="button" variant="secondary" onClick={() => { setShowCreate(false); form.reset(); }}>{t("crm.workbench.cancel")}</FluentButton>
+            <FluentButton type="submit" disabled={createM.isPending}>{createM.isPending ? t("crm.workbench.creating") : t("crm.workbench.create")}</FluentButton>
           </div>
-        </div>
+        </form>
       </FluentDialog>
     </div>
   );
@@ -470,12 +518,16 @@ function InteractionsTab() {
   const { t } = useLanguage();
   const [typeFilter, setTypeFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ customerId: '', type: 'call', subject: '', content: '' });
+
+  const form = useZodForm({
+    schema: interactionSchema,
+    defaultValues: { customerId: '', type: 'call', subject: '', content: '' },
+  });
 
   const intQ = (trpc.crm as any).interactions.list.useQuery({ type: typeFilter || undefined });
   const utils = trpc.useUtils();
   const createM = (trpc.crm as any).interactions.create.useMutation({
-    onSuccess: () => { (utils.crm as any).interactions.list.invalidate(); setShowCreate(false); setForm({ customerId: '', type: 'call', subject: '', content: '' }); }
+    onSuccess: () => { (utils.crm as any).interactions.list.invalidate(); setShowCreate(false); form.reset(); }
   });
 
   const interactions = intQ.data?.items || [];
@@ -536,11 +588,23 @@ function InteractionsTab() {
       </div>
 
       {/* Create Dialog */}
-      <FluentDialog open={showCreate} onClose={() => setShowCreate(false)} title={t("crm.workbench.newInteraction")}>
-        <div className="space-y-3">
-          <FormField label={t("crm.workbench.customerId")}><FluentInput value={form.customerId} onChange={v => setForm(p => ({ ...p, customerId: v }))} placeholder={t("crm.workbench.enterCustomerId")} /></FormField>
+      <FluentDialog open={showCreate} onClose={() => { setShowCreate(false); form.reset(); }} title={t("crm.workbench.newInteraction")}>
+        <form onSubmit={form.handleSubmit(async (data) => {
+          try {
+            await createM.mutateAsync({
+              customerId: Number(data.customerId) || 1, type: data.type,
+              subject: data.subject, content: data.content || undefined,
+            });
+          } catch (err) {
+            console.error("Create interaction failed:", err);
+          }
+        })} className="space-y-3">
+          <FormField label={`${t("crm.workbench.customerId")} *`}>
+            <FluentInput value={form.watch("customerId")} onChange={v => form.setValue("customerId", v, { shouldValidate: true })} placeholder={t("crm.workbench.enterCustomerId")} />
+            {form.formState.errors.customerId && <p className="text-[#d83b01] text-xs mt-1">{form.formState.errors.customerId.message}</p>}
+          </FormField>
           <FormField label={t("crm.workbench.interactionType")}>
-            <FluentSelect value={form.type} onChange={v => setForm(p => ({ ...p, type: v }))}>
+            <FluentSelect value={form.watch("type")} onChange={v => form.setValue("type", v)}>
               <option value="call">{t("crm.workbench.typeCall")}</option>
               <option value="email">{t("crm.workbench.typeEmail")}</option>
               <option value="meeting">{t("crm.workbench.typeMeeting")}</option>
@@ -548,24 +612,18 @@ function InteractionsTab() {
               <option value="other">{t("crm.workbench.typeOther")}</option>
             </FluentSelect>
           </FormField>
-          <FormField label={t("crm.workbench.subject")}><FluentInput value={form.subject} onChange={v => setForm(p => ({ ...p, subject: v }))} placeholder={t("crm.workbench.enterSubject")} /></FormField>
-          <FormField label={t("crm.workbench.content")}><FluentTextarea value={form.content} onChange={v => setForm(p => ({ ...p, content: v }))} placeholder={t("crm.workbench.recordContent")} /></FormField>
+          <FormField label={`${t("crm.workbench.subject")} *`}>
+            <FluentInput value={form.watch("subject")} onChange={v => form.setValue("subject", v, { shouldValidate: true })} placeholder={t("crm.workbench.enterSubject")} />
+            {form.formState.errors.subject && <p className="text-[#d83b01] text-xs mt-1">{form.formState.errors.subject.message}</p>}
+          </FormField>
+          <FormField label={t("crm.workbench.content")}><FluentTextarea value={form.watch("content") || ""} onChange={v => form.setValue("content", v)} placeholder={t("crm.workbench.recordContent")} /></FormField>
           <div className="flex justify-end gap-2 pt-2">
-            <FluentButton variant="secondary" onClick={() => setShowCreate(false)}>{t("crm.workbench.cancel")}</FluentButton>
-            <FluentButton onClick={async () => {
-              try {
-                await createM.mutateAsync({
-                  customerId: Number(form.customerId) || 1, type: form.type,
-                  subject: form.subject, content: form.content || undefined,
-                });
-              } catch (err) {
-                console.error("Create interaction failed:", err);
-              }
-            }} disabled={!form.subject || createM.isPending}>
+            <FluentButton type="button" variant="secondary" onClick={() => { setShowCreate(false); form.reset(); }}>{t("crm.workbench.cancel")}</FluentButton>
+            <FluentButton type="submit" disabled={createM.isPending}>
               <Send size={14} /> {createM.isPending ? t("crm.workbench.creating") : t("crm.workbench.create")}
             </FluentButton>
           </div>
-        </div>
+        </form>
       </FluentDialog>
     </div>
   );

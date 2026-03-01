@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Download, Search, Eye, Edit2, ShoppingCart } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { ListPageSkeleton } from "@/components/PageSkeleton";
 
 export default function ProcurementManagement() {
   const { t, tpl } = useLanguage();
@@ -41,6 +42,8 @@ export default function ProcurementManagement() {
 
   // 获取采购统计
   const { data: statsData } = trpc.procurement.getProcurementStats.useQuery(undefined, { retry: false, throwOnError: false });
+
+  if (ordersLoading) return <ListPageSkeleton />;
 
   return (
     <div className="space-y-6">

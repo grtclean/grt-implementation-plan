@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { DashboardSkeleton } from "@/components/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -167,6 +168,8 @@ export default function OADashboard() {
 
   const stats = statsQuery.data;
   const totalPending = stats?.totalPending ?? 0;
+
+  if (statsQuery.isLoading && pendingQuery.isLoading) return <DashboardSkeleton />;
 
   return (
     <div className="space-y-6 p-6">

@@ -14,6 +14,7 @@ import {
   pgTable, serial, integer, varchar, text, timestamp, decimal,
   index, unique, boolean, json,
 } from 'drizzle-orm/pg-core';
+import { users } from './schema';
 
 // ============================================
 // 仓库主表
@@ -34,7 +35,7 @@ export const warehouses = pgTable('warehouses', {
   totalArea: decimal({ precision: 10, scale: 2 }), // 平方米
   totalCapacity: integer(), // 最大库位数
   // 负责人
-  managerId: integer(),
+  managerId: integer().references(() => users.id),
   managerName: varchar({ length: 50 }),
   contactPhone: varchar({ length: 20 }),
   // 天思ERP关联
@@ -113,12 +114,12 @@ export const warehouseReceipts = pgTable('warehouse_receipts', {
   // 状态
   status: varchar({ length: 50 }).notNull().default('draft'),
   // 操作人
-  receivedBy: integer(),
+  receivedBy: integer().references(() => users.id),
   receivedByName: varchar({ length: 50 }),
   receivedAt: timestamp({ mode: 'string' }),
   // 质检
   qcResult: varchar({ length: 50 }),
-  qcBy: integer(),
+  qcBy: integer().references(() => users.id),
   qcAt: timestamp({ mode: 'string' }),
   qcNotes: text(),
   // 备注
@@ -185,10 +186,10 @@ export const warehouseIssues = pgTable('warehouse_issues', {
   // 状态
   status: varchar({ length: 50 }).notNull().default('draft'),
   // 操作人
-  issuedBy: integer(),
+  issuedBy: integer().references(() => users.id),
   issuedByName: varchar({ length: 50 }),
   issuedAt: timestamp({ mode: 'string' }),
-  approvedBy: integer(),
+  approvedBy: integer().references(() => users.id),
   approvedAt: timestamp({ mode: 'string' }),
   // 备注
   notes: text(),
@@ -248,9 +249,9 @@ export const stockCounts = pgTable('stock_counts', {
   startedAt: timestamp({ mode: 'string' }),
   completedAt: timestamp({ mode: 'string' }),
   // 盘点人
-  countedBy: integer(),
-  verifiedBy: integer(),
-  approvedBy: integer(),
+  countedBy: integer().references(() => users.id),
+  verifiedBy: integer().references(() => users.id),
+  approvedBy: integer().references(() => users.id),
   // 结果汇总
   totalItems: integer().default(0),
   matchedItems: integer().default(0),

@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus, Download, Upload, Search, Edit2, Trash2, Package, AlertTriangle, XCircle, BarChart3 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { ListPageSkeleton } from "@/components/PageSkeleton";
 
 export default function MaterialManagement() {
   const { t, tpl } = useLanguage();
@@ -98,6 +99,8 @@ export default function MaterialManagement() {
       toast({ title: t("supply.material.deleted"), description: tpl("supply.material.materialDeleted", { name: material.materialName }) });
     }
   };
+
+  if (isLoading) return <ListPageSkeleton />;
 
   return (
     <div className="space-y-6">

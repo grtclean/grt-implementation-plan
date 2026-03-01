@@ -21,6 +21,7 @@ import {
   json,
   index,
 } from "drizzle-orm/pg-core";
+import { users } from "./schema";
 
 // ─────────────────────────────────────────────────────────────
 //  sys_meetings — Core meeting entity
@@ -41,7 +42,7 @@ export const sysMeetings = pgTable(
     transcript: text("transcript"),
     // Organiser info
     organizerName: varchar("organizer_name", { length: 100 }),
-    organizerId: integer("organizer_id"),
+    organizerId: integer("organizer_id").references(() => users.id),
     // Scheduled time window
     scheduledStart: timestamp("scheduled_start"),
     scheduledEnd: timestamp("scheduled_end"),
@@ -82,7 +83,7 @@ export const meetingAttendance = pgTable(
   {
     id: serial("id").primaryKey(),
     meetingId: integer("meeting_id").notNull(),
-    userId: integer("user_id").notNull(),
+    userId: integer("user_id").notNull().references(() => users.id),
     userName: varchar("user_name", { length: 100 }),
     // PRESENT_PHYSICAL — badge/NFC/manual physical check-in
     // PRESENT_ONLINE   — joined via video/WeChat stream
@@ -115,7 +116,7 @@ export const meetingInteractions = pgTable(
   {
     id: serial("id").primaryKey(),
     meetingId: integer("meeting_id").notNull(),
-    userId: integer("user_id").notNull(),
+    userId: integer("user_id").notNull().references(() => users.id),
     userName: varchar("user_name", { length: 100 }),
     // Rich-text private notes taken during the meeting
     personalNotes: text("personal_notes"),
@@ -147,7 +148,7 @@ export const hrPenalties = pgTable(
   "hr_penalties",
   {
     id: serial("id").primaryKey(),
-    userId: integer("user_id").notNull(),
+    userId: integer("user_id").notNull().references(() => users.id),
     userName: varchar("user_name", { length: 100 }),
     // Escalation ladder: WARNING → BLACK_L3 → BLACK_L2 → BLACK_L1
     penaltyLevel: varchar("penalty_level", { length: 20 }).notNull(),
@@ -181,7 +182,7 @@ export const meetingActionItems = pgTable(
   {
     id: serial("id").primaryKey(),
     meetingId: integer("meeting_id").notNull(),
-    assignedTo: integer("assigned_to").notNull(),
+    assignedTo: integer("assigned_to").notNull().references(() => users.id),
     assignedToName: varchar("assigned_to_name", { length: 100 }),
     taskDesc: text("task_desc").notNull(),
     // PENDING → COMPLETED → OVERDUE
@@ -234,7 +235,7 @@ export const hrAiPerformance = pgTable(
   "hr_ai_performance",
   {
     id: serial("id").primaryKey(),
-    userId: integer("user_id").notNull(),
+    userId: integer("user_id").notNull().references(() => users.id),
     userName: varchar("user_name", { length: 100 }),
     // Month in "YYYY-MM" format
     month: varchar("month", { length: 7 }).notNull(),
@@ -276,9 +277,9 @@ export const meetingReviewEvaluations = pgTable(
   {
     id: serial("id").primaryKey(),
     meetingId: integer("meeting_id").notNull(),
-    speakerId: integer("speaker_id").notNull(),
+    speakerId: integer("speaker_id").notNull().references(() => users.id),
     speakerName: varchar("speaker_name", { length: 100 }),
-    evaluatorId: integer("evaluator_id").notNull(),
+    evaluatorId: integer("evaluator_id").notNull().references(() => users.id),
     evaluatorName: varchar("evaluator_name", { length: 100 }),
     // "performance" | "execution" | "innovation" | "teamwork" | "strategy"
     dimension: varchar("dimension", { length: 30 }).notNull(),

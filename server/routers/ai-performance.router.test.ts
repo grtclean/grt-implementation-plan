@@ -1,11 +1,17 @@
 /**
  * AI Performance Router — Unit Tests
- * Tests 6 procedures: getScores, dashboard, leaderboard, actionItemStats,
- * userDetail, seedDemo
+ * Tests 7 procedures: getScores, dashboard, leaderboard, actionItemStats,
+ * userDetail, seedDemo, recalculateUser, recalculateAll
  *
  * Uses both chain pattern (select/insert) AND db.execute(sql`...`) for actionItemStats.
  * Role-scoped: HR/Global roles see all, non-HR see own data only.
  * All procedures wrapped in try/catch returning empty defaults on error.
+ *
+ * 4D Dimensions (mapped from DB columns):
+ *   participation (会议参与) → breadthScore
+ *   execution (执行力)       → depthScore
+ *   collaboration (协作)     → executionScore
+ *   innovation (创新)        → disciplineScore
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
@@ -44,6 +50,7 @@ vi.mock("../db", () => ({
     };
     return {
       select: vi.fn(() => chain),
+      selectDistinct: vi.fn(() => chain),
       insert: vi.fn(() => chain),
       update: vi.fn(() => chain),
       delete: vi.fn(() => chain),
@@ -54,10 +61,16 @@ vi.mock("../db", () => ({
   }),
 }));
 
+vi.mock("../services/ai-performance-engine.service", () => ({
+  calculateMonthlyScore: vi.fn(async () => {}),
+}));
+
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((...a: any[]) => a),
   and: vi.fn((...a: any[]) => a),
   desc: vi.fn((c: any) => c),
+  gte: vi.fn((...a: any[]) => a),
+  lte: vi.fn((...a: any[]) => a),
   count: vi.fn(() => "count"),
   sql: Object.assign(
     (..._args: any[]) => "sql-tag",
@@ -155,7 +168,7 @@ describe("ai-performance router", () => {
 
   // ═══ leaderboard ═══
   describe("leaderboard", () => {
-    it("returns ranked employees for admin", async () => {
+    it("returns ranked employees with 4D dimensions for admin", async () => {
       selectResultsQueue.push([{ month: "2026-02" }]); // latest month
       selectResultsQueue.push([
         { ...samplePerf, meetingScore: 90, userId: 2, userName: "李四" },
@@ -165,8 +178,31 @@ describe("ai-performance router", () => {
       expect(result).toHaveLength(2);
       expect(result[0].meetingScore).toBe(90);
       expect(result[0].userName).toBe("李四");
+      // New 4D dimension names
+      expect(result[0]).toHaveProperty("participation");
+      expect(result[0]).toHaveProperty("execution");
+      expect(result[0]).toHaveProperty("collaboration");
+      expect(result[0]).toHaveProperty("innovation");
+      // Legacy backward compat aliases
       expect(result[0]).toHaveProperty("breadth");
       expect(result[0]).toHaveProperty("actionItemRate");
+      // Attendance stats
+      expect(result[0]).toHaveProperty("meetingsAttended");
+      expect(result[0]).toHaveProperty("meetingsTotal");
+    });
+
+    it("maps DB columns to dimension names correctly", async () => {
+      selectResultsQueue.push([{ month: "2026-02" }]);
+      selectResultsQueue.push([samplePerf]);
+      const result = await adminCaller().aiPerformance.leaderboard({ limit: 10 });
+      // breadthScore → participation
+      expect(result[0].participation).toBe(80);
+      // depthScore → execution
+      expect(result[0].execution).toBe(75);
+      // executionScore → collaboration
+      expect(result[0].collaboration).toBe(85);
+      // disciplineScore → innovation
+      expect(result[0].innovation).toBe(78);
     });
 
     it("returns empty when no month data", async () => {
@@ -267,14 +303,75 @@ describe("ai-performance router", () => {
       expect(result.message).toContain("already exists");
     });
 
-    it("seeds data when empty", async () => {
-      selectResultsQueue.push([{ value: 0 }]); // empty
-      selectResultsQueue.push([]); // insert perf records
-      selectResultsQueue.push([]); // insert action items
+    it("seeds meeting data and computes scores when empty (no existing attendance)", async () => {
+      selectResultsQueue.push([{ value: 0 }]); // hrAiPerformance empty
+      selectResultsQueue.push([{ value: 0 }]); // meetingAttendance empty
+      // The rest is handled by the chain mock (insert meetings, attendance, etc.)
       const result = await caller().aiPerformance.seedDemo();
       expect(result.ok).toBe(true);
-      expect(result.count).toBe(48); // 8 users × 6 months
-      expect(result.actionItems).toBe(40); // 8 users × 5 items
+      // Source should be seeded_meeting_data (creates real meeting+attendance+items then computes)
+      expect(result.source).toBe("seeded_meeting_data");
+    });
+
+    it("uses real meeting data when attendance exists", async () => {
+      selectResultsQueue.push([{ value: 0 }]); // hrAiPerformance empty
+      selectResultsQueue.push([{ value: 5 }]); // meetingAttendance has data
+      // selectDistinct for allAttendance
+      selectResultsQueue.push([{ userId: 1, userName: "张三" }]);
+      // execute for distinct months
+      executeResults.push({ rows: [{ month: "2026-02" }] });
+      const result = await caller().aiPerformance.seedDemo();
+      expect(result.ok).toBe(true);
+      expect(result.source).toBe("real_meeting_data");
+    });
+  });
+
+  // ═══ recalculateUser ═══
+  describe("recalculateUser", () => {
+    it("recalculates own user score", async () => {
+      // After calculateMonthlyScore (mocked), fetch updated record
+      selectResultsQueue.push([{
+        ...samplePerf, breadthScore: 90, depthScore: 85,
+        executionScore: 88, disciplineScore: 82, meetingScore: 86,
+      }]);
+      const result = await caller().aiPerformance.recalculateUser({
+        userId: 1, userName: "张三", month: "2026-02",
+      });
+      expect(result.ok).toBe(true);
+      expect(result.meetingScore).toBe(86);
+      expect(result.participation).toBe(90);
+      expect(result.execution).toBe(85);
+      expect(result.collaboration).toBe(88);
+      expect(result.innovation).toBe(82);
+    });
+
+    it("blocks non-HR from recalculating other users", async () => {
+      const result = await caller().aiPerformance.recalculateUser({
+        userId: 999, userName: "Test", month: "2026-02",
+      });
+      expect(result.ok).toBe(false);
+      expect(result.message).toContain("Insufficient permissions");
+    });
+  });
+
+  // ═══ recalculateAll ═══
+  describe("recalculateAll", () => {
+    it("recalculates all users for admin", async () => {
+      // selectDistinct for users with attendance
+      selectResultsQueue.push([
+        { userId: 1, userName: "张三" },
+        { userId: 2, userName: "李四" },
+      ]);
+      const result = await adminCaller().aiPerformance.recalculateAll({ month: "2026-02" });
+      expect(result.ok).toBe(true);
+      expect(result.processed).toBe(2);
+      expect(result.totalUsers).toBe(2);
+    });
+
+    it("blocks non-admin", async () => {
+      const result = await caller().aiPerformance.recalculateAll({ month: "2026-02" });
+      expect(result.ok).toBe(false);
+      expect(result.message).toContain("Admin/HR role required");
     });
   });
 

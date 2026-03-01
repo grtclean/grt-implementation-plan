@@ -2,7 +2,7 @@
  * AI销售预测 (AI Sales Forecast)
  * Phase G: 营收预测 · 季度拆分 · 增长驱动 · 风险评估
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,14 +47,36 @@ export default function AISalesForecast() {
   const [marketCondition, setMarketCondition] = useState("__none__");
   const [timeHorizon, setTimeHorizon] = useState("__none__");
   const [result, setResult] = useState<ForecastResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const mutation = trpc.salesFinanceIntelligence.forecastSales.useMutation({
-    onSuccess: (data) => setResult(data as ForecastResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.salesFinanceIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (taskQuery.data?.taskStatus === "completed" && taskQuery.data.result) {
+      setResult(taskQuery.data.result as unknown as ForecastResult);
+      setTaskId(null);
+    } else if (taskQuery.data?.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data]);
+
   const handleSubmit = () => {
-    if (!historicalRevenue || !currentPipeline || mutation.isPending) return;
+    if (!historicalRevenue || !currentPipeline || mutation.isPending || !!taskId) return;
     mutation.mutate({
       businessUnit,
       productLine,
@@ -175,8 +197,8 @@ export default function AISalesForecast() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSubmit} disabled={!historicalRevenue || !currentPipeline || mutation.isPending}>
-                {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              <Button onClick={handleSubmit} disabled={!historicalRevenue || !currentPipeline || mutation.isPending || !!taskId}>
+                {mutation.isPending || !!taskId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 AI预测
               </Button>
             </div>

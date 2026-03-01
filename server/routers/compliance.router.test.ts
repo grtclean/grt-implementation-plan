@@ -5,7 +5,7 @@
  * approval queue, AI/scheduler stubs, seed data.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAuthenticatedCaller, createAnonymousCaller, createAdminCaller } from "../_test/trpc-test-utils";
 
 // ── Mock state ──────────────────────────────────────────────
 let mockQueryResult: any[] = [];
@@ -49,8 +49,27 @@ vi.mock("../db", () => ({
   requireDb: vi.fn(async () => mockDb),
 }));
 
+// ── BU scope mock — returns undefined (no BU filtering in tests) ──
+vi.mock("../_core/gateway-bu-context.middleware", () => ({
+  buScopeCondition: vi.fn().mockReturnValue(undefined),
+  buContextMiddleware: vi.fn((opts: any) => opts.next({ ctx: opts.ctx })),
+}));
+
+// ── drizzle-orm mock ────────────────────────────────────────
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn((...args: any[]) => args),
+  and: vi.fn((...args: any[]) => args),
+  desc: vi.fn((col: any) => col),
+  count: vi.fn(() => "count"),
+  sql: Object.assign(vi.fn(), { raw: vi.fn() }),
+  inArray: vi.fn((...args: any[]) => args),
+}));
+
 // ── Schema mocks ────────────────────────────────────────────
 vi.mock("../../drizzle/schema", () => ({
+  projects: {
+    id: "id", buCode: "buCode", name: "name", createdAt: "createdAt",
+  },
   grtEmployees: {
     id: "id", employeeId: "employeeId", name: "name", email: "email",
     department: "department", roleType: "roleType", jurisdiction: "jurisdiction",
@@ -187,7 +206,7 @@ describe("compliance router", () => {
   // ====================================================================
   describe("list", () => {
     it("returns paginated alert list with defaults", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const alertRow = { id: 1, alertType: "DAILY_10H_LIMIT", status: "open", severity: "warning" };
       // First query: count, second query: rows
       selectResultsQueue.push([{ count: 1 }]);
@@ -202,7 +221,7 @@ describe("compliance router", () => {
     });
 
     it("respects custom limit and offset", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ count: 100 }]);
       selectResultsQueue.push([]);
 
@@ -212,7 +231,7 @@ describe("compliance router", () => {
     });
 
     it("returns empty list when no alerts", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ count: 0 }]);
       selectResultsQueue.push([]);
 
@@ -888,7 +907,7 @@ describe("compliance router", () => {
   // ====================================================================
   describe("getAuditStatistics", () => {
     it("computes total/passed/failed from alerts", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 1, status: "open" },
         { id: 2, status: "resolved" },
@@ -903,7 +922,7 @@ describe("compliance router", () => {
     });
 
     it("returns zeros when no alerts", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
 
       const result = await caller.compliance.getAuditStatistics();
@@ -916,7 +935,7 @@ describe("compliance router", () => {
   // ====================================================================
   describe("getReportHistory", () => {
     it("returns report list", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const reports = [{ id: 1, reportId: "rpt-1", reportType: "weekly" }];
       mockQueryResult = reports;
 
@@ -994,7 +1013,7 @@ describe("compliance router", () => {
   // ====================================================================
   describe("getAlerts", () => {
     it("returns up to 200 alerts", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const alerts = [{ id: 1, status: "open" }, { id: 2, status: "resolved" }];
       mockQueryResult = alerts;
 
@@ -1005,7 +1024,7 @@ describe("compliance router", () => {
 
   describe("getPendingAlertCount", () => {
     it("returns count of open alerts", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ count: 7 }];
 
       const result = await caller.compliance.getPendingAlertCount();
@@ -1013,7 +1032,7 @@ describe("compliance router", () => {
     });
 
     it("returns 0 when no open alerts", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{}];
 
       const result = await caller.compliance.getPendingAlertCount();
@@ -1026,7 +1045,7 @@ describe("compliance router", () => {
   // ====================================================================
   describe("getApprovalQueue", () => {
     it("returns pending entries with decimal conversion", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         {
           id: 1, employeeId: 1, date: "2026-02-28",
@@ -1043,7 +1062,7 @@ describe("compliance router", () => {
     });
 
     it("handles null decimal fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         {
           id: 1, employeeId: 1, date: "2026-02-28",
@@ -1063,7 +1082,7 @@ describe("compliance router", () => {
   // ====================================================================
   describe("getDashboardStats", () => {
     it("returns aggregated counts from all tables", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Promise.all first batch: emp, alert, entry, report, rule, template
       selectResultsQueue.push([{ count: 50 }]);   // employees
       selectResultsQueue.push([{ count: 20 }]);   // alerts

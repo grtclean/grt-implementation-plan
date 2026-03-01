@@ -2,7 +2,7 @@
  * AI质量趋势预测 (Quality Prediction)
  * Phase E: 缺陷预测 · 根因分析 · 预防措施
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,14 +32,36 @@ export default function QualityPrediction() {
   const [materialBatch, setMaterialBatch] = useState("");
   const [equipmentAge, setEquipmentAge] = useState("");
   const [result, setResult] = useState<PredictionResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const mutation = trpc.operationsIntelligence.predictQuality.useMutation({
-    onSuccess: (data) => setResult(data as PredictionResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.operationsIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (taskQuery.data?.taskStatus === "completed" && taskQuery.data.result) {
+      setResult(taskQuery.data.result as unknown as PredictionResult);
+      setTaskId(null);
+    } else if (taskQuery.data?.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data]);
+
   const handleSubmit = () => {
-    if (!processName.trim() || !recentDefectRate || !inspectionCount || mutation.isPending) return;
+    if (!processName.trim() || !recentDefectRate || !inspectionCount || mutation.isPending || !!taskId) return;
     mutation.mutate({
       processName,
       recentDefectRate: Number(recentDefectRate),
@@ -129,8 +151,8 @@ export default function QualityPrediction() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSubmit} disabled={!processName.trim() || !recentDefectRate || !inspectionCount || mutation.isPending}>
-                {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              <Button onClick={handleSubmit} disabled={!processName.trim() || !recentDefectRate || !inspectionCount || mutation.isPending || !!taskId}>
+                {mutation.isPending || !!taskId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 {t("quality.prediction.predictiveAnalysis")}
               </Button>
             </div>

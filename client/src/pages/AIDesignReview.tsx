@@ -2,7 +2,7 @@
  * AI设计审查 (AI Design Review)
  * Phase H: 设计评分 · 问题识别 · 合规检查 · 材料兼容性
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,14 +41,36 @@ export default function AIDesignReview() {
   const [previousIssues, setPreviousIssues] = useState("");
   const [standardsRequired, setStandardsRequired] = useState("");
   const [result, setResult] = useState<ReviewResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const mutation = trpc.rdServiceIntelligence.reviewDesign.useMutation({
-    onSuccess: (data) => setResult(data as ReviewResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.rdServiceIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (taskQuery.data?.taskStatus === "completed" && taskQuery.data.result) {
+      setResult(taskQuery.data.result as unknown as ReviewResult);
+      setTaskId(null);
+    } else if (taskQuery.data?.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data]);
+
   const handleSubmit = () => {
-    if (!projectName.trim() || !designDescription.trim() || !keyParameters.trim() || mutation.isPending) return;
+    if (!projectName.trim() || !designDescription.trim() || !keyParameters.trim() || mutation.isPending || !!taskId) return;
     mutation.mutate({
       projectName,
       designPhase,
@@ -166,8 +188,8 @@ export default function AIDesignReview() {
               <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder="如: 上一代产品存在密封泄漏问题" value={previousIssues} onChange={(e) => setPreviousIssues(e.target.value)} />
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSubmit} disabled={!projectName.trim() || !designDescription.trim() || !keyParameters.trim() || mutation.isPending}>
-                {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              <Button onClick={handleSubmit} disabled={!projectName.trim() || !designDescription.trim() || !keyParameters.trim() || mutation.isPending || !!taskId}>
+                {mutation.isPending || !!taskId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 {t("ai.designReview.aiReview")}
               </Button>
             </div>

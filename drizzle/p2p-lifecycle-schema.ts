@@ -22,6 +22,7 @@ import {
   jsonb,
   unique,
 } from "drizzle-orm/pg-core";
+import { users } from "./schema";
 
 // ─── Enums ────────────────────────────────────────────────────
 
@@ -157,8 +158,9 @@ export const frameworkAgreements = pgTable(
     paymentTerms: varchar("payment_terms", { length: 200 }),
     currency: varchar("currency", { length: 10 }).default("CNY"),
     notes: text("notes"),
+    buCode: varchar("bu_code", { length: 50 }),
     status: frameworkAgreementStatusEnum("status").default("draft"),
-    createdBy: integer("created_by"),
+    createdBy: integer("created_by").references(() => users.id),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
   },
@@ -167,6 +169,7 @@ export const frameworkAgreements = pgTable(
     index("fa_supplier_idx").on(table.supplierId),
     index("fa_status_idx").on(table.status),
     index("fa_end_date_idx").on(table.endDate),
+    index("fa_bu_code_idx").on(table.buCode),
   ]
 );
 
@@ -190,8 +193,9 @@ export const rfqEvents = pgTable(
     generatedPoId: integer("generated_po_id"),
     frameworkAgreementId: integer("framework_agreement_id"),
     notes: text("notes"),
+    buCode: varchar("bu_code", { length: 50 }),
     status: rfqStatusEnum("status").default("draft"),
-    createdBy: integer("created_by"),
+    createdBy: integer("created_by").references(() => users.id),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
   },
@@ -200,6 +204,7 @@ export const rfqEvents = pgTable(
     index("rfq_status_idx").on(table.status),
     index("rfq_material_idx").on(table.materialCode),
     index("rfq_deadline_idx").on(table.deadline),
+    index("rfq_bu_code_idx").on(table.buCode),
   ]
 );
 
@@ -229,7 +234,7 @@ export const rfqSupplierQuotes = pgTable(
     status: rfqQuoteStatusEnum("status").default("submitted"),
     submittedAt: timestamp("submitted_at", { mode: "string" }).defaultNow(),
     evaluatedAt: timestamp("evaluated_at", { mode: "string" }),
-    evaluatedBy: integer("evaluated_by"),
+    evaluatedBy: integer("evaluated_by").references(() => users.id),
   },
   (table) => [
     index("rfq_quote_rfq_idx").on(table.rfqEventId),
@@ -261,6 +266,7 @@ export const deliveryRegistrations = pgTable(
     receivedByName: varchar("received_by_name", { length: 100 }),
     receivedAt: timestamp("received_at", { mode: "string" }),
     notes: text("notes"),
+    buCode: varchar("bu_code", { length: 50 }),
     status: deliveryRegistrationStatusEnum("status").default("pending"),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
@@ -270,6 +276,7 @@ export const deliveryRegistrations = pgTable(
     index("dr_po_idx").on(table.purchaseOrderId),
     index("dr_supplier_idx").on(table.supplierId),
     index("dr_status_idx").on(table.status),
+    index("dr_bu_code_idx").on(table.buCode),
   ]
 );
 
@@ -292,13 +299,13 @@ export const paymentWorkflows = pgTable(
     paymentTermExpired: boolean("payment_term_expired").default(false),
     qualityFeedbackOk: boolean("quality_feedback_ok").default(false),
     qualityFeedbackAt: timestamp("quality_feedback_at", { mode: "string" }),
-    buApprovedBy: integer("bu_approved_by"),
+    buApprovedBy: integer("bu_approved_by").references(() => users.id),
     buApprovedAt: timestamp("bu_approved_at", { mode: "string" }),
-    qualityApprovedBy: integer("quality_approved_by"),
+    qualityApprovedBy: integer("quality_approved_by").references(() => users.id),
     qualityApprovedAt: timestamp("quality_approved_at", { mode: "string" }),
-    paymentApprovedBy: integer("payment_approved_by"),
+    paymentApprovedBy: integer("payment_approved_by").references(() => users.id),
     paymentApprovedAt: timestamp("payment_approved_at", { mode: "string" }),
-    procurementConfirmedBy: integer("procurement_confirmed_by"),
+    procurementConfirmedBy: integer("procurement_confirmed_by").references(() => users.id),
     procurementConfirmedAt: timestamp("procurement_confirmed_at", { mode: "string" }),
     supplierConfirmToken: varchar("supplier_confirm_token", { length: 100 }),
     supplierConfirmedAt: timestamp("supplier_confirmed_at", { mode: "string" }),
@@ -309,8 +316,9 @@ export const paymentWorkflows = pgTable(
     netPaymentAmount: decimal("net_payment_amount", { precision: 14, scale: 2 }),
     // Meta
     notes: text("notes"),
+    buCode: varchar("bu_code", { length: 50 }),
     status: paymentWorkflowStatusEnum("status").default("pending"),
-    createdBy: integer("created_by"),
+    createdBy: integer("created_by").references(() => users.id),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
   },
@@ -321,6 +329,7 @@ export const paymentWorkflows = pgTable(
     index("pw_status_idx").on(table.status),
     index("pw_step_idx").on(table.currentStep),
     index("pw_due_date_idx").on(table.paymentDueDate),
+    index("pw_bu_code_idx").on(table.buCode),
   ]
 );
 
@@ -339,13 +348,13 @@ export const smallValueProcurements = pgTable(
     estimatedUnitPrice: decimal("estimated_unit_price", { precision: 10, scale: 2 }).notNull(),
     estimatedTotalAmount: decimal("estimated_total_amount", { precision: 12, scale: 2 }),
     purpose: text("purpose"),
-    requestedBy: integer("requested_by"), // 仓库保管员
+    requestedBy: integer("requested_by").references(() => users.id), // 仓库保管员
     requestedByName: varchar("requested_by_name", { length: 100 }),
-    supervisorId: integer("supervisor_id"), // 仓库主管
+    supervisorId: integer("supervisor_id").references(() => users.id), // 仓库主管
     supervisorName: varchar("supervisor_name", { length: 100 }),
     supervisorApprovedAt: timestamp("supervisor_approved_at", { mode: "string" }),
     supervisorRejectionReason: text("supervisor_rejection_reason"),
-    procurementOfficerId: integer("procurement_officer_id"), // 采购专员
+    procurementOfficerId: integer("procurement_officer_id").references(() => users.id), // 采购专员
     procurementOfficerName: varchar("procurement_officer_name", { length: 100 }),
     procurementConfirmedAt: timestamp("procurement_confirmed_at", { mode: "string" }),
     assignedSupplierId: integer("assigned_supplier_id"),
@@ -353,6 +362,7 @@ export const smallValueProcurements = pgTable(
     annualContractId: integer("annual_contract_id"), // FK→framework_agreements
     actualUnitPrice: decimal("actual_unit_price", { precision: 10, scale: 2 }),
     notes: text("notes"),
+    buCode: varchar("bu_code", { length: 50 }),
     status: smallValueStatusEnum("status").default("draft"),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
@@ -361,6 +371,7 @@ export const smallValueProcurements = pgTable(
     unique("svp_uk_request_code").on(table.requestCode),
     index("svp_status_idx").on(table.status),
     index("svp_requested_by_idx").on(table.requestedBy),
+    index("svp_bu_code_idx").on(table.buCode),
   ]
 );
 
@@ -380,7 +391,7 @@ export const supplierReportSubmissions = pgTable(
     relatedMaterialCode: varchar("related_material_code", { length: 100 }),
     expiryDate: date("expiry_date"),
     verificationStatus: reportVerificationStatusEnum("verification_status").default("pending"),
-    verifiedBy: integer("verified_by"),
+    verifiedBy: integer("verified_by").references(() => users.id),
     verifiedAt: timestamp("verified_at", { mode: "string" }),
     rejectionReason: text("rejection_reason"),
     submittedAt: timestamp("submitted_at", { mode: "string" }).defaultNow().notNull(),
@@ -404,7 +415,7 @@ export const supplierQualifications = pgTable(
     qualificationType: qualificationTypeEnum("qualification_type").default("initial"),
     auditDate: date("audit_date"),
     auditorName: varchar("auditor_name", { length: 100 }),
-    auditorId: integer("auditor_id"),
+    auditorId: integer("auditor_id").references(() => users.id),
     // ISO System Certifications
     isoSystemCertifications: jsonb("iso_system_certifications"), // [{certName, certNumber, validUntil, certBody}]
     // Special requirements (阀门/高要求同行)
@@ -420,7 +431,7 @@ export const supplierQualifications = pgTable(
     attachmentUrls: jsonb("attachment_urls"),
     notes: text("notes"),
     status: qualificationStatusEnum("status").default("draft"),
-    createdBy: integer("created_by"),
+    createdBy: integer("created_by").references(() => users.id),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
   },
@@ -454,7 +465,7 @@ export const qualityLossAgreements = pgTable(
     witnessedBy: varchar("witnessed_by", { length: 100 }), // GRT见证人
     notes: text("notes"),
     status: qualityLossAgreementStatusEnum("status").default("draft"),
-    createdBy: integer("created_by"),
+    createdBy: integer("created_by").references(() => users.id),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
   },
@@ -491,7 +502,7 @@ export const qualityLossIncidents = pgTable(
     deductionFromPaymentId: integer("deduction_from_payment_id"), // FK→payment_workflows
     notes: text("notes"),
     status: qualityLossIncidentStatusEnum("status").default("reported"),
-    createdBy: integer("created_by"),
+    createdBy: integer("created_by").references(() => users.id),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
   },

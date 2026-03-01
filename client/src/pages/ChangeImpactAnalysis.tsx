@@ -2,7 +2,7 @@
  * 工程变更影响分析 (Engineering Change Impact Analysis)
  * Phase D: AI驱动 · 变更链追溯 · 影响范围评估
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,14 +59,37 @@ export default function ChangeImpactAnalysis() {
   const [affectedComponent, setAffectedComponent] = useState("");
   const [projectId, setProjectId] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const analyzeMutation = trpc.projectIntelligence.analyzeChangeImpact.useMutation({
-    onSuccess: (data) => setResult(data as AnalysisResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.projectIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (!taskQuery.data || !taskId) return;
+    if (taskQuery.data.taskStatus === "completed") {
+      setResult(taskQuery.data.result as unknown as AnalysisResult);
+      setTaskId(null);
+    } else if (taskQuery.data.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data, taskId]);
+
   const handleAnalyze = () => {
-    if (!changeDescription.trim() || analyzeMutation.isPending) return;
+    if (!changeDescription.trim() || analyzeMutation.isPending || !!taskId) return;
     analyzeMutation.mutate({
       changeType,
       changeDescription,
@@ -173,9 +196,9 @@ export default function ChangeImpactAnalysis() {
             <div className="flex justify-end">
               <Button
                 onClick={handleAnalyze}
-                disabled={!changeDescription.trim() || analyzeMutation.isPending}
+                disabled={!changeDescription.trim() || analyzeMutation.isPending || !!taskId}
               >
-                {analyzeMutation.isPending ? (
+                {analyzeMutation.isPending || !!taskId ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />

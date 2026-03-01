@@ -1,19 +1,15 @@
 /**
  * 销售与财务智能路由 (Sales & Finance Intelligence Router)
  * Phase G: 销售预测 · 客户流失 · 预算异常 · 成本优化
+ *
+ * All LLM operations now use async task queue.
  */
 
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import {
-  forecastSales,
-  predictChurn,
-  analyzeBudget,
-  optimizeCost,
-} from "./salesFinanceIntelligence.service";
+import { submitTask, getTaskStatus } from "../services/task-worker.service";
 
 export const salesFinanceIntelligenceRouter = router({
-  // 销售预测 (mutation — invokes LLM)
   forecastSales: protectedProcedure
     .input(
       z.object({
@@ -26,11 +22,15 @@ export const salesFinanceIntelligenceRouter = router({
         timeHorizon: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await forecastSales(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "SF_FORECAST_SALES",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
-  // 客户流失预测 (mutation — invokes LLM)
   predictChurn: protectedProcedure
     .input(
       z.object({
@@ -44,11 +44,15 @@ export const salesFinanceIntelligenceRouter = router({
         competitorActivity: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await predictChurn(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "SF_PREDICT_CHURN",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
-  // 预算异常分析 (mutation — invokes LLM)
   analyzeBudget: protectedProcedure
     .input(
       z.object({
@@ -61,11 +65,15 @@ export const salesFinanceIntelligenceRouter = router({
         comparisonPeriod: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await analyzeBudget(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "SF_ANALYZE_BUDGET",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
-  // 成本优化 (mutation — invokes LLM)
   optimizeCost: protectedProcedure
     .input(
       z.object({
@@ -78,7 +86,23 @@ export const salesFinanceIntelligenceRouter = router({
         overheadRate: z.number().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await optimizeCost(input);
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "SF_OPTIMIZE_COST",
+        input as Record<string, unknown>,
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
+    }),
+
+  /** Generic task status poller */
+  getTaskResult: protectedProcedure
+    .input(z.object({ taskId: z.number() }))
+    .query(async ({ input }) => {
+      const task = await getTaskStatus(input.taskId);
+      if (!task) return { taskStatus: "not_found" as const, result: null };
+      if (task.status === "completed") return { taskStatus: "completed" as const, result: task.resultData };
+      if (task.status === "failed") return { taskStatus: "failed" as const, result: null, error: task.errorMessage };
+      return { taskStatus: task.status as "pending" | "processing", result: null };
     }),
 });

@@ -12119,3 +12119,183 @@ export const automationTriggeredMeetings = pgTable("automation_triggered_meeting
 
 export type AutomationTriggeredMeeting = InferSelectModel<typeof automationTriggeredMeetings>;
 export type InsertAutomationTriggeredMeeting = InferInsertModel<typeof automationTriggeredMeetings>;
+
+// ==================== M8 Shipment Tracking ====================
+
+/**
+ * delivery_shipments - M8阶段发货追踪表
+ * 管理装箱单、物流信息、运输追踪
+ */
+export const deliveryShipments = pgTable("delivery_shipments", {
+  id: serial("id").primaryKey(),
+  deliveryId: integer("delivery_id").notNull(), // 关联 delivery_executions
+  shipmentCode: varchar("shipment_code", { length: 50 }).notNull().unique(),
+
+  // 装箱单 (Packing List)
+  packingListItems: text("packing_list_items"), // JSON: [{itemName, partNo, qty, weight, boxNo, remarks}]
+  totalBoxes: integer("total_boxes").default(0),
+  totalWeight: decimal("total_weight", { precision: 10, scale: 2 }), // kg
+  totalVolume: decimal("total_volume", { precision: 10, scale: 2 }), // m^3
+  packingListApprovedBy: integer("packing_list_approved_by"),
+  packingListApprovedAt: timestamp("packing_list_approved_at", { mode: "string" }),
+
+  // 物流信息 (Logistics)
+  carrier: varchar("carrier", { length: 200 }), // 物流公司
+  carrierContact: varchar("carrier_contact", { length: 100 }),
+  carrierPhone: varchar("carrier_phone", { length: 30 }),
+  transportMode: varchar("transport_mode", { length: 30 }).default("truck"), // truck/rail/sea/air
+  trackingNumber: varchar("tracking_number", { length: 100 }),
+  vehiclePlate: varchar("vehicle_plate", { length: 30 }), // 车牌号
+
+  // 日期
+  shippedAt: timestamp("shipped_at", { mode: "string" }),
+  estimatedArrival: timestamp("estimated_arrival", { mode: "string" }),
+  actualArrival: timestamp("actual_arrival", { mode: "string" }),
+
+  // 收货验证
+  receivedBy: integer("received_by"),
+  receivedByName: varchar("received_by_name", { length: 100 }),
+  receivedAt: timestamp("received_at", { mode: "string" }),
+  receivingNotes: text("receiving_notes"),
+  damageReport: text("damage_report"), // JSON: [{boxNo, description, photoUrl}]
+  receivingResult: varchar("receiving_result", { length: 30 }), // pass/partial_damage/major_damage
+
+  // 状态
+  status: varchar("status", { length: 30 }).default("preparing"), // preparing/in_transit/delivered/received/verified
+
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
+}, (table) => [
+  index("idx_shipment_delivery").on(table.deliveryId),
+  index("idx_shipment_tracking").on(table.trackingNumber),
+  index("idx_shipment_status").on(table.status),
+]);
+
+export type DeliveryShipment = InferSelectModel<typeof deliveryShipments>;
+export type InsertDeliveryShipment = InferInsertModel<typeof deliveryShipments>;
+
+// ==================== M9 On-Site Installation ====================
+
+/**
+ * delivery_installations - M9阶段现场安装表
+ * 安装清单、问题跟踪、签收确认
+ */
+export const deliveryInstallations = pgTable("delivery_installations", {
+  id: serial("id").primaryKey(),
+  deliveryId: integer("delivery_id").notNull(), // 关联 delivery_executions
+  installationCode: varchar("installation_code", { length: 50 }).notNull().unique(),
+
+  // 安装工程师
+  leadEngineerId: integer("lead_engineer_id"),
+  leadEngineerName: varchar("lead_engineer_name", { length: 100 }),
+  teamMembers: text("team_members"), // JSON: [{id, name, role}]
+
+  // 安装清单 (Checklist) — JSON array of items
+  checklist: text("checklist"), // JSON: [{seq, category, item, description, required, result, notes, completedBy, completedAt}]
+  checklistCompletedCount: integer("checklist_completed_count").default(0),
+  checklistTotalCount: integer("checklist_total_count").default(0),
+
+  // 安装问题 (Issues)
+  issues: text("issues"), // JSON: [{id, title, severity, description, resolution, status, reportedAt, resolvedAt}]
+  openIssueCount: integer("open_issue_count").default(0),
+  criticalIssueCount: integer("critical_issue_count").default(0),
+
+  // 调试结果 (Commissioning)
+  commissioningResult: varchar("commissioning_result", { length: 30 }), // pass/conditional_pass/fail
+  commissioningNotes: text("commissioning_notes"),
+  commissioningDate: timestamp("commissioning_date", { mode: "string" }),
+
+  // 培训记录
+  trainingCompleted: boolean("training_completed").default(false),
+  trainingTopics: text("training_topics"), // JSON: [{topic, duration, attendees, date}]
+  trainingSignoff: text("training_signoff"), // 签名图片URL
+
+  // 客户现场签收
+  customerSignoffName: varchar("customer_signoff_name", { length: 100 }),
+  customerSignoffDate: timestamp("customer_signoff_date", { mode: "string" }),
+  customerSignoffNotes: text("customer_signoff_notes"),
+  customerSignoffFile: text("customer_signoff_file"), // 签名/签收文件URL
+
+  // 日期
+  startDate: timestamp("start_date", { mode: "string" }),
+  targetCompletionDate: timestamp("target_completion_date", { mode: "string" }),
+  actualCompletionDate: timestamp("actual_completion_date", { mode: "string" }),
+
+  // 状态
+  status: varchar("status", { length: 30 }).default("pending"), // pending/in_progress/commissioning/training/signoff/completed/blocked
+
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
+}, (table) => [
+  index("idx_installation_delivery").on(table.deliveryId),
+  index("idx_installation_status").on(table.status),
+]);
+
+export type DeliveryInstallation = InferSelectModel<typeof deliveryInstallations>;
+export type InsertDeliveryInstallation = InferInsertModel<typeof deliveryInstallations>;
+
+// ==================== M10 SAT (Site Acceptance Test) ====================
+
+/**
+ * delivery_sat_records - M10阶段SAT验收表
+ * 现场验收测试报告、待解决事项清单(Punch List)、最终审批
+ */
+export const deliverySatRecords = pgTable("delivery_sat_records", {
+  id: serial("id").primaryKey(),
+  deliveryId: integer("delivery_id").notNull(), // 关联 delivery_executions
+  satCode: varchar("sat_code", { length: 50 }).notNull().unique(),
+
+  // 测试报告 (Test Report)
+  testReportItems: text("test_report_items"), // JSON: [{seq, testName, category, acceptance, method, target, actual, result, notes, testedBy, testedAt}]
+  testPassCount: integer("test_pass_count").default(0),
+  testFailCount: integer("test_fail_count").default(0),
+  testTotalCount: integer("test_total_count").default(0),
+  overallTestResult: varchar("overall_test_result", { length: 30 }), // pass/conditional_pass/fail
+
+  // 待解决事项清单 (Punch List)
+  punchListItems: text("punch_list_items"), // JSON: [{seq, title, severity, category, description, assignee, targetDate, status, resolvedAt, evidence}]
+  punchListOpenCount: integer("punch_list_open_count").default(0),
+  punchListTotalCount: integer("punch_list_total_count").default(0),
+
+  // 性能验证
+  cycleTimeResult: decimal("cycle_time_result", { precision: 10, scale: 2 }),
+  cycleTimeTarget: decimal("cycle_time_target", { precision: 10, scale: 2 }),
+  cycleTimePass: boolean("cycle_time_pass"),
+  uptimeHours: decimal("uptime_hours", { precision: 10, scale: 2 }),
+  uptimeTarget: decimal("uptime_target", { precision: 10, scale: 2 }),
+  uptimePass: boolean("uptime_pass"),
+  qualityYieldResult: decimal("quality_yield_result", { precision: 5, scale: 2 }),
+  qualityYieldTarget: decimal("quality_yield_target", { precision: 5, scale: 2 }),
+  qualityYieldPass: boolean("quality_yield_pass"),
+
+  // 最终审批 (Final Approval)
+  approvalStatus: varchar("approval_status", { length: 30 }).default("pending"), // pending/approved/conditional/rejected
+  approvedBy: integer("approved_by"),
+  approvedByName: varchar("approved_by_name", { length: 100 }),
+  approvedAt: timestamp("approved_at", { mode: "string" }),
+  approvalNotes: text("approval_notes"),
+  conditionalItems: text("conditional_items"), // JSON: conditions for conditional approval
+
+  // 客户最终签收
+  customerFinalSignoffName: varchar("customer_final_signoff_name", { length: 100 }),
+  customerFinalSignoffDate: timestamp("customer_final_signoff_date", { mode: "string" }),
+  customerFinalSignoffFile: text("customer_final_signoff_file"),
+  warrantyStartDate: timestamp("warranty_start_date", { mode: "string" }),
+  warrantyEndDate: timestamp("warranty_end_date", { mode: "string" }),
+
+  // 状态
+  status: varchar("status", { length: 30 }).default("pending"), // pending/testing/punch_review/approval/completed/rejected
+
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
+}, (table) => [
+  index("idx_sat_delivery").on(table.deliveryId),
+  index("idx_sat_status").on(table.status),
+  index("idx_sat_approval").on(table.approvalStatus),
+])
+
+export type DeliverySatRecord = InferSelectModel<typeof deliverySatRecords>;
+export type InsertDeliverySatRecord = InferInsertModel<typeof deliverySatRecords>;

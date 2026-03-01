@@ -14,14 +14,36 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
+import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
-import { eq, desc, and, count, sql } from "drizzle-orm";
+import { eq, desc, and, count, sql, inArray } from "drizzle-orm";
 import {
   grtEmployees, grtTimeEntries, grtComplianceAlerts,
   grtWeeklyComplianceSummary, grtComplianceReports,
   grtComplianceRules, grtComplianceEmailTemplates,
+  projects,
 } from "../../drizzle/schema";
+
+/**
+ * Helper: resolve employee IDs visible to the current user's BU.
+ * Since grt_employees lacks a buCode column, we scope via time entries:
+ *   employees who have time entries on projects belonging to the user's BU.
+ * Returns undefined if user has global scope (no filter needed).
+ */
+async function buScopedEmployeeIds(ctx: any): Promise<number[] | undefined> {
+  const buFilter = buScopeCondition(projects.buCode, ctx);
+  if (!buFilter) return undefined; // global scope — no filtering
+  const db = await requireDb();
+  // Get project IDs in user's BU
+  const buProjects = await db.select({ id: projects.id }).from(projects).where(buFilter);
+  if (buProjects.length === 0) return [];
+  // Get distinct employee IDs who have time entries on those projects
+  const rows = await db.selectDistinct({ employeeId: grtTimeEntries.employeeId })
+    .from(grtTimeEntries)
+    .where(inArray(grtTimeEntries.projectId, buProjects.map(p => p.id)));
+  return rows.map(r => r.employeeId);
+}
 
 // Helper: convert decimal string to number
 function toNum(val: string | null | undefined): number | null {
@@ -38,18 +60,26 @@ function generateId(prefix: string): string {
 export const complianceRouter = router({
   // ==================== CRUD (alerts as default entity) ====================
 
-  list: protectedProcedure
+  // BU isolation via employee->project mapping (grt_compliance_alerts lacks buCode column)
+  list: requirePermission('hrm_employee_management')
     .input(z.object({
       limit: z.number().min(1).max(500).default(50),
       offset: z.number().min(0).default(0),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
-      const [totalResult] = await db.select({ count: count() }).from(grtComplianceAlerts);
+
+      // BU isolation: filter alerts by employees in user's BU projects
+      const scopedEmpIds = await buScopedEmployeeIds(ctx);
+      const buWhere = scopedEmpIds
+        ? inArray(grtComplianceAlerts.employeeId, scopedEmpIds.length > 0 ? scopedEmpIds : [0])
+        : undefined;
+
+      const [totalResult] = await db.select({ count: count() }).from(grtComplianceAlerts).where(buWhere);
       const total = totalResult?.count ?? 0;
-      const rows = await db.select().from(grtComplianceAlerts).orderBy(desc(grtComplianceAlerts.createdAt)).limit(limit).offset(offset);
+      const rows = await db.select().from(grtComplianceAlerts).where(buWhere).orderBy(desc(grtComplianceAlerts.createdAt)).limit(limit).offset(offset);
       return { items: rows, total, page: Math.floor(offset / limit) + 1, pageSize: limit };
     }),
 
@@ -406,9 +436,14 @@ export const complianceRouter = router({
 
   // ==================== Audit Statistics ====================
 
-  getAuditStatistics: protectedProcedure.query(async () => {
+  getAuditStatistics: requirePermission('hrm_employee_management').query(async ({ ctx }) => {
     const db = await requireDb();
-    const allAlerts = await db.select().from(grtComplianceAlerts);
+    // BU isolation
+    const scopedEmpIds = await buScopedEmployeeIds(ctx);
+    const buWhere = scopedEmpIds
+      ? inArray(grtComplianceAlerts.employeeId, scopedEmpIds.length > 0 ? scopedEmpIds : [0])
+      : undefined;
+    const allAlerts = await db.select().from(grtComplianceAlerts).where(buWhere);
     const total = allAlerts.length;
     const open = allAlerts.filter(a => a.status === "open").length;
     const resolved = allAlerts.filter(a => a.status === "resolved").length;
@@ -417,7 +452,7 @@ export const complianceRouter = router({
 
   // ==================== Reports ====================
 
-  getReportHistory: protectedProcedure.query(async () => {
+  getReportHistory: requirePermission('hrm_employee_management').query(async () => {
     const db = await requireDb();
     return db.select().from(grtComplianceReports).orderBy(desc(grtComplianceReports.createdAt));
   }),
@@ -472,24 +507,41 @@ export const complianceRouter = router({
 
   // ==================== Alerts ====================
 
-  getAlerts: protectedProcedure.query(async () => {
+  getAlerts: requirePermission('hrm_employee_management').query(async ({ ctx }) => {
     const db = await requireDb();
-    return db.select().from(grtComplianceAlerts).orderBy(desc(grtComplianceAlerts.createdAt)).limit(200);
+    // BU isolation
+    const scopedEmpIds = await buScopedEmployeeIds(ctx);
+    const buWhere = scopedEmpIds
+      ? inArray(grtComplianceAlerts.employeeId, scopedEmpIds.length > 0 ? scopedEmpIds : [0])
+      : undefined;
+    return db.select().from(grtComplianceAlerts).where(buWhere).orderBy(desc(grtComplianceAlerts.createdAt)).limit(200);
   }),
 
-  getPendingAlertCount: protectedProcedure.query(async () => {
+  getPendingAlertCount: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    const result = await db.select({ count: count() }).from(grtComplianceAlerts).where(eq(grtComplianceAlerts.status, "open"));
+    // BU isolation
+    const scopedEmpIds = await buScopedEmployeeIds(ctx);
+    const conditions: any[] = [eq(grtComplianceAlerts.status, "open")];
+    if (scopedEmpIds) {
+      conditions.push(inArray(grtComplianceAlerts.employeeId, scopedEmpIds.length > 0 ? scopedEmpIds : [0]));
+    }
+    const result = await db.select({ count: count() }).from(grtComplianceAlerts).where(and(...conditions));
     return { count: result[0]?.count ?? 0 };
   }),
 
   // ==================== Approval Queue ====================
 
-  getApprovalQueue: protectedProcedure.query(async () => {
+  getApprovalQueue: requirePermission('hrm_employee_management').query(async ({ ctx }) => {
     const db = await requireDb();
+    // BU isolation
+    const scopedEmpIds = await buScopedEmployeeIds(ctx);
+    const conditions: any[] = [eq(grtTimeEntries.supervisorApproval, "pending")];
+    if (scopedEmpIds) {
+      conditions.push(inArray(grtTimeEntries.employeeId, scopedEmpIds.length > 0 ? scopedEmpIds : [0]));
+    }
     const rows = await db.select()
       .from(grtTimeEntries)
-      .where(eq(grtTimeEntries.supervisorApproval, "pending"))
+      .where(and(...conditions))
       .orderBy(desc(grtTimeEntries.createdAt))
       .limit(100);
     return rows.map(r => ({
@@ -502,20 +554,39 @@ export const complianceRouter = router({
 
   // ==================== Dashboard Stats ====================
 
-  getDashboardStats: protectedProcedure.query(async () => {
+  getDashboardStats: requirePermission('hrm_employee_management').query(async ({ ctx }) => {
     const db = await requireDb();
+    // BU isolation for employee-linked data
+    const scopedEmpIds = await buScopedEmployeeIds(ctx);
+    const alertBuWhere = scopedEmpIds
+      ? inArray(grtComplianceAlerts.employeeId, scopedEmpIds.length > 0 ? scopedEmpIds : [0])
+      : undefined;
+    const entryBuWhere = scopedEmpIds
+      ? inArray(grtTimeEntries.employeeId, scopedEmpIds.length > 0 ? scopedEmpIds : [0])
+      : undefined;
+    const empBuWhere = scopedEmpIds
+      ? and(eq(grtEmployees.isActive, 1), inArray(grtEmployees.id, scopedEmpIds.length > 0 ? scopedEmpIds : [0]))
+      : eq(grtEmployees.isActive, 1);
+
     const [empRes, alertRes, entryRes, reportRes, ruleRes, tmplRes] = await Promise.all([
-      db.select({ count: count() }).from(grtEmployees).where(eq(grtEmployees.isActive, 1)),
-      db.select({ count: count() }).from(grtComplianceAlerts),
-      db.select({ count: count() }).from(grtTimeEntries),
+      db.select({ count: count() }).from(grtEmployees).where(empBuWhere),
+      db.select({ count: count() }).from(grtComplianceAlerts).where(alertBuWhere),
+      db.select({ count: count() }).from(grtTimeEntries).where(entryBuWhere),
       db.select({ count: count() }).from(grtComplianceReports),
       db.select({ count: count() }).from(grtComplianceRules),
       db.select({ count: count() }).from(grtComplianceEmailTemplates),
     ]);
 
+    const openAlertWhere = scopedEmpIds
+      ? and(eq(grtComplianceAlerts.status, "open"), inArray(grtComplianceAlerts.employeeId, scopedEmpIds.length > 0 ? scopedEmpIds : [0]))
+      : eq(grtComplianceAlerts.status, "open");
+    const pendingEntryWhere = scopedEmpIds
+      ? and(eq(grtTimeEntries.supervisorApproval, "pending"), inArray(grtTimeEntries.employeeId, scopedEmpIds.length > 0 ? scopedEmpIds : [0]))
+      : eq(grtTimeEntries.supervisorApproval, "pending");
+
     const [openRes, pendingRes] = await Promise.all([
-      db.select({ count: count() }).from(grtComplianceAlerts).where(eq(grtComplianceAlerts.status, "open")),
-      db.select({ count: count() }).from(grtTimeEntries).where(eq(grtTimeEntries.supervisorApproval, "pending")),
+      db.select({ count: count() }).from(grtComplianceAlerts).where(openAlertWhere),
+      db.select({ count: count() }).from(grtTimeEntries).where(pendingEntryWhere),
     ]);
 
     return {

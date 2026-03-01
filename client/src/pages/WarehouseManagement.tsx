@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { DashboardSkeleton } from "@/components/PageSkeleton";
 import {
   Warehouse, MapPin, ArrowDownToLine, ArrowUpFromLine, Plus,
   Search, Package, Clock, CheckCircle2, XCircle, Eye,
@@ -297,6 +298,8 @@ export default function WarehouseManagement() {
   const { t } = useLanguage();
   const statsQuery = trpc.warehouse.getWarehouseStats.useQuery();
   const stats = statsQuery.data;
+
+  if (statsQuery.isLoading) return <DashboardSkeleton />;
 
   return (
     <div className="space-y-6">

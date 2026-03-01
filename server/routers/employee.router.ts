@@ -5,7 +5,18 @@
 
 import { z } from "zod";
 import { router, protectedProcedure, requirePermission } from "../_core/trpc";
+import type { BuContext } from "../_core/gateway-bu-context.middleware";
 import * as employeeService from "../services/employee.service";
+
+/** Roles with global HR view (not BU-restricted) */
+const GLOBAL_HR_ROLES = new Set(["admin", "director", "hr_manager", "hr_specialist", "finance_manager"]);
+
+/** Resolve the BU code from context. Returns undefined for global-scope users. */
+function resolveEmployeeBuCode(ctx: any): string | undefined {
+  const role = ctx.user?.role ?? "";
+  if (GLOBAL_HR_ROLES.has(role)) return undefined;
+  return (ctx as any).bu?.buCode ?? undefined;
+}
 
 const systemRoleSchema = z.enum([
   "admin", "director", "bu_gm", "bu_pm", "bu_sales",
@@ -16,17 +27,22 @@ const systemRoleSchema = z.enum([
 ]);
 
 export const employeeRouter = router({
-  // 获取所有员工 (active only)
-  getAll: requirePermission('hr:employees:view').query(async () => {
+  // 获取所有员工 (active only, BU-scoped)
+  getAll: requirePermission('hr:employees:view').query(async ({ ctx }) => {
+    const buCode = resolveEmployeeBuCode(ctx);
+    if (buCode) return employeeService.getEmployeesByBU(buCode);
     return employeeService.getAllEmployees();
   }),
 
-  // 获取所有员工 (including inactive/resigned for HR management)
-  listAll: protectedProcedure.query(async () => {
-    return employeeService.getAllEmployees(true);
+  // 获取所有员工 (including inactive/resigned for HR management, BU-scoped)
+  listAll: protectedProcedure.query(async ({ ctx }) => {
+    const buCode = resolveEmployeeBuCode(ctx);
+    const employees = await employeeService.getAllEmployees(true);
+    if (buCode) return employees.filter(e => e.buCode === buCode);
+    return employees;
   }),
 
-  // 获取员工列表（支持筛选 — includes all statuses for HR）
+  // 获取员工列表（支持筛选 — includes all statuses for HR, BU-scoped）
   list: requirePermission('hr:employees:view')
     .input(z.object({
       buCode: z.string().optional(),
@@ -34,12 +50,14 @@ export const employeeRouter = router({
       search: z.string().optional(),
       includeAll: z.boolean().optional(),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const employees = await employeeService.getAllEmployees(input?.includeAll ?? false);
       let filtered = employees;
 
-      if (input?.buCode) {
-        filtered = filtered.filter(e => e.buCode === input.buCode);
+      // BU isolation: apply user's BU scope unless explicit buCode filter provided
+      const userBuCode = input?.buCode ?? resolveEmployeeBuCode(ctx);
+      if (userBuCode) {
+        filtered = filtered.filter(e => e.buCode === userBuCode);
       }
       if (input?.department) {
         filtered = filtered.filter(e => e.department === input.department);
@@ -56,17 +74,22 @@ export const employeeRouter = router({
       return { employees: filtered, total: filtered.length };
     }),
 
-  // 获取统计数据
-  getStats: requirePermission('hr:employees:view').query(async () => {
-    const employees = await employeeService.getAllEmployees();
+  // 获取统计数据 (BU-scoped)
+  getStats: requirePermission('hr:employees:view').query(async ({ ctx }) => {
+    let employees = await employeeService.getAllEmployees();
+    // BU isolation
+    const buCode = resolveEmployeeBuCode(ctx);
+    if (buCode) {
+      employees = employees.filter(e => e.buCode === buCode);
+    }
     const byBU: Record<string, number> = {};
     const byDepartment: Record<string, number> = {};
-    
+
     employees.forEach(e => {
       byBU[e.buCode] = (byBU[e.buCode] || 0) + 1;
       byDepartment[e.department] = (byDepartment[e.department] || 0) + 1;
     });
-    
+
     return {
       total: employees.length,
       byBU,

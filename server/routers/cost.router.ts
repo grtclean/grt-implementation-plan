@@ -16,12 +16,25 @@
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure, requirePermission } from "../_core/trpc";
+import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
-import { eq, desc, sql, count } from "drizzle-orm";
+import { eq, desc, sql, count, and, inArray } from "drizzle-orm";
 import {
   costRecords, costCategories, costEstimates, costRates,
-  costVarianceAnalysis,
+  costVarianceAnalysis, projects,
 } from "../../drizzle/schema";
+
+/**
+ * Helper: resolve project IDs visible to the current user's BU.
+ * Returns undefined if user has global scope (no filter needed).
+ */
+async function buScopedProjectIds(ctx: any): Promise<number[] | undefined> {
+  const buFilter = buScopeCondition(projects.buCode, ctx);
+  if (!buFilter) return undefined;
+  const db = await requireDb();
+  const rows = await db.select({ id: projects.id }).from(projects).where(buFilter);
+  return rows.map(r => r.id);
+}
 
 const successResponse = { success: true, message: "操作成功" };
 
@@ -33,23 +46,36 @@ export const costRouter = router({
       limit: z.number().min(1).max(500).default(50),
       offset: z.number().min(0).default(0),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
-      const [totalResult] = await db.select({ count: count() }).from(costRecords);
+
+      // BU isolation: restrict to cost records for user's BU projects
+      const scopedIds = await buScopedProjectIds(ctx);
+      const where = scopedIds
+        ? inArray(costRecords.projectId, scopedIds.length > 0 ? scopedIds : [0])
+        : undefined;
+
+      const [totalResult] = await db.select({ count: count() }).from(costRecords).where(where);
       const total = totalResult?.count ?? 0;
-      const rows = await db.select().from(costRecords).orderBy(desc(costRecords.createdAt)).limit(limit).offset(offset);
+      const rows = await db.select().from(costRecords).where(where).orderBy(desc(costRecords.createdAt)).limit(limit).offset(offset);
       return { items: rows, total, page: Math.floor(offset / limit) + 1, pageSize: limit };
     }),
 
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
       const numericId = parseInt(input.id, 10);
       if (isNaN(numericId)) return null;
-      const rows = await db.select().from(costRecords).where(eq(costRecords.id, numericId));
+      // BU isolation
+      const scopedIds = await buScopedProjectIds(ctx);
+      const conditions = [eq(costRecords.id, numericId)];
+      if (scopedIds) {
+        conditions.push(inArray(costRecords.projectId, scopedIds.length > 0 ? scopedIds : [0]));
+      }
+      const rows = await db.select().from(costRecords).where(and(...conditions));
       return rows[0] ?? null;
     }),
 
@@ -125,10 +151,16 @@ export const costRouter = router({
 
   getBudget: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
-  }).optional()).query(async ({ input }) => {
+  }).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const projectId = Number(input?.projectId);
     if (!projectId) return { budget: 0, spent: 0, remaining: 0 };
+
+    // BU isolation: verify project belongs to user's BU
+    const scopedIds = await buScopedProjectIds(ctx);
+    if (scopedIds && !scopedIds.includes(projectId)) {
+      return { budget: 0, spent: 0, remaining: 0 };
+    }
 
     const estimates = await db.select().from(costEstimates).where(eq(costEstimates.projectId, projectId));
     const budget = estimates.reduce((sum, e) => sum + (e.estimatedAmount ?? 0), 0);
@@ -139,9 +171,14 @@ export const costRouter = router({
     return { budget, spent, remaining: budget - spent };
   }),
 
-  getStatistics: protectedProcedure.query(async () => {
+  getStatistics: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    const records = await db.select().from(costRecords);
+    // BU isolation
+    const scopedIds = await buScopedProjectIds(ctx);
+    const where = scopedIds
+      ? inArray(costRecords.projectId, scopedIds.length > 0 ? scopedIds : [0])
+      : undefined;
+    const records = await db.select().from(costRecords).where(where);
     const categories = await db.select().from(costCategories);
 
     const total = records.reduce((sum, r) => sum + (r.amount ?? 0), 0);
@@ -155,9 +192,18 @@ export const costRouter = router({
     return { total, categories: categoryStats };
   }),
 
-  getBudgets: protectedProcedure.query(async () => {
+  getBudgets: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    const estimates = await db.select().from(costEstimates).orderBy(desc(costEstimates.createdAt));
+    // BU isolation
+    const scopedIds = await buScopedProjectIds(ctx);
+    const estimateWhere = scopedIds
+      ? inArray(costEstimates.projectId, scopedIds.length > 0 ? scopedIds : [0])
+      : undefined;
+    const recordWhere = scopedIds
+      ? inArray(costRecords.projectId, scopedIds.length > 0 ? scopedIds : [0])
+      : undefined;
+
+    const estimates = await db.select().from(costEstimates).where(estimateWhere).orderBy(desc(costEstimates.createdAt));
 
     // Group by project
     const byProject: Record<number, { projectId: number; budget: number; items: typeof estimates }> = {};
@@ -168,7 +214,7 @@ export const costRouter = router({
     }
 
     // Get actual spending per project
-    const records = await db.select().from(costRecords);
+    const records = await db.select().from(costRecords).where(recordWhere);
     const spentByProject: Record<number, number> = {};
     for (const r of records) {
       spentByProject[r.projectId] = (spentByProject[r.projectId] ?? 0) + (r.amount ?? 0);
@@ -220,9 +266,14 @@ export const costRouter = router({
 
   // ==================== Records ====================
 
-  getRecords: protectedProcedure.query(async () => {
+  getRecords: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    return db.select().from(costRecords).orderBy(desc(costRecords.costDate));
+    // BU isolation
+    const scopedIds = await buScopedProjectIds(ctx);
+    const where = scopedIds
+      ? inArray(costRecords.projectId, scopedIds.length > 0 ? scopedIds : [0])
+      : undefined;
+    return db.select().from(costRecords).where(where).orderBy(desc(costRecords.costDate));
   }),
 
   createRecord: protectedProcedure.input(z.object({
@@ -304,12 +355,21 @@ export const costRouter = router({
 
   // ==================== Summary ====================
 
-  getSummary: protectedProcedure.query(async () => {
+  getSummary: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
+    // BU isolation
+    const scopedIds = await buScopedProjectIds(ctx);
+    const recordWhere = scopedIds
+      ? inArray(costRecords.projectId, scopedIds.length > 0 ? scopedIds : [0])
+      : undefined;
+    const estimateWhere = scopedIds
+      ? inArray(costEstimates.projectId, scopedIds.length > 0 ? scopedIds : [0])
+      : undefined;
+
     const [records, categories, estimates] = await Promise.all([
-      db.select().from(costRecords),
+      db.select().from(costRecords).where(recordWhere),
       db.select().from(costCategories),
-      db.select().from(costEstimates),
+      db.select().from(costEstimates).where(estimateWhere),
     ]);
 
     const totalBudget = estimates.reduce((sum, e) => sum + (e.estimatedAmount ?? 0), 0);

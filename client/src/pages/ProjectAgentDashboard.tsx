@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { DashboardSkeleton } from "@/components/PageSkeleton";
 import {
   Bot, CheckCircle2, Circle, AlertTriangle, XCircle, Clock,
   FileText, Ruler, TrendingUp, ChevronDown, ChevronUp,
@@ -127,6 +128,8 @@ export default function ProjectAgentDashboard() {
     },
     onError: (err) => toast({ title: "创建失败", description: err.message, variant: "destructive" }),
   });
+
+  if (projectsQuery.isLoading && dashboardQuery.isLoading) return <DashboardSkeleton />;
 
   // ── Derived Data ──────────────────────────────────────────
   const selectedProject = projects.find((p: any) => p.id === selectedProjectId);

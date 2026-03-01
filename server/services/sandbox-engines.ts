@@ -451,4 +451,10 @@ export function registerAllEngines(): void {
 
   // Daily Plan — async LLM-powered daily work plan generation
   registerTaskHandler("DAILY_PLAN_GENERATION", dailyPlanGenerationHandler);
+
+  // P0-1: 5 async AI handlers (chat, suggestion, notebook, employee assistant, meeting quiz)
+  // Side-effect import registers all handlers
+  import("./ai-async-handlers.service").catch(err => {
+    console.error("[registerAllEngines] Failed to load ai-async-handlers:", err);
+  });
 }

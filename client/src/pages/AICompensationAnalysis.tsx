@@ -2,7 +2,7 @@
  * AI薪酬分析 (AI Compensation Analysis)
  * Phase F: 薪酬竞争力 · 市场对标 · 公平性分析 · 调薪建议
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,14 +54,36 @@ export default function AICompensationAnalysis() {
   const [performanceGrade, setPerformanceGrade] = useState("");
   const [education, setEducation] = useState("");
   const [result, setResult] = useState<CompensationResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const mutation = trpc.hrIntelligence.analyzeCompensation.useMutation({
-    onSuccess: (data) => setResult(data as CompensationResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.hrIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (taskQuery.data?.taskStatus === "completed" && taskQuery.data.result) {
+      setResult(taskQuery.data.result as unknown as CompensationResult);
+      setTaskId(null);
+    } else if (taskQuery.data?.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data]);
+
   const handleSubmit = () => {
-    if (!position.trim() || !experienceYears || !currentSalary || mutation.isPending) return;
+    if (!position.trim() || !experienceYears || !currentSalary || mutation.isPending || !!taskId) return;
     mutation.mutate({
       position,
       department,
@@ -186,8 +208,8 @@ export default function AICompensationAnalysis() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSubmit} disabled={!position.trim() || !experienceYears || !currentSalary || mutation.isPending}>
-                {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              <Button onClick={handleSubmit} disabled={!position.trim() || !experienceYears || !currentSalary || mutation.isPending || !!taskId}>
+                {mutation.isPending || !!taskId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 {t("ai.compensation.aiAnalysis")}
               </Button>
             </div>

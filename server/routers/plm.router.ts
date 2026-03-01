@@ -4,13 +4,14 @@
  */
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import {
   plmDocuments,
   plmDocumentVersions,
   plmDesignReviews,
 } from "../../drizzle/plm-schema";
-import { users } from "../../drizzle/schema";
+import { users, projects } from "../../drizzle/schema";
 import {
   createDocument,
   uploadNewVersion,
@@ -18,7 +19,19 @@ import {
   submitForReview,
   recordReviewDecision,
 } from "../services/plm.service";
-import { eq, and, desc, count, ilike, sql } from "drizzle-orm";
+import { eq, and, desc, count, ilike, sql, inArray } from "drizzle-orm";
+
+/**
+ * Helper: resolve project IDs visible to the current user's BU.
+ * Returns undefined if user has global scope (no filter needed).
+ */
+async function buScopedProjectIds(ctx: any): Promise<number[] | undefined> {
+  const buFilter = buScopeCondition(projects.buCode, ctx);
+  if (!buFilter) return undefined; // global scope — no restriction
+  const db = await requireDb();
+  const rows = await db.select({ id: projects.id }).from(projects).where(buFilter);
+  return rows.map(r => r.id);
+}
 
 const idInput = z.object({ id: z.union([z.string(), z.number()]) });
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
@@ -36,9 +49,15 @@ export const plmRouter = router({
     search: z.string().optional(),
     limit: z.number().default(50),
     offset: z.number().default(0),
-  }).optional()).query(async ({ input }) => {
+  }).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const conditions = [];
+
+    // BU isolation: restrict to projects visible to user's BU
+    const scopedIds = await buScopedProjectIds(ctx);
+    if (scopedIds) {
+      conditions.push(inArray(plmDocuments.projectId, scopedIds.length > 0 ? scopedIds : [0]));
+    }
 
     if (input?.projectId) {
       conditions.push(eq(plmDocuments.projectId, toNum(input.projectId)));
@@ -67,10 +86,15 @@ export const plmRouter = router({
     return { items, total: Number(total) };
   }),
 
-  getDocument: protectedProcedure.input(idInput).query(async ({ input }) => {
+  getDocument: protectedProcedure.input(idInput).query(async ({ input, ctx }) => {
     const db = await requireDb();
-    const [doc] = await db.select().from(plmDocuments)
-      .where(eq(plmDocuments.id, toNum(input.id)));
+    // BU isolation: verify document belongs to user's BU-scoped project
+    const scopedIds = await buScopedProjectIds(ctx);
+    const conditions = [eq(plmDocuments.id, toNum(input.id))];
+    if (scopedIds) {
+      conditions.push(inArray(plmDocuments.projectId, scopedIds.length > 0 ? scopedIds : [0]));
+    }
+    const [doc] = await db.select().from(plmDocuments).where(and(...conditions));
     if (!doc) return null;
 
     // Fetch version history + ALL reviews for the document in parallel
@@ -217,7 +241,7 @@ export const plmRouter = router({
     reviewStatus: z.string().optional(),
     limit: z.number().default(50),
     offset: z.number().default(0),
-  })).query(async ({ input }) => {
+  })).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const conditions = [];
 
@@ -249,12 +273,18 @@ export const plmRouter = router({
   // Dashboard aggregates
   // ══════════════════════════════════════════════════
 
-  /** Global stats (no filters) — accurate counts for stat cards */
+  /** Global stats (BU-scoped) — accurate counts for stat cards */
   getStats: protectedProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]).optional(),
-  }).optional()).query(async ({ input }) => {
+  }).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const conditions = [];
+
+    // BU isolation
+    const scopedIds = await buScopedProjectIds(ctx);
+    if (scopedIds) {
+      conditions.push(inArray(plmDocuments.projectId, scopedIds.length > 0 ? scopedIds : [0]));
+    }
 
     if (input?.projectId) {
       conditions.push(eq(plmDocuments.projectId, toNum(input.projectId)));
@@ -294,9 +324,15 @@ export const plmRouter = router({
 
   getProjectSummary: protectedProcedure.input(z.object({
     projectId: z.union([z.string(), z.number()]),
-  })).query(async ({ input }) => {
+  })).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const projectId = toNum(input.projectId);
+
+    // BU isolation: verify project belongs to user's BU
+    const scopedIds = await buScopedProjectIds(ctx);
+    if (scopedIds && !scopedIds.includes(projectId)) {
+      return { totalDocuments: 0, byType: {}, byStatus: {}, frozenCount: 0, freezeRate: 0 };
+    }
 
     const docs = await db.select().from(plmDocuments)
       .where(eq(plmDocuments.projectId, projectId));

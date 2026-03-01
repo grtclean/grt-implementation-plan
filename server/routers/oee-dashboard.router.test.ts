@@ -604,6 +604,8 @@ describe("oeeDashboard.machineHistory", () => {
   });
 
   it("returns mapped snapshot history with isLive=true", async () => {
+    // BU scope check: verify machine belongs to user's BU
+    selectResultsQueue.push([{ id: 1 }]);
     selectResultsQueue.push([
       {
         snapshotDate: "2026-02-28",
@@ -649,6 +651,8 @@ describe("oeeDashboard.machineHistory", () => {
   });
 
   it("multiplies decimal OEE values by 100 for display", async () => {
+    // BU scope check: verify machine belongs to user's BU
+    selectResultsQueue.push([{ id: 1 }]);
     selectResultsQueue.push([
       {
         snapshotDate: "2026-03-01",

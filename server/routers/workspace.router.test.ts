@@ -85,47 +85,47 @@ describe("workspace router", () => {
   describe("auth guards", () => {
     it("rejects anonymous caller on list", async () => {
       const caller = createAnonymousCaller();
-      await expect(caller.workspace.list({})).rejects.toThrow(/UNAUTHORIZED|authenticated|login/i);
+      await expect(caller.workspace.list({})).rejects.toThrow(/UNAUTHORIZED|authenticat|login/i);
     });
 
     it("rejects anonymous caller on get", async () => {
       const caller = createAnonymousCaller();
-      await expect(caller.workspace.get({ id: 1 })).rejects.toThrow(/UNAUTHORIZED|authenticated|login/i);
+      await expect(caller.workspace.get({ id: 1 })).rejects.toThrow(/UNAUTHORIZED|authenticat|login/i);
     });
 
     it("rejects anonymous caller on create", async () => {
       const caller = createAnonymousCaller();
-      await expect(caller.workspace.create({ name: "Test" })).rejects.toThrow(/UNAUTHORIZED|authenticated|login/i);
+      await expect(caller.workspace.create({ name: "Test" })).rejects.toThrow(/UNAUTHORIZED|authenticat|login/i);
     });
 
     it("rejects anonymous caller on update", async () => {
       const caller = createAnonymousCaller();
-      await expect(caller.workspace.update({ id: 1 })).rejects.toThrow(/UNAUTHORIZED|authenticated|login/i);
+      await expect(caller.workspace.update({ id: 1 })).rejects.toThrow(/UNAUTHORIZED|authenticat|login/i);
     });
 
     it("rejects anonymous caller on delete", async () => {
       const caller = createAnonymousCaller();
-      await expect(caller.workspace.delete({ id: 1 })).rejects.toThrow(/UNAUTHORIZED|authenticated|login/i);
+      await expect(caller.workspace.delete({ id: 1 })).rejects.toThrow(/UNAUTHORIZED|authenticat|login/i);
     });
 
     it("rejects anonymous caller on addMember", async () => {
       const caller = createAnonymousCaller();
-      await expect(caller.workspace.addMember({ workspaceId: 1, userId: 2 })).rejects.toThrow(/UNAUTHORIZED|authenticated|login/i);
+      await expect(caller.workspace.addMember({ workspaceId: 1, userId: 2 })).rejects.toThrow(/UNAUTHORIZED|authenticat|login/i);
     });
 
     it("rejects anonymous caller on sendMessage", async () => {
       const caller = createAnonymousCaller();
-      await expect(caller.workspace.sendMessage({ workspaceId: 1, content: "hi" })).rejects.toThrow(/UNAUTHORIZED|authenticated|login/i);
+      await expect(caller.workspace.sendMessage({ workspaceId: 1, content: "hi" })).rejects.toThrow(/UNAUTHORIZED|authenticat|login/i);
     });
 
     it("rejects anonymous caller on createDocument", async () => {
       const caller = createAnonymousCaller();
-      await expect(caller.workspace.createDocument({ workspaceId: 1, name: "doc.pdf" })).rejects.toThrow(/UNAUTHORIZED|authenticated|login/i);
+      await expect(caller.workspace.createDocument({ workspaceId: 1, name: "doc.pdf" })).rejects.toThrow(/UNAUTHORIZED|authenticat|login/i);
     });
 
     it("rejects anonymous caller on createTask", async () => {
       const caller = createAnonymousCaller();
-      await expect(caller.workspace.createTask({ workspaceId: 1, title: "Task" })).rejects.toThrow(/UNAUTHORIZED|authenticated|login/i);
+      await expect(caller.workspace.createTask({ workspaceId: 1, title: "Task" })).rejects.toThrow(/UNAUTHORIZED|authenticat|login/i);
     });
   });
 

@@ -1,6 +1,7 @@
 import { defineConfig } from "drizzle-kit";
 import dotenv from "dotenv";
 import path from "path";
+import { fileURLToPath } from "url";
 
 /**
  * Environment-aware Drizzle configuration.
@@ -16,9 +17,14 @@ import path from "path";
 const nodeEnv = process.env.NODE_ENV || "development";
 const envFile = `.env.${nodeEnv}`;
 
+// CJS/ESM compatible __dirname
+const __dirname = typeof import.meta.dirname === "string"
+  ? import.meta.dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+
 // Load environment-specific file first, then generic .env as fallback
-dotenv.config({ path: path.resolve(import.meta.dirname, envFile) });
-dotenv.config({ path: path.resolve(import.meta.dirname, ".env") });
+dotenv.config({ path: path.resolve(__dirname, envFile) });
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {

@@ -10,6 +10,7 @@
  */
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { getDb, requireDb } from "../db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import {
@@ -119,41 +120,49 @@ async function ensureTables() {
 }
 
 export const buSalesTargetRouter = router({
-  /** List all BU sales plans, ordered by year desc */
+  /** List all BU sales plans, ordered by year desc (BU-scoped) */
   list: protectedProcedure
     .input(z.object({ limit: z.number().default(50), offset: z.number().default(0) }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return { items: [], total: 0 };
       await ensureTables();
       try {
+        // BU isolation: filter plans by user's BU (departmentId matches BU code)
+        const buFilter = buScopeCondition(buSalesPlans.departmentId, ctx);
         const items = await db
           .select()
           .from(buSalesPlans)
+          .where(buFilter)
           .orderBy(desc(buSalesPlans.year))
           .limit(input?.limit ?? 50)
           .offset(input?.offset ?? 0);
         const countResult = await db
           .select({ count: sql<number>`count(*)` })
-          .from(buSalesPlans);
+          .from(buSalesPlans)
+          .where(buFilter);
         return { items, total: Number(countResult[0]?.count ?? 0) };
       } catch {
         return { items: [], total: 0 };
       }
     }),
 
-  /** Get plan + its 12 monthly details by plan ID */
+  /** Get plan + its 12 monthly details by plan ID (BU-scoped) */
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return null;
       await ensureTables();
       try {
+        // BU isolation: ensure plan belongs to user's BU
+        const buFilter = buScopeCondition(buSalesPlans.departmentId, ctx);
+        const conditions = [eq(buSalesPlans.id, input.id)];
+        if (buFilter) conditions.push(buFilter);
         const [plan] = await db
           .select()
           .from(buSalesPlans)
-          .where(eq(buSalesPlans.id, input.id));
+          .where(and(...conditions));
         if (!plan) return null;
         const details = await db
           .select()
@@ -525,22 +534,25 @@ export const buSalesTargetRouter = router({
       return { success: true };
     }),
 
-  /** Aggregate KPIs: total plans, sum sales target, avg growth */
+  /** Aggregate KPIs: total plans, sum sales target, avg growth (BU-scoped) */
   dashboard: protectedProcedure
-    .query(async () => {
+    .query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) {
         return { totalPlans: 0, totalSalesTarget: 0, totalOutputTarget: 0, avgGrowth: 0, pendingApprovals: 0 };
       }
       await ensureTables();
       try {
+        // BU isolation
+        const buFilter = buScopeCondition(buSalesPlans.departmentId, ctx);
         const result = await db
           .select({
             totalPlans: sql<number>`count(*)`,
             totalSalesTarget: sql<number>`coalesce(sum(${buSalesPlans.totalSalesTarget}::numeric), 0)`,
             totalOutputTarget: sql<number>`coalesce(sum(${buSalesPlans.totalOutputTarget}::numeric), 0)`,
           })
-          .from(buSalesPlans);
+          .from(buSalesPlans)
+          .where(buFilter);
 
         const pendingResult = await db
           .select({ count: sql<number>`count(*)` })
@@ -560,16 +572,25 @@ export const buSalesTargetRouter = router({
       }
     }),
 
-  /** List pending adjustments for review (Finance/PMO or CEO step) */
+  /** List pending adjustments for review (Finance/PMO or CEO step) (BU-scoped) */
   pendingReviews: protectedProcedure
     .input(z.object({
       step: z.enum(["finance_pmo", "ceo"]).optional(),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
       await ensureTables();
       try {
+        // BU isolation: first get plan IDs belonging to user's BU
+        const buFilter = buScopeCondition(buSalesPlans.departmentId, ctx);
+        let planIds: number[] | undefined;
+        if (buFilter) {
+          const plans = await db.select({ id: buSalesPlans.id }).from(buSalesPlans).where(buFilter);
+          planIds = plans.map(p => p.id);
+          if (planIds.length === 0) return [];
+        }
+
         let whereClause;
         if (input?.step === "finance_pmo") {
           whereClause = sql`${buSalesPlanAdjustments.approvalStatus} = 'pending' AND ${buSalesPlanAdjustments.reviewStep} = 'finance_pmo'`;
@@ -579,11 +600,16 @@ export const buSalesTargetRouter = router({
           whereClause = sql`${buSalesPlanAdjustments.approvalStatus} IN ('pending', 'finance_approved')`;
         }
 
-        const items = await db
+        let items = await db
           .select()
           .from(buSalesPlanAdjustments)
           .where(whereClause)
           .orderBy(desc(buSalesPlanAdjustments.createdAt));
+
+        // Apply BU filter by plan ownership
+        if (planIds) {
+          items = items.filter(adj => planIds!.includes(adj.buSalesPlanId));
+        }
 
         return items;
       } catch {

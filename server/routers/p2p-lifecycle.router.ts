@@ -9,6 +9,7 @@
  */
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import {
   frameworkAgreements,
@@ -24,6 +25,16 @@ import {
 } from "../../drizzle/p2p-lifecycle-schema";
 import { purchaseOrders, purchaseInvoices, suppliers } from "../../drizzle/procurement-schema";
 import { eq, desc, and, sql, count, gte, lte, sum } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+import type { PgColumn } from "drizzle-orm/pg-core";
+
+/**
+ * Helper: build BU scope condition for a given buCode column.
+ * Returns undefined for global-scope users (no filter).
+ */
+function p2pBuFilter(buCodeCol: PgColumn, ctx: any): SQL | undefined {
+  return buScopeCondition(buCodeCol, ctx);
+}
 
 const idInput = z.object({ id: z.union([z.string(), z.number()]) });
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
@@ -51,9 +62,15 @@ const frameworkAgreementRouter = router({
       supplierId: z.number().optional(),
       status: z.string().optional(),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
-      let items = await db.select().from(frameworkAgreements).orderBy(desc(frameworkAgreements.createdAt));
+      // BU isolation
+      const buFilter = p2pBuFilter(frameworkAgreements.buCode, ctx);
+      const conditions: SQL[] = [];
+      if (buFilter) conditions.push(buFilter);
+
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+      let items = await db.select().from(frameworkAgreements).where(where).orderBy(desc(frameworkAgreements.createdAt));
       if (input?.supplierId) items = items.filter(i => i.supplierId === input.supplierId);
       if (input?.status) items = items.filter(i => i.status === input.status);
       return { items, total: items.length };
@@ -137,9 +154,12 @@ const rfqRouter = router({
       status: z.string().optional(),
       materialCode: z.string().optional(),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
-      let items = await db.select().from(rfqEvents).orderBy(desc(rfqEvents.createdAt));
+      // BU isolation
+      const buFilter = p2pBuFilter(rfqEvents.buCode, ctx);
+      const where = buFilter ? buFilter : undefined;
+      let items = await db.select().from(rfqEvents).where(where).orderBy(desc(rfqEvents.createdAt));
       if (input?.status) items = items.filter(i => i.status === input.status);
       if (input?.materialCode) items = items.filter(i => i.materialCode === input.materialCode);
       return { items, total: items.length };
@@ -334,9 +354,12 @@ const deliveryRouter = router({
       status: z.string().optional(),
       poNumber: z.string().optional(),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
-      let items = await db.select().from(deliveryRegistrations).orderBy(desc(deliveryRegistrations.createdAt));
+      // BU isolation
+      const buFilter = p2pBuFilter(deliveryRegistrations.buCode, ctx);
+      const where = buFilter ? buFilter : undefined;
+      let items = await db.select().from(deliveryRegistrations).where(where).orderBy(desc(deliveryRegistrations.createdAt));
       if (input?.supplierId) items = items.filter(i => i.supplierId === input.supplierId);
       if (input?.status) items = items.filter(i => i.status === input.status);
       if (input?.poNumber) items = items.filter(i => i.poNumber === input.poNumber);

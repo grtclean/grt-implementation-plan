@@ -4,9 +4,22 @@
  */
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
-import { fmeaDocuments, fmeaItems, fmeaActions, controlPlans, controlPlanItems } from "../../drizzle/schema";
-import { eq, desc, and, count, sql, gte, lte } from "drizzle-orm";
+import { fmeaDocuments, fmeaItems, fmeaActions, controlPlans, controlPlanItems, projects } from "../../drizzle/schema";
+import { eq, desc, and, count, sql, gte, lte, inArray } from "drizzle-orm";
+
+/**
+ * Helper: resolve project IDs visible to the current user's BU.
+ * Returns undefined if user has global scope (no filter needed).
+ */
+async function buScopedProjectIds(ctx: any): Promise<number[] | undefined> {
+  const buFilter = buScopeCondition(projects.buCode, ctx);
+  if (!buFilter) return undefined; // global scope — no restriction
+  const db = await requireDb();
+  const rows = await db.select({ id: projects.id }).from(projects).where(buFilter);
+  return rows.map(r => r.id);
+}
 
 const idInput = z.object({ id: z.union([z.string(), z.number()]) });
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
@@ -14,28 +27,41 @@ const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : i
 export const fmeaRouter = router({
   // ===== FMEA Documents =====
 
-  // 列表
+  // 列表 (BU-scoped via project linkage)
   listDocuments: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
     fmeaType: z.enum(["DFMEA", "PFMEA"]).optional(),
     status: z.string().optional(),
-  }).optional()).query(async ({ input }) => {
+  }).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
-    let query = db.select().from(fmeaDocuments).orderBy(desc(fmeaDocuments.updatedAt)).$dynamic();
-    // Note: filtering done in JS for simplicity with optional params
-    const items = await query;
-    let filtered = items;
-    if (input?.projectId) filtered = filtered.filter(d => d.projectId === input.projectId);
-    if (input?.fmeaType) filtered = filtered.filter(d => d.fmeaType === input.fmeaType);
-    if (input?.status) filtered = filtered.filter(d => d.status === input.status);
-    return { items: filtered, total: filtered.length };
+    const conditions = [];
+
+    // BU isolation: restrict to projects visible to user's BU
+    const scopedIds = await buScopedProjectIds(ctx);
+    if (scopedIds) {
+      conditions.push(inArray(fmeaDocuments.projectId, scopedIds.length > 0 ? scopedIds : [0]));
+    }
+
+    if (input?.projectId) conditions.push(eq(fmeaDocuments.projectId, input.projectId));
+    if (input?.fmeaType) conditions.push(eq(fmeaDocuments.fmeaType, input.fmeaType));
+    if (input?.status) conditions.push(eq(fmeaDocuments.status, input.status as typeof fmeaDocuments.status.enumValues[number]));
+
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const items = await db.select().from(fmeaDocuments).where(where).orderBy(desc(fmeaDocuments.updatedAt));
+    return { items, total: items.length };
   }),
 
-  // 详情（含行项）
-  getDocument: protectedProcedure.input(idInput).query(async ({ input }) => {
+  // 详情（含行项, BU-scoped）
+  getDocument: protectedProcedure.input(idInput).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
-    const [doc] = await db.select().from(fmeaDocuments).where(eq(fmeaDocuments.id, numId));
+    // BU isolation: verify document belongs to user's BU-scoped project
+    const scopedIds = await buScopedProjectIds(ctx);
+    const conditions = [eq(fmeaDocuments.id, numId)];
+    if (scopedIds) {
+      conditions.push(inArray(fmeaDocuments.projectId, scopedIds.length > 0 ? scopedIds : [0]));
+    }
+    const [doc] = await db.select().from(fmeaDocuments).where(and(...conditions));
     if (!doc) return null;
     const items = await db.select().from(fmeaItems)
       .where(eq(fmeaItems.fmeaDocumentId, numId))
@@ -289,12 +315,20 @@ export const fmeaRouter = router({
 
   // ===== Statistics & Dashboard =====
 
-  // FMEA概览统计
+  // FMEA概览统计 (BU-scoped)
   getStats: protectedProcedure.input(z.object({
     projectId: z.number().optional(),
-  }).optional()).query(async ({ input }) => {
+  }).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
-    const docs = await db.select().from(fmeaDocuments);
+    // BU isolation
+    const scopedIds = await buScopedProjectIds(ctx);
+    const buConditions = [];
+    if (scopedIds) {
+      buConditions.push(inArray(fmeaDocuments.projectId, scopedIds.length > 0 ? scopedIds : [0]));
+    }
+    const docs = buConditions.length > 0
+      ? await db.select().from(fmeaDocuments).where(and(...buConditions))
+      : await db.select().from(fmeaDocuments);
     const filteredDocs = input?.projectId ? docs.filter(d => d.projectId === input.projectId) : docs;
     const docIds = filteredDocs.map(d => d.id);
 
@@ -330,13 +364,29 @@ export const fmeaRouter = router({
     };
   }),
 
-  // 高风险项 Top N
+  // 高风险项 Top N (BU-scoped)
   getHighRiskItems: protectedProcedure.input(z.object({
     limit: z.number().default(20),
     projectId: z.number().optional(),
-  }).optional()).query(async ({ input }) => {
+  }).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
-    const items = await db.select().from(fmeaItems).orderBy(desc(fmeaItems.rpn)).limit(input?.limit ?? 20);
+
+    // BU isolation: get FMEA document IDs within user's BU scope
+    const scopedIds = await buScopedProjectIds(ctx);
+    let buDocIds: number[] | undefined;
+    if (scopedIds) {
+      const buDocs = await db.select({ id: fmeaDocuments.id }).from(fmeaDocuments)
+        .where(inArray(fmeaDocuments.projectId, scopedIds.length > 0 ? scopedIds : [0]));
+      buDocIds = buDocs.map(d => d.id);
+    }
+
+    const itemConditions = [];
+    if (buDocIds) {
+      itemConditions.push(inArray(fmeaItems.fmeaDocumentId, buDocIds.length > 0 ? buDocIds : [0]));
+    }
+    const where = itemConditions.length > 0 ? and(...itemConditions) : undefined;
+    const items = await db.select().from(fmeaItems).where(where).orderBy(desc(fmeaItems.rpn)).limit(input?.limit ?? 20);
+
     if (!input?.projectId) return items;
 
     // Filter by project

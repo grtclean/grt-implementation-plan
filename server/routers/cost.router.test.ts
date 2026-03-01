@@ -59,7 +59,17 @@ vi.mock("drizzle-orm", () => ({
   desc: vi.fn((c: any) => c),
   count: vi.fn(() => "count"),
   sql: Object.assign(vi.fn(), { raw: vi.fn() }),
+  and: vi.fn((...a: any[]) => a),
+  inArray: vi.fn((...a: any[]) => a),
 }));
+
+vi.mock("../_core/gateway-bu-context.middleware", async (importOriginal) => {
+  const actual = await importOriginal<any>();
+  return {
+    ...actual,
+    buScopeCondition: vi.fn(() => undefined),
+  };
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

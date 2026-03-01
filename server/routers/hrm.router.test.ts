@@ -710,8 +710,8 @@ describe("hrm router", () => {
       const caller = createAdminCaller();
       const result = await caller.hrm.initSalaryStructures();
       expect(result).toEqual({ created: 6 });
-      // insert called 6 times (one per default structure)
-      expect(mockDb.insert).toHaveBeenCalledTimes(6);
+      // insert called 6 times (one per default structure) + 1 for gateway admin audit log
+      expect(mockDb.insert).toHaveBeenCalledTimes(7);
     });
   });
 
@@ -723,7 +723,8 @@ describe("hrm router", () => {
       const caller = createAdminCaller();
       const result = await caller.hrm.initPerformanceGrades();
       expect(result).toEqual({ created: 5 });
-      expect(mockDb.insert).toHaveBeenCalledTimes(5);
+      // insert called 5 times (one per grade) + 1 for gateway admin audit log
+      expect(mockDb.insert).toHaveBeenCalledTimes(6);
     });
   });
 

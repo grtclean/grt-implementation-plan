@@ -289,34 +289,13 @@ vi.mock("../services/hr-meeting-engine", () => ({
   processAbsences: (...args: any[]) => mockProcessAbsences(...args),
 }));
 
-const mockInvokeLLM = vi.fn().mockResolvedValue({
-  content: JSON.stringify([
-    {
-      id: 1,
-      question: "Test question?",
-      type: "MULTIPLE_CHOICE",
-      options: ["A", "B", "C", "D"],
-      correctAnswer: "A",
-    },
-    {
-      id: 2,
-      question: "Second question?",
-      type: "MULTIPLE_CHOICE",
-      options: ["A", "B", "C", "D"],
-      correctAnswer: "C",
-    },
-    {
-      id: 3,
-      question: "True or false?",
-      type: "TRUE_FALSE",
-      options: ["True", "False"],
-      correctAnswer: "True",
-    },
-  ]),
-});
+// Mock task worker service (async task queue pattern)
+const mockSubmitTask = vi.fn().mockResolvedValue({ taskId: 42 });
+const mockGetTaskStatus = vi.fn().mockResolvedValue({ id: 42, status: "completed", resultData: {} });
 
-vi.mock("../_core/llm", () => ({
-  invokeLLM: (...args: any[]) => mockInvokeLLM(...args),
+vi.mock("../services/task-worker.service", () => ({
+  submitTask: (...args: any[]) => mockSubmitTask(...args),
+  getTaskStatus: (...args: any[]) => mockGetTaskStatus(...args),
 }));
 
 // ── Reset ───────────────────────────────────────────────────
@@ -325,6 +304,8 @@ beforeEach(() => {
   mockQueryResult = [];
   mockReturningResult = [];
   selectResultsQueue.length = 0;
+  mockSubmitTask.mockReset().mockResolvedValue({ taskId: 42 });
+  mockGetTaskStatus.mockReset().mockResolvedValue({ id: 42, status: "completed", resultData: {} });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -566,9 +547,8 @@ describe("smartMeeting router", () => {
         ).rejects.toThrow("Meeting not found");
       });
 
-      it("generates quiz from transcript via LLM", async () => {
+      it("submits task and returns taskId with processing status", async () => {
         const caller = createAuthenticatedCaller();
-        // First select: meeting lookup
         selectResultsQueue.push([
           {
             id: 1,
@@ -581,49 +561,31 @@ describe("smartMeeting router", () => {
           id: 1,
         });
         expect(result).toHaveProperty("success", true);
-        expect(result.questions).toHaveLength(3);
-        expect(mockInvokeLLM).toHaveBeenCalledTimes(1);
+        expect(result.taskId).toBe(42);
+        expect(result.status).toBe("processing");
+        expect(result.questions).toBeNull();
+        expect(mockSubmitTask).toHaveBeenCalledOnce();
       });
 
-      it("falls back to mock quiz when LLM fails", async () => {
+      it("calls submitTask with MEETING_QUIZ_GENERATE type", async () => {
         const caller = createAuthenticatedCaller();
-        mockInvokeLLM.mockRejectedValueOnce(new Error("LLM unavailable"));
         selectResultsQueue.push([
           {
-            id: 1,
+            id: 5,
             title: "Test Meeting",
-            transcript: null,
-            description: "A description",
-          },
-        ]);
-        const result = await caller.smartMeeting.meeting.generateQuiz({
-          id: 1,
-        });
-        expect(result).toHaveProperty("success", true);
-        expect(result.questions).toHaveLength(3);
-        // The fallback quiz should contain the meeting title
-        expect(result.questions![0].question).toContain("Test Meeting");
-      });
-
-      it("returns success=false when LLM returns non-JSON content", async () => {
-        const caller = createAuthenticatedCaller();
-        mockInvokeLLM.mockResolvedValueOnce({
-          content: "Sorry, I cannot generate a quiz right now.",
-        });
-        selectResultsQueue.push([
-          {
-            id: 1,
-            title: "Test Meeting",
-            transcript: "Some transcript",
+            transcript: "Some transcript text",
             description: null,
           },
         ]);
-        const result = await caller.smartMeeting.meeting.generateQuiz({
-          id: 1,
+        await caller.smartMeeting.meeting.generateQuiz({ id: 5 });
+
+        expect(mockSubmitTask).toHaveBeenCalledOnce();
+        expect(mockSubmitTask.mock.calls[0][0]).toBe("MEETING_QUIZ_GENERATE");
+        expect(mockSubmitTask.mock.calls[0][1]).toEqual({
+          meetingId: 5,
+          meetingTitle: "Test Meeting",
+          transcript: "Some transcript text",
         });
-        expect(result).toHaveProperty("success", false);
-        expect(result.questions).toBeNull();
-        expect(result).toHaveProperty("raw");
       });
 
       it("uses description when transcript is missing", async () => {
@@ -637,9 +599,10 @@ describe("smartMeeting router", () => {
           },
         ]);
         await caller.smartMeeting.meeting.generateQuiz({ id: 1 });
-        expect(mockInvokeLLM).toHaveBeenCalledTimes(1);
-        const llmCall = mockInvokeLLM.mock.calls[0][0];
-        expect(llmCall.prompt).toContain("Meeting Description");
+
+        expect(mockSubmitTask.mock.calls[0][1].transcript).toBe(
+          "Meeting Description"
+        );
       });
 
       it("uses title as fallback when both transcript and description are missing", async () => {
@@ -653,8 +616,160 @@ describe("smartMeeting router", () => {
           },
         ]);
         await caller.smartMeeting.meeting.generateQuiz({ id: 1 });
-        const llmCall = mockInvokeLLM.mock.calls[0][0];
-        expect(llmCall.prompt).toContain("Fallback Title");
+
+        expect(mockSubmitTask.mock.calls[0][1].transcript).toBe(
+          "Fallback Title"
+        );
+      });
+
+      it("propagates submitTask failure", async () => {
+        const caller = createAuthenticatedCaller();
+        mockSubmitTask.mockRejectedValueOnce(new Error("Queue unavailable"));
+        selectResultsQueue.push([
+          {
+            id: 1,
+            title: "Test",
+            transcript: "text",
+            description: null,
+          },
+        ]);
+        await expect(
+          caller.smartMeeting.meeting.generateQuiz({ id: 1 })
+        ).rejects.toThrow("Queue unavailable");
+      });
+    });
+
+    describe("getQuizStatus", () => {
+      it("rejects anonymous access", async () => {
+        const caller = createAnonymousCaller();
+        await expect(
+          caller.smartMeeting.meeting.getQuizStatus({ taskId: 42, meetingId: 1 })
+        ).rejects.toThrow();
+      });
+
+      it("returns completed status with quiz questions", async () => {
+        const caller = createAuthenticatedCaller();
+        const questions = [
+          { id: 1, question: "Q1?", type: "MULTIPLE_CHOICE", options: ["A", "B"], correctAnswer: "A" },
+          { id: 2, question: "Q2?", type: "TRUE_FALSE", options: ["True", "False"], correctAnswer: "True" },
+        ];
+        mockGetTaskStatus.mockResolvedValue({
+          id: 42,
+          status: "completed",
+          resultData: { questions },
+        });
+
+        const result = await caller.smartMeeting.meeting.getQuizStatus({
+          taskId: 42,
+          meetingId: 1,
+        });
+        expect(result.taskStatus).toBe("completed");
+        expect(result.questions).toEqual(questions);
+      });
+
+      it("returns not_found when task does not exist", async () => {
+        const caller = createAuthenticatedCaller();
+        mockGetTaskStatus.mockResolvedValue(null);
+
+        const result = await caller.smartMeeting.meeting.getQuizStatus({
+          taskId: 999,
+          meetingId: 1,
+        });
+        expect(result.taskStatus).toBe("not_found");
+        expect(result.questions).toBeNull();
+      });
+
+      it("returns pending status while task is queued", async () => {
+        const caller = createAuthenticatedCaller();
+        mockGetTaskStatus.mockResolvedValue({
+          id: 42,
+          status: "pending",
+          resultData: null,
+        });
+
+        const result = await caller.smartMeeting.meeting.getQuizStatus({
+          taskId: 42,
+          meetingId: 1,
+        });
+        expect(result.taskStatus).toBe("pending");
+        expect(result.questions).toBeNull();
+      });
+
+      it("returns processing status while task is running", async () => {
+        const caller = createAuthenticatedCaller();
+        mockGetTaskStatus.mockResolvedValue({
+          id: 42,
+          status: "processing",
+          resultData: null,
+        });
+
+        const result = await caller.smartMeeting.meeting.getQuizStatus({
+          taskId: 42,
+          meetingId: 1,
+        });
+        expect(result.taskStatus).toBe("processing");
+        expect(result.questions).toBeNull();
+      });
+
+      it("falls back to meeting quiz questions on task failure", async () => {
+        const caller = createAuthenticatedCaller();
+        const existingQuestions = [
+          { id: 1, question: "Existing?", type: "MULTIPLE_CHOICE", options: ["A"], correctAnswer: "A" },
+        ];
+        mockGetTaskStatus.mockResolvedValue({
+          id: 42,
+          status: "failed",
+          resultData: null,
+          errorMessage: "LLM timeout",
+        });
+        // The fallback DB query for meeting's aiQuizQuestions
+        selectResultsQueue.push([{ aiQuizQuestions: existingQuestions }]);
+
+        const result = await caller.smartMeeting.meeting.getQuizStatus({
+          taskId: 42,
+          meetingId: 1,
+        });
+        expect(result.taskStatus).toBe("completed");
+        expect(result.questions).toEqual(existingQuestions);
+      });
+
+      it("returns failed status when no fallback quiz exists", async () => {
+        const caller = createAuthenticatedCaller();
+        mockGetTaskStatus.mockResolvedValue({
+          id: 42,
+          status: "failed",
+          resultData: null,
+          errorMessage: "LLM timeout",
+        });
+        // No existing quiz on the meeting
+        selectResultsQueue.push([{ aiQuizQuestions: null }]);
+
+        const result = await caller.smartMeeting.meeting.getQuizStatus({
+          taskId: 42,
+          meetingId: 1,
+        });
+        expect(result.taskStatus).toBe("failed");
+        expect(result.questions).toBeNull();
+        expect(result.error).toBe("LLM timeout");
+      });
+
+      it("returns failed when meeting not found in fallback", async () => {
+        const caller = createAuthenticatedCaller();
+        mockGetTaskStatus.mockResolvedValue({
+          id: 42,
+          status: "failed",
+          resultData: null,
+          errorMessage: "Service error",
+        });
+        // Empty result from meeting query
+        selectResultsQueue.push([]);
+
+        const result = await caller.smartMeeting.meeting.getQuizStatus({
+          taskId: 42,
+          meetingId: 1,
+        });
+        expect(result.taskStatus).toBe("failed");
+        expect(result.questions).toBeNull();
       });
     });
 

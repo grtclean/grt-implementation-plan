@@ -12,7 +12,6 @@
 
 import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
-import { invokeLLM } from "../_core/llm";
 import { requireDb } from "../db";
 import {
   employeeAiAssistants,
@@ -25,17 +24,13 @@ import {
 } from "../../drizzle/schema";
 import { eq, desc, and, asc } from "drizzle-orm";
 import { helpArticles } from "../../drizzle/help-schema";
-import {
-  searchDocuments,
-  incrementRelevance,
-} from "../modules/knowledge-base.service";
+import { submitTask, getTaskStatus } from "../services/task-worker.service";
 import {
   provisionAllEmployees,
   provisionSingleEmployee,
   refreshPresetsByRole,
   getProvisioningStatus,
   listAllAssistants,
-  buildOwnerContext,
 } from "../services/ai-assistant-provisioning.service";
 
 // ==================== 输入验证 ====================
@@ -231,7 +226,7 @@ export const employeeAiAssistantRouter = router({
     }),
 
   /**
-   * 发送消息 — enhanced with conversation memory
+   * 发送消息 — async via task queue (conversation memory + RAG in worker)
    */
   sendMessage: protectedProcedure
     .input(SendMessageInput)
@@ -264,132 +259,59 @@ export const employeeAiAssistantRouter = router({
           content: input.message,
         });
 
-        // ── Conversation Memory: load last 50 messages from session ──
-        const pastMessages = await db
-          .select({ role: aiAssistantMessages.role, content: aiAssistantMessages.content })
-          .from(aiAssistantMessages)
-          .where(eq(aiAssistantMessages.sessionId, String(input.sessionId)))
-          .orderBy(asc(aiAssistantMessages.createdAt))
-          .limit(50);
-
-        // If >20 messages, summarize older ones for context compression
-        let historySummary = "";
-        let recentMessages = pastMessages;
-        if (pastMessages.length > 20) {
-          const olderMessages = pastMessages.slice(0, pastMessages.length - 10);
-          recentMessages = pastMessages.slice(pastMessages.length - 10);
-
-          // Build summary from older messages (simple extraction, no extra LLM call)
-          const olderText = olderMessages
-            .map((m) => `${m.role}: ${(m.content || "").slice(0, 100)}`)
-            .join("\n");
-          historySummary = `【历史摘要】以下是之前对话的要点概述:\n${olderText.slice(0, 600)}\n\n`;
-        }
-
-        // RAG: 检索知识库中与用户消息相关的文档
-        let knowledgeContext = "";
-        let matchedDocIds: number[] = [];
-        try {
-          const searchResults = await searchDocuments(input.message, { limit: 3 });
-          if (searchResults.length > 0) {
-            matchedDocIds = searchResults.map((r) => r.id);
-            const knowledgeEntries = searchResults
-              .map(
-                (r, i) =>
-                  `[知识条目${i + 1}] ${r.title}\n类别: ${r.category}\n内容: ${r.content}`
-              )
-              .join("\n\n");
-            knowledgeContext = `基于以下知识库条目:\n\n${knowledgeEntries}\n\n`;
-          }
-        } catch (ragError) {
-          console.error("[sendMessage] RAG search error:", ragError);
-        }
-
-        // 读取助理的 personalityConfig → 获取岗位感知系统提示词
-        let systemContent =
-          "你是一个专业的个人AI助手，帮助员工进行职业发展、技能提升和日常工作协助。你可以利用知识库中的技术文档来回答GRT清洗设备相关的专业问题。请以友好、专业的方式回复。";
-
-        const [myAssistant] = await db
-          .select()
-          .from(employeeAiAssistants)
-          .where(eq(employeeAiAssistants.employeeId, userId))
-          .limit(1);
-
-        let ownerContext = "";
-        if (myAssistant?.personalityConfig) {
-          try {
-            const cfg = JSON.parse(myAssistant.personalityConfig);
-            if (cfg.systemPrompt) {
-              systemContent = cfg.systemPrompt;
-            }
-            ownerContext = await buildOwnerContext(userId, cfg);
-          } catch {
-            // JSON解析失败 — 使用默认提示词
-          }
-        }
-
-        const fullSystemContent = [
-          systemContent,
-          ownerContext ? `\n\n【当前上下文】\n${ownerContext}` : "",
-          historySummary ? `\n\n${historySummary}` : "",
-          knowledgeContext ? `\n\n${knowledgeContext}` : "",
-        ].join("");
-
-        // ── Build messages array with conversation history ──
-        const llmMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-          { role: "system", content: fullSystemContent },
-        ];
-
-        // Add recent conversation history for multi-turn context
-        for (const msg of recentMessages.slice(0, -1)) {
-          // Exclude the current message (last one) as we add it separately
-          if (msg.role === "user" || msg.role === "assistant") {
-            llmMessages.push({
-              role: msg.role as "user" | "assistant",
-              content: msg.content || "",
-            });
-          }
-        }
-
-        llmMessages.push({ role: "user", content: input.message });
-
-        // 调用LLM获取响应
-        const llmResponse = await invokeLLM({ messages: llmMessages });
-
-        // RAG: 对匹配的知识文档提升相关性分数
-        for (const docId of matchedDocIds) {
-          try {
-            await incrementRelevance(docId);
-          } catch (relError) {
-            console.error("[sendMessage] incrementRelevance error:", relError);
-          }
-        }
-
-        const assistantContent =
-          llmResponse.choices?.[0]?.message?.content || "无法生成回复";
-
-        // 保存助手消息
-        await db.insert(aiAssistantMessages).values({
-          sessionId: String(input.sessionId),
-          role: "assistant",
-          content: assistantContent,
-        });
+        // Submit to async task queue instead of blocking on LLM
+        const { taskId } = await submitTask(
+          "EMPLOYEE_AI_ASSISTANT_REPLY",
+          {
+            sessionId: input.sessionId,
+            message: input.message,
+            userId,
+          },
+          ctx.user.name ?? `User#${userId}`,
+        );
 
         return {
           success: true,
-          response: assistantContent,
+          taskId,
+          status: "processing" as const,
+          response: null,
         };
       } catch (error) {
         console.error("[sendMessage] Error:", error);
         return {
           success: false,
           error: "发送失败",
+          taskId: null,
+          response: null,
         };
       }
     }),
 
+  /** Poll for assistant reply status */
+  getReplyStatus: protectedProcedure
+    .input(z.object({ taskId: z.number(), sessionId: z.number() }))
+    .query(async ({ input }) => {
+      const task = await getTaskStatus(input.taskId);
+      if (!task) return { taskStatus: "not_found" as const, response: null };
+
+      if (task.status === "completed" && task.resultData) {
+        const result = task.resultData as Record<string, unknown>;
+        return {
+          taskStatus: "completed" as const,
+          response: (result.response as string) ?? null,
+        };
+      }
+
+      if (task.status === "failed") {
+        return { taskStatus: "failed" as const, response: null, error: task.errorMessage };
+      }
+
+      return { taskStatus: task.status as "pending" | "processing", response: null };
+    }),
+
   /**
-   * 页面感知建议 — Page-Aware Suggestions
+   * 页面感知建议 — Page-Aware Suggestions (returns cached/static suggestions)
+   * LLM-based suggestions are generated asynchronously via requestPageSuggestions.
    */
   getPageSuggestions: protectedProcedure
     .input(
@@ -402,7 +324,7 @@ export const employeeAiAssistantRouter = router({
       try {
         const db = await requireDb();
 
-        // Query relevant help articles for this route
+        // Query relevant help articles for this route (no LLM needed)
         const articles = await db
           .select()
           .from(helpArticles)
@@ -412,58 +334,36 @@ export const employeeAiAssistantRouter = router({
               eq(helpArticles.routePath, input.routePath)
             )
           )
-          .limit(3);
+          .limit(5);
 
-        // Search knowledge base for route-related content
-        let kbDocs: { title: string; content: string }[] = [];
-        try {
-          kbDocs = await searchDocuments(input.routePath, { limit: 3 });
-        } catch { /* non-fatal */ }
-
-        // Build context for LLM
-        const helpContext = articles
-          .map((a) => `${a.titleZh}: ${a.contentZh}`)
-          .join("\n");
-        const kbContext = kbDocs
-          .map((d) => `${d.title}: ${d.content.slice(0, 200)}`)
-          .join("\n");
-
-        const systemPrompt = [
-          "你是GRT企业操作系统的智能助手。",
-          "根据用户当前所在页面，生成3-5个实用建议。",
-          "每个建议包含title和description字段。",
-          "回复格式为JSON数组: [{\"title\":\"...\",\"description\":\"...\"}]",
-          `\n页面路径: ${input.routePath}`,
-          input.pageContext ? `页面上下文: ${input.pageContext}` : "",
-          helpContext ? `\n相关帮助:\n${helpContext}` : "",
-          kbContext ? `\n知识库:\n${kbContext}` : "",
-        ].filter(Boolean).join("\n");
-
-        const llmResult = await invokeLLM({
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: `请为当前页面 ${input.routePath} 生成操作建议` },
-          ],
-        });
-
-        const raw = llmResult.choices?.[0]?.message?.content || "[]";
-
-        // Parse JSON array from LLM response
-        let suggestions: { title: string; description: string }[] = [];
-        try {
-          const jsonMatch = raw.match(/\[[\s\S]*\]/);
-          if (jsonMatch) {
-            suggestions = JSON.parse(jsonMatch[0]);
-          }
-        } catch {
-          suggestions = [{ title: "查看帮助", description: "点击帮助按钮获取更多信息" }];
+        if (articles.length > 0) {
+          return articles.map(a => ({
+            title: a.titleZh || "帮助",
+            description: (a.contentZh || "").slice(0, 100),
+          }));
         }
 
-        return suggestions.slice(0, 5);
+        // Fallback: static suggestions
+        return [{ title: "查看帮助文档", description: "浏览系统帮助获取操作指引" }];
       } catch (error) {
         console.error("[getPageSuggestions] Error:", error);
         return [{ title: "查看帮助文档", description: "浏览系统帮助获取操作指引" }];
       }
+    }),
+
+  /** Async LLM page suggestions — submit to task queue */
+  requestPageSuggestions: protectedProcedure
+    .input(z.object({
+      routePath: z.string(),
+      pageContext: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const { taskId } = await submitTask(
+        "AI_PAGE_SUGGESTIONS",
+        { routePath: input.routePath, pageContext: input.pageContext },
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
+      return { taskId, status: "processing" as const };
     }),
 
   /**

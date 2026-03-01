@@ -2,7 +2,7 @@
  * 项目风险预测 (Project Risk Prediction)
  * Phase D: AI智能分析 · 历史数据驱动 · 早期预警
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,14 +53,37 @@ export default function ProjectRiskPrediction() {
   const [gatePassRate, setGatePassRate] = useState("");
   const [openIssues, setOpenIssues] = useState("");
   const [result, setResult] = useState<RiskResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const predictMutation = trpc.projectIntelligence.predictRisk.useMutation({
-    onSuccess: (data) => setResult(data as RiskResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.projectIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (!taskQuery.data || !taskId) return;
+    if (taskQuery.data.taskStatus === "completed") {
+      setResult(taskQuery.data.result as unknown as RiskResult);
+      setTaskId(null);
+    } else if (taskQuery.data.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data, taskId]);
+
   const handlePredict = () => {
-    if (!projectName.trim() || predictMutation.isPending) return;
+    if (!projectName.trim() || predictMutation.isPending || !!taskId) return;
     predictMutation.mutate({
       projectName,
       currentStage,
@@ -202,9 +225,9 @@ export default function ProjectRiskPrediction() {
             <div className="flex justify-end">
               <Button
                 onClick={handlePredict}
-                disabled={!projectName.trim() || predictMutation.isPending}
+                disabled={!projectName.trim() || predictMutation.isPending || !!taskId}
               >
-                {predictMutation.isPending ? (
+                {predictMutation.isPending || !!taskId ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />

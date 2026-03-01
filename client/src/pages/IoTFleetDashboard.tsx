@@ -6,6 +6,7 @@
  */
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
+import { DashboardSkeleton } from "@/components/PageSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,8 @@ export default function IoTFleetDashboard() {
   const seedMutation = trpc.iotDigitalTwin.seedFleet.useMutation({
     onSuccess: () => fleetQuery.refetch(),
   });
+
+  if (fleetQuery.isLoading) return <DashboardSkeleton />;
 
   const data = fleetQuery.data;
   const machines = data?.machines?.length ? data.machines : FALLBACK_MACHINES;

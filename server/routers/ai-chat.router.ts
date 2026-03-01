@@ -3,7 +3,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiChatSessions, aiChatMessages, aiChatTemplates } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
-import { invokeLLM } from "../_core/llm";
+import { submitTask, getTaskStatus } from "../services/task-worker.service";
 
 export const aiChatRouter = router({
   sendMessage: protectedProcedure.input(z.object({
@@ -33,31 +33,49 @@ export const aiChatRouter = router({
       contentType: "text",
     });
 
-    let aiResponse = "抱歉，AI服务暂时不可用。";
-    try {
-      const result = await invokeLLM({
-        messages: [
-          { role: "system", content: "你是GRT智能工业系统的AI助手。请用中文回答。" },
-          { role: "user", content: input.message },
-        ],
-      });
-      aiResponse = result.choices[0]?.message?.content || aiResponse;
-    } catch { /* fallback to default */ }
+    // Submit LLM task to async queue instead of blocking
+    const { taskId } = await submitTask(
+      "AI_CHAT_REPLY",
+      {
+        sessionId,
+        message: input.message,
+        userId: ctx.user.id,
+        assistantType: input.assistantType || "personal",
+        context: input.context,
+      },
+      ctx.user.name ?? `User#${ctx.user.id}`,
+    );
 
-    const [msg] = await db.insert(aiChatMessages).values({
-      sessionId,
-      role: "assistant",
-      content: aiResponse,
-      contentType: "text",
-    }).returning();
+    return { sessionId, taskId, status: "processing" as const };
+  }),
 
-    await db.update(aiChatSessions).set({
-      messageCount: (await db.select().from(aiChatMessages).where(eq(aiChatMessages.sessionId, sessionId))).length,
-      lastActivityAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }).where(eq(aiChatSessions.id, sessionId));
+  /** Poll for AI chat reply status */
+  getReplyStatus: protectedProcedure.input(z.object({
+    taskId: z.number(),
+    sessionId: z.number(),
+  })).query(async ({ input }) => {
+    const task = await getTaskStatus(input.taskId);
+    if (!task) return { taskStatus: "not_found" as const, message: null };
 
-    return { sessionId, message: msg };
+    if (task.status === "completed" && task.resultData) {
+      const result = task.resultData as Record<string, unknown>;
+      const db = await requireDb();
+      // Retrieve the saved assistant message
+      const messages = await db.select().from(aiChatMessages)
+        .where(eq(aiChatMessages.sessionId, input.sessionId))
+        .orderBy(desc(aiChatMessages.id))
+        .limit(1);
+      return {
+        taskStatus: "completed" as const,
+        message: messages[0] ?? { content: result.response as string },
+      };
+    }
+
+    if (task.status === "failed") {
+      return { taskStatus: "failed" as const, message: null, error: task.errorMessage };
+    }
+
+    return { taskStatus: task.status as "pending" | "processing", message: null };
   }),
 
   getQuickPrompts: protectedProcedure.input(z.object({

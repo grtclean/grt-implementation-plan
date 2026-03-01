@@ -866,6 +866,7 @@ function AIPerformanceTab() {
   const leaderboardQuery = trpc.aiPerformance.leaderboard.useQuery({ limit: 10 });
   const actionStatsQuery = trpc.aiPerformance.actionItemStats.useQuery({ months: 6 });
   const seedMutation = trpc.aiPerformance.seedDemo.useMutation();
+  const recalcMutation = trpc.aiPerformance.recalculateAll.useMutation();
   // Analytics ROI pipeline (speaker radar + canvas → executive)
   const roiQuery = trpc.smartMeeting.analytics.aggregatedRoi.useQuery(undefined, {
     retry: false,
@@ -899,6 +900,17 @@ function AIPerformanceTab() {
     } catch { /* ignore */ }
   };
 
+  const handleRecalculate = async () => {
+    try {
+      const now = new Date();
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      await recalcMutation.mutateAsync({ month });
+      dashboardQuery.refetch();
+      leaderboardQuery.refetch();
+      actionStatsQuery.refetch();
+    } catch { /* ignore */ }
+  };
+
   const queryError = dashboardQuery.error || leaderboardQuery.error || actionStatsQuery.error || roiQuery.error;
 
   return (
@@ -918,24 +930,49 @@ function AIPerformanceTab() {
             </span>
           )}
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleSeed}
-          disabled={seedMutation.isPending}
-        >
-          {seedMutation.isPending ? (
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-          ) : (
-            <Zap className="h-3.5 w-3.5 mr-1.5" />
-          )}
-          {seedMutation.isPending ? "Seeding..." : "Seed Demo Data"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRecalculate}
+            disabled={recalcMutation.isPending}
+            title="Recalculate scores from real meeting attendance, interactions, and action items"
+          >
+            {recalcMutation.isPending ? (
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            )}
+            {recalcMutation.isPending ? "Calculating..." : "Recalculate from Meetings"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSeed}
+            disabled={seedMutation.isPending}
+          >
+            {seedMutation.isPending ? (
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <Zap className="h-3.5 w-3.5 mr-1.5" />
+            )}
+            {seedMutation.isPending ? "Seeding..." : "Seed Demo Data"}
+          </Button>
+        </div>
       </div>
+
+      {recalcMutation.data && (recalcMutation.data as any).ok && (
+        <div className="text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
+          Recalculated {(recalcMutation.data as any).processed}/{(recalcMutation.data as any).totalUsers} users for {(recalcMutation.data as any).month} from real meeting data
+        </div>
+      )}
 
       {seedMutation.data && (
         <div className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
-          Seeded {seedMutation.data.performanceRecords} performance records + {seedMutation.data.actionItems} action items for {seedMutation.data.month}
+          {(seedMutation.data as any).source === "real_meeting_data"
+            ? `Calculated ${seedMutation.data.performanceRecords} performance records from real meeting data for ${seedMutation.data.month}`
+            : `Seeded ${seedMutation.data.performanceRecords} performance records + ${seedMutation.data.actionItems} action items for ${seedMutation.data.month}`
+          }
         </div>
       )}
 
@@ -981,7 +1018,7 @@ function AIPerformanceTab() {
             AI Performance Leaderboard — Top 10
           </CardTitle>
           <CardDescription>
-            Based on 4 dimensions: Breadth (广度) · Depth (深度) · Execution (执行) · Discipline (纪律)
+            Based on 4 dimensions: Participation (会议参与) · Execution (执行力) · Collaboration (协作) · Innovation (创新)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -990,10 +1027,10 @@ function AIPerformanceTab() {
               <TableRow>
                 <TableHead className="w-10">#</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead className="text-center">Breadth</TableHead>
-                <TableHead className="text-center">Depth</TableHead>
+                <TableHead className="text-center">Participation</TableHead>
                 <TableHead className="text-center">Execution</TableHead>
-                <TableHead className="text-center">Discipline</TableHead>
+                <TableHead className="text-center">Collaboration</TableHead>
+                <TableHead className="text-center">Innovation</TableHead>
                 <TableHead className="text-center">Score</TableHead>
                 <TableHead className="text-center">Tier</TableHead>
                 <TableHead className="text-center">Meetings</TableHead>
@@ -1014,10 +1051,10 @@ function AIPerformanceTab() {
                       ) : rank}
                     </TableCell>
                     <TableCell className="font-medium">{p.userName}</TableCell>
-                    <TableCell className="text-center">{p.breadth ?? p.breadthScore ?? 0}</TableCell>
-                    <TableCell className="text-center">{p.depth ?? p.depthScore ?? 0}</TableCell>
-                    <TableCell className="text-center">{p.execution ?? p.executionScore ?? 0}</TableCell>
-                    <TableCell className="text-center">{p.discipline ?? p.disciplineScore ?? 0}</TableCell>
+                    <TableCell className="text-center">{p.participation ?? p.breadth ?? p.breadthScore ?? 0}</TableCell>
+                    <TableCell className="text-center">{p.execution ?? p.depthScore ?? 0}</TableCell>
+                    <TableCell className="text-center">{p.collaboration ?? p.executionScore ?? 0}</TableCell>
+                    <TableCell className="text-center">{p.innovation ?? p.disciplineScore ?? 0}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant={score >= 80 ? "default" : "secondary"}>
                         {score}
@@ -1028,7 +1065,7 @@ function AIPerformanceTab() {
                         {tierLabel(score)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-center">{p.actionItemRate ?? p.meetingsAttended ?? 0}%</TableCell>
+                    <TableCell className="text-center">{p.meetingsAttended ?? 0}/{p.meetingsTotal ?? 0}</TableCell>
                   </TableRow>
                 );
               })}
@@ -1047,10 +1084,10 @@ function AIPerformanceTab() {
             <ResponsiveContainer width="100%" height={280}>
               <RadarChart
                 data={[
-                  { dimension: "Breadth", ...Object.fromEntries(leaderboard.slice(0, 3).map((p: any) => [p.userName, p.breadth ?? p.breadthScore ?? 0])) },
-                  { dimension: "Depth", ...Object.fromEntries(leaderboard.slice(0, 3).map((p: any) => [p.userName, p.depth ?? p.depthScore ?? 0])) },
-                  { dimension: "Execution", ...Object.fromEntries(leaderboard.slice(0, 3).map((p: any) => [p.userName, p.execution ?? p.executionScore ?? 0])) },
-                  { dimension: "Discipline", ...Object.fromEntries(leaderboard.slice(0, 3).map((p: any) => [p.userName, p.discipline ?? p.disciplineScore ?? 0])) },
+                  { dimension: "Participation", ...Object.fromEntries(leaderboard.slice(0, 3).map((p: any) => [p.userName, p.participation ?? p.breadth ?? p.breadthScore ?? 0])) },
+                  { dimension: "Execution", ...Object.fromEntries(leaderboard.slice(0, 3).map((p: any) => [p.userName, p.execution ?? p.depthScore ?? 0])) },
+                  { dimension: "Collaboration", ...Object.fromEntries(leaderboard.slice(0, 3).map((p: any) => [p.userName, p.collaboration ?? p.executionScore ?? 0])) },
+                  { dimension: "Innovation", ...Object.fromEntries(leaderboard.slice(0, 3).map((p: any) => [p.userName, p.innovation ?? p.disciplineScore ?? 0])) },
                 ]}
               >
                 <PolarGrid />

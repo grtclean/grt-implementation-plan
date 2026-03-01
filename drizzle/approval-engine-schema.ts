@@ -26,6 +26,7 @@ import {
   index,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import { users } from './schema';
 
 /**
  * 审批流程模板表
@@ -71,7 +72,7 @@ export const approvalTemplates = pgTable(
     jiandaoyunId: varchar('jiandaoyun_id', { length: 64 }),
 
     // 创建信息
-    createdBy: integer('created_by'),
+    createdBy: integer('created_by').references(() => users.id),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
@@ -105,7 +106,7 @@ export const approvalInstances = pgTable(
     businessTitle: varchar('business_title', { length: 256 }), // 业务标题
 
     // 申请人信息
-    applicantId: integer('applicant_id').notNull(),
+    applicantId: integer('applicant_id').notNull().references(() => users.id),
     applicantName: varchar('applicant_name', { length: 128 }).notNull(),
     applicantDepartment: varchar('applicant_department', { length: 128 }),
 
@@ -127,7 +128,7 @@ export const approvalInstances = pgTable(
     totalSteps: integer('total_steps').notNull(),
 
     // 当前审批人
-    currentApproverId: integer('current_approver_id'),
+    currentApproverId: integer('current_approver_id').references(() => users.id),
     currentApproverName: varchar('current_approver_name', { length: 128 }),
 
     // 最终结果
@@ -179,7 +180,7 @@ export const approvalStepRecords = pgTable(
     approverType: varchar('approver_type', { length: 50 }).default('user'),
 
     // 实际审批人
-    approverId: integer('approver_id'),
+    approverId: integer('approver_id').references(() => users.id),
     approverName: varchar('approver_name', { length: 128 }),
     approverEmail: varchar('approver_email', { length: 128 }),
 
@@ -191,7 +192,7 @@ export const approvalStepRecords = pgTable(
     comment: text('comment'),
 
     // 委托信息
-    delegatedTo: integer('delegated_to'),
+    delegatedTo: integer('delegated_to').references(() => users.id),
     delegatedToName: varchar('delegated_to_name', { length: 128 }),
     delegateReason: text('delegate_reason'),
 
@@ -231,7 +232,7 @@ export const approvalActionLogs = pgTable(
     action: varchar('action', { length: 50 }).notNull(),
 
     // 操作人
-    operatorId: integer('operator_id').notNull(),
+    operatorId: integer('operator_id').notNull().references(() => users.id),
     operatorName: varchar('operator_name', { length: 128 }).notNull(),
     operatorRole: varchar('operator_role', { length: 64 }),
 
@@ -268,11 +269,11 @@ export const approvalDelegations = pgTable(
     id: serial().primaryKey(),
 
     // 委托人
-    delegatorId: integer('delegator_id').notNull(),
+    delegatorId: integer('delegator_id').notNull().references(() => users.id),
     delegatorName: varchar('delegator_name', { length: 128 }).notNull(),
 
     // 被委托人
-    delegateeId: integer('delegatee_id').notNull(),
+    delegateeId: integer('delegatee_id').notNull().references(() => users.id),
     delegateeName: varchar('delegatee_name', { length: 128 }).notNull(),
 
     // 委托范围
@@ -324,14 +325,14 @@ export const redBlueConfigs = pgTable(
     customerTier: varchar('customer_tier', { length: 50 }).default('other'),
 
     // 红队配置
-    redTeamLeaderId: integer('red_team_leader_id'),
+    redTeamLeaderId: integer('red_team_leader_id').references(() => users.id),
     redTeamLeaderName: varchar('red_team_leader_name', { length: 128 }),
     redTeamMembers: json('red_team_members'), // [{ id, name, role }]
     redTeamObjectives: text('red_team_objectives'),
     redTeamScenarios: json('red_team_scenarios'), // 模拟场景列表
 
     // 蓝队配置
-    blueTeamLeaderId: integer('blue_team_leader_id'),
+    blueTeamLeaderId: integer('blue_team_leader_id').references(() => users.id),
     blueTeamLeaderName: varchar('blue_team_leader_name', { length: 128 }),
     blueTeamMembers: json('blue_team_members'), // [{ id, name, role }]
     blueTeamObjectives: text('blue_team_objectives'),
@@ -351,7 +352,7 @@ export const redBlueConfigs = pgTable(
 
     // 审批信息
     approvalInstanceId: integer('approval_instance_id'),
-    approvedBy: integer('approved_by'),
+    approvedBy: integer('approved_by').references(() => users.id),
     approvedAt: timestamp('approved_at'),
 
     // 结果记录
@@ -360,7 +361,7 @@ export const redBlueConfigs = pgTable(
     improvementActions: json('improvement_actions'),
 
     // 创建信息
-    createdBy: integer('created_by').notNull(),
+    createdBy: integer('created_by').notNull().references(() => users.id),
     createdByName: varchar('created_by_name', { length: 128 }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),

@@ -32,6 +32,8 @@ import {
   UsersRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useZodForm, schemas, z } from "@/lib/form-validation";
+import { ListPageSkeleton } from "@/components/PageSkeleton";
 
 // ── RBAC role definitions (mirrors UserProfileContext 18-role system) ──
 const SYSTEM_ROLES = [
@@ -77,6 +79,28 @@ const STATUS_CONFIG = {
 
 const PAGE_SIZE = 20;
 
+// ── Zod Schemas ──
+const ROLE_VALUES = SYSTEM_ROLES.map(r => r.value) as [string, ...string[]];
+
+const addEmployeeSchema = z.object({
+  name: schemas.requiredString("Name is required / 请输入员工姓名"),
+  email: schemas.email("Invalid email address / 邮箱格式不正确"),
+  department: z.string().min(1),
+  position: schemas.requiredString("Position is required / 请输入职务"),
+  systemRole: z.enum(ROLE_VALUES).default("employee"),
+});
+type AddEmployeeValues = z.infer<typeof addEmployeeSchema>;
+
+const editEmployeeSchema = z.object({
+  name: z.string().optional().transform(s => s?.trim() || undefined),
+  email: schemas.email("Invalid email / 邮箱格式不正确"),
+  phone: schemas.phone("Invalid phone / 手机号格式不正确"),
+  department: z.string().optional(),
+  position: z.string().optional().transform(s => s?.trim() || undefined),
+  systemRole: z.enum(ROLE_VALUES).default("employee"),
+});
+type EditEmployeeValues = z.infer<typeof editEmployeeSchema>;
+
 // ── Main Component ──
 export default function EmployeeManagement() {
   const { language } = useLanguage();
@@ -101,14 +125,16 @@ export default function EmployeeManagement() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkRole, setBulkRole] = useState("employee");
 
-  // Add form
-  const [form, setForm] = useState({
-    name: "", email: "", department: DEPARTMENTS[0], position: "", systemRole: "employee",
+  // Add form — Zod + react-hook-form
+  const addForm = useZodForm({
+    schema: addEmployeeSchema,
+    defaultValues: { name: "", email: "", department: DEPARTMENTS[0], position: "", systemRole: "employee" },
   });
 
-  // Edit form
-  const [editForm, setEditForm] = useState({
-    name: "", email: "", phone: "", department: "", position: "", systemRole: "employee",
+  // Edit form — Zod + react-hook-form
+  const editForm = useZodForm({
+    schema: editEmployeeSchema,
+    defaultValues: { name: "", email: "", phone: "", department: "", position: "", systemRole: "employee" },
   });
 
   // ── tRPC queries ──
@@ -127,7 +153,7 @@ export default function EmployeeManagement() {
     onSuccess: () => {
       toast.success(isEn ? "Employee onboarded successfully" : "员工入职成功，已分配系统权限");
       setAddOpen(false);
-      resetForm();
+      resetAddForm();
       refetch();
     },
     onError: (err) => toast.error(`${isEn ? "Failed" : "失败"}: ${err.message}`),
@@ -211,24 +237,22 @@ export default function EmployeeManagement() {
   }, [allEmployees]);
 
   // ── Helpers ──
-  const resetForm = () => setForm({ name: "", email: "", department: DEPARTMENTS[0], position: "", systemRole: "employee" });
+  const resetAddForm = () => addForm.reset({ name: "", email: "", department: DEPARTMENTS[0], position: "", systemRole: "employee" });
 
-  const handleCreate = () => {
-    if (!form.name.trim()) { toast.error(isEn ? "Name is required" : "请输入员工姓名"); return; }
-    if (!form.position.trim()) { toast.error(isEn ? "Position is required" : "请输入职务"); return; }
+  const handleCreate = addForm.handleSubmit((data: AddEmployeeValues) => {
     createMutation.mutate({
       employeeId: nextIdData?.nextId || `GRT${Date.now()}`,
-      name: form.name.trim(),
-      email: form.email.trim() || undefined,
-      department: form.department,
-      position: form.position.trim(),
-      systemRole: form.systemRole as any,
+      name: data.name,
+      email: data.email || undefined,
+      department: data.department,
+      position: data.position,
+      systemRole: data.systemRole as any,
     });
-  };
+  });
 
   const openEdit = (emp: any) => {
     setTargetEmployee(emp);
-    setEditForm({
+    editForm.reset({
       name: emp.name || "",
       email: emp.email || "",
       phone: emp.phone || "",
@@ -239,24 +263,24 @@ export default function EmployeeManagement() {
     setEditOpen(true);
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = editForm.handleSubmit((data: EditEmployeeValues) => {
     if (!targetEmployee) return;
     updateMutation.mutate({
       employeeId: targetEmployee.employeeId,
       updates: {
-        name: editForm.name || undefined,
-        email: editForm.email || undefined,
-        phone: editForm.phone || undefined,
-        department: editForm.department || undefined,
-        position: editForm.position || undefined,
-        systemRole: editForm.systemRole as any,
+        name: data.name || undefined,
+        email: data.email || undefined,
+        phone: data.phone || undefined,
+        department: data.department || undefined,
+        position: data.position || undefined,
+        systemRole: data.systemRole as any,
       },
     });
-  };
+  });
 
   const openRoleEdit = (emp: any) => {
     setTargetEmployee(emp);
-    setEditForm(prev => ({ ...prev, systemRole: emp.systemRole || "employee" }));
+    editForm.reset({ ...editForm.getValues(), systemRole: emp.systemRole || "employee" });
     setRoleEditOpen(true);
   };
 
@@ -264,7 +288,7 @@ export default function EmployeeManagement() {
     if (!targetEmployee) return;
     roleMutation.mutate({
       employeeId: targetEmployee.employeeId,
-      systemRole: editForm.systemRole as any,
+      systemRole: editForm.getValues("systemRole") as any,
     });
   };
 
@@ -325,6 +349,8 @@ export default function EmployeeManagement() {
     );
   };
 
+  if (isLoading) return <ListPageSkeleton />;
+
   // ── Stats cards ──
   const activeCount = allEmployees.filter(e => e.status === "active").length;
   const managerCount = allEmployees.filter(e => {
@@ -367,7 +393,7 @@ export default function EmployeeManagement() {
                   {isEn ? `Bulk Assign (${selectedIds.size})` : `批量分配角色 (${selectedIds.size})`}
                 </Button>
               )}
-              <Button size="sm" onClick={() => { resetForm(); setAddOpen(true); }}>
+              <Button size="sm" onClick={() => { resetAddForm(); setAddOpen(true); }}>
                 <UserPlus className="w-4 h-4 mr-1.5" />
                 {isEn ? "+ Add New Employee" : "+ 新增员工"}
               </Button>
@@ -628,7 +654,7 @@ export default function EmployeeManagement() {
             </SheetDescription>
           </SheetHeader>
 
-          <div className="space-y-5 mt-6 px-1">
+          <form onSubmit={handleCreate} className="space-y-5 mt-6 px-1">
             {/* Auto-generated Employee ID */}
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">{isEn ? "Employee ID (Auto)" : "员工编号（自动生成）"}</Label>
@@ -639,11 +665,13 @@ export default function EmployeeManagement() {
             <div>
               <Label>{isEn ? "Full Name" : "姓名"} <span className="text-red-500">*</span></Label>
               <Input
-                value={form.name}
-                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+                {...addForm.register("name")}
                 placeholder={isEn ? "e.g. Zhang San" : "例：张三"}
                 className="mt-1.5"
               />
+              {addForm.formState.errors.name && (
+                <p className="text-destructive text-sm mt-1">{addForm.formState.errors.name.message}</p>
+              )}
             </div>
 
             {/* Email */}
@@ -651,17 +679,19 @@ export default function EmployeeManagement() {
               <Label>{isEn ? "Email" : "邮箱"}</Label>
               <Input
                 type="email"
-                value={form.email}
-                onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
+                {...addForm.register("email")}
                 placeholder="name@grt.com"
                 className="mt-1.5"
               />
+              {addForm.formState.errors.email && (
+                <p className="text-destructive text-sm mt-1">{addForm.formState.errors.email.message}</p>
+              )}
             </div>
 
             {/* Department */}
             <div>
               <Label>{isEn ? "Department" : "部门"} <span className="text-red-500">*</span></Label>
-              <Select value={form.department} onValueChange={(v) => setForm(f => ({ ...f, department: v }))}>
+              <Select value={addForm.watch("department")} onValueChange={(v) => addForm.setValue("department", v)}>
                 <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {DEPARTMENTS.map(d => (
@@ -675,11 +705,13 @@ export default function EmployeeManagement() {
             <div>
               <Label>{isEn ? "Position / Title" : "职务"} <span className="text-red-500">*</span></Label>
               <Input
-                value={form.position}
-                onChange={(e) => setForm(f => ({ ...f, position: e.target.value }))}
+                {...addForm.register("position")}
                 placeholder={isEn ? "e.g. Mechanical Engineer" : "例：机械工程师"}
                 className="mt-1.5"
               />
+              {addForm.formState.errors.position && (
+                <p className="text-destructive text-sm mt-1">{addForm.formState.errors.position.message}</p>
+              )}
             </div>
 
             {/* RBAC Role Assignment */}
@@ -688,7 +720,7 @@ export default function EmployeeManagement() {
                 <Shield className="w-4 h-4 text-purple-500" />
                 {isEn ? "System Role (RBAC)" : "系统角色 (RBAC)"}
               </Label>
-              <Select value={form.systemRole} onValueChange={(v) => setForm(f => ({ ...f, systemRole: v }))}>
+              <Select value={addForm.watch("systemRole")} onValueChange={(v) => addForm.setValue("systemRole", v as any)}>
                 <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {SYSTEM_ROLES.map(r => (
@@ -709,17 +741,17 @@ export default function EmployeeManagement() {
                 }
               </p>
             </div>
-          </div>
 
-          <SheetFooter className="mt-8">
-            <Button variant="outline" onClick={() => setAddOpen(false)}>
-              {isEn ? "Cancel" : "取消"}
-            </Button>
-            <Button onClick={handleCreate} disabled={createMutation.isPending}>
-              {createMutation.isPending && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
-              {isEn ? "Onboard Employee" : "确认入职"}
-            </Button>
-          </SheetFooter>
+            <SheetFooter className="mt-8">
+              <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
+                {isEn ? "Cancel" : "取消"}
+              </Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
+                {isEn ? "Onboard Employee" : "确认入职"}
+              </Button>
+            </SheetFooter>
+          </form>
         </SheetContent>
       </Sheet>
 
@@ -739,30 +771,33 @@ export default function EmployeeManagement() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <form onSubmit={handleUpdate} className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>{isEn ? "Name" : "姓名"}</Label>
-                <Input value={editForm.name} onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))} className="mt-1" />
+                <Input {...editForm.register("name")} className="mt-1" />
+                {editForm.formState.errors.name && <p className="text-destructive text-sm mt-1">{editForm.formState.errors.name.message}</p>}
               </div>
               <div>
                 <Label>{isEn ? "Position" : "职务"}</Label>
-                <Input value={editForm.position} onChange={(e) => setEditForm(f => ({ ...f, position: e.target.value }))} className="mt-1" />
+                <Input {...editForm.register("position")} className="mt-1" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>{isEn ? "Email" : "邮箱"}</Label>
-                <Input value={editForm.email} onChange={(e) => setEditForm(f => ({ ...f, email: e.target.value }))} className="mt-1" />
+                <Input {...editForm.register("email")} className="mt-1" />
+                {editForm.formState.errors.email && <p className="text-destructive text-sm mt-1">{editForm.formState.errors.email.message}</p>}
               </div>
               <div>
                 <Label>{isEn ? "Phone" : "电话"}</Label>
-                <Input value={editForm.phone} onChange={(e) => setEditForm(f => ({ ...f, phone: e.target.value }))} className="mt-1" />
+                <Input {...editForm.register("phone")} className="mt-1" />
+                {editForm.formState.errors.phone && <p className="text-destructive text-sm mt-1">{editForm.formState.errors.phone.message}</p>}
               </div>
             </div>
             <div>
               <Label>{isEn ? "Department" : "部门"}</Label>
-              <Select value={editForm.department} onValueChange={(v) => setEditForm(f => ({ ...f, department: v }))}>
+              <Select value={editForm.watch("department")} onValueChange={(v) => editForm.setValue("department", v)}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {DEPARTMENTS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
@@ -774,7 +809,7 @@ export default function EmployeeManagement() {
                 <Shield className="w-4 h-4 text-purple-500" />
                 {isEn ? "System Role" : "系统角色"}
               </Label>
-              <Select value={editForm.systemRole} onValueChange={(v) => setEditForm(f => ({ ...f, systemRole: v }))}>
+              <Select value={editForm.watch("systemRole")} onValueChange={(v) => editForm.setValue("systemRole", v as any)}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {SYSTEM_ROLES.map(r => (
@@ -785,15 +820,15 @@ export default function EmployeeManagement() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>{isEn ? "Cancel" : "取消"}</Button>
-            <Button onClick={handleUpdate} disabled={updateMutation.isPending}>
-              {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
-              {isEn ? "Save Changes" : "保存修改"}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>{isEn ? "Cancel" : "取消"}</Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
+                {isEn ? "Save Changes" : "保存修改"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -825,9 +860,9 @@ export default function EmployeeManagement() {
               {SYSTEM_ROLES.map(r => (
                 <button
                   key={r.value}
-                  onClick={() => setEditForm(f => ({ ...f, systemRole: r.value }))}
+                  onClick={() => editForm.setValue("systemRole", r.value as any)}
                   className={`text-left px-3 py-2 rounded-lg border text-sm transition-all ${
-                    editForm.systemRole === r.value
+                    editForm.watch("systemRole") === r.value
                       ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                       : "border-border hover:border-primary/30 hover:bg-muted/30"
                   }`}

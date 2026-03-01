@@ -10,6 +10,7 @@
  */
 
 import { pgTable, serial, integer, varchar, text, timestamp, decimal, index, unique } from 'drizzle-orm/pg-core';
+import { users } from './schema';
 
 /**
  * 物料分类表
@@ -83,13 +84,13 @@ export const materials = pgTable('materials', {
   // 采购分类 & 自动补货
   procurementClassification: varchar({ length: 50 }).default('direct'), // direct/indirect/packaging/general
   reorderPoint: integer().default(0),
-  reorderPrOwnerId: integer(),
+  reorderPrOwnerId: integer().references(() => users.id),
   reorderPrOwnerName: varchar({ length: 100 }),
 
   // 状态
   status: varchar({ length: 50 }).default('active').notNull(),
   isApproved: varchar({ length: 50 }).default('no').notNull(),
-  approvedBy: integer(),
+  approvedBy: integer().references(() => users.id),
   approvedAt: timestamp({ mode: 'string' }),
 
   // 版本管理
@@ -97,9 +98,9 @@ export const materials = pgTable('materials', {
   effectiveDate: timestamp({ mode: 'string' }).defaultNow().notNull(),
   expiryDate: timestamp({ mode: 'string' }),
 
-  createdBy: integer().notNull(),
+  createdBy: integer().notNull().references(() => users.id),
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
-  updatedBy: integer(),
+  updatedBy: integer().references(() => users.id),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
   unique('materials_uk_material_code').on(table.materialCode),
@@ -183,7 +184,7 @@ export const inventoryTransactions = pgTable('inventory_transactions', {
   referenceDocumentId: integer(),
 
   notes: text(),
-  createdBy: integer().notNull(),
+  createdBy: integer().notNull().references(() => users.id),
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
   index('inventory_transactions_idx_material_id').on(table.materialId),
@@ -208,7 +209,7 @@ export const materialCodingRules = pgTable('material_coding_rules', {
 
   // 变更记录
   changes: text(), // JSON array of changes
-  createdBy: integer().notNull(),
+  createdBy: integer().notNull().references(() => users.id),
   createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
@@ -229,7 +230,7 @@ export const materialChangeHistory = pgTable('material_change_history', {
   newValue: text(),
 
   reason: text(),
-  changedBy: integer().notNull(),
+  changedBy: integer().notNull().references(() => users.id),
   changedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
   index('material_change_history_idx_material_id').on(table.materialId),
@@ -258,7 +259,7 @@ export const materialImportRecords = pgTable('material_import_records', {
   // 状态
   status: varchar({ length: 50 }).default('pending').notNull(),
 
-  importedBy: integer().notNull(),
+  importedBy: integer().notNull().references(() => users.id),
   importedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
   completedAt: timestamp({ mode: 'string' }),
 }, (table) => [

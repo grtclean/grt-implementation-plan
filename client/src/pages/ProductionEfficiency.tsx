@@ -2,7 +2,7 @@
  * AI生产效率分析 (Production Efficiency)
  * Phase E: OEE分析 · 瓶颈识别 · 产能优化
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,14 +42,36 @@ export default function ProductionEfficiency() {
   const [workerCount, setWorkerCount] = useState("");
   const [defectRate, setDefectRate] = useState("");
   const [result, setResult] = useState<EfficiencyResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const mutation = trpc.operationsIntelligence.analyzeEfficiency.useMutation({
-    onSuccess: (data) => setResult(data as EfficiencyResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.operationsIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (taskQuery.data?.taskStatus === "completed" && taskQuery.data.result) {
+      setResult(taskQuery.data.result as unknown as EfficiencyResult);
+      setTaskId(null);
+    } else if (taskQuery.data?.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data]);
+
   const handleSubmit = () => {
-    if (!plannedCycleTime || !actualCycleTime || !throughput || !downtime || mutation.isPending) return;
+    if (!plannedCycleTime || !actualCycleTime || !throughput || !downtime || mutation.isPending || !!taskId) return;
     mutation.mutate({
       processStep,
       plannedCycleTime: Number(plannedCycleTime),
@@ -145,8 +167,8 @@ export default function ProductionEfficiency() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSubmit} disabled={!plannedCycleTime || !actualCycleTime || !throughput || !downtime || mutation.isPending}>
-                {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              <Button onClick={handleSubmit} disabled={!plannedCycleTime || !actualCycleTime || !throughput || !downtime || mutation.isPending || !!taskId}>
+                {mutation.isPending || !!taskId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 {t("manufacturing.efficiency.analyze")}
               </Button>
             </div>

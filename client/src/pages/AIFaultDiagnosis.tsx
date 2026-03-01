@@ -2,7 +2,7 @@
  * AI故障诊断 (AI Fault Diagnosis)
  * Phase H: 故障诊断 · 根因分析 · 维修步骤 · 预防措施
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,14 +41,36 @@ export default function AIFaultDiagnosis() {
   const [lastMaintenanceDate, setLastMaintenanceDate] = useState("");
   const [equipmentAge, setEquipmentAge] = useState("");
   const [result, setResult] = useState<DiagnosisResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const mutation = trpc.rdServiceIntelligence.diagnoseFault.useMutation({
-    onSuccess: (data) => setResult(data as DiagnosisResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.rdServiceIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (taskQuery.data?.taskStatus === "completed" && taskQuery.data.result) {
+      setResult(taskQuery.data.result as unknown as DiagnosisResult);
+      setTaskId(null);
+    } else if (taskQuery.data?.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data]);
+
   const handleSubmit = () => {
-    if (!symptomDescription.trim() || mutation.isPending) return;
+    if (!symptomDescription.trim() || mutation.isPending || !!taskId) return;
     mutation.mutate({
       equipmentModel,
       symptomDescription,
@@ -139,8 +161,8 @@ export default function AIFaultDiagnosis() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSubmit} disabled={!symptomDescription.trim() || mutation.isPending}>
-                {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              <Button onClick={handleSubmit} disabled={!symptomDescription.trim() || mutation.isPending || !!taskId}>
+                {mutation.isPending || !!taskId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 {t("ai.faultDiag.aiDiagnose")}
               </Button>
             </div>

@@ -23,6 +23,31 @@ import {
   ClipboardList, Plus, Search, Loader2, ArrowLeft,
   FileText, Layers, Star, Eye, Gauge,
 } from "lucide-react";
+import { useZodForm, schemas, z } from "@/lib/form-validation";
+
+// ─── Zod Schemas ─────────────────────────────────────────────────
+const createPlanSchema = z.object({
+  title: schemas.requiredString("Title is required / 标题必填"),
+  partName: schemas.optionalString(),
+  partNumber: schemas.optionalString(),
+  phase: schemas.controlPlanPhase(),
+  fmeaDocumentId: z.string().optional().transform(s => (s ? parseInt(s) : undefined)),
+});
+type CreatePlanValues = z.infer<typeof createPlanSchema>;
+
+const addItemSchema = z.object({
+  processStep: schemas.optionalString(),
+  characteristicName: schemas.requiredString("Characteristic name is required / 特性名称必填"),
+  characteristicType: schemas.characteristicType(),
+  specialCharacteristic: schemas.optionalString(),
+  specification: schemas.optionalString(),
+  tolerance: schemas.optionalString(),
+  controlMethod: schemas.controlMethod(),
+  sampleSize: schemas.optionalString(),
+  sampleFrequency: schemas.optionalString(),
+  reactionPlan: schemas.optionalString(),
+});
+type AddItemValues = z.infer<typeof addItemSchema>;
 
 // ─── Labels ────────────────────────────────────────────────────
 const PHASE_KEY: Record<string, string> = {
@@ -69,24 +94,21 @@ export default function ControlPlanManagement() {
   const [createOpen, setCreateOpen] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
 
-  // Create plan form
-  const [fTitle, setFTitle] = useState("");
-  const [fPartName, setFPartName] = useState("");
-  const [fPartNumber, setFPartNumber] = useState("");
-  const [fPhase, setFPhase] = useState<"prototype" | "pre_launch" | "production">("prototype");
-  const [fFmeaId, setFFmeaId] = useState("");
+  // Create plan form — Zod + react-hook-form
+  const createForm = useZodForm({
+    schema: createPlanSchema,
+    defaultValues: { title: "", partName: "", partNumber: "", phase: "prototype", fmeaDocumentId: "" },
+  });
 
-  // Add item form
-  const [iStep, setIStep] = useState("");
-  const [iCharName, setICharName] = useState("");
-  const [iCharType, setICharType] = useState<"product" | "process">("product");
-  const [iSpecial, setISpecial] = useState("");
-  const [iSpec, setISpec] = useState("");
-  const [iTol, setITol] = useState("");
-  const [iMethod, setIMethod] = useState<"visual" | "gauge" | "spc" | "cmm" | "test" | "audit" | "other">("visual");
-  const [iSize, setISize] = useState("");
-  const [iFreq, setIFreq] = useState("");
-  const [iReaction, setIReaction] = useState("");
+  // Add item form — Zod + react-hook-form
+  const itemForm = useZodForm({
+    schema: addItemSchema,
+    defaultValues: {
+      processStep: "", characteristicName: "", characteristicType: "product",
+      specialCharacteristic: "", specification: "", tolerance: "",
+      controlMethod: "visual", sampleSize: "", sampleFrequency: "", reactionPlan: "",
+    },
+  });
 
   // Queries
   const { data: stats } = trpc.controlPlan.getStats.useQuery({});
@@ -103,7 +125,7 @@ export default function ControlPlanManagement() {
     onSuccess: () => {
       toast.success(t("quality.controlPlan.createSuccess"));
       setCreateOpen(false);
-      resetCreateForm();
+      createForm.reset();
       utils.controlPlan.list.invalidate();
       utils.controlPlan.getStats.invalidate();
     },
@@ -114,52 +136,38 @@ export default function ControlPlanManagement() {
     onSuccess: () => {
       toast.success(t("quality.controlPlan.addItemSuccess"));
       setAddItemOpen(false);
-      resetItemForm();
+      itemForm.reset();
       utils.controlPlan.getById.invalidate({ id: selectedPlanId! });
       utils.controlPlan.getStats.invalidate();
     },
     onError: (e) => toast.error(e.message),
   });
 
-  const resetCreateForm = () => {
-    setFTitle(""); setFPartName(""); setFPartNumber("");
-    setFPhase("prototype"); setFFmeaId("");
-  };
-  const resetItemForm = () => {
-    setIStep(""); setICharName(""); setICharType("product");
-    setISpecial(""); setISpec(""); setITol(""); setIMethod("visual");
-    setISize(""); setIFreq(""); setIReaction("");
-  };
-
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fTitle.trim()) { toast.error(t("quality.controlPlan.titleRequired")); return; }
+  const handleCreate = createForm.handleSubmit((data) => {
     createMut.mutate({
-      title: fTitle.trim(),
-      partName: fPartName.trim() || undefined,
-      partNumber: fPartNumber.trim() || undefined,
-      phase: fPhase,
-      fmeaDocumentId: fFmeaId ? parseInt(fFmeaId) : undefined,
+      title: data.title,
+      partName: data.partName || undefined,
+      partNumber: data.partNumber || undefined,
+      phase: data.phase as "prototype" | "pre_launch" | "production",
+      fmeaDocumentId: data.fmeaDocumentId ? parseInt(data.fmeaDocumentId) : undefined,
     });
-  };
+  });
 
-  const handleAddItem = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!iCharName.trim()) { toast.error(t("quality.controlPlan.charNameRequired")); return; }
+  const handleAddItem = itemForm.handleSubmit((data) => {
     addItemMut.mutate({
       controlPlanId: selectedPlanId!,
-      processStep: iStep.trim() || undefined,
-      characteristicName: iCharName.trim(),
-      characteristicType: iCharType,
-      specialCharacteristic: iSpecial.trim() || undefined,
-      specification: iSpec.trim() || undefined,
-      tolerance: iTol.trim() || undefined,
-      controlMethod: iMethod,
-      sampleSize: iSize.trim() || undefined,
-      sampleFrequency: iFreq.trim() || undefined,
-      reactionPlan: iReaction.trim() || undefined,
+      processStep: data.processStep || undefined,
+      characteristicName: data.characteristicName,
+      characteristicType: data.characteristicType as "product" | "process",
+      specialCharacteristic: data.specialCharacteristic || undefined,
+      specification: data.specification || undefined,
+      tolerance: data.tolerance || undefined,
+      controlMethod: data.controlMethod as any,
+      sampleSize: data.sampleSize || undefined,
+      sampleFrequency: data.sampleFrequency || undefined,
+      reactionPlan: data.reactionPlan || undefined,
     });
-  };
+  });
 
   // Filter
   const plans = (listData?.items ?? []).filter((p) => {
@@ -255,7 +263,7 @@ export default function ControlPlanManagement() {
         </Card>
 
         {/* Add Item Dialog */}
-        <Dialog open={addItemOpen} onOpenChange={(o) => { setAddItemOpen(o); if (!o) resetItemForm(); }}>
+        <Dialog open={addItemOpen} onOpenChange={(o) => { setAddItemOpen(o); if (!o) itemForm.reset(); }}>
           <DialogContent className="max-w-xl">
             <DialogHeader>
               <DialogTitle>{t("quality.controlPlan.addItem")}</DialogTitle>
@@ -263,35 +271,39 @@ export default function ControlPlanManagement() {
             </DialogHeader>
             <form onSubmit={handleAddItem} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><Label>{t("quality.controlPlan.processStep")}</Label><Input value={iStep} onChange={(e) => setIStep(e.target.value)} /></div>
-                <div className="space-y-1"><Label>{t("quality.controlPlan.charName")} <span className="text-red-500">*</span></Label><Input value={iCharName} onChange={(e) => setICharName(e.target.value)} required /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.processStep")}</Label><Input {...itemForm.register("processStep")} /></div>
+                <div className="space-y-1">
+                  <Label>{t("quality.controlPlan.charName")} <span className="text-red-500">*</span></Label>
+                  <Input {...itemForm.register("characteristicName")} />
+                  {itemForm.formState.errors.characteristicName && <p className="text-destructive text-sm">{itemForm.formState.errors.characteristicName.message}</p>}
+                </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <Label>{t("quality.controlPlan.charType")}</Label>
-                  <Select value={iCharType} onValueChange={(v) => setICharType(v as "product" | "process")}>
+                  <Select value={itemForm.watch("characteristicType")} onValueChange={(v) => itemForm.setValue("characteristicType", v as any)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="product">{t("quality.controlPlan.productChar")}</SelectItem><SelectItem value="process">{t("quality.controlPlan.processChar")}</SelectItem></SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1"><Label>{t("quality.controlPlan.specialChar")}</Label><Input placeholder="CC / SC" value={iSpecial} onChange={(e) => setISpecial(e.target.value)} /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.specialChar")}</Label><Input placeholder="CC / SC" {...itemForm.register("specialCharacteristic")} /></div>
                 <div className="space-y-1">
                   <Label>{t("quality.controlPlan.controlMethod")}</Label>
-                  <Select value={iMethod} onValueChange={(v) => setIMethod(v as typeof iMethod)}>
+                  <Select value={itemForm.watch("controlMethod")} onValueChange={(v) => itemForm.setValue("controlMethod", v as any)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{Object.entries(METHOD_KEY).map(([k, v]) => <SelectItem key={k} value={k}>{t(v)}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><Label>{t("quality.controlPlan.specification")}</Label><Input value={iSpec} onChange={(e) => setISpec(e.target.value)} /></div>
-                <div className="space-y-1"><Label>{t("quality.controlPlan.toleranceField")}</Label><Input value={iTol} onChange={(e) => setITol(e.target.value)} /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.specification")}</Label><Input {...itemForm.register("specification")} /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.toleranceField")}</Label><Input {...itemForm.register("tolerance")} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><Label>{t("quality.controlPlan.sampleSize")}</Label><Input value={iSize} onChange={(e) => setISize(e.target.value)} /></div>
-                <div className="space-y-1"><Label>{t("quality.controlPlan.sampleFreq")}</Label><Input value={iFreq} onChange={(e) => setIFreq(e.target.value)} /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.sampleSize")}</Label><Input {...itemForm.register("sampleSize")} /></div>
+                <div className="space-y-1"><Label>{t("quality.controlPlan.sampleFreq")}</Label><Input {...itemForm.register("sampleFrequency")} /></div>
               </div>
-              <div className="space-y-1"><Label>{t("quality.controlPlan.reactionPlan")}</Label><Input value={iReaction} onChange={(e) => setIReaction(e.target.value)} /></div>
+              <div className="space-y-1"><Label>{t("quality.controlPlan.reactionPlan")}</Label><Input {...itemForm.register("reactionPlan")} /></div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setAddItemOpen(false)}>{t("quality.common.cancel")}</Button>
                 <Button type="submit" disabled={addItemMut.isPending}>
@@ -400,7 +412,7 @@ export default function ControlPlanManagement() {
       </Card>
 
       {/* Create Dialog */}
-      <Dialog open={createOpen} onOpenChange={(o) => { setCreateOpen(o); if (!o) resetCreateForm(); }}>
+      <Dialog open={createOpen} onOpenChange={(o) => { setCreateOpen(o); if (!o) createForm.reset(); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{t("quality.controlPlan.newPlan")}</DialogTitle>
@@ -409,22 +421,23 @@ export default function ControlPlanManagement() {
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="space-y-2">
               <Label>{t("quality.controlPlan.planTitle")} <span className="text-red-500">*</span></Label>
-              <Input value={fTitle} onChange={(e) => setFTitle(e.target.value)} required />
+              <Input {...createForm.register("title")} />
+              {createForm.formState.errors.title && <p className="text-destructive text-sm mt-1">{createForm.formState.errors.title.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t("quality.controlPlan.partName")}</Label>
-                <Input value={fPartName} onChange={(e) => setFPartName(e.target.value)} />
+                <Input {...createForm.register("partName")} />
               </div>
               <div className="space-y-2">
                 <Label>{t("quality.controlPlan.partNumber")}</Label>
-                <Input value={fPartNumber} onChange={(e) => setFPartNumber(e.target.value)} />
+                <Input {...createForm.register("partNumber")} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t("quality.controlPlan.phase")}</Label>
-                <Select value={fPhase} onValueChange={(v) => setFPhase(v as typeof fPhase)}>
+                <Select value={createForm.watch("phase")} onValueChange={(v) => createForm.setValue("phase", v as any)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="prototype">{t("quality.controlPlan.phaseTrial")}</SelectItem>
@@ -435,7 +448,7 @@ export default function ControlPlanManagement() {
               </div>
               <div className="space-y-2">
                 <Label>{t("quality.controlPlan.relatedFmeaId")}</Label>
-                <Input value={fFmeaId} onChange={(e) => setFFmeaId(e.target.value)} />
+                <Input {...createForm.register("fmeaDocumentId")} />
               </div>
             </div>
             <DialogFooter>

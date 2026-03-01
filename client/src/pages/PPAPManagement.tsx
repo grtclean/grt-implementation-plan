@@ -26,6 +26,19 @@ import {
   XCircle, Clock, AlertTriangle, ArrowLeft, FileText, Loader2,
   ShieldCheck, FolderOpen,
 } from "lucide-react";
+import { useZodForm, schemas, z } from "@/lib/form-validation";
+
+// ─── Zod Schema ──────────────────────────────────────────────────
+const ppapCreateSchema = z.object({
+  partName: schemas.requiredString("Part name is required / 零件名称必填"),
+  partNumber: schemas.requiredString("Part number is required / 零件号必填"),
+  revision: schemas.optionalString(),
+  customerName: schemas.optionalString(),
+  submissionLevel: schemas.submissionLevel(),
+  submissionReason: schemas.optionalString(),
+  notes: z.string().optional(),
+});
+type PpapCreateValues = z.infer<typeof ppapCreateSchema>;
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -69,13 +82,17 @@ function SubmissionListTab({ onSelect }: { onSelect: (id: number) => void }) {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ partName: "", partNumber: "", revision: "", customerName: "", submissionLevel: "3" as string, submissionReason: "", notes: "" });
+
+  const form = useZodForm({
+    schema: ppapCreateSchema,
+    defaultValues: { partName: "", partNumber: "", revision: "", customerName: "", submissionLevel: "3", submissionReason: "", notes: "" },
+  });
 
   const utils = trpc.useUtils();
   const statsQ = trpc.ppap.getStats.useQuery({});
   const listQ = trpc.ppap.list.useQuery({});
   const createMut = trpc.ppap.create.useMutation({
-    onSuccess: () => { toast.success(t("quality.ppap.createSuccess")); setShowCreate(false); resetForm(); utils.ppap.list.invalidate(); utils.ppap.getStats.invalidate(); },
+    onSuccess: () => { toast.success(t("quality.ppap.createSuccess")); setShowCreate(false); form.reset(); utils.ppap.list.invalidate(); utils.ppap.getStats.invalidate(); },
     onError: (e) => toast.error(e.message),
   });
   const updateMut = trpc.ppap.update.useMutation({
@@ -83,12 +100,17 @@ function SubmissionListTab({ onSelect }: { onSelect: (id: number) => void }) {
     onError: (e) => toast.error(e.message),
   });
 
-  function resetForm() { setForm({ partName: "", partNumber: "", revision: "", customerName: "", submissionLevel: "3", submissionReason: "", notes: "" }); }
-
-  function handleCreate() {
-    if (!form.partName || !form.partNumber) { toast.error(t("quality.ppap.partNameRequired")); return; }
-    createMut.mutate({ partName: form.partName, partNumber: form.partNumber, revision: form.revision || undefined, customerName: form.customerName || undefined, submissionLevel: form.submissionLevel as "1" | "2" | "3" | "4" | "5", submissionReason: form.submissionReason || undefined, notes: form.notes || undefined });
-  }
+  const handleCreate = form.handleSubmit((data) => {
+    createMut.mutate({
+      partName: data.partName,
+      partNumber: data.partNumber,
+      revision: data.revision || undefined,
+      customerName: data.customerName || undefined,
+      submissionLevel: data.submissionLevel as "1" | "2" | "3" | "4" | "5",
+      submissionReason: data.submissionReason || undefined,
+      notes: data.notes || undefined,
+    });
+  });
 
   const stats = statsQ.data;
   const items = (listQ.data?.items ?? []).filter((it) => {
@@ -163,18 +185,26 @@ function SubmissionListTab({ onSelect }: { onSelect: (id: number) => void }) {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>{t("quality.ppap.newSubmission")}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>{t("quality.ppap.partName")} *</Label><Input value={form.partName} onChange={(e) => setForm({ ...form, partName: e.target.value })} /></div>
-              <div><Label>{t("quality.ppap.partNumber")} *</Label><Input value={form.partNumber} onChange={(e) => setForm({ ...form, partNumber: e.target.value })} /></div>
+              <div>
+                <Label>{t("quality.ppap.partName")} *</Label>
+                <Input {...form.register("partName")} />
+                {form.formState.errors.partName && <p className="text-destructive text-sm mt-1">{form.formState.errors.partName.message}</p>}
+              </div>
+              <div>
+                <Label>{t("quality.ppap.partNumber")} *</Label>
+                <Input {...form.register("partNumber")} />
+                {form.formState.errors.partNumber && <p className="text-destructive text-sm mt-1">{form.formState.errors.partNumber.message}</p>}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>{t("quality.ppap.revision")}</Label><Input value={form.revision} onChange={(e) => setForm({ ...form, revision: e.target.value })} /></div>
-              <div><Label>{t("quality.ppap.customerName")}</Label><Input value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} /></div>
+              <div><Label>{t("quality.ppap.revision")}</Label><Input {...form.register("revision")} /></div>
+              <div><Label>{t("quality.ppap.customerName")}</Label><Input {...form.register("customerName")} /></div>
             </div>
             <div>
               <Label>{t("quality.ppap.submissionLevel")}</Label>
-              <Select value={form.submissionLevel} onValueChange={(v) => setForm({ ...form, submissionLevel: v })}>
+              <Select value={form.watch("submissionLevel")} onValueChange={(v) => form.setValue("submissionLevel", v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">{t("quality.ppap.level1")}</SelectItem>
@@ -185,15 +215,15 @@ function SubmissionListTab({ onSelect }: { onSelect: (id: number) => void }) {
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>{t("quality.ppap.submissionReason")}</Label><Input value={form.submissionReason} onChange={(e) => setForm({ ...form, submissionReason: e.target.value })} /></div>
-            <div><Label>{t("quality.ppap.remarks")}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>{t("quality.common.cancel")}</Button>
-            <Button onClick={handleCreate} disabled={createMut.isPending}>
-              {createMut.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{t("quality.common.create")}
-            </Button>
-          </DialogFooter>
+            <div><Label>{t("quality.ppap.submissionReason")}</Label><Input {...form.register("submissionReason")} /></div>
+            <div><Label>{t("quality.ppap.remarks")}</Label><Textarea {...form.register("notes")} rows={2} /></div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>{t("quality.common.cancel")}</Button>
+              <Button type="submit" disabled={createMut.isPending}>
+                {createMut.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{t("quality.common.create")}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

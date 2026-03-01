@@ -2,7 +2,7 @@
  * AI预算分析 (AI Budget Anomaly Analysis)
  * Phase G: 偏差检测 · 异常评分 · 趋势分析 · 年度预测
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,14 +38,36 @@ export default function AIBudgetAnalysis() {
   const [overrunItems, setOverrunItems] = useState("");
   const [comparisonPeriod, setComparisonPeriod] = useState("");
   const [result, setResult] = useState<BudgetResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const mutation = trpc.salesFinanceIntelligence.analyzeBudget.useMutation({
-    onSuccess: (data) => setResult(data as BudgetResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.salesFinanceIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (taskQuery.data?.taskStatus === "completed" && taskQuery.data.result) {
+      setResult(taskQuery.data.result as unknown as BudgetResult);
+      setTaskId(null);
+    } else if (taskQuery.data?.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data]);
+
   const handleSubmit = () => {
-    if (!allocatedBudget || !actualSpend || !categories.trim() || mutation.isPending) return;
+    if (!allocatedBudget || !actualSpend || !categories.trim() || mutation.isPending || !!taskId) return;
     mutation.mutate({
       department,
       budgetPeriod,
@@ -151,8 +173,8 @@ export default function AIBudgetAnalysis() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSubmit} disabled={!allocatedBudget || !actualSpend || !categories.trim() || mutation.isPending}>
-                {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              <Button onClick={handleSubmit} disabled={!allocatedBudget || !actualSpend || !categories.trim() || mutation.isPending || !!taskId}>
+                {mutation.isPending || !!taskId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 {t("ai.budget.aiAnalysis")}
               </Button>
             </div>

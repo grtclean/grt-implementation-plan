@@ -30,7 +30,7 @@ import {
   getAggregatedROI,
 } from "../services/meeting-analytics-engine.service";
 import { eq, desc, and, count, sql, type SQL } from "drizzle-orm";
-import { invokeLLM } from "../_core/llm";
+import { submitTask, getTaskStatus } from "../services/task-worker.service";
 import { processAbsences } from "../services/hr-meeting-engine";
 
 // ── Shared helpers ─────────────────────────────────────────
@@ -163,10 +163,10 @@ const meetingRouter = router({
       return updated;
     }),
 
-  // Generate AI quiz from transcript
+  // Generate AI quiz from transcript — async via task queue
   generateQuiz: protectedProcedure
     .input(idInput)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [meeting] = await db
         .select()
@@ -176,75 +176,47 @@ const meetingRouter = router({
 
       const transcript = meeting.transcript || meeting.description || meeting.title;
 
-      try {
-        const result = await invokeLLM({
-          system: `You are an AI engagement quiz generator for corporate meetings.
-Given a meeting transcript, generate exactly 3 quiz questions:
-- 2 multiple choice (4 options each, mark the correct one)
-- 1 true/false
-Return valid JSON array:
-[{"id":1,"question":"...","type":"MULTIPLE_CHOICE","options":["A","B","C","D"],"correctAnswer":"A"},
- {"id":2,"question":"...","type":"MULTIPLE_CHOICE","options":["A","B","C","D"],"correctAnswer":"C"},
- {"id":3,"question":"...","type":"TRUE_FALSE","options":["True","False"],"correctAnswer":"True"}]
-Use the same language as the transcript.`,
-          prompt: `Meeting: "${meeting.title}"\n\nTranscript:\n${transcript}`,
-        });
+      const { taskId } = await submitTask(
+        "MEETING_QUIZ_GENERATE",
+        {
+          meetingId: toNum(input.id),
+          meetingTitle: meeting.title,
+          transcript,
+        },
+        ctx.user.name ?? `User#${ctx.user.id}`,
+      );
 
-        const content = result.content ?? "";
-        const jsonMatch = content.match(/\[[\s\S]*\]/);
-        const questions = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      return { success: true, taskId, status: "processing" as const, questions: null };
+    }),
 
-        if (questions) {
-          await db
-            .update(sysMeetings)
-            .set({ aiQuizQuestions: questions, updatedAt: new Date() })
-            .where(eq(sysMeetings.id, toNum(input.id)));
-          return { success: true, questions };
-        }
-        return { success: false, questions: null, raw: content };
-      } catch {
-        // Fallback: generate mock quiz questions
-        const mockQuestions = [
-          {
-            id: 1,
-            question: `本次会议「${meeting.title}」的核心主题是什么？`,
-            type: "MULTIPLE_CHOICE" as const,
-            options: [
-              "2026年战略目标与行动计划",
-              "日常行政安排",
-              "技术栈升级讨论",
-              "客户投诉处理",
-            ],
-            correctAnswer: "2026年战略目标与行动计划",
-          },
-          {
-            id: 2,
-            question: `会议中提到的首要发展方向是？`,
-            type: "MULTIPLE_CHOICE" as const,
-            options: [
-              "降低成本",
-              "AI驱动的智能制造转型",
-              "缩减人员规模",
-              "暂停研发投入",
-            ],
-            correctAnswer: "AI驱动的智能制造转型",
-          },
-          {
-            id: 3,
-            question: `会议要求全员参与2026年度KPI目标制定。`,
-            type: "TRUE_FALSE" as const,
-            options: ["True", "False"],
-            correctAnswer: "True",
-          },
-        ];
+  /** Poll for quiz generation status */
+  getQuizStatus: protectedProcedure
+    .input(z.object({ taskId: z.number(), meetingId: z.union([z.string(), z.number()]) }))
+    .query(async ({ input }) => {
+      const task = await getTaskStatus(input.taskId);
+      if (!task) return { taskStatus: "not_found" as const, questions: null };
 
-        await db
-          .update(sysMeetings)
-          .set({ aiQuizQuestions: mockQuestions, updatedAt: new Date() })
-          .where(eq(sysMeetings.id, toNum(input.id)));
-
-        return { success: true, questions: mockQuestions };
+      if (task.status === "completed" && task.resultData) {
+        const result = task.resultData as Record<string, unknown>;
+        return {
+          taskStatus: "completed" as const,
+          questions: (result.questions as unknown[]) ?? null,
+        };
       }
+
+      if (task.status === "failed") {
+        // Fallback: check if meeting already has quiz questions (from fallback handler)
+        const db = await requireDb();
+        const [meeting] = await db.select({ aiQuizQuestions: sysMeetings.aiQuizQuestions })
+          .from(sysMeetings)
+          .where(eq(sysMeetings.id, toNum(input.meetingId)));
+        if (meeting?.aiQuizQuestions) {
+          return { taskStatus: "completed" as const, questions: meeting.aiQuizQuestions };
+        }
+        return { taskStatus: "failed" as const, questions: null, error: task.errorMessage };
+      }
+
+      return { taskStatus: task.status as "pending" | "processing", questions: null };
     }),
 
   // Create Teams meeting link via Graph API mock and save to DB

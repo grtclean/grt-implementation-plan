@@ -1,6 +1,6 @@
 /**
  * AI Notebook Router — Unit Tests
- * Tests 4 procedures: getSuggestions, analyzeEntry, acceptSuggestion, rejectSuggestion
+ * Tests 5 procedures: getSuggestions, analyzeEntry, getAnalysisStatus, acceptSuggestion, rejectSuggestion
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
@@ -9,10 +9,16 @@ import {
 } from "../_test/trpc-test-utils";
 
 // ── Mock state (hoisted so vi.mock can reference) ───────────
-const { selectResultsQueue, returningQueue } = vi.hoisted(() => {
+const { selectResultsQueue, returningQueue, mockSubmitTask, mockGetTaskStatus } = vi.hoisted(() => {
   const selectResultsQueue: any[][] = [];
   const returningQueue: any[][] = [];
-  return { selectResultsQueue, returningQueue };
+  const mockSubmitTask = vi.fn(async () => ({ taskId: 42 }));
+  const mockGetTaskStatus = vi.fn(async () => ({
+    id: 42,
+    status: "completed",
+    resultData: { suggestions: [], message: "分析完成" },
+  }));
+  return { selectResultsQueue, returningQueue, mockSubmitTask, mockGetTaskStatus };
 });
 
 // ── Mock ../db with chainable requireDb ─────────────────────
@@ -56,16 +62,10 @@ vi.mock("drizzle-orm", () => ({
   sql: Object.assign(vi.fn(), { raw: vi.fn() }),
 }));
 
-// ── Mock LLM ────────────────────────────────────────────────
-const mockInvokeLLM = vi.fn();
-vi.mock("../_core/llm", () => ({
-  invokeLLM: (...args: any[]) => mockInvokeLLM(...args),
-}));
-
-// ── Mock knowledge-base service ─────────────────────────────
-const mockSearchDocuments = vi.fn();
-vi.mock("../modules/knowledge-base.service", () => ({
-  searchDocuments: (...args: any[]) => mockSearchDocuments(...args),
+// ── Mock task-worker.service ────────────────────────────────
+vi.mock("../services/task-worker.service", () => ({
+  submitTask: (...args: any[]) => mockSubmitTask(...args),
+  getTaskStatus: (...args: any[]) => mockGetTaskStatus(...args),
 }));
 
 // ── Reset ───────────────────────────────────────────────────
@@ -73,8 +73,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   selectResultsQueue.length = 0;
   returningQueue.length = 0;
-  mockInvokeLLM.mockReset();
-  mockSearchDocuments.mockReset();
+  mockSubmitTask.mockReset().mockResolvedValue({ taskId: 42 });
+  mockGetTaskStatus.mockReset().mockResolvedValue({
+    id: 42,
+    status: "completed",
+    resultData: { suggestions: [], message: "分析完成" },
+  });
 });
 
 const caller = () => createAuthenticatedCaller();
@@ -186,8 +190,9 @@ describe("aiNotebook.analyzeEntry", () => {
       success: true,
       message: "无内容可分析",
       suggestions: [],
+      taskId: null,
     });
-    expect(mockInvokeLLM).not.toHaveBeenCalled();
+    expect(mockSubmitTask).not.toHaveBeenCalled();
   });
 
   it("returns early when content is undefined", async () => {
@@ -198,8 +203,9 @@ describe("aiNotebook.analyzeEntry", () => {
       success: true,
       message: "无内容可分析",
       suggestions: [],
+      taskId: null,
     });
-    expect(mockInvokeLLM).not.toHaveBeenCalled();
+    expect(mockSubmitTask).not.toHaveBeenCalled();
   });
 
   it("returns early when content is whitespace-only", async () => {
@@ -211,34 +217,13 @@ describe("aiNotebook.analyzeEntry", () => {
       success: true,
       message: "无内容可分析",
       suggestions: [],
+      taskId: null,
     });
-    expect(mockInvokeLLM).not.toHaveBeenCalled();
+    expect(mockSubmitTask).not.toHaveBeenCalled();
   });
 
-  it("happy path: LLM returns JSON array, suggestions saved to DB", async () => {
-    const llmJson = [
-      { type: "finding", value: "密封不良", keywords: ["密封", "泄漏"] },
-      { type: "improvement", value: "增加扭矩检测", keywords: ["扭矩"] },
-    ];
-
-    mockSearchDocuments.mockResolvedValue([
-      { category: "standard", title: "FMEA Guide", content: "FMEA content here for reference..." },
-    ]);
-
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: {
-          role: "assistant",
-          content: JSON.stringify(llmJson),
-        },
-        finish_reason: "stop",
-      }],
-    });
-
-    const savedItem1 = { ...sampleSuggestion, id: 10, suggestedValue: "密封不良" };
-    const savedItem2 = { ...sampleSuggestion, id: 11, suggestedValue: "增加扭矩检测", suggestionType: "field_update" };
-    returningQueue.push([savedItem1]);
-    returningQueue.push([savedItem2]);
+  it("submits task and returns taskId when content is provided", async () => {
+    mockSubmitTask.mockResolvedValueOnce({ taskId: 99 });
 
     const result = await caller().aiNotebook.analyzeEntry({
       entryId: 100,
@@ -248,320 +233,24 @@ describe("aiNotebook.analyzeEntry", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.message).toBe("分析完成，生成2条建议");
-    expect(result.suggestions).toHaveLength(2);
-    expect(result.suggestions[0].id).toBe(10);
-    expect(result.suggestions[1].id).toBe(11);
-
-    // Verify LLM was called
-    expect(mockInvokeLLM).toHaveBeenCalledOnce();
-    const llmCall = mockInvokeLLM.mock.calls[0][0];
-    expect(llmCall.messages).toHaveLength(2);
-    expect(llmCall.messages[0].role).toBe("system");
-    expect(llmCall.messages[1].role).toBe("user");
-
-    // Verify searchDocuments was called with first 200 chars of content
-    expect(mockSearchDocuments).toHaveBeenCalledOnce();
-  });
-
-  it("includes RAG knowledge context in system prompt when KB returns results", async () => {
-    mockSearchDocuments.mockResolvedValue([
-      { category: "technical", title: "Doc A", content: "Content for doc A about seals" },
-      { category: "standard", title: "Doc B", content: "Content for doc B about torque" },
-    ]);
-
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{ message: { content: "[]" }, finish_reason: "stop" }],
-    });
-
-    await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content: "密封泄漏分析笔记",
-    });
-
-    const systemPrompt = mockInvokeLLM.mock.calls[0][0].messages[0].content;
-    expect(systemPrompt).toContain("参考知识");
-    expect(systemPrompt).toContain("Doc A");
-    expect(systemPrompt).toContain("Doc B");
-  });
-
-  it("LLM error returns failure response", async () => {
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockRejectedValue(new Error("LLM service unavailable"));
-
-    const result = await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content: "some notebook content",
-    });
-
-    expect(result).toEqual({
-      success: false,
-      message: "AI分析失败",
-      suggestions: [],
-    });
-  });
-
-  it("plain text LLM response (no brackets) produces zero suggestions", async () => {
-    // When LLM returns text with no [...] at all, the regex doesn't match,
-    // JSON.parse is never called, so no exception → suggestions stays []
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: {
-          role: "assistant",
-          content: "This is a plain text analysis without any JSON formatting.",
-        },
-        finish_reason: "stop",
-      }],
-    });
-
-    const result = await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content: "analysis target content",
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.message).toBe("分析完成，生成0条建议");
-    expect(result.suggestions).toHaveLength(0);
-  });
-
-  it("malformed JSON array in LLM response falls back to single finding suggestion", async () => {
-    // When regex matches [...] but JSON.parse fails, the catch block creates
-    // a single finding suggestion from the raw text (sliced to 500 chars)
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: {
-          role: "assistant",
-          content: '[this is not valid JSON but has brackets]',
-        },
-        finish_reason: "stop",
-      }],
-    });
-
-    const savedItem = { ...sampleSuggestion, id: 20 };
-    returningQueue.push([savedItem]);
-
-    const result = await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content: "analysis target content",
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.message).toBe("分析完成，生成1条建议");
-    expect(result.suggestions).toHaveLength(1);
-  });
-
-  it("knowledge base failure is non-fatal (still proceeds with LLM)", async () => {
-    mockSearchDocuments.mockRejectedValue(new Error("KB connection failed"));
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: {
-          content: '[{"type":"finding","value":"test finding","keywords":["test"]}]',
-        },
-        finish_reason: "stop",
-      }],
-    });
-
-    const savedItem = { ...sampleSuggestion, id: 30 };
-    returningQueue.push([savedItem]);
-
-    const result = await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content: "notebook content to analyze",
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.suggestions).toHaveLength(1);
-    expect(mockInvokeLLM).toHaveBeenCalledOnce();
-
-    // System prompt should NOT contain knowledge context
-    const systemPrompt = mockInvokeLLM.mock.calls[0][0].messages[0].content;
-    expect(systemPrompt).not.toContain("参考知识");
-  });
-
-  it("DB save error per-suggestion is caught (partial save)", async () => {
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: {
-          content: JSON.stringify([
-            { type: "finding", value: "first", keywords: [] },
-            { type: "improvement", value: "second", keywords: [] },
-            { type: "finding", value: "third", keywords: [] },
-          ]),
-        },
-        finish_reason: "stop",
-      }],
-    });
-
-    // First suggestion saves OK
-    const saved1 = { ...sampleSuggestion, id: 40 };
-    returningQueue.push([saved1]);
-    // Second suggestion: returning() will use default [{ id: 1 }] since queue is empty after first two
-    // We need to simulate a DB error. We'll make the second returning() throw.
-    // Actually the mock's returning() just shifts from queue. Let's push a normal one for second and third.
-    const saved2 = { ...sampleSuggestion, id: 41 };
-    returningQueue.push([saved2]);
-    const saved3 = { ...sampleSuggestion, id: 42 };
-    returningQueue.push([saved3]);
-
-    const result = await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content: "multi-suggestion content",
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.message).toBe("分析完成，生成3条建议");
-    expect(result.suggestions).toHaveLength(3);
-  });
-
-  it("maps suggestion types correctly (finding->content_match, improvement->field_update, process->process_link)", async () => {
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: {
-          content: JSON.stringify([
-            { type: "finding", value: "f", keywords: [] },
-            { type: "improvement", value: "i", keywords: [] },
-            { type: "process", value: "p", keywords: [] },
-            { type: "unknown", value: "u", keywords: [] },
-          ]),
-        },
-        finish_reason: "stop",
-      }],
-    });
-
-    returningQueue.push([{ id: 50, suggestionType: "content_match" }]);
-    returningQueue.push([{ id: 51, suggestionType: "field_update" }]);
-    returningQueue.push([{ id: 52, suggestionType: "process_link" }]);
-    returningQueue.push([{ id: 53, suggestionType: "content_match" }]);
-
-    const result = await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content: "map test content",
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.suggestions).toHaveLength(4);
-  });
-
-  it("handles LLM returning empty JSON array", async () => {
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: {
-          content: "[]",
-        },
-        finish_reason: "stop",
-      }],
-    });
-
-    const result = await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content: "content to analyze",
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.message).toBe("分析完成，生成0条建议");
-    expect(result.suggestions).toHaveLength(0);
-  });
-
-  it("handles LLM returning null content", async () => {
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: {
-          content: null,
-        },
-        finish_reason: "stop",
-      }],
-    });
-
-    // When content is null/empty string, the regex won't match, the inner JSON.parse
-    // won't be called, so suggestions stays as []. No DB inserts happen.
-    const result = await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content: "analyze this",
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.suggestions).toHaveLength(0);
-  });
-
-  it("handles LLM returning choices with no message", async () => {
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{}],
-    });
-
-    const result = await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content: "analyze this",
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.suggestions).toHaveLength(0);
-  });
-
-  it("extracts JSON array from mixed LLM response text", async () => {
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: {
-          content: 'Here is my analysis:\n```json\n[{"type":"finding","value":"extracted","keywords":["kw"]}]\n```\nHope this helps!',
-        },
-        finish_reason: "stop",
-      }],
-    });
-
-    const savedItem = { ...sampleSuggestion, id: 60, suggestedValue: "extracted" };
-    returningQueue.push([savedItem]);
-
-    const result = await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content: "content with mixed response",
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.suggestions).toHaveLength(1);
-  });
-
-  it("passes processType and processId to DB insert", async () => {
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: {
-          content: '[{"type":"finding","value":"val","keywords":[]}]',
-        },
-        finish_reason: "stop",
-      }],
-    });
-
-    returningQueue.push([{ id: 70 }]);
-
-    const result = await caller().aiNotebook.analyzeEntry({
-      entryId: 55,
-      content: "content with process info",
-      processType: "8D",
-      processId: "8D-001",
-    });
-
-    expect(result.success).toBe(true);
+    expect(result.message).toBe("分析任务已提交");
+    expect(result.suggestions).toEqual([]);
+    expect(result.taskId).toBe(99);
+    expect(mockSubmitTask).toHaveBeenCalledOnce();
+    expect(mockSubmitTask).toHaveBeenCalledWith(
+      "AI_NOTEBOOK_ANALYZE",
+      expect.objectContaining({
+        entryId: 100,
+        content: "今天发现密封泄漏问题，需要进一步分析原因。",
+        processType: "FMEA",
+        processId: "P-001",
+      }),
+      expect.any(String),
+    );
   });
 
   it("handles entryId as string input (converted via toNum)", async () => {
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: {
-          content: '[{"type":"finding","value":"v","keywords":[]}]',
-        },
-        finish_reason: "stop",
-      }],
-    });
-
-    returningQueue.push([{ id: 80 }]);
+    mockSubmitTask.mockResolvedValueOnce({ taskId: 55 });
 
     const result = await caller().aiNotebook.analyzeEntry({
       entryId: "42",
@@ -569,70 +258,128 @@ describe("aiNotebook.analyzeEntry", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.suggestions).toHaveLength(1);
+    expect(result.taskId).toBe(55);
+    expect(mockSubmitTask).toHaveBeenCalledWith(
+      "AI_NOTEBOOK_ANALYZE",
+      expect.objectContaining({ entryId: 42 }),
+      expect.any(String),
+    );
   });
 
-  it("slices content to 200 chars for KB search", async () => {
-    const longContent = "A".repeat(500);
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: { content: "[]" },
-        finish_reason: "stop",
-      }],
-    });
-
-    await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content: longContent,
-    });
-
-    expect(mockSearchDocuments).toHaveBeenCalledOnce();
-    const searchArg = mockSearchDocuments.mock.calls[0][0];
-    expect(searchArg.length).toBe(200);
-  });
-
-  it("user prompt includes the full content", async () => {
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: { content: "[]" },
-        finish_reason: "stop",
-      }],
-    });
-
-    const content = "具体的笔记内容测试";
-    await caller().aiNotebook.analyzeEntry({
-      entryId: 1,
-      content,
-    });
-
-    const userMsg = mockInvokeLLM.mock.calls[0][0].messages[1].content;
-    expect(userMsg).toContain(content);
-  });
-
-  it("when returning() gives undefined saved, it is not pushed to savedSuggestions", async () => {
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{
-        message: {
-          content: '[{"type":"finding","value":"v","keywords":[]}]',
-        },
-        finish_reason: "stop",
-      }],
-    });
-
-    // returning() returns an array where destructured [saved] gives undefined
-    returningQueue.push([]);
+  it("passes undefined processType and processId when not provided", async () => {
+    mockSubmitTask.mockResolvedValueOnce({ taskId: 60 });
 
     const result = await caller().aiNotebook.analyzeEntry({
       entryId: 1,
-      content: "test undefined saved",
+      content: "minimal content",
     });
 
     expect(result.success).toBe(true);
+    expect(result.taskId).toBe(60);
+    expect(mockSubmitTask).toHaveBeenCalledWith(
+      "AI_NOTEBOOK_ANALYZE",
+      expect.objectContaining({
+        processType: undefined,
+        processId: undefined,
+      }),
+      expect.any(String),
+    );
+  });
+
+  it("propagates submitTask errors", async () => {
+    mockSubmitTask.mockRejectedValueOnce(new Error("Task queue full"));
+
+    await expect(
+      caller().aiNotebook.analyzeEntry({
+        entryId: 1,
+        content: "content that triggers error",
+      })
+    ).rejects.toThrow("Task queue full");
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+// getAnalysisStatus
+// ══════════════════════════════════════════════════════════════
+describe("aiNotebook.getAnalysisStatus", () => {
+  it("returns completed status with suggestions when task is done", async () => {
+    const suggestions = [
+      { type: "finding", value: "密封不良", keywords: ["密封"] },
+      { type: "improvement", value: "增加扭矩检测", keywords: ["扭矩"] },
+    ];
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42,
+      status: "completed",
+      resultData: { suggestions, message: "分析完成，生成2条建议" },
+    });
+
+    const result = await caller().aiNotebook.getAnalysisStatus({ taskId: 42 });
+
+    expect(result.taskStatus).toBe("completed");
+    expect(result.suggestions).toEqual(suggestions);
+    expect(result.message).toBe("分析完成，生成2条建议");
+    expect(mockGetTaskStatus).toHaveBeenCalledWith(42);
+  });
+
+  it("returns completed with empty suggestions when resultData has none", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42,
+      status: "completed",
+      resultData: { message: "分析完成，生成0条建议" },
+    });
+
+    const result = await caller().aiNotebook.getAnalysisStatus({ taskId: 42 });
+
+    expect(result.taskStatus).toBe("completed");
+    expect(result.suggestions).toEqual([]);
     expect(result.message).toBe("分析完成，生成0条建议");
-    expect(result.suggestions).toHaveLength(0);
+  });
+
+  it("returns failed status with error message", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42,
+      status: "failed",
+      errorMessage: "LLM service unavailable",
+    });
+
+    const result = await caller().aiNotebook.getAnalysisStatus({ taskId: 42 });
+
+    expect(result.taskStatus).toBe("failed");
+    expect(result.suggestions).toEqual([]);
+    expect(result.error).toBe("LLM service unavailable");
+  });
+
+  it("returns pending status when task is still pending", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42,
+      status: "pending",
+    });
+
+    const result = await caller().aiNotebook.getAnalysisStatus({ taskId: 42 });
+
+    expect(result.taskStatus).toBe("pending");
+    expect(result.suggestions).toEqual([]);
+  });
+
+  it("returns processing status when task is in progress", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42,
+      status: "processing",
+    });
+
+    const result = await caller().aiNotebook.getAnalysisStatus({ taskId: 42 });
+
+    expect(result.taskStatus).toBe("processing");
+    expect(result.suggestions).toEqual([]);
+  });
+
+  it("returns not_found when task does not exist", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce(null);
+
+    const result = await caller().aiNotebook.getAnalysisStatus({ taskId: 999 });
+
+    expect(result.taskStatus).toBe("not_found");
+    expect(result.suggestions).toEqual([]);
   });
 });
 
@@ -826,6 +573,12 @@ describe("aiNotebook — authentication", () => {
         entryId: 1,
         content: "test",
       })
+    ).rejects.toThrow();
+  });
+
+  it("rejects anonymous for getAnalysisStatus", async () => {
+    await expect(
+      createAnonymousCaller().aiNotebook.getAnalysisStatus({ taskId: 1 })
     ).rejects.toThrow();
   });
 

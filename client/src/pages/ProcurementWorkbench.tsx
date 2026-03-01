@@ -33,6 +33,26 @@ import {
   CircleDollarSign, Scale, BarChart3,
 } from "lucide-react";
 import QueryErrorBanner from "@/components/QueryErrorBanner";
+import { useZodForm, schemas, z } from "@/lib/form-validation";
+
+// ─── Zod Schemas ─────────────────────────────────────────────────
+const qualificationCreateSchema = z.object({
+  supplierId: schemas.requiredString("Supplier ID is required / 供应商ID必填"),
+  certificationType: z.enum(["ISO9001", "ISO14001", "ISO45001", "IATF16949", "OTHER"]).default("ISO9001"),
+  certificateNumber: schemas.requiredString("Certificate number is required / 证书编号必填"),
+  issueDate: z.string().optional(),
+  expiryDate: z.string().optional(),
+  auditNotes: z.string().optional(),
+});
+type QualificationCreateValues = z.infer<typeof qualificationCreateSchema>;
+
+const rfqCreateSchema = z.object({
+  title: schemas.requiredString("Title is required / 标题必填"),
+  description: z.string().optional(),
+  materialCodes: z.string().optional(),
+  deadline: z.string().optional(),
+});
+type RfqCreateValues = z.infer<typeof rfqCreateSchema>;
 
 function LoadingSkeleton({ rows = 3 }: { rows?: number }) {
   return <div className="space-y-3">{Array.from({ length: rows }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>;
@@ -183,7 +203,11 @@ function SuppliersTab() {
 function QualificationsTab() {
   const { t, tpl } = useLanguage();
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ supplierId: "", certificationType: "ISO9001", certificateNumber: "", issueDate: "", expiryDate: "", auditNotes: "" });
+
+  const form = useZodForm({
+    schema: qualificationCreateSchema,
+    defaultValues: { supplierId: "", certificationType: "ISO9001", certificateNumber: "", issueDate: "", expiryDate: "", auditNotes: "" },
+  });
 
   const qualQuery = trpc.p2p.qualification.list.useQuery({});
   const quals = qualQuery.data?.items ?? [];
@@ -202,16 +226,15 @@ function QualificationsTab() {
   };
   const statusColor: Record<string, string> = { VALID: "bg-green-100 text-green-700", EXPIRED: "bg-red-100 text-red-700", EXPIRING_SOON: "bg-amber-100 text-amber-700", PENDING: "bg-gray-100 text-gray-700" };
 
-  const handleCreate = async () => {
-    if (!form.supplierId || !form.certificateNumber) { toast.error(t("supply.p2p.supplierIdAndCertRequired")); return; }
+  const handleCreate = form.handleSubmit(async (data) => {
     try {
-      await createMutation.mutateAsync({ ...form, supplierId: Number(form.supplierId) });
+      await createMutation.mutateAsync({ ...data, supplierId: Number(data.supplierId) });
       toast.success(t("supply.p2p.qualificationCreated"));
       setShowCreate(false);
-      setForm({ supplierId: "", certificationType: "ISO9001", certificateNumber: "", issueDate: "", expiryDate: "", auditNotes: "" });
+      form.reset();
       qualQuery.refetch();
     } catch (e: any) { toast.error(e.message || t("supply.p2p.createFailed")); }
-  };
+  });
 
   const handleCheckExpiry = async () => {
     try {
@@ -261,26 +284,34 @@ function QualificationsTab() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{t("supply.p2p.newQualificationDialog")}</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            <div><Label>{t("supply.p2p.supplierIdRequired")} *</Label><Input value={form.supplierId} onChange={e => setForm(p => ({ ...p, supplierId: e.target.value }))} placeholder={t("supply.p2p.supplierIdRequired")} /></div>
+          <form onSubmit={handleCreate} className="space-y-3 py-2">
+            <div>
+              <Label>{t("supply.p2p.supplierIdRequired")} *</Label>
+              <Input {...form.register("supplierId")} placeholder={t("supply.p2p.supplierIdRequired")} />
+              {form.formState.errors.supplierId && <p className="text-destructive text-sm mt-1">{form.formState.errors.supplierId.message}</p>}
+            </div>
             <div>
               <Label>{t("supply.p2p.certType")}</Label>
-              <Select value={form.certificationType} onValueChange={v => setForm(p => ({ ...p, certificationType: v }))}>
+              <Select value={form.watch("certificationType")} onValueChange={v => form.setValue("certificationType", v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{certTypes.map(ct => <SelectItem key={ct} value={ct}>{certLabel[ct]}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>{t("supply.p2p.certNumber")} *</Label><Input value={form.certificateNumber} onChange={e => setForm(p => ({ ...p, certificateNumber: e.target.value }))} /></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>{t("supply.p2p.issueDate")}</Label><Input type="date" value={form.issueDate} onChange={e => setForm(p => ({ ...p, issueDate: e.target.value }))} /></div>
-              <div><Label>{t("supply.p2p.expiryDate")}</Label><Input type="date" value={form.expiryDate} onChange={e => setForm(p => ({ ...p, expiryDate: e.target.value }))} /></div>
+            <div>
+              <Label>{t("supply.p2p.certNumber")} *</Label>
+              <Input {...form.register("certificateNumber")} />
+              {form.formState.errors.certificateNumber && <p className="text-destructive text-sm mt-1">{form.formState.errors.certificateNumber.message}</p>}
             </div>
-            <div><Label>{t("supply.p2p.auditNotes")}</Label><Textarea value={form.auditNotes} onChange={e => setForm(p => ({ ...p, auditNotes: e.target.value }))} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
-            <Button onClick={handleCreate} disabled={createMutation.isPending}>{t("supply.p2p.save")}</Button>
-          </DialogFooter>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div><Label>{t("supply.p2p.issueDate")}</Label><Input type="date" {...form.register("issueDate")} /></div>
+              <div><Label>{t("supply.p2p.expiryDate")}</Label><Input type="date" {...form.register("expiryDate")} /></div>
+            </div>
+            <div><Label>{t("supply.p2p.auditNotes")}</Label><Textarea {...form.register("auditNotes")} /></div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
+              <Button type="submit" disabled={createMutation.isPending}>{t("supply.p2p.save")}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
@@ -482,8 +513,12 @@ function QualityAgreementsTab() {
 function RfqBiddingTab() {
   const { t, tpl } = useLanguage();
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", materialCodes: "", deadline: "" });
   const [selectedRfq, setSelectedRfq] = useState<number | null>(null);
+
+  const form = useZodForm({
+    schema: rfqCreateSchema,
+    defaultValues: { title: "", description: "", materialCodes: "", deadline: "" },
+  });
 
   const rfqQuery = trpc.p2p.rfq.list.useQuery({});
   const rfqs = rfqQuery.data?.items ?? [];
@@ -506,16 +541,15 @@ function RfqBiddingTab() {
     CLOSED: t("supply.p2p.statusClosed"),
   };
 
-  const handleCreate = async () => {
-    if (!form.title) { toast.error(t("supply.p2p.titleRequired")); return; }
+  const handleCreate = form.handleSubmit(async (data: RfqCreateValues) => {
     try {
-      await createMutation.mutateAsync(form);
+      await createMutation.mutateAsync(data);
       toast.success(t("supply.p2p.rfqCreated"));
       setShowCreate(false);
-      setForm({ title: "", description: "", materialCodes: "", deadline: "" });
+      form.reset();
       rfqQuery.refetch();
     } catch (e: any) { toast.error(e.message || t("supply.p2p.createFailed")); }
-  };
+  });
 
   const handlePublish = async (id: number) => {
     try { await publishMutation.mutateAsync({ id }); toast.success(t("supply.p2p.rfqPublished")); rfqQuery.refetch(); } catch (e: any) { toast.error(e.message); }
@@ -598,16 +632,20 @@ function RfqBiddingTab() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{t("supply.p2p.newRfqDialog")}</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            <div><Label>{t("supply.p2p.name")} *</Label><Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} /></div>
-            <div><Label>{t("supply.p2p.materialCodesComma")}</Label><Input value={form.materialCodes} onChange={e => setForm(p => ({ ...p, materialCodes: e.target.value }))} placeholder="M001,M002" /></div>
-            <div><Label>{t("supply.p2p.deadlineDate")}</Label><Input type="date" value={form.deadline} onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))} /></div>
-            <div><Label>{t("supply.p2p.description")}</Label><Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
-            <Button onClick={handleCreate} disabled={createMutation.isPending}>{t("supply.p2p.save")}</Button>
-          </DialogFooter>
+          <form onSubmit={handleCreate} className="space-y-3 py-2">
+            <div>
+              <Label>{t("supply.p2p.name")} *</Label>
+              <Input {...form.register("title")} />
+              {form.formState.errors.title && <p className="text-destructive text-sm mt-1">{form.formState.errors.title.message}</p>}
+            </div>
+            <div><Label>{t("supply.p2p.materialCodesComma")}</Label><Input {...form.register("materialCodes")} placeholder="M001,M002" /></div>
+            <div><Label>{t("supply.p2p.deadlineDate")}</Label><Input type="date" {...form.register("deadline")} /></div>
+            <div><Label>{t("supply.p2p.description")}</Label><Textarea {...form.register("description")} /></div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>{t("supply.p2p.cancel")}</Button>
+              <Button type="submit" disabled={createMutation.isPending}>{t("supply.p2p.save")}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

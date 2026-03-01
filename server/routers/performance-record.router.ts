@@ -9,9 +9,23 @@
 import { z } from "zod";
 import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
+import type { BuContext } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { performanceRecords } from "../../drizzle/performance-schema";
 import { eq, and, desc, sql, count, type SQL } from "drizzle-orm";
+
+/** BU code → buId mapping (matches gateway-bu-context.middleware buMap) */
+const BU_CODE_TO_ID: Record<string, number> = { BU1: 1, BU2: 2, BU3: 3, BU4: 4, BU5: 5 };
+const GLOBAL_SCOPE_ROLES = new Set(["admin", "director", "hr_manager", "hr_specialist", "finance_manager", "finance_specialist"]);
+
+/** Resolve BU ID filter from context. Returns undefined for global-scope users. */
+function resolveBuIdFilter(ctx: any): number | undefined {
+  const role = ctx.user?.role ?? "";
+  if (GLOBAL_SCOPE_ROLES.has(role)) return undefined;
+  const buCode = (ctx as any).bu?.buCode as string | undefined;
+  if (buCode && BU_CODE_TO_ID[buCode] !== undefined) return BU_CODE_TO_ID[buCode];
+  return undefined; // graceful fallback — no filter
+}
 
 /** Roles that can view/manage all employees' performance records */
 const PERF_MANAGER_ROLES = new Set(["admin", "director", "hr_manager", "hr_specialist", "dept_manager", "finance_manager"]);
@@ -41,7 +55,14 @@ export const performanceRecordRouter = router({
       } else {
         if (input.userId) conditions.push(eq(performanceRecords.userId, input.userId));
       }
-      if (input.buId) conditions.push(eq(performanceRecords.buId, input.buId));
+
+      // BU isolation: restrict to user's BU unless overridden by explicit input
+      if (input.buId) {
+        conditions.push(eq(performanceRecords.buId, input.buId));
+      } else {
+        const buIdFilter = resolveBuIdFilter(ctx);
+        if (buIdFilter !== undefined) conditions.push(eq(performanceRecords.buId, buIdFilter));
+      }
       if (input.year) conditions.push(eq(performanceRecords.year, input.year));
       if (input.quarter) conditions.push(eq(performanceRecords.quarter, input.quarter));
       if (input.status) conditions.push(eq(performanceRecords.status, input.status));
@@ -236,18 +257,23 @@ export const performanceRecordRouter = router({
       year: z.number().optional(),
       quarter: z.number().min(1).max(4).optional(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
       const now = new Date();
       const year = input.year ?? now.getFullYear();
       const quarter = input.quarter ?? Math.ceil((now.getMonth() + 1) / 3);
 
       try {
+        // BU isolation on dashboard
+        const dashConditions = [
+          eq(performanceRecords.year, year),
+          eq(performanceRecords.quarter, quarter),
+        ];
+        const buIdFilter = resolveBuIdFilter(ctx);
+        if (buIdFilter !== undefined) dashConditions.push(eq(performanceRecords.buId, buIdFilter));
+
         const rows = await db.select().from(performanceRecords)
-          .where(and(
-            eq(performanceRecords.year, year),
-            eq(performanceRecords.quarter, quarter),
-          ));
+          .where(and(...dashConditions));
 
         const totalRecords = rows.length;
         const frozenCount = rows.filter(r => r.isFrozen).length;

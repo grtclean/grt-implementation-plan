@@ -1,12 +1,26 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
+import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
-import { expenseClaims, expenseLineItems } from "../../drizzle/schema";
-import { eq, and, desc, count, sql } from "drizzle-orm";
+import { expenseClaims, expenseLineItems, projects } from "../../drizzle/schema";
+import { eq, and, desc, count, sql, inArray } from "drizzle-orm";
 
 // Roles allowed to see ALL expenses (not just their own)
 const FINANCE_ROLES = new Set(["admin", "director", "finance_manager", "finance_specialist", "hr_manager"]);
+
+/**
+ * Helper: resolve project IDs visible to the current user's BU.
+ * Returns undefined if user has global scope (no filter needed).
+ * Used to BU-scope expense claims that reference a project.
+ */
+async function buScopedProjectIds(ctx: any): Promise<number[] | undefined> {
+  const buFilter = buScopeCondition(projects.buCode, ctx);
+  if (!buFilter) return undefined;
+  const db = await requireDb();
+  const rows = await db.select({ id: projects.id }).from(projects).where(buFilter);
+  return rows.map(r => r.id);
+}
 
 /** Check optimistic lock version — throws CONFLICT if stale */
 async function checkExpenseVersion(db: any, id: number, expectedVersion?: number) {
@@ -29,13 +43,24 @@ async function assertClaimOwnership(db: any, claimId: number, userId: number, ro
 }
 
 export const expenseReportRouter = router({
-  // 报销列表 — scoped by user role
+  // 报销列表 — scoped by user role + BU isolation
   list: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
     const role = ctx.user.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
 
-    const whereCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user.id);
+    const conditions: any[] = [];
+    // Role-based scoping: non-finance users only see their own claims
+    if (!isFinance) {
+      conditions.push(eq(expenseClaims.submitterId, ctx.user.id));
+    }
+    // BU isolation: restrict to expenses for projects in user's BU
+    const scopedIds = await buScopedProjectIds(ctx);
+    if (scopedIds) {
+      conditions.push(inArray(expenseClaims.projectId, scopedIds.length > 0 ? scopedIds : [0]));
+    }
+
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
     const items = await db.select().from(expenseClaims)
       .where(whereCondition)
       .orderBy(desc(expenseClaims.createdAt))
@@ -241,12 +266,22 @@ export const expenseReportRouter = router({
     return { success: true, message: "已拒绝", data: claim };
   }),
 
-  // 生成报表 — scoped by role
+  // 生成报表 — scoped by role + BU isolation
   generateReport: protectedProcedure.input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const role = ctx.user.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
-    const scopeCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user.id);
+
+    const conditions: any[] = [];
+    if (!isFinance) {
+      conditions.push(eq(expenseClaims.submitterId, ctx.user.id));
+    }
+    // BU isolation
+    const scopedIds = await buScopedProjectIds(ctx);
+    if (scopedIds) {
+      conditions.push(inArray(expenseClaims.projectId, scopedIds.length > 0 ? scopedIds : [0]));
+    }
+    const scopeCondition = conditions.length > 0 ? and(...conditions) : undefined;
 
     const items = await db.select().from(expenseClaims)
       .where(scopeCondition)
@@ -278,12 +313,22 @@ export const expenseReportRouter = router({
     };
   }),
 
-  // 导出Excel — scoped by role
+  // 导出Excel — scoped by role + BU isolation
   exportToExcel: protectedProcedure.input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional()).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const role = ctx.user.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
-    const scopeCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user.id);
+
+    const conditions: any[] = [];
+    if (!isFinance) {
+      conditions.push(eq(expenseClaims.submitterId, ctx.user.id));
+    }
+    // BU isolation
+    const scopedIds = await buScopedProjectIds(ctx);
+    if (scopedIds) {
+      conditions.push(inArray(expenseClaims.projectId, scopedIds.length > 0 ? scopedIds : [0]));
+    }
+    const scopeCondition = conditions.length > 0 ? and(...conditions) : undefined;
 
     const items = await db.select().from(expenseClaims)
       .where(scopeCondition)
@@ -297,7 +342,7 @@ export const expenseReportRouter = router({
     return { data: Buffer.from(csvContent).toString("base64"), mimeType: "text/csv" };
   }),
 
-  // 部门排名 — finance roles only
+  // 部门排名 — finance roles only + BU isolation
   getDepartmentRanking: protectedProcedure.input(z.object({ limit: z.number().optional() }).optional()).query(async ({ input, ctx }) => {
     const role = ctx.user.role ?? "employee";
     if (!FINANCE_ROLES.has(role)) {
@@ -305,11 +350,18 @@ export const expenseReportRouter = router({
     }
 
     const db = await requireDb();
+    // BU isolation
+    const scopedIds = await buScopedProjectIds(ctx);
+    const buWhere = scopedIds
+      ? inArray(expenseClaims.projectId, scopedIds.length > 0 ? scopedIds : [0])
+      : undefined;
+
     const ranking = await db.select({
       departmentId: expenseClaims.departmentId,
       total: sql<string>`COALESCE(SUM(CAST(${expenseClaims.totalAmount} AS NUMERIC)), 0)`,
       count: count(),
     }).from(expenseClaims)
+      .where(buWhere)
       .groupBy(expenseClaims.departmentId)
       .orderBy(sql`SUM(CAST(${expenseClaims.totalAmount} AS NUMERIC)) DESC`)
       .limit(20);

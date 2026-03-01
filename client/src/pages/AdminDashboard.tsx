@@ -1,4 +1,5 @@
 import React from "react";
+import { DashboardSkeleton } from "@/components/PageSkeleton";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

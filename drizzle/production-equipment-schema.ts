@@ -21,6 +21,7 @@ export const productionEquipments = pgTable('production_equipments', {
   type: varchar({ length: 50 }).notNull(),
   status: varchar({ length: 30 }).notNull().default('idle'),
   location: varchar({ length: 200 }),
+  buCode: varchar('bu_code', { length: 50 }),
   currentWorkOrderId: integer('current_work_order_id'),
   utilization: decimal({ precision: 5, scale: 2 }).default('0.00'),
   createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
@@ -30,6 +31,7 @@ export const productionEquipments = pgTable('production_equipments', {
   index('idx_prod_equip_status').on(table.status),
   index('idx_prod_equip_type').on(table.type),
   index('idx_prod_equip_location').on(table.location),
+  index('idx_prod_equip_bu_code').on(table.buCode),
 ]);
 
 // ============================================

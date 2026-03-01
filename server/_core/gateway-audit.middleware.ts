@@ -2,9 +2,9 @@
  * Gateway Audit Middleware — API Contract-First
  *
  * Intercepts ALL tRPC requests:
- * 1. Logs endpoint path + userId + timestamp (when GATEWAY_AUDIT=true)
- * 2. Warns on unauthenticated access to non-whitelisted endpoints
- * 3. Phase 2: can switch to BLOCK mode for production enforcement
+ * 1. Logs endpoint path + userId + timestamp (always enabled)
+ * 2. Blocks unauthenticated access to non-whitelisted endpoints (GATEWAY_ENFORCE=true by default)
+ * 3. Persists admin operations to sys_audit_logs table for accountability
  */
 
 import { t } from "./trpc-base";
@@ -16,54 +16,99 @@ import { TRPCError } from "@trpc/server";
  */
 export const PUBLIC_ALLOWLIST = new Set([
   // Health / system
-  "health.check",
-  "echo.query",
-  "system.getVersion",
+  "health.check.query",
+  "echo.query.query",
+  "system.getVersion.query",
 
   // Auth flow — must be public by definition
-  "auth.login",
-  "auth.register",
-  "auth.refreshToken",
-  "auth.loginLocal",
-  "auth.registerLocal",
+  "auth.login.mutation",
+  "auth.register.mutation",
+  "auth.refreshToken.mutation",
+  "auth.loginLocal.mutation",
+  "auth.registerLocal.mutation",
+  "auth.me.query",
 
-  // Public help content
-  "help.listArticles",
-  "help.getArticle",
-  "help.listCategories",
+  // Public help content (all read-only queries)
+  "help.listArticles.query",
+  "help.getArticle.query",
+  "help.listCategories.query",
+  "help.getContextualHelp.query",
+  "help.searchHelp.query",
+  "help.getCategories.query",
+  "help.getPopularArticles.query",
+  "help.getChangelog.query",
+  "help.getWalkthroughs.query",
 ]);
+
+/**
+ * Persist admin audit log to sys_audit_logs table (fire-and-forget).
+ * Uses dynamic import to avoid circular dependency.
+ */
+async function persistAuditLog(entry: {
+  entityType: string;
+  action: string;
+  actorId: number;
+  actorName: string;
+  newData?: Record<string, unknown>;
+}): Promise<void> {
+  try {
+    const { requireDb } = await import("../db");
+    const { sysAuditLogs } = await import("../../drizzle/governance-schema");
+    const db = await requireDb();
+    await db.insert(sysAuditLogs).values({
+      entityType: entry.entityType,
+      action: entry.action as any,
+      actorId: entry.actorId,
+      actorName: entry.actorName,
+      newData: entry.newData,
+    });
+  } catch (err) {
+    // Fire-and-forget — don't block the request
+    console.error("[GATEWAY:AUDIT_PERSIST] Failed to write audit log:", err);
+  }
+}
 
 /**
  * Audit middleware — applied to the base `publicProcedure`.
  *
- * In audit mode (GATEWAY_AUDIT=true) every request is logged.
- * Unauthenticated access to non-whitelisted endpoints produces a WARNING log.
- * When GATEWAY_ENFORCE=true, unauthenticated non-whitelisted calls are BLOCKED.
+ * - All requests are logged (console).
+ * - Admin operations are persisted to sys_audit_logs (P0-3 fix).
+ * - GATEWAY_ENFORCE defaults to "true" — unauthenticated non-whitelisted calls are BLOCKED.
+ *   Set GATEWAY_ENFORCE=false to revert to WARN-only mode.
  */
 export const gatewayAuditMiddleware = t.middleware(async ({ ctx, next, path, type }) => {
   const userId = ctx.user?.id ?? "anonymous";
   const endpoint = `${path}.${type}`;
+  const timestamp = new Date().toISOString();
 
   // Audit log (all requests)
-  if (process.env.GATEWAY_AUDIT === "true") {
-    console.log(
-      `[GATEWAY] ${endpoint} | user=${userId} | role=${ctx.user?.role ?? "none"} | ${new Date().toISOString()}`
-    );
-  }
+  console.log(
+    `[GATEWAY] ${endpoint} | user=${userId} | role=${ctx.user?.role ?? "none"} | ${timestamp}`
+  );
 
-  // Admin audit — record all admin operations for accountability
-  if (ctx.user?.role === "admin" && process.env.GATEWAY_AUDIT === "true") {
+  // Admin audit — persist to DB for accountability (P0-3 fix)
+  if (ctx.user?.role === "admin") {
     console.log(
-      `[GATEWAY:ADMIN] ${endpoint} | admin=${ctx.user.id} | ${new Date().toISOString()}`
+      `[GATEWAY:ADMIN] ${endpoint} | admin=${ctx.user.id} | ${timestamp}`
     );
+    // Fire-and-forget: persist to sys_audit_logs
+    persistAuditLog({
+      entityType: "gateway_admin_access",
+      action: "VIEW",
+      actorId: ctx.user.id,
+      actorName: ctx.user.name ?? `admin#${ctx.user.id}`,
+      newData: { endpoint, type, timestamp },
+    });
   }
 
   // Unauthenticated access to non-whitelisted endpoint
   if (!ctx.user && !PUBLIC_ALLOWLIST.has(endpoint)) {
     console.warn(`[GATEWAY:WARN] Unauthenticated access to ${endpoint}`);
 
-    // Enforcement mode — block unauthenticated access
-    if (process.env.GATEWAY_ENFORCE === "true") {
+    // Enforcement mode — default to BLOCK (P0-2 fix)
+    // Set GATEWAY_ENFORCE=false to disable blocking (development only)
+    const enforceMode = process.env.GATEWAY_ENFORCE !== "false";
+    if (enforceMode) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: "Authentication required",

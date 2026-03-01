@@ -2,7 +2,7 @@
  * AI人才评估 (AI Talent Assessment)
  * Phase F: 人才盘点 · 潜力评估 · 职业路径 · 发展建议
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,14 +46,36 @@ export default function AITalentAssessment() {
   const [performanceSummary, setPerformanceSummary] = useState("");
   const [certifications, setCertifications] = useState("");
   const [result, setResult] = useState<AssessmentResult | null>(null);
+  const [taskId, setTaskId] = useState<number | null>(null);
 
   const mutation = trpc.hrIntelligence.assessTalent.useMutation({
-    onSuccess: (data) => setResult(data as AssessmentResult),
+    onSuccess: (data) => setTaskId(data.taskId),
     onError: () => setResult(null),
   });
 
+  const taskQuery = trpc.hrIntelligence.getTaskResult.useQuery(
+    { taskId: taskId! },
+    {
+      enabled: !!taskId,
+      refetchInterval: (query) =>
+        query.state.data?.taskStatus === "completed" || query.state.data?.taskStatus === "failed"
+          ? false
+          : 2000,
+    },
+  );
+
+  useEffect(() => {
+    if (taskQuery.data?.taskStatus === "completed" && taskQuery.data.result) {
+      setResult(taskQuery.data.result as unknown as AssessmentResult);
+      setTaskId(null);
+    } else if (taskQuery.data?.taskStatus === "failed") {
+      setResult(null);
+      setTaskId(null);
+    }
+  }, [taskQuery.data]);
+
   const handleSubmit = () => {
-    if (!employeeName.trim() || !yearsOfExperience || mutation.isPending) return;
+    if (!employeeName.trim() || !yearsOfExperience || mutation.isPending || !!taskId) return;
     mutation.mutate({
       employeeName,
       role,
@@ -186,8 +208,8 @@ export default function AITalentAssessment() {
               <Input placeholder="如: PMP、ISO内审员、高级工程师" value={certifications} onChange={(e) => setCertifications(e.target.value)} />
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSubmit} disabled={!employeeName.trim() || !yearsOfExperience || mutation.isPending}>
-                {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              <Button onClick={handleSubmit} disabled={!employeeName.trim() || !yearsOfExperience || mutation.isPending || !!taskId}>
+                {mutation.isPending || !!taskId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 AI评估
               </Button>
             </div>

@@ -21,6 +21,7 @@
  */
 
 import { pgTable, varchar, text, serial, integer, decimal, timestamp, json, boolean } from "drizzle-orm/pg-core";
+import { users } from "./schema";
 
 // 工序类型枚举值 (使用varchar代替pgEnum，值约束在应用层实现)
 export const processStepValues = [
@@ -87,7 +88,7 @@ export const projectProcessInstances = pgTable("project_process_instances", {
   actualEndDate: timestamp("actual_end_date"),
   plannedDurationHours: decimal("planned_duration_hours", { precision: 10, scale: 2 }),
   actualDurationHours: decimal("actual_duration_hours", { precision: 10, scale: 2 }),
-  assignedUserId: integer("assigned_user_id"), // 负责人
+  assignedUserId: integer("assigned_user_id").references(() => users.id), // 负责人
   assignedTeam: varchar("assigned_team", { length: 100 }), // 负责团队
   completionPercentage: integer("completion_percentage").notNull().default(0), // 完成百分比
   qualityScore: decimal("quality_score", { precision: 5, scale: 2 }), // 质量评分
@@ -114,7 +115,7 @@ export const m2InfoTags = pgTable("m2_info_tags", {
   sourceText: text("source_text"), // 原始文本来源
   aiConfidence: decimal("ai_confidence", { precision: 5, scale: 2 }), // AI置信度
   isVerified: boolean("is_verified").notNull().default(false), // 是否已人工验证
-  verifiedBy: integer("verified_by"), // 验证人
+  verifiedBy: integer("verified_by").references(() => users.id), // 验证人
   verifiedAt: timestamp("verified_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
@@ -138,8 +139,8 @@ export const sopTemplates = pgTable("sop_templates", {
   estimatedDurationMinutes: integer("estimated_duration_minutes"),
   difficultyLevel: varchar("difficulty_level", { length: 50 }),
   isActive: boolean("is_active").notNull().default(true),
-  createdBy: integer("created_by"),
-  approvedBy: integer("approved_by"),
+  createdBy: integer("created_by").references(() => users.id),
+  approvedBy: integer("approved_by").references(() => users.id),
   approvedAt: timestamp("approved_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
@@ -157,7 +158,7 @@ export const aiSopRecommendations = pgTable("ai_sop_recommendations", {
   matchScore: decimal("match_score", { precision: 5, scale: 2 }), // 匹配度评分
   contextFactors: json("context_factors"), // 上下文因素
   isAccepted: boolean("is_accepted"), // 是否被采纳
-  acceptedBy: integer("accepted_by"),
+  acceptedBy: integer("accepted_by").references(() => users.id),
   acceptedAt: timestamp("accepted_at"),
   feedback: text("feedback"), // 用户反馈
   createdAt: timestamp("created_at").defaultNow()
@@ -179,7 +180,7 @@ export const processRiskAlerts = pgTable("process_risk_alerts", {
   historicalReference: json("historical_reference"), // 历史参考案例
   aiAnalysis: text("ai_analysis"), // AI分析
   status: varchar("status", { length: 50 }).notNull().default("OPEN"),
-  acknowledgedBy: integer("acknowledged_by"),
+  acknowledgedBy: integer("acknowledged_by").references(() => users.id),
   acknowledgedAt: timestamp("acknowledged_at"),
   mitigationNotes: text("mitigation_notes"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -192,7 +193,7 @@ export const processRiskAlerts = pgTable("process_risk_alerts", {
 export const processTimeRecords = pgTable("process_time_records", {
   id: serial("id").primaryKey(),
   processInstanceId: integer("process_instance_id").notNull(),
-  userId: integer("user_id").notNull(), // 工作人员
+  userId: integer("user_id").notNull().references(() => users.id), // 工作人员
   workDate: timestamp("work_date").notNull(),
   startTime: timestamp("start_time"),
   endTime: timestamp("end_time"),
@@ -290,7 +291,7 @@ export const customerQuestionnaires = pgTable("customer_questionnaires", {
   // 关联信息
   customerId: integer("customer_id"), // 关联客户
   opportunityId: integer("opportunity_id"), // 关联商机
-  assignedSalesId: integer("assigned_sales_id"), // 负责销售
+  assignedSalesId: integer("assigned_sales_id").references(() => users.id), // 负责销售
   convertedProjectId: integer("converted_project_id"), // 转化的项目ID
 
   // AI分析
@@ -298,7 +299,7 @@ export const customerQuestionnaires = pgTable("customer_questionnaires", {
   aiRecommendedProducts: json("ai_recommended_products"), // AI推荐产品
   aiEstimatedPrice: decimal("ai_estimated_price", { precision: 15, scale: 2 }), // AI估价
 
-  createdBy: integer("created_by"),
+  createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
@@ -311,7 +312,7 @@ export const questionnaireVersions = pgTable("questionnaire_versions", {
   questionnaireId: integer("questionnaire_id").notNull(),
   version: integer("version").notNull(),
   changes: json("changes"), // 变更内容
-  changedBy: integer("changed_by"),
+  changedBy: integer("changed_by").references(() => users.id),
   changeReason: text("change_reason"),
   snapshotData: json("snapshot_data"), // 完整快照
   createdAt: timestamp("created_at").defaultNow()

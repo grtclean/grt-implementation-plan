@@ -3,8 +3,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiProcessSuggestions, aiSuggestionExecutionLogs } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
-import { invokeLLM } from "../_core/llm";
-import { searchDocuments } from "../modules/knowledge-base.service";
+import { submitTask, getTaskStatus } from "../services/task-worker.service";
 
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 
@@ -32,7 +31,8 @@ export const aiSuggestionRouter = router({
   }),
 
   /**
-   * generateSuggestion — LLM-powered process improvement suggestion
+   * generateSuggestion — async LLM-powered process improvement suggestion
+   * Submits to task queue, returns taskId for polling via getSuggestionStatus.
    */
   generateSuggestion: protectedProcedure.input(z.object({
     processType: z.string(),
@@ -40,95 +40,39 @@ export const aiSuggestionRouter = router({
     stepCode: z.string().optional(),
     context: z.string().optional(),
     question: z.string().optional(),
-  })).mutation(async ({ input }) => {
-    const db = await requireDb();
+  })).mutation(async ({ input, ctx }) => {
     const { processType, processId, stepCode, context, question } = input;
 
-    // Get process-specific system prompt
-    const basePrompt = PROCESS_PROMPTS[processType] ||
-      `你是GRT企业操作系统的AI质量顾问。帮助分析${processType}相关问题并给出改进建议。`;
+    const { taskId } = await submitTask(
+      "AI_SUGGESTION_GENERATE",
+      { processType, processId, stepCode, context, question },
+      ctx.user.name ?? `User#${ctx.user.id}`,
+    );
 
-    // RAG: search knowledge base for relevant context
-    let kbContext = "";
-    try {
-      const searchQuery = `${processType} ${question || context || ""}`;
-      const kbResults = await searchDocuments(searchQuery, { limit: 3 });
-      if (kbResults.length > 0) {
-        kbContext = "\n\n参考知识库:\n" + kbResults
-          .map((r) => `[${r.category}] ${r.title}: ${r.content.slice(0, 300)}`)
-          .join("\n");
-      }
-    } catch { /* non-fatal */ }
+    return { success: true, taskId, status: "processing" as const, suggestion: null, id: null };
+  }),
 
-    const systemPrompt = [
-      basePrompt,
-      "请生成JSON格式的建议:",
-      '{"summary":"简要总结","details":"详细说明","suggestedActions":["操作1","操作2"],"references":["参考标准1"]}',
-      kbContext,
-    ].join("\n");
+  /** Poll for suggestion generation status */
+  getSuggestionStatus: protectedProcedure.input(z.object({
+    taskId: z.number(),
+  })).query(async ({ input }) => {
+    const task = await getTaskStatus(input.taskId);
+    if (!task) return { taskStatus: "not_found" as const, suggestion: null, id: null };
 
-    const userPrompt = [
-      `工艺类型: ${processType}`,
-      processId ? `工艺ID: ${processId}` : "",
-      stepCode ? `步骤: ${stepCode}` : "",
-      context ? `上下文: ${context}` : "",
-      question ? `问题: ${question}` : `请基于当前${processType}流程提供改进建议。`,
-    ].filter(Boolean).join("\n");
-
-    let suggestion = { summary: "", details: "", suggestedActions: [] as string[], references: [] as string[] };
-
-    try {
-      const llmResult = await invokeLLM({
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      });
-
-      const raw = llmResult.choices?.[0]?.message?.content || "";
-
-      // Parse JSON from LLM response
-      try {
-        const jsonMatch = raw.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          suggestion = JSON.parse(jsonMatch[0]);
-        }
-      } catch {
-        suggestion = {
-          summary: raw.slice(0, 200),
-          details: raw,
-          suggestedActions: [],
-          references: [],
-        };
-      }
-    } catch (err) {
-      console.error("[generateSuggestion] LLM error:", err);
-      suggestion = {
-        summary: "AI建议生成失败",
-        details: "请稍后重试或手动分析",
-        suggestedActions: [],
-        references: [],
+    if (task.status === "completed" && task.resultData) {
+      const result = task.resultData as Record<string, unknown>;
+      return {
+        taskStatus: "completed" as const,
+        suggestion: result.suggestion ?? null,
+        id: result.id ?? null,
       };
     }
 
-    // Save to aiProcessSuggestions table
-    try {
-      const [saved] = await db.insert(aiProcessSuggestions).values({
-        processType,
-        processId: processId || "general",
-        stepCode: stepCode || "N/A",
-        suggestionMode: stepCode ? "current_step" : "full_process",
-        suggestionSummary: suggestion.summary,
-        suggestionDetails: suggestion.details,
-        suggestedActions: JSON.stringify(suggestion.suggestedActions),
-        references: JSON.stringify(suggestion.references),
-      }).returning();
-
-      return { success: true, suggestion, id: saved?.id };
-    } catch (dbErr) {
-      console.error("[generateSuggestion] DB save error:", dbErr);
-      return { success: true, suggestion, id: null };
+    if (task.status === "failed") {
+      return { taskStatus: "failed" as const, suggestion: null, id: null, error: task.errorMessage };
     }
+
+    return { taskStatus: task.status as "pending" | "processing", suggestion: null, id: null };
   }),
 
   applySuggestion: protectedProcedure.input(z.union([
