@@ -69,10 +69,14 @@ export const performanceRecordRouter = router({
    */
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await requireDb();
       const [row] = await db.select().from(performanceRecords).where(eq(performanceRecords.id, input.id));
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Performance record not found" });
+      // Non-manager roles can only view their own records
+      if (!PERF_MANAGER_ROLES.has(ctx.user.role ?? "employee") && row.userId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cannot view other users' performance records" });
+      }
       return row;
     }),
 

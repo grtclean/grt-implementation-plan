@@ -496,11 +496,9 @@ export const aiInterventionRouter = router({
   override: protectedProcedure
     .input(z.object({
       interventionId: z.number(),
-      managerId: z.number(),
-      managerName: z.string(),
       reason: z.string().min(1),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const intervention = MOCK_INTERVENTIONS.find(i => i.id === input.interventionId);
       if (!intervention) {
         return { success: false, error: `Intervention ${input.interventionId} not found` };
@@ -510,7 +508,7 @@ export const aiInterventionRouter = router({
         interventionId: input.interventionId,
         previousStatus: intervention.status,
         newStatus: "OVERRIDDEN" as const,
-        overriddenBy: input.managerName,
+        overriddenBy: ctx.user.name ?? `User#${ctx.user.id}`,
         reason: input.reason,
         timestamp: new Date().toISOString(),
       };

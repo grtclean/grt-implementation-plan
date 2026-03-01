@@ -100,11 +100,15 @@ export const capabilityOsRouter = router({
     return { report: { domains: CAPABILITY_DOMAINS, capabilities: configs } };
   }),
 
-  getEmployeeCapabilities: protectedProcedure.input(z.object({ employeeId: z.number().optional(), userId: z.number().optional() }).optional()).query(async ({ input }) => {
+  getEmployeeCapabilities: protectedProcedure.input(z.object({ employeeId: z.number().optional() }).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
-    const userId = input?.employeeId || input?.userId;
-    if (!userId) return [];
-    const evidences = await db.select().from(capabilityEvidences).where(eq(capabilityEvidences.userId, toNum(userId)));
+    // Default to current user; managers can view any employee
+    const targetId = input?.employeeId ?? ctx.user.id;
+    const MANAGER_ROLES = new Set(["admin", "director", "hr_manager", "dept_manager"]);
+    if (targetId !== ctx.user.id && !MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
+      return []; // non-managers can only see own capabilities
+    }
+    const evidences = await db.select().from(capabilityEvidences).where(eq(capabilityEvidences.userId, toNum(targetId)));
     return evidences;
   }),
 

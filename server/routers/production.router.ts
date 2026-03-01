@@ -355,7 +355,7 @@ export const productionRouter = router({
       const db = await requireDb();
       const conditions = [];
       if (input?.startDate) conditions.push(sql`${qcInspectionRecords.inspectionTime} >= ${input.startDate}`);
-      if (input?.endDate) conditions.push(sql`${qcInspectionRecords.inspectionTime} <= ${input.endDate + 'T23:59:59.999Z'}`);
+      if (input?.endDate) conditions.push(sql`${qcInspectionRecords.inspectionTime} <= ${`${input.endDate}T23:59:59.999Z`}`);
       const where = conditions.length > 0 ? and(...conditions) : undefined;
 
       const [totalR, passR, failR, conditionalR] = await Promise.all([

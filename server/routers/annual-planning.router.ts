@@ -171,9 +171,8 @@ export const annualPlanningRouter = router({
     versionName: z.string().optional(),
     status: z.string().optional(),
     basedOnId: z.number().optional(),
-    creatorId: z.number().optional(),
     notes: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const result = await db.insert(annualPlanningConfigs).values({
       year: input.year ?? new Date().getFullYear(),
@@ -181,7 +180,7 @@ export const annualPlanningRouter = router({
       versionName: input.versionName ?? `${input.year ?? new Date().getFullYear()} Annual Plan`,
       status: input.status ?? "draft",
       basedOnId: input.basedOnId,
-      creatorId: input.creatorId ?? 1,
+      creatorId: ctx.user.id,
       notes: input.notes,
     } as any).returning();
     return { success: true, message: "Config created", id: result[0]?.id };
@@ -190,8 +189,7 @@ export const annualPlanningRouter = router({
   activateConfig: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]).optional(),
     configId: z.union([z.string(), z.number()]).optional(),
-    operatorId: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const configId = Number(input.id ?? input.configId);
     if (!configId) return successResponse;
@@ -217,7 +215,7 @@ export const annualPlanningRouter = router({
         description: `Config ${config.versionName} activated`,
         beforeData: JSON.stringify({ status: config.status }),
         afterData: JSON.stringify({ status: "active" }),
-        operatorId: input.operatorId ?? 1,
+        operatorId: ctx.user.id,
       });
     });
 
@@ -230,8 +228,7 @@ export const annualPlanningRouter = router({
     id: z.union([z.string(), z.number()]).optional(),
     targetYear: z.number().optional(),
     year: z.number().optional(),
-    operatorId: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const sourceConfigId = Number(input.sourceConfigId ?? input.configId ?? input.id);
     const targetYear = Number(input.targetYear ?? input.year ?? new Date().getFullYear() + 1);
@@ -249,7 +246,7 @@ export const annualPlanningRouter = router({
         versionName: `${targetYear} Annual Plan (copied from ${sourceConfig.versionName})`,
         status: "draft",
         basedOnId: sourceConfigId,
-        creatorId: input.operatorId ?? 1,
+        creatorId: ctx.user.id,
         notes: `Copied from ${sourceConfig.year} ${sourceConfig.versionName}`,
       }).returning();
 
@@ -277,7 +274,7 @@ export const annualPlanningRouter = router({
         configId: newConfig.id,
         updateType: "create",
         description: `Copied ${sourceItems.length} items from config #${sourceConfigId} (${sourceConfig.year}) to ${targetYear}`,
-        operatorId: input.operatorId ?? 1,
+        operatorId: ctx.user.id,
       });
     });
 
