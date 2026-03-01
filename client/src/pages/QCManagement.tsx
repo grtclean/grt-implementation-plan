@@ -138,7 +138,6 @@ export default function QCManagement() {
       failItems: newRecord.result === "Fail" ? 1 : 0,
       result: (newRecord.result === "Pass" ? "pass" : newRecord.result === "Fail" ? "fail" : "conditional") as "pass" | "fail" | "conditional",
       inspector: newRecord.inspectorName || `Inspector ${newRecord.inspectorId}`,
-      inspectorId: newRecord.inspectorId,
       notes: newRecord.notes || undefined,
     });
   };

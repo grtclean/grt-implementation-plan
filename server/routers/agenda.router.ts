@@ -68,7 +68,7 @@ export const agendaRouter = router({
     location: z.string().optional(),
     onlineLink: z.string().optional(),
     agenda: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     let agendaId = input.agendaId;
     if (!agendaId) {
@@ -82,7 +82,7 @@ export const agendaRouter = router({
           year,
           title: `${year}年度议程`,
           status: "draft",
-          createdBy: 1,
+          createdBy: ctx.user.id,
         }).returning();
         agendaId = agenda.id;
       }
@@ -149,8 +149,11 @@ export const agendaRouter = router({
     notes: z.string().optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const agendaId = input.agendaId || 1;
-    const milestoneId = input.milestoneId || input.trainingId || 1;
+    if (!input.agendaId && !input.milestoneId && !input.trainingId) {
+      throw new Error("agendaId or milestoneId/trainingId is required");
+    }
+    const agendaId = input.agendaId!;
+    const milestoneId = input.milestoneId || input.trainingId!;
     const departmentCode = input.departmentCode || String(input.userId || "unknown");
     const [item] = await db.insert(departmentAgendas).values({
       agendaId,
@@ -171,8 +174,11 @@ export const agendaRouter = router({
     userIds: z.array(z.union([z.string(), z.number()])).optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const agendaId = input.agendaId || 1;
-    const milestoneId = input.milestoneId || input.trainingId || 1;
+    if (!input.agendaId && !input.milestoneId && !input.trainingId) {
+      throw new Error("agendaId or milestoneId/trainingId is required");
+    }
+    const agendaId = input.agendaId!;
+    const milestoneId = input.milestoneId || input.trainingId!;
     const departments: Record<string, unknown>[] = input.departments || (input.userIds || []).map((uid) => ({ departmentCode: String(uid) }));
     for (const dept of departments) {
       await db.insert(departmentAgendas).values({

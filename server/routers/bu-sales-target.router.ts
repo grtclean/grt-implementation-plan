@@ -280,9 +280,8 @@ export const buSalesTargetRouter = router({
   submitPlan: protectedProcedure
     .input(z.object({
       planId: z.number(),
-      submittedBy: z.string(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       await ensureTables();
@@ -291,7 +290,7 @@ export const buSalesTargetRouter = router({
         .update(buSalesPlans)
         .set({
           status: "submitted",
-          submittedBy: input.submittedBy,
+          submittedBy: ctx.user.name ?? `User#${ctx.user.id}`,
           submittedAt: new Date().toISOString(),
         })
         .where(eq(buSalesPlans.id, input.planId))

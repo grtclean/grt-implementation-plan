@@ -26,15 +26,14 @@ export const processNotebookRouter = router({
     processId: z.string().max(100).optional(),
     processStep: z.string().max(50).optional(),
     title: z.string().max(200).optional(),
-    createdBy: z.number().int().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [notebook] = await db.insert(processNotebooks).values({
       processType: input.processType || "general",
       processId: input.processId || `proc-${Date.now()}`,
       processStep: input.processStep,
       title: input.title,
-      createdBy: input.createdBy || 1,
+      createdBy: ctx.user.id,
       status: "active" as const,
     } as any).returning();
     return { success: true, message: "笔记本已创建", data: notebook };

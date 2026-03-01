@@ -471,7 +471,7 @@ export default function BUSalesTargetPlanner() {
             </h2>
             <div className="flex items-center gap-2">
               {detail.plan.status === "draft" && (
-                <Button size="sm" variant="outline" onClick={() => submitPlanMutation.mutate({ planId: selectedPlanId, submittedBy: "current-user" })}>
+                <Button size="sm" variant="outline" onClick={() => submitPlanMutation.mutate({ planId: selectedPlanId })}>
                   <Send className="mr-1 h-4 w-4" />{isZh ? "提交审批" : "Submit"}
                 </Button>
               )}

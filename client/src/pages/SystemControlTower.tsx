@@ -676,10 +676,10 @@ function CampaignsTab() {
                         </>
                       )}
                       {item.status === "SIMULATED" && (
-                        <Button variant="ghost" size="sm" onClick={() => approveMut.mutate({ campaignId: item.id, approvedBy: 1 })} title="审批"><CheckCircle className="size-4 mr-1 text-green-400" />审批</Button>
+                        <Button variant="ghost" size="sm" onClick={() => approveMut.mutate({ campaignId: item.id })} title="审批"><CheckCircle className="size-4 mr-1 text-green-400" />审批</Button>
                       )}
                       {item.status === "APPROVED" && (
-                        <Button variant="ghost" size="sm" onClick={() => executeMut.mutate({ campaignId: item.id, executedBy: 1 })} title="执行"><Play className="size-4 mr-1 text-amber-400" />执行</Button>
+                        <Button variant="ghost" size="sm" onClick={() => executeMut.mutate({ campaignId: item.id })} title="执行"><Play className="size-4 mr-1 text-amber-400" />执行</Button>
                       )}
                       {(item.status === "COMPLETED" || item.status === "FAILED") && (
                         <Button variant="ghost" size="sm" onClick={() => rollbackMut.mutate({ campaignId: item.id, reason: "管理员回滚", actorId: 1 })} title="回滚"><RotateCcw className="size-4 mr-1 text-red-400" />回滚</Button>

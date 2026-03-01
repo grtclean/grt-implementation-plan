@@ -213,19 +213,17 @@ export const capabilityOsRouter = router({
     evidenceId: z.union([z.string(), z.number()]).optional(),
     approved: z.boolean().optional(),
     status: z.string().max(20).optional(),
-    reviewerId: z.number().optional(),
-    reviewerName: z.string().max(200).optional(),
     comment: z.string().max(5000).optional(),
     reviewComment: z.string().max(5000).optional(),
     awardedPoints: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = toNum(input.id || input.evidenceId || 0);
     const status = input.status ?? (input.approved ? "approved" : "rejected");
     await db.update(capabilityEvidences).set({
       status: status as any,
-      reviewerId: toNum(input.reviewerId || 1),
-      reviewerName: input.reviewerName,
+      reviewerId: ctx.user.id,
+      reviewerName: ctx.user.name ?? `User#${ctx.user.id}`,
       reviewComment: input.comment || input.reviewComment,
       reviewedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

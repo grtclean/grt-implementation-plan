@@ -321,7 +321,7 @@ export default function AlertRuleManager({ open, onOpenChange }: AlertRuleManage
                             <div className="flex items-center gap-2">
                               <Switch
                                 checked={rule.isEnabled}
-                                onCheckedChange={(checked) => toggleMutation.mutate({ id: rule.id!, isEnabled: checked })}
+                                onCheckedChange={() => toggleMutation.mutate({ id: rule.id! })}
                               />
                               <Button variant="ghost" size="icon" onClick={() => handleEdit(rule)}>
                                 <Settings className="w-4 h-4" />

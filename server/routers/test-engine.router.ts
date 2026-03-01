@@ -398,7 +398,6 @@ export const testEngineRouter = router({
     executionId: z.union([z.string(), z.number()]),
     testCaseId: z.union([z.string(), z.number()]),
     status: z.enum(['not_started', 'pass', 'fail', 'blocked', 'skipped', 'partial']),
-    executedBy: z.number().optional(),
     actualHours: z.string().optional(),
     bugSeverity: z.enum(['critical', 'major', 'minor', 'cosmetic']).optional(),
     bugDescription: z.string().optional(),
@@ -406,7 +405,7 @@ export const testEngineRouter = router({
     evidenceUrls: z.array(z.string()).optional(),
     notes: z.string().optional(),
     retestOf: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const executionId = toNum(input.executionId);
     const testCaseId = toNum(input.testCaseId);
@@ -423,7 +422,7 @@ export const testEngineRouter = router({
       const [updated] = await db.update(testResults)
         .set({
           status: input.status,
-          executedBy: input.executedBy,
+          executedBy: ctx.user.id,
           executedAt: new Date().toISOString(),
           actualHours: input.actualHours,
           bugSeverity: input.bugSeverity,
@@ -442,7 +441,7 @@ export const testEngineRouter = router({
         executionId,
         testCaseId,
         status: input.status,
-        executedBy: input.executedBy,
+        executedBy: ctx.user.id,
         executedAt: new Date().toISOString(),
         actualHours: input.actualHours,
         bugSeverity: input.bugSeverity,
@@ -462,7 +461,6 @@ export const testEngineRouter = router({
   updateResult: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]),
     status: z.enum(['not_started', 'pass', 'fail', 'blocked', 'skipped', 'partial']).optional(),
-    executedBy: z.number().optional(),
     actualHours: z.string().optional(),
     bugSeverity: z.enum(['critical', 'major', 'minor', 'cosmetic']).optional(),
     bugDescription: z.string().optional(),
@@ -470,13 +468,13 @@ export const testEngineRouter = router({
     evidenceUrls: z.array(z.string()).optional(),
     notes: z.string().optional(),
     retestOf: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const { id, ...data } = input;
     const resultId = toNum(id);
 
     const [updated] = await db.update(testResults)
-      .set({ ...data, updatedAt: new Date().toISOString() })
+      .set({ ...data, executedBy: ctx.user.id, updatedAt: new Date().toISOString() })
       .where(eq(testResults.id, resultId))
       .returning();
 
@@ -520,8 +518,7 @@ export const testEngineRouter = router({
     confidenceScore: z.string().optional(),
     userAccepted: z.boolean().optional(),
     userModifications: z.string().optional(),
-    generatedBy: z.number().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [created] = await db.insert(aiGenerationLogs).values({
       templateId: input.templateId,
@@ -536,7 +533,7 @@ export const testEngineRouter = router({
       confidenceScore: input.confidenceScore,
       userAccepted: input.userAccepted,
       userModifications: input.userModifications,
-      generatedBy: input.generatedBy,
+      generatedBy: ctx.user.id,
     }).returning();
     return created;
   }),

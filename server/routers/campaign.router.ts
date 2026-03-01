@@ -457,10 +457,9 @@ export const campaignRouter = router({
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
-        approvedBy: z.number(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const numId = toNum(input.campaignId);
 
@@ -483,7 +482,7 @@ export const campaignRouter = router({
         .update(globalCampaigns)
         .set({
           status: "APPROVED",
-          approvedBy: input.approvedBy,
+          approvedBy: ctx.user.id,
           approvedAt: now,
           updatedAt: now,
         })
@@ -496,11 +495,10 @@ export const campaignRouter = router({
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
-        executedBy: z.number(),
       })
     )
-    .mutation(async ({ input }) => {
-      return execCampaign(toNum(input.campaignId), input.executedBy);
+    .mutation(async ({ input, ctx }) => {
+      return execCampaign(toNum(input.campaignId), ctx.user.id);
     }),
 
   rollbackCampaign: protectedProcedure

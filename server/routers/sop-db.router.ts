@@ -87,16 +87,16 @@ export const sopDbRouter = router({
     qualityCheckpoints: z.array(z.record(z.string(), z.unknown())).optional(),
     estimatedDurationMinutes: z.number().optional(),
     difficultyLevel: z.string().optional(),
-    approver: z.string().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
-    const { id, status, approver, content, equipmentModels, ...rest } = input;
+    const { id, status, content, equipmentModels, ...rest } = input;
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     for (const [k, v] of Object.entries(rest)) { if (v !== undefined) updates[k] = v; }
     if (equipmentModels !== undefined) updates.applicableProducts = equipmentModels;
     if (status === "approved") {
       updates.isActive = true;
       updates.approvedAt = new Date();
+      updates.approvedBy = ctx.user.id;
     }
     if (status === "archived") updates.isActive = false;
     const [sop] = await db.update(sopTemplates).set(updates).where(eq(sopTemplates.id, id)).returning();

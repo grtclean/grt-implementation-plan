@@ -47,7 +47,6 @@ const QCRecordSchema = z.object({
   failItems: z.number(),
   result: z.enum(['pass', 'fail', 'conditional']),
   inspector: z.string(),
-  inspectorId: z.number().optional(),
   notes: z.string().optional(),
   attachments: z.array(z.object({
     name: z.string(),
@@ -334,7 +333,7 @@ export const productionRouter = router({
         taskId: 0,
         workOrderId: input.workOrderId,
         inspectionType: input.checkType,
-        inspectorId: input.inspectorId ?? ctx.user?.id ?? 0,
+        inspectorId: ctx.user.id,
         inspectorName: input.inspector,
         inspectionTime: new Date(),
         result: input.result,

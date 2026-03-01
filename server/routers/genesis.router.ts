@@ -154,11 +154,10 @@ export const genesisRouter = router({
         filePath: z.string().optional(),
         fileSizeBytes: z.number().int().positive().optional(),
         mimeType: z.string().min(1).max(200).optional(),
-        uploadedBy: z.union([z.string(), z.number()]).optional(),
         extractedText: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       // Auto-detect fileType from file extension if not provided
       let fileType = input.fileType;
       if (!fileType) {
@@ -176,7 +175,7 @@ export const genesisRouter = router({
         filePath: input.filePath ?? `uploads/${Date.now()}_${input.fileName}`,
         fileSizeBytes: input.fileSizeBytes ?? 0,
         mimeType: input.mimeType ?? "application/octet-stream",
-        uploadedBy: input.uploadedBy ? toNum(input.uploadedBy) : 1,
+        uploadedBy: ctx.user.id,
         extractedText: input.extractedText,
       });
     }),
@@ -404,13 +403,12 @@ export const genesisRouter = router({
     .input(
       z.object({
         documentId: z.union([z.string(), z.number()]),
-        createdBy: z.union([z.string(), z.number()]).optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       return generateProposalFromDocument(
         toNum(input.documentId),
-        input.createdBy ? toNum(input.createdBy) : 1
+        ctx.user.id
       );
     }),
 
@@ -420,17 +418,16 @@ export const genesisRouter = router({
         id: z.union([z.string(), z.number()]).optional(),
         proposalId: z.union([z.string(), z.number()]).optional(),
         status: z.enum(PROPOSAL_STATUSES),
-        reviewedBy: z.union([z.string(), z.number()]).optional(),
         reviewComment: z.string().max(2000).optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const pid = input.id ?? input.proposalId;
       if (!pid) throw new Error("Either id or proposalId is required");
       return updateProposalStatusSvc(
         toNum(pid),
         input.status,
-        input.reviewedBy ? toNum(input.reviewedBy) : undefined,
+        ctx.user.id,
         input.reviewComment
       );
     }),
@@ -440,15 +437,14 @@ export const genesisRouter = router({
       z.object({
         id: z.union([z.string(), z.number()]).optional(),
         proposalId: z.union([z.string(), z.number()]).optional(),
-        committedBy: z.union([z.string(), z.number()]).optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const pid = input.id ?? input.proposalId;
       if (!pid) throw new Error("Either id or proposalId is required");
       return commitProposalToControlTower(
         toNum(pid),
-        input.committedBy ? toNum(input.committedBy) : 1
+        ctx.user.id
       );
     }),
 

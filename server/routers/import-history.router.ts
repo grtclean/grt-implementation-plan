@@ -28,8 +28,7 @@ export const importHistoryRouter = router({
     filePath: z.string().max(500).optional(),
     totalRows: z.number().int().optional(),
     fieldMapping: jsonValue.optional(),
-    createdBy: z.number().int().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [record] = await db.insert(importHistory).values({
       importType: input.importType || "general",
@@ -39,7 +38,7 @@ export const importHistoryRouter = router({
       totalRows: input.totalRows || 0,
       fieldMapping: input.fieldMapping ? JSON.stringify(input.fieldMapping) : undefined,
       status: "pending",
-      createdBy: input.createdBy || 1,
+      createdBy: ctx.user.id,
     } as any).returning();
     return { success: true, message: "导入记录已创建", data: record };
   }),
@@ -124,8 +123,7 @@ export const importHistoryRouter = router({
   // 回滚导入
   rollback: protectedProcedure.input(z.object({
     id: z.union([z.string(), z.number()]).optional(),
-    rollbackBy: z.number().int().optional(),
-  }).optional()).mutation(async ({ input }) => {
+  }).optional()).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = typeof input?.id === "string" ? parseInt(input.id) : (input?.id || 0);
     const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id));
@@ -133,7 +131,7 @@ export const importHistoryRouter = router({
     if (item.rollbackAt) return { success: false, message: "已经回滚过" };
 
     const [updated] = await db.update(importHistory)
-      .set({ rollbackAt: new Date(), rollbackBy: input?.rollbackBy || 1, status: "rolled_back" } as any)
+      .set({ rollbackAt: new Date(), rollbackBy: ctx.user.id, status: "rolled_back" } as any)
       .where(eq(importHistory.id, id))
       .returning();
     return { success: true, message: "回滚成功", data: updated };

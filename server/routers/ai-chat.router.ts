@@ -11,13 +11,13 @@ export const aiChatRouter = router({
     assistantType: z.enum(["solution", "quotation", "planning", "kpi", "personal"]).optional(),
     message: z.string().min(1),
     context: z.any().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     let sessionId = input.sessionId;
 
     if (!sessionId) {
       const [session] = await db.insert(aiChatSessions).values({
-        userId: 1,
+        userId: ctx.user.id,
         assistantType: input.assistantType || "personal",
         title: input.message.slice(0, 50),
         status: "active",

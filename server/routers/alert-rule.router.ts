@@ -38,7 +38,19 @@ export const alertRuleRouter = router({
     };
   }),
 
-  create: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  create: protectedProcedure.input(z.object({
+    name: z.string().max(200).optional(),
+    description: z.string().max(1000).optional(),
+    scope: z.string().max(50).optional(),
+    projectId: z.number().optional(),
+    categoryId: z.number().optional(),
+    alertType: z.string().max(50).optional(),
+    threshold: z.number().optional(),
+    alertLevel: z.string().max(50).optional(),
+    notifyType: z.string().max(50).optional(),
+    notifyUserIds: z.string().max(500).optional(),
+    isActive: z.union([z.boolean(), z.number()]).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [rule] = await db.insert(costAlertRules).values({
       name: input.name || "新规则",
@@ -52,11 +64,21 @@ export const alertRuleRouter = router({
       notifyType: input.notifyType || "system",
       notifyUserIds: input.notifyUserIds,
       isActive: input.isActive !== undefined ? (input.isActive ? 1 : 0) : 1,
-    }).returning();
+    } as any).returning();
     return { success: true, message: "规则创建成功", data: rule };
   }),
 
-  update: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  update: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+    name: z.string().max(200).optional(),
+    description: z.string().max(1000).optional(),
+    scope: z.string().max(50).optional(),
+    alertType: z.string().max(50).optional(),
+    threshold: z.number().optional(),
+    alertLevel: z.string().max(50).optional(),
+    notifyType: z.string().max(50).optional(),
+    isActive: z.union([z.boolean(), z.number()]).optional(),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = toNum(input.id);
     const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
@@ -78,7 +100,9 @@ export const alertRuleRouter = router({
     return { success: true, message: "规则已删除" };
   }),
 
-  toggleEnabled: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  toggleEnabled: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]),
+  })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = toNum(input.id);
     const [rule] = await db.select().from(costAlertRules).where(eq(costAlertRules.id, id));
@@ -88,14 +112,20 @@ export const alertRuleRouter = router({
     return { success: true, message: newActive === 1 ? "已启用" : "已禁用" };
   }),
 
-  acknowledge: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
+  acknowledge: protectedProcedure.input(z.object({
+    id: z.union([z.string(), z.number()]).optional(),
+    alertId: z.union([z.string(), z.number()]).optional(),
+    handleNote: z.string().max(2000).optional(),
+    note: z.string().max(2000).optional(),
+  })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
-    const id = toNum(input.id || input.alertId);
+    const id = toNum(input.id || input.alertId || 0);
     await db.update(costAlertLogs).set({
       status: "acknowledged" as any,
       handleNote: input.handleNote || input.note,
       handledAt: new Date().toISOString(),
-    }).where(eq(costAlertLogs.id, id));
+      handledBy: ctx.user.id,
+    } as any).where(eq(costAlertLogs.id, id));
     return { success: true, message: "已确认" };
   }),
 });
