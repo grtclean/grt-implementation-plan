@@ -95,7 +95,6 @@ export function registerLocalAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      console.log(`[LocalAuth] User registered: ${username} (role: ${isFirstUser ? "admin" : "user"})`);
       res.json({
         success: true,
         message: isFirstUser
@@ -147,7 +146,6 @@ export function registerLocalAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      console.log(`[LocalAuth] User logged in: ${username}`);
       res.json({ success: true });
     } catch (error: any) {
       console.error("[LocalAuth] Login error:", error?.message || error);
@@ -186,7 +184,6 @@ export function registerLocalAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: 24 * 60 * 60 * 1000 }); // 24h
 
-      console.log(`[LocalAuth] Kiosk logged in: ${kioskUsername} (station: ${stationId})`);
       res.json({ success: true, stationId, kioskUser: kioskUsername });
     } catch (error) {
       console.error("[LocalAuth] Kiosk login error:", error);
@@ -208,7 +205,6 @@ export function registerLocalAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.clearCookie(COOKIE_NAME, cookieOptions);
 
-      console.log(`[LocalAuth] All users reset — ${count} user(s) deleted. Next registration will be admin.`);
       res.json({
         success: true,
         message: `已清除 ${count} 个用户。下一个注册的用户将自动成为管理员。`,

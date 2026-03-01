@@ -29,7 +29,7 @@ export const webhookRouter = router({
   // 获取单个Webhook
   getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(webhookConfigs).where(eq(webhookConfigs.id, parseInt(input.id)));
+    const [item] = await db.select().from(webhookConfigs).where(eq(webhookConfigs.id, parseInt(input.id))).limit(1000);
     return item || null;
   }),
 
@@ -89,7 +89,7 @@ export const webhookRouter = router({
   test: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    const [webhook] = await db.select().from(webhookConfigs).where(eq(webhookConfigs.id, id));
+    const [webhook] = await db.select().from(webhookConfigs).where(eq(webhookConfigs.id, id)).limit(1000);
     if (!webhook) return { success: false, response: { success: false, message: "Webhook不存在" } };
 
     // Log the test attempt
@@ -125,7 +125,7 @@ export const webhookRouter = router({
   toggle: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    const [webhook] = await db.select().from(webhookConfigs).where(eq(webhookConfigs.id, id));
+    const [webhook] = await db.select().from(webhookConfigs).where(eq(webhookConfigs.id, id)).limit(1000);
     if (!webhook) return { success: false, message: "Webhook不存在" };
 
     const newEnabled = webhook.enabled === 1 ? 0 : 1;
@@ -139,7 +139,7 @@ export const webhookRouter = router({
   // 获取所有Webhook
   getAll: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const webhooks = await db.select().from(webhookConfigs);
+    const webhooks = await db.select().from(webhookConfigs).limit(1000);
     return { webhooks };
   }),
 
@@ -170,7 +170,7 @@ export const webhookRouter = router({
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     // Get all enabled webhooks
-    const enabledWebhooks = await db.select().from(webhookConfigs).where(eq(webhookConfigs.enabled, 1));
+    const enabledWebhooks = await db.select().from(webhookConfigs).where(eq(webhookConfigs.enabled, 1)).limit(1000);
     const payload = JSON.stringify({ ...input, timestamp: new Date().toISOString() });
 
     for (const wh of enabledWebhooks) {
@@ -198,7 +198,7 @@ export const webhookRouter = router({
     reminderMinutes: z.number().default(15),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const enabledWebhooks = await db.select().from(webhookConfigs).where(eq(webhookConfigs.enabled, 1));
+    const enabledWebhooks = await db.select().from(webhookConfigs).where(eq(webhookConfigs.enabled, 1)).limit(1000);
     const payload = JSON.stringify({ ...input, type: "meeting_reminder", timestamp: new Date().toISOString() });
 
     for (const wh of enabledWebhooks) {
@@ -217,7 +217,7 @@ export const webhookRouter = router({
   // 模板 CRUD
   getTemplates: protectedProcedure.query(async () => {
     const db = await requireDb();
-    return await db.select().from(webhookTemplates).orderBy(desc(webhookTemplates.createdAt));
+    return await db.select().from(webhookTemplates).orderBy(desc(webhookTemplates.createdAt)).limit(1000);
   }),
 
   createTemplate: protectedProcedure.input(z.object({

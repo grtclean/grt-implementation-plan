@@ -65,7 +65,7 @@ export const aiTaskRouter = router({
     .query(async ({ input }) => {
       await ensureTables();
       const db = await requireDb();
-      const [task] = await db.select().from(aiTasks).where(eq(aiTasks.id, input.id));
+      const [task] = await db.select().from(aiTasks).where(eq(aiTasks.id, input.id)).limit(1000);
       if (!task) throw new Error("Task not found");
       return task;
     }),

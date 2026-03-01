@@ -116,7 +116,7 @@ export const hrSandboxRouter = router({
     .query(async ({ input }) => {
       await ensureTables();
       const db = await requireDb();
-      const [task] = await db.select().from(aiTasks).where(eq(aiTasks.id, input.taskId));
+      const [task] = await db.select().from(aiTasks).where(eq(aiTasks.id, input.taskId)).limit(1000);
       if (!task) throw new Error("Task not found");
       return {
         taskId: task.id,
@@ -298,7 +298,7 @@ export const hrSandboxRouter = router({
         .where(and(
           eq(aiTasks.taskType, TASK_TYPE),
         ))
-        .orderBy(desc(aiTasks.createdAt));
+        .orderBy(desc(aiTasks.createdAt)).limit(1000);
 
       const filtered = input.taskIds.length > 0
         ? rows.filter(r => input.taskIds.includes(r.id))

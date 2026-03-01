@@ -20,7 +20,7 @@ export const eightDCapaRouter = router({
     severity: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let items = await db.select().from(eightDReports).orderBy(desc(eightDReports.updatedAt));
+    let items = await db.select().from(eightDReports).orderBy(desc(eightDReports.updatedAt)).limit(1000);
     if (input?.projectId) items = items.filter(r => r.projectId === input.projectId);
     if (input?.currentStep) items = items.filter(r => r.currentStep === input.currentStep);
     if (input?.severity) items = items.filter(r => r.severity === input.severity);
@@ -30,10 +30,10 @@ export const eightDCapaRouter = router({
   get8D: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
-    const [report] = await db.select().from(eightDReports).where(eq(eightDReports.id, numId));
+    const [report] = await db.select().from(eightDReports).where(eq(eightDReports.id, numId)).limit(1000);
     if (!report) return null;
     // Get linked CAPAs
-    const capas = await db.select().from(capaRecords).where(eq(capaRecords.eightDReportId, numId));
+    const capas = await db.select().from(capaRecords).where(eq(capaRecords.eightDReportId, numId)).limit(1000);
     return { ...report, capas };
   }),
 
@@ -146,7 +146,7 @@ export const eightDCapaRouter = router({
     status: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let items = await db.select().from(capaRecords).orderBy(desc(capaRecords.updatedAt));
+    let items = await db.select().from(capaRecords).orderBy(desc(capaRecords.updatedAt)).limit(1000);
     if (input?.projectId) items = items.filter(c => c.projectId === input.projectId);
     if (input?.capaType) items = items.filter(c => c.capaType === input.capaType);
     if (input?.status) items = items.filter(c => c.status === input.status);
@@ -155,7 +155,7 @@ export const eightDCapaRouter = router({
 
   getCAPA: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [capa] = await db.select().from(capaRecords).where(eq(capaRecords.id, toNum(input.id)));
+    const [capa] = await db.select().from(capaRecords).where(eq(capaRecords.id, toNum(input.id))).limit(1000);
     return capa || null;
   }),
 
@@ -229,7 +229,7 @@ export const eightDCapaRouter = router({
     eightDReportId: z.number(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const [report] = await db.select().from(eightDReports).where(eq(eightDReports.id, input.eightDReportId));
+    const [report] = await db.select().from(eightDReports).where(eq(eightDReports.id, input.eightDReportId)).limit(1000);
     if (!report) return { success: false, message: "8D report not found", created: 0 };
 
     // Parse D4 root causes and D5 corrective actions
@@ -290,8 +290,8 @@ export const eightDCapaRouter = router({
 
   getStats: protectedProcedure.input(z.object({ projectId: z.number().optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let reports = await db.select().from(eightDReports);
-    let capas = await db.select().from(capaRecords);
+    let reports = await db.select().from(eightDReports).limit(1000);
+    let capas = await db.select().from(capaRecords).limit(1000);
     if (input?.projectId) {
       reports = reports.filter(r => r.projectId === input.projectId);
       capas = capas.filter(c => c.projectId === input.projectId);

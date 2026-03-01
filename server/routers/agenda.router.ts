@@ -23,13 +23,13 @@ export const agendaRouter = router({
 
   getMeetings: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    const milestones = await db.select().from(annualMilestones).orderBy(annualMilestones.scheduledDate);
+    const milestones = await db.select().from(annualMilestones).orderBy(annualMilestones.scheduledDate).limit(1000);
     return milestones;
   }),
 
   getAnnualPlans: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const items = await db.select().from(annualAgendas).orderBy(desc(annualAgendas.createdAt));
+    const items = await db.select().from(annualAgendas).orderBy(desc(annualAgendas.createdAt)).limit(1000);
     return items.map(p => ({
       id: p.id,
       year: p.year,
@@ -73,7 +73,7 @@ export const agendaRouter = router({
     let agendaId = input.agendaId;
     if (!agendaId) {
       const year = new Date().getFullYear();
-      const existing = await db.select().from(annualAgendas);
+      const existing = await db.select().from(annualAgendas).limit(1000);
       const found = existing.find(a => a.year === year);
       if (found) {
         agendaId = found.id;
@@ -127,7 +127,7 @@ export const agendaRouter = router({
     const milestoneId = toNum(input?.milestoneId || input?.id || input?.trainingId || 0);
     if (!milestoneId) return [];
     const items = await db.select().from(departmentAgendas)
-      .where(eq(departmentAgendas.milestoneId, milestoneId));
+      .where(eq(departmentAgendas.milestoneId, milestoneId)).limit(1000);
     return items.map(item => ({
       ...item,
       userId: item.id,

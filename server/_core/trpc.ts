@@ -10,14 +10,25 @@ import { t } from "./trpc-base";
 import { gatewayAuditMiddleware } from "./gateway-audit.middleware";
 import { buContextMiddleware } from "./gateway-bu-context.middleware";
 
+// Rate limiting
+import { createRateLimitMiddleware, RATE_LIMIT_PRESETS } from "../security/rateLimit";
+
+// Mutation auto-audit
+import { createAuditMiddleware } from "./audit-middleware";
+
 export const router = t.router;
 
 /**
- * publicProcedure — audit middleware applied to ALL requests.
- * Logs unauthenticated access to non-whitelisted endpoints.
- * BU context is injected for data isolation.
+ * Global rate limit middleware — 100 req/min per user/IP.
+ * Applied to ALL procedures via publicProcedure chain.
+ */
+const globalRateLimitMiddleware = t.middleware(createRateLimitMiddleware(RATE_LIMIT_PRESETS.global));
+
+/**
+ * publicProcedure — rate limit + audit + BU context applied to ALL requests.
  */
 export const publicProcedure = t.procedure
+  .use(globalRateLimitMiddleware)
   .use(gatewayAuditMiddleware)
   .use(buContextMiddleware);
 
@@ -62,10 +73,16 @@ export const safeMutationMiddleware = t.middleware(async ({ ctx, next, type }) =
 });
 
 /**
- * protectedProcedure — requires authenticated user + global mutation error handling.
- * All mutations automatically get try-catch wrapping via safeMutationMiddleware.
+ * Mutation auto-audit middleware — fire-and-forget logging of all mutations.
  */
-export const protectedProcedure = publicProcedure.use(requireUser).use(safeMutationMiddleware);
+const mutationAuditMiddleware = createAuditMiddleware(t);
+
+/**
+ * protectedProcedure — requires authenticated user + mutation error handling + auto-audit.
+ * All mutations automatically get try-catch wrapping via safeMutationMiddleware,
+ * and are recorded to sys_audit_logs via mutationAuditMiddleware.
+ */
+export const protectedProcedure = publicProcedure.use(requireUser).use(safeMutationMiddleware).use(mutationAuditMiddleware);
 
 /** Legacy alias — protectedProcedure now includes safeMutation globally */
 export const safeMutationProcedure = protectedProcedure;

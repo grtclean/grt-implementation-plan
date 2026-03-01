@@ -10,9 +10,9 @@ async function fetchLeadsBuScoped(ctx: any) {
   const db = await requireDb();
   const buFilter = buScopeCondition(crmLeads.buCode, ctx);
   if (buFilter) {
-    return db.select().from(crmLeads).where(buFilter).orderBy(desc(crmLeads.createdAt));
+    return db.select().from(crmLeads).where(buFilter).orderBy(desc(crmLeads.createdAt)).limit(1000);
   }
-  return db.select().from(crmLeads).orderBy(desc(crmLeads.createdAt));
+  return db.select().from(crmLeads).orderBy(desc(crmLeads.createdAt)).limit(1000);
 }
 
 export const leadAnalyticsRouter = router({
@@ -33,7 +33,7 @@ export const leadAnalyticsRouter = router({
     const buFilter = buScopeCondition(crmLeads.buCode, ctx);
     const conditions = [eq(crmLeads.id, numId)];
     if (buFilter) conditions.push(buFilter);
-    const [lead] = await db.select().from(crmLeads).where(and(...conditions));
+    const [lead] = await db.select().from(crmLeads).where(and(...conditions)).limit(1000);
     return lead || null;
   }),
 

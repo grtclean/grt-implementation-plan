@@ -59,7 +59,7 @@ export const violationEventRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const [row] = await db.select().from(violationEvents).where(eq(violationEvents.id, input.id));
+      const [row] = await db.select().from(violationEvents).where(eq(violationEvents.id, input.id)).limit(1000);
       if (!row) throw new Error("Violation event not found");
       return row;
     }),
@@ -181,7 +181,7 @@ export const violationEventRouter = router({
 
       try {
         const rows = await db.select().from(violationEvents)
-          .where(input.buId ? eq(violationEvents.buId, input.buId) : undefined);
+          .where(input.buId ? eq(violationEvents.buId, input.buId) : undefined).limit(1000);
 
         const bySeverity = { MINOR: 0, MAJOR: 0, CRITICAL: 0 };
         const byStatus = { open: 0, investigating: 0, confirmed: 0, resolved: 0, dismissed: 0 };
@@ -309,7 +309,7 @@ async function autoFreezePerformance(
         eq(performanceRecords.year, year),
         eq(performanceRecords.quarter, quarter),
         eq(performanceRecords.isFrozen, false),
-      ));
+      )).limit(1000);
 
     if (record) {
       await db.update(performanceRecords).set({

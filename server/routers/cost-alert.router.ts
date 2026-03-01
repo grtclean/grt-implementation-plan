@@ -50,7 +50,7 @@ export const costAlertRouter = router({
         const db = await requireDb();
         const numericId = parseInt(input.id, 10);
         if (isNaN(numericId)) return null;
-        const rows = await db.select().from(costAlertLogs).where(eq(costAlertLogs.id, numericId));
+        const rows = await db.select().from(costAlertLogs).where(eq(costAlertLogs.id, numericId)).limit(1000);
         return rows[0] ?? null;
       } catch {
         return null;
@@ -159,7 +159,7 @@ export const costAlertRouter = router({
   getActiveRules: protectedProcedure.query(async () => {
     try {
       const db = await requireDb();
-      return db.select().from(costAlertRules).where(eq(costAlertRules.isActive, 1)).orderBy(desc(costAlertRules.createdAt));
+      return db.select().from(costAlertRules).where(eq(costAlertRules.isActive, 1)).orderBy(desc(costAlertRules.createdAt)).limit(1000);
     } catch {
       return [];
     }
@@ -176,7 +176,7 @@ export const costAlertRouter = router({
       if (!projectId) {
         return db.select().from(costAlertLogs).orderBy(desc(costAlertLogs.createdAt)).limit(100);
       }
-      return db.select().from(costAlertLogs).where(eq(costAlertLogs.projectId, projectId)).orderBy(desc(costAlertLogs.createdAt));
+      return db.select().from(costAlertLogs).where(eq(costAlertLogs.projectId, projectId)).orderBy(desc(costAlertLogs.createdAt)).limit(1000);
     } catch {
       return [];
     }

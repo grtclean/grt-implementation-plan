@@ -13,7 +13,7 @@ export const aiNotebookRouter = router({
     status: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let items = await db.select().from(aiNotebookSuggestions).orderBy(desc(aiNotebookSuggestions.createdAt));
+    let items = await db.select().from(aiNotebookSuggestions).orderBy(desc(aiNotebookSuggestions.createdAt)).limit(1000);
     if (input?.entryId) items = items.filter(s => s.entryId === toNum(input.entryId));
     if (input?.status) items = items.filter(s => s.status === input.status);
     return items;

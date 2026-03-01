@@ -89,7 +89,7 @@ export const complianceRouter = router({
       const db = await requireDb();
       const numericId = parseInt(input.id, 10);
       if (isNaN(numericId)) return null;
-      const rows = await db.select().from(grtComplianceAlerts).where(eq(grtComplianceAlerts.id, numericId));
+      const rows = await db.select().from(grtComplianceAlerts).where(eq(grtComplianceAlerts.id, numericId)).limit(1000);
       return rows[0] ?? null;
     }),
 
@@ -139,7 +139,7 @@ export const complianceRouter = router({
 
   getRules: protectedProcedure.query(async () => {
     const db = await requireDb();
-    return db.select().from(grtComplianceRules).orderBy(grtComplianceRules.priority);
+    return db.select().from(grtComplianceRules).orderBy(grtComplianceRules.priority).limit(1000);
   }),
 
   createRule: protectedProcedure.input(z.object({
@@ -201,7 +201,7 @@ export const complianceRouter = router({
     const db = await requireDb();
     const id = Number(input.id ?? input.ruleId);
     if (!id) return { success: true, message: "操作成功" };
-    const [rule] = await db.select().from(grtComplianceRules).where(eq(grtComplianceRules.id, id));
+    const [rule] = await db.select().from(grtComplianceRules).where(eq(grtComplianceRules.id, id)).limit(1000);
     if (rule) {
       await db.update(grtComplianceRules).set({ isEnabled: rule.isEnabled === 1 ? 0 : 1, updatedAt: new Date().toISOString() }).where(eq(grtComplianceRules.id, id));
     }
@@ -210,7 +210,7 @@ export const complianceRouter = router({
 
   getRuleStats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const rows = await db.select().from(grtComplianceRules);
+    const rows = await db.select().from(grtComplianceRules).limit(1000);
     const total = rows.length;
     const enabled = rows.filter(r => r.isEnabled === 1).length;
     const byJurisdiction: Record<string, number> = {};
@@ -226,7 +226,7 @@ export const complianceRouter = router({
 
   getTemplates: protectedProcedure.query(async () => {
     const db = await requireDb();
-    return db.select().from(grtComplianceEmailTemplates).orderBy(desc(grtComplianceEmailTemplates.createdAt));
+    return db.select().from(grtComplianceEmailTemplates).orderBy(desc(grtComplianceEmailTemplates.createdAt)).limit(1000);
   }),
 
   createTemplate: protectedProcedure.input(z.object({
@@ -284,7 +284,7 @@ export const complianceRouter = router({
     const db = await requireDb();
     const id = Number(input.id ?? input.templateId);
     if (!id) return { success: true, message: "操作成功" };
-    const [tmpl] = await db.select().from(grtComplianceEmailTemplates).where(eq(grtComplianceEmailTemplates.id, id));
+    const [tmpl] = await db.select().from(grtComplianceEmailTemplates).where(eq(grtComplianceEmailTemplates.id, id)).limit(1000);
     if (tmpl) {
       await db.update(grtComplianceEmailTemplates).set({ isEnabled: tmpl.isEnabled === 1 ? 0 : 1, updatedAt: new Date().toISOString() }).where(eq(grtComplianceEmailTemplates.id, id));
     }
@@ -293,7 +293,7 @@ export const complianceRouter = router({
 
   getTemplateStats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const rows = await db.select().from(grtComplianceEmailTemplates);
+    const rows = await db.select().from(grtComplianceEmailTemplates).limit(1000);
     const total = rows.length;
     const enabled = rows.filter(t => t.isEnabled === 1).length;
     const byAlertType: Record<string, number> = {};
@@ -312,7 +312,7 @@ export const complianceRouter = router({
     if (!employee) return { compliant: true, issues: [] };
 
     const rules = await db.select().from(grtComplianceRules)
-      .where(and(eq(grtComplianceRules.jurisdiction, employee.jurisdiction), eq(grtComplianceRules.isEnabled, 1)));
+      .where(and(eq(grtComplianceRules.jurisdiction, employee.jurisdiction), eq(grtComplianceRules.isEnabled, 1))).limit(1000);
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -320,7 +320,7 @@ export const complianceRouter = router({
 
     const entries = await db.select().from(grtTimeEntries)
       .where(and(eq(grtTimeEntries.employeeId, employeeId), sql`${grtTimeEntries.date} >= ${dateStr}`))
-      .orderBy(desc(grtTimeEntries.date));
+      .orderBy(desc(grtTimeEntries.date)).limit(1000);
 
     const dailyMinutes: Record<string, number> = {};
     let weeklyTotal = 0;
@@ -376,12 +376,12 @@ export const complianceRouter = router({
       if (!employee) continue;
 
       const rules = await db.select().from(grtComplianceRules)
-        .where(and(eq(grtComplianceRules.jurisdiction, employee.jurisdiction), eq(grtComplianceRules.isEnabled, 1)));
+        .where(and(eq(grtComplianceRules.jurisdiction, employee.jurisdiction), eq(grtComplianceRules.isEnabled, 1))).limit(1000);
 
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const entries = await db.select().from(grtTimeEntries)
-        .where(and(eq(grtTimeEntries.employeeId, empId), sql`${grtTimeEntries.date} >= ${sevenDaysAgo.toISOString().slice(0, 10)}`));
+        .where(and(eq(grtTimeEntries.employeeId, empId), sql`${grtTimeEntries.date} >= ${sevenDaysAgo.toISOString().slice(0, 10)}`)).limit(1000);
 
       const dailyMinutes: Record<string, number> = {};
       let weeklyTotal = 0;
@@ -443,7 +443,7 @@ export const complianceRouter = router({
     const buWhere = scopedEmpIds
       ? inArray(grtComplianceAlerts.employeeId, scopedEmpIds.length > 0 ? scopedEmpIds : [0])
       : undefined;
-    const allAlerts = await db.select().from(grtComplianceAlerts).where(buWhere);
+    const allAlerts = await db.select().from(grtComplianceAlerts).where(buWhere).limit(1000);
     const total = allAlerts.length;
     const open = allAlerts.filter(a => a.status === "open").length;
     const resolved = allAlerts.filter(a => a.status === "resolved").length;
@@ -454,12 +454,12 @@ export const complianceRouter = router({
 
   getReportHistory: requirePermission('hrm_employee_management').query(async () => {
     const db = await requireDb();
-    return db.select().from(grtComplianceReports).orderBy(desc(grtComplianceReports.createdAt));
+    return db.select().from(grtComplianceReports).orderBy(desc(grtComplianceReports.createdAt)).limit(1000);
   }),
 
   getReportStats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const rows = await db.select().from(grtComplianceReports);
+    const rows = await db.select().from(grtComplianceReports).limit(1000);
     const byType: Record<string, number> = {};
     const byFormat: Record<string, number> = {};
     for (const r of rows) {

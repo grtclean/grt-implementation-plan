@@ -7,12 +7,12 @@ import { eq, desc, ilike } from "drizzle-orm";
 export const usersRouter = router({
   getAll: requirePermission('system:users:view').query(async () => {
     const db = await requireDb();
-    return await db.select().from(users).orderBy(users.name);
+    return await db.select().from(users).orderBy(users.name).limit(1000);
   }),
 
   search: requirePermission('system:users:view').input(z.object({ query: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
-    const all = await db.select().from(users);
+    const all = await db.select().from(users).limit(1000);
     const q = input.query.toLowerCase();
     return all.filter(u =>
       u.name?.toLowerCase().includes(q) ||

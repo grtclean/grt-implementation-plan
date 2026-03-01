@@ -28,7 +28,8 @@ const mockMigrationTasks = [
 const mockDbChain = {
   from: vi.fn().mockReturnThis(),
   where: vi.fn().mockReturnThis(),
-  orderBy: vi.fn().mockResolvedValue(mockMigrationTasks),
+  orderBy: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockResolvedValue(mockMigrationTasks),
   values: vi.fn().mockReturnThis(),
   set: vi.fn().mockReturnThis(),
   returning: vi.fn().mockResolvedValue([{ id: 1, success: true, ...mockMigrationTasks[0] }]),

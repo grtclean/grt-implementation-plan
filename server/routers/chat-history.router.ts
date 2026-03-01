@@ -16,7 +16,7 @@ export const chatHistoryRouter = router({
   // 获取会话详情
   getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
-    const [session] = await db.select().from(aiChatSessions).where(eq(aiChatSessions.id, parseInt(input.id)));
+    const [session] = await db.select().from(aiChatSessions).where(eq(aiChatSessions.id, parseInt(input.id))).limit(1000);
     return session || null;
   }),
 
@@ -70,7 +70,7 @@ export const chatHistoryRouter = router({
   // 获取所有会话
   getSessions: protectedProcedure.query(async () => {
     const db = await requireDb();
-    return await db.select().from(aiChatSessions).orderBy(desc(aiChatSessions.lastActivityAt));
+    return await db.select().from(aiChatSessions).orderBy(desc(aiChatSessions.lastActivityAt)).limit(1000);
   }),
 
   // 创建新会话
@@ -96,7 +96,7 @@ export const chatHistoryRouter = router({
     const sessionId = typeof input?.sessionId === "string" ? parseInt(input.sessionId) : (input?.sessionId || 0);
     return await db.select().from(aiChatMessages)
       .where(eq(aiChatMessages.sessionId, sessionId))
-      .orderBy(aiChatMessages.createdAt);
+      .orderBy(aiChatMessages.createdAt).limit(1000);
   }),
 
   // 添加消息

@@ -126,8 +126,6 @@ export class TaskQueue<T = any, R = any> {
     const insertIndex = this.findInsertIndex(task);
     this.queue.splice(insertIndex, 0, task);
 
-    console.log(`[Queue] Task enqueued: ${task.id} (${task.type})`);
-
     return task;
   }
 
@@ -154,8 +152,6 @@ export class TaskQueue<T = any, R = any> {
     this.processTimer = setInterval(() => {
       this.processNext();
     }, this.config.processInterval);
-
-    console.log('[Queue] Started processing');
   }
 
   /**
@@ -167,7 +163,6 @@ export class TaskQueue<T = any, R = any> {
       this.processTimer = undefined;
     }
     this.paused = true;
-    console.log('[Queue] Stopped processing');
   }
 
   /**
@@ -175,7 +170,6 @@ export class TaskQueue<T = any, R = any> {
    */
   pause(): void {
     this.paused = true;
-    console.log('[Queue] Paused');
   }
 
   /**
@@ -183,7 +177,6 @@ export class TaskQueue<T = any, R = any> {
    */
   resume(): void {
     this.paused = false;
-    console.log('[Queue] Resumed');
   }
 
   /**
@@ -217,14 +210,11 @@ export class TaskQueue<T = any, R = any> {
     task.startedAt = new Date();
     this.processing++;
 
-    console.log(`[Queue] Processing task: ${task.id}`);
-
     try {
       const result = await handler(task);
       task.status = 'completed';
       task.completedAt = new Date();
       task.result = result;
-      console.log(`[Queue] Task completed: ${task.id}`);
     } catch (error) {
       task.retries++;
       task.error = error instanceof Error ? error.message : String(error);
@@ -233,7 +223,6 @@ export class TaskQueue<T = any, R = any> {
         // 重试
         task.status = 'pending';
         task.scheduledAt = new Date(Date.now() + this.config.retryDelay);
-        console.log(`[Queue] Task will retry: ${task.id} (${task.retries}/${task.maxRetries})`);
       } else {
         task.status = 'failed';
         console.error(`[Queue] Task failed: ${task.id} - ${task.error}`);

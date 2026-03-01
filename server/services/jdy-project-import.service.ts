@@ -58,7 +58,6 @@ export class JdyProjectImportService {
     for (const row of rows) {
       this.userCache.set(row.jdy_username, row.grt_user_id);
     }
-    console.log(`[ProjectImport] 用户缓存已构建: ${this.userCache.size} 条映射`);
   }
 
   /**
@@ -164,7 +163,6 @@ export class JdyProjectImportService {
 
         // 分页获取所有数据
         const allRecords = await syncService.getAllFormData(mapping.jdy_app_id, mapping.jdy_form_id);
-        console.log(`[ProjectImport] 表单 ${mapping.jdy_form_name}: ${allRecords.length} 条记录`);
 
         // 按50条批量处理
         for (let i = 0; i < allRecords.length; i += 50) {
@@ -258,7 +256,6 @@ export class JdyProjectImportService {
         if (!fieldMapping || Object.keys(fieldMapping).length === 0) continue;
 
         const allRecords = await syncService.getAllFormData(mapping.jdy_app_id, mapping.jdy_form_id);
-        console.log(`[ProjectImport] 任务表单 ${mapping.jdy_form_name}: ${allRecords.length} 条`);
 
         for (const record of allRecords) {
           try {
@@ -314,7 +311,6 @@ export class JdyProjectImportService {
         if (!fieldMapping || Object.keys(fieldMapping).length === 0) continue;
 
         const allRecords = await syncService.getAllFormData(mapping.jdy_app_id, mapping.jdy_form_id);
-        console.log(`[ProjectImport] 里程碑表单 ${mapping.jdy_form_name}: ${allRecords.length} 条`);
 
         for (const record of allRecords) {
           try {
@@ -362,7 +358,6 @@ export class JdyProjectImportService {
         if (!fieldMapping || Object.keys(fieldMapping).length === 0) continue;
 
         const allRecords = await syncService.getAllFormData(mapping.jdy_app_id, mapping.jdy_form_id);
-        console.log(`[ProjectImport] 阶段表单 ${mapping.jdy_form_name}: ${allRecords.length} 条`);
 
         for (const record of allRecords) {
           try {
@@ -428,7 +423,6 @@ export class JdyProjectImportService {
         if (!fieldMapping || Object.keys(fieldMapping).length === 0) continue;
 
         const allRecords = await syncService.getAllFormData(mapping.jdy_app_id, mapping.jdy_form_id);
-        console.log(`[ProjectImport] 成员表单 ${mapping.jdy_form_name}: ${allRecords.length} 条`);
 
         for (const record of allRecords) {
           try {

@@ -16,7 +16,7 @@ export const importHistoryRouter = router({
   // 获取导入详情
   getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(importHistory).where(eq(importHistory.id, parseInt(input.id)));
+    const [item] = await db.select().from(importHistory).where(eq(importHistory.id, parseInt(input.id))).limit(1000);
     return item || null;
   }),
 
@@ -88,7 +88,7 @@ export const importHistoryRouter = router({
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input?.id === "string" ? parseInt(input.id) : (input?.id || 0);
-    const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id));
+    const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id)).limit(1000);
     return { details: item || null };
   }),
 
@@ -113,7 +113,7 @@ export const importHistoryRouter = router({
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const id = typeof input?.id === "string" ? parseInt(input.id) : (input?.id || 0);
-    const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id));
+    const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id)).limit(1000);
     if (!item) return { canRollback: false, reason: "记录不存在" };
     if (item.status !== "completed") return { canRollback: false, reason: "只有已完成的导入才能回滚" };
     if (item.rollbackAt) return { canRollback: false, reason: "已经回滚过" };
@@ -126,7 +126,7 @@ export const importHistoryRouter = router({
   }).optional()).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = typeof input?.id === "string" ? parseInt(input.id) : (input?.id || 0);
-    const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id));
+    const [item] = await db.select().from(importHistory).where(eq(importHistory.id, id)).limit(1000);
     if (!item) return { success: false, message: "记录不存在" };
     if (item.rollbackAt) return { success: false, message: "已经回滚过" };
 

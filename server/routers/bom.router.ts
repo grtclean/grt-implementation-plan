@@ -191,13 +191,13 @@ export const bomRouter = router({
       const buFilter = buScopeCondition(bomMasters.buCode, ctx);
       const conditions = [eq(bomMasters.id, input.id)];
       if (buFilter) conditions.push(buFilter);
-      const masterRows = await db.select().from(bomMasters).where(and(...conditions));
+      const masterRows = await db.select().from(bomMasters).where(and(...conditions)).limit(1000);
       const master = masterRows[0] ?? null;
       if (!master) return null;
 
-      const items = await db.select().from(bomItems).where(eq(bomItems.bomMasterId, input.id));
-      const versions = await db.select().from(bomVersions).where(eq(bomVersions.bomMasterId, input.id));
-      const costRollups = await db.select().from(bomCostRollups).where(eq(bomCostRollups.bomMasterId, input.id));
+      const items = await db.select().from(bomItems).where(eq(bomItems.bomMasterId, input.id)).limit(1000);
+      const versions = await db.select().from(bomVersions).where(eq(bomVersions.bomMasterId, input.id)).limit(1000);
+      const costRollups = await db.select().from(bomCostRollups).where(eq(bomCostRollups.bomMasterId, input.id)).limit(1000);
 
       return { ...master, items, versions, costRollups };
     }),
@@ -226,7 +226,7 @@ export const bomRouter = router({
 
       await db.update(bomMasters).set(updateValues).where(eq(bomMasters.id, id));
 
-      const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, id));
+      const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, id)).limit(1000);
       if (!rows[0]) throw new Error('BOM not found');
       return rows[0];
     }),
@@ -242,7 +242,7 @@ export const bomRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
 
-      const existingRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id));
+      const existingRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id)).limit(1000);
       if (!existingRows[0]) throw new Error('BOM not found');
 
       const updateValues: Record<string, unknown> = {
@@ -255,7 +255,7 @@ export const bomRouter = router({
 
       await db.update(bomMasters).set(updateValues).where(eq(bomMasters.id, input.id));
 
-      const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id));
+      const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id)).limit(1000);
       return rows[0];
     }),
 
@@ -266,7 +266,7 @@ export const bomRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const existingRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id));
+      const existingRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id)).limit(1000);
       if (!existingRows[0]) throw new Error('BOM not found');
       if (existingRows[0].status !== 'draft') throw new Error('只能删除草稿状态的BOM');
 
@@ -318,7 +318,7 @@ export const bomRouter = router({
       }).returning();
 
       // 更新BOM主表的maxLevel
-      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId));
+      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId)).limit(1000);
       if (masterRows[0] && input.level > (masterRows[0].maxLevel || 0)) {
         await db.update(bomMasters).set({ maxLevel: input.level }).where(eq(bomMasters.id, input.bomMasterId));
       }
@@ -335,7 +335,7 @@ export const bomRouter = router({
       const db = await requireDb();
       const { id, ...updates } = input;
 
-      const existingRows = await db.select().from(bomItems).where(eq(bomItems.id, id));
+      const existingRows = await db.select().from(bomItems).where(eq(bomItems.id, id)).limit(1000);
       if (!existingRows[0]) throw new Error('BOM Item not found');
 
       const updateValues: Record<string, unknown> = {};
@@ -364,7 +364,7 @@ export const bomRouter = router({
       await db.update(bomItems).set(updateValues).where(eq(bomItems.id, id));
 
       // 重算extendedCost
-      const updatedRows = await db.select().from(bomItems).where(eq(bomItems.id, id));
+      const updatedRows = await db.select().from(bomItems).where(eq(bomItems.id, id)).limit(1000);
       const item = updatedRows[0];
       const qty = parseFloat(String(item.quantity)) || 0;
       const cost = parseFloat(String(item.unitCost)) || 0;
@@ -373,7 +373,7 @@ export const bomRouter = router({
 
       await db.update(bomItems).set({ extendedCost: String(extendedCost) }).where(eq(bomItems.id, id));
 
-      const finalRows = await db.select().from(bomItems).where(eq(bomItems.id, id));
+      const finalRows = await db.select().from(bomItems).where(eq(bomItems.id, id)).limit(1000);
       return finalRows[0];
     }),
 
@@ -384,7 +384,7 @@ export const bomRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const existingRows = await db.select().from(bomItems).where(eq(bomItems.id, input.id));
+      const existingRows = await db.select().from(bomItems).where(eq(bomItems.id, input.id)).limit(1000);
       if (!existingRows[0]) throw new Error('BOM Item not found');
 
       await db.delete(bomItems).where(eq(bomItems.id, input.id));
@@ -471,7 +471,7 @@ export const bomRouter = router({
       }
 
       // 更新maxLevel
-      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId));
+      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId)).limit(1000);
       if (masterRows[0] && maxLevel > (masterRows[0].maxLevel || 0)) {
         await db.update(bomMasters).set({ maxLevel }).where(eq(bomMasters.id, input.bomMasterId));
       }
@@ -490,8 +490,8 @@ export const bomRouter = router({
       const db = await requireDb();
 
       // 对当前BOM做快照
-      const currentItems = await db.select().from(bomItems).where(eq(bomItems.bomMasterId, input.bomMasterId));
-      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId));
+      const currentItems = await db.select().from(bomItems).where(eq(bomItems.bomMasterId, input.bomMasterId)).limit(1000);
+      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId)).limit(1000);
       const master = masterRows[0] ?? null;
 
       const rows = await db.insert(bomVersions).values({
@@ -541,7 +541,7 @@ export const bomRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const versionRows = await db.select().from(bomVersions).where(eq(bomVersions.id, input.id));
+      const versionRows = await db.select().from(bomVersions).where(eq(bomVersions.id, input.id)).limit(1000);
       if (!versionRows[0]) throw new Error('Version not found');
 
       const version = versionRows[0];
@@ -564,7 +564,7 @@ export const bomRouter = router({
         }).where(eq(bomVersions.id, input.id));
       }
 
-      const updatedRows = await db.select().from(bomVersions).where(eq(bomVersions.id, input.id));
+      const updatedRows = await db.select().from(bomVersions).where(eq(bomVersions.id, input.id)).limit(1000);
       return updatedRows[0];
     }),
 
@@ -580,8 +580,8 @@ export const bomRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const items = await db.select().from(bomItems).where(eq(bomItems.bomMasterId, input.bomMasterId));
-      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId));
+      const items = await db.select().from(bomItems).where(eq(bomItems.bomMasterId, input.bomMasterId)).limit(1000);
+      const masterRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.bomMasterId)).limit(1000);
       const master = masterRows[0];
       if (!master) throw new Error('BOM not found');
 
@@ -718,7 +718,7 @@ export const bomRouter = router({
       // Fetch corresponding masters
       const masters: Array<typeof bomMasters.$inferSelect> = [];
       for (const masterId of bomMasterIds) {
-        const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, masterId));
+        const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, masterId)).limit(1000);
         if (rows[0]) masters.push(rows[0]);
       }
 
@@ -752,7 +752,7 @@ export const bomRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
 
-      const existingRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id));
+      const existingRows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id)).limit(1000);
       if (!existingRows[0]) throw new Error('BOM not found');
 
       await db.update(bomMasters).set({
@@ -761,7 +761,7 @@ export const bomRouter = router({
         erpLastSyncAt: new Date().toISOString(),
       }).where(eq(bomMasters.id, input.id));
 
-      const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id));
+      const rows = await db.select().from(bomMasters).where(eq(bomMasters.id, input.id)).limit(1000);
       return rows[0];
     }),
 });

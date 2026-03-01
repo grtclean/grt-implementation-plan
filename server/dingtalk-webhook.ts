@@ -13,14 +13,12 @@ export interface DingTalkConfig {
   enabled: boolean;
 }
 
-// 默认配置（从环境变量或硬编码）
+// 默认配置（从环境变量读取，禁止硬编码）
 const DEFAULT_CONFIG: DingTalkConfig = {
-  webhookUrl: process.env.DINGTALK_WEBHOOK_URL || 
-    'https://oapi.dingtalk.com/robot/send?access_token=8d003ada94b037153ee995bdfe955049e378af2b7e54e6bb87b686c959893b6c',
-  secret: process.env.DINGTALK_WEBHOOK_SECRET || 
-    'SEC179f421330c60dae9e928cdcafced74e38c80b2df72062e7eb08c14f98043235',
-  keyword: '1', // 自定义关键词
-  enabled: true,
+  webhookUrl: process.env.DINGTALK_WEBHOOK_URL ?? '',
+  secret: process.env.DINGTALK_WEBHOOK_SECRET ?? '',
+  keyword: '1',
+  enabled: !!(process.env.DINGTALK_WEBHOOK_URL && process.env.DINGTALK_WEBHOOK_SECRET),
 };
 
 // 当前配置

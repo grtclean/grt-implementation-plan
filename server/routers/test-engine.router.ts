@@ -57,12 +57,12 @@ export const testEngineRouter = router({
   getTemplate: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const id = toNum(input.id);
-    const [template] = await db.select().from(testTemplates).where(eq(testTemplates.id, id));
+    const [template] = await db.select().from(testTemplates).where(eq(testTemplates.id, id)).limit(1000);
     if (!template) return null;
 
     const cases = await db.select().from(testCases)
       .where(and(eq(testCases.templateId, id), eq(testCases.isActive, true)))
-      .orderBy(asc(testCases.sortOrder));
+      .orderBy(asc(testCases.sortOrder)).limit(1000);
 
     return { ...template, caseCount: cases.length, cases };
   }),
@@ -124,7 +124,7 @@ export const testEngineRouter = router({
     const db = await requireDb();
     const srcId = toNum(input.sourceTemplateId);
 
-    const [source] = await db.select().from(testTemplates).where(eq(testTemplates.id, srcId));
+    const [source] = await db.select().from(testTemplates).where(eq(testTemplates.id, srcId)).limit(1000);
     if (!source) throw new Error("Source template not found");
 
     const [cloned] = await db.insert(testTemplates).values({
@@ -145,7 +145,7 @@ export const testEngineRouter = router({
     }).returning();
 
     const cases = await db.select().from(testCases)
-      .where(and(eq(testCases.templateId, srcId), eq(testCases.isActive, true)));
+      .where(and(eq(testCases.templateId, srcId), eq(testCases.isActive, true))).limit(1000);
 
     if (cases.length > 0) {
       await db.insert(testCases).values(cases.map(c => ({
@@ -183,7 +183,7 @@ export const testEngineRouter = router({
 
     const items = await db.select().from(testCases)
       .where(and(...conditions))
-      .orderBy(asc(testCases.sortOrder));
+      .orderBy(asc(testCases.sortOrder)).limit(1000);
 
     return { items, total: items.length };
   }),
@@ -320,7 +320,7 @@ export const testEngineRouter = router({
     const templateId = toNum(input.templateId);
 
     const cases = await db.select().from(testCases)
-      .where(and(eq(testCases.templateId, templateId), eq(testCases.isActive, true)));
+      .where(and(eq(testCases.templateId, templateId), eq(testCases.isActive, true))).limit(1000);
 
     const [execution] = await db.insert(testExecutions).values({
       templateId,
@@ -368,12 +368,12 @@ export const testEngineRouter = router({
   getExecution: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const id = toNum(input.id);
-    const [execution] = await db.select().from(testExecutions).where(eq(testExecutions.id, id));
+    const [execution] = await db.select().from(testExecutions).where(eq(testExecutions.id, id)).limit(1000);
     if (!execution) return null;
 
     // Aggregate result statuses
     const results = await db.select().from(testResults)
-      .where(eq(testResults.executionId, id));
+      .where(eq(testResults.executionId, id)).limit(1000);
 
     const summary = {
       total: results.length,
@@ -415,7 +415,7 @@ export const testEngineRouter = router({
       .where(and(
         eq(testResults.executionId, executionId),
         eq(testResults.testCaseId, testCaseId),
-      ));
+      )).limit(1000);
 
     let result;
     if (existing) {
@@ -498,7 +498,7 @@ export const testEngineRouter = router({
 
     const items = await db.select().from(testResults)
       .where(and(...conditions))
-      .orderBy(asc(testResults.testCaseId));
+      .orderBy(asc(testResults.testCaseId)).limit(1000);
 
     return { items, total: items.length };
   }),
@@ -567,7 +567,7 @@ export const testEngineRouter = router({
 /** Helper: recalculate pass/fail/blocked counters on an execution */
 async function updateExecutionCounters(db: any, executionId: number) {
   const results = await db.select().from(testResults)
-    .where(eq(testResults.executionId, executionId));
+    .where(eq(testResults.executionId, executionId)).limit(1000);
 
   const passed = results.filter((r: any) => r.status === 'pass').length;
   const failed = results.filter((r: any) => r.status === 'fail').length;

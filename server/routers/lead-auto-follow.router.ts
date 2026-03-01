@@ -33,7 +33,7 @@ export const leadAutoFollowRouter = router({
     const buFilter = buScopeCondition(crmLeads.buCode, ctx);
     const conditions = [eq(crmLeads.id, numId)];
     if (buFilter) conditions.push(buFilter);
-    const [lead] = await db.select().from(crmLeads).where(and(...conditions));
+    const [lead] = await db.select().from(crmLeads).where(and(...conditions)).limit(1000);
     return lead || null;
   }),
 

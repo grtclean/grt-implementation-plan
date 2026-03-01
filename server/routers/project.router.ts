@@ -12,9 +12,9 @@ export const projectRouter = router({
     const db = await requireDb();
     const buFilter = buScopeCondition(projects.buCode, ctx);
     if (buFilter) {
-      return await db.select().from(projects).where(buFilter).orderBy(desc(projects.createdAt));
+      return await db.select().from(projects).where(buFilter).orderBy(desc(projects.createdAt)).limit(1000);
     }
-    return await db.select().from(projects).orderBy(desc(projects.createdAt));
+    return await db.select().from(projects).orderBy(desc(projects.createdAt)).limit(1000);
   }),
 
   // 获取项目详情 (BU-scoped)
@@ -24,7 +24,7 @@ export const projectRouter = router({
     const buFilter = buScopeCondition(projects.buCode, ctx);
     const conditions = [eq(projects.id, numId)];
     if (buFilter) conditions.push(buFilter);
-    const [item] = await db.select().from(projects).where(and(...conditions));
+    const [item] = await db.select().from(projects).where(and(...conditions)).limit(1000);
     return item || null;
   }),
 
@@ -149,7 +149,7 @@ export const projectRouter = router({
     const buFilter = buScopeCondition(projects.buCode, ctx);
     const allProjects = buFilter
       ? await db.select().from(projects).where(buFilter)
-      : await db.select().from(projects);
+      : await db.select().from(projects).limit(1000);
 
     const byStatus: Record<string, number> = { draft: 0, active: 0, on_hold: 0, completed: 0, cancelled: 0 };
     const byType: Record<string, number> = { standard: 0, key: 0, strategic: 0 };

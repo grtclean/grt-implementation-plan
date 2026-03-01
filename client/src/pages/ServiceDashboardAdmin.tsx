@@ -389,17 +389,20 @@ export default function ServiceDashboardAdmin() {
   const kpiFileRef = useRef<HTMLInputElement>(null);
   const locFileRef = useRef<HTMLInputElement>(null);
 
+  const msgTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const showMsg = useCallback((type: "success" | "error", text: string) => {
     setMessage({ type, text });
-    setTimeout(() => setMessage(null), 4000);
+    clearTimeout(msgTimerRef.current);
+    msgTimerRef.current = setTimeout(() => setMessage(null), 4000);
   }, []);
 
   // Scroll to category if specified in URL
   useEffect(() => {
     if (initialCategory && activeTab === "kpi") {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         document.getElementById(`kpi-section-${initialCategory}`)?.scrollIntoView({ behavior: "smooth" });
       }, 300);
+      return () => clearTimeout(timer);
     }
   }, [initialCategory, activeTab]);
 

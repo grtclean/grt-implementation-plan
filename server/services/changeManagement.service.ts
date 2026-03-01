@@ -407,19 +407,14 @@ export async function executeChange(
 
   try {
     // Pre-execution checks
-    console.log(`[${executionId}] Starting pre-execution checks...`);
     for (const check of executionPlan.preExecutionChecks) {
       // TODO: Implement actual checks
-      console.log(`  ✓ ${check}`);
     }
 
     // Execute steps
-    console.log(`[${executionId}] Executing change steps...`);
     for (const step of executionPlan.steps) {
       try {
-        console.log(`  [Step ${step.order}] ${step.description}...`);
         // TODO: Implement actual execution based on step.action
-        console.log(`    ✓ ${step.expectedResult}`);
       } catch (error) {
         console.error(`    ✗ Error: ${error}`);
         errors.push(`Step ${step.order} failed: ${error}`);
@@ -427,10 +422,8 @@ export async function executeChange(
     }
 
     // Post-execution checks
-    console.log(`[${executionId}] Running post-execution checks...`);
     for (const check of executionPlan.postExecutionChecks) {
       // TODO: Implement actual checks
-      console.log(`  ✓ ${check}`);
     }
 
     // Log execution
@@ -478,11 +471,7 @@ export async function rollbackChange(
   const rollbackId = `rollback-${Date.now()}`;
 
   try {
-    console.log(`[${rollbackId}] Starting rollback for change ${changeId}...`);
-    console.log(`  Reason: ${reason}`);
-
     // Verify backup
-    console.log(`  Verifying backup ${backup.id}...`);
     // TODO: Implement actual rollback procedure
 
     // Log rollback
@@ -521,11 +510,6 @@ export async function rollbackChange(
 export async function logAudit(auditLog: AuditLog): Promise<void> {
   try {
     // TODO: Save to database
-    console.log(`[AUDIT] ${auditLog.timestamp.toISOString()} - ${auditLog.action} by user ${auditLog.userId}`);
-    console.log(`  Status: ${auditLog.status}`);
-    if (auditLog.errorMessage) {
-      console.log(`  Error: ${auditLog.errorMessage}`);
-    }
   } catch (error) {
     console.error('Error logging audit:', error);
   }
@@ -583,7 +567,6 @@ export async function revokeExecutorAuthorization(
   revokedBy: number
 ): Promise<void> {
   // TODO: Update database
-  console.log(`Authorization revoked for user ${userId} by ${revokedBy}`);
 }
 
 /**

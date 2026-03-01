@@ -30,6 +30,7 @@ vi.mock("../db", () => ({
       from: vi.fn(() => chain),
       where: vi.fn(() => chain),
       orderBy: vi.fn(() => chain),
+      limit: vi.fn(() => chain),
       set: vi.fn(() => chain),
       values: vi.fn(() => chain),
       returning: vi.fn(() => {

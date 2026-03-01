@@ -32,6 +32,12 @@ import {
 describe('钉钉Webhook服务', () => {
   beforeEach(() => {
     mockFetch.mockClear();
+    // 启用钉钉Webhook（测试环境无env，需手动启用）
+    updateDingTalkConfig({
+      webhookUrl: 'https://oapi.dingtalk.com/robot/send?access_token=test-token',
+      secret: 'SEC-test-secret',
+      enabled: true,
+    });
     // 默认返回成功响应
     mockFetch.mockResolvedValue({
       json: () => Promise.resolve({ errcode: 0, errmsg: 'ok' }),

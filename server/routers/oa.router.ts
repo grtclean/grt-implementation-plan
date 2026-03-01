@@ -77,7 +77,7 @@ export const oaRouter = router({
   getWorkflow: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [workflow] = await db.select().from(oaWorkflows)
-      .where(eq(oaWorkflows.id, toNum(input.id)));
+      .where(eq(oaWorkflows.id, toNum(input.id))).limit(1000);
     return workflow ?? null;
   }),
 
@@ -142,7 +142,7 @@ export const oaRouter = router({
           eq(oaWorkflows.status, "PENDING"),
         )
       )
-      .orderBy(desc(oaWorkflows.createdAt));
+      .orderBy(desc(oaWorkflows.createdAt)).limit(1000);
     return items;
   }),
 
@@ -179,7 +179,7 @@ export const oaRouter = router({
     const db = await requireDb();
     return db.select().from(companyEventsMeetings)
       .where(eq(companyEventsMeetings.isActive, true))
-      .orderBy(companyEventsMeetings.dayOfWeek);
+      .orderBy(companyEventsMeetings.dayOfWeek).limit(1000);
   }),
 
   createMeeting: protectedProcedure.input(z.object({
@@ -272,7 +272,7 @@ export const oaRouter = router({
     }
     return db.select().from(meetingAgendasActions)
       .where(and(...conditions))
-      .orderBy(meetingAgendasActions.sortOrder);
+      .orderBy(meetingAgendasActions.sortOrder).limit(1000);
   }),
 
   updateAgendaItem: protectedProcedure.input(z.object({
@@ -422,7 +422,7 @@ export const oaRouter = router({
   getTripReport: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [report] = await db.select().from(businessTripReports)
-      .where(eq(businessTripReports.id, toNum(input.id)));
+      .where(eq(businessTripReports.id, toNum(input.id))).limit(1000);
     return report ?? null;
   }),
 
@@ -503,7 +503,7 @@ export const oaRouter = router({
   getAnnouncement: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [ann] = await db.select().from(oaAnnouncements)
-      .where(eq(oaAnnouncements.id, toNum(input.id)));
+      .where(eq(oaAnnouncements.id, toNum(input.id))).limit(1000);
     if (!ann) return null;
     // Increment view count atomically (fire-and-forget)
     db.update(oaAnnouncements)

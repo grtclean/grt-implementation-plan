@@ -75,7 +75,7 @@ export const costRouter = router({
       if (scopedIds) {
         conditions.push(inArray(costRecords.projectId, scopedIds.length > 0 ? scopedIds : [0]));
       }
-      const rows = await db.select().from(costRecords).where(and(...conditions));
+      const rows = await db.select().from(costRecords).where(and(...conditions)).limit(1000);
       return rows[0] ?? null;
     }),
 
@@ -162,10 +162,10 @@ export const costRouter = router({
       return { budget: 0, spent: 0, remaining: 0 };
     }
 
-    const estimates = await db.select().from(costEstimates).where(eq(costEstimates.projectId, projectId));
+    const estimates = await db.select().from(costEstimates).where(eq(costEstimates.projectId, projectId)).limit(1000);
     const budget = estimates.reduce((sum, e) => sum + (e.estimatedAmount ?? 0), 0);
 
-    const records = await db.select().from(costRecords).where(eq(costRecords.projectId, projectId));
+    const records = await db.select().from(costRecords).where(eq(costRecords.projectId, projectId)).limit(1000);
     const spent = records.reduce((sum, r) => sum + (r.amount ?? 0), 0);
 
     return { budget, spent, remaining: budget - spent };
@@ -178,8 +178,8 @@ export const costRouter = router({
     const where = scopedIds
       ? inArray(costRecords.projectId, scopedIds.length > 0 ? scopedIds : [0])
       : undefined;
-    const records = await db.select().from(costRecords).where(where);
-    const categories = await db.select().from(costCategories);
+    const records = await db.select().from(costRecords).where(where).limit(1000);
+    const categories = await db.select().from(costCategories).limit(1000);
 
     const total = records.reduce((sum, r) => sum + (r.amount ?? 0), 0);
     const categoryStats = categories.map(cat => ({
@@ -203,7 +203,7 @@ export const costRouter = router({
       ? inArray(costRecords.projectId, scopedIds.length > 0 ? scopedIds : [0])
       : undefined;
 
-    const estimates = await db.select().from(costEstimates).where(estimateWhere).orderBy(desc(costEstimates.createdAt));
+    const estimates = await db.select().from(costEstimates).where(estimateWhere).orderBy(desc(costEstimates.createdAt)).limit(1000);
 
     // Group by project
     const byProject: Record<number, { projectId: number; budget: number; items: typeof estimates }> = {};
@@ -214,7 +214,7 @@ export const costRouter = router({
     }
 
     // Get actual spending per project
-    const records = await db.select().from(costRecords).where(recordWhere);
+    const records = await db.select().from(costRecords).where(recordWhere).limit(1000);
     const spentByProject: Record<number, number> = {};
     for (const r of records) {
       spentByProject[r.projectId] = (spentByProject[r.projectId] ?? 0) + (r.amount ?? 0);
@@ -273,7 +273,7 @@ export const costRouter = router({
     const where = scopedIds
       ? inArray(costRecords.projectId, scopedIds.length > 0 ? scopedIds : [0])
       : undefined;
-    return db.select().from(costRecords).where(where).orderBy(desc(costRecords.costDate));
+    return db.select().from(costRecords).where(where).orderBy(desc(costRecords.costDate)).limit(1000);
   }),
 
   createRecord: protectedProcedure.input(z.object({
@@ -307,7 +307,7 @@ export const costRouter = router({
 
   getCategories: protectedProcedure.query(async () => {
     const db = await requireDb();
-    return db.select().from(costCategories).orderBy(costCategories.sortOrder);
+    return db.select().from(costCategories).orderBy(costCategories.sortOrder).limit(1000);
   }),
 
   initCategories: protectedProcedure.mutation(async () => {
@@ -337,11 +337,11 @@ export const costRouter = router({
   getLaborCosts: requirePermission('pm_project_cost').query(async () => {
     const db = await requireDb();
     // Filter cost records by labor category
-    const laborCats = await db.select().from(costCategories).where(eq(costCategories.code, "LAB"));
+    const laborCats = await db.select().from(costCategories).where(eq(costCategories.code, "LAB")).limit(1000);
     if (laborCats.length === 0) return [];
 
     const laborCatId = laborCats[0].id;
-    const rows = await db.select().from(costRecords).where(eq(costRecords.categoryId, laborCatId)).orderBy(desc(costRecords.costDate));
+    const rows = await db.select().from(costRecords).where(eq(costRecords.categoryId, laborCatId)).orderBy(desc(costRecords.costDate)).limit(1000);
     return rows.map(r => ({
       id: `LC-${r.id}`,
       projectId: r.projectId,

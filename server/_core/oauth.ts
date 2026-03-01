@@ -34,20 +34,15 @@ export function registerOAuthRoutes(app: Express) {
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
 
-    console.log("[OAuth] Callback received, code:", code ? "present" : "missing", "state:", state ? "present" : "missing");
-
     if (!code || !state) {
       res.status(400).json({ error: "code and state are required" });
       return;
     }
 
     try {
-      console.log("[OAuth] Exchanging code for token...");
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-      console.log("[OAuth] Token exchange successful");
-      
+
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-      console.log("[OAuth] User info retrieved:", userInfo.openId, userInfo.name);
 
       if (!userInfo.openId) {
         res.status(400).json({ error: "openId missing from user info" });
@@ -62,32 +57,26 @@ export function registerOAuthRoutes(app: Express) {
         loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
         lastSignedIn: new Date().toISOString(),
       });
-      console.log("[OAuth] User upserted to database");
 
       const sessionToken = await sdk.createSessionToken(userInfo.openId, {
         name: cleanName || "",
         expiresInMs: ONE_YEAR_MS,
       });
-      console.log("[OAuth] Session token created, length:", sessionToken.length);
 
       const cookieOptions = getSessionCookieOptions(req);
-      console.log("[OAuth] Cookie options:", JSON.stringify(cookieOptions));
-      
+
       // Set the cookie with all required options for cross-origin iframe support
       res.cookie(COOKIE_NAME, sessionToken, { 
         ...cookieOptions, 
         maxAge: ONE_YEAR_MS 
       });
-      console.log("[OAuth] Cookie set with name:", COOKIE_NAME);
 
       // Redirect to the original path user wanted to access
       const returnPath = parseStateForReturnPath(state);
-      console.log("[OAuth] Redirecting to:", returnPath);
-      
+
       // For iframe/preview mode, pass the token via URL parameter as a fallback
       // This allows the frontend to store it in localStorage when cookies don't work
       const redirectUrl = `/login-success?returnPath=${encodeURIComponent(returnPath)}&token=${encodeURIComponent(sessionToken)}`;
-      console.log("[OAuth] Redirecting to login-success with token");
       res.redirect(302, redirectUrl);
     } catch (error) {
       console.error("[OAuth] Callback failed", error);

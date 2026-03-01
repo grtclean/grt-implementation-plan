@@ -43,7 +43,7 @@ export const aiPerformanceRouter = router({
         }
         const rows = await db.select().from(hrAiPerformance)
           .where(eq(hrAiPerformance.userId, targetUserId))
-          .orderBy(desc(hrAiPerformance.month));
+          .orderBy(desc(hrAiPerformance.month)).limit(1000);
         return { items: rows, total: rows.length };
       } catch {
         return { items: [], total: 0 };
@@ -84,7 +84,7 @@ export const aiPerformanceRouter = router({
 
         const monthData = await db.select().from(hrAiPerformance)
           .where(and(...conditions))
-          .orderBy(desc(hrAiPerformance.meetingScore));
+          .orderBy(desc(hrAiPerformance.meetingScore)).limit(1000);
 
         const avgScore = monthData.length > 0
           ? Math.round(monthData.reduce((s, r) => s + (r.meetingScore ?? 0), 0) / monthData.length)

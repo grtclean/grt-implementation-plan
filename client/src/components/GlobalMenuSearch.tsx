@@ -48,7 +48,8 @@ export function GlobalMenuSearch() {
     if (open) {
       setQuery("");
       setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const timer = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
     }
   }, [open, setQuery]);
 

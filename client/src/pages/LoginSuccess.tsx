@@ -16,6 +16,7 @@ export default function LoginSuccess() {
   const [tokenStored, setTokenStored] = useState(false);
 
   useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
     // Get the return path and token from URL params
     const params = new URLSearchParams(window.location.search);
     const path = params.get("returnPath") || "/";
@@ -52,11 +53,12 @@ export default function LoginSuccess() {
         // Send immediately
         sendMessage();
         setMessageSent(true);
-        
+
         // Also send after a short delay in case opener wasn't ready
-        setTimeout(sendMessage, 300);
-        setTimeout(sendMessage, 800);
-        setTimeout(sendMessage, 1500);
+        const t1 = setTimeout(sendMessage, 300);
+        const t2 = setTimeout(sendMessage, 800);
+        const t3 = setTimeout(sendMessage, 1500);
+        timers.push(t1, t2, t3);
       } catch {
         // Opener notification failed - countdown redirect will handle navigation
       }
@@ -81,7 +83,10 @@ export default function LoginSuccess() {
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      timers.forEach(t => clearTimeout(t));
+    };
   }, [setLocation]);
 
   const handleClose = () => {

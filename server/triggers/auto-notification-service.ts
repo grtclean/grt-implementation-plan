@@ -6,11 +6,9 @@
 import { sendDingTalkMessageWithSign } from '../dingtalk-webhook-test';
 import { defaultNotificationRules, NotificationRule } from './notification-rules';
 
-// 钉钉配置
-const DINGTALK_WEBHOOK_URL = process.env.DINGTALK_WEBHOOK_URL || 
-  'https://oapi.dingtalk.com/robot/send?access_token=8d003ada94b037153ee995bdfe955049e378af2b7e54e6bb87b686c959893b6c';
-const DINGTALK_SECRET = process.env.DINGTALK_WEBHOOK_SECRET || 
-  'SEC179f421330c60dae9e928cdcafced74e38c80b2df72062e7eb08c14f98043235';
+// 钉钉配置（从环境变量读取，禁止硬编码）
+const DINGTALK_WEBHOOK_URL = process.env.DINGTALK_WEBHOOK_URL ?? '';
+const DINGTALK_SECRET = process.env.DINGTALK_WEBHOOK_SECRET ?? '';
 
 // 通知发送记录
 interface NotificationLog {

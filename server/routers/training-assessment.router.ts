@@ -16,11 +16,11 @@ export const trainingAssessmentRouter = router({
   getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    const [assessment] = await db.select().from(trainingAssessments).where(eq(trainingAssessments.id, id));
+    const [assessment] = await db.select().from(trainingAssessments).where(eq(trainingAssessments.id, id)).limit(1000);
     if (!assessment) return null;
 
     const results = await db.select().from(trainingAssessmentResults)
-      .where(eq(trainingAssessmentResults.assessmentId, id));
+      .where(eq(trainingAssessmentResults.assessmentId, id)).limit(1000);
 
     return { ...assessment, results };
   }),
@@ -93,6 +93,6 @@ export const trainingAssessmentRouter = router({
     const trainingId = typeof input.trainingId === "string" ? parseInt(input.trainingId) : input.trainingId;
     return await db.select().from(trainingAssessments)
       .where(eq(trainingAssessments.trainingId, trainingId))
-      .orderBy(desc(trainingAssessments.createdAt));
+      .orderBy(desc(trainingAssessments.createdAt)).limit(1000);
   }),
 });

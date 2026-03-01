@@ -84,9 +84,6 @@ export async function sendSecureMail(
           contentType: a.contentType || "application/json",
         })),
       });
-      console.log(
-        `[O365 Mailer] Email sent: ${info.messageId} → ${options.to}`
-      );
       return { success: true, messageId: info.messageId, simulated: false };
     } catch (err: any) {
       console.error("[O365 Mailer] Send failed:", err?.message);
@@ -96,18 +93,6 @@ export async function sendSecureMail(
 
   // ── Dev/demo path: simulate the send ──
   const mockId = `<mock-${Date.now()}@gerrytech.com>`;
-  console.log(`[O365 Mailer] ══════════════════════════════════════`);
-  console.log(`[O365 Mailer] SIMULATED EMAIL DISPATCH`);
-  console.log(`[O365 Mailer]   From:    ${from}`);
-  console.log(`[O365 Mailer]   To:      ${options.to}`);
-  console.log(`[O365 Mailer]   Subject: ${options.subject}`);
-  console.log(
-    `[O365 Mailer]   Attach:  ${
-      options.attachments?.map((a) => a.filename).join(", ") || "none"
-    }`
-  );
-  console.log(`[O365 Mailer]   MsgID:   ${mockId}`);
-  console.log(`[O365 Mailer] ══════════════════════════════════════`);
 
   return { success: true, messageId: mockId, simulated: true };
 }

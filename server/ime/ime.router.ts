@@ -892,7 +892,7 @@ export const imeRouter = router({
       conditionOperator: z.string().optional(),
       conditionValue: z.string().optional(),
       actionType: z.string(),
-      actionConfig: z.any().optional(),
+      actionConfig: z.record(z.string(), z.unknown()).optional(),
       scope: z.string().optional(),
       scopeId: z.string().optional(),
     }))
@@ -923,7 +923,7 @@ export const imeRouter = router({
       conditionOperator: z.string().optional(),
       conditionValue: z.string().optional(),
       actionType: z.string().optional(),
-      actionConfig: z.any().optional(),
+      actionConfig: z.record(z.string(), z.unknown()).optional(),
       isActive: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
@@ -995,7 +995,7 @@ export const imeRouter = router({
       name: z.string(),
       integrationType: z.string(),
       provider: z.string(),
-      config: z.any().optional(),
+      config: z.record(z.string(), z.unknown()).optional(),
       syncDirection: z.string().optional(),
       syncFrequency: z.string().optional(),
     }))
@@ -1014,7 +1014,7 @@ export const imeRouter = router({
     .input(z.object({
       id: z.number(),
       name: z.string().optional(),
-      config: z.any().optional(),
+      config: z.record(z.string(), z.unknown()).optional(),
       syncDirection: z.string().optional(),
       syncFrequency: z.string().optional(),
       status: z.string().optional(),

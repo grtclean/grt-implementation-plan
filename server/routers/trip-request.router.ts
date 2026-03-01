@@ -41,18 +41,18 @@ export const tripRequestRouter = router({
     const db = await requireDb();
     const id = parseInt(input.id);
     await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
-    const [request] = await db.select().from(tripRequests).where(eq(tripRequests.id, id));
+    const [request] = await db.select().from(tripRequests).where(eq(tripRequests.id, id)).limit(1000);
     if (!request) return null;
 
     const itineraries = await db.select().from(tripItineraries)
       .where(eq(tripItineraries.tripRequestId, id))
-      .orderBy(tripItineraries.sequenceNo);
+      .orderBy(tripItineraries.sequenceNo).limit(1000);
 
     const bookings = await db.select().from(tripBookings)
-      .where(eq(tripBookings.tripRequestId, id));
+      .where(eq(tripBookings.tripRequestId, id)).limit(1000);
 
     const insurance = await db.select().from(tripInsuranceRecords)
-      .where(eq(tripInsuranceRecords.tripRequestId, id));
+      .where(eq(tripInsuranceRecords.tripRequestId, id)).limit(1000);
 
     return { ...request, itineraries, bookings, insurance };
   }),
@@ -278,7 +278,7 @@ export const tripRequestRouter = router({
   // 国家列表（从保险政策中提取适用地区）
   countries: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const policies = await db.select().from(insurancePolicies).where(eq(insurancePolicies.isActive, 1));
+    const policies = await db.select().from(insurancePolicies).where(eq(insurancePolicies.isActive, 1)).limit(1000);
     const regions = new Set<string>();
     for (const p of policies) {
       if (p.applicableRegions) {
@@ -296,7 +296,7 @@ export const tripRequestRouter = router({
     const db = await requireDb();
     return await db.select().from(expensePolicies)
       .where(eq(expensePolicies.isActive, 1))
-      .orderBy(desc(expensePolicies.createdAt));
+      .orderBy(desc(expensePolicies.createdAt)).limit(1000);
   }),
 
   // 统计

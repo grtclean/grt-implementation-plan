@@ -14,7 +14,7 @@ export const workerRouter = router({
     search: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let items = await db.select().from(workers).orderBy(workers.name);
+    let items = await db.select().from(workers).orderBy(workers.name).limit(1000);
     if (input?.department) items = items.filter(w => w.department === input.department);
     if (input?.status) items = items.filter(w => w.status === input.status);
     if (input?.skillLevel) items = items.filter(w => w.skillLevel === input.skillLevel);
@@ -27,7 +27,7 @@ export const workerRouter = router({
 
   getWorkerRanking: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const items = await db.select().from(workers).where(eq(workers.status, "Active"));
+    const items = await db.select().from(workers).where(eq(workers.status, "Active")).limit(1000);
     const levels = ["L1", "L2", "L3", "L4", "L5"];
     const sorted = items.sort((a, b) => levels.indexOf(b.skillLevel || "L2") - levels.indexOf(a.skillLevel || "L2"));
     return sorted.map((w, i) => ({

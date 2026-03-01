@@ -9,7 +9,7 @@ const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : i
 export const migrationRouter = router({
   list: protectedProcedure.query(async () => {
     const db = await requireDb();
-    return await db.select().from(migrationTasks).orderBy(desc(migrationTasks.createdAt));
+    return await db.select().from(migrationTasks).orderBy(desc(migrationTasks.createdAt)).limit(1000);
   }),
 
   init: protectedProcedure.input(z.object({

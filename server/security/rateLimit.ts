@@ -177,7 +177,7 @@ export function createRateLimitMiddleware(config: RateLimitConfig) {
     }
     
     // 添加速率限制信息到响应头（如果支持）
-    if (ctx.res) {
+    if (ctx.res && typeof ctx.res.setHeader === 'function') {
       ctx.res.setHeader('X-RateLimit-Remaining', result.remaining.toString());
       ctx.res.setHeader('X-RateLimit-Reset', result.resetAt.toString());
     }

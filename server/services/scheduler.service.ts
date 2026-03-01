@@ -38,7 +38,6 @@ interface TaskExecutionResult {
 
 // 1. 每日任务提醒
 async function handleDailyTaskReminder(): Promise<TaskExecutionResult> {
-  console.log("[Scheduler] 执行每日任务提醒...");
   try {
     const result = await sendTaskReminderEmails();
     return {
@@ -56,7 +55,6 @@ async function handleDailyTaskReminder(): Promise<TaskExecutionResult> {
 
 // 2. 周项目进度汇总
 async function handleWeeklyProjectSummary(): Promise<TaskExecutionResult> {
-  console.log("[Scheduler] 执行周项目进度汇总...");
   const db = await requireDb();
   
   try {
@@ -151,7 +149,6 @@ async function handleWeeklyProjectSummary(): Promise<TaskExecutionResult> {
 
 // 3. 月成本报表生成
 async function handleMonthlyCostReport(): Promise<TaskExecutionResult> {
-  console.log("[Scheduler] 执行月成本报表生成...");
   const db = await requireDb();
   
   try {
@@ -207,7 +204,6 @@ async function handleMonthlyCostReport(): Promise<TaskExecutionResult> {
 
 // 4. 培训到期提醒
 async function handleTrainingExpiryReminder(): Promise<TaskExecutionResult> {
-  console.log("[Scheduler] 执行培训到期提醒...");
   const db = await requireDb();
   
   try {
@@ -294,7 +290,6 @@ async function handleTrainingExpiryReminder(): Promise<TaskExecutionResult> {
 
 // 5. 绩效评估提醒
 async function handlePerformanceReviewReminder(): Promise<TaskExecutionResult> {
-  console.log("[Scheduler] 执行绩效评估提醒...");
   const db = await requireDb();
   
   try {
@@ -369,7 +364,6 @@ async function handlePerformanceReviewReminder(): Promise<TaskExecutionResult> {
 
 // 6. 简道云组织架构同步
 async function handleJiandaoyunOrgSync(): Promise<TaskExecutionResult> {
-  console.log("[Scheduler] 执行简道云组织架构同步...");
   try {
     const scheduler = getJiandaoyunScheduler();
     const enabledTasks = await scheduler.getEnabledTasks();
@@ -642,8 +636,6 @@ export async function checkAndRunScheduledTasks(): Promise<{
         task.lastRun = new Date();
         task.nextRun = getNextRunTime(task.cronExpression);
         executed.push(task.name);
-        
-        console.log(`[Scheduler] 任务 ${task.name} 执行完成:`, result.message);
       } catch (error) {
         errors.push({
           task: task.name,
@@ -739,9 +731,6 @@ export function initScheduler(): void {
   // 每分钟检查一次是否有任务需要执行
   setInterval(async () => {
     const result = await checkAndRunScheduledTasks();
-    if (result.executed.length > 0) {
-      console.log(`[Scheduler] 已执行任务: ${result.executed.join(", ")}`);
-    }
     if (result.errors.length > 0) {
       console.error(`[Scheduler] 任务执行错误:`, result.errors);
     }

@@ -19,7 +19,7 @@ export const msaRouter = router({
     status: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let items = await db.select().from(msaStudies).orderBy(desc(msaStudies.updatedAt));
+    let items = await db.select().from(msaStudies).orderBy(desc(msaStudies.updatedAt)).limit(1000);
     if (input?.projectId) items = items.filter(s => s.projectId === input.projectId);
     if (input?.studyType) items = items.filter(s => s.studyType === input.studyType);
     if (input?.status) items = items.filter(s => s.status === input.status);
@@ -30,11 +30,11 @@ export const msaRouter = router({
   getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
-    const [study] = await db.select().from(msaStudies).where(eq(msaStudies.id, numId));
+    const [study] = await db.select().from(msaStudies).where(eq(msaStudies.id, numId)).limit(1000);
     if (!study) return null;
     const measurements = await db.select().from(msaMeasurements)
       .where(eq(msaMeasurements.studyId, numId))
-      .orderBy(msaMeasurements.operatorName, msaMeasurements.partNumber, msaMeasurements.trialNumber);
+      .orderBy(msaMeasurements.operatorName, msaMeasurements.partNumber, msaMeasurements.trialNumber).limit(1000);
     return { ...study, measurements };
   }),
 
@@ -157,11 +157,11 @@ export const msaRouter = router({
     studyId: z.number(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const [study] = await db.select().from(msaStudies).where(eq(msaStudies.id, input.studyId));
+    const [study] = await db.select().from(msaStudies).where(eq(msaStudies.id, input.studyId)).limit(1000);
     if (!study) return { success: false, message: "MSA研究不存在" };
 
     const measurements = await db.select().from(msaMeasurements)
-      .where(eq(msaMeasurements.studyId, input.studyId));
+      .where(eq(msaMeasurements.studyId, input.studyId)).limit(1000);
     if (measurements.length === 0) return { success: false, message: "无测量数据" };
 
     const values = measurements.map(m => Number(m.measuredValue));
@@ -231,7 +231,7 @@ export const msaRouter = router({
   // 统计
   getStats: protectedProcedure.input(z.object({ projectId: z.number().optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let studies = await db.select().from(msaStudies);
+    let studies = await db.select().from(msaStudies).limit(1000);
     if (input?.projectId) studies = studies.filter(s => s.projectId === input.projectId);
     return {
       total: studies.length,

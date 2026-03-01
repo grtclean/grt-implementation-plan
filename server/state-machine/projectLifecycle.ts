@@ -395,8 +395,6 @@ export const projectLifecycleMachine = createMachine({
   actions: {
     // 记录阶段进入日志
     logPhaseEntry: ({ context, event }) => {
-      console.log(`[StateMachine] Project ${context.projectId} entered phase, event:`, event.type);
-      
       // 发布状态变更事件
       eventBus.emit(Events.PROJECT_STATE_CHANGED, {
         projectId: context.projectId,
@@ -447,8 +445,7 @@ export const projectLifecycleMachine = createMachine({
       escalationLevel: ({ context, event }) => {
         if (event.type === 'TIMEOUT_ESCALATE') {
           const newLevel = context.escalationLevel + 1;
-          console.log(`[StateMachine] Escalation triggered for project ${context.projectId}, level: ${newLevel}`);
-          
+
           // TODO: 发送升级通知
           // notificationService.sendEscalation(context.projectId, newLevel);
           
@@ -461,9 +458,6 @@ export const projectLifecycleMachine = createMachine({
     // 处理回滚
     handleRollback: ({ context, event }) => {
       if (event.type === 'ROLLBACK') {
-        console.log(`[StateMachine] Rollback requested for project ${context.projectId} to state: ${event.data.targetState}`);
-        console.log(`[StateMachine] Rollback reason: ${event.data.reason}`);
-        
         // 记录回滚审计
         auditLogger.logStateTransition(
           context.projectId || 'unknown',
@@ -511,7 +505,6 @@ export const projectLifecycleMachine = createMachine({
     // M2: 冻结目标成本
     freezeTargetCost: assign({
       targetCost: ({ context }) => {
-        console.log(`[StateMachine] Freezing target cost: ${context.budget}`);
         return context.budget;
       }
     }),
@@ -519,7 +512,6 @@ export const projectLifecycleMachine = createMachine({
     // M2: 初始化应收账款
     initializeReceivables: ({ context, event }) => {
       if (event.type === 'CONTRACT_SIGNED') {
-        console.log(`[StateMachine] Initializing receivables: ${event.data.contractAmount}`);
         // TODO: 调用财务模块初始化应收
       }
     },
@@ -587,7 +579,6 @@ export const projectLifecycleMachine = createMachine({
 
     // M12: 生成复盘报告
     generateClosureReport: ({ context }) => {
-      console.log(`[StateMachine] Generating closure report for project ${context.projectId}`);
       const report = {
         projectId: context.projectId,
         projectName: context.projectName,
@@ -600,13 +591,11 @@ export const projectLifecycleMachine = createMachine({
         stateHistory: context.stateHistory,
         completedAt: new Date()
       };
-      console.log('[StateMachine] Closure report:', JSON.stringify(report, null, 2));
       // TODO: 存储到知识库
     },
 
     // M12: 归档项目
     archiveProject: ({ context }) => {
-      console.log(`[StateMachine] Archiving project ${context.projectId}`);
       // TODO: 调用归档服务
     }
   },
@@ -643,7 +632,6 @@ class InMemoryStorage implements StateMachineStorage {
 
   async save(projectId: string, state: any): Promise<void> {
     this.storage.set(projectId, JSON.stringify(state));
-    console.log(`[Storage] Saved state for project ${projectId}`);
   }
 
   async load(projectId: string): Promise<any | null> {
@@ -667,7 +655,6 @@ class InMemoryStorage implements StateMachineStorage {
 
     // 截断历史到目标点
     this.historyStorage.set(projectId, history.slice(0, targetIndex + 1));
-    console.log(`[Storage] Rolled back project ${projectId} to history ${historyId}`);
     return true;
   }
 }
@@ -714,7 +701,6 @@ export class TimeoutChecker {
     this.checkInterval = setInterval(() => {
       this.checkAllProjects();
     }, intervalMs);
-    console.log('[TimeoutChecker] Started');
   }
 
   stop(): void {
@@ -722,13 +708,11 @@ export class TimeoutChecker {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
     }
-    console.log('[TimeoutChecker] Stopped');
   }
 
   private async checkAllProjects(): Promise<void> {
     // TODO: 从数据库获取所有活跃项目
     // 检查每个项目是否超时
-    console.log('[TimeoutChecker] Checking all projects for timeout...');
   }
 
   checkProjectTimeout(context: ProjectContext, currentState: string): boolean {

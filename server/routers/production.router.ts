@@ -180,7 +180,7 @@ export const productionRouter = router({
       if (conditions.length === 0) throw new TRPCError({ code: 'BAD_REQUEST', message: '请提供id或orderCode' });
 
       const rows = await db.select().from(productionWorkOrders)
-        .where(conditions.length > 1 ? or(...conditions) : conditions[0]);
+        .where(conditions.length > 1 ? or(...conditions) : conditions[0]).limit(1000);
       if (rows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
       return mapWorkOrder(rows[0]);
     }),
@@ -214,7 +214,7 @@ export const productionRouter = router({
     .input(z.object({ id: z.number() }).merge(WorkOrderSchema.partial()))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id));
+      const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id)).limit(1000);
       if (existing.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
 
       const u: Record<string, unknown> = { updatedAt: new Date().toISOString() };
@@ -243,7 +243,7 @@ export const productionRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id));
+      const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id)).limit(1000);
       if (existing.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
 
       const wo = existing[0];
@@ -265,7 +265,7 @@ export const productionRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id));
+      const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id)).limit(1000);
       if (existing.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
 
       const wo = existing[0];
@@ -286,7 +286,7 @@ export const productionRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id));
+      const existing = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.id)).limit(1000);
       if (existing.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
       if (!['draft', 'cancelled'].includes(existing[0].status ?? ''))
         throw new TRPCError({ code: 'BAD_REQUEST', message: '只能删除草稿或已取消的工单' });
@@ -309,7 +309,7 @@ export const productionRouter = router({
       if (input?.checkType) conditions.push(eq(qcInspectionRecords.inspectionType, input.checkType));
       if (input?.result) conditions.push(eq(qcInspectionRecords.result, input.result));
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      const rows = await db.select().from(qcInspectionRecords).where(where).orderBy(desc(qcInspectionRecords.createdAt));
+      const rows = await db.select().from(qcInspectionRecords).where(where).orderBy(desc(qcInspectionRecords.createdAt)).limit(1000);
       return rows.map(mapQCRecord);
     }),
 
@@ -317,7 +317,7 @@ export const productionRouter = router({
     .input(QCRecordSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const woRows = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.workOrderId));
+      const woRows = await db.select().from(productionWorkOrders).where(eq(productionWorkOrders.id, input.workOrderId)).limit(1000);
       if (woRows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '工单不存在' });
 
       // Store count data in checklistItems JSON since DB doesn't have separate columns
@@ -405,7 +405,7 @@ export const productionRouter = router({
       if (input?.type) conditions.push(eq(productionEquipments.type, input.type));
       if (input?.location) conditions.push(eq(productionEquipments.location, input.location));
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      const rows = await db.select().from(productionEquipments).where(where).orderBy(productionEquipments.id);
+      const rows = await db.select().from(productionEquipments).where(where).orderBy(productionEquipments.id).limit(1000);
       return rows.map(mapEquipment);
     }),
 
@@ -418,7 +418,7 @@ export const productionRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const eqRows = await db.select().from(productionEquipments).where(eq(productionEquipments.id, input.id));
+      const eqRows = await db.select().from(productionEquipments).where(eq(productionEquipments.id, input.id)).limit(1000);
       if (eqRows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: '设备不存在' });
 
       const equipment = eqRows[0];

@@ -21,7 +21,7 @@ export const sopDbRouter = router({
     equipmentModel: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let items = await db.select().from(sopTemplates).orderBy(desc(sopTemplates.createdAt));
+    let items = await db.select().from(sopTemplates).orderBy(desc(sopTemplates.createdAt)).limit(1000);
     if (input?.category) items = items.filter(s => s.category === input.category);
     if (input?.status) {
       const isActive = input.status === "approved";
@@ -33,7 +33,7 @@ export const sopDbRouter = router({
   // 详情
   getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [sop] = await db.select().from(sopTemplates).where(eq(sopTemplates.id, toNum(input.id)));
+    const [sop] = await db.select().from(sopTemplates).where(eq(sopTemplates.id, toNum(input.id))).limit(1000);
     return sop || null;
   }),
 
@@ -106,7 +106,7 @@ export const sopDbRouter = router({
   // 搜索
   search: protectedProcedure.input(z.object({ query: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
-    const items = await db.select().from(sopTemplates);
+    const items = await db.select().from(sopTemplates).limit(1000);
     const q = input.query.toLowerCase();
     return items.filter(s =>
       s.title.toLowerCase().includes(q) ||
@@ -125,7 +125,7 @@ export const sopDbRouter = router({
   // 版本升级
   version: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const [sop] = await db.select().from(sopTemplates).where(eq(sopTemplates.id, input.id));
+    const [sop] = await db.select().from(sopTemplates).where(eq(sopTemplates.id, input.id)).limit(1000);
     if (!sop) return null;
     const currentVersion = parseFloat(sop.version || "1.0");
     const newVersion = (currentVersion + 0.1).toFixed(1);

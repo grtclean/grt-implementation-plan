@@ -12,14 +12,14 @@ export const reportTemplateRouter = router({
   // 报表模板列表
   list: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const items = await db.select().from(reportTemplates).orderBy(desc(reportTemplates.createdAt));
+    const items = await db.select().from(reportTemplates).orderBy(desc(reportTemplates.createdAt)).limit(1000);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   // 获取模板详情
   getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, toNum(input.id)));
+    const [item] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, toNum(input.id))).limit(1000);
     return item || null;
   }),
 
@@ -94,7 +94,7 @@ export const reportTemplateRouter = router({
     params: z.record(z.string(), z.unknown()).optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const [template] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, toNum(input.templateId)));
+    const [template] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, toNum(input.templateId))).limit(1000);
     if (!template) return { url: "" };
 
     await db.update(reportTemplates)
@@ -107,7 +107,7 @@ export const reportTemplateRouter = router({
   // 导出模板（前端以 useQuery 调用）
   export: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [template] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, toNum(input.id)));
+    const [template] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, toNum(input.id))).limit(1000);
     if (!template) return { data: "" };
     return { data: JSON.stringify(template) };
   }),
@@ -178,7 +178,7 @@ export const reportTemplateRouter = router({
 
     if (!sourceId || isNaN(sourceId)) return { success: false, message: "无效的分享数据" };
 
-    const [source] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, sourceId));
+    const [source] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, sourceId)).limit(1000);
     if (!source) return { success: false, message: "分享模板不存在" };
 
     const [template] = await db.insert(reportTemplates).values({
@@ -216,13 +216,13 @@ export const reportTemplateRouter = router({
     const db = await requireDb();
     return await db.select().from(reportTemplates)
       .where(eq(reportTemplates.isPublic, 1))
-      .orderBy(desc(reportTemplates.usageCount));
+      .orderBy(desc(reportTemplates.usageCount)).limit(1000);
   }),
 
   // 获取分享数据
   getShareData: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [template] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, toNum(input.id)));
+    const [template] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, toNum(input.id))).limit(1000);
     if (!template || template.isPublic !== 1) return { data: null };
     return { data: template };
   }),

@@ -74,12 +74,12 @@ export const expenseReportRouter = router({
     const id = parseInt(input.id);
     await assertClaimOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
 
-    const [claim] = await db.select().from(expenseClaims).where(eq(expenseClaims.id, id));
+    const [claim] = await db.select().from(expenseClaims).where(eq(expenseClaims.id, id)).limit(1000);
     if (!claim) return null;
 
     const lineItems = await db.select().from(expenseLineItems)
       .where(eq(expenseLineItems.expenseClaimId, id))
-      .orderBy(expenseLineItems.lineNumber);
+      .orderBy(expenseLineItems.lineNumber).limit(1000);
 
     return { ...claim, lineItems };
   }),

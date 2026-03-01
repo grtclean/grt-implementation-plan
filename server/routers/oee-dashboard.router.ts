@@ -238,7 +238,7 @@ export const oeeDashboardRouter = router({
       const db = await requireDb();
       // BU isolation: filter machines by user's BU
       const buFilter = buScopeCondition(productionEquipments.buCode, ctx);
-      const machines = await db.select().from(productionEquipments).where(buFilter ?? undefined);
+      const machines = await db.select().from(productionEquipments).where(buFilter ?? undefined).limit(1000);
       if (!machines.length) return null;
 
       const entries: MachineDashboardEntry[] = [];

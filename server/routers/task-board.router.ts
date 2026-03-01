@@ -43,7 +43,7 @@ export const taskBoardRouter = router({
     assigneeId: z.number().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let items = await db.select().from(projectTasks).orderBy(projectTasks.priority);
+    let items = await db.select().from(projectTasks).orderBy(projectTasks.priority).limit(1000);
     if (input?.projectId) items = items.filter(t => t.projectId === input.projectId);
     if (input?.assigneeId) items = items.filter(t => t.assigneeId === input.assigneeId);
 
@@ -59,14 +59,14 @@ export const taskBoardRouter = router({
   // 获取任务详情
   getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [task] = await db.select().from(projectTasks).where(eq(projectTasks.id, toNum(input.id)));
+    const [task] = await db.select().from(projectTasks).where(eq(projectTasks.id, toNum(input.id))).limit(1000);
     if (!task) return null;
     // Get project info
     const [project] = task.projectId
       ? await db.select({ name: projects.name, projectCode: projects.projectCode }).from(projects).where(eq(projects.id, task.projectId))
       : [null];
     // Get subtasks
-    const subtasks = await db.select().from(projectTasks).where(eq(projectTasks.parentTaskId, task.id));
+    const subtasks = await db.select().from(projectTasks).where(eq(projectTasks.parentTaskId, task.id)).limit(1000);
     return { ...task, project, subtasks };
   }),
 
@@ -158,7 +158,7 @@ export const taskBoardRouter = router({
     const db = await requireDb();
     // QMS Safety Guard: field_service tasks require safety checklist before completion
     if (input.status === "done") {
-      const [task] = await db.select().from(projectTasks).where(eq(projectTasks.id, toNum(input.id)));
+      const [task] = await db.select().from(projectTasks).where(eq(projectTasks.id, toNum(input.id))).limit(1000);
       if (task?.taskCategory === "field_service" && !task.safetyChecklistCompleted) {
         throw new Error("现场服务任务关闭前必须完成安全检查清单");
       }
@@ -208,7 +208,7 @@ export const taskBoardRouter = router({
     assigneeId: z.number().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let tasks = await db.select().from(projectTasks);
+    let tasks = await db.select().from(projectTasks).limit(1000);
     if (input?.projectId) tasks = tasks.filter(t => t.projectId === input.projectId);
     if (input?.assigneeId) tasks = tasks.filter(t => t.assigneeId === input.assigneeId);
 
@@ -253,7 +253,7 @@ export const taskBoardRouter = router({
     const db = await requireDb();
     let tasks = await db.select().from(projectTasks)
       .where(eq(projectTasks.assigneeId, input.assigneeId))
-      .orderBy(projectTasks.priority);
+      .orderBy(projectTasks.priority).limit(1000);
     if (input.status) tasks = tasks.filter(t => t.status === input.status);
     return tasks;
   }),

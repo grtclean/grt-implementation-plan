@@ -211,7 +211,7 @@ export const aiAssistantRouter = router({
     }),
 
   createAssistant: protectedProcedure
-    .input(z.any())
+    .input(z.record(z.string(), z.unknown()).optional())
     .mutation(async () => {
       return { success: true, id: `ast_${Date.now()}` };
     }),

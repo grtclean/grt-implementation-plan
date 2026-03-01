@@ -94,7 +94,7 @@ export const plmRouter = router({
     if (scopedIds) {
       conditions.push(inArray(plmDocuments.projectId, scopedIds.length > 0 ? scopedIds : [0]));
     }
-    const [doc] = await db.select().from(plmDocuments).where(and(...conditions));
+    const [doc] = await db.select().from(plmDocuments).where(and(...conditions)).limit(1000);
     if (!doc) return null;
 
     // Fetch version history + ALL reviews for the document in parallel
@@ -201,7 +201,7 @@ export const plmRouter = router({
     const db = await requireDb();
     const items = await db.select().from(plmDocumentVersions)
       .where(eq(plmDocumentVersions.documentId, toNum(input.documentId)))
-      .orderBy(desc(plmDocumentVersions.versionMajor), desc(plmDocumentVersions.versionMinor));
+      .orderBy(desc(plmDocumentVersions.versionMajor), desc(plmDocumentVersions.versionMinor)).limit(1000);
     return { items, total: items.length };
   }),
 
@@ -335,7 +335,7 @@ export const plmRouter = router({
     }
 
     const docs = await db.select().from(plmDocuments)
-      .where(eq(plmDocuments.projectId, projectId));
+      .where(eq(plmDocuments.projectId, projectId)).limit(1000);
 
     const byType: Record<string, number> = {};
     const byStatus: Record<string, number> = {};

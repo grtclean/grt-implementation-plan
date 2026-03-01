@@ -19,7 +19,7 @@ export const safetyRuleRouter = router({
     isActive: z.boolean().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let items = await db.select().from(safetyRules).orderBy(safetyRules.ruleCode);
+    let items = await db.select().from(safetyRules).orderBy(safetyRules.ruleCode).limit(1000);
     if (input?.category) items = items.filter(r => r.category === input.category);
     if (input?.materialType) items = items.filter(r => r.materialType === input.materialType);
     if (input?.isActive !== undefined) items = items.filter(r => r.isActive === (input.isActive ? 1 : 0));
@@ -29,7 +29,7 @@ export const safetyRuleRouter = router({
   // 详情
   getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [rule] = await db.select().from(safetyRules).where(eq(safetyRules.id, toNum(input.id)));
+    const [rule] = await db.select().from(safetyRules).where(eq(safetyRules.id, toNum(input.id))).limit(1000);
     return rule || null;
   }),
 
@@ -113,7 +113,7 @@ export const safetyRuleRouter = router({
     })),
   })).query(async ({ input }) => {
     const db = await requireDb();
-    const rules = await db.select().from(safetyRules).where(eq(safetyRules.isActive, 1));
+    const rules = await db.select().from(safetyRules).where(eq(safetyRules.isActive, 1)).limit(1000);
 
     const violations: Array<{
       ruleCode: string;
@@ -259,7 +259,7 @@ export const safetyRuleRouter = router({
   // 统计
   getStats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const rules = await db.select().from(safetyRules);
+    const rules = await db.select().from(safetyRules).limit(1000);
     return {
       total: rules.length,
       active: rules.filter(r => r.isActive === 1).length,

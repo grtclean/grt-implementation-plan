@@ -22,7 +22,7 @@ export const communityRouter = router({
   // 获取成员详情
   getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
-    const [member] = await db.select().from(communityMembers).where(eq(communityMembers.id, parseInt(input.id)));
+    const [member] = await db.select().from(communityMembers).where(eq(communityMembers.id, parseInt(input.id))).limit(1000);
     return member || null;
   }),
 
@@ -177,7 +177,7 @@ export const communityRouter = router({
     const db = await requireDb();
     return await db.select().from(contentLibrary)
       .where(eq(contentLibrary.approvalStatus, "draft"))
-      .orderBy(desc(contentLibrary.createdAt));
+      .orderBy(desc(contentLibrary.createdAt)).limit(1000);
   }),
 
   // 审核内容
@@ -201,7 +201,7 @@ export const communityRouter = router({
   // 敏感词列表
   getSensitiveWords: protectedProcedure.query(async () => {
     const db = await requireDb();
-    return await db.select().from(sensitiveWords).where(eq(sensitiveWords.isActive, 1)).orderBy(desc(sensitiveWords.createdAt));
+    return await db.select().from(sensitiveWords).where(eq(sensitiveWords.isActive, 1)).orderBy(desc(sensitiveWords.createdAt)).limit(1000);
   }),
 
   // 添加敏感词
@@ -248,7 +248,7 @@ export const communityRouter = router({
         eq(communityMessages.direction, "outbound"),
         eq(communityMessages.approvalStatus, "pending"),
       ))
-      .orderBy(desc(communityMessages.createdAt));
+      .orderBy(desc(communityMessages.createdAt)).limit(1000);
   }),
 
   // 审核外发消息

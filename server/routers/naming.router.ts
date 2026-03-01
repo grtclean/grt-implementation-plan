@@ -33,7 +33,7 @@ export const namingRouter = router({
   // 获取命名版本详情
   getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(namingVersions).where(eq(namingVersions.id, parseInt(input.id)));
+    const [item] = await db.select().from(namingVersions).where(eq(namingVersions.id, parseInt(input.id))).limit(1000);
     return item || null;
   }),
 
@@ -102,7 +102,7 @@ export const namingRouter = router({
     const db = await requireDb();
     if (input.prefix) {
       const [counter] = await db.select().from(projectNumberCounters)
-        .where(eq(projectNumberCounters.prefix, input.prefix));
+        .where(eq(projectNumberCounters.prefix, input.prefix)).limit(1000);
       if (counter) {
         return { name: `${input.prefix}${counter.nextAvailable.toString().padStart(counter.formatDigits, "0")}` };
       }
@@ -115,7 +115,7 @@ export const namingRouter = router({
     getCounter: protectedProcedure.input(z.object({ prefix: z.string() })).query(async ({ input }) => {
       const db = await requireDb();
       const [counter] = await db.select().from(projectNumberCounters)
-        .where(eq(projectNumberCounters.prefix, input.prefix));
+        .where(eq(projectNumberCounters.prefix, input.prefix)).limit(1000);
       if (counter) {
         return {
           prefix: counter.prefix,
@@ -135,7 +135,7 @@ export const namingRouter = router({
 
     getConversionHistory: protectedProcedure.query(async () => {
       const db = await requireDb();
-      const history = await db.select().from(projectConversionHistory).orderBy(desc(projectConversionHistory.createdAt));
+      const history = await db.select().from(projectConversionHistory).orderBy(desc(projectConversionHistory.createdAt)).limit(1000);
       return history.map(h => ({
         id: h.id.toString(),
         tempProjectCode: h.tempProjectCode,
@@ -165,7 +165,7 @@ export const namingRouter = router({
     generateNext: protectedProcedure.input(z.object({ prefix: z.string() })).mutation(async ({ input }) => {
       const db = await requireDb();
       const [counter] = await db.select().from(projectNumberCounters)
-        .where(eq(projectNumberCounters.prefix, input.prefix));
+        .where(eq(projectNumberCounters.prefix, input.prefix)).limit(1000);
 
       if (counter) {
         const nextNum = counter.nextAvailable;
@@ -209,11 +209,11 @@ export const namingRouter = router({
   changeRequests: router({
     list: protectedProcedure.input(z.object({ status: z.string() }).optional()).query(async ({ input }) => {
       const db = await requireDb();
-      let query = db.select().from(namingChangeRequests).orderBy(desc(namingChangeRequests.requestDate));
+      let query = db.select().from(namingChangeRequests).orderBy(desc(namingChangeRequests.requestDate)).limit(1000);
       if (input?.status) {
         const rows = await db.select().from(namingChangeRequests)
           .where(eq(namingChangeRequests.status, input.status as "pending"))
-          .orderBy(desc(namingChangeRequests.requestDate));
+          .orderBy(desc(namingChangeRequests.requestDate)).limit(1000);
         return rows.map(r => ({
           id: r.id.toString(),
           requestCode: r.requestCode,
@@ -297,9 +297,9 @@ export const namingRouter = router({
       if (input?.search) {
         rows = await db.select().from(equipmentModels)
           .where(sql`${equipmentModels.fullName} ILIKE ${"%" + input.search + "%"} OR ${equipmentModels.chineseName} ILIKE ${"%" + input.search + "%"}`)
-          .orderBy(desc(equipmentModels.createdAt));
+          .orderBy(desc(equipmentModels.createdAt)).limit(1000);
       } else {
-        rows = await db.select().from(equipmentModels).orderBy(desc(equipmentModels.createdAt));
+        rows = await db.select().from(equipmentModels).orderBy(desc(equipmentModels.createdAt)).limit(1000);
       }
       return rows.map(r => ({
         id: r.id.toString(),
@@ -357,7 +357,7 @@ export const namingRouter = router({
   approvers: router({
     list: protectedProcedure.query(async () => {
       const db = await requireDb();
-      const rows = await db.select().from(namingRuleApprovers).orderBy(desc(namingRuleApprovers.createdAt));
+      const rows = await db.select().from(namingRuleApprovers).orderBy(desc(namingRuleApprovers.createdAt)).limit(1000);
       return rows.map(r => ({
         id: r.id.toString(),
         userId: r.userId,
@@ -398,7 +398,7 @@ export const namingRouter = router({
   versions: router({
     list: protectedProcedure.query(async () => {
       const db = await requireDb();
-      const rows = await db.select().from(namingVersions).orderBy(desc(namingVersions.createdAt));
+      const rows = await db.select().from(namingVersions).orderBy(desc(namingVersions.createdAt)).limit(1000);
       return rows.map(r => ({
         id: r.id.toString(),
         versionCode: r.versionCode,

@@ -64,7 +64,7 @@ export const concurrentCommandRouter = router({
 
   listSandboxes: protectedProcedure.query(async () => {
     const db = await requireDb();
-    return db.select().from(cccSandboxes).orderBy(cccSandboxes.id);
+    return db.select().from(cccSandboxes).orderBy(cccSandboxes.id).limit(1000);
   }),
 
   updateSandboxStatus: protectedProcedure
@@ -132,7 +132,7 @@ export const concurrentCommandRouter = router({
 
   listRooms: protectedProcedure.query(async () => {
     const db = await requireDb();
-    return db.select().from(cccRooms).orderBy(cccRooms.id);
+    return db.select().from(cccRooms).orderBy(cccRooms.id).limit(1000);
   }),
 
   claimRoom: protectedProcedure
@@ -205,7 +205,7 @@ export const concurrentCommandRouter = router({
 
   generateCommissioningReport: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const rooms = await db.select().from(cccRooms).orderBy(cccRooms.id);
+    const rooms = await db.select().from(cccRooms).orderBy(cccRooms.id).limit(1000);
 
     const totalCount = rooms.length;
     const passedCount = rooms.filter((r) => r.testStatus === "PASSED").length;
@@ -459,12 +459,12 @@ export const concurrentCommandRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id));
+      const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id)).limit(1000);
       if (!imp) throw new Error("Improvement not found");
 
       const updates = await db.select().from(cccImprovementUpdates)
         .where(eq(cccImprovementUpdates.improvementId, input.id))
-        .orderBy(cccImprovementUpdates.createdAt);
+        .orderBy(cccImprovementUpdates.createdAt).limit(1000);
 
       return { ...imp, updates };
     }),
@@ -501,7 +501,7 @@ export const concurrentCommandRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
-      const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id));
+      const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id)).limit(1000);
       if (!imp) throw new Error("Improvement not found");
       if (!["submitted", "assigned", "in_progress"].includes(imp.status)) {
         throw new Error(`Cannot update progress: status is "${imp.status}"`);
@@ -548,7 +548,7 @@ export const concurrentCommandRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
-      const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id));
+      const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id)).limit(1000);
       if (!imp) throw new Error("Improvement not found");
 
       const now = new Date().toISOString();
@@ -588,7 +588,7 @@ export const concurrentCommandRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
-      const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id));
+      const [imp] = await db.select().from(cccImprovements).where(eq(cccImprovements.id, input.id)).limit(1000);
       if (!imp) throw new Error("Improvement not found");
 
       const now = new Date().toISOString();

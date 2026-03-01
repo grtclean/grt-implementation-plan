@@ -51,7 +51,8 @@ export default function KioskQrConfirm() {
   // Auto-focus input
   useEffect(() => {
     if (sessionValid && !success) {
-      setTimeout(() => inputRef.current?.focus(), 200);
+      const timer = setTimeout(() => inputRef.current?.focus(), 200);
+      return () => clearTimeout(timer);
     }
   }, [sessionValid, success]);
 

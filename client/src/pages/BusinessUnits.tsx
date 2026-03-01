@@ -231,7 +231,7 @@ export default function BusinessUnits() {
                           <CardContent className="pt-6">
                             <div className="text-sm text-muted-foreground">收入达成率</div>
                             <div className="text-2xl font-bold mt-2">
-                              {performance.data[0].revenueAchievementRate || 0}%
+                              {performance.data?.[0]?.revenueAchievementRate ?? 0}%
                             </div>
                           </CardContent>
                         </Card>
@@ -240,7 +240,7 @@ export default function BusinessUnits() {
                           <CardContent className="pt-6">
                             <div className="text-sm text-muted-foreground">按时交付率</div>
                             <div className="text-2xl font-bold mt-2">
-                              {performance.data[0].deliveryOnTimeRate || 0}%
+                              {performance.data?.[0]?.deliveryOnTimeRate ?? 0}%
                             </div>
                           </CardContent>
                         </Card>
@@ -249,7 +249,7 @@ export default function BusinessUnits() {
                           <CardContent className="pt-6">
                             <div className="text-sm text-muted-foreground">质量评分</div>
                             <div className="text-2xl font-bold mt-2">
-                              {performance.data[0].qualityScore || 0}分
+                              {performance.data?.[0]?.qualityScore ?? 0}分
                             </div>
                           </CardContent>
                         </Card>
@@ -258,7 +258,7 @@ export default function BusinessUnits() {
                           <CardContent className="pt-6">
                             <div className="text-sm text-muted-foreground">客户满意度</div>
                             <div className="text-2xl font-bold mt-2">
-                              {performance.data[0].customerSatisfaction || 0}分
+                              {performance.data?.[0]?.customerSatisfaction ?? 0}分
                             </div>
                           </CardContent>
                         </Card>
@@ -267,7 +267,7 @@ export default function BusinessUnits() {
                           <CardContent className="pt-6">
                             <div className="text-sm text-muted-foreground">成本差异率</div>
                             <div className="text-2xl font-bold mt-2">
-                              {performance.data[0].costVarianceRate || 0}%
+                              {performance.data?.[0]?.costVarianceRate ?? 0}%
                             </div>
                           </CardContent>
                         </Card>
@@ -276,7 +276,7 @@ export default function BusinessUnits() {
                           <CardContent className="pt-6">
                             <div className="text-sm text-muted-foreground">综合评分</div>
                             <div className="text-2xl font-bold mt-2">
-                              {performance.data[0].overallScore || 0}
+                              {performance.data?.[0]?.overallScore ?? 0}
                             </div>
                           </CardContent>
                         </Card>

@@ -54,7 +54,7 @@ export const vaultRouter = router({
   getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [file] = await db.select().from(grtVaultFiles)
-      .where(eq(grtVaultFiles.id, toNum(input.id)));
+      .where(eq(grtVaultFiles.id, toNum(input.id))).limit(1000);
     return file ?? null;
   }),
 
@@ -83,7 +83,7 @@ export const vaultRouter = router({
   checkin: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [file] = await db.select().from(grtVaultFiles)
-      .where(eq(grtVaultFiles.id, toNum(input.id)));
+      .where(eq(grtVaultFiles.id, toNum(input.id))).limit(1000);
 
     if (!file) throw new Error(`Vault file not found: id=${input.id}`);
 

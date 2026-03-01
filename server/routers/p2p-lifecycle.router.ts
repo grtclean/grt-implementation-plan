@@ -70,7 +70,7 @@ const frameworkAgreementRouter = router({
       if (buFilter) conditions.push(buFilter);
 
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      let items = await db.select().from(frameworkAgreements).where(where).orderBy(desc(frameworkAgreements.createdAt));
+      let items = await db.select().from(frameworkAgreements).where(where).orderBy(desc(frameworkAgreements.createdAt)).limit(1000);
       if (input?.supplierId) items = items.filter(i => i.supplierId === input.supplierId);
       if (input?.status) items = items.filter(i => i.status === input.status);
       return { items, total: items.length };
@@ -78,7 +78,7 @@ const frameworkAgreementRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(frameworkAgreements).where(eq(frameworkAgreements.id, toNum(input.id)));
+    const [item] = await db.select().from(frameworkAgreements).where(eq(frameworkAgreements.id, toNum(input.id))).limit(1000);
     if (!item) throw new Error("框架协议不存在");
     return item;
   }),
@@ -159,7 +159,7 @@ const rfqRouter = router({
       // BU isolation
       const buFilter = p2pBuFilter(rfqEvents.buCode, ctx);
       const where = buFilter ? buFilter : undefined;
-      let items = await db.select().from(rfqEvents).where(where).orderBy(desc(rfqEvents.createdAt));
+      let items = await db.select().from(rfqEvents).where(where).orderBy(desc(rfqEvents.createdAt)).limit(1000);
       if (input?.status) items = items.filter(i => i.status === input.status);
       if (input?.materialCode) items = items.filter(i => i.materialCode === input.materialCode);
       return { items, total: items.length };
@@ -167,7 +167,7 @@ const rfqRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(rfqEvents).where(eq(rfqEvents.id, toNum(input.id)));
+    const [item] = await db.select().from(rfqEvents).where(eq(rfqEvents.id, toNum(input.id))).limit(1000);
     if (!item) throw new Error("询价事件不存在");
     return item;
   }),
@@ -219,7 +219,7 @@ const rfqRouter = router({
       const db = await requireDb();
       const quotes = await db.select().from(rfqSupplierQuotes)
         .where(eq(rfqSupplierQuotes.rfqEventId, toNum(input.rfqEventId)))
-        .orderBy(rfqSupplierQuotes.rank);
+        .orderBy(rfqSupplierQuotes.rank).limit(1000);
       return quotes;
     }),
 
@@ -300,7 +300,7 @@ const rfqRouter = router({
         .where(eq(rfqSupplierQuotes.id, input.quoteId));
       // Reject others
       const allQuotes = await db.select().from(rfqSupplierQuotes)
-        .where(eq(rfqSupplierQuotes.rfqEventId, input.rfqEventId));
+        .where(eq(rfqSupplierQuotes.rfqEventId, input.rfqEventId)).limit(1000);
       for (const q of allQuotes) {
         if (q.id !== input.quoteId) {
           await db.update(rfqSupplierQuotes)
@@ -315,8 +315,8 @@ const rfqRouter = router({
       // Optionally create PO
       let poId: number | undefined;
       if (input.createPo) {
-        const [rfq] = await db.select().from(rfqEvents).where(eq(rfqEvents.id, input.rfqEventId));
-        const [quote] = await db.select().from(rfqSupplierQuotes).where(eq(rfqSupplierQuotes.id, input.quoteId));
+        const [rfq] = await db.select().from(rfqEvents).where(eq(rfqEvents.id, input.rfqEventId)).limit(1000);
+        const [quote] = await db.select().from(rfqSupplierQuotes).where(eq(rfqSupplierQuotes.id, input.quoteId)).limit(1000);
         if (rfq && quote) {
           const [po] = await db.insert(purchaseOrders).values({
             poNumber: generateCode("PO"),
@@ -359,7 +359,7 @@ const deliveryRouter = router({
       // BU isolation
       const buFilter = p2pBuFilter(deliveryRegistrations.buCode, ctx);
       const where = buFilter ? buFilter : undefined;
-      let items = await db.select().from(deliveryRegistrations).where(where).orderBy(desc(deliveryRegistrations.createdAt));
+      let items = await db.select().from(deliveryRegistrations).where(where).orderBy(desc(deliveryRegistrations.createdAt)).limit(1000);
       if (input?.supplierId) items = items.filter(i => i.supplierId === input.supplierId);
       if (input?.status) items = items.filter(i => i.status === input.status);
       if (input?.poNumber) items = items.filter(i => i.poNumber === input.poNumber);
@@ -368,7 +368,7 @@ const deliveryRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(deliveryRegistrations).where(eq(deliveryRegistrations.id, toNum(input.id)));
+    const [item] = await db.select().from(deliveryRegistrations).where(eq(deliveryRegistrations.id, toNum(input.id))).limit(1000);
     if (!item) throw new Error("到货登记不存在");
     return item;
   }),
@@ -463,7 +463,7 @@ const supplierReportRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      let items = await db.select().from(supplierReportSubmissions).orderBy(desc(supplierReportSubmissions.submittedAt));
+      let items = await db.select().from(supplierReportSubmissions).orderBy(desc(supplierReportSubmissions.submittedAt)).limit(1000);
       if (input?.supplierId) items = items.filter(i => i.supplierId === input.supplierId);
       if (input?.documentType) items = items.filter(i => i.documentType === input.documentType);
       if (input?.verificationStatus) items = items.filter(i => i.verificationStatus === input.verificationStatus);
@@ -520,7 +520,7 @@ const paymentRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      let items = await db.select().from(paymentWorkflows).orderBy(desc(paymentWorkflows.createdAt));
+      let items = await db.select().from(paymentWorkflows).orderBy(desc(paymentWorkflows.createdAt)).limit(1000);
       if (input?.supplierId) items = items.filter(i => i.supplierId === input.supplierId);
       if (input?.status) items = items.filter(i => i.status === input.status);
       if (input?.currentStep) items = items.filter(i => i.currentStep === input.currentStep);
@@ -529,7 +529,7 @@ const paymentRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(paymentWorkflows).where(eq(paymentWorkflows.id, toNum(input.id)));
+    const [item] = await db.select().from(paymentWorkflows).where(eq(paymentWorkflows.id, toNum(input.id))).limit(1000);
     if (!item) throw new Error("付款工作流不存在");
     return item;
   }),
@@ -558,7 +558,7 @@ const paymentRouter = router({
 
   checkPaymentTerm: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
-    const [wf] = await db.select().from(paymentWorkflows).where(eq(paymentWorkflows.id, toNum(input.id)));
+    const [wf] = await db.select().from(paymentWorkflows).where(eq(paymentWorkflows.id, toNum(input.id))).limit(1000);
     if (!wf) throw new Error("工作流不存在");
     const isExpired = wf.paymentDueDate ? new Date(wf.paymentDueDate) <= new Date() : false;
     const [item] = await db.update(paymentWorkflows)
@@ -651,7 +651,7 @@ const paymentRouter = router({
       const db = await requireDb();
       const now = new Date().toISOString();
       // Calculate net payment (deduct quality losses)
-      const [wf] = await db.select().from(paymentWorkflows).where(eq(paymentWorkflows.id, toNum(input.id)));
+      const [wf] = await db.select().from(paymentWorkflows).where(eq(paymentWorkflows.id, toNum(input.id))).limit(1000);
       const net = Number(wf?.paymentAmount || 0) - Number(wf?.qualityDeductionAmount || 0);
       const [item] = await db.update(paymentWorkflows)
         .set({
@@ -671,7 +671,7 @@ const paymentRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
-      const all = await db.select().from(paymentWorkflows);
+      const all = await db.select().from(paymentWorkflows).limit(1000);
       const wf = all.find(w => w.supplierConfirmToken === input.token);
       if (!wf) throw new Error("无效的确认令牌");
       if (wf.supplierConfirmedAt) throw new Error("已确认，无需重复操作");
@@ -710,7 +710,7 @@ const smallValueRouter = router({
     .input(z.object({ status: z.string().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      let items = await db.select().from(smallValueProcurements).orderBy(desc(smallValueProcurements.createdAt));
+      let items = await db.select().from(smallValueProcurements).orderBy(desc(smallValueProcurements.createdAt)).limit(1000);
       if (input?.status) items = items.filter(i => i.status === input.status);
       return { items, total: items.length };
     }),
@@ -815,7 +815,7 @@ const qualificationRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      let items = await db.select().from(supplierQualifications).orderBy(desc(supplierQualifications.createdAt));
+      let items = await db.select().from(supplierQualifications).orderBy(desc(supplierQualifications.createdAt)).limit(1000);
       if (input?.supplierId) items = items.filter(i => i.supplierId === input.supplierId);
       if (input?.qualificationType) items = items.filter(i => i.qualificationType === input.qualificationType);
       if (input?.overallResult) items = items.filter(i => i.overallResult === input.overallResult);
@@ -825,7 +825,7 @@ const qualificationRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(supplierQualifications).where(eq(supplierQualifications.id, toNum(input.id)));
+    const [item] = await db.select().from(supplierQualifications).where(eq(supplierQualifications.id, toNum(input.id))).limit(1000);
     if (!item) throw new Error("资格记录不存在");
     return item;
   }),
@@ -890,7 +890,7 @@ const qualificationRouter = router({
       const db = await requireDb();
       const items = await db.select().from(supplierQualifications)
         .where(eq(supplierQualifications.supplierId, input.supplierId))
-        .orderBy(desc(supplierQualifications.createdAt));
+        .orderBy(desc(supplierQualifications.createdAt)).limit(1000);
       return items;
     }),
 
@@ -898,7 +898,7 @@ const qualificationRouter = router({
     const db = await requireDb();
     const today = new Date().toISOString().split("T")[0];
     const thirtyDaysLater = new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
-    const items = await db.select().from(supplierQualifications);
+    const items = await db.select().from(supplierQualifications).limit(1000);
     const expiring = items.filter(i => i.validUntil && i.validUntil >= today && i.validUntil <= thirtyDaysLater);
     const expired = items.filter(i => i.validUntil && i.validUntil < today);
     return { expiring, expired };
@@ -916,7 +916,7 @@ const qualityLossAgreementRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      let items = await db.select().from(qualityLossAgreements).orderBy(desc(qualityLossAgreements.createdAt));
+      let items = await db.select().from(qualityLossAgreements).orderBy(desc(qualityLossAgreements.createdAt)).limit(1000);
       if (input?.supplierId) items = items.filter(i => i.supplierId === input.supplierId);
       if (input?.status) items = items.filter(i => i.status === input.status);
       return { items, total: items.length };
@@ -924,7 +924,7 @@ const qualityLossAgreementRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(qualityLossAgreements).where(eq(qualityLossAgreements.id, toNum(input.id)));
+    const [item] = await db.select().from(qualityLossAgreements).where(eq(qualityLossAgreements.id, toNum(input.id))).limit(1000);
     if (!item) throw new Error("质量损失协议不存在");
     return item;
   }),
@@ -996,7 +996,7 @@ const qualityLossIncidentRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      let items = await db.select().from(qualityLossIncidents).orderBy(desc(qualityLossIncidents.createdAt));
+      let items = await db.select().from(qualityLossIncidents).orderBy(desc(qualityLossIncidents.createdAt)).limit(1000);
       if (input?.supplierId) items = items.filter(i => i.supplierId === input.supplierId);
       if (input?.qualityLossAgreementId) items = items.filter(i => i.qualityLossAgreementId === input.qualityLossAgreementId);
       if (input?.status) items = items.filter(i => i.status === input.status);
@@ -1006,7 +1006,7 @@ const qualityLossIncidentRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(qualityLossIncidents).where(eq(qualityLossIncidents.id, toNum(input.id)));
+    const [item] = await db.select().from(qualityLossIncidents).where(eq(qualityLossIncidents.id, toNum(input.id))).limit(1000);
     if (!item) throw new Error("质量损失事件不存在");
     return item;
   }),
@@ -1033,11 +1033,11 @@ const qualityLossIncidentRouter = router({
       // Check if cumulative losses exceed threshold
       if (input.qualityLossAgreementId) {
         const [agreement] = await db.select().from(qualityLossAgreements)
-          .where(eq(qualityLossAgreements.id, input.qualityLossAgreementId));
+          .where(eq(qualityLossAgreements.id, input.qualityLossAgreementId)).limit(1000);
         if (agreement) {
           // Sum all existing losses for this agreement
           const existingIncidents = await db.select().from(qualityLossIncidents)
-            .where(eq(qualityLossIncidents.qualityLossAgreementId, input.qualityLossAgreementId));
+            .where(eq(qualityLossIncidents.qualityLossAgreementId, input.qualityLossAgreementId)).limit(1000);
           const cumulativeLoss = existingIncidents.reduce((sum, i) => sum + Number(i.lossAmount || 0), 0) + Number(input.lossAmount);
           const threshold = Number(agreement.qualityLossThreshold || 0);
           if (threshold > 0 && cumulativeLoss > threshold) {
@@ -1081,10 +1081,10 @@ const qualityLossIncidentRouter = router({
       const db = await requireDb();
       const now = new Date().toISOString();
       // Get incident
-      const [incident] = await db.select().from(qualityLossIncidents).where(eq(qualityLossIncidents.id, toNum(input.id)));
+      const [incident] = await db.select().from(qualityLossIncidents).where(eq(qualityLossIncidents.id, toNum(input.id))).limit(1000);
       if (!incident) throw new Error("事件不存在");
       // Update payment workflow deduction
-      const [wf] = await db.select().from(paymentWorkflows).where(eq(paymentWorkflows.id, input.paymentWorkflowId));
+      const [wf] = await db.select().from(paymentWorkflows).where(eq(paymentWorkflows.id, input.paymentWorkflowId)).limit(1000);
       if (wf) {
         const newDeduction = Number(wf.qualityDeductionAmount || 0) + Number(incident.penaltyAmount || 0);
         await db.update(paymentWorkflows)
@@ -1107,7 +1107,7 @@ const qualityLossIncidentRouter = router({
     .input(z.object({ supplierId: z.number().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      let items = await db.select().from(qualityLossIncidents);
+      let items = await db.select().from(qualityLossIncidents).limit(1000);
       if (input?.supplierId) items = items.filter(i => i.supplierId === input.supplierId);
       const totalLoss = items.reduce((sum, i) => sum + Number(i.lossAmount || 0), 0);
       const totalPenalty = items.reduce((sum, i) => sum + Number(i.penaltyAmount || 0), 0);

@@ -99,7 +99,8 @@ export default function AIConversationPanel({ isOpen, onClose, onNavigate }: AIC
   // 打开时聚焦输入框
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100);
+      const timer = setTimeout(() => inputRef.current?.focus(), 100);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 

@@ -23,7 +23,7 @@ export const webhookTestRouter = router({
   receiveWebhook: protectedProcedure
     .input(z.object({
       webhookType: z.enum(["wecom", "dingtalk", "feishu", "custom"]),
-      payload: z.any(),
+      payload: z.record(z.string(), z.unknown()),
       headers: z.record(z.string(), z.string()).optional(),
     }))
     .mutation(async ({ input }) => {

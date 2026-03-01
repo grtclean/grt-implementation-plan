@@ -103,7 +103,7 @@ export const processManagementRouter = router({
           .orderBy(projectProcessInstances.projectId, projectProcessInstances.processCode);
 
         // Enrich with definition names
-        const defs = await db.select().from(processDefinitions);
+        const defs = await db.select().from(processDefinitions).limit(1000);
         const defMap = new Map(defs.map((d) => [d.code, d]));
 
         return rows.map((r) => {
@@ -147,7 +147,7 @@ export const processManagementRouter = router({
           .where(eq(projectProcessInstances.projectId, input.projectId))
           .orderBy(projectProcessInstances.processCode);
 
-        const defs = await db.select().from(processDefinitions);
+        const defs = await db.select().from(processDefinitions).limit(1000);
         const defMap = new Map(defs.map((d) => [d.code, d]));
 
         return rows.map((r) => {
@@ -214,10 +214,10 @@ export const processManagementRouter = router({
           conditions.push(eq(aiSopRecommendations.projectId, input.projectId));
 
         const where = conditions.length > 0 ? and(...conditions) : undefined;
-        const recs = await db.select().from(aiSopRecommendations).where(where);
+        const recs = await db.select().from(aiSopRecommendations).where(where).limit(1000);
 
         // Join with sopTemplates for display info
-        const templates = await db.select().from(sopTemplates);
+        const templates = await db.select().from(sopTemplates).limit(1000);
         const templateMap = new Map(templates.map((t) => [t.id, t]));
 
         let result = recs.map((r) => {
@@ -395,7 +395,7 @@ export const processManagementRouter = router({
         if (input?.status) conditions.push(eq(processRiskAlerts.status, input.status));
 
         const where = conditions.length > 0 ? and(...conditions) : undefined;
-        return await db.select().from(processRiskAlerts).where(where);
+        return await db.select().from(processRiskAlerts).where(where).limit(1000);
       } catch {
         return [];
       }
@@ -512,7 +512,7 @@ export const processManagementRouter = router({
           conditions.push(eq(projectProcessInstances.projectId, input.projectId));
         const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-        const instances = await db.select().from(projectProcessInstances).where(where);
+        const instances = await db.select().from(projectProcessInstances).where(where).limit(1000);
         const total = instances.length;
         if (total === 0) return emptyStats;
 

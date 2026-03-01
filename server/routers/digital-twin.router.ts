@@ -74,7 +74,7 @@ export const digitalTwinRouter = router({
   getAsset: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const [asset] = await db.select().from(dtAssets)
-      .where(eq(dtAssets.id, toNum(input.id)));
+      .where(eq(dtAssets.id, toNum(input.id))).limit(1000);
     if (!asset) return null;
 
     // Fetch version chain + assembly nodes + recent audit logs in parallel
@@ -133,7 +133,7 @@ export const digitalTwinRouter = router({
 
     // Check asset exists and is not frozen
     const [existing] = await db.select().from(dtAssets)
-      .where(eq(dtAssets.id, assetId));
+      .where(eq(dtAssets.id, assetId)).limit(1000);
     if (!existing) throw new Error(`Asset ${assetId} not found`);
     if (existing.designFrozen) {
       throw new Error("Cannot modify a design-frozen asset — create a new version instead");
@@ -161,7 +161,7 @@ export const digitalTwinRouter = router({
     const assetId = toNum(input.assetId);
 
     const [asset] = await db.select().from(dtAssets)
-      .where(eq(dtAssets.id, assetId));
+      .where(eq(dtAssets.id, assetId)).limit(1000);
     if (!asset) throw new Error(`Asset ${assetId} not found`);
     if (asset.status !== "draft") {
       throw new Error(`Cannot submit for review — asset is '${asset.status}', must be 'draft'`);
@@ -263,7 +263,7 @@ export const digitalTwinRouter = router({
     const db = await requireDb();
     const items = await db.select().from(dtRobotAssemblyNodes)
       .where(eq(dtRobotAssemblyNodes.dtAssetId, toNum(input.dtAssetId)))
-      .orderBy(dtRobotAssemblyNodes.assemblySequence);
+      .orderBy(dtRobotAssemblyNodes.assemblySequence).limit(1000);
     return { items, total: items.length };
   }),
 

@@ -24,7 +24,7 @@ export default function LiveDashboard() {
     }));
     setData(initialData);
     // 模拟加载延迟，展示骨架屏效果
-    setTimeout(() => setIsLoading(false), 500);
+    const loadTimer = setTimeout(() => setIsLoading(false), 500);
 
     const interval = setInterval(() => {
       const now = new Date();
@@ -43,7 +43,10 @@ export default function LiveDashboard() {
       });
     }, 2000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(loadTimer);
+      clearInterval(interval);
+    };
   }, []);
 
   // 骨架屏组件

@@ -86,7 +86,7 @@ async function seedIfEmpty() {
     ]);
 
     // Fetch inserted IDs for FK references
-    const goals = await db.select().from(companyGoals).where(eq(companyGoals.year, 2026));
+    const goals = await db.select().from(companyGoals).where(eq(companyGoals.year, 2026)).limit(1000);
     const goalIdMap: Record<number, number> = {};
     goals.forEach((g, i) => { goalIdMap[i + 1] = g.id; });
 
@@ -176,7 +176,7 @@ export const strategyGoalsRouter = router({
       await ensureTables();
       await seedIfEmpty();
       const db = await requireDb();
-      return db.select().from(companyGoals).where(eq(companyGoals.year, input.year));
+      return db.select().from(companyGoals).where(eq(companyGoals.year, input.year)).limit(1000);
     }),
 
   // ── Get division KPIs with optional filter (BU-scoped)
@@ -199,7 +199,7 @@ export const strategyGoalsRouter = router({
         conditions.push(eq(divisionKpis.divisionCode, input.divisionCode));
       }
 
-      return db.select().from(divisionKpis).where(and(...conditions));
+      return db.select().from(divisionKpis).where(and(...conditions)).limit(1000);
     }),
 
   // ── Aggregated dashboard view
@@ -210,8 +210,8 @@ export const strategyGoalsRouter = router({
       await seedIfEmpty();
       const db = await requireDb();
 
-      const goals = await db.select().from(companyGoals).where(eq(companyGoals.year, input.year));
-      const allKpis = await db.select().from(divisionKpis).where(eq(divisionKpis.year, input.year));
+      const goals = await db.select().from(companyGoals).where(eq(companyGoals.year, input.year)).limit(1000);
+      const allKpis = await db.select().from(divisionKpis).where(eq(divisionKpis.year, input.year)).limit(1000);
 
       // Group by division
       const divisionMap = new Map<string, (typeof allKpis)[number][]>();
@@ -316,7 +316,7 @@ export const strategyGoalsRouter = router({
         .where(and(
           eq(divisionKpis.year, input.year),
           sql`${divisionKpis.metricName} LIKE '%营收%'`,
-        ));
+        )).limit(1000);
 
       if (revenueKpis.length === 0) {
         return { success: false, message: "No revenue KPIs found for decomposition", created: 0 };

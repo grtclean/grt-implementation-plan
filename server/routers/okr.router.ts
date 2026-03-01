@@ -80,12 +80,12 @@ export const okrRouter = router({
       try {
         const db = await requireDb();
         const [obj] = await db.select().from(okrObjectives)
-          .where(eq(okrObjectives.id, input.id));
+          .where(eq(okrObjectives.id, input.id)).limit(1000);
         if (!obj) return null;
 
         const krs = await db.select().from(okrKeyResults)
           .where(eq(okrKeyResults.objectiveId, input.id))
-          .orderBy(okrKeyResults.id);
+          .orderBy(okrKeyResults.id).limit(1000);
 
         const krIds = krs.map(kr => kr.id);
         let checkIns: (typeof okrCheckIns.$inferSelect)[] = [];
@@ -232,10 +232,10 @@ export const okrRouter = router({
         }).where(eq(okrKeyResults.id, id));
 
         // Auto-update parent objective progress
-        const [kr] = await db.select().from(okrKeyResults).where(eq(okrKeyResults.id, id));
+        const [kr] = await db.select().from(okrKeyResults).where(eq(okrKeyResults.id, id)).limit(1000);
         if (kr) {
           const allKrs = await db.select().from(okrKeyResults)
-            .where(eq(okrKeyResults.objectiveId, kr.objectiveId));
+            .where(eq(okrKeyResults.objectiveId, kr.objectiveId)).limit(1000);
           const avgProgress = allKrs.length > 0
             ? allKrs.reduce((sum, k) => {
                 const range = (k.targetValue ?? 100) - (k.startValue ?? 0);
@@ -290,7 +290,7 @@ export const okrRouter = router({
     .query(async () => {
       try {
         const db = await requireDb();
-        const allObjs = await db.select().from(okrObjectives);
+        const allObjs = await db.select().from(okrObjectives).limit(1000);
         const total = allObjs.length;
         if (total === 0) {
           return {
@@ -368,7 +368,7 @@ export const okrRouter = router({
           .where(and(
             eq(okrObjectives.level, "company"),
             eq(okrObjectives.period, period),
-          ));
+          )).limit(1000);
         const parentId = companyObjs.length > 0 ? companyObjs[0].id : null;
 
         // 3. Map departmentId → buCode
@@ -398,7 +398,7 @@ export const okrRouter = router({
               eq(okrObjectives.level, "bu"),
               eq(okrObjectives.buCode, buCode),
               eq(okrObjectives.period, period),
-            ));
+            )).limit(1000);
           if (existing.length > 0) continue; // Skip — already decomposed
 
           // 4. Create BU-level objective

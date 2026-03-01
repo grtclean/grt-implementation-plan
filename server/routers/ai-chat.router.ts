@@ -82,7 +82,7 @@ export const aiChatRouter = router({
     assistantType: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let templates = await db.select().from(aiChatTemplates).where(eq(aiChatTemplates.isPublic, 1)).orderBy(desc(aiChatTemplates.usageCount));
+    let templates = await db.select().from(aiChatTemplates).where(eq(aiChatTemplates.isPublic, 1)).orderBy(desc(aiChatTemplates.usageCount)).limit(1000);
     if (input?.assistantType) templates = templates.filter(t => t.assistantType === input.assistantType);
     if (templates.length > 0) return templates.map(t => ({ id: t.id, name: t.name, content: t.content, category: t.category }));
     return [

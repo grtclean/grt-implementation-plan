@@ -56,7 +56,7 @@ export const projectGateRouter = router({
       const db = await requireDb();
 
       // Get all projects with their current phase
-      let projectList = await db.select().from(projects).orderBy(desc(projects.createdAt));
+      let projectList = await db.select().from(projects).orderBy(desc(projects.createdAt)).limit(1000);
 
       if (input?.projectId) {
         projectList = projectList.filter(p => p.id === input.projectId);
@@ -66,7 +66,7 @@ export const projectGateRouter = router({
       }
 
       // Get gates for all projects to build stage data
-      const allGates = await db.select().from(projectGates);
+      const allGates = await db.select().from(projectGates).limit(1000);
 
       return projectList.map(p => {
         const projectGateList = allGates.filter(g => g.projectId === p.id);
@@ -118,10 +118,10 @@ export const projectGateRouter = router({
     .input(z.object({ projectId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId));
+      const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId)).limit(1000);
       if (!project) throw new Error("项目不存在");
 
-      const gates = await db.select().from(projectGates).where(eq(projectGates.projectId, input.projectId));
+      const gates = await db.select().from(projectGates).where(eq(projectGates.projectId, input.projectId)).limit(1000);
 
       const stagesWithDefinition = M_STAGE_DEFINITIONS.map(def => {
         const gate = gates.find(g => g.phaseCode === def.code);
@@ -179,7 +179,7 @@ export const projectGateRouter = router({
           eq(gateChecklists.projectId, input.projectId),
           eq(gateChecklists.gateStage, input.stageCode),
         ))
-        .orderBy(gateChecklists.sortOrder);
+        .orderBy(gateChecklists.sortOrder).limit(1000);
       return items.map(item => ({
         id: item.id,
         projectId: Number(item.projectId),
@@ -233,7 +233,7 @@ export const projectGateRouter = router({
         .where(and(
           eq(projectGates.projectId, input.projectId),
           eq(projectGates.phaseCode, input.stageCode),
-        ));
+        )).limit(1000);
 
       // Embed requestor ID in remark for self-approval prevention
       const remarkWithRequestor = `[REQ:${ctx.user.id}] ${input.summary}`;
@@ -285,7 +285,7 @@ export const projectGateRouter = router({
       }
 
       // Fetch gate to validate
-      const [gate] = await db.select().from(projectGates).where(eq(projectGates.id, input.requestId));
+      const [gate] = await db.select().from(projectGates).where(eq(projectGates.id, input.requestId)).limit(1000);
       if (!gate) throw new TRPCError({ code: "NOT_FOUND", message: "Gate record not found" });
 
       // Status guard: only in_review gates can be approved/rejected
@@ -305,7 +305,7 @@ export const projectGateRouter = router({
           .where(and(
             eq(gateChecklists.projectId, gate.projectId),
             eq(gateChecklists.gateStage, gate.phaseCode),
-          ));
+          )).limit(1000);
 
         const mandatoryItems = checklistItems.filter(i => i.isMandatory);
         const failed = mandatoryItems.filter(i => i.status === "failed");
@@ -364,7 +364,7 @@ export const projectGateRouter = router({
 
               if (proj) {
                 const existingClients = await db.select().from(afterSalesClients)
-                  .where(eq(afterSalesClients.name, proj.name ?? ""));
+                  .where(eq(afterSalesClients.name, proj.name ?? "")).limit(1000);
 
                 let clientId: number;
                 if (existingClients.length > 0) {
@@ -439,7 +439,7 @@ export const projectGateRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const configs = await db.select().from(redBlueConfigs)
-        .where(eq(redBlueConfigs.projectId, input.projectId));
+        .where(eq(redBlueConfigs.projectId, input.projectId)).limit(1000);
 
       return configs.map(cfg => ({
         id: cfg.id,
@@ -523,7 +523,7 @@ export const projectGateRouter = router({
         .where(and(
           eq(gateChecklists.projectId, input.projectId),
           eq(gateChecklists.gateStage, input.stageCode),
-        ));
+        )).limit(1000);
 
       const mandatory = items.filter(i => i.isMandatory);
       const optional = items.filter(i => !i.isMandatory);
@@ -574,7 +574,7 @@ export const projectGateRouter = router({
 
       // 1. Verify project exists and current stage matches (stale-race guard)
       const [project] = await db.select().from(projectsV2)
-        .where(eq(projectsV2.id, input.projectId));
+        .where(eq(projectsV2.id, input.projectId)).limit(1000);
       if (!project) throw new Error("项目不存在");
       if (project.currentStage !== input.currentStageCode) {
         throw new Error(
@@ -594,7 +594,7 @@ export const projectGateRouter = router({
         .where(and(
           eq(gateChecklists.projectId, input.projectId),
           eq(gateChecklists.gateStage, input.currentStageCode),
-        ));
+        )).limit(1000);
 
       const mandatory = checklistItems.filter(i => i.isMandatory);
       const failed = mandatory.filter(i => i.status === "failed");
@@ -633,7 +633,7 @@ export const projectGateRouter = router({
         .where(and(
           eq(projectStagesV2.projectId, input.projectId),
           eq(projectStagesV2.stageCode, input.currentStageCode as any),
-        ));
+        )).limit(1000);
 
       let existingAuditLog: any[] = [];
       if (currentStageRow?.auditLog) {
@@ -688,7 +688,7 @@ export const projectGateRouter = router({
           if (proj) {
             // Create or look up after-sales client
             const existingClients = await db.select().from(afterSalesClients)
-              .where(eq(afterSalesClients.name, proj.name ?? ""));
+              .where(eq(afterSalesClients.name, proj.name ?? "")).limit(1000);
 
             let clientId: number;
             if (existingClients.length > 0) {
@@ -754,7 +754,7 @@ export const projectGateRouter = router({
 
       // 1. Verify project
       const [project] = await db.select().from(projectsV2)
-        .where(eq(projectsV2.id, input.projectId));
+        .where(eq(projectsV2.id, input.projectId)).limit(1000);
       if (!project) throw new Error("项目不存在");
 
       const currentIdx = M_STAGE_CODES.indexOf(project.currentStage as any);
@@ -786,7 +786,7 @@ export const projectGateRouter = router({
           .where(and(
             eq(projectStagesV2.projectId, input.projectId),
             eq(projectStagesV2.stageCode, stageCode as any),
-          ));
+          )).limit(1000);
 
         let auditLog: any[] = [];
         if (stageRow?.auditLog) {
@@ -811,7 +811,7 @@ export const projectGateRouter = router({
         .where(and(
           eq(projectStagesV2.projectId, input.projectId),
           eq(projectStagesV2.stageCode, input.targetStageCode as any),
-        ));
+        )).limit(1000);
 
       let targetAuditLog: any[] = [];
       if (targetRow?.auditLog) {
@@ -858,7 +858,7 @@ export const projectGateRouter = router({
 
       const stages = await db.select().from(projectStagesV2)
         .where(eq(projectStagesV2.projectId, input.projectId))
-        .orderBy(projectStagesV2.stageCode);
+        .orderBy(projectStagesV2.stageCode).limit(1000);
 
       return stages.map(stage => {
         let auditEvents: any[] = [];
@@ -883,7 +883,7 @@ export const projectGateRouter = router({
   // 获取项目阶段统计
   getStageStats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const allProjects = await db.select().from(projects);
+    const allProjects = await db.select().from(projects).limit(1000);
 
     const byStage = M_STAGE_DEFINITIONS.map(def => ({
       code: def.code,
@@ -916,7 +916,7 @@ export const projectGateRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const pendingGates = await db.select().from(projectGates)
-        .where(eq(projectGates.status, "pending"));
+        .where(eq(projectGates.status, "pending")).limit(1000);
 
       // Get associated project info
       const projectIds = [...new Set(pendingGates.map(g => g.projectId))];

@@ -8,8 +8,8 @@ import { sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { DEPARTMENT_TO_BU } from "./employee.service";
 
-// 默认密码（所有新用户共用同一个哈希）
-const DEFAULT_PASSWORD = "Grt@2026";
+// 默认密码（从环境变量读取，禁止硬编码）
+const DEFAULT_PASSWORD = process.env.JDY_DEFAULT_PASSWORD ?? 'changeme';
 let cachedDefaultHash: string | null = null;
 
 async function getDefaultPasswordHash(): Promise<string> {

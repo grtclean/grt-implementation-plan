@@ -16,7 +16,7 @@ export const processNotebookRouter = router({
   // 获取笔记本详情
   getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(processNotebooks).where(eq(processNotebooks.id, parseInt(input.id)));
+    const [item] = await db.select().from(processNotebooks).where(eq(processNotebooks.id, parseInt(input.id))).limit(1000);
     return item || null;
   }),
 
@@ -82,7 +82,7 @@ export const processNotebookRouter = router({
     if (processId) conditions.push(eq(processNotebooks.processId, processId));
 
     const [notebook] = await db.select().from(processNotebooks)
-      .where(conditions.length > 1 ? and(...conditions) : conditions[0]);
+      .where(conditions.length > 1 ? and(...conditions) : conditions[0]).limit(1000);
     return { notebook: notebook || null };
   }),
 
@@ -95,7 +95,7 @@ export const processNotebookRouter = router({
     // Frontend sends notebookId, also accept id
     const rawId = input?.notebookId ?? input?.id ?? 0;
     const id = typeof rawId === "string" ? parseInt(rawId) : rawId;
-    const [notebook] = await db.select().from(processNotebooks).where(eq(processNotebooks.id, id));
+    const [notebook] = await db.select().from(processNotebooks).where(eq(processNotebooks.id, id)).limit(1000);
     return { notebook: notebook || null, entries: [] };
   }),
 

@@ -23,7 +23,7 @@ export const aiSuggestionRouter = router({
     stepCode: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let items = await db.select().from(aiProcessSuggestions).orderBy(desc(aiProcessSuggestions.createdAt));
+    let items = await db.select().from(aiProcessSuggestions).orderBy(desc(aiProcessSuggestions.createdAt)).limit(1000);
     if (input?.processType) items = items.filter(s => s.processType === input.processType);
     if (input?.processId) items = items.filter(s => s.processId === input.processId);
     if (input?.stepCode) items = items.filter(s => s.stepCode === input.stepCode);

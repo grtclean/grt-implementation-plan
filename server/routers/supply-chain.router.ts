@@ -77,7 +77,7 @@ const supplierLabelRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(supplierShipmentLabels).where(eq(supplierShipmentLabels.id, toNum(input.id)));
+    const [item] = await db.select().from(supplierShipmentLabels).where(eq(supplierShipmentLabels.id, toNum(input.id))).limit(1000);
     return item ?? null;
   }),
 
@@ -120,7 +120,7 @@ const supplierLabelRouter = router({
   validate: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
-    const [label] = await db.select().from(supplierShipmentLabels).where(eq(supplierShipmentLabels.id, numId));
+    const [label] = await db.select().from(supplierShipmentLabels).where(eq(supplierShipmentLabels.id, numId)).limit(1000);
     if (!label) throw new Error("Label not found");
     const errors: string[] = [];
     if (!label.materialCode) errors.push("物料编码缺失");
@@ -141,7 +141,7 @@ const supplierLabelRouter = router({
       const db = await requireDb();
       const results: { id: number; valid: boolean }[] = [];
       for (const id of input.ids) {
-        const [label] = await db.select().from(supplierShipmentLabels).where(eq(supplierShipmentLabels.id, id));
+        const [label] = await db.select().from(supplierShipmentLabels).where(eq(supplierShipmentLabels.id, id)).limit(1000);
         if (!label) continue;
         const errors: string[] = [];
         if (!label.materialCode) errors.push("物料编码缺失");
@@ -175,7 +175,7 @@ const supplierLabelRouter = router({
 
   stats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(supplierShipmentLabels);
+    const all = await db.select().from(supplierShipmentLabels).limit(1000);
     const validated = all.filter(l => l.isValidated);
     return {
       total: all.length,
@@ -221,7 +221,7 @@ const incomingInspectionRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(incomingInspectionRecords).where(eq(incomingInspectionRecords.id, toNum(input.id)));
+    const [item] = await db.select().from(incomingInspectionRecords).where(eq(incomingInspectionRecords.id, toNum(input.id))).limit(1000);
     return item ?? null;
   }),
 
@@ -279,7 +279,7 @@ const incomingInspectionRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const numId = toNum(input.id);
-      const [record] = await db.select().from(incomingInspectionRecords).where(eq(incomingInspectionRecords.id, numId));
+      const [record] = await db.select().from(incomingInspectionRecords).where(eq(incomingInspectionRecords.id, numId)).limit(1000);
       if (!record) throw new Error("Inspection record not found");
 
       const [updated] = await db.update(incomingInspectionRecords).set({
@@ -296,7 +296,7 @@ const incomingInspectionRouter = router({
       // P3: When QC passes, update linked delivery registrations → notify supplier to submit invoice
       if (input.inspectionResult === "PASS") {
         try {
-          const allDeliveries = await db.select().from(deliveryRegistrations);
+          const allDeliveries = await db.select().from(deliveryRegistrations).limit(1000);
           const linked = allDeliveries.filter(d => d.qcInspectionId === numId);
           for (const dlv of linked) {
             await db.update(deliveryRegistrations)
@@ -307,7 +307,7 @@ const incomingInspectionRouter = router({
           if (linked.length > 0) {
             const supplierIds = [...new Set(linked.map(d => d.supplierId).filter(Boolean))];
             for (const sid of supplierIds) {
-              const allSuppliers = await db.select().from(suppliers);
+              const allSuppliers = await db.select().from(suppliers).limit(1000);
               const supplier = allSuppliers.find(s => s.id === Number(sid));
               if (supplier?.contactEmail) {
                 console.log(`[QC-PASS] Notification → ${supplier.supplierName} <${supplier.contactEmail}>: 质检合格(IQC #${numId})，请提交发票`);
@@ -328,7 +328,7 @@ const incomingInspectionRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const numId = toNum(input.id);
-      const [record] = await db.select().from(incomingInspectionRecords).where(eq(incomingInspectionRecords.id, numId));
+      const [record] = await db.select().from(incomingInspectionRecords).where(eq(incomingInspectionRecords.id, numId)).limit(1000);
       if (!record) throw new Error("Inspection record not found");
 
       const reasons: string[] = [];
@@ -353,7 +353,7 @@ const incomingInspectionRouter = router({
       if (record.supplierId) {
         // Count existing ACTIVE penalties for this supplier (consistent with penalty.create)
         const existing = await db.select().from(supplierPenalties)
-          .where(and(eq(supplierPenalties.supplierId, record.supplierId), eq(supplierPenalties.isActive, true)));
+          .where(and(eq(supplierPenalties.supplierId, record.supplierId), eq(supplierPenalties.isActive, true))).limit(1000);
         const occurrenceCount = existing.length + 1;
         const escalation = getEscalationLevel(occurrenceCount);
 
@@ -393,7 +393,7 @@ const incomingInspectionRouter = router({
 
   stats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(incomingInspectionRecords);
+    const all = await db.select().from(incomingInspectionRecords).limit(1000);
     const pass = all.filter(i => i.inspectionResult === "PASS").length;
     const fail = all.filter(i => i.inspectionResult === "FAIL").length;
     const pending = all.filter(i => i.inspectionResult === "PENDING").length;
@@ -442,7 +442,7 @@ const assemblyBomScanRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const items = await db.select().from(assemblyBomScanLogs).orderBy(desc(assemblyBomScanLogs.createdAt));
+      const items = await db.select().from(assemblyBomScanLogs).orderBy(desc(assemblyBomScanLogs.createdAt)).limit(1000);
       let filtered = items;
       if (input?.projectNumber) filtered = filtered.filter(i => i.projectNumber === input.projectNumber);
       if (input?.processCode) filtered = filtered.filter(i => i.processCode === input.processCode);
@@ -466,7 +466,7 @@ const assemblyBomScanRouter = router({
       let serialNumber: string | null = null;
 
       const [label] = await db.select().from(supplierShipmentLabels)
-        .where(eq(supplierShipmentLabels.supplierSerialNumber, input.scannedBarcode));
+        .where(eq(supplierShipmentLabels.supplierSerialNumber, input.scannedBarcode)).limit(1000);
 
       if (label) {
         resolvedMaterialCode = label.materialCode;
@@ -489,7 +489,7 @@ const assemblyBomScanRouter = router({
 
       // Query BOM items for this process code
       const bomItemsForProcess = await db.select().from(bomItems)
-        .where(eq(bomItems.processCode, input.processCode));
+        .where(eq(bomItems.processCode, input.processCode)).limit(1000);
 
       if (bomItemsForProcess.length > 0 && resolvedMaterialCode) {
         // Check for exact match
@@ -572,7 +572,7 @@ const assemblyBomScanRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const scans = await db.select().from(assemblyBomScanLogs)
-        .where(eq(assemblyBomScanLogs.projectNumber, input.projectNumber));
+        .where(eq(assemblyBomScanLogs.projectNumber, input.projectNumber)).limit(1000);
       // Group by process code
       const byProcess = new Map<string, { total: number; match: number; mismatch: number; deviation: number }>();
       scans.forEach(s => {
@@ -588,7 +588,7 @@ const assemblyBomScanRouter = router({
 
   stats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(assemblyBomScanLogs);
+    const all = await db.select().from(assemblyBomScanLogs).limit(1000);
     const match = all.filter(s => s.bomMatchResult === "MATCH").length;
     const mismatch = all.filter(s => s.bomMatchResult === "MISMATCH").length;
     const substitute = all.filter(s => s.bomMatchResult === "SUBSTITUTE").length;
@@ -604,7 +604,7 @@ const assemblyBomScanRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(assemblyBomScanLogs).where(eq(assemblyBomScanLogs.id, toNum(input.id)));
+    const [item] = await db.select().from(assemblyBomScanLogs).where(eq(assemblyBomScanLogs.id, toNum(input.id))).limit(1000);
     return item ?? null;
   }),
 
@@ -629,7 +629,7 @@ const laborConfirmationRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const items = await db.select().from(assemblyLaborConfirmations).orderBy(desc(assemblyLaborConfirmations.createdAt));
+      const items = await db.select().from(assemblyLaborConfirmations).orderBy(desc(assemblyLaborConfirmations.createdAt)).limit(1000);
       let filtered = items;
       if (input?.projectNumber) filtered = filtered.filter(i => i.projectNumber === input.projectNumber);
       if (input?.processCode) filtered = filtered.filter(i => i.processCode === input.processCode);
@@ -639,7 +639,7 @@ const laborConfirmationRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(assemblyLaborConfirmations).where(eq(assemblyLaborConfirmations.id, toNum(input.id)));
+    const [item] = await db.select().from(assemblyLaborConfirmations).where(eq(assemblyLaborConfirmations.id, toNum(input.id))).limit(1000);
     return item ?? null;
   }),
 
@@ -672,7 +672,7 @@ const laborConfirmationRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const numId = toNum(input.id);
-      const [record] = await db.select().from(assemblyLaborConfirmations).where(eq(assemblyLaborConfirmations.id, numId));
+      const [record] = await db.select().from(assemblyLaborConfirmations).where(eq(assemblyLaborConfirmations.id, numId)).limit(1000);
       if (!record) throw new Error("Labor record not found");
 
       const clockOut = new Date();
@@ -712,7 +712,7 @@ const laborConfirmationRouter = router({
     .input(z.object({ workerId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const records = await db.select().from(assemblyLaborConfirmations).where(eq(assemblyLaborConfirmations.workerId, input.workerId));
+      const records = await db.select().from(assemblyLaborConfirmations).where(eq(assemblyLaborConfirmations.workerId, input.workerId)).limit(1000);
       const completed = records.filter(r => r.clockOutTime);
       const totalMinutes = completed.reduce((sum, r) => sum + (r.netWorkMinutes || 0), 0);
       const totalDefects = completed.reduce((sum, r) => sum + (r.defectsFound || 0), 0);
@@ -731,7 +731,7 @@ const laborConfirmationRouter = router({
 
   stats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(assemblyLaborConfirmations);
+    const all = await db.select().from(assemblyLaborConfirmations).limit(1000);
     const active = all.filter(r => r.clockInTime && !r.clockOutTime).length;
     const completed = all.filter(r => r.clockOutTime).length;
     const avgEfficiency = all.filter(r => r.efficiencyPercent).reduce((s, r) => s + Number(r.efficiencyPercent), 0)
@@ -780,7 +780,7 @@ const customerComplaintRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const items = await db.select().from(customerQualityComplaints).orderBy(desc(customerQualityComplaints.createdAt));
+      const items = await db.select().from(customerQualityComplaints).orderBy(desc(customerQualityComplaints.createdAt)).limit(1000);
       let filtered = items;
       if (input?.customerId) filtered = filtered.filter(i => i.customerId === input.customerId);
       if (input?.projectNumber) filtered = filtered.filter(i => i.projectNumber === input.projectNumber);
@@ -791,7 +791,7 @@ const customerComplaintRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(customerQualityComplaints).where(eq(customerQualityComplaints.id, toNum(input.id)));
+    const [item] = await db.select().from(customerQualityComplaints).where(eq(customerQualityComplaints.id, toNum(input.id))).limit(1000);
     return item ?? null;
   }),
 
@@ -881,18 +881,18 @@ const customerComplaintRouter = router({
     .input(z.object({ complaintId: z.union([z.string(), z.number()]) }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const [complaint] = await db.select().from(customerQualityComplaints).where(eq(customerQualityComplaints.id, toNum(input.complaintId)));
+      const [complaint] = await db.select().from(customerQualityComplaints).where(eq(customerQualityComplaints.id, toNum(input.complaintId))).limit(1000);
       if (!complaint) return null;
 
       // Find related traceability edges
       const edges = await db.select().from(traceabilityGraphEdges)
-        .where(eq(traceabilityGraphEdges.projectNumber, complaint.projectNumber || ""));
+        .where(eq(traceabilityGraphEdges.projectNumber, complaint.projectNumber || "")).limit(1000);
       return { complaint, traceEdges: edges };
     }),
 
   stats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(customerQualityComplaints);
+    const all = await db.select().from(customerQualityComplaints).limit(1000);
     const open = all.filter(c => c.status === "open").length;
     const investigating = all.filter(c => c.status === "investigating").length;
     const resolved = all.filter(c => c.status === "resolved").length;
@@ -929,7 +929,7 @@ const maintenanceRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const items = await db.select().from(equipmentMaintenanceRecords).orderBy(desc(equipmentMaintenanceRecords.createdAt));
+      const items = await db.select().from(equipmentMaintenanceRecords).orderBy(desc(equipmentMaintenanceRecords.createdAt)).limit(1000);
       let filtered = items;
       if (input?.equipmentId) filtered = filtered.filter(i => i.equipmentId === input.equipmentId);
       if (input?.maintenanceType) filtered = filtered.filter(i => i.maintenanceType === input.maintenanceType);
@@ -939,7 +939,7 @@ const maintenanceRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(equipmentMaintenanceRecords).where(eq(equipmentMaintenanceRecords.id, toNum(input.id)));
+    const [item] = await db.select().from(equipmentMaintenanceRecords).where(eq(equipmentMaintenanceRecords.id, toNum(input.id))).limit(1000);
     return item ?? null;
   }),
 
@@ -985,7 +985,7 @@ const maintenanceRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const numId = toNum(input.id);
-      const [record] = await db.select().from(equipmentMaintenanceRecords).where(eq(equipmentMaintenanceRecords.id, numId));
+      const [record] = await db.select().from(equipmentMaintenanceRecords).where(eq(equipmentMaintenanceRecords.id, numId)).limit(1000);
       if (!record) throw new Error("Maintenance record not found");
 
       const startTime = record.startedAt ? new Date(record.startedAt).getTime() : Date.now();
@@ -1012,13 +1012,13 @@ const maintenanceRouter = router({
   upcoming: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(equipmentMaintenanceRecords)
-      .where(eq(equipmentMaintenanceRecords.status, "scheduled"));
+      .where(eq(equipmentMaintenanceRecords.status, "scheduled")).limit(1000);
     return all.sort((a, b) => (a.scheduledDate || "").localeCompare(b.scheduledDate || ""));
   }),
 
   stats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(equipmentMaintenanceRecords);
+    const all = await db.select().from(equipmentMaintenanceRecords).limit(1000);
     const scheduled = all.filter(r => r.status === "scheduled").length;
     const inProgress = all.filter(r => r.status === "in_progress").length;
     const completed = all.filter(r => r.status === "completed").length;
@@ -1040,7 +1040,7 @@ const scrapDisposalRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const items = await db.select().from(scrapDisposalRecords).orderBy(desc(scrapDisposalRecords.createdAt));
+      const items = await db.select().from(scrapDisposalRecords).orderBy(desc(scrapDisposalRecords.createdAt)).limit(1000);
       let filtered = items;
       if (input?.materialCode) filtered = filtered.filter(i => i.materialCode === input.materialCode);
       if (input?.disposalMethod) filtered = filtered.filter(i => i.disposalMethod === input.disposalMethod);
@@ -1050,7 +1050,7 @@ const scrapDisposalRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(scrapDisposalRecords).where(eq(scrapDisposalRecords.id, toNum(input.id)));
+    const [item] = await db.select().from(scrapDisposalRecords).where(eq(scrapDisposalRecords.id, toNum(input.id))).limit(1000);
     return item ?? null;
   }),
 
@@ -1122,7 +1122,7 @@ const scrapDisposalRouter = router({
 
   stats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(scrapDisposalRecords);
+    const all = await db.select().from(scrapDisposalRecords).limit(1000);
     const totalCost = all.reduce((s, r) => s + Number(r.totalScrapCost || 0), 0);
     const byMethod = { recycle: 0, destroy: 0, return: 0, salvage: 0 } as Record<string, number>;
     all.forEach(r => { byMethod[r.disposalMethod] = (byMethod[r.disposalMethod] || 0) + 1; });
@@ -1138,7 +1138,7 @@ const scrapDisposalRouter = router({
 
   byCategory: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(scrapDisposalRecords);
+    const all = await db.select().from(scrapDisposalRecords).limit(1000);
     const byCategory = new Map<string, { count: number; cost: number }>();
     all.forEach(r => {
       const cat = r.scrapCategory || "unknown";
@@ -1177,7 +1177,7 @@ const sparePartsRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const items = await db.select().from(spareParts).orderBy(desc(spareParts.createdAt));
+      const items = await db.select().from(spareParts).orderBy(desc(spareParts.createdAt)).limit(1000);
       let filtered = items.filter(i => i.isActive);
       if (input?.category) filtered = filtered.filter(i => i.category === input.category);
       if (input?.isCritical) filtered = filtered.filter(i => i.isCritical);
@@ -1187,7 +1187,7 @@ const sparePartsRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(spareParts).where(eq(spareParts.id, toNum(input.id)));
+    const [item] = await db.select().from(spareParts).where(eq(spareParts.id, toNum(input.id))).limit(1000);
     return item ?? null;
   }),
 
@@ -1259,7 +1259,7 @@ const sparePartsRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const [part] = await db.select().from(spareParts).where(eq(spareParts.id, input.sparePartId));
+      const [part] = await db.select().from(spareParts).where(eq(spareParts.id, input.sparePartId)).limit(1000);
       if (!part) throw new Error("Spare part not found");
       if (part.currentStock < input.quantityConsumed) throw new Error("库存不足");
 
@@ -1304,7 +1304,7 @@ const sparePartsRouter = router({
     .input(z.object({ sparePartId: z.number().optional() }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const items = await db.select().from(sparePartConsumptionLogs).orderBy(desc(sparePartConsumptionLogs.createdAt));
+      const items = await db.select().from(sparePartConsumptionLogs).orderBy(desc(sparePartConsumptionLogs.createdAt)).limit(1000);
       if (input?.sparePartId) return items.filter(i => i.sparePartId === input.sparePartId);
       return items;
     }),
@@ -1316,7 +1316,7 @@ const sparePartsRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const [part] = await db.select().from(spareParts).where(eq(spareParts.id, input.sparePartId));
+      const [part] = await db.select().from(spareParts).where(eq(spareParts.id, input.sparePartId)).limit(1000);
       if (!part) throw new Error("Spare part not found");
       const [updated] = await db.update(spareParts).set({
         currentStock: part.currentStock + input.quantity,
@@ -1327,13 +1327,13 @@ const sparePartsRouter = router({
 
   lowStockAlerts: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(spareParts);
+    const all = await db.select().from(spareParts).limit(1000);
     return all.filter(p => p.isActive && p.currentStock <= p.reorderPoint);
   }),
 
   stats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(spareParts).where(eq(spareParts.isActive, true));
+    const all = await db.select().from(spareParts).where(eq(spareParts.isActive, true)).limit(1000);
     const lowStock = all.filter(p => p.currentStock <= p.reorderPoint).length;
     const critical = all.filter(p => p.isCritical).length;
     const totalValue = all.reduce((s, p) => s + (p.currentStock * Number(p.unitPrice || 0)), 0);
@@ -1362,7 +1362,7 @@ const supplierPenaltyRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await requireDb();
-      const items = await db.select().from(supplierPenalties).orderBy(desc(supplierPenalties.createdAt));
+      const items = await db.select().from(supplierPenalties).orderBy(desc(supplierPenalties.createdAt)).limit(1000);
       let filtered = items;
       if (input?.supplierId) filtered = filtered.filter(i => i.supplierId === input.supplierId);
       if (input?.triggerType) filtered = filtered.filter(i => i.triggerType === input.triggerType);
@@ -1373,7 +1373,7 @@ const supplierPenaltyRouter = router({
 
   get: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(supplierPenalties).where(eq(supplierPenalties.id, toNum(input.id)));
+    const [item] = await db.select().from(supplierPenalties).where(eq(supplierPenalties.id, toNum(input.id))).limit(1000);
     return item ?? null;
   }),
 
@@ -1393,7 +1393,7 @@ const supplierPenaltyRouter = router({
       const db = await requireDb();
       // Count existing active penalties for auto-escalation
       const existing = await db.select().from(supplierPenalties)
-        .where(and(eq(supplierPenalties.supplierId, input.supplierId), eq(supplierPenalties.isActive, true)));
+        .where(and(eq(supplierPenalties.supplierId, input.supplierId), eq(supplierPenalties.isActive, true))).limit(1000);
       const occurrenceCount = existing.length + 1;
       const escalation = getEscalationLevel(occurrenceCount);
 
@@ -1430,10 +1430,10 @@ const supplierPenaltyRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const penalties = await db.select().from(supplierPenalties)
-        .where(eq(supplierPenalties.supplierId, input.supplierId));
+        .where(eq(supplierPenalties.supplierId, input.supplierId)).limit(1000);
 
       const inspections = await db.select().from(incomingInspectionRecords)
-        .where(eq(incomingInspectionRecords.supplierId, input.supplierId));
+        .where(eq(incomingInspectionRecords.supplierId, input.supplierId)).limit(1000);
 
       const totalInspections = inspections.length;
       const passedInspections = inspections.filter(i => i.inspectionResult === "PASS").length;
@@ -1462,7 +1462,7 @@ const supplierPenaltyRouter = router({
 
   stats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(supplierPenalties);
+    const all = await db.select().from(supplierPenalties).limit(1000);
     const active = all.filter(p => p.isActive).length;
     const blacklisted = all.filter(p => p.isBlacklisted).length;
     const byType = { quality_reject: 0, late_delivery: 0, missing_report: 0, safety_violation: 0 } as Record<string, number>;
@@ -1500,7 +1500,7 @@ const traceabilityRouter = router({
           .where(and(
             eq(traceabilityGraphEdges.fromEntityType, type),
             eq(traceabilityGraphEdges.fromEntityId, id),
-          ));
+          )).limit(1000);
         for (const edge of found) {
           edges.push(edge);
           await traverse(edge.toEntityType, edge.toEntityId, depth - 1);
@@ -1530,7 +1530,7 @@ const traceabilityRouter = router({
           .where(and(
             eq(traceabilityGraphEdges.toEntityType, type),
             eq(traceabilityGraphEdges.toEntityId, id),
-          ));
+          )).limit(1000);
         for (const edge of found) {
           edges.push(edge);
           await traverse(edge.fromEntityType, edge.fromEntityId, depth - 1);
@@ -1547,7 +1547,7 @@ const traceabilityRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const edges = await db.select().from(traceabilityGraphEdges)
-        .where(eq(traceabilityGraphEdges.projectNumber, input.projectNumber));
+        .where(eq(traceabilityGraphEdges.projectNumber, input.projectNumber)).limit(1000);
       // Build unique nodes
       const nodes = new Set<string>();
       edges.forEach(e => {
@@ -1560,7 +1560,7 @@ const traceabilityRouter = router({
   // Dashboard overview stats
   stats: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const all = await db.select().from(traceabilityGraphEdges);
+    const all = await db.select().from(traceabilityGraphEdges).limit(1000);
     const byType = new Map<string, number>();
     all.forEach(e => {
       byType.set(e.relationshipType, (byType.get(e.relationshipType) || 0) + 1);

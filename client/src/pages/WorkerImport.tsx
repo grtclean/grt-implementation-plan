@@ -215,8 +215,8 @@ export default function WorkerImport() {
                       <TableRow key={row.rowNum} className={row.status === "error" ? "bg-red-500/5" : row.status === "warning" ? "bg-yellow-500/5" : ""}>
                         <TableCell>{row.rowNum}</TableCell>
                         <TableCell className="font-medium">{row.data["姓名"] || "-"}</TableCell>
-                        <TableCell>{row.data["工号"]}</TableCell>
-                        <TableCell>{row.data["部门"]}</TableCell>
+                        <TableCell>{row.data?.["工号"] || "-"}</TableCell>
+                        <TableCell>{row.data?.["部门"] || "-"}</TableCell>
                         <TableCell>{row.data["职位"] || "-"}</TableCell>
                         <TableCell>{getStatusBadge(row.status)}</TableCell>
                         <TableCell className="text-xs text-destructive">{row.errors.join(", ") || "-"}</TableCell>

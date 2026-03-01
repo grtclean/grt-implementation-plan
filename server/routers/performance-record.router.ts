@@ -92,7 +92,7 @@ export const performanceRecordRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
       const db = await requireDb();
-      const [row] = await db.select().from(performanceRecords).where(eq(performanceRecords.id, input.id));
+      const [row] = await db.select().from(performanceRecords).where(eq(performanceRecords.id, input.id)).limit(1000);
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Performance record not found" });
       // Non-manager roles can only view their own records
       if (!PERF_MANAGER_ROLES.has(ctx.user.role ?? "employee") && row.userId !== ctx.user.id) {
@@ -169,7 +169,7 @@ export const performanceRecordRouter = router({
       const db = await requireDb();
 
       // Check frozen
-      const [current] = await db.select().from(performanceRecords).where(eq(performanceRecords.id, input.id));
+      const [current] = await db.select().from(performanceRecords).where(eq(performanceRecords.id, input.id)).limit(1000);
       if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
       if (current.isFrozen) {
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "记录已冻结，无法修改。请先解冻。" });
@@ -273,7 +273,7 @@ export const performanceRecordRouter = router({
         if (buIdFilter !== undefined) dashConditions.push(eq(performanceRecords.buId, buIdFilter));
 
         const rows = await db.select().from(performanceRecords)
-          .where(and(...dashConditions));
+          .where(and(...dashConditions)).limit(1000);
 
         const totalRecords = rows.length;
         const frozenCount = rows.filter(r => r.isFrozen).length;

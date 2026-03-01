@@ -10,9 +10,9 @@ export const planningDependencyRouter = router({
   getAll: protectedProcedure.input(z.object({ configId: z.number().optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     if (input?.configId) {
-      return await db.select().from(annualPlanningDependencies).where(eq(annualPlanningDependencies.configId, input.configId));
+      return await db.select().from(annualPlanningDependencies).where(eq(annualPlanningDependencies.configId, input.configId)).limit(1000);
     }
-    return await db.select().from(annualPlanningDependencies);
+    return await db.select().from(annualPlanningDependencies).limit(1000);
   }),
 
   add: protectedProcedure.input(z.object({
@@ -41,7 +41,7 @@ export const planningDependencyRouter = router({
 
   calculateCriticalPath: protectedProcedure.input(z.object({ configId: z.number() })).query(async ({ input }) => {
     const db = await requireDb();
-    const deps = await db.select().from(annualPlanningDependencies).where(eq(annualPlanningDependencies.configId, input.configId));
+    const deps = await db.select().from(annualPlanningDependencies).where(eq(annualPlanningDependencies.configId, input.configId)).limit(1000);
     return { dependencies: deps, criticalPath: [], totalDuration: 0 };
   }),
 });

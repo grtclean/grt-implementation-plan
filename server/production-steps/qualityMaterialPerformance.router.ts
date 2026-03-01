@@ -88,7 +88,7 @@ export const qualityMaterialPerformanceRouter = router({
       result: z.enum(['pass', 'fail', 'conditional_pass', 'pending']),
       score: z.number().optional(),
       ccdImageUrl: z.string().optional(),
-      ccdAnalysisData: z.any().optional(),
+      ccdAnalysisData: z.record(z.string(), z.unknown()).optional(),
       defectCount: z.number().optional(),
       remarks: z.string().optional(),
       // IATF 16949 traceability fields (optional, injected by kiosk)

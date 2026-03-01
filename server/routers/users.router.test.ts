@@ -22,6 +22,7 @@ vi.mock("../db", () => ({
       from: vi.fn(() => chain),
       where: vi.fn(() => chain),
       orderBy: vi.fn(() => chain),
+      limit: vi.fn(() => chain),
       then(resolve: any) {
         const result = selectResultsQueue.length > 0 ? selectResultsQueue.shift()! : [];
         return Promise.resolve(result).then(resolve);

@@ -36,7 +36,7 @@ export const customerCommRouter = router({
         subject: z.string(),
         content: z.string().optional(),
         summary: z.string().optional(),
-        participants: z.any().optional(),
+        participants: z.record(z.string(), z.unknown()).optional(),
         commDate: z.string(),
         duration: z.number().optional(),
         actionItems: z.string().optional(),

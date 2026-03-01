@@ -199,7 +199,7 @@ export const hrmRouter = router({
 
   getEmployees: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const rows = await db.select().from(hrmEmployees);
+    const rows = await db.select().from(hrmEmployees).limit(1000);
     return rows.map((row) => ({
       id: `EMP-${row.id}`,
       employeeCode: row.employeeCode,
@@ -237,7 +237,7 @@ export const hrmRouter = router({
 
   getCandidates: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const rows = await db.select().from(hrmCandidates);
+    const rows = await db.select().from(hrmCandidates).limit(1000);
     return rows.map((row) => ({
       id: `CAN-${row.id}`,
       candidateCode: row.candidateCode,
@@ -260,7 +260,7 @@ export const hrmRouter = router({
 
   getSalaryStructures: requirePermission('hrm_salary_structure').query(async () => {
     const db = await requireDb();
-    const rows = await db.select().from(hrmSalaryStructures);
+    const rows = await db.select().from(hrmSalaryStructures).limit(1000);
     return rows.map((row) => ({
       id: `SAL-${row.id}`,
       level: row.level ?? "",
@@ -317,7 +317,7 @@ export const hrmRouter = router({
 
   getPerformanceGrades: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const rows = await db.select().from(hrmPerformanceGrades);
+    const rows = await db.select().from(hrmPerformanceGrades).limit(1000);
     return rows.map((row) => ({
       id: `PG-${row.id}`,
       gradeCode: row.gradeCode,
@@ -335,7 +335,7 @@ export const hrmRouter = router({
 
   getPositions: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const rows = await db.select().from(hrmPositions);
+    const rows = await db.select().from(hrmPositions).limit(1000);
     return rows.map((row) => ({
       id: `POS-${row.id}`,
       positionCode: row.positionCode,
@@ -430,7 +430,7 @@ export const hrmRouter = router({
 
   getTrainingRecords: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const rows = await db.select().from(hrmTrainingPlans);
+    const rows = await db.select().from(hrmTrainingPlans).limit(1000);
     return rows.map((row) => ({
       id: `TRN-${row.id}`,
       planCode: row.planCode,
@@ -500,12 +500,12 @@ export const hrmRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const structures = await db.select().from(hrmSalaryStructures)
-        .where(and(eq(hrmSalaryStructures.department, input.department), eq(hrmSalaryStructures.status, "active")));
+        .where(and(eq(hrmSalaryStructures.department, input.department), eq(hrmSalaryStructures.status, "active"))).limit(1000);
 
       let performanceCoefficient = 1.0;
       if (input.performanceGrade) {
         const grades = await db.select().from(hrmPerformanceGrades)
-          .where(eq(hrmPerformanceGrades.gradeCode, input.performanceGrade));
+          .where(eq(hrmPerformanceGrades.gradeCode, input.performanceGrade)).limit(1000);
         if (grades.length > 0) performanceCoefficient = parseFloat(grades[0].coefficient);
       }
 

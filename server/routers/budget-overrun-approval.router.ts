@@ -69,7 +69,7 @@ export const budgetOverrunApprovalRouter = router({
         const numId = parseInt(input.id, 10);
         if (isNaN(numId)) return null;
         const [row] = await db.select().from(budgetOverrunRequests)
-          .where(eq(budgetOverrunRequests.id, numId));
+          .where(eq(budgetOverrunRequests.id, numId)).limit(1000);
         return row ?? null;
       } catch {
         return null;
@@ -176,7 +176,7 @@ export const budgetOverrunApprovalRouter = router({
       const db = await requireDb();
       return db.select().from(budgetOverrunRequests)
         .where(eq(budgetOverrunRequests.status, "pending"))
-        .orderBy(desc(budgetOverrunRequests.createdAt));
+        .orderBy(desc(budgetOverrunRequests.createdAt)).limit(1000);
     } catch {
       return [];
     }

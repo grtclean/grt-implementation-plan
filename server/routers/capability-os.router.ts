@@ -110,13 +110,13 @@ export const capabilityOsRouter = router({
   // --- Basic CRUD ----------------------------------------------------------------
   list: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const items = await db.select().from(capabilityProofConfigs).orderBy(desc(capabilityProofConfigs.createdAt));
+    const items = await db.select().from(capabilityProofConfigs).orderBy(desc(capabilityProofConfigs.createdAt)).limit(1000);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
   getById: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(capabilityProofConfigs).where(eq(capabilityProofConfigs.id, toNum(input.id)));
+    const [item] = await db.select().from(capabilityProofConfigs).where(eq(capabilityProofConfigs.id, toNum(input.id))).limit(1000);
     return item || null;
   }),
 
@@ -176,7 +176,7 @@ export const capabilityOsRouter = router({
 
   getAssessmentReport: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const configs = await db.select().from(capabilityProofConfigs).where(eq(capabilityProofConfigs.isActive, 1));
+    const configs = await db.select().from(capabilityProofConfigs).where(eq(capabilityProofConfigs.isActive, 1)).limit(1000);
     return { report: { domains: CAPABILITY_DOMAINS, capabilities: configs } };
   }),
 
@@ -188,7 +188,7 @@ export const capabilityOsRouter = router({
     if (targetId !== ctx.user.id && !MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
       return []; // non-managers can only see own capabilities
     }
-    const evidences = await db.select().from(capabilityEvidences).where(eq(capabilityEvidences.userId, toNum(targetId)));
+    const evidences = await db.select().from(capabilityEvidences).where(eq(capabilityEvidences.userId, toNum(targetId))).limit(1000);
     return evidences;
   }),
 
@@ -203,7 +203,7 @@ export const capabilityOsRouter = router({
 
   listCapabilities: protectedProcedure.query(async () => {
     const db = await requireDb();
-    return await db.select().from(capabilityProofConfigs).where(eq(capabilityProofConfigs.isActive, 1));
+    return await db.select().from(capabilityProofConfigs).where(eq(capabilityProofConfigs.isActive, 1)).limit(1000);
   }),
 
   getDomains: protectedProcedure.query(() => CAPABILITY_DOMAINS.map((d, i) => ({ ...d, id: i + 1 }))),
@@ -315,7 +315,7 @@ export const capabilityOsRouter = router({
 
   getPendingEvidences: protectedProcedure.query(async () => {
     const db = await requireDb();
-    return await db.select().from(capabilityEvidences).where(eq(capabilityEvidences.status, "pending")).orderBy(desc(capabilityEvidences.createdAt));
+    return await db.select().from(capabilityEvidences).where(eq(capabilityEvidences.status, "pending")).orderBy(desc(capabilityEvidences.createdAt)).limit(1000);
   }),
 
   getAllEvidences: protectedProcedure.query(async () => {

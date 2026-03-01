@@ -37,7 +37,7 @@ export const projectAgentRouter = router({
       const db = await requireDb();
 
       // Get project info
-      const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId));
+      const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId)).limit(1000);
       if (!project) throw new Error("项目不存在");
 
       // Create review record
@@ -81,7 +81,7 @@ export const projectAgentRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
-      const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId));
+      const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId)).limit(1000);
       if (!project) throw new Error("项目不存在");
 
       const [review] = await db.insert(projectAgentReviews).values({
@@ -115,7 +115,7 @@ export const projectAgentRouter = router({
       const reviews = await db.select()
         .from(projectAgentReviews)
         .where(eq(projectAgentReviews.projectId, input.projectId))
-        .orderBy(desc(projectAgentReviews.createdAt));
+        .orderBy(desc(projectAgentReviews.createdAt)).limit(1000);
       return reviews;
     }),
 
@@ -126,7 +126,7 @@ export const projectAgentRouter = router({
       const db = await requireDb();
       const [review] = await db.select()
         .from(projectAgentReviews)
-        .where(eq(projectAgentReviews.id, input.id));
+        .where(eq(projectAgentReviews.id, input.id)).limit(1000);
       return review || null;
     }),
 

@@ -28,7 +28,7 @@ export const annualPlanningRouter = router({
 
   list: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const rows = await db.select().from(annualPlans).orderBy(desc(annualPlans.year), desc(annualPlans.id));
+    const rows = await db.select().from(annualPlans).orderBy(desc(annualPlans.year), desc(annualPlans.id)).limit(1000);
     return { items: rows, total: rows.length, page: 1, pageSize: 10 };
   }),
 
@@ -38,7 +38,7 @@ export const annualPlanningRouter = router({
       const db = await requireDb();
       const numericId = parseInt(input.id, 10);
       if (isNaN(numericId)) return null;
-      const rows = await db.select().from(annualPlans).where(eq(annualPlans.id, numericId));
+      const rows = await db.select().from(annualPlans).where(eq(annualPlans.id, numericId)).limit(1000);
       return rows[0] ?? null;
     }),
 
@@ -120,7 +120,7 @@ export const annualPlanningRouter = router({
   getGoals: protectedProcedure.query(async () => {
     const db = await requireDb();
     const currentYear = new Date().getFullYear();
-    const plans = await db.select().from(annualPlans).where(eq(annualPlans.year, currentYear));
+    const plans = await db.select().from(annualPlans).where(eq(annualPlans.year, currentYear)).limit(1000);
     return plans.map(p => ({
       id: p.id,
       name: p.name,
@@ -156,7 +156,7 @@ export const annualPlanningRouter = router({
 
   getConfigs: protectedProcedure.query(async () => {
     const db = await requireDb();
-    return db.select().from(annualPlanningConfigs).orderBy(desc(annualPlanningConfigs.year), desc(annualPlanningConfigs.createdAt));
+    return db.select().from(annualPlanningConfigs).orderBy(desc(annualPlanningConfigs.year), desc(annualPlanningConfigs.createdAt)).limit(1000);
   }),
 
   getActiveConfig: protectedProcedure.query(async () => {
@@ -194,7 +194,7 @@ export const annualPlanningRouter = router({
     const configId = Number(input.id ?? input.configId);
     if (!configId) return successResponse;
 
-    const [config] = await db.select().from(annualPlanningConfigs).where(eq(annualPlanningConfigs.id, configId));
+    const [config] = await db.select().from(annualPlanningConfigs).where(eq(annualPlanningConfigs.id, configId)).limit(1000);
     if (!config) return { success: false, message: "Config not found" };
 
     await db.transaction(async (tx) => {
@@ -235,7 +235,7 @@ export const annualPlanningRouter = router({
 
     if (!sourceConfigId) return { success: false, message: "Source config ID required" };
 
-    const [sourceConfig] = await db.select().from(annualPlanningConfigs).where(eq(annualPlanningConfigs.id, sourceConfigId));
+    const [sourceConfig] = await db.select().from(annualPlanningConfigs).where(eq(annualPlanningConfigs.id, sourceConfigId)).limit(1000);
     if (!sourceConfig) return { success: false, message: "Source config not found" };
 
     await db.transaction(async (tx) => {
@@ -288,9 +288,9 @@ export const annualPlanningRouter = router({
     // Try to use active config, else return all
     const [activeConfig] = await db.select().from(annualPlanningConfigs).where(eq(annualPlanningConfigs.status, "active")).limit(1);
     if (activeConfig) {
-      return db.select().from(annualPlanningItems).where(eq(annualPlanningItems.configId, activeConfig.id)).orderBy(annualPlanningItems.sortOrder);
+      return db.select().from(annualPlanningItems).where(eq(annualPlanningItems.configId, activeConfig.id)).orderBy(annualPlanningItems.sortOrder).limit(1000);
     }
-    return db.select().from(annualPlanningItems).orderBy(desc(annualPlanningItems.createdAt));
+    return db.select().from(annualPlanningItems).orderBy(desc(annualPlanningItems.createdAt)).limit(1000);
   }),
 
   createItem: protectedProcedure.input(z.object({
@@ -374,7 +374,7 @@ export const annualPlanningRouter = router({
     if (!id) return successResponse;
 
     // Get before state for logging
-    const [before] = await db.select().from(annualPlanningItems).where(eq(annualPlanningItems.id, id));
+    const [before] = await db.select().from(annualPlanningItems).where(eq(annualPlanningItems.id, id)).limit(1000);
 
     const { id: _id, operatorId, ...data } = input;
     if (data.tasks && typeof data.tasks !== 'string') data.tasks = JSON.stringify(data.tasks);

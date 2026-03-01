@@ -19,7 +19,7 @@ export const controlPlanRouter = router({
     status: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    const items = await db.select().from(controlPlans).orderBy(desc(controlPlans.updatedAt));
+    const items = await db.select().from(controlPlans).orderBy(desc(controlPlans.updatedAt)).limit(1000);
     let filtered = items;
     if (input?.projectId) filtered = filtered.filter(p => p.projectId === input.projectId);
     if (input?.phase) filtered = filtered.filter(p => p.phase === input.phase);
@@ -31,11 +31,11 @@ export const controlPlanRouter = router({
   getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
-    const [plan] = await db.select().from(controlPlans).where(eq(controlPlans.id, numId));
+    const [plan] = await db.select().from(controlPlans).where(eq(controlPlans.id, numId)).limit(1000);
     if (!plan) return null;
     const items = await db.select().from(controlPlanItems)
       .where(eq(controlPlanItems.controlPlanId, numId))
-      .orderBy(controlPlanItems.itemNumber);
+      .orderBy(controlPlanItems.itemNumber).limit(1000);
     return { ...plan, items };
   }),
   // 创建控制计划
@@ -186,12 +186,12 @@ export const controlPlanRouter = router({
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     // Verify control plan exists
-    const [plan] = await db.select().from(controlPlans).where(eq(controlPlans.id, input.controlPlanId));
+    const [plan] = await db.select().from(controlPlans).where(eq(controlPlans.id, input.controlPlanId)).limit(1000);
     if (!plan) return { success: false, message: "Control plan not found", created: 0 };
 
     // Get FMEA items above threshold
     const fItems = await db.select().from(fmeaItems)
-      .where(eq(fmeaItems.fmeaDocumentId, input.fmeaDocumentId));
+      .where(eq(fmeaItems.fmeaDocumentId, input.fmeaDocumentId)).limit(1000);
     const highRisk = fItems.filter(i => i.rpn >= input.rpnThreshold);
 
     if (highRisk.length === 0) {
@@ -241,7 +241,7 @@ export const controlPlanRouter = router({
     projectId: z.number().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    const plans = await db.select().from(controlPlans);
+    const plans = await db.select().from(controlPlans).limit(1000);
     const filtered = input?.projectId ? plans.filter(p => p.projectId === input.projectId) : plans;
 
     const planIds = filtered.map(p => p.id);

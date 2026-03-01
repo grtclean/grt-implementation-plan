@@ -49,7 +49,7 @@ export const ppapRouter = router({
     status: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let items = await db.select().from(ppapSubmissions).orderBy(desc(ppapSubmissions.updatedAt));
+    let items = await db.select().from(ppapSubmissions).orderBy(desc(ppapSubmissions.updatedAt)).limit(1000);
     if (input?.projectId) items = items.filter(s => s.projectId === input.projectId);
     if (input?.status) items = items.filter(s => s.status === input.status);
     return { items, total: items.length };
@@ -59,11 +59,11 @@ export const ppapRouter = router({
   getById: protectedProcedure.input(idInput).query(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
-    const [sub] = await db.select().from(ppapSubmissions).where(eq(ppapSubmissions.id, numId));
+    const [sub] = await db.select().from(ppapSubmissions).where(eq(ppapSubmissions.id, numId)).limit(1000);
     if (!sub) return null;
     const elements = await db.select().from(ppapElements)
       .where(eq(ppapElements.submissionId, numId))
-      .orderBy(ppapElements.elementNumber);
+      .orderBy(ppapElements.elementNumber).limit(1000);
     const completed = elements.filter(e => e.status === "completed").length;
     const total = elements.filter(e => e.required === 1).length;
     return { ...sub, elements, progress: { completed, total, percent: total ? Math.round((completed / total) * 100) : 0 } };
@@ -164,13 +164,13 @@ export const ppapRouter = router({
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const elements = await db.select().from(ppapElements)
-      .where(eq(ppapElements.submissionId, input.submissionId));
+      .where(eq(ppapElements.submissionId, input.submissionId)).limit(1000);
     if (elements.length === 0) return { success: false, message: "No PPAP elements found" };
 
     // Find related documents by project
-    const fmeaDocs = await db.select().from(fmeaDocuments);
-    const cpDocs = await db.select().from(controlPlans);
-    const msaDocs = await db.select().from(msaStudies);
+    const fmeaDocs = await db.select().from(fmeaDocuments).limit(1000);
+    const cpDocs = await db.select().from(controlPlans).limit(1000);
+    const msaDocs = await db.select().from(msaStudies).limit(1000);
 
     const projectFilter = input.projectId
       ? (d: { projectId: number | null }) => d.projectId === input.projectId
@@ -256,7 +256,7 @@ export const ppapRouter = router({
   // 统计
   getStats: protectedProcedure.input(z.object({ projectId: z.number().optional() }).optional()).query(async ({ input }) => {
     const db = await requireDb();
-    let subs = await db.select().from(ppapSubmissions);
+    let subs = await db.select().from(ppapSubmissions).limit(1000);
     if (input?.projectId) subs = subs.filter(s => s.projectId === input.projectId);
     return {
       total: subs.length,

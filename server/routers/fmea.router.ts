@@ -47,7 +47,7 @@ export const fmeaRouter = router({
     if (input?.status) conditions.push(eq(fmeaDocuments.status, input.status as typeof fmeaDocuments.status.enumValues[number]));
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
-    const items = await db.select().from(fmeaDocuments).where(where).orderBy(desc(fmeaDocuments.updatedAt));
+    const items = await db.select().from(fmeaDocuments).where(where).orderBy(desc(fmeaDocuments.updatedAt)).limit(1000);
     return { items, total: items.length };
   }),
 
@@ -61,11 +61,11 @@ export const fmeaRouter = router({
     if (scopedIds) {
       conditions.push(inArray(fmeaDocuments.projectId, scopedIds.length > 0 ? scopedIds : [0]));
     }
-    const [doc] = await db.select().from(fmeaDocuments).where(and(...conditions));
+    const [doc] = await db.select().from(fmeaDocuments).where(and(...conditions)).limit(1000);
     if (!doc) return null;
     const items = await db.select().from(fmeaItems)
       .where(eq(fmeaItems.fmeaDocumentId, numId))
-      .orderBy(fmeaItems.itemNumber);
+      .orderBy(fmeaItems.itemNumber).limit(1000);
     // Get actions for each item
     const itemIds = items.map(i => i.id);
     const allActions = itemIds.length > 0
@@ -224,7 +224,7 @@ export const fmeaRouter = router({
     }
     // Recalculate RPN if S/O/D changed
     if (input.severity !== undefined || input.occurrence !== undefined || input.detection !== undefined) {
-      const [current] = await db.select().from(fmeaItems).where(eq(fmeaItems.id, numId));
+      const [current] = await db.select().from(fmeaItems).where(eq(fmeaItems.id, numId)).limit(1000);
       if (current) {
         const s = input.severity ?? current.severity;
         const o = input.occurrence ?? current.occurrence;
@@ -236,7 +236,7 @@ export const fmeaRouter = router({
     }
     // Recalculate revised RPN
     if (input.revisedSeverity !== undefined || input.revisedOccurrence !== undefined || input.revisedDetection !== undefined) {
-      const [current] = await db.select().from(fmeaItems).where(eq(fmeaItems.id, numId));
+      const [current] = await db.select().from(fmeaItems).where(eq(fmeaItems.id, numId)).limit(1000);
       if (current) {
         const rs = input.revisedSeverity ?? current.revisedSeverity ?? current.severity;
         const ro = input.revisedOccurrence ?? current.revisedOccurrence ?? current.occurrence;
@@ -328,7 +328,7 @@ export const fmeaRouter = router({
     }
     const docs = buConditions.length > 0
       ? await db.select().from(fmeaDocuments).where(and(...buConditions))
-      : await db.select().from(fmeaDocuments);
+      : await db.select().from(fmeaDocuments).limit(1000);
     const filteredDocs = input?.projectId ? docs.filter(d => d.projectId === input.projectId) : docs;
     const docIds = filteredDocs.map(d => d.id);
 

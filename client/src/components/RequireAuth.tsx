@@ -62,9 +62,10 @@ function IframeLoginPrompt({ onRefresh, loginSuccessReceived }: { onRefresh: () 
 
   useEffect(() => {
     if (loginSuccessReceived) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         window.location.reload();
       }, 500);
+      return () => clearTimeout(timer);
     }
   }, [loginSuccessReceived]);
 

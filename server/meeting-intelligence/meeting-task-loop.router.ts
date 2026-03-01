@@ -462,7 +462,7 @@ export const meetingTaskLoopRouter = router({
       outputs: z.array(z.any()).optional(),
       bestPractices: z.array(z.string()).optional(),
       followUpActions: z.array(z.string()).optional(),
-      aiPrompts: z.any().optional(),
+      aiPrompts: z.record(z.string(), z.unknown()).optional(),
       basedOnTemplateId: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {

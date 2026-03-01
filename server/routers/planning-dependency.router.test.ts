@@ -27,6 +27,7 @@ vi.mock("../db", () => ({
     const chain: any = {
       from: vi.fn(() => chain),
       where: vi.fn(() => chain),
+      limit: vi.fn(() => chain),
       values: vi.fn(() => chain),
       returning: vi.fn(() => {
         const r = returningQueue.length > 0 ? returningQueue.shift()! : [{ id: 1 }];

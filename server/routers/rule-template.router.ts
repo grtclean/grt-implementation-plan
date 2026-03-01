@@ -24,7 +24,7 @@ export const ruleTemplateRouter = router({
 
   getById: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.id, toNum(input.id)));
+    const [item] = await db.select().from(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.id, toNum(input.id))).limit(1000);
     return item || null;
   }),
 
@@ -109,7 +109,7 @@ export const ruleTemplateRouter = router({
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const sourceId = toNum(input.ruleId || input.id);
-    const [source] = await db.select().from(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.id, sourceId));
+    const [source] = await db.select().from(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.id, sourceId)).limit(1000);
     if (!source) return { success: false, message: "源规则不存在" };
     const [template] = await db.insert(costAlertRuleTemplates).values({
       name: input.name || `${source.name} (模板)`,

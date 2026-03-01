@@ -15,7 +15,7 @@ export const taskExecutionLogRouter = router({
   // 获取日志详情
   getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(taskExecutionLogs).where(eq(taskExecutionLogs.id, parseInt(input.id)));
+    const [item] = await db.select().from(taskExecutionLogs).where(eq(taskExecutionLogs.id, parseInt(input.id))).limit(1000);
     return item || null;
   }),
 

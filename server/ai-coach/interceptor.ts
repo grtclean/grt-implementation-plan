@@ -137,7 +137,6 @@ export class GRTCoachInterceptor {
     formData: FormSubmission
   ): Promise<ActionAdvice> {
     const startTime = Date.now();
-    console.log(`[Coach] Intercepting action: ${context.actionType} by ${context.user}`);
 
     try {
       // 0. 检查自定义拦截规则
@@ -229,7 +228,6 @@ export class GRTCoachInterceptor {
           return { blocked: false, warned: true, reason: `[规则 ${rule.id}] ${rule.description}` };
         }
         // log action - 仅记录
-        console.log(`[Coach] Rule ${rule.id} triggered: ${rule.description}`);
       }
     }
 
@@ -339,7 +337,6 @@ export class GRTCoachInterceptor {
       decision === 'ERROR' ? 'failure' : 'success'
     );
 
-    console.log(`[Coach] Decision logged: ${decision} (${duration}ms)`);
   }
 
   /**
@@ -451,7 +448,6 @@ export class GRTCoachInterceptor {
     const cacheKey = `${data.projectId}-${context.actionType}-${JSON.stringify(data.data)}`;
     const cached = aiResponseCache.get(cacheKey);
     if (cached) {
-      console.log('[Coach] Using cached risk analysis');
       return cached as RiskAnalysis;
     }
 
@@ -495,10 +491,6 @@ ${JSON.stringify(data.data, null, 2)}
 
     // 数据脱敏处理
     const { deidentifiedMessages, report } = await deidentifyLLMRequest(messages);
-    if (report.totalSensitiveData > 0) {
-      console.log(`[Coach] Deidentified ${report.totalSensitiveData} sensitive data items`);
-    }
-
     try {
       const response = await invokeLLM({
         messages: deidentifiedMessages as Message[],
@@ -552,8 +544,6 @@ ${JSON.stringify(data.data, null, 2)}
     message: string,
     data: FormSubmission
   ): Promise<void> {
-    console.log(`[Coach] Alarm triggered: ${level} - ${message}`);
-    
     // 根据告警级别选择通知渠道
     const channels = this.getNotificationChannels(level);
     
@@ -665,8 +655,6 @@ class NotificationService {
     formType: string;
     timestamp: Date;
   }): Promise<void> {
-    console.log(`[Notification] Sending ${notification.level} alert via ${notification.channel}`);
-
     const content = this.formatMessage(notification);
 
     switch (notification.channel) {
@@ -701,7 +689,6 @@ class NotificationService {
 
   private async sendWecom(content: string): Promise<void> {
     if (!this.wecomWebhook) {
-      console.log('[Notification] WeChat Work webhook not configured');
       return;
     }
 
@@ -721,7 +708,6 @@ class NotificationService {
 
   private async sendDingtalk(content: string): Promise<void> {
     if (!this.dingtalkWebhook) {
-      console.log('[Notification] DingTalk webhook not configured');
       return;
     }
 
@@ -744,7 +730,6 @@ class NotificationService {
 
   private async sendEmail(notification: any): Promise<void> {
     // TODO: 实现邮件发送
-    console.log('[Notification] Email sending not implemented yet');
   }
 }
 

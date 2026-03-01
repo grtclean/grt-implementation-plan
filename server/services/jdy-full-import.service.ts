@@ -288,7 +288,6 @@ export class JdyFullImportService {
     switch (phase) {
       case 'org': {
         // Phase 1: 组织同步
-        console.log('[FullImport] Phase 1: 组织同步');
         const userSyncService = getJiandaoyunUserSyncService();
         const deptResult = await userSyncService.syncDepartments();
         const memberResult = await userSyncService.syncMembers();
@@ -313,7 +312,6 @@ export class JdyFullImportService {
 
       case 'user': {
         // Phase 2: 用户创建/同步
-        console.log('[FullImport] Phase 2: 用户创建');
         const provisionResult = await provisionUsersFromJiandaoyun(dryRun);
         return {
           ...provisionResult,
@@ -326,7 +324,6 @@ export class JdyFullImportService {
 
       case 'discovery': {
         // Phase 3: 表单发现
-        console.log('[FullImport] Phase 3: 表单发现');
         const discoveryService = getJdyFormDiscoveryService();
         const discoveryResult = await discoveryService.discoverForms();
         return {
@@ -338,21 +335,18 @@ export class JdyFullImportService {
 
       case 'project': {
         // Phase 4: 项目导入
-        console.log('[FullImport] Phase 4: 项目导入');
         const projectService = getJdyProjectImportService();
         return projectService.importProjects(dryRun);
       }
 
       case 'approval': {
         // Phase 5: 审批导入
-        console.log('[FullImport] Phase 5: 审批导入');
         const approvalService = getJdyApprovalImportService();
         return approvalService.importApprovals(dryRun);
       }
 
       case 'knowledge': {
         // Phase 6: 知识库导入
-        console.log('[FullImport] Phase 6: 知识库导入');
         const { getJdyKnowledgeImportService } = await import('./jdy-knowledge-import.service');
         const knowledgeService = getJdyKnowledgeImportService();
         const knowledgeResult = await knowledgeService.importKnowledge();

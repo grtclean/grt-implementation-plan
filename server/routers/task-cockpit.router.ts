@@ -19,7 +19,7 @@ export const taskCockpitRouter = router({
     const db = await requireDb();
     let tasks = await db.select().from(projectTasks)
       .where(eq(projectTasks.projectId, input.projectId))
-      .orderBy(desc(projectTasks.updatedAt));
+      .orderBy(desc(projectTasks.updatedAt)).limit(1000);
     if (input.assigneeId) tasks = tasks.filter(t => t.assigneeId === input.assigneeId);
 
     const grouped = {
@@ -41,7 +41,7 @@ export const taskCockpitRouter = router({
     const db = await requireDb();
     // Close any active session for this user
     const activeSessions = await db.select().from(taskTimeSessions)
-      .where(and(eq(taskTimeSessions.userId, ctx.user.id), eq(taskTimeSessions.isActive, true)));
+      .where(and(eq(taskTimeSessions.userId, ctx.user.id), eq(taskTimeSessions.isActive, true))).limit(1000);
     for (const session of activeSessions) {
       const now = new Date();
       const started = new Date(session.startedAt);
@@ -68,7 +68,7 @@ export const taskCockpitRouter = router({
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [session] = await db.select().from(taskTimeSessions)
-      .where(eq(taskTimeSessions.id, input.sessionId));
+      .where(eq(taskTimeSessions.id, input.sessionId)).limit(1000);
     if (!session) return { success: false, message: "计时会话不存在" };
     if (!session.isActive) return { success: false, message: "计时已停止" };
 
@@ -82,7 +82,7 @@ export const taskCockpitRouter = router({
 
     // Accumulate into projectTasks.actualHours
     const [task] = await db.select().from(projectTasks)
-      .where(eq(projectTasks.id, session.taskId));
+      .where(eq(projectTasks.id, session.taskId)).limit(1000);
     if (task) {
       const currentHours = task.actualHours ?? 0;
       const addedHours = Math.round(durationMin / 60 * 10) / 10; // round to 0.1h
@@ -109,7 +109,7 @@ export const taskCockpitRouter = router({
   })).query(async ({ input }) => {
     const db = await requireDb();
     const [task] = await db.select().from(projectTasks)
-      .where(eq(projectTasks.id, toNum(input.taskId)));
+      .where(eq(projectTasks.id, toNum(input.taskId))).limit(1000);
     if (!task) return { canComplete: false, blockers: [{ message: "任务不存在" }], warnings: [] };
 
     const blockers: { message: string }[] = [];
@@ -122,7 +122,7 @@ export const taskCockpitRouter = router({
           eq(taskPrerequisites.taskType, task.taskCategory),
           eq(taskPrerequisites.phaseCode, task.phaseCode),
           eq(taskPrerequisites.isActive, true),
-        ));
+        )).limit(1000);
       for (const rule of rules) {
         // field_value check: safety_checklist_completed
         if (rule.checkType === "field_value" && rule.requiredColumnName === "safety_checklist_completed") {
@@ -137,7 +137,7 @@ export const taskCockpitRouter = router({
             .where(and(
               eq(projectTasks.projectId, task.projectId),
               eq(projectTasks.taskCategory, rule.requiredTaskType),
-            ));
+            )).limit(1000);
           const allDone = relatedTasks.length > 0 && relatedTasks.every(t => t.status === (rule.requiredTaskStatus ?? "done"));
           if (!allDone) {
             if (rule.severity === "hard") blockers.push({ message: rule.errorMessage });
@@ -168,7 +168,7 @@ export const taskCockpitRouter = router({
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.taskId);
-    const [task] = await db.select().from(projectTasks).where(eq(projectTasks.id, numId));
+    const [task] = await db.select().from(projectTasks).where(eq(projectTasks.id, numId)).limit(1000);
     if (!task) return { success: false, message: "任务不存在" };
 
     // QMS Safety Guard
@@ -189,7 +189,7 @@ export const taskCockpitRouter = router({
   // Seed prerequisite rules (idempotent — skips if rules exist)
   seedPrerequisites: protectedProcedure.mutation(async () => {
     const db = await requireDb();
-    const existing = await db.select().from(taskPrerequisites);
+    const existing = await db.select().from(taskPrerequisites).limit(1000);
     if (existing.length > 0) return { success: true, message: "规则已存在，跳过播种", count: existing.length };
 
     const rules = [

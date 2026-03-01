@@ -13,7 +13,7 @@ const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : i
 export const alertRuleRouter = router({
   list: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const items = await db.select().from(costAlertRules).orderBy(desc(costAlertRules.createdAt));
+    const items = await db.select().from(costAlertRules).orderBy(desc(costAlertRules.createdAt)).limit(1000);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
 
@@ -105,7 +105,7 @@ export const alertRuleRouter = router({
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = toNum(input.id);
-    const [rule] = await db.select().from(costAlertRules).where(eq(costAlertRules.id, id));
+    const [rule] = await db.select().from(costAlertRules).where(eq(costAlertRules.id, id)).limit(1000);
     if (!rule) return { success: false, message: "规则不存在" };
     const newActive = rule.isActive === 1 ? 0 : 1;
     await db.update(costAlertRules).set({ isActive: newActive, updatedAt: new Date().toISOString() }).where(eq(costAlertRules.id, id));

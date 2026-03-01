@@ -15,7 +15,7 @@ export const trainingCertificateRouter = router({
   // 获取证书详情
   getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const db = await requireDb();
-    const [item] = await db.select().from(trainingCertificates).where(eq(trainingCertificates.id, parseInt(input.id)));
+    const [item] = await db.select().from(trainingCertificates).where(eq(trainingCertificates.id, parseInt(input.id))).limit(1000);
     return item || null;
   }),
 
@@ -82,7 +82,7 @@ export const trainingCertificateRouter = router({
     const participantId = typeof input.participantId === "string" ? parseInt(input.participantId) : input.participantId;
     return await db.select().from(trainingCertificates)
       .where(eq(trainingCertificates.participantId, participantId))
-      .orderBy(desc(trainingCertificates.issueDate));
+      .orderBy(desc(trainingCertificates.issueDate)).limit(1000);
   }),
 
   // 颁发证书

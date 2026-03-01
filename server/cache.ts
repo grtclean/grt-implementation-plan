@@ -24,7 +24,6 @@ export async function initRedis() {
     redisClient = createClient({ url: REDIS_URL });
     redisClient.on('error', (err) => console.error('Redis错误:', err));
     await redisClient.connect();
-    console.log('✅ Redis连接成功');
     return redisClient;
   } catch (error) {
     console.error('❌ Redis连接失败:', error);
@@ -152,8 +151,6 @@ export async function setCapabilitiesCache(userId: string, capabilities: any) {
  * 缓存预热 - 在系统启动时加载常用数据
  */
 export async function warmupCache() {
-  console.log('🔥 开始缓存预热...');
-  
   try {
     // 预热全局配置
     const globalConfig = {
@@ -161,8 +158,6 @@ export async function warmupCache() {
       timestamp: new Date().toISOString(),
     };
     await setCache('config:global', globalConfig, CACHE_TTL.MENUS);
-    
-    console.log('✅ 缓存预热完成');
   } catch (error) {
     console.error('❌ 缓存预热失败:', error);
   }
@@ -174,6 +169,5 @@ export async function warmupCache() {
 export async function closeRedis() {
   if (redisClient) {
     await redisClient.quit();
-    console.log('✅ Redis连接已关闭');
   }
 }

@@ -240,7 +240,8 @@ export default function CopilotBar() {
   // Auto-focus input when panel opens
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 100);
+      const timer = setTimeout(() => inputRef.current?.focus(), 100);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 

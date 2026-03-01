@@ -102,7 +102,7 @@ async function loadConfigKpis(category: string, region?: string | null) {
     const conditions = [eq(serviceDashboardKpis.category, category)];
     if (region) conditions.push(eq(serviceDashboardKpis.region, region));
     else if (region === null) conditions.push(isNull(serviceDashboardKpis.region));
-    const rows = await db.select().from(serviceDashboardKpis).where(and(...conditions));
+    const rows = await db.select().from(serviceDashboardKpis).where(and(...conditions)).limit(1000);
     if (rows.length === 0) return null;
     const map: Record<string, number> = {};
     for (const r of rows) map[r.key] = Number(r.value);
@@ -118,7 +118,7 @@ async function loadConfigLocations(region?: string) {
     const conditions = region ? [eq(serviceDashboardLocations.region, region)] : [];
     const rows = await db.select().from(serviceDashboardLocations)
       .where(conditions.length ? and(...conditions) : undefined)
-      .orderBy(serviceDashboardLocations.id);
+      .orderBy(serviceDashboardLocations.id).limit(1000);
     if (rows.length === 0) return null;
     return rows.map(r => ({
       id: r.id,
@@ -690,7 +690,7 @@ export const serviceDashboardRouter = router({
         const conditions = input?.category ? [eq(serviceDashboardKpis.category, input.category)] : [];
         const rows = await db.select().from(serviceDashboardKpis)
           .where(conditions.length ? and(...conditions) : undefined)
-          .orderBy(serviceDashboardKpis.category, serviceDashboardKpis.region, serviceDashboardKpis.key);
+          .orderBy(serviceDashboardKpis.category, serviceDashboardKpis.region, serviceDashboardKpis.key).limit(1000);
         return rows.map(r => ({
           id: r.id,
           category: r.category,
@@ -823,7 +823,7 @@ export const serviceDashboardRouter = router({
         const conditions = input?.region ? [eq(serviceDashboardLocations.region, input.region)] : [];
         const rows = await db.select().from(serviceDashboardLocations)
           .where(conditions.length ? and(...conditions) : undefined)
-          .orderBy(serviceDashboardLocations.region, serviceDashboardLocations.city);
+          .orderBy(serviceDashboardLocations.region, serviceDashboardLocations.city).limit(1000);
         return rows.map(r => ({
           id: r.id,
           region: r.region,

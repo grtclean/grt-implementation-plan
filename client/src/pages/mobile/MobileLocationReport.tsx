@@ -99,25 +99,30 @@ export default function MobileLocationReport() {
 
   // 获取电池状态
   useEffect(() => {
+    let batteryRef: any = null;
+    const handler = () => {
+      if (batteryRef) setBatteryLevel(Math.round(batteryRef.level * 100));
+    };
     if ('getBattery' in navigator) {
       (navigator as any).getBattery().then((battery: any) => {
+        batteryRef = battery;
         setBatteryLevel(Math.round(battery.level * 100));
-        battery.addEventListener('levelchange', () => {
-          setBatteryLevel(Math.round(battery.level * 100));
-        });
+        battery.addEventListener('levelchange', handler);
       });
     }
+    return () => {
+      if (batteryRef) batteryRef.removeEventListener('levelchange', handler);
+    };
   }, []);
 
   // 获取网络状态
   useEffect(() => {
     const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    if (connection) {
-      setNetworkType(connection.effectiveType || "unknown");
-      connection.addEventListener('change', () => {
-        setNetworkType(connection.effectiveType || "unknown");
-      });
-    }
+    if (!connection) return;
+    const handler = () => setNetworkType(connection.effectiveType || "unknown");
+    setNetworkType(connection.effectiveType || "unknown");
+    connection.addEventListener('change', handler);
+    return () => connection.removeEventListener('change', handler);
   }, []);
 
   // 自动定位

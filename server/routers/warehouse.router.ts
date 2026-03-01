@@ -190,7 +190,7 @@ export const warehouseRouter = router({
         conditions.push(or(like(warehouses.warehouseCode, pattern), like(warehouses.warehouseName, pattern)));
       }
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      return db.select().from(warehouses).where(where).orderBy(warehouses.id);
+      return db.select().from(warehouses).where(where).orderBy(warehouses.id).limit(1000);
     }),
 
   getWarehouse: protectedProcedure
@@ -200,9 +200,9 @@ export const warehouseRouter = router({
       const buFilter = buScopeCondition(warehouses.buCode, ctx);
       const conditions = [eq(warehouses.id, input.id)];
       if (buFilter) conditions.push(buFilter);
-      const whRows = await db.select().from(warehouses).where(and(...conditions));
+      const whRows = await db.select().from(warehouses).where(and(...conditions)).limit(1000);
       if (!whRows[0]) return null;
-      const locations = await db.select().from(warehouseLocations).where(eq(warehouseLocations.warehouseId, input.id));
+      const locations = await db.select().from(warehouseLocations).where(eq(warehouseLocations.warehouseId, input.id)).limit(1000);
       return { ...whRows[0], locations };
     }),
 
@@ -227,7 +227,7 @@ export const warehouseRouter = router({
       if (updates.description !== undefined) u.description = updates.description;
 
       await db.update(warehouses).set(u).where(eq(warehouses.id, id));
-      const rows = await db.select().from(warehouses).where(eq(warehouses.id, id));
+      const rows = await db.select().from(warehouses).where(eq(warehouses.id, id)).limit(1000);
       if (!rows[0]) throw new Error('Warehouse not found');
       return rows[0];
     }),
@@ -237,7 +237,7 @@ export const warehouseRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       await db.update(warehouses).set({ isActive: input.isActive, updatedAt: new Date().toISOString() }).where(eq(warehouses.id, input.id));
-      const rows = await db.select().from(warehouses).where(eq(warehouses.id, input.id));
+      const rows = await db.select().from(warehouses).where(eq(warehouses.id, input.id)).limit(1000);
       if (!rows[0]) throw new Error('Warehouse not found');
       return rows[0];
     }),
@@ -288,7 +288,7 @@ export const warehouseRouter = router({
       if (input.zone) conditions.push(eq(warehouseLocations.zone, input.zone));
       if (input.locationType) conditions.push(eq(warehouseLocations.locationType, input.locationType));
       if (input.isOccupied !== undefined) conditions.push(eq(warehouseLocations.isOccupied, input.isOccupied));
-      return db.select().from(warehouseLocations).where(and(...conditions));
+      return db.select().from(warehouseLocations).where(and(...conditions)).limit(1000);
     }),
 
   batchCreateLocations: adminProcedure
@@ -303,7 +303,7 @@ export const warehouseRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       // Get warehouse code for location naming
-      const whRows = await db.select().from(warehouses).where(eq(warehouses.id, input.warehouseId));
+      const whRows = await db.select().from(warehouses).where(eq(warehouses.id, input.warehouseId)).limit(1000);
       if (!whRows[0]) throw new Error('Warehouse not found');
       const whCode = whRows[0].warehouseCode;
       const now = new Date().toISOString();
@@ -352,7 +352,7 @@ export const warehouseRouter = router({
         lockReason: input.isLocked ? (input.lockReason || '手动锁定') : null,
         updatedAt: new Date().toISOString(),
       }).where(eq(warehouseLocations.id, input.id));
-      const rows = await db.select().from(warehouseLocations).where(eq(warehouseLocations.id, input.id));
+      const rows = await db.select().from(warehouseLocations).where(eq(warehouseLocations.id, input.id)).limit(1000);
       if (!rows[0]) throw new Error('Location not found');
       return rows[0];
     }),
@@ -439,9 +439,9 @@ export const warehouseRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const receiptRows = await db.select().from(warehouseReceipts).where(eq(warehouseReceipts.id, input.id));
+      const receiptRows = await db.select().from(warehouseReceipts).where(eq(warehouseReceipts.id, input.id)).limit(1000);
       if (!receiptRows[0]) return null;
-      const items = await db.select().from(warehouseReceiptItems).where(eq(warehouseReceiptItems.receiptId, input.id));
+      const items = await db.select().from(warehouseReceiptItems).where(eq(warehouseReceiptItems.receiptId, input.id)).limit(1000);
       return { ...receiptRows[0], items };
     }),
 
@@ -463,7 +463,7 @@ export const warehouseRouter = router({
         if (input.qcNotes) u.qcNotes = input.qcNotes;
       }
       await db.update(warehouseReceipts).set(u).where(eq(warehouseReceipts.id, input.id));
-      const rows = await db.select().from(warehouseReceipts).where(eq(warehouseReceipts.id, input.id));
+      const rows = await db.select().from(warehouseReceipts).where(eq(warehouseReceipts.id, input.id)).limit(1000);
       if (!rows[0]) throw new Error('Receipt not found');
       return rows[0];
     }),
@@ -552,9 +552,9 @@ export const warehouseRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const issueRows = await db.select().from(warehouseIssues).where(eq(warehouseIssues.id, input.id));
+      const issueRows = await db.select().from(warehouseIssues).where(eq(warehouseIssues.id, input.id)).limit(1000);
       if (!issueRows[0]) return null;
-      const items = await db.select().from(warehouseIssueItems).where(eq(warehouseIssueItems.issueId, input.id));
+      const items = await db.select().from(warehouseIssueItems).where(eq(warehouseIssueItems.issueId, input.id)).limit(1000);
       return { ...issueRows[0], items };
     }),
 
@@ -570,7 +570,7 @@ export const warehouseRouter = router({
       if (input.status === 'approved') { u.approvedBy = ctx.user?.id; u.approvedAt = now; }
       if (input.status === 'issued') u.issuedAt = now;
       await db.update(warehouseIssues).set(u).where(eq(warehouseIssues.id, input.id));
-      const rows = await db.select().from(warehouseIssues).where(eq(warehouseIssues.id, input.id));
+      const rows = await db.select().from(warehouseIssues).where(eq(warehouseIssues.id, input.id)).limit(1000);
       if (!rows[0]) throw new Error('Issue not found');
       return rows[0];
     }),
@@ -651,7 +651,7 @@ export const warehouseRouter = router({
       if (updates.status === 'approved') u.approvedBy = ctx.user?.id;
 
       await db.update(stockCounts).set(u).where(eq(stockCounts.id, id));
-      const rows = await db.select().from(stockCounts).where(eq(stockCounts.id, id));
+      const rows = await db.select().from(stockCounts).where(eq(stockCounts.id, id)).limit(1000);
       if (!rows[0]) throw new Error('Stock count not found');
       return rows[0];
     }),
@@ -735,7 +735,7 @@ export const warehouseRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const rows = await db.select().from(inventoryLots).where(eq(inventoryLots.id, input.id));
+      const rows = await db.select().from(inventoryLots).where(eq(inventoryLots.id, input.id)).limit(1000);
       return rows[0] ?? null;
     }),
 
@@ -747,7 +747,7 @@ export const warehouseRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       await db.update(inventoryLots).set({ status: input.status, updatedAt: new Date().toISOString() }).where(eq(inventoryLots.id, input.id));
-      const rows = await db.select().from(inventoryLots).where(eq(inventoryLots.id, input.id));
+      const rows = await db.select().from(inventoryLots).where(eq(inventoryLots.id, input.id)).limit(1000);
       if (!rows[0]) throw new Error('Lot not found');
       return rows[0];
     }),
@@ -764,7 +764,7 @@ export const warehouseRouter = router({
       if (input.qcCertificateNumber) u.qcCertificateNumber = input.qcCertificateNumber;
       if (input.qcStatus === 'failed') u.status = 'quarantine';
       await db.update(inventoryLots).set(u).where(eq(inventoryLots.id, input.id));
-      const rows = await db.select().from(inventoryLots).where(eq(inventoryLots.id, input.id));
+      const rows = await db.select().from(inventoryLots).where(eq(inventoryLots.id, input.id)).limit(1000);
       if (!rows[0]) throw new Error('Lot not found');
       return rows[0];
     }),
@@ -848,7 +848,7 @@ export const warehouseRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
-      const currentRows = await db.select().from(serialNumbers).where(eq(serialNumbers.id, input.id));
+      const currentRows = await db.select().from(serialNumbers).where(eq(serialNumbers.id, input.id)).limit(1000);
       if (!currentRows[0]) throw new Error('Serial number not found');
 
       const u: Record<string, unknown> = { status: input.status, updatedAt: now };
@@ -861,7 +861,7 @@ export const warehouseRouter = router({
       u.lifecycleEvents = events;
 
       await db.update(serialNumbers).set(u).where(eq(serialNumbers.id, input.id));
-      const rows = await db.select().from(serialNumbers).where(eq(serialNumbers.id, input.id));
+      const rows = await db.select().from(serialNumbers).where(eq(serialNumbers.id, input.id)).limit(1000);
       return rows[0];
     }),
 
@@ -906,7 +906,7 @@ export const warehouseRouter = router({
     .input(z.object({ lotNumber: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const lotRows = await db.select().from(inventoryLots).where(eq(inventoryLots.lotNumber, input.lotNumber));
+      const lotRows = await db.select().from(inventoryLots).where(eq(inventoryLots.lotNumber, input.lotNumber)).limit(1000);
       if (!lotRows[0]) return { lot: null, allocations: [], serialNumbers: [] };
 
       const [relatedSerials, relatedIssueItems] = await Promise.all([
@@ -916,7 +916,7 @@ export const warehouseRouter = router({
 
       const allocations = [];
       for (const ii of relatedIssueItems) {
-        const issueRows = await db.select().from(warehouseIssues).where(eq(warehouseIssues.id, ii.issueId));
+        const issueRows = await db.select().from(warehouseIssues).where(eq(warehouseIssues.id, ii.issueId)).limit(1000);
         const issue = issueRows[0];
         allocations.push({
           issueCode: issue?.issueCode ?? null,
@@ -943,11 +943,11 @@ export const warehouseRouter = router({
       if (input.projectCode) conditions.push(eq(warehouseIssues.projectCode, input.projectCode));
       if (input.sourceDocCode) conditions.push(eq(warehouseIssues.sourceDocCode, input.sourceDocCode));
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      const relatedIssues = await db.select().from(warehouseIssues).where(where);
+      const relatedIssues = await db.select().from(warehouseIssues).where(where).limit(1000);
 
       const results = [];
       for (const issue of relatedIssues) {
-        const items = await db.select().from(warehouseIssueItems).where(eq(warehouseIssueItems.issueId, issue.id));
+        const items = await db.select().from(warehouseIssueItems).where(eq(warehouseIssueItems.issueId, issue.id)).limit(1000);
         const lotNumbers = Array.from(new Set(items.map(ii => ii.lotNumber).filter((ln): ln is string => ln != null)));
         const lots = lotNumbers.length > 0
           ? await db.select().from(inventoryLots).where(or(...lotNumbers.map(ln => eq(inventoryLots.lotNumber, ln))))
