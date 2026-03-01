@@ -1,9 +1,12 @@
 /**
  * 需求分析页面 (TX-001)
  * 客户需求录入、技术可行性评估、需求分解与追踪
+ *
+ * Data source: trpc.rndPipeline.requirement.* (DB-backed)
  */
 import { useState } from "react";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -15,12 +18,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   ClipboardCheck, Plus, Search, Filter, FileText,
   CheckCircle2, Clock, ArrowRight, Building2
 } from "lucide-react";
+
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 type RequirementStatus = "draft" | "reviewing" | "approved" | "in_progress" | "completed" | "rejected";
 
@@ -33,22 +39,11 @@ const statusColorMap = createStatusColorMap({
   rejected: "red",
 });
 
-// STATUS_LABELS will be dynamically set via t() inside the component
-
-// TODO: 接入 tRPC 后端接口替换
-const MOCK_REQUIREMENTS = [
-  { id: "REQ-2026-001", customer: "上海大众", title: "缸体清洗线需求", status: "approved" as RequirementStatus, priority: "high", bu: "BU3", assignee: "王工", date: "2026-02-05" },
-  { id: "REQ-2026-002", customer: "宝马慕尼黑", title: "变速箱壳体清洗方案", status: "reviewing" as RequirementStatus, priority: "urgent", bu: "BU1", assignee: "李工", date: "2026-02-08" },
-  { id: "REQ-2026-003", customer: "英飞凌", title: "晶圆清洗设备需求", status: "in_progress" as RequirementStatus, priority: "high", bu: "BU4", assignee: "张工", date: "2026-02-01" },
-  { id: "REQ-2026-004", customer: "潍柴动力", title: "柴油机零部件清洗系统", status: "draft" as RequirementStatus, priority: "medium", bu: "BU2", assignee: "赵工", date: "2026-02-10" },
-];
-
 export default function RequirementsAnalysis() {
   const { currentBU } = useUserProfile();
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const [requirements, setRequirements] = useState(MOCK_REQUIREMENTS);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -57,12 +52,35 @@ export default function RequirementsAnalysis() {
     priority: "medium",
   });
 
-  const filteredReqs = requirements.filter(r => {
-    if (currentBU && r.bu !== currentBU) return false;
-    if (searchTerm && !r.title.includes(searchTerm) && !r.customer.includes(searchTerm)) return false;
-    if (activeTab !== "all" && r.status !== activeTab) return false;
-    return true;
+  // ─── tRPC queries ───
+  const reqQuery = trpc.rndPipeline.requirement.list.useQuery(
+    {
+      search: searchTerm || undefined,
+      bu: currentBU || undefined,
+      status: activeTab !== "all" ? activeTab : undefined,
+    },
+    QUERY_OPTS,
+  );
+
+  const createMut = trpc.rndPipeline.requirement.create.useMutation({
+    onSuccess: () => {
+      reqQuery.refetch();
+      setShowCreateDialog(false);
+      setFormData({ title: "", customer: "", assignee: "", priority: "medium" });
+      toast.success(t("rnd.requirements.createSuccess"));
+    },
+    onError: (err) => toast.error(err.message),
   });
+
+  const requirements = (reqQuery.data?.items ?? []) as any[];
+  const isLoading = reqQuery.isLoading;
+
+  // All items for stats (ignore tab filter)
+  const allReqQuery = trpc.rndPipeline.requirement.list.useQuery(
+    { bu: currentBU || undefined },
+    QUERY_OPTS,
+  );
+  const allReqs = (allReqQuery.data?.items ?? []) as any[];
 
   const STATUS_LABELS: Record<RequirementStatus, string> = {
     draft: t("rnd.requirements.statusDraft"),
@@ -74,38 +92,29 @@ export default function RequirementsAnalysis() {
   };
 
   const handleCreate = () => {
-    if (!formData.title.trim()) {
-      toast.error(t("rnd.requirements.enterTitle"));
-      return;
-    }
-    if (!formData.customer.trim()) {
-      toast.error(t("rnd.requirements.enterCustomer"));
-      return;
-    }
-    if (!formData.assignee.trim()) {
-      toast.error(t("rnd.requirements.enterAssignee"));
-      return;
-    }
-
-    const nextNum = requirements.length + 1;
-    const newId = `REQ-2026-${String(nextNum).padStart(3, "0")}`;
-    const today = new Date().toISOString().slice(0, 10);
-    const newReq = {
-      id: newId,
-      customer: formData.customer.trim(),
+    if (!formData.title.trim()) { toast.error(t("rnd.requirements.enterTitle")); return; }
+    if (!formData.customer.trim()) { toast.error(t("rnd.requirements.enterCustomer")); return; }
+    if (!formData.assignee.trim()) { toast.error(t("rnd.requirements.enterAssignee")); return; }
+    createMut.mutate({
       title: formData.title.trim(),
-      status: "draft" as RequirementStatus,
-      priority: formData.priority,
-      bu: currentBU || "BU3",
+      customer: formData.customer.trim(),
       assignee: formData.assignee.trim(),
-      date: today,
-    };
-
-    setRequirements(prev => [newReq, ...prev]);
-    setShowCreateDialog(false);
-    setFormData({ title: "", customer: "", assignee: "", priority: "medium" });
-    toast.success(t("rnd.requirements.createSuccess"));
+      priority: formData.priority,
+      bu: currentBU || undefined,
+    });
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader icon={ClipboardCheck} title={t("rnd.requirements.title")} description="..." />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+        </div>
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -122,10 +131,10 @@ export default function RequirementsAnalysis() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={FileText} label={t("rnd.requirements.totalRequirements")} value={requirements.length} />
-        <StatCard icon={Clock} label={t("rnd.requirements.reviewing")} value={requirements.filter(r => r.status === "reviewing").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={ArrowRight} label={t("rnd.requirements.inProgress")} value={requirements.filter(r => r.status === "in_progress").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={CheckCircle2} label={t("rnd.requirements.completed")} value={requirements.filter(r => r.status === "completed").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={FileText} label={t("rnd.requirements.totalRequirements")} value={allReqs.length} />
+        <StatCard icon={Clock} label={t("rnd.requirements.reviewing")} value={allReqs.filter((r: any) => r.status === "reviewing").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={ArrowRight} label={t("rnd.requirements.inProgress")} value={allReqs.filter((r: any) => r.status === "in_progress").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={CheckCircle2} label={t("rnd.requirements.completed")} value={allReqs.filter((r: any) => r.status === "completed").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
@@ -153,11 +162,11 @@ export default function RequirementsAnalysis() {
             </TabsList>
             <TabsContent value={activeTab} className="mt-4">
               <div className="space-y-2">
-                {filteredReqs.map(req => (
+                {requirements.map((req: any) => (
                   <div key={req.id} className="flex items-center gap-4 p-3 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-mono text-muted-foreground">{req.id}</span>
+                        <span className="text-sm font-mono text-muted-foreground">{req.reqNumber}</span>
                         <Badge variant="outline" className="text-xs">{req.bu}</Badge>
                         {req.priority === "urgent" && <Badge variant="destructive" className="text-xs">{t("rnd.requirements.urgent")}</Badge>}
                         {req.priority === "high" && <Badge className="text-xs bg-amber-500">{t("rnd.requirements.high")}</Badge>}
@@ -166,12 +175,12 @@ export default function RequirementsAnalysis() {
                       <p className="text-sm text-muted-foreground">{t("rnd.requirements.customer")}: {req.customer} · {t("rnd.requirements.assignee")}: {req.assignee}</p>
                     </div>
                     <div className="text-right">
-                      <StatusBadge color={statusColorMap[req.status]}>{STATUS_LABELS[req.status]}</StatusBadge>
+                      <StatusBadge color={statusColorMap[req.status as keyof typeof statusColorMap] ?? "gray"}>{STATUS_LABELS[req.status as RequirementStatus] ?? req.status}</StatusBadge>
                       <p className="text-xs text-muted-foreground mt-1">{req.date}</p>
                     </div>
                   </div>
                 ))}
-                {filteredReqs.length === 0 && (
+                {requirements.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                     <ClipboardCheck className="w-12 h-12 mb-3 opacity-50" />
                     <p className="font-medium">{t("rnd.requirements.noData")}</p>
@@ -240,7 +249,7 @@ export default function RequirementsAnalysis() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>{t("rnd.requirements.cancel")}</Button>
-            <Button onClick={handleCreate}>{t("rnd.requirements.create")}</Button>
+            <Button onClick={handleCreate} disabled={createMut.isPending}>{t("rnd.requirements.create")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

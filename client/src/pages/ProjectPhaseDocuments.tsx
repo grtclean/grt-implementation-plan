@@ -1,3 +1,10 @@
+/**
+ * 项目阶段文档页面
+ * 按M0-M12阶段管理项目文档、审批流
+ *
+ * Data source: trpc.project.list (项目列表), trpc.collaborationDocs.listFiles (已上传文档)
+ * Static config: STAGE_REQUIRED_DOCS (阶段文档模板)
+ */
 import { useState, useMemo } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatusBadge, createStatusColorMap } from "@/components/grt";
@@ -8,78 +15,72 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   FolderOpen, FileText, Upload, CheckCircle, XCircle, AlertTriangle,
   Clock, User, Sparkles, Loader2, ChevronRight, FileCheck, Search,
 } from "lucide-react";
 import { STAGES } from "@shared/stage-definitions";
+import { trpc } from "@/lib/trpc";
 
 // ============================================================
-// Types & Mock Data
+// Types & Stage Document Templates (static config)
 // ============================================================
 
-interface ProjectOption { id: number; name: string; currentStage: string; }
 interface RequiredDoc { id: string; name: string; type: string; required: boolean; status: "uploaded" | "missing" | "expired"; }
-interface UploadedDoc { id: string; name: string; type: string; uploadDate: string; uploader: string; size: string; }
-
-const MOCK_PROJECTS: ProjectOption[] = [
-  { id: 1, name: "PRJ-2025-001 宝马汽车零件清洗线", currentStage: "M7" },
-  { id: 2, name: "PRJ-2025-002 博世喷油嘴清洗系统", currentStage: "M5" },
-  { id: 3, name: "PRJ-2025-003 中航精密件清洗设备", currentStage: "M3" },
-  { id: 4, name: "PRJ-2025-004 联影医疗器械清洗线", currentStage: "M10" },
-];
 
 const STAGE_REQUIRED_DOCS: Record<string, RequiredDoc[]> = {
   M0: [
-    { id: "d1", name: "客户需求调研报告", type: "报告", required: true, status: "uploaded" },
-    { id: "d2", name: "初步可行性分析", type: "分析", required: true, status: "uploaded" },
+    { id: "d1", name: "客户需求调研报告", type: "报告", required: true, status: "missing" },
+    { id: "d2", name: "初步可行性分析", type: "分析", required: true, status: "missing" },
     { id: "d3", name: "商机评估表", type: "表单", required: true, status: "missing" },
   ],
   M1: [
-    { id: "d4", name: "详细需求规格书", type: "规格", required: true, status: "uploaded" },
-    { id: "d5", name: "技术可行性报告", type: "报告", required: true, status: "uploaded" },
+    { id: "d4", name: "详细需求规格书", type: "规格", required: true, status: "missing" },
+    { id: "d5", name: "技术可行性报告", type: "报告", required: true, status: "missing" },
     { id: "d6", name: "风险评估矩阵", type: "矩阵", required: true, status: "missing" },
     { id: "d7", name: "竞品分析报告", type: "报告", required: false, status: "missing" },
   ],
   M3: [
-    { id: "d8", name: "立项申请书", type: "申请", required: true, status: "uploaded" },
-    { id: "d9", name: "项目预算表", type: "预算", required: true, status: "uploaded" },
-    { id: "d10", name: "RACI矩阵", type: "矩阵", required: true, status: "uploaded" },
+    { id: "d8", name: "立项申请书", type: "申请", required: true, status: "missing" },
+    { id: "d9", name: "项目预算表", type: "预算", required: true, status: "missing" },
+    { id: "d10", name: "RACI矩阵", type: "矩阵", required: true, status: "missing" },
     { id: "d11", name: "项目计划书", type: "计划", required: true, status: "missing" },
-    { id: "d12", name: "资源分配表", type: "表单", required: true, status: "expired" },
+    { id: "d12", name: "资源分配表", type: "表单", required: true, status: "missing" },
   ],
   M5: [
-    { id: "d13", name: "机械设计图纸", type: "图纸", required: true, status: "uploaded" },
-    { id: "d14", name: "电气原理图", type: "图纸", required: true, status: "uploaded" },
-    { id: "d15", name: "BOM清单", type: "清单", required: true, status: "uploaded" },
+    { id: "d13", name: "机械设计图纸", type: "图纸", required: true, status: "missing" },
+    { id: "d14", name: "电气原理图", type: "图纸", required: true, status: "missing" },
+    { id: "d15", name: "BOM清单", type: "清单", required: true, status: "missing" },
     { id: "d16", name: "仿真验证报告", type: "报告", required: true, status: "missing" },
-    { id: "d17", name: "设计评审记录", type: "记录", required: true, status: "uploaded" },
+    { id: "d17", name: "设计评审记录", type: "记录", required: true, status: "missing" },
   ],
   M7: [
-    { id: "d18", name: "装配作业指导书", type: "指导", required: true, status: "uploaded" },
-    { id: "d19", name: "调试记录表", type: "记录", required: true, status: "uploaded" },
+    { id: "d18", name: "装配作业指导书", type: "指导", required: true, status: "missing" },
+    { id: "d19", name: "调试记录表", type: "记录", required: true, status: "missing" },
     { id: "d20", name: "质量检测报告", type: "报告", required: true, status: "missing" },
     { id: "d21", name: "不合格品处理记录", type: "记录", required: false, status: "missing" },
   ],
   M8: [
-    { id: "d22", name: "FAT测试计划", type: "计划", required: true, status: "uploaded" },
+    { id: "d22", name: "FAT测试计划", type: "计划", required: true, status: "missing" },
     { id: "d23", name: "FAT测试报告", type: "报告", required: true, status: "missing" },
     { id: "d24", name: "客户签字确认单", type: "确认", required: true, status: "missing" },
   ],
   M10: [
-    { id: "d25", name: "现场调试记录", type: "记录", required: true, status: "uploaded" },
+    { id: "d25", name: "现场调试记录", type: "记录", required: true, status: "missing" },
     { id: "d26", name: "参数优化报告", type: "报告", required: true, status: "missing" },
-    { id: "d27", name: "培训签到表", type: "表单", required: true, status: "uploaded" },
-    { id: "d28", name: "客户操作手册", type: "手册", required: true, status: "expired" },
+    { id: "d27", name: "培训签到表", type: "表单", required: true, status: "missing" },
+    { id: "d28", name: "客户操作手册", type: "手册", required: true, status: "missing" },
   ],
 };
 
-const MOCK_UPLOADED: UploadedDoc[] = [
-  { id: "u1", name: "装配作业指导书_v2.1.pdf", type: "指导", uploadDate: "2025-12-01", uploader: "张工", size: "2.4MB" },
-  { id: "u2", name: "调试记录表_20251205.xlsx", type: "记录", uploadDate: "2025-12-05", uploader: "王工", size: "856KB" },
-  { id: "u3", name: "BOM清单_USC3000_v3.xlsx", type: "清单", uploadDate: "2025-11-28", uploader: "李工", size: "1.2MB" },
-  { id: "u4", name: "设计评审会议纪要.docx", type: "记录", uploadDate: "2025-11-20", uploader: "陈经理", size: "345KB" },
-];
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
 
 // ============================================================
 // Component
@@ -93,25 +94,39 @@ export default function ProjectPhaseDocuments() {
   const [aiChecking, setAiChecking] = useState(false);
   const [aiResult, setAiResult] = useState<{ percent: number; missing: string[] } | null>(null);
 
-  const project = MOCK_PROJECTS.find(p => String(p.id) === selectedProject);
+  // ─── tRPC Queries ───
+  const projectsQuery = trpc.project.list.useQuery(undefined, QUERY_OPTS);
+  const projectList = (projectsQuery.data ?? []) as any[];
+
+  const docsQuery = trpc.collaborationDocs.listFiles.useQuery(undefined, QUERY_OPTS);
+  const uploadedFiles = (docsQuery.data?.items ?? []) as any[];
+
+  const project = projectList.find((p: any) => String(p.id) === selectedProject);
   const requiredDocs = STAGE_REQUIRED_DOCS[selectedStage] ?? [];
 
   const docStats = useMemo(() => {
     const total = requiredDocs.filter(d => d.required).length;
-    const uploaded = requiredDocs.filter(d => d.required && d.status === "uploaded").length;
-    const missing = requiredDocs.filter(d => d.required && d.status === "missing").length;
-    const expired = requiredDocs.filter(d => d.required && d.status === "expired").length;
-    return { total, uploaded, missing, expired, percent: total > 0 ? Math.round((uploaded / total) * 100) : 0 };
-  }, [requiredDocs]);
+    // Cross-reference with uploaded files: match by doc name keywords
+    const uploaded = requiredDocs.filter(d => d.required && uploadedFiles.some((f: any) =>
+      f.title?.includes(d.name.slice(0, 4)) || d.status === "uploaded"
+    )).length;
+    const missing = total - uploaded;
+    return { total, uploaded, missing, expired: 0, percent: total > 0 ? Math.round((uploaded / total) * 100) : 0 };
+  }, [requiredDocs, uploadedFiles]);
 
   const handleAICheck = () => {
     setAiChecking(true);
     setAiResult(null);
     setTimeout(() => {
-      const missingItems = requiredDocs.filter(d => d.required && d.status !== "uploaded").map(d => d.name);
-      setAiResult({ percent: docStats.percent, missing: missingItems });
+      const missingItems = requiredDocs.filter(d => d.required && !uploadedFiles.some((f: any) =>
+        f.title?.includes(d.name.slice(0, 4))
+      )).map(d => d.name);
+      const pct = requiredDocs.filter(d => d.required).length > 0
+        ? Math.round(((requiredDocs.filter(d => d.required).length - missingItems.length) / requiredDocs.filter(d => d.required).length) * 100)
+        : 0;
+      setAiResult({ percent: pct, missing: missingItems });
       setAiChecking(false);
-    }, 2000);
+    }, 1500);
   };
 
   const statusIcon = (status: string) => {
@@ -136,6 +151,20 @@ export default function ProjectPhaseDocuments() {
     <StatusBadge color={docStatusColors[status] ?? "gray"}>{statusLabelMap[status] ?? status}</StatusBadge>
   );
 
+  // ── Loading State ───
+  if (projectsQuery.isLoading) {
+    return (
+      <div className="space-y-6 p-6">
+        <PageHeader icon={FolderOpen} title={t("projects.phaseDocs.title")} description="加载中..." />
+        <div className="flex gap-4">
+          <Skeleton className="h-10 w-[280px] rounded-lg" />
+          <Skeleton className="h-10 w-[200px] rounded-lg" />
+        </div>
+        <Skeleton className="h-48 rounded-lg" />
+      </div>
+    );
+  }
+
   return (
       <div className="space-y-6 p-6">
         <PageHeader
@@ -150,7 +179,16 @@ export default function ProjectPhaseDocuments() {
             <Label>{t("projects.phaseDocs.selectProject")}</Label>
             <Select value={selectedProject} onValueChange={v => { setSelectedProject(v); setSelectedStage(""); setAiResult(null); }}>
               <SelectTrigger><SelectValue placeholder={t("projects.phaseDocs.selectProjectPlaceholder")} /></SelectTrigger>
-              <SelectContent>{MOCK_PROJECTS.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {projectList.map((p: any) => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {p.projectCode ? `${p.projectCode} ` : ""}{p.name}
+                  </SelectItem>
+                ))}
+                {projectList.length === 0 && (
+                  <SelectItem value="__empty" disabled>暂无项目数据</SelectItem>
+                )}
+              </SelectContent>
             </Select>
           </div>
           {project && (
@@ -173,12 +211,12 @@ export default function ProjectPhaseDocuments() {
                 {STAGES.map(s => {
                   const docs = STAGE_REQUIRED_DOCS[s.code];
                   const hasData = docs && docs.length > 0;
-                  const isCurrent = s.code === project.currentStage;
+                  const isCurrent = s.code === (project.currentPhase ?? project.currentStage);
                   return (
                     <div key={s.code} className={`p-3 rounded-lg border text-center cursor-pointer hover:border-primary/50 ${isCurrent ? "border-primary bg-primary/5" : ""}`} onClick={() => setSelectedStage(s.code)}>
                       <p className="font-mono font-bold">{s.code}</p>
                       <p className="text-xs text-muted-foreground">{s.name}</p>
-                      {hasData && <Badge variant="outline" className="mt-1 text-xs">{docs.filter(d => d.status === "uploaded").length}/{docs.length}</Badge>}
+                      {hasData && <Badge variant="outline" className="mt-1 text-xs">{0}/{docs.length}</Badge>}
                       {isCurrent && <Badge className="mt-1 text-xs bg-primary">{t("projects.phaseDocs.current")}</Badge>}
                     </div>
                   );
@@ -239,28 +277,36 @@ export default function ProjectPhaseDocuments() {
               </CardContent>
             </Card>
 
-            {/* Uploaded Documents */}
+            {/* Uploaded Documents (from DB) */}
             <Card>
               <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="w-5 h-5" />{t("projects.phaseDocs.uploadedDocs")}</CardTitle></CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {MOCK_UPLOADED.map(doc => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-blue-500" />
-                        <div>
-                          <p className="font-medium text-sm">{doc.name}</p>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><User className="w-3 h-3" />{doc.uploader}</span>
-                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{doc.uploadDate}</span>
-                            <span>{doc.size}</span>
+                {docsQuery.isLoading ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
+                  </div>
+                ) : uploadedFiles.length > 0 ? (
+                  <div className="space-y-2">
+                    {uploadedFiles.map((doc: any) => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50">
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-5 h-5 text-blue-500" />
+                          <div>
+                            <p className="font-medium text-sm">{doc.title}</p>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1"><User className="w-3 h-3" />{doc.uploadedBy}</span>
+                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{doc.modifiedAt ? new Date(doc.modifiedAt).toLocaleDateString("zh-CN") : "-"}</span>
+                              <span>{formatFileSize(Number(doc.fileSize) || 0)}</span>
+                            </div>
                           </div>
                         </div>
+                        <Button size="sm" variant="ghost"><ChevronRight className="w-4 h-4" /></Button>
                       </div>
-                      <Button size="sm" variant="ghost"><ChevronRight className="w-4 h-4" /></Button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-4">暂无已上传文档</p>
+                )}
               </CardContent>
             </Card>
 

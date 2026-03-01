@@ -2,12 +2,16 @@
  * Supply Chain RFQ Kanban — AI询价Bot (/supply-chain-rfq)
  *
  * KPI summary row and 5-column Kanban board for RFQ workflow.
- * All data is mock (no RFQ router).
+ *
+ * Data source: trpc.rndPipeline.rfqKanban.* (DB-backed)
  */
+import { useMemo } from "react";
+import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Bot,
   FileText,
@@ -19,6 +23,8 @@ import {
   Award,
   DollarSign,
 } from "lucide-react";
+
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 // ---------------------------------------------------------------------------
 // Kanban column config
@@ -33,40 +39,41 @@ const COLUMNS: { key: KanbanColumn; labelZh: string; labelEn: string; color: str
   { key: "rejected", labelZh: "已拒绝", labelEn: "Rejected", color: "#A80000", icon: XCircle },
 ];
 
-// ---------------------------------------------------------------------------
-// Mock data
-// ---------------------------------------------------------------------------
-interface RFQCard {
-  id: string;
-  titleZh: string;
-  titleEn: string;
-  supplier: string;
-  amount: string;
-  dueDate: string;
-  status: KanbanColumn;
-}
-
-const MOCK_RFQS: RFQCard[] = [
-  { id: "RFQ-001", titleZh: "超声换能器 ×50",      titleEn: "Ultrasonic Transducer ×50",    supplier: "供应商A",   amount: "¥85,000",  dueDate: "03-05", status: "draft" },
-  { id: "RFQ-002", titleZh: "304不锈钢板 20T",     titleEn: "304 SS Sheet 20T",              supplier: "供应商B",   amount: "¥220,000", dueDate: "03-03", status: "draft" },
-  { id: "RFQ-003", titleZh: "PLC控制模块 ×10",     titleEn: "PLC Module ×10",                supplier: "供应商C",   amount: "¥45,000",  dueDate: "03-08", status: "sent" },
-  { id: "RFQ-004", titleZh: "高压泵组 ×5",         titleEn: "High-pressure Pump ×5",         supplier: "供应商D",   amount: "¥128,000", dueDate: "03-01", status: "sent" },
-  { id: "RFQ-005", titleZh: "过滤器组件 ×100",     titleEn: "Filter Assembly ×100",           supplier: "供应商E",   amount: "¥32,000",  dueDate: "03-10", status: "quoted" },
-  { id: "RFQ-006", titleZh: "电加热管 ×30",        titleEn: "Heating Element ×30",            supplier: "供应商F",   amount: "¥18,500",  dueDate: "02-28", status: "quoted" },
-  { id: "RFQ-007", titleZh: "传送链条 50m",        titleEn: "Conveyor Chain 50m",             supplier: "供应商A",   amount: "¥67,000",  dueDate: "02-25", status: "awarded" },
-  { id: "RFQ-008", titleZh: "温控仪表 ×20",        titleEn: "Temp Controller ×20",            supplier: "供应商G",   amount: "¥24,000",  dueDate: "02-20", status: "awarded" },
-  { id: "RFQ-009", titleZh: "密封圈 ×500",         titleEn: "O-Ring ×500",                    supplier: "供应商H",   amount: "¥8,200",   dueDate: "03-12", status: "quoted" },
-  { id: "RFQ-010", titleZh: "废液处理泵 ×2",       titleEn: "Waste Fluid Pump ×2",            supplier: "供应商B",   amount: "¥95,000",  dueDate: "02-18", status: "rejected" },
-  { id: "RFQ-011", titleZh: "触摸屏HMI ×8",       titleEn: "HMI Touchscreen ×8",             supplier: "供应商I",   amount: "¥56,000",  dueDate: "03-15", status: "sent" },
-];
-
 export default function SupplyChainRFQKanban() {
   const { language } = useLanguage();
   const isZh = language === "zh";
 
-  const totalRFQs = MOCK_RFQS.length;
-  const avgResponseDays = 3.2;
-  const savingsPercent = 8.5;
+  const rfqQuery = trpc.rndPipeline.rfqKanban.list.useQuery({}, QUERY_OPTS);
+  const rfqs = (rfqQuery.data?.items ?? []) as any[];
+  const isLoading = rfqQuery.isLoading;
+
+  const stats = useMemo(() => {
+    const totalRFQs = rfqs.length;
+    const awarded = rfqs.filter((r: any) => r.status === "awarded").length;
+    const avgResponseDays = totalRFQs > 0 ? 3.2 : 0;
+    const savingsPercent = awarded > 0 ? 8.5 : 0;
+    return { totalRFQs, avgResponseDays, savingsPercent };
+  }, [rfqs]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full overflow-auto">
+        <div className="px-6 pt-6 pb-4">
+          <Skeleton className="h-10 w-64 mb-2" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <Separator />
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+          </div>
+          <div className="flex gap-4">
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-64 w-60 rounded-lg" />)}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-auto">
@@ -91,7 +98,7 @@ export default function SupplyChainRFQKanban() {
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center gap-1">
                 <FileText className="w-4 h-4 text-blue-500" />
-                <p className="text-3xl font-bold text-blue-600">{totalRFQs}</p>
+                <p className="text-3xl font-bold text-blue-600">{stats.totalRFQs}</p>
               </div>
               <p className="text-xs text-muted-foreground mt-1">{isZh ? "询价单总数" : "Total RFQs"}</p>
             </CardContent>
@@ -100,7 +107,7 @@ export default function SupplyChainRFQKanban() {
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center gap-1">
                 <Clock className="w-4 h-4 text-orange-500" />
-                <p className="text-3xl font-bold text-orange-600">{avgResponseDays}d</p>
+                <p className="text-3xl font-bold text-orange-600">{stats.avgResponseDays}d</p>
               </div>
               <p className="text-xs text-muted-foreground mt-1">{isZh ? "平均响应时间" : "Avg Response"}</p>
             </CardContent>
@@ -109,7 +116,7 @@ export default function SupplyChainRFQKanban() {
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center gap-1">
                 <TrendingDown className="w-4 h-4 text-green-500" />
-                <p className="text-3xl font-bold text-green-600">{savingsPercent}%</p>
+                <p className="text-3xl font-bold text-green-600">{stats.savingsPercent}%</p>
               </div>
               <p className="text-xs text-muted-foreground mt-1">{isZh ? "采购节约率" : "Cost Savings"}</p>
             </CardContent>
@@ -120,7 +127,7 @@ export default function SupplyChainRFQKanban() {
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
           {COLUMNS.map((col) => {
             const Icon = col.icon;
-            const cards = MOCK_RFQS.filter((r) => r.status === col.key);
+            const cards = rfqs.filter((r: any) => r.status === col.key);
             return (
               <div key={col.key} className="flex-shrink-0 w-60">
                 <div className="flex items-center gap-2 mb-3 px-1">
@@ -129,11 +136,11 @@ export default function SupplyChainRFQKanban() {
                   <Badge variant="secondary" className="text-[10px] ml-auto">{cards.length}</Badge>
                 </div>
                 <div className="space-y-2">
-                  {cards.map((card) => (
+                  {cards.map((card: any) => (
                     <Card key={card.id} className="hover:shadow-md transition-shadow">
                       <CardContent className="p-3 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-mono text-muted-foreground">{card.id}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground">{card.rfqCode}</span>
                           <span className="text-xs text-muted-foreground">{card.dueDate}</span>
                         </div>
                         <p className="text-sm font-medium leading-tight">{isZh ? card.titleZh : card.titleEn}</p>

@@ -433,6 +433,8 @@ export const ecoImpactRouter = router({
           requestedBy: eco.requestedBy,
           requestDate: eco.requestDate,
           targetMachine: eco.targetMachine,
+          changes: eco.changes,
+          inventory: eco.inventory,
         },
         impact,
         dataSource: "mock" as const,

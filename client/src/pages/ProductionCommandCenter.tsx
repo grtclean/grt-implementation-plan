@@ -22,6 +22,7 @@ import {
   ClipboardCheck,
   CalendarClock,
   AlertTriangle,
+  CheckCircle2,
   MapPin,
   Users,
 } from "lucide-react";
@@ -56,6 +57,10 @@ export default function ProductionCommandCenter() {
 
   const { data: schedulingTasks, isLoading: schedTasksLoading, isError: schedTasksError } =
     trpc.scheduling.listTasks.useQuery(undefined, QUERY_OPTS);
+
+  // ── Tab 3: Recent QC records for quality alerts ──
+  const { data: qcRecords, isLoading: qcRecordsLoading } =
+    trpc.productionDashboard.getQCRecords.useQuery(undefined, QUERY_OPTS);
 
   // ── Tab 4: UWB worker locations ──
   const { data: realtimeLocations, isLoading: locationsLoading, isError: locationsError } =
@@ -137,7 +142,9 @@ export default function ProductionCommandCenter() {
           <TabsContent value="quality" className="mt-6">
             <QualityTab
               qcStats={qcStats}
+              qcRecords={qcRecords}
               loading={qcStatsLoading}
+              recordsLoading={qcRecordsLoading}
               error={qcStatsError}
             />
           </TabsContent>
@@ -467,19 +474,17 @@ function SchedulingTab({
 // Tab 3: Quality Monitoring
 // ═══════════════════════════════════════════
 
-const MOCK_QUALITY_ALERTS = [
-  { id: 1, workOrder: "WO-2026-004", checkpoint: "原材料检验", severity: "warning", message: "5件外观轻微划痕", time: "09:00" },
-  { id: 2, workOrder: "WO-2026-001", checkpoint: "焊接工序", severity: "info", message: "2件焊缝偏差，已返修", time: "14:00" },
-  { id: 3, workOrder: "WO-2026-003", checkpoint: "整机测试", severity: "info", message: "2项参数临界值，已通过", time: "10:00" },
-];
-
 function QualityTab({
   qcStats,
+  qcRecords,
   loading,
+  recordsLoading,
   error,
 }: {
   qcStats: any;
+  qcRecords: any;
   loading: boolean;
+  recordsLoading: boolean;
   error: boolean;
 }) {
   const { t } = useLanguage();
@@ -526,35 +531,57 @@ function QualityTab({
         </CardContent>
       </Card>
 
-      {/* Recent quality alerts (mock data) */}
+      {/* Recent quality records (DB-backed) */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-muted-foreground">{t("manufacturing.production.recentQualityAlerts")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {MOCK_QUALITY_ALERTS.map((alert) => (
-              <div
-                key={alert.id}
-                className={`flex items-start gap-3 p-3 rounded-lg border ${
-                  alert.severity === "warning" ? "border-yellow-500/30 bg-yellow-500/5" : "border-muted"
-                }`}
-              >
-                <AlertTriangle
-                  className={`w-4 h-4 mt-0.5 shrink-0 ${
-                    alert.severity === "warning" ? "text-yellow-500" : "text-muted-foreground"
-                  }`}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">
-                    {alert.workOrder} - {alert.checkpoint}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{alert.message}</p>
-                </div>
-                <span className="text-xs text-muted-foreground shrink-0">{alert.time}</span>
-              </div>
-            ))}
-          </div>
+          {recordsLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : Array.isArray(qcRecords) && qcRecords.length > 0 ? (
+            <div className="space-y-3">
+              {qcRecords.slice(0, 10).map((rec: any) => {
+                const severity = rec.result === "fail" ? "warning" : rec.result === "conditional" ? "warning" : "info";
+                return (
+                  <div
+                    key={rec.id}
+                    className={`flex items-start gap-3 p-3 rounded-lg border ${
+                      severity === "warning" ? "border-yellow-500/30 bg-yellow-500/5" : "border-muted"
+                    }`}
+                  >
+                    <AlertTriangle
+                      className={`w-4 h-4 mt-0.5 shrink-0 ${
+                        severity === "warning" ? "text-yellow-500" : "text-muted-foreground"
+                      }`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">
+                        {rec.workOrderCode} - {rec.checkPoint}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {rec.checkType} | {t("manufacturing.production.pass")}: {rec.passItems}/{rec.totalItems}
+                        {rec.failItems > 0 && ` | ${t("manufacturing.production.fail")}: ${rec.failItems}`}
+                        {rec.notes && ` — ${rec.notes}`}
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {rec.checkedAt ? new Date(rec.checkedAt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <CheckCircle2 className="w-10 h-10 mx-auto text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">{t("manufacturing.production.noData")}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -10,109 +10,20 @@
  *   - Summary stats: Active Blocking / Completed / Overridden
  *   - Training Module catalog
  *
- * Route: /hr/ai-interventions
+ * Data source: trpc.aiIntervention.dashboard + trpc.aiIntervention.override
  */
 
 import React, { useState, useMemo } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 // ─── Types (mirrors server) ──────────────────────────────────────
 
 type InterventionStatus = "PENDING_TRAINING" | "IN_PROGRESS" | "COMPLETED" | "OVERRIDDEN" | "EXPIRED";
 type InterventionTrigger = "QUALITY_DEFECT" | "COLLABORATION_LOW" | "SAFETY_INCIDENT" | "CERT_EXPIRING" | "MANUAL";
-
-interface ActiveIntervention {
-  id: number;
-  userId: number;
-  userName: string;
-  triggerType: InterventionTrigger;
-  triggerReason: string;
-  assignedModuleId: number;
-  assignedModuleTitle: string;
-  blockedMachineId: number | null;
-  blockedMachineCode: string | null;
-  blockedTaskLevel: string | null;
-  status: InterventionStatus;
-  progressPercent: number;
-  dueDate: string | null;
-  createdAt: string;
-}
-
-interface TrainingModule {
-  id: number;
-  moduleCode: string;
-  title: string;
-  titleZh: string;
-  category: string;
-  durationMinutes: number;
-  passingScore: number;
-  relatedMachineTypes: string[];
-}
-
-// ─── Mock Data (identical to server for preview) ──────────────────
-
-const NOW = new Date();
-
-const MOCK_MODULES: TrainingModule[] = [
-  { id: 1, moduleCode: "TM-CNC-001", title: "CNC Precision Tuning & Defect Prevention", titleZh: "CNC精密调整与缺陷预防", category: "PROCESS_QUALITY", durationMinutes: 45, passingScore: 80, relatedMachineTypes: ["CNC-001", "CNC-002", "CNC-003"] },
-  { id: 2, moduleCode: "TM-HYD-001", title: "Hydraulic Assembly Safety & Quality", titleZh: "液压装配安全与质量", category: "PROCESS_QUALITY", durationMinutes: 60, passingScore: 85, relatedMachineTypes: ["HYD-BENCH-001", "HYD-BENCH-002"] },
-  { id: 3, moduleCode: "TM-WLD-001", title: "Advanced Welding Technique (SS316)", titleZh: "高级焊接技术(SS316)", category: "TECHNICAL_SKILLS", durationMinutes: 90, passingScore: 75, relatedMachineTypes: ["WLD-TIG-001", "WLD-MIG-001"] },
-  { id: 4, moduleCode: "TM-COMM-001", title: "Effective Communication & Meeting Skills", titleZh: "高效沟通与会议技巧", category: "EFFECTIVE_COMMUNICATION", durationMinutes: 30, passingScore: 70, relatedMachineTypes: [] },
-  { id: 5, moduleCode: "TM-SAFE-001", title: "Industrial Safety & Lockout/Tagout", titleZh: "工业安全与上锁/挂牌", category: "MACHINE_SAFETY", durationMinutes: 40, passingScore: 90, relatedMachineTypes: ["CNC-001", "CNC-002", "HYD-BENCH-001", "WLD-TIG-001"] },
-  { id: 6, moduleCode: "TM-NZL-001", title: "Nozzle Calibration & Spray Quality", titleZh: "喷嘴校准与喷洒质量", category: "PROCESS_QUALITY", durationMinutes: 35, passingScore: 80, relatedMachineTypes: ["NZL-CAL-001", "NZL-CAL-002"] },
-];
-
-const MOCK_INTERVENTIONS: ActiveIntervention[] = [
-  {
-    id: 1, userId: 1002, userName: "李明 (Li Ming)",
-    triggerType: "QUALITY_DEFECT",
-    triggerReason: "4 defects on CNC-001 this week (threshold: >3). Failure mode: Dimensional tolerance exceeded ±0.05mm",
-    assignedModuleId: 1, assignedModuleTitle: "CNC Precision Tuning & Defect Prevention",
-    blockedMachineId: 101, blockedMachineCode: "CNC-001", blockedTaskLevel: "high",
-    status: "IN_PROGRESS", progressPercent: 50,
-    dueDate: new Date(NOW.getTime() + 3 * 86400000).toISOString(),
-    createdAt: new Date(NOW.getTime() - 4 * 86400000).toISOString(),
-  },
-  {
-    id: 2, userId: 1005, userName: "赵鑫 (Zhao Xin)",
-    triggerType: "QUALITY_DEFECT",
-    triggerReason: "5 defects on HYD-BENCH-001 this week (threshold: >3). Failure mode: Oil Leakage at Manifold Joint",
-    assignedModuleId: 2, assignedModuleTitle: "Hydraulic Assembly Safety & Quality",
-    blockedMachineId: 201, blockedMachineCode: "HYD-BENCH-001", blockedTaskLevel: "high",
-    status: "PENDING_TRAINING", progressPercent: 0,
-    dueDate: new Date(NOW.getTime() + 6 * 86400000).toISOString(),
-    createdAt: new Date(NOW.getTime() - 1 * 86400000).toISOString(),
-  },
-  {
-    id: 3, userId: 1006, userName: "周伟 (Zhou Wei)",
-    triggerType: "COLLABORATION_LOW",
-    triggerReason: "Meeting score 45 is below threshold (60) for 2026-02",
-    assignedModuleId: 4, assignedModuleTitle: "Effective Communication & Meeting Skills",
-    blockedMachineId: null, blockedMachineCode: null, blockedTaskLevel: "high",
-    status: "PENDING_TRAINING", progressPercent: 0,
-    dueDate: new Date(NOW.getTime() + 12 * 86400000).toISOString(),
-    createdAt: new Date(NOW.getTime() - 2 * 86400000).toISOString(),
-  },
-  {
-    id: 4, userId: 1003, userName: "王芳 (Wang Fang)",
-    triggerType: "QUALITY_DEFECT",
-    triggerReason: "4 defects on NZL-CAL-001 last week. Failure mode: Spray Pattern Deviation",
-    assignedModuleId: 6, assignedModuleTitle: "Nozzle Calibration & Spray Quality",
-    blockedMachineId: 301, blockedMachineCode: "NZL-CAL-001", blockedTaskLevel: "high",
-    status: "COMPLETED", progressPercent: 100,
-    dueDate: new Date(NOW.getTime() - 1 * 86400000).toISOString(),
-    createdAt: new Date(NOW.getTime() - 8 * 86400000).toISOString(),
-  },
-  {
-    id: 5, userId: 1007, userName: "陈杰 (Chen Jie)",
-    triggerType: "QUALITY_DEFECT",
-    triggerReason: "6 defects on WLD-TIG-001 this week. Failure mode: Weld Porosity",
-    assignedModuleId: 3, assignedModuleTitle: "Advanced Welding Technique (SS316)",
-    blockedMachineId: 401, blockedMachineCode: "WLD-TIG-001", blockedTaskLevel: "high",
-    status: "OVERRIDDEN", progressPercent: 30,
-    dueDate: new Date(NOW.getTime() + 2 * 86400000).toISOString(),
-    createdAt: new Date(NOW.getTime() - 5 * 86400000).toISOString(),
-  },
-];
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -180,37 +91,69 @@ function isBlocking(s: InterventionStatus): boolean {
   return s === "PENDING_TRAINING" || s === "IN_PROGRESS";
 }
 
+function LoadingSkeleton() {
+  return (
+    <div style={{ padding: 24, maxWidth: 1400, margin: "0 auto" }}>
+      <Skeleton className="h-10 w-80 mb-2" />
+      <Skeleton className="h-4 w-64 mb-6" />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 24 }}>
+        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────
 
 export default function AiInterventionDashboard() {
   const [filter, setFilter] = useState<"all" | "blocking" | "resolved">("all");
-  const [overrideModal, setOverrideModal] = useState<ActiveIntervention | null>(null);
+  const [overrideModal, setOverrideModal] = useState<any | null>(null);
   const [overrideReason, setOverrideReason] = useState("");
   const [tab, setTab] = useState<"interventions" | "modules">("interventions");
 
-  const interventions = MOCK_INTERVENTIONS;
-  const modules = MOCK_MODULES;
+  // ─── tRPC query ───
+  const dashboardQuery = trpc.aiIntervention.dashboard.useQuery(undefined, QUERY_OPTS);
+  const data = dashboardQuery.data as any;
+  const interventions = (data?.interventions ?? []) as any[];
+  const modules = (data?.modules ?? []) as any[];
+  const summary = data?.summary;
 
-  // ── Derived stats ──
-  const activeBlocking = useMemo(() => interventions.filter(i => isBlocking(i.status)), [interventions]);
-  const completed = useMemo(() => interventions.filter(i => i.status === "COMPLETED"), [interventions]);
-  const overridden = useMemo(() => interventions.filter(i => i.status === "OVERRIDDEN"), [interventions]);
-  const qualityCount = useMemo(() => interventions.filter(i => i.triggerType === "QUALITY_DEFECT").length, [interventions]);
-  const collabCount = useMemo(() => interventions.filter(i => i.triggerType === "COLLABORATION_LOW").length, [interventions]);
+  // ─── tRPC mutation ───
+  const overrideMut = trpc.aiIntervention.override.useMutation({
+    onSuccess: (result: any) => {
+      toast.success(`Override applied for intervention #${result.interventionId}`);
+      setOverrideModal(null);
+      setOverrideReason("");
+      dashboardQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  // ── Derived stats (from server summary or fallback) ──
+  const activeBlocking = useMemo(() => interventions.filter((i: any) => isBlocking(i.status)), [interventions]);
+  const completedCount = summary?.completed ?? 0;
+  const overriddenCount = summary?.overridden ?? 0;
+  const qualityCount = summary?.qualityTriggers ?? 0;
+  const collabCount = summary?.collaborationTriggers ?? 0;
 
   const filtered = useMemo(() => {
     if (filter === "blocking") return activeBlocking;
-    if (filter === "resolved") return interventions.filter(i => i.status === "COMPLETED" || i.status === "OVERRIDDEN");
+    if (filter === "resolved") return interventions.filter((i: any) => i.status === "COMPLETED" || i.status === "OVERRIDDEN");
     return interventions;
   }, [filter, interventions, activeBlocking]);
 
   // ── Override handler ──
   const handleOverride = () => {
     if (!overrideModal || !overrideReason.trim()) return;
-    alert(`Override submitted for ${overrideModal.userName}.\nReason: ${overrideReason}\n\n(Mock mode — in production this calls aiIntervention.override)`);
-    setOverrideModal(null);
-    setOverrideReason("");
+    overrideMut.mutate({ interventionId: overrideModal.id, reason: overrideReason.trim() });
   };
+
+  if (dashboardQuery.isLoading) {
+    return <LoadingSkeleton />;
+  }
 
   return (
     <div style={{ padding: 24, maxWidth: 1400, margin: "0 auto", fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -242,10 +185,10 @@ export default function AiInterventionDashboard() {
               : "ALL CLEAR"}
           </span>
           <span style={{
-            background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20,
+            background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: 20,
             padding: "6px 14px", fontSize: 12, color: "#2563eb",
           }}>
-            MOCK DATA
+            DB-backed
           </span>
         </div>
       </div>
@@ -263,7 +206,7 @@ export default function AiInterventionDashboard() {
               AI INTERLOCK ACTIVE — {activeBlocking.length} Operator{activeBlocking.length > 1 ? "s" : ""} Blocked from Machines
             </div>
             <div style={{ fontSize: 13, opacity: 0.9, marginTop: 2 }}>
-              {activeBlocking.map(i => `${i.userName} [${i.blockedMachineCode ?? "ALL"}]`).join(" | ")}
+              {activeBlocking.map((i: any) => `${i.userName} [${i.blockedMachineCode ?? "ALL"}]`).join(" | ")}
             </div>
           </div>
         </div>
@@ -273,8 +216,8 @@ export default function AiInterventionDashboard() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
           { label: "Active Blocking", value: activeBlocking.length, color: "#ef4444", bg: "#fef2f2", border: "#fca5a5" },
-          { label: "Completed", value: completed.length, color: "#22c55e", bg: "#f0fdf4", border: "#86efac" },
-          { label: "Overridden", value: overridden.length, color: "#8b5cf6", bg: "#f5f3ff", border: "#c4b5fd" },
+          { label: "Completed", value: completedCount, color: "#22c55e", bg: "#f0fdf4", border: "#86efac" },
+          { label: "Overridden", value: overriddenCount, color: "#8b5cf6", bg: "#f5f3ff", border: "#c4b5fd" },
           { label: "Quality Triggers", value: qualityCount, color: "#f59e0b", bg: "#fffbeb", border: "#fcd34d" },
           { label: "Collab Triggers", value: collabCount, color: "#06b6d4", bg: "#ecfeff", border: "#67e8f9" },
         ].map((card, i) => (
@@ -315,14 +258,14 @@ export default function AiInterventionDashboard() {
                 color: filter === f ? "white" : "#475569",
                 border: "1px solid #cbd5e1", borderRadius: 6, fontWeight: 500,
               }}>
-                {f === "all" ? `All (${interventions.length})` : f === "blocking" ? `Blocking (${activeBlocking.length})` : `Resolved (${completed.length + overridden.length})`}
+                {f === "all" ? `All (${interventions.length})` : f === "blocking" ? `Blocking (${activeBlocking.length})` : `Resolved (${completedCount + overriddenCount})`}
               </button>
             ))}
           </div>
 
           {/* Intervention Cards */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {filtered.map(intv => {
+            {filtered.map((intv: any) => {
               const blocking = isBlocking(intv.status);
               const days = daysUntil(intv.dueDate);
               const overdue = days !== null && days < 0;
@@ -334,7 +277,6 @@ export default function AiInterventionDashboard() {
                   borderRadius: 12, padding: 20, position: "relative",
                   borderLeft: `6px solid ${statusColor(intv.status)}`,
                 }}>
-                  {/* Status pulse for blocking */}
                   {blocking && (
                     <div style={{
                       position: "absolute", top: 12, right: 12,
@@ -353,7 +295,6 @@ export default function AiInterventionDashboard() {
 
                   {/* Header row */}
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                    {/* Trigger badge */}
                     <span style={{
                       width: 32, height: 32, borderRadius: "50%", display: "flex",
                       alignItems: "center", justifyContent: "center",
@@ -371,7 +312,6 @@ export default function AiInterventionDashboard() {
                         {triggerLabel(intv.triggerType)} — ID #{intv.id}
                       </div>
                     </div>
-                    {/* Status badge */}
                     <span style={{
                       padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600,
                       background: statusColor(intv.status) + "20",
@@ -435,7 +375,6 @@ export default function AiInterventionDashboard() {
                     <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", minWidth: 40, textAlign: "right" }}>
                       {intv.progressPercent}%
                     </span>
-                    {/* Override button */}
                     {blocking && (
                       <button
                         onClick={() => { setOverrideModal(intv); setOverrideReason(""); }}
@@ -464,7 +403,7 @@ export default function AiInterventionDashboard() {
       {/* ── MODULES TAB ── */}
       {tab === "modules" && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 16 }}>
-          {modules.map(m => (
+          {modules.map((m: any) => (
             <div key={m.id} style={{
               background: "white", border: "1px solid #e2e8f0", borderRadius: 12, padding: 20,
               borderTop: `4px solid ${categoryBadgeColor(m.category)}`,
@@ -485,9 +424,9 @@ export default function AiInterventionDashboard() {
                 <span>Duration: <strong>{m.durationMinutes}min</strong></span>
                 <span>Pass: <strong>{m.passingScore}%</strong></span>
               </div>
-              {m.relatedMachineTypes.length > 0 && (
+              {(m.relatedMachineTypes ?? []).length > 0 && (
                 <div style={{ marginTop: 10, display: "flex", gap: 4, flexWrap: "wrap" }}>
-                  {m.relatedMachineTypes.map(mt => (
+                  {(m.relatedMachineTypes ?? []).map((mt: string) => (
                     <span key={mt} style={{
                       padding: "2px 8px", background: "#f1f5f9", borderRadius: 4,
                       fontSize: 11, color: "#475569", border: "1px solid #e2e8f0",
@@ -511,7 +450,6 @@ export default function AiInterventionDashboard() {
           AI Closed-Loop Architecture
         </h3>
         <svg viewBox="0 0 800 140" style={{ maxWidth: 700, width: "100%" }}>
-          {/* Boxes */}
           {[
             { x: 10, label1: "DETECT", label2: "Defects / Scores", color: "#f59e0b" },
             { x: 210, label1: "INTERVENE", label2: "Auto-Assign Module", color: "#ef4444" },
@@ -527,7 +465,6 @@ export default function AiInterventionDashboard() {
               </text>
             </g>
           ))}
-          {/* Arrows */}
           {[190, 390, 590].map((x, i) => (
             <polygon key={i} points={`${x},55 ${x + 15},60 ${x},65`} fill="#94a3b8" />
           ))}
@@ -581,12 +518,12 @@ export default function AiInterventionDashboard() {
               }}>
                 Cancel
               </button>
-              <button onClick={handleOverride} disabled={!overrideReason.trim()} style={{
+              <button onClick={handleOverride} disabled={!overrideReason.trim() || overrideMut.isPending} style={{
                 padding: "8px 20px", fontSize: 14, cursor: "pointer", fontWeight: 600,
-                background: overrideReason.trim() ? "#7c3aed" : "#d4d4d8",
+                background: overrideReason.trim() && !overrideMut.isPending ? "#7c3aed" : "#d4d4d8",
                 color: "white", border: "none", borderRadius: 8,
               }}>
-                Confirm Override
+                {overrideMut.isPending ? "Overriding..." : "Confirm Override"}
               </button>
             </div>
           </div>

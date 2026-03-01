@@ -1,8 +1,12 @@
 /**
  * 权限黑名单管理页面
  * 管理特定用户的权限禁止列表
+ *
+ * Data source: trpc.accessControl.blacklist.* (DB-backed)
  */
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,31 +14,65 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShieldAlert, Plus, Search, User, Lock, Unlock, AlertTriangle, Clock } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ShieldAlert, Plus, Search, Lock, Unlock, AlertTriangle, Clock } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/grt";
 
-interface BlacklistEntry {
-  id: string;
-  user: string;
-  department: string;
-  blockedModule: string;
-  blockedAction: string;
-  reason: string;
-  createdBy: string;
-  createdAt: string;
-  status: "active" | "lifted";
-}
-
-const MOCK_BLACKLIST: BlacklistEntry[] = [
-  { id: "BL-001", user: "赵某", department: "销售部", blockedModule: "财务管理", blockedAction: "查看成本数据", reason: "离职过渡期限制敏感数据访问", createdBy: "HR经理", createdAt: "2026-02-01", status: "active" },
-  { id: "BL-002", user: "钱某", department: "研发部", blockedModule: "合同管理", blockedAction: "导出合同", reason: "竞业协议限制", createdBy: "法务部", createdAt: "2026-01-15", status: "active" },
-  { id: "BL-003", user: "孙某", department: "生产部", blockedModule: "薪酬管理", blockedAction: "查看他人薪资", reason: "数据泄露事件处罚", createdBy: "admin", createdAt: "2025-12-20", status: "lifted" },
-];
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 export default function PermissionBlacklist() {
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
-  const filtered = MOCK_BLACKLIST.filter(b => !search || b.user.includes(search) || b.blockedModule.includes(search));
+  const [formData, setFormData] = useState({ user: "", department: "", blockedModule: "", blockedAction: "", reason: "" });
+
+  // ─── tRPC ───
+  const listQuery = trpc.accessControl.blacklist.list.useQuery(undefined, QUERY_OPTS);
+  const items = (listQuery.data?.items ?? []) as any[];
+  const stats = listQuery.data?.stats ?? { active: 0, lifted: 0, total: 0 };
+
+  const createMut = trpc.accessControl.blacklist.create.useMutation({
+    onSuccess: () => {
+      listQuery.refetch();
+      setShowAdd(false);
+      setFormData({ user: "", department: "", blockedModule: "", blockedAction: "", reason: "" });
+      toast.success("黑名单已添加");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const liftMut = trpc.accessControl.blacklist.lift.useMutation({
+    onSuccess: () => {
+      listQuery.refetch();
+      toast.success("黑名单已解除");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const filtered = items.filter((b: any) => !search || (b.user ?? "").includes(search) || (b.blockedModule ?? "").includes(search));
+
+  const handleCreate = () => {
+    if (!formData.user.trim()) { toast.error("请输入目标用户"); return; }
+    if (!formData.blockedModule.trim()) { toast.error("请选择限制模块"); return; }
+    createMut.mutate({
+      user: formData.user.trim(),
+      department: formData.department.trim(),
+      blockedModule: formData.blockedModule.trim(),
+      blockedAction: formData.blockedAction.trim(),
+      reason: formData.reason.trim(),
+    });
+  };
+
+  if (listQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader icon={ShieldAlert} title="权限黑名单" description="..." />
+        <div className="grid grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+        </div>
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -50,21 +88,45 @@ export default function PermissionBlacklist() {
             <DialogContent>
               <DialogHeader><DialogTitle>添加权限黑名单</DialogTitle></DialogHeader>
               <div className="space-y-4 py-4">
-                <div className="space-y-2"><Label>目标用户</Label><Input placeholder="搜索用户..." /></div>
-                <div className="space-y-2"><Label>限制模块</Label><Select><SelectTrigger><SelectValue placeholder="选择模块" /></SelectTrigger><SelectContent><SelectItem value="finance">财务管理</SelectItem><SelectItem value="hr">人力资源</SelectItem><SelectItem value="contract">合同管理</SelectItem><SelectItem value="salary">薪酬管理</SelectItem></SelectContent></Select></div>
-                <div className="space-y-2"><Label>限制操作</Label><Input placeholder="如: 查看、导出、修改..." /></div>
-                <div className="space-y-2"><Label>原因说明</Label><Input placeholder="限制原因..." /></div>
+                <div className="space-y-2">
+                  <Label>目标用户</Label>
+                  <Input placeholder="搜索用户..." value={formData.user} onChange={e => setFormData(prev => ({ ...prev, user: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>部门</Label>
+                  <Input placeholder="所属部门" value={formData.department} onChange={e => setFormData(prev => ({ ...prev, department: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>限制模块</Label>
+                  <Select value={formData.blockedModule} onValueChange={v => setFormData(prev => ({ ...prev, blockedModule: v }))}>
+                    <SelectTrigger><SelectValue placeholder="选择模块" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="财务管理">财务管理</SelectItem>
+                      <SelectItem value="人力资源">人力资源</SelectItem>
+                      <SelectItem value="合同管理">合同管理</SelectItem>
+                      <SelectItem value="薪酬管理">薪酬管理</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>限制操作</Label>
+                  <Input placeholder="如: 查看、导出、修改..." value={formData.blockedAction} onChange={e => setFormData(prev => ({ ...prev, blockedAction: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>原因说明</Label>
+                  <Input placeholder="限制原因..." value={formData.reason} onChange={e => setFormData(prev => ({ ...prev, reason: e.target.value }))} />
+                </div>
               </div>
-              <DialogFooter><Button variant="destructive" onClick={() => setShowAdd(false)}>确认添加</Button></DialogFooter>
+              <DialogFooter><Button variant="destructive" onClick={handleCreate} disabled={createMut.isPending}>{createMut.isPending ? "添加中..." : "确认添加"}</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         }
       />
 
       <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={Lock} label="生效中黑名单" value={2} iconColor="text-red-600" iconBg="bg-red-500/10" />
-        <StatCard icon={Unlock} label="已解除" value={1} iconColor="text-gray-400" iconBg="bg-gray-500/10" />
-        <StatCard icon={ShieldAlert} label="总记录" value={3} />
+        <StatCard icon={Lock} label="生效中黑名单" value={stats.active} iconColor="text-red-600" iconBg="bg-red-500/10" />
+        <StatCard icon={Unlock} label="已解除" value={stats.lifted} iconColor="text-gray-400" iconBg="bg-gray-500/10" />
+        <StatCard icon={ShieldAlert} label="总记录" value={stats.total} />
       </div>
 
       <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center gap-2 text-sm">
@@ -81,7 +143,7 @@ export default function PermissionBlacklist() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {filtered.map(b => (
+            {filtered.map((b: any) => (
               <div key={b.id} className={`flex items-center gap-4 p-4 rounded-lg border ${b.status === "active" ? "border-red-200 bg-red-50/30 dark:bg-red-950/10" : ""}`}>
                 <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                   {b.status === "active" ? <Lock className="h-5 w-5 text-red-600" /> : <Unlock className="h-5 w-5 text-gray-400" />}
@@ -99,11 +161,17 @@ export default function PermissionBlacklist() {
                 <div className="text-right">
                   <Badge className={b.status === "active" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-500"}>{b.status === "active" ? "生效中" : "已解除"}</Badge>
                   {b.status === "active" && (
-                    <div className="mt-2"><Button variant="outline" size="sm" className="h-7 text-xs">解除</Button></div>
+                    <div className="mt-2"><Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => liftMut.mutate({ id: b.id })} disabled={liftMut.isPending}>解除</Button></div>
                   )}
                 </div>
               </div>
             ))}
+            {filtered.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <ShieldAlert className="w-12 h-12 mb-3 opacity-50" />
+                <p className="font-medium">暂无黑名单记录</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

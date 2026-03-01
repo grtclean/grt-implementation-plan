@@ -3,126 +3,26 @@
  * Phase 3.2 — Equipment Health & Auto-Scheduling
  *
  * Split-view layout:
- *   TOP:    "Live Fleet Health" — color-coded health bars, CNC-001 flashes RED
+ *   TOP:    "Live Fleet Health" — color-coded health bars, flashes RED for CRITICAL
  *   BOTTOM: "Dynamic Gantt Chart" — job timeline with auto-rescheduled highlights
  *   SIDE:   "AI Decision Log" — real-time engine decision trail
  *
+ * Data source: trpc.smartScheduler.fleetHealth / ganttView / decisionLog (DB-backed)
  * Route: /production/smart-schedule
  */
 
 import React, { useState, useMemo } from "react";
+import { trpc } from "@/lib/trpc";
 
 // ─── Types (mirrors server) ──────────────────────────────────────
 
 type HealthStatus = "HEALTHY" | "WARNING" | "CRITICAL" | "OFFLINE";
 type ScheduleStatus = "SCHEDULED" | "IN_PROGRESS" | "MOVED_AUTO" | "MOVED_MANUAL" | "COMPLETED" | "CANCELLED";
 
-interface SensorReading {
-  machineId: number;
-  machineCode: string;
-  machineName: string;
-  vibrationLevel: number;
-  temperature: number;
-  spindleLoad: number;
-  coolantPressure: number;
-  powerConsumption: number;
-  healthScore: number;
-  healthStatus: HealthStatus;
-  healthTrend: string;
-  lastUpdated: string;
-}
-
-interface ScheduledJob {
-  id: number;
-  jobId: string;
-  jobName: string;
-  projectCode: string;
-  machineId: number;
-  machineCode: string;
-  startTime: string;
-  endTime: string;
-  status: ScheduleStatus;
-  priority: number;
-  estimatedHours: number;
-  originalMachineId: number | null;
-  originalMachineCode: string | null;
-  movedAt: string | null;
-  moveReason: string | null;
-}
-
-interface MaintenanceOrder {
-  id: number;
-  orderCode: string;
-  machineId: number;
-  machineCode: string;
-  machineName: string;
-  type: string;
-  priority: string;
-  status: string;
-  healthScoreAtCreation: number;
-  triggerReason: string;
-  estimatedDurationMinutes: number;
-  createdAt: string;
-}
-
-// ─── Mock Data (identical to server) ──────────────────────────────
-
-const NOW = new Date();
-const h = (offset: number) => new Date(NOW.getTime() + offset * 3600000).toISOString();
-
-const MOCK_FLEET: SensorReading[] = [
-  { machineId: 101, machineCode: "CNC-001", machineName: "CNC Milling Center #1", vibrationLevel: 7.2, temperature: 78, spindleLoad: 95, coolantPressure: 4.5, powerConsumption: 18.5, healthScore: 35, healthStatus: "CRITICAL", healthTrend: "DEGRADING", lastUpdated: h(-0.5) },
-  { machineId: 102, machineCode: "CNC-002", machineName: "CNC Milling Center #2", vibrationLevel: 1.2, temperature: 42, spindleLoad: 65, coolantPressure: 5.0, powerConsumption: 12.3, healthScore: 88, healthStatus: "HEALTHY", healthTrend: "STABLE", lastUpdated: h(-0.5) },
-  { machineId: 103, machineCode: "CNC-003", machineName: "CNC Milling Center #3", vibrationLevel: 4.5, temperature: 55, spindleLoad: 82, coolantPressure: 4.8, powerConsumption: 14.1, healthScore: 62, healthStatus: "WARNING", healthTrend: "DEGRADING", lastUpdated: h(-0.5) },
-  { machineId: 201, machineCode: "HYD-BENCH-001", machineName: "Hydraulic Test Bench #1", vibrationLevel: 0.8, temperature: 38, spindleLoad: 45, coolantPressure: 5.2, powerConsumption: 8.7, healthScore: 94, healthStatus: "HEALTHY", healthTrend: "STABLE", lastUpdated: h(-0.5) },
-  { machineId: 202, machineCode: "HYD-BENCH-002", machineName: "Hydraulic Test Bench #2", vibrationLevel: 1.0, temperature: 40, spindleLoad: 50, coolantPressure: 5.0, powerConsumption: 9.2, healthScore: 91, healthStatus: "HEALTHY", healthTrend: "STABLE", lastUpdated: h(-0.5) },
-  { machineId: 301, machineCode: "WLD-TIG-001", machineName: "TIG Welding Station #1", vibrationLevel: 2.1, temperature: 62, spindleLoad: 70, coolantPressure: 4.2, powerConsumption: 22.0, healthScore: 58, healthStatus: "WARNING", healthTrend: "DEGRADING", lastUpdated: h(-0.5) },
-  { machineId: 401, machineCode: "NZL-CAL-001", machineName: "Nozzle Calibration Rig #1", vibrationLevel: 0.3, temperature: 35, spindleLoad: 30, coolantPressure: 5.5, powerConsumption: 5.1, healthScore: 97, healthStatus: "HEALTHY", healthTrend: "IMPROVING", lastUpdated: h(-0.5) },
-  { machineId: 501, machineCode: "LASER-001", machineName: "Fiber Laser Cutter #1", vibrationLevel: 0.5, temperature: 44, spindleLoad: 55, coolantPressure: 5.1, powerConsumption: 30.0, healthScore: 85, healthStatus: "HEALTHY", healthTrend: "STABLE", lastUpdated: h(-0.5) },
-];
-
-const MOCK_SCHEDULE: ScheduledJob[] = [
-  // Jobs that WERE on CNC-001 → now auto-rescheduled to CNC-002
-  { id: 1, jobId: "JOB-2026-0041", jobName: "Manifold Body Machining (P-240)", projectCode: "P-240", machineId: 102, machineCode: "CNC-002", startTime: h(2), endTime: h(6), status: "MOVED_AUTO", priority: 2, estimatedHours: 4, originalMachineId: 101, originalMachineCode: "CNC-001", movedAt: h(0), moveReason: "AI Auto-Reschedule: CNC-001 health 35/100 (CRITICAL)" },
-  { id: 2, jobId: "JOB-2026-0042", jobName: "Pump Housing Bore (P-241)", projectCode: "P-241", machineId: 102, machineCode: "CNC-002", startTime: h(8), endTime: h(14), status: "MOVED_AUTO", priority: 3, estimatedHours: 6, originalMachineId: 101, originalMachineCode: "CNC-001", movedAt: h(0), moveReason: "AI Auto-Reschedule: CNC-001 health 35/100 (CRITICAL)" },
-  { id: 3, jobId: "JOB-2026-0043", jobName: "Nozzle Adapter Milling (P-242)", projectCode: "P-242", machineId: 102, machineCode: "CNC-002", startTime: h(24), endTime: h(30), status: "MOVED_AUTO", priority: 5, estimatedHours: 6, originalMachineId: 101, originalMachineCode: "CNC-001", movedAt: h(0), moveReason: "AI Auto-Reschedule: CNC-001 health 35/100 (CRITICAL)" },
-  // Normal scheduled jobs
-  { id: 4, jobId: "JOB-2026-0044", jobName: "Valve Block Precision Cut", projectCode: "P-243", machineId: 101, machineCode: "CNC-001", startTime: h(72), endTime: h(78), status: "SCHEDULED", priority: 4, estimatedHours: 6, originalMachineId: null, originalMachineCode: null, movedAt: null, moveReason: null },
-  { id: 5, jobId: "JOB-2026-0040", jobName: "Shaft Turning (P-239)", projectCode: "P-239", machineId: 101, machineCode: "CNC-001", startTime: h(-8), endTime: h(-2), status: "COMPLETED", priority: 1, estimatedHours: 6, originalMachineId: null, originalMachineCode: null, movedAt: null, moveReason: null },
-  { id: 6, jobId: "JOB-2026-0045", jobName: "Cover Plate Milling", projectCode: "P-244", machineId: 102, machineCode: "CNC-002", startTime: h(4), endTime: h(8), status: "SCHEDULED", priority: 3, estimatedHours: 4, originalMachineId: null, originalMachineCode: null, movedAt: null, moveReason: null },
-  { id: 7, jobId: "JOB-2026-0046", jobName: "Hydraulic Cylinder Test", projectCode: "P-240", machineId: 201, machineCode: "HYD-BENCH-001", startTime: h(6), endTime: h(10), status: "SCHEDULED", priority: 2, estimatedHours: 4, originalMachineId: null, originalMachineCode: null, movedAt: null, moveReason: null },
-  { id: 8, jobId: "JOB-2026-0047", jobName: "SS316 Frame Welding", projectCode: "P-241", machineId: 301, machineCode: "WLD-TIG-001", startTime: h(10), endTime: h(18), status: "SCHEDULED", priority: 3, estimatedHours: 8, originalMachineId: null, originalMachineCode: null, movedAt: null, moveReason: null },
-];
-
-const MOCK_MAINTENANCE: MaintenanceOrder = {
-  id: 101, orderCode: "MWO-20260225-101", machineId: 101, machineCode: "CNC-001", machineName: "CNC Milling Center #1",
-  type: "PREDICTIVE", priority: "HIGH", status: "OPEN", healthScoreAtCreation: 35,
-  triggerReason: "AI Predictive: Health score 35/100 (CRITICAL). Vibration: 7.2mm/s, Temp: 78°C, Spindle: 95%",
-  estimatedDurationMinutes: 240, createdAt: h(0),
-};
-
-const MOCK_DECISION_LOG: string[] = [
-  `[${NOW.toISOString()}] Self-Healing Engine started. Fleet size: 8 machines.`,
-  "Scanning fleet... Found 1 CRITICAL machine(s).",
-  'CRITICAL: CNC-001 (CNC Milling Center #1) — Health: 35/100',
-  "  Vibration: 7.2mm/s | Temp: 78°C | Spindle: 95%",
-  "AUTO-ACTION 1: Created Maintenance Order MWO-20260225-101 (HIGH priority, PREDICTIVE)",
-  "Backup found: CNC-002 (CNC Milling Center #2) — Health: 88/100",
-  "Found 3 SCHEDULED job(s) on CNC-001 in next 48 hours.",
-  'AUTO-ACTION 2: Job JOB-2026-0041 "Manifold Body Machining (P-240)" → moved from CNC-001 to CNC-002',
-  'AUTO-ACTION 2: Job JOB-2026-0042 "Pump Housing Bore (P-241)" → moved from CNC-001 to CNC-002',
-  'AUTO-ACTION 2: Job JOB-2026-0043 "Nozzle Adapter Milling (P-242)" → moved from CNC-001 to CNC-002',
-  "RESULT: CNC-001 CRITICAL! 3 Jobs moved to CNC-002. Maintenance team notified.",
-];
-
 // ─── Helpers ──────────────────────────────────────────────────────
 
 function healthColor(status: HealthStatus): string {
   return { HEALTHY: "#22c55e", WARNING: "#f59e0b", CRITICAL: "#ef4444", OFFLINE: "#6b7280" }[status];
-}
-
-function healthBg(status: HealthStatus): string {
-  return { HEALTHY: "#f0fdf4", WARNING: "#fffbeb", CRITICAL: "#fef2f2", OFFLINE: "#f9fafb" }[status];
 }
 
 function statusColor(status: ScheduleStatus): string {
@@ -137,27 +37,59 @@ function fmt(iso: string): string {
   return d.toLocaleString("en-GB", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
+
 // ─── Component ────────────────────────────────────────────────────
 
 export default function SmartScheduleDashboard() {
   const [showLog, setShowLog] = useState(true);
   const [selectedMachine, setSelectedMachine] = useState<string | null>(null);
 
-  const fleet = MOCK_FLEET;
-  const schedule = MOCK_SCHEDULE;
-  const maintenance = MOCK_MAINTENANCE;
-  const decisionLog = MOCK_DECISION_LOG;
+  // ─── tRPC Queries ───
+  const fleetQuery = trpc.smartScheduler.fleetHealth.useQuery(undefined, QUERY_OPTS);
+  const ganttQuery = trpc.smartScheduler.ganttView.useQuery(undefined, QUERY_OPTS);
+  const logQuery = trpc.smartScheduler.decisionLog.useQuery(undefined, QUERY_OPTS);
 
-  const movedJobs = useMemo(() => schedule.filter(j => j.status === "MOVED_AUTO"), [schedule]);
-  const criticalCount = useMemo(() => fleet.filter(m => m.healthStatus === "CRITICAL").length, [fleet]);
-  const warningCount = useMemo(() => fleet.filter(m => m.healthStatus === "WARNING").length, [fleet]);
-  const avgHealth = useMemo(() => Math.round(fleet.reduce((s, m) => s + m.healthScore, 0) / fleet.length), [fleet]);
+  const fleet = fleetQuery.data?.machines ?? [];
+  const summary = fleetQuery.data?.summary;
+  const ganttData = ganttQuery.data;
+  const schedule = ganttData?.jobs ?? [];
+  const maintenance = ganttData?.maintenanceOrder ?? null;
+  const decisionLog = logQuery.data?.log ?? [];
+  const dataSource = fleetQuery.data?.dataSource ?? "seed";
+
+  const isLoading = fleetQuery.isLoading || ganttQuery.isLoading;
+
+  const movedJobs = useMemo(() => schedule.filter((j: any) => j.status === "MOVED_AUTO"), [schedule]);
+  const criticalCount = summary?.critical ?? 0;
+  const warningCount = summary?.warning ?? 0;
+  const avgHealth = summary?.avgHealth ?? 0;
 
   // Filter Gantt by machine
   const ganttJobs = useMemo(() => {
-    if (!selectedMachine) return schedule.filter(j => j.status !== "COMPLETED");
-    return schedule.filter(j => j.machineCode === selectedMachine && j.status !== "COMPLETED");
+    if (!selectedMachine) return schedule.filter((j: any) => j.status !== "COMPLETED");
+    return schedule.filter((j: any) => j.machineCode === selectedMachine && j.status !== "COMPLETED");
   }, [schedule, selectedMachine]);
+
+  // Loading skeleton
+  if (isLoading) {
+    return (
+      <div style={{ padding: 24, maxWidth: 1500, margin: "0 auto", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#0f172a", margin: "0 0 20px" }}>Smart APS Dashboard</h1>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} style={{ height: 60, background: "#f1f5f9", borderRadius: 10, animation: "pulse 1.5s infinite" }} />
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} style={{ height: 400, background: "#f1f5f9", borderRadius: 12, animation: "pulse 1.5s infinite" }} />
+          ))}
+        </div>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 24, maxWidth: 1500, margin: "0 auto", fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -180,16 +112,18 @@ export default function SmartScheduleDashboard() {
             AI Decision Log
           </button>
           <span style={{
-            background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20,
-            padding: "6px 14px", fontSize: 12, color: "#2563eb",
+            background: dataSource === "database" ? "#f0fdf4" : "#eff6ff",
+            border: `1px solid ${dataSource === "database" ? "#86efac" : "#bfdbfe"}`,
+            borderRadius: 20, padding: "6px 14px", fontSize: 12,
+            color: dataSource === "database" ? "#16a34a" : "#2563eb",
           }}>
-            MOCK DATA
+            {dataSource === "database" ? "LIVE DATA" : "SEED DATA"}
           </span>
         </div>
       </div>
 
       {/* ── Critical Alert ── */}
-      {criticalCount > 0 && (
+      {criticalCount > 0 && maintenance && (
         <div style={{
           background: "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)",
           borderRadius: 12, padding: "14px 20px", marginBottom: 16, color: "white",
@@ -214,7 +148,7 @@ export default function SmartScheduleDashboard() {
           { label: "CRITICAL", value: criticalCount, color: "#ef4444", bg: "#fef2f2" },
           { label: "WARNING", value: warningCount, color: "#f59e0b", bg: "#fffbeb" },
           { label: "Auto-Moved Jobs", value: movedJobs.length, color: "#f59e0b", bg: "#fff7ed" },
-          { label: "Active MWO", value: 1, color: "#3b82f6", bg: "#eff6ff" },
+          { label: "Active MWO", value: maintenance ? 1 : 0, color: "#3b82f6", bg: "#eff6ff" },
         ].map((c, i) => (
           <div key={i} style={{
             background: c.bg, borderRadius: 10, padding: "14px 16px", textAlign: "center",
@@ -234,7 +168,7 @@ export default function SmartScheduleDashboard() {
             Live Fleet Health
           </h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {fleet.map(m => {
+            {fleet.map((m: any) => {
               const isCritical = m.healthStatus === "CRITICAL";
               return (
                 <div key={m.machineId}
@@ -289,6 +223,11 @@ export default function SmartScheduleDashboard() {
                 </div>
               );
             })}
+            {fleet.length === 0 && (
+              <div style={{ textAlign: "center", padding: 30, color: "#94a3b8", fontSize: 13 }}>
+                No fleet data available.
+              </div>
+            )}
           </div>
         </div>
 
@@ -311,7 +250,7 @@ export default function SmartScheduleDashboard() {
 
           {/* Gantt rows */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {ganttJobs.map(job => {
+            {ganttJobs.map((job: any) => {
               const isMoved = job.status === "MOVED_AUTO";
               const start = new Date(job.startTime);
               const end = new Date(job.endTime);
@@ -363,7 +302,7 @@ export default function SmartScheduleDashboard() {
                     }}>
                       {job.machineCode}
                     </span>
-                    {isMoved && (
+                    {isMoved && job.originalMachineCode && (
                       <div style={{ fontSize: 9, color: "#dc2626", marginTop: 2 }}>
                         was {job.originalMachineCode}
                       </div>
@@ -395,32 +334,34 @@ export default function SmartScheduleDashboard() {
           </div>
 
           {/* Maintenance Order Card */}
-          <div style={{
-            marginTop: 16, background: "#fef2f2", border: "2px solid #fca5a5", borderRadius: 10, padding: 14,
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626" }}>
-                  Maintenance Order: {maintenance.orderCode}
+          {maintenance && (
+            <div style={{
+              marginTop: 16, background: "#fef2f2", border: "2px solid #fca5a5", borderRadius: 10, padding: 14,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626" }}>
+                    Maintenance Order: {maintenance.orderCode}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                    {maintenance.machineName} — {maintenance.type} ({maintenance.priority})
+                  </div>
                 </div>
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                  {maintenance.machineName} — {maintenance.type} ({maintenance.priority})
-                </div>
+                <span style={{
+                  padding: "4px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700,
+                  background: "#fee2e2", color: "#dc2626", border: "1px solid #fca5a5",
+                }}>
+                  {maintenance.status}
+                </span>
               </div>
-              <span style={{
-                padding: "4px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700,
-                background: "#fee2e2", color: "#dc2626", border: "1px solid #fca5a5",
-              }}>
-                {maintenance.status}
-              </span>
+              <div style={{ fontSize: 11, color: "#475569", marginTop: 6 }}>
+                {maintenance.triggerReason}
+              </div>
+              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>
+                Est. duration: {maintenance.estimatedDurationMinutes} min | Created: {fmt(maintenance.createdAt)}
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: "#475569", marginTop: 6 }}>
-              {maintenance.triggerReason}
-            </div>
-            <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>
-              Est. duration: {maintenance.estimatedDurationMinutes} min | Created: {fmt(maintenance.createdAt)}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* ─── AI DECISION LOG ─── */}
@@ -434,7 +375,7 @@ export default function SmartScheduleDashboard() {
               AI Decision Log
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {decisionLog.map((line, i) => {
+              {decisionLog.map((line: string, i: number) => {
                 let color = "#94a3b8";
                 if (line.includes("CRITICAL")) color = "#ef4444";
                 else if (line.includes("AUTO-ACTION")) color = "#fbbf24";
@@ -449,6 +390,9 @@ export default function SmartScheduleDashboard() {
                   </div>
                 );
               })}
+              {decisionLog.length === 0 && (
+                <div style={{ color: "#475569", fontSize: 11 }}>No decisions recorded yet.</div>
+              )}
             </div>
           </div>
         )}

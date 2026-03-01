@@ -1,9 +1,13 @@
 /**
  * 报价管理页面
  * 报价单创建、版本管理、审批流、AI辅助定价
+ *
+ * Data source: trpc.rndPipeline.quotation.* (DB-backed)
  */
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -11,23 +15,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Calculator, Plus, Search, Building2, DollarSign, Clock, CheckCircle2 } from "lucide-react";
 
-// TODO: 接入 tRPC 后端接口替换
-const MOCK_QUOTES = [
-  { id: "QT-2026-001", customer: "上海大众", project: "缸体清洗线升级", bu: "BU3", amount: "¥2,850,000", status: "quoted", version: "V2", date: "2026-02-08" },
-  { id: "QT-2026-002", customer: "宝马慕尼黑", project: "变速箱清洗新线", bu: "BU1", amount: "€1,200,000", status: "approving", version: "V1", date: "2026-02-10" },
-  { id: "QT-2026-003", customer: "英飞凌", project: "晶圆清洗扩容", bu: "BU4", amount: "¥4,500,000", status: "won", version: "V3", date: "2026-01-25" },
-  { id: "QT-2026-004", customer: "潍柴动力", project: "柴油机零部件清洗", bu: "BU2", amount: "¥1,680,000", status: "draft", version: "V1", date: "2026-02-11" },
-];
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 export default function QuotationManagement() {
   const { t } = useLanguage();
   const { currentBU } = useUserProfile();
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
+
+  // ─── tRPC query ───
+  const quotesQuery = trpc.rndPipeline.quotation.list.useQuery(
+    { search: search || undefined, bu: currentBU || undefined },
+    QUERY_OPTS,
+  );
+
+  const items = (quotesQuery.data?.items ?? []) as any[];
+  const stats = quotesQuery.data?.stats;
+  const isLoading = quotesQuery.isLoading;
 
   const STATUS_LABELS: Record<string, string> = {
     quoted: t("crm.quote.statusQuoted"),
@@ -45,7 +54,17 @@ export default function QuotationManagement() {
     [t("crm.quote.statusExpired")]: "gray",
   });
 
-  const filtered = MOCK_QUOTES.filter(q => (!currentBU || q.bu === currentBU) && (!search || q.customer.includes(search) || q.project.includes(search)));
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader icon={Calculator} title={t("crm.quote.title")} description="..." />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+        </div>
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -62,10 +81,10 @@ export default function QuotationManagement() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Calculator} label={t("crm.quote.totalQuotes")} value={36} />
-        <StatCard icon={DollarSign} label={t("crm.quote.totalAmount")} value="¥28.5M" iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={CheckCircle2} label={t("crm.quote.winRate")} value="68%" iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={Clock} label={t("crm.quote.pendingApproval")} value={5} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Calculator} label={t("crm.quote.totalQuotes")} value={stats?.total ?? 0} />
+        <StatCard icon={DollarSign} label={t("crm.quote.totalAmount")} value={stats?.totalAmount ?? "¥0"} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={CheckCircle2} label={t("crm.quote.winRate")} value={stats?.winRate ?? "0%"} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Clock} label={t("crm.quote.pendingApproval")} value={stats?.pendingApproval ?? 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
       </div>
 
       <Card>
@@ -80,11 +99,11 @@ export default function QuotationManagement() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {filtered.map(q => (
+            {items.map((q: any) => (
               <div key={q.id} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm text-muted-foreground">{q.id}</span>
+                    <span className="font-mono text-sm text-muted-foreground">{q.quoteNumber}</span>
                     <Badge variant="outline">{q.bu}</Badge>
                     <Badge variant="secondary">{q.version}</Badge>
                   </div>
@@ -93,12 +112,12 @@ export default function QuotationManagement() {
                 </div>
                 <div className="text-right">
                   <StatusBadge color={quoteStatusColorMap[STATUS_LABELS[q.status] ?? ""] ?? "gray"}>{STATUS_LABELS[q.status] ?? q.status}</StatusBadge>
-                  <p className="text-lg font-bold mt-1">{q.amount}</p>
+                  <p className="text-lg font-bold mt-1">{q.formattedAmount}</p>
                   <p className="text-xs text-muted-foreground">{q.date}</p>
                 </div>
               </div>
             ))}
-            {filtered.length === 0 && (
+            {items.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Calculator className="w-12 h-12 mb-3 opacity-50" />
                 <p className="font-medium">{t("crm.quote.noQuotes")}</p>

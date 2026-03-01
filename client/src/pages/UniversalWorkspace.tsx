@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ChevronRight,
   ChevronDown,
@@ -19,17 +19,22 @@ import {
   Shield,
   FlaskConical,
   Truck,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import BrandLogo from "@/components/common/BrandLogo";
 import UniversalViewer, { type ViewerFileType } from "@/components/workspace/UniversalViewer";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trpc } from "@/lib/trpc";
+
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 // ────────────────── Types ──────────────────
 
-interface MockFile {
-  id: string;
+interface WorkspaceFile {
+  id: number;
   name: string;
   type: ViewerFileType;
   size: string;
@@ -37,139 +42,47 @@ interface MockFile {
   url: string;
 }
 
-interface MockFolder {
-  id: string;
+interface WorkspaceFolder {
+  id: number;
   name: string;
-  nameEn: string;
-  files: MockFile[];
+  files: WorkspaceFile[];
 }
 
-interface MockSpace {
-  id: string;
+interface WorkspaceSpace {
+  id: number;
   name: string;
-  nameEn: string;
   icon: typeof Factory;
   color: string;
-  folders: MockFolder[];
+  folders: WorkspaceFolder[];
 }
 
-// ────────────────── Mock Data ──────────────────
-
-const MOCK_SPACES: MockSpace[] = [
-  {
-    id: "s1",
-    name: "M6 制造工程",
-    nameEn: "M6 Manufacturing",
-    icon: Factory,
-    color: "#0078d4",
-    folders: [
-      {
-        id: "f1",
-        name: "Project Alpha — 清洗线",
-        nameEn: "Project Alpha — Cleaning Line",
-        files: [
-          { id: "file1", name: "Production_Report_Q1.xlsx", type: "excel", size: "2.4 MB", modified: "2026-02-20", url: "" },
-          { id: "file2", name: "Assembly_SOP.docx", type: "word", size: "1.1 MB", modified: "2026-02-18", url: "" },
-          { id: "file3", name: "PLC_Main.st", type: "code", size: "8.2 KB", modified: "2026-02-22", url: "" },
-          { id: "file4", name: "Housing_CAD.step", type: "cad", size: "45.6 MB", modified: "2026-02-15", url: "" },
-        ],
-      },
-      {
-        id: "f2",
-        name: "Project Beta — 涂装线",
-        nameEn: "Project Beta — Paint Line",
-        files: [
-          { id: "file5", name: "Design_Review.pptx", type: "ppt", size: "5.8 MB", modified: "2026-02-19", url: "" },
-          { id: "file6", name: "config.json", type: "code", size: "1.2 KB", modified: "2026-02-21", url: "" },
-          { id: "file7", name: "Bracket_DXF.dxf", type: "cad", size: "12.3 MB", modified: "2026-02-14", url: "" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "s2",
-    name: "质量体系",
-    nameEn: "Quality System",
-    icon: Shield,
-    color: "#107c10",
-    folders: [
-      {
-        id: "f3",
-        name: "IATF 16949 文档",
-        nameEn: "IATF 16949 Documents",
-        files: [
-          { id: "file8", name: "FMEA_Template.xlsx", type: "excel", size: "890 KB", modified: "2026-02-10", url: "" },
-          { id: "file9", name: "Audit_Checklist.docx", type: "word", size: "420 KB", modified: "2026-02-12", url: "" },
-          { id: "file10", name: "SPC_Report.pdf", type: "pdf", size: "3.1 MB", modified: "2026-02-17", url: "" },
-        ],
-      },
-      {
-        id: "f4",
-        name: "检验标准",
-        nameEn: "Inspection Standards",
-        files: [
-          { id: "file11", name: "Surface_Defect_Guide.pdf", type: "pdf", size: "7.2 MB", modified: "2026-01-30", url: "" },
-          { id: "file12", name: "measurement_spec.xml", type: "code", size: "4.5 KB", modified: "2026-02-08", url: "" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "s3",
-    name: "研发中心",
-    nameEn: "R&D Center",
-    icon: FlaskConical,
-    color: "#8764b8",
-    folders: [
-      {
-        id: "f5",
-        name: "固件开发",
-        nameEn: "Firmware Development",
-        files: [
-          { id: "file13", name: "robot_path.xml", type: "code", size: "3.8 KB", modified: "2026-02-23", url: "" },
-          { id: "file14", name: "Servo_Housing.step", type: "cad", size: "28.9 MB", modified: "2026-02-16", url: "" },
-          { id: "file15", name: "schematic_v3.png", type: "image", size: "1.6 MB", modified: "2026-02-20", url: "/grt-logo.png" },
-        ],
-      },
-      {
-        id: "f6",
-        name: "测试报告",
-        nameEn: "Test Reports",
-        files: [
-          { id: "file16", name: "Endurance_Test_Report.xlsx", type: "excel", size: "4.1 MB", modified: "2026-02-22", url: "" },
-          { id: "file17", name: "Thermal_Analysis.pptx", type: "ppt", size: "9.3 MB", modified: "2026-02-11", url: "" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "s4",
-    name: "供应链",
-    nameEn: "Supply Chain",
-    icon: Truck,
-    color: "#d83b01",
-    folders: [
-      {
-        id: "f7",
-        name: "供应商文件",
-        nameEn: "Supplier Documents",
-        files: [
-          { id: "file18", name: "Supplier_Scorecard.xlsx", type: "excel", size: "560 KB", modified: "2026-02-19", url: "" },
-          { id: "file19", name: "Material_Cert.pdf", type: "pdf", size: "2.8 MB", modified: "2026-02-13", url: "" },
-        ],
-      },
-      {
-        id: "f8",
-        name: "物流追踪",
-        nameEn: "Logistics Tracking",
-        files: [
-          { id: "file20", name: "Shipment_Plan.docx", type: "word", size: "780 KB", modified: "2026-02-21", url: "" },
-          { id: "file21", name: "tracking_config.json", type: "code", size: "2.1 KB", modified: "2026-02-24", url: "" },
-        ],
-      },
-    ],
-  },
+// ────────────────── Space icon/color config (by index) ──────────────────
+const SPACE_CONFIG = [
+  { icon: Factory, color: "#0078d4" },
+  { icon: Shield, color: "#107c10" },
+  { icon: FlaskConical, color: "#8764b8" },
+  { icon: Truck, color: "#d83b01" },
+  { icon: Factory, color: "#005a9e" },
+  { icon: Shield, color: "#0e6027" },
 ];
+
+function fileExtToViewerType(ext: string): ViewerFileType {
+  switch (ext.toLowerCase()) {
+    case "xlsx": case "xls": case "csv": return "excel";
+    case "docx": case "doc": return "word";
+    case "pptx": case "ppt": return "ppt";
+    case "pdf": return "pdf";
+    case "png": case "jpg": case "jpeg": case "gif": case "svg": return "image";
+    case "step": case "stp": case "dxf": case "dwg": return "cad";
+    default: return "code";
+  }
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 // ────────────────── File Icon Helper ──────────────────
 
@@ -195,47 +108,112 @@ export default function UniversalWorkspace() {
   const { language } = useLanguage();
   const isEn = language === "en";
 
+  // ─── tRPC queries ───
+  const foldersQuery = trpc.collaborationDocs.listFolders.useQuery(undefined, QUERY_OPTS);
+  const allFilesQuery = trpc.collaborationDocs.listFiles.useQuery(undefined, QUERY_OPTS);
+
+  const topFolders = (foldersQuery.data ?? []) as any[];
+  const allFiles = (allFilesQuery.data?.items ?? []) as any[];
+
+  // Build workspace tree: top-level folders → spaces, files → per folder
+  const spaces: WorkspaceSpace[] = useMemo(() => {
+    return topFolders.map((folder: any, idx: number) => {
+      const cfg = SPACE_CONFIG[idx % SPACE_CONFIG.length];
+      const folderFiles: WorkspaceFile[] = allFiles
+        .filter((f: any) => f.folderId === folder.id)
+        .map((f: any) => ({
+          id: f.id,
+          name: f.fileName ?? f.title,
+          type: fileExtToViewerType(f.fileType ?? ""),
+          size: formatFileSize(Number(f.fileSize) || 0),
+          modified: f.modifiedAt ? new Date(f.modifiedAt).toLocaleDateString("zh-CN") : "-",
+          url: "",
+        }));
+      // Also show root-level files (folderId IS NULL) in first space
+      const rootFiles: WorkspaceFile[] = idx === 0
+        ? allFiles
+            .filter((f: any) => !f.folderId)
+            .map((f: any) => ({
+              id: f.id,
+              name: f.fileName ?? f.title,
+              type: fileExtToViewerType(f.fileType ?? ""),
+              size: formatFileSize(Number(f.fileSize) || 0),
+              modified: f.modifiedAt ? new Date(f.modifiedAt).toLocaleDateString("zh-CN") : "-",
+              url: "",
+            }))
+        : [];
+      return {
+        id: folder.id,
+        name: folder.name,
+        icon: cfg.icon,
+        color: cfg.color,
+        folders: [
+          ...(rootFiles.length > 0 ? [{ id: 0, name: isEn ? "Root Files" : "根目录文件", files: rootFiles }] : []),
+          { id: folder.id, name: folder.name, files: folderFiles },
+        ],
+      };
+    });
+  }, [topFolders, allFiles, isEn]);
+
   // Sidebar state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [expandedSpaces, setExpandedSpaces] = useState<Set<string>>(new Set(["s1"]));
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["f1"]));
+  const [expandedSpaces, setExpandedSpaces] = useState<Set<number>>(new Set());
+  const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
 
   // Selection state
-  const [selectedSpaceId, setSelectedSpaceId] = useState("s1");
-  const [selectedFolderId, setSelectedFolderId] = useState("f1");
-  const [selectedFileId, setSelectedFileId] = useState("file3"); // Default to PLC_Main.st (code)
+  const [selectedSpaceId, setSelectedSpaceId] = useState<number>(0);
+  const [selectedFolderId, setSelectedFolderId] = useState<number>(0);
+  const [selectedFileId, setSelectedFileId] = useState<number>(0);
+
+  // Auto-select first space on load
+  useEffect(() => {
+    if (spaces.length > 0 && selectedSpaceId === 0) {
+      const firstSpace = spaces[0];
+      setSelectedSpaceId(firstSpace.id);
+      setExpandedSpaces(new Set([firstSpace.id]));
+      if (firstSpace.folders[0]) {
+        setSelectedFolderId(firstSpace.folders[0].id);
+        setExpandedFolders(new Set([firstSpace.folders[0].id]));
+        if (firstSpace.folders[0].files[0]) {
+          setSelectedFileId(firstSpace.folders[0].files[0].id);
+        }
+      }
+    }
+  }, [spaces, selectedSpaceId]);
 
   // View mode
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   // Derived
-  const selectedSpace = useMemo(() => MOCK_SPACES.find(s => s.id === selectedSpaceId), [selectedSpaceId]);
+  const selectedSpace = useMemo(() => spaces.find(s => s.id === selectedSpaceId), [spaces, selectedSpaceId]);
   const selectedFolder = useMemo(
     () => selectedSpace?.folders.find(f => f.id === selectedFolderId),
     [selectedSpace, selectedFolderId],
   );
   const selectedFile = useMemo(() => {
-    for (const space of MOCK_SPACES) {
+    for (const space of spaces) {
       for (const folder of space.folders) {
         const file = folder.files.find(f => f.id === selectedFileId);
         if (file) return file;
       }
     }
     return null;
-  }, [selectedFileId]);
+  }, [spaces, selectedFileId]);
 
   // Active folder files
   const activeFiles = useMemo(() => selectedFolder?.files ?? [], [selectedFolder]);
 
+  const isLoading = foldersQuery.isLoading || allFilesQuery.isLoading;
+
   // ─── Tree toggle helpers ───
-  const toggleSpace = (id: string) => {
+  const toggleSpace = (id: number) => {
     setExpandedSpaces(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
-  const toggleFolder = (id: string) => {
+  const toggleFolder = (id: number) => {
     setExpandedFolders(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
@@ -244,7 +222,7 @@ export default function UniversalWorkspace() {
   };
 
   /** Navigate to a folder. Pass `fileId` to select a specific file, otherwise selects the first file. */
-  const selectFolder = (spaceId: string, folderId: string, fileId?: string) => {
+  const selectFolder = (spaceId: number, folderId: number, fileId?: number) => {
     setSelectedSpaceId(spaceId);
     setSelectedFolderId(folderId);
     // Auto-expand
@@ -254,11 +232,36 @@ export default function UniversalWorkspace() {
     if (fileId) {
       setSelectedFileId(fileId);
     } else {
-      const space = MOCK_SPACES.find(s => s.id === spaceId);
+      const space = spaces.find(s => s.id === spaceId);
       const folder = space?.folders.find(f => f.id === folderId);
       if (folder?.files[0]) setSelectedFileId(folder.files[0].id);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[calc(100vh-57px)] bg-[#faf9f8] overflow-hidden">
+        <div className="w-60 border-r border-[#edebe9] bg-white p-4 space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 rounded" />)}
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0078d4]" />
+        </div>
+      </div>
+    );
+  }
+
+  if (spaces.length === 0) {
+    return (
+      <div className="flex h-[calc(100vh-57px)] bg-[#faf9f8] items-center justify-center">
+        <div className="text-center space-y-3">
+          <FolderOpen className="w-16 h-16 mx-auto text-[#c8c6c4]" />
+          <p className="text-[#605e5c] text-sm">{isEn ? "No workspace folders found" : "暂无工作区文件夹"}</p>
+          <p className="text-[#a19f9d] text-xs">{isEn ? "Create folders to organize your documents" : "创建文件夹以组织您的文档"}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-57px)] bg-[#faf9f8] overflow-hidden">
@@ -287,7 +290,7 @@ export default function UniversalWorkspace() {
         {/* Tree navigation */}
         {!sidebarCollapsed && (
           <div className="flex-1 overflow-y-auto py-2 scrollbar-hide">
-            {MOCK_SPACES.map(space => {
+            {spaces.map(space => {
               const SpaceIcon = space.icon;
               const isExpanded = expandedSpaces.has(space.id);
               return (
@@ -309,7 +312,7 @@ export default function UniversalWorkspace() {
                     )}
                     <SpaceIcon className="w-4 h-4 shrink-0" style={{ color: space.color }} />
                     <span className="truncate text-[#323130] font-medium">
-                      {isEn ? space.nameEn : space.name}
+                      {space.name}
                     </span>
                   </button>
 
@@ -339,7 +342,7 @@ export default function UniversalWorkspace() {
                             <Folder className="w-4 h-4 text-[#ffb900] shrink-0" />
                           )}
                           <span className="truncate text-[#323130] text-xs">
-                            {isEn ? folder.nameEn : folder.name}
+                            {folder.name}
                           </span>
                         </button>
 
@@ -368,7 +371,7 @@ export default function UniversalWorkspace() {
         {/* Collapsed icons */}
         {sidebarCollapsed && (
           <div className="flex-1 flex flex-col items-center gap-2 py-3">
-            {MOCK_SPACES.map(space => {
+            {spaces.map(space => {
               const SpaceIcon = space.icon;
               return (
                 <button
@@ -376,7 +379,7 @@ export default function UniversalWorkspace() {
                   className={`w-8 h-8 rounded flex items-center justify-center hover:bg-[#f3f2f1] ${
                     selectedSpaceId === space.id ? "bg-[#deecf9]" : ""
                   }`}
-                  title={isEn ? space.nameEn : space.name}
+                  title={space.name}
                   onClick={() => {
                     setSelectedSpaceId(space.id);
                     setSidebarCollapsed(false);
@@ -398,11 +401,11 @@ export default function UniversalWorkspace() {
           {/* Breadcrumb */}
           <div className="flex items-center gap-1 text-sm text-[#605e5c] min-w-0">
             <span className="text-[#0078d4] font-medium truncate">
-              {isEn ? (selectedSpace?.nameEn ?? "") : (selectedSpace?.name ?? "")}
+              {selectedSpace?.name ?? ""}
             </span>
             <ChevronRight className="w-3 h-3 shrink-0 text-[#a19f9d]" />
             <span className="truncate">
-              {isEn ? (selectedFolder?.nameEn ?? "") : (selectedFolder?.name ?? "")}
+              {selectedFolder?.name ?? ""}
             </span>
             {selectedFile && (
               <>

@@ -1,13 +1,15 @@
 /**
  * v2.5.26 生产看板前端页面
- * 车间大屏看板、工单进度实时显示、任务状态统计、工人效率排名
+ * 车间大屏看板、工单进度实时显示、任务状态统计、团队效率排名
+ *
+ * Data source: trpc.productionDashboard.getDashboardStats + getTeamCapacity
  */
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
@@ -34,206 +36,98 @@ import {
   Users,
   Zap
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PageHeader, StatCard } from "@/components/grt";
-
 import { toast } from "sonner";
 
-// 类型定义
-interface WorkOrderSummary {
-  id: number;
-  workOrderCode: string;
-  productName: string;
-  productModel: string | null;
-  quantity: number;
-  priority: 'Normal' | 'Urgent' | 'Top_Urgent';
-  status: 'Draft' | 'Pending' | 'In_Progress' | 'QC_Review' | 'Completed' | 'Cancelled';
-  completionRate: number;
-  estimatedHours: number;
-  actualHours: number;
-  plannedStartDate: string | null;
-  plannedEndDate: string | null;
-  assignedTeam: string | null;
-}
-
-interface TaskStatusCount {
-  status: string;
-  count: number;
-  percentage: number;
-}
-
-interface WorkerEfficiency {
-  workerId: number;
-  workerName: string;
-  tasksCompleted: number;
-  totalEstimatedHours: number;
-  totalActualHours: number;
-  efficiency: number;
-  qualityPassRate: number;
-  ranking: number;
-}
-
-interface DashboardMetrics {
-  totalWorkOrders: number;
-  activeWorkOrders: number;
-  completedWorkOrders: number;
-  pendingWorkOrders: number;
-  totalTasks: number;
-  completedTasks: number;
-  inProgressTasks: number;
-  averageEfficiency: number;
-  averageCompletionRate: number;
-  onTimeDeliveryRate: number;
-}
-
-// 模拟数据
-const mockMetrics: DashboardMetrics = {
-  totalWorkOrders: 24,
-  activeWorkOrders: 8,
-  completedWorkOrders: 12,
-  pendingWorkOrders: 4,
-  totalTasks: 156,
-  completedTasks: 98,
-  inProgressTasks: 42,
-  averageEfficiency: 94,
-  averageCompletionRate: 78,
-  onTimeDeliveryRate: 92
-};
-
-const mockWorkOrders: WorkOrderSummary[] = [
-  {
-    id: 1,
-    workOrderCode: "WO-2026-001",
-    productName: "高压清洗机 HP-3000",
-    productModel: "HP-3000-A",
-    quantity: 5,
-    priority: "Top_Urgent",
-    status: "In_Progress",
-    completionRate: 65,
-    estimatedHours: 120,
-    actualHours: 85,
-    plannedStartDate: "2026-01-20",
-    plannedEndDate: "2026-02-05",
-    assignedTeam: "A组"
-  },
-  {
-    id: 2,
-    workOrderCode: "WO-2026-002",
-    productName: "超声波清洗设备 US-500",
-    productModel: "US-500-PRO",
-    quantity: 3,
-    priority: "Urgent",
-    status: "In_Progress",
-    completionRate: 45,
-    estimatedHours: 80,
-    actualHours: 40,
-    plannedStartDate: "2026-01-22",
-    plannedEndDate: "2026-02-08",
-    assignedTeam: "B组"
-  },
-  {
-    id: 3,
-    workOrderCode: "WO-2026-003",
-    productName: "工业清洗系统 IC-2000",
-    productModel: "IC-2000-X",
-    quantity: 2,
-    priority: "Normal",
-    status: "QC_Review",
-    completionRate: 95,
-    estimatedHours: 160,
-    actualHours: 155,
-    plannedStartDate: "2026-01-15",
-    plannedEndDate: "2026-01-30",
-    assignedTeam: "A组"
-  },
-  {
-    id: 4,
-    workOrderCode: "WO-2026-004",
-    productName: "喷淋清洗机 SP-800",
-    productModel: "SP-800-S",
-    quantity: 8,
-    priority: "Normal",
-    status: "Pending",
-    completionRate: 0,
-    estimatedHours: 200,
-    actualHours: 0,
-    plannedStartDate: "2026-02-01",
-    plannedEndDate: "2026-02-20",
-    assignedTeam: null
-  }
-];
-
-const mockTaskStatus: TaskStatusCount[] = [
-  { status: "Completed", count: 98, percentage: 63 },
-  { status: "In_Progress", count: 42, percentage: 27 },
-  { status: "Pending", count: 12, percentage: 8 },
-  { status: "QC_Review", count: 4, percentage: 2 }
-];
-
-const mockWorkers: WorkerEfficiency[] = [
-  { workerId: 1, workerName: "张明", tasksCompleted: 28, totalEstimatedHours: 180, totalActualHours: 165, efficiency: 109, qualityPassRate: 98, ranking: 1 },
-  { workerId: 2, workerName: "李强", tasksCompleted: 25, totalEstimatedHours: 160, totalActualHours: 155, efficiency: 103, qualityPassRate: 96, ranking: 2 },
-  { workerId: 3, workerName: "王伟", tasksCompleted: 22, totalEstimatedHours: 140, totalActualHours: 142, efficiency: 99, qualityPassRate: 95, ranking: 3 },
-  { workerId: 4, workerName: "刘洋", tasksCompleted: 20, totalEstimatedHours: 130, totalActualHours: 138, efficiency: 94, qualityPassRate: 92, ranking: 4 },
-  { workerId: 5, workerName: "陈静", tasksCompleted: 18, totalEstimatedHours: 120, totalActualHours: 130, efficiency: 92, qualityPassRate: 97, ranking: 5 }
-];
-
-// 优先级颜色映射
+// 优先级颜色映射 (使用后端值)
 const priorityColors: Record<string, string> = {
-  Top_Urgent: "bg-red-500",
-  Urgent: "bg-orange-500",
-  Normal: "bg-blue-500"
+  urgent: "bg-red-500",
+  high: "bg-orange-500",
+  normal: "bg-blue-500",
+  low: "bg-gray-500",
 };
 
 const priorityLabels: Record<string, string> = {
-  Top_Urgent: "特急",
-  Urgent: "紧急",
-  Normal: "普通"
+  urgent: "特急",
+  high: "紧急",
+  normal: "普通",
+  low: "低",
 };
 
-// 状态颜色映射
+// 状态颜色映射 (使用后端值)
 const statusColors: Record<string, string> = {
-  Draft: "bg-gray-500",
-  Pending: "bg-yellow-500",
-  In_Progress: "bg-blue-500",
-  QC_Review: "bg-purple-500",
-  Completed: "bg-green-500",
-  Cancelled: "bg-red-500"
+  draft: "bg-gray-500",
+  planned: "bg-yellow-500",
+  in_progress: "bg-blue-500",
+  quality_check: "bg-purple-500",
+  completed: "bg-green-500",
+  on_hold: "bg-orange-500",
+  cancelled: "bg-red-500",
 };
 
 const statusLabels: Record<string, string> = {
-  Draft: "草稿",
-  Pending: "待开始",
-  In_Progress: "进行中",
-  QC_Review: "质检中",
-  Completed: "已完成",
-  Cancelled: "已取消"
+  draft: "草稿",
+  planned: "待开始",
+  in_progress: "进行中",
+  quality_check: "质检中",
+  completed: "已完成",
+  on_hold: "暂停",
+  cancelled: "已取消",
 };
 
 export default function ProductionDashboard() {
   const { t } = useLanguage();
-  const { user } = useAuth();
   const [refreshInterval, setRefreshInterval] = useState(30);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedView, setSelectedView] = useState<"workshop" | "manager">("workshop");
 
-  // 自动刷新
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setLastUpdated(new Date());
-      // 这里可以添加数据刷新逻辑
-    }, refreshInterval * 1000);
-    return () => clearInterval(timer);
-  }, [refreshInterval]);
+  // ─── tRPC Queries (auto-refresh) ───
+  const dashboardQuery = trpc.productionDashboard.getDashboardStats.useQuery(undefined, {
+    refetchInterval: refreshInterval * 1000,
+  });
+  const teamQuery = trpc.productionDashboard.getTeamCapacity.useQuery(undefined, {
+    refetchInterval: refreshInterval * 1000,
+  });
 
-  // 手动刷新
+  const stats = dashboardQuery.data;
+  const isLoading = dashboardQuery.isLoading;
+
+  // ─── Derived Data ───
+  const workOrders = (stats?.recentOrders ?? []) as any[];
+  const totalOrders = stats?.summary?.totalOrders ?? 0;
+
+  // Task status distribution from ordersByStatus
+  const taskStatusEntries = (() => {
+    if (!stats?.ordersByStatus) return [];
+    const total = totalOrders || 1;
+    return [
+      { status: "completed", count: stats.ordersByStatus.completed ?? 0 },
+      { status: "in_progress", count: stats.ordersByStatus.in_progress ?? 0 },
+      { status: "planned", count: (stats.ordersByStatus.planned ?? 0) + (stats.ordersByStatus.draft ?? 0) },
+      { status: "quality_check", count: stats.ordersByStatus.quality_check ?? 0 },
+    ].map(e => ({ ...e, percentage: Math.round((e.count / total) * 100) }));
+  })();
+
+  // Team data
+  const teams = (teamQuery.data ?? []) as any[];
+
+  // Alerts derived from work orders
+  const overtimeOrders = workOrders.filter((wo: any) => wo.estimatedHours > 0 && wo.actualHours > wo.estimatedHours);
+  const qcPending = workOrders.filter((wo: any) => wo.status === "quality_check");
+  const deadlineRiskOrders = workOrders.filter((wo: any) => {
+    if (!wo.plannedEndDate || wo.status === "completed" || wo.status === "cancelled") return false;
+    const daysLeft = Math.ceil((new Date(wo.plannedEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    return daysLeft <= 7 && (wo.progress ?? 0) < 80;
+  });
+
+  // ─── Actions ───
   const handleRefresh = () => {
-    setLastUpdated(new Date());
+    dashboardQuery.refetch();
+    teamQuery.refetch();
     toast.success("数据已刷新");
   };
 
-  // 切换全屏
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
@@ -244,12 +138,27 @@ export default function ProductionDashboard() {
     }
   };
 
+  // ─── Loading State ───
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader icon={Factory} title="M5 生产看板" description="加载中..." />
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-lg" />
+          ))}
+        </div>
+        <Skeleton className="h-96 rounded-lg" />
+      </div>
+    );
+  }
+
   return (
       <div className="space-y-6">
         <PageHeader
           icon={Factory}
           title="M5 生产看板"
-          description={`车间实时生产状态监控 · 最后更新: ${lastUpdated.toLocaleTimeString()}`}
+          description={`车间实时生产状态监控 · 数据来源: 数据库`}
           actions={
             <div className="flex items-center gap-3">
               <Select value={selectedView} onValueChange={(v) => setSelectedView(v as "workshop" | "manager")}>
@@ -275,7 +184,7 @@ export default function ProductionDashboard() {
               </Select>
 
               <Button variant="outline" size="icon" onClick={handleRefresh}>
-                <RefreshCw className="w-4 h-4" />
+                {dashboardQuery.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               </Button>
 
               <Button variant="outline" size="icon" onClick={toggleFullscreen}>
@@ -285,12 +194,13 @@ export default function ProductionDashboard() {
           }
         />
 
+        {/* KPI 统计卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          <StatCard icon={Package} label="总工单数" value={mockMetrics.totalWorkOrders} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-          <StatCard icon={Play} label="进行中" value={mockMetrics.activeWorkOrders} iconColor="text-green-500" iconBg="bg-green-500/10" />
-          <StatCard icon={CheckCircle2} label="已完成" value={mockMetrics.completedWorkOrders} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
-          <StatCard icon={Gauge} label="平均效率" value={`${mockMetrics.averageEfficiency}%`} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-          <StatCard icon={Target} label="准时交付率" value={`${mockMetrics.onTimeDeliveryRate}%`} iconColor="text-cyan-500" iconBg="bg-cyan-500/10" />
+          <StatCard icon={Package} label="总工单数" value={totalOrders} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={Play} label="进行中" value={stats?.summary?.inProgressOrders ?? 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={CheckCircle2} label="已完成" value={stats?.summary?.completedOrders ?? 0} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+          <StatCard icon={Gauge} label="设备利用率" value={`${stats?.equipment?.avgUtilization ?? 0}%`} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+          <StatCard icon={Target} label="平均完成率" value={`${stats?.summary?.avgProgress ?? 0}%`} iconColor="text-cyan-500" iconBg="bg-cyan-500/10" />
         </div>
 
         {/* 主要内容区域 */}
@@ -306,7 +216,7 @@ export default function ProductionDashboard() {
             </TabsTrigger>
             <TabsTrigger value="workers" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              效率排名
+              团队效率
             </TabsTrigger>
             <TabsTrigger value="alerts" className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
@@ -316,64 +226,73 @@ export default function ProductionDashboard() {
 
           {/* 工单进度 Tab */}
           <TabsContent value="workorders" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {mockWorkOrders.map((wo) => (
-                <Card key={wo.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          {wo.workOrderCode}
-                          <Badge className={`${priorityColors[wo.priority]} text-white`}>
-                            {priorityLabels[wo.priority]}
-                          </Badge>
-                        </CardTitle>
-                        <CardDescription className="mt-1">
-                          {wo.productName} {wo.productModel && `(${wo.productModel})`}
-                        </CardDescription>
-                      </div>
-                      <Badge variant="outline" className={`${statusColors[wo.status]} text-white border-0`}>
-                        {statusLabels[wo.status]}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">完成进度</span>
-                        <span className="font-medium">{wo.completionRate}%</span>
-                      </div>
-                      <Progress value={wo.completionRate} className="h-2" />
-                      
-                      <div className="grid grid-cols-3 gap-4 pt-2 text-sm">
+            {workOrders.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Package className="w-12 h-12 mb-4 opacity-40" />
+                  <p>暂无工单数据，请先通过生产管理创建工单</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {workOrders.map((wo: any) => (
+                  <Card key={wo.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-muted-foreground">数量</p>
-                          <p className="font-medium">{wo.quantity} 台</p>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            {wo.orderCode}
+                            <Badge className={`${priorityColors[wo.priority] || 'bg-blue-500'} text-white`}>
+                              {priorityLabels[wo.priority] || wo.priority}
+                            </Badge>
+                          </CardTitle>
+                          <CardDescription className="mt-1">
+                            {wo.productName} {wo.productModel && `(${wo.productModel})`}
+                          </CardDescription>
                         </div>
-                        <div>
-                          <p className="text-muted-foreground">预估工时</p>
-                          <p className="font-medium">{wo.estimatedHours}h</p>
+                        <Badge variant="outline" className={`${statusColors[wo.status] || 'bg-gray-500'} text-white border-0`}>
+                          {statusLabels[wo.status] || wo.status}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">完成进度</span>
+                          <span className="font-medium">{wo.progress ?? 0}%</span>
                         </div>
-                        <div>
-                          <p className="text-muted-foreground">实际工时</p>
-                          <p className="font-medium">{wo.actualHours}h</p>
+                        <Progress value={wo.progress ?? 0} className="h-2" />
+
+                        <div className="grid grid-cols-3 gap-4 pt-2 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">数量</p>
+                            <p className="font-medium">{wo.quantity} 台</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">预估工时</p>
+                            <p className="font-medium">{wo.estimatedHours || 0}h</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">实际工时</p>
+                            <p className="font-medium">{wo.actualHours || 0}h</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 text-sm border-t">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Clock className="w-4 h-4" />
+                            {wo.plannedStartDate ?? '—'} ~ {wo.plannedEndDate ?? '—'}
+                          </div>
+                          {wo.assignedTeam && (
+                            <Badge variant="secondary">{wo.assignedTeam}</Badge>
+                          )}
                         </div>
                       </div>
-                      
-                      <div className="flex items-center justify-between pt-2 text-sm border-t">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Clock className="w-4 h-4" />
-                          {wo.plannedStartDate} ~ {wo.plannedEndDate}
-                        </div>
-                        {wo.assignedTeam && (
-                          <Badge variant="secondary">{wo.assignedTeam}</Badge>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* 任务统计 Tab */}
@@ -383,66 +302,74 @@ export default function ProductionDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <BarChart3 className="w-5 h-5" />
-                    任务状态分布
+                    工单状态分布
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {mockTaskStatus.map((item) => (
-                      <div key={item.status} className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-3 h-3 rounded-full ${statusColors[item.status]}`} />
-                            <span>{statusLabels[item.status]}</span>
+                  {taskStatusEntries.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">暂无数据</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {taskStatusEntries.map((item) => (
+                        <div key={item.status} className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full ${statusColors[item.status] || 'bg-gray-400'}`} />
+                              <span>{statusLabels[item.status] || item.status}</span>
+                            </div>
+                            <span className="font-medium">{item.count} ({item.percentage}%)</span>
                           </div>
-                          <span className="font-medium">{item.count} ({item.percentage}%)</span>
+                          <Progress value={item.percentage} className="h-2" />
                         </div>
-                        <Progress value={item.percentage} className="h-2" />
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Activity className="w-5 h-5" />
-                    生产效率趋势
+                    设备与生产效率
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                       <div>
-                        <p className="text-sm text-muted-foreground">本周效率</p>
-                        <p className="text-2xl font-bold">{mockMetrics.averageEfficiency}%</p>
+                        <p className="text-sm text-muted-foreground">设备利用率</p>
+                        <p className="text-2xl font-bold">{stats?.equipment?.avgUtilization ?? 0}%</p>
                       </div>
-                      <div className="flex items-center gap-1 text-green-500">
-                        <ArrowUp className="w-4 h-4" />
-                        <span className="text-sm">+3.2%</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                      <div>
-                        <p className="text-sm text-muted-foreground">任务完成率</p>
-                        <p className="text-2xl font-bold">{Math.round(mockMetrics.completedTasks / mockMetrics.totalTasks * 100)}%</p>
-                      </div>
-                      <div className="flex items-center gap-1 text-green-500">
-                        <ArrowUp className="w-4 h-4" />
-                        <span className="text-sm">+5.1%</span>
+                      <div className="flex items-center gap-1">
+                        <Gauge className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">{stats?.equipment?.running ?? 0}台运行中</span>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                       <div>
-                        <p className="text-sm text-muted-foreground">质检通过率</p>
-                        <p className="text-2xl font-bold">96%</p>
+                        <p className="text-sm text-muted-foreground">工单完成率</p>
+                        <p className="text-2xl font-bold">
+                          {totalOrders > 0 ? Math.round(((stats?.summary?.completedOrders ?? 0) / totalOrders) * 100) : 0}%
+                        </p>
                       </div>
-                      <div className="flex items-center gap-1 text-red-500">
-                        <ArrowDown className="w-4 h-4" />
-                        <span className="text-sm">-1.2%</span>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span className="text-sm">{stats?.summary?.completedOrders ?? 0}/{totalOrders}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                      <div>
+                        <p className="text-sm text-muted-foreground">平均进度</p>
+                        <p className="text-2xl font-bold">{stats?.summary?.avgProgress ?? 0}%</p>
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <TrendingUp className="w-4 h-4" />
+                        <span className="text-sm">
+                          产量 {stats?.summary?.completedQuantity ?? 0}/{stats?.summary?.totalQuantity ?? 0}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -451,67 +378,68 @@ export default function ProductionDashboard() {
             </div>
           </TabsContent>
 
-          {/* 效率排名 Tab */}
+          {/* 团队效率 Tab */}
           <TabsContent value="workers" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Award className="w-5 h-5" />
-                  工人效率排行榜
+                  团队效率排行榜
                 </CardTitle>
                 <CardDescription>
-                  基于任务完成数量、工时效率和质量通过率综合排名
+                  基于工单完成数量和工时效率综合排名
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {mockWorkers.map((worker, index) => (
-                    <div 
-                      key={worker.workerId}
-                      className={`flex items-center gap-4 p-4 rounded-lg ${
-                        index === 0 ? 'bg-yellow-500/10 border border-yellow-500/30' :
-                        index === 1 ? 'bg-gray-400/10 border border-gray-400/30' :
-                        index === 2 ? 'bg-orange-600/10 border border-orange-600/30' :
-                        'bg-muted/50'
-                      }`}
-                    >
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
-                        index === 0 ? 'bg-yellow-500 text-yellow-950' :
-                        index === 1 ? 'bg-gray-400 text-gray-950' :
-                        index === 2 ? 'bg-orange-600 text-orange-950' :
-                        'bg-muted-foreground/20 text-muted-foreground'
-                      }`}>
-                        {worker.ranking}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{worker.workerName}</span>
-                          {index < 3 && (
-                            <Badge variant="secondary" className="text-xs">
-                              {index === 0 ? '🥇 冠军' : index === 1 ? '🥈 亚军' : '🥉 季军'}
-                            </Badge>
-                          )}
+                {teams.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">暂无团队数据</p>
+                ) : (
+                  <div className="space-y-4">
+                    {[...teams]
+                      .sort((a: any, b: any) => (b.efficiency ?? 0) - (a.efficiency ?? 0))
+                      .map((team: any, index: number) => (
+                      <div
+                        key={team.team}
+                        className={`flex items-center gap-4 p-4 rounded-lg ${
+                          index === 0 ? 'bg-yellow-500/10 border border-yellow-500/30' :
+                          index === 1 ? 'bg-gray-400/10 border border-gray-400/30' :
+                          index === 2 ? 'bg-orange-600/10 border border-orange-600/30' :
+                          'bg-muted/50'
+                        }`}
+                      >
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
+                          index === 0 ? 'bg-yellow-500 text-yellow-950' :
+                          index === 1 ? 'bg-gray-400 text-gray-950' :
+                          index === 2 ? 'bg-orange-600 text-orange-950' :
+                          'bg-muted-foreground/20 text-muted-foreground'
+                        }`}>
+                          {index + 1}
                         </div>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                          <span>完成任务: {worker.tasksCompleted}</span>
-                          <span>工时效率: {worker.efficiency}%</span>
-                          <span>质量通过率: {worker.qualityPassRate}%</span>
+
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{team.team}</span>
+                          </div>
+                          <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                            <span>总工单: {team.totalOrders}</span>
+                            <span>已完成: {team.completedOrders}</span>
+                            <span>进行中: {team.inProgressOrders}</span>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="flex items-center gap-1">
+                            <Zap className={`w-4 h-4 ${(team.efficiency ?? 0) >= 80 ? 'text-green-500' : 'text-orange-500'}`} />
+                            <span className={`text-xl font-bold ${(team.efficiency ?? 0) >= 80 ? 'text-green-500' : 'text-orange-500'}`}>
+                              {team.efficiency ?? 0}%
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">工时效率</p>
                         </div>
                       </div>
-                      
-                      <div className="text-right">
-                        <div className="flex items-center gap-1">
-                          <Zap className={`w-4 h-4 ${worker.efficiency >= 100 ? 'text-green-500' : 'text-orange-500'}`} />
-                          <span className={`text-xl font-bold ${worker.efficiency >= 100 ? 'text-green-500' : 'text-orange-500'}`}>
-                            {worker.efficiency}%
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">综合效率</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -528,24 +456,24 @@ export default function ProductionDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-red-500/10 rounded-lg">
-                      <div>
-                        <p className="font-medium">WO-2026-002 超声波清洗设备</p>
-                        <p className="text-sm text-muted-foreground">任务: 主体框架焊接</p>
-                      </div>
-                      <Badge variant="destructive">超出 125%</Badge>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-orange-500/10 rounded-lg">
-                      <div>
-                        <p className="font-medium">WO-2026-001 高压清洗机</p>
-                        <p className="text-sm text-muted-foreground">任务: 电气系统调试</p>
-                      </div>
-                      <Badge className="bg-orange-500">超出 118%</Badge>
-                    </div>
+                    {overtimeOrders.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">无超时工单</p>
+                    ) : overtimeOrders.map((wo: any) => {
+                      const ratio = Math.round((wo.actualHours / wo.estimatedHours) * 100);
+                      return (
+                        <div key={wo.id} className="flex items-center justify-between p-3 bg-red-500/10 rounded-lg">
+                          <div>
+                            <p className="font-medium">{wo.orderCode} {wo.productName}</p>
+                            <p className="text-sm text-muted-foreground">预估 {wo.estimatedHours}h → 实际 {wo.actualHours}h</p>
+                          </div>
+                          <Badge variant="destructive">超出 {ratio}%</Badge>
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card className="border-purple-500/30">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-purple-500">
@@ -555,17 +483,21 @@ export default function ProductionDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-purple-500/10 rounded-lg">
-                      <div>
-                        <p className="font-medium">WO-2026-003 工业清洗系统</p>
-                        <p className="text-sm text-muted-foreground">等待质检: 2天</p>
+                    {qcPending.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">无待检工单</p>
+                    ) : qcPending.map((wo: any) => (
+                      <div key={wo.id} className="flex items-center justify-between p-3 bg-purple-500/10 rounded-lg">
+                        <div>
+                          <p className="font-medium">{wo.orderCode} {wo.productName}</p>
+                          <p className="text-sm text-muted-foreground">进度: {wo.progress ?? 0}%</p>
+                        </div>
+                        <Badge className="bg-purple-500">待质检</Badge>
                       </div>
-                      <Badge className="bg-purple-500">待质检</Badge>
-                    </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card className="border-yellow-500/30">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-yellow-500">
@@ -575,32 +507,41 @@ export default function ProductionDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-yellow-500/10 rounded-lg">
-                      <div>
-                        <p className="font-medium">WO-2026-001 高压清洗机</p>
-                        <p className="text-sm text-muted-foreground">距交期: 7天 | 完成率: 65%</p>
-                      </div>
-                      <Badge className="bg-yellow-500 text-yellow-950">风险</Badge>
-                    </div>
+                    {deadlineRiskOrders.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">无交期风险</p>
+                    ) : deadlineRiskOrders.map((wo: any) => {
+                      const daysLeft = Math.ceil((new Date(wo.plannedEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                      return (
+                        <div key={wo.id} className="flex items-center justify-between p-3 bg-yellow-500/10 rounded-lg">
+                          <div>
+                            <p className="font-medium">{wo.orderCode} {wo.productName}</p>
+                            <p className="text-sm text-muted-foreground">距交期: {daysLeft}天 | 完成率: {wo.progress ?? 0}%</p>
+                          </div>
+                          <Badge className="bg-yellow-500 text-yellow-950">风险</Badge>
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card className="border-green-500/30">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-green-500">
                     <TrendingUp className="w-5 h-5" />
-                    效率提升建议
+                    设备状态概览
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg">
                       <div>
-                        <p className="font-medium">A组效率持续提升</p>
-                        <p className="text-sm text-muted-foreground">建议: 分享最佳实践到B组</p>
+                        <p className="font-medium">设备总数: {stats?.equipment?.total ?? 0}</p>
+                        <p className="text-sm text-muted-foreground">
+                          运行 {stats?.equipment?.running ?? 0} · 空闲 {stats?.equipment?.idle ?? 0} · 维护 {stats?.equipment?.maintenance ?? 0} · 故障 {stats?.equipment?.fault ?? 0}
+                        </p>
                       </div>
-                      <Badge className="bg-green-500">建议</Badge>
+                      <Badge className="bg-green-500">{stats?.equipment?.avgUtilization ?? 0}%</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -629,11 +570,11 @@ export default function ProductionDashboard() {
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                任务状态分布统计，追踪生产效率趋势
+                工单状态分布统计，追踪设备利用率和生产效率
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                工人效率排行榜，基于任务完成、工时效率、质量通过率综合排名
+                团队效率排行榜，基于工单完成数量和工时效率排名
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />

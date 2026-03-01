@@ -20,18 +20,14 @@
  * │  └───────────────────┘       └─────────────────────────┘                │
  * └──────────────────────────────────────────────────────────────────────────┘
  *
- * Forecast Trend Thresholds:
- *   HIGH_GROWTH:     >20% MoM increase  → dynamic = 1.5 × static_min
- *   MODERATE_GROWTH: 5-20% increase     → dynamic = 1.25 × static_min
- *   STABLE:          -5% to +5%         → dynamic = 1.0 × static_min
- *   DECLINING:       -5% to -20%        → dynamic = 0.75 × static_min
- *   STEEP_DECLINE:   >20% decrease      → dynamic = 0.5 × static_min
- *
+ * Data source: DB-first (real materials + inventory + BOM tables) with seed fallback.
  * Architecture: Pure calculation functions exported for Vitest.
  */
 
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { requireDb } from "../db";
+import { sql } from "drizzle-orm";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -322,80 +318,151 @@ export function recalculateSafetyStock(
   };
 }
 
-// ─── Mock Data (GRT Cleaning Equipment Supply Chain) ─────────────────
+// ─── Seed/Fallback Data (GRT Cleaning Equipment Supply Chain) ────────
 
-const MOCK_FORECASTS: SalesForecast[] = [
-  // Product GWM-3000: High-Pressure Washer — HIGH GROWTH (50→60→75)
+const SEED_FORECASTS: SalesForecast[] = [
   { productCode: "GWM-3000", productName: "High-Pressure Industrial Washer", month: "2026-03", forecastedQty: 50, confidenceLevel: 85 },
   { productCode: "GWM-3000", productName: "High-Pressure Industrial Washer", month: "2026-04", forecastedQty: 60, confidenceLevel: 80 },
   { productCode: "GWM-3000", productName: "High-Pressure Industrial Washer", month: "2026-05", forecastedQty: 75, confidenceLevel: 72 },
-
-  // Product GUC-500: Ultrasonic Cleaner — STABLE (30→32→31)
   { productCode: "GUC-500", productName: "Ultrasonic Cleaning System 500L", month: "2026-03", forecastedQty: 30, confidenceLevel: 90 },
   { productCode: "GUC-500", productName: "Ultrasonic Cleaning System 500L", month: "2026-04", forecastedQty: 32, confidenceLevel: 88 },
   { productCode: "GUC-500", productName: "Ultrasonic Cleaning System 500L", month: "2026-05", forecastedQty: 31, confidenceLevel: 85 },
-
-  // Product GSC-200: Spray Cabinet — STEEP DECLINE (40→25→15)
   { productCode: "GSC-200", productName: "Spray Cabinet Degreaser", month: "2026-03", forecastedQty: 40, confidenceLevel: 78 },
   { productCode: "GSC-200", productName: "Spray Cabinet Degreaser", month: "2026-04", forecastedQty: 25, confidenceLevel: 75 },
   { productCode: "GSC-200", productName: "Spray Cabinet Degreaser", month: "2026-05", forecastedQty: 15, confidenceLevel: 70 },
 ];
 
-const MOCK_BOM: BomItem[] = [
-  // GWM-3000 BOM
+const SEED_BOM: BomItem[] = [
   { productCode: "GWM-3000", partNumber: "SS316-PLATE-3MM", partName: "SS316 Plate 3mm", qtyPerUnit: 4 },
   { productCode: "GWM-3000", partNumber: "PUMP-HP-15KW", partName: "High-Pressure Pump 15kW", qtyPerUnit: 1 },
   { productCode: "GWM-3000", partNumber: "NOZZLE-FAN-45", partName: "Fan Nozzle 45°", qtyPerUnit: 6 },
   { productCode: "GWM-3000", partNumber: "SEAL-VITON-DN50", partName: "Viton Seal DN50", qtyPerUnit: 12 },
   { productCode: "GWM-3000", partNumber: "PLC-SIEMENS-1200", partName: "Siemens S7-1200 PLC", qtyPerUnit: 1 },
-
-  // GUC-500 BOM
   { productCode: "GUC-500", partNumber: "SS316-PLATE-3MM", partName: "SS316 Plate 3mm", qtyPerUnit: 6 },
   { productCode: "GUC-500", partNumber: "TRANSDUCER-40KHZ", partName: "Ultrasonic Transducer 40kHz", qtyPerUnit: 8 },
   { productCode: "GUC-500", partNumber: "HEATER-3KW", partName: "Immersion Heater 3kW", qtyPerUnit: 2 },
   { productCode: "GUC-500", partNumber: "SEAL-VITON-DN50", partName: "Viton Seal DN50", qtyPerUnit: 8 },
   { productCode: "GUC-500", partNumber: "PLC-SIEMENS-1200", partName: "Siemens S7-1200 PLC", qtyPerUnit: 1 },
-
-  // GSC-200 BOM
   { productCode: "GSC-200", partNumber: "SS316-PLATE-3MM", partName: "SS316 Plate 3mm", qtyPerUnit: 3 },
   { productCode: "GSC-200", partNumber: "NOZZLE-FAN-45", partName: "Fan Nozzle 45°", qtyPerUnit: 4 },
   { productCode: "GSC-200", partNumber: "PUMP-LP-5KW", partName: "Low-Pressure Pump 5kW", qtyPerUnit: 1 },
   { productCode: "GSC-200", partNumber: "SEAL-VITON-DN50", partName: "Viton Seal DN50", qtyPerUnit: 6 },
 ];
 
-const MOCK_RULES: MaterialRule[] = [
-  // SS316 Plate — shared by all 3 products, currently overstocked
+const SEED_RULES: MaterialRule[] = [
   { partNumber: "SS316-PLATE-3MM", partName: "SS316 Plate 3mm", category: "RAW",
     currentStock: 2000, staticMin: 500, staticMax: 3000, leadTimeDays: 21, unitCost: 85.50, annualDemand: 6000 },
-
-  // HP Pump — critical, limited supply
   { partNumber: "PUMP-HP-15KW", partName: "High-Pressure Pump 15kW", category: "COMPONENT",
     currentStock: 8, staticMin: 20, staticMax: 50, leadTimeDays: 45, unitCost: 12800, annualDemand: 120 },
-
-  // Fan Nozzle — medium stock
   { partNumber: "NOZZLE-FAN-45", partName: "Fan Nozzle 45°", category: "COMPONENT",
     currentStock: 300, staticMin: 200, staticMax: 800, leadTimeDays: 14, unitCost: 145, annualDemand: 3600 },
-
-  // Viton Seals — consumable, fast moving
   { partNumber: "SEAL-VITON-DN50", partName: "Viton Seal DN50", category: "RAW",
     currentStock: 1500, staticMin: 500, staticMax: 3000, leadTimeDays: 7, unitCost: 18.50, annualDemand: 12000 },
-
-  // PLC — expensive, long lead
   { partNumber: "PLC-SIEMENS-1200", partName: "Siemens S7-1200 PLC", category: "COMPONENT",
     currentStock: 15, staticMin: 10, staticMax: 30, leadTimeDays: 60, unitCost: 4200, annualDemand: 180 },
-
-  // Ultrasonic Transducer — stable demand
   { partNumber: "TRANSDUCER-40KHZ", partName: "Ultrasonic Transducer 40kHz", category: "COMPONENT",
     currentStock: 200, staticMin: 100, staticMax: 400, leadTimeDays: 30, unitCost: 680, annualDemand: 960 },
-
-  // Immersion Heater — stable demand
   { partNumber: "HEATER-3KW", partName: "Immersion Heater 3kW", category: "COMPONENT",
     currentStock: 50, staticMin: 30, staticMax: 100, leadTimeDays: 14, unitCost: 350, annualDemand: 240 },
-
-  // LP Pump — declining demand (GSC-200 only)
   { partNumber: "PUMP-LP-5KW", partName: "Low-Pressure Pump 5kW", category: "COMPONENT",
     currentStock: 35, staticMin: 15, staticMax: 50, leadTimeDays: 30, unitCost: 3200, annualDemand: 80 },
 ];
+
+// ─── DB helpers ──────────────────────────────────────────────────────
+
+/** Load sales forecasts from DB, fallback to SEED_FORECASTS */
+async function loadForecasts(): Promise<{ forecasts: SalesForecast[]; dataSource: "database" | "seed" }> {
+  try {
+    const db = await requireDb();
+    const rows = await db.execute(sql`
+      SELECT product_code, product_name, month, forecasted_qty, confidence_level
+      FROM sales_forecasts
+      ORDER BY product_code, month
+    `);
+    const arr = (rows as any).rows ?? [];
+    if (arr.length === 0) return { forecasts: SEED_FORECASTS, dataSource: "seed" };
+
+    return {
+      forecasts: arr.map((r: any) => ({
+        productCode: r.product_code,
+        productName: r.product_name,
+        month: r.month,
+        forecastedQty: Number(r.forecasted_qty),
+        confidenceLevel: Number(r.confidence_level),
+      })),
+      dataSource: "database",
+    };
+  } catch {
+    return { forecasts: SEED_FORECASTS, dataSource: "seed" };
+  }
+}
+
+/** Load BOM structure from real bom_masters + bom_items tables, fallback to SEED_BOM */
+async function loadBom(): Promise<{ bom: BomItem[]; dataSource: "database" | "seed" }> {
+  try {
+    const db = await requireDb();
+    const rows = await db.execute(sql`
+      SELECT bm.product_code, bi.material_code AS part_number, bi.material_name AS part_name,
+             bi.quantity AS qty_per_unit
+      FROM bom_items bi
+      JOIN bom_masters bm ON bi.bom_master_id = bm.id
+      WHERE bm.status IN ('active', 'approved', 'released', 'draft')
+    `);
+    const arr = (rows as any).rows ?? [];
+    if (arr.length === 0) return { bom: SEED_BOM, dataSource: "seed" };
+
+    return {
+      bom: arr.map((r: any) => ({
+        productCode: r.product_code,
+        partNumber: r.part_number,
+        partName: r.part_name,
+        qtyPerUnit: Number(r.qty_per_unit ?? 1),
+      })),
+      dataSource: "database",
+    };
+  } catch {
+    return { bom: SEED_BOM, dataSource: "seed" };
+  }
+}
+
+/** Load material rules from real materials + inventory tables, fallback to SEED_RULES */
+async function loadMaterialRules(): Promise<{ rules: MaterialRule[]; dataSource: "database" | "seed" }> {
+  try {
+    const db = await requireDb();
+    const rows = await db.execute(sql`
+      SELECT m.material_code AS part_number, m.material_name AS part_name,
+             COALESCE(m.material_type, 'component') AS category,
+             COALESCE(i.quantity, 0) AS current_stock,
+             COALESCE(i.min_stock, 0) AS static_min,
+             COALESCE(i.max_stock, 0) AS static_max,
+             COALESCE(m.standard_cost, 0) AS unit_cost,
+             COALESCE(i.safety_stock, 0) AS safety_stock
+      FROM materials m
+      LEFT JOIN inventory i ON i.material_id = m.id
+      WHERE m.status != 'deleted'
+        AND COALESCE(i.min_stock, 0) > 0
+    `);
+    const arr = (rows as any).rows ?? [];
+    if (arr.length === 0) return { rules: SEED_RULES, dataSource: "seed" };
+
+    return {
+      rules: arr.map((r: any) => ({
+        partNumber: r.part_number,
+        partName: r.part_name,
+        category: String(r.category).toUpperCase(),
+        currentStock: Number(r.current_stock),
+        staticMin: Number(r.static_min),
+        staticMax: Number(r.static_max),
+        leadTimeDays: 14,  // default; not tracked in current materials schema
+        unitCost: Number(r.unit_cost),
+        annualDemand: 0,   // not tracked
+      })),
+      dataSource: "database",
+    };
+  } catch {
+    return { rules: SEED_RULES, dataSource: "seed" };
+  }
+}
 
 // ─── tRPC Router ─────────────────────────────────────────────────────
 
@@ -404,18 +471,23 @@ export const smartInventoryRouter = router({
    * dashboard — full recalculation with cash impact analysis.
    */
   dashboard: protectedProcedure.query(async () => {
-    const report = recalculateSafetyStock(MOCK_FORECASTS, MOCK_BOM, MOCK_RULES);
-    return { ...report, dataSource: "mock" as const };
+    const [{ forecasts }, { bom }, { rules }] = await Promise.all([
+      loadForecasts(), loadBom(), loadMaterialRules(),
+    ]);
+    const report = recalculateSafetyStock(forecasts, bom, rules);
+    const dataSource = rules === SEED_RULES ? "seed" as const : "database" as const;
+    return { ...report, dataSource };
   }),
 
   /**
    * forecasts — view sales forecasts by product.
    */
   forecasts: protectedProcedure.query(async () => {
+    const { forecasts, dataSource } = await loadForecasts();
     return {
-      forecasts: MOCK_FORECASTS,
-      products: [...new Set(MOCK_FORECASTS.map(f => f.productCode))].map(code => {
-        const fcs = MOCK_FORECASTS.filter(f => f.productCode === code);
+      forecasts,
+      products: [...new Set(forecasts.map(f => f.productCode))].map(code => {
+        const fcs = forecasts.filter(f => f.productCode === code);
         return {
           productCode: code,
           productName: fcs[0].productName,
@@ -423,7 +495,7 @@ export const smartInventoryRouter = router({
           months: fcs,
         };
       }),
-      dataSource: "mock" as const,
+      dataSource,
     };
   }),
 
@@ -431,8 +503,12 @@ export const smartInventoryRouter = router({
    * recalculate — trigger manual recalculation.
    */
   recalculate: protectedProcedure.mutation(async () => {
-    const report = recalculateSafetyStock(MOCK_FORECASTS, MOCK_BOM, MOCK_RULES, new Date());
-    return { ...report, dataSource: "mock" as const };
+    const [{ forecasts }, { bom }, { rules }] = await Promise.all([
+      loadForecasts(), loadBom(), loadMaterialRules(),
+    ]);
+    const report = recalculateSafetyStock(forecasts, bom, rules, new Date());
+    const dataSource = rules === SEED_RULES ? "seed" as const : "database" as const;
+    return { ...report, dataSource };
   }),
 
   /**
@@ -441,15 +517,18 @@ export const smartInventoryRouter = router({
   partDetail: protectedProcedure
     .input(z.object({ partNumber: z.string() }))
     .query(async ({ input }) => {
-      const report = recalculateSafetyStock(MOCK_FORECASTS, MOCK_BOM, MOCK_RULES);
+      const [{ forecasts }, { bom }, { rules }] = await Promise.all([
+        loadForecasts(), loadBom(), loadMaterialRules(),
+      ]);
+      const report = recalculateSafetyStock(forecasts, bom, rules);
       const part = report.results.find(r => r.partNumber === input.partNumber);
       if (!part) return { found: false, part: null };
 
-      const relatedForecasts = MOCK_FORECASTS.filter(f =>
-        MOCK_BOM.some(b => b.productCode === f.productCode && b.partNumber === input.partNumber)
+      const relatedForecasts = forecasts.filter(f =>
+        bom.some(b => b.productCode === f.productCode && b.partNumber === input.partNumber)
       );
       const relatedProducts = [...new Set(
-        MOCK_BOM.filter(b => b.partNumber === input.partNumber).map(b => b.productCode)
+        bom.filter(b => b.partNumber === input.partNumber).map(b => b.productCode)
       )];
 
       return {
@@ -457,7 +536,54 @@ export const smartInventoryRouter = router({
         part,
         relatedForecasts,
         relatedProducts,
-        bom: MOCK_BOM.filter(b => b.partNumber === input.partNumber),
+        bom: bom.filter(b => b.partNumber === input.partNumber),
       };
     }),
+
+  /**
+   * seedDemo — create sales_forecasts table and seed demo data.
+   */
+  seedDemo: protectedProcedure.mutation(async () => {
+    const db = await requireDb();
+
+    // Create sales_forecasts table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS sales_forecasts (
+        id SERIAL PRIMARY KEY,
+        product_code VARCHAR(50) NOT NULL,
+        product_name VARCHAR(200) NOT NULL,
+        month VARCHAR(10) NOT NULL,
+        forecasted_qty INTEGER NOT NULL DEFAULT 0,
+        confidence_level INTEGER NOT NULL DEFAULT 80,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(product_code, month)
+      )
+    `);
+
+    // Seed forecast data (upsert)
+    const results = [];
+    for (const fc of SEED_FORECASTS) {
+      try {
+        await db.execute(sql`
+          INSERT INTO sales_forecasts (product_code, product_name, month, forecasted_qty, confidence_level)
+          VALUES (${fc.productCode}, ${fc.productName}, ${fc.month}, ${fc.forecastedQty}, ${fc.confidenceLevel})
+          ON CONFLICT (product_code, month) DO UPDATE SET
+            forecasted_qty = EXCLUDED.forecasted_qty,
+            confidence_level = EXCLUDED.confidence_level,
+            updated_at = NOW()
+        `);
+        results.push({ productCode: fc.productCode, month: fc.month, status: "ok" });
+      } catch (e) {
+        results.push({ productCode: fc.productCode, month: fc.month, status: "error", error: String(e) });
+      }
+    }
+
+    return {
+      seeded: true,
+      forecasts: results,
+      tables: ["sales_forecasts"],
+      note: "Material rules and BOM data are read from real 'materials', 'inventory', and 'bom_items'/'bom_masters' tables.",
+    };
+  }),
 });

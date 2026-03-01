@@ -3,6 +3,7 @@
  */
 
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
 import { generateMaterialCode, parseMaterialCode, validateMaterialCode } from "./material-coding.config";
 import { requireDb } from "../db";
@@ -21,9 +22,10 @@ const MaterialCreateSchema = z.object({
   categoryCode: z.string().min(1),
   subcategoryCode: z.string().optional(),
   specificationCode: z.string().optional(),
-  materialType: z.enum(['equipment', 'component', 'part', 'consumable', 'chemical', 'other']),
+  materialType: z.enum(['equipment', 'component', 'part', 'consumable', 'chemical', 'other']).default('component'),
   manufacturer: z.string().optional(),
   description: z.string().optional(),
+  standardCost: z.number().optional(),
   minStockLevel: z.number().optional(),
   maxStockLevel: z.number().optional(),
 });
@@ -101,6 +103,7 @@ export const materialRouter = router({
         materialType: input.materialType,
         manufacturer: input.manufacturer ?? null,
         description: input.description ?? null,
+        standardCost: input.standardCost != null ? String(input.standardCost) : null,
         minStockLevel: input.minStockLevel ?? 0,
         maxStockLevel: input.maxStockLevel ?? 0,
         status: 'active',
@@ -240,6 +243,37 @@ export const materialRouter = router({
         approvedBy: row.approvedBy,
         approvedAt: row.approvedAt,
       };
+    }),
+
+  /**
+   * 删除物料 (soft delete → status='deleted')
+   */
+  deleteMaterial: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const [existing] = await db.select().from(materials).where(eq(materials.id, input.id));
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Material not found" });
+      }
+
+      await db.update(materials).set({
+        status: 'deleted' as any,
+        updatedBy: ctx.user?.id,
+      }).where(eq(materials.id, input.id));
+
+      // Record change history
+      await db.insert(materialChangeHistory).values({
+        materialId: input.id,
+        changeType: 'delete',
+        fieldName: 'status',
+        oldValue: existing.status,
+        newValue: 'deleted',
+        reason: 'Admin deletion',
+        changedBy: ctx.user?.id ?? 0,
+      });
+
+      return { success: true, id: input.id };
     }),
 
   /**

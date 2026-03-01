@@ -1,10 +1,13 @@
 /**
  * StageGateDashboard - M0-M12 Stage Gate Management
  * Main page: stat cards, project selector, 4-tab layout
+ *
+ * Data source: trpc.stageGate.getStats (DB-backed), trpc.project.list (DB-backed)
  */
-import { useState, Suspense, lazy } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader, StatCard } from "@/components/grt";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
@@ -13,19 +16,12 @@ import {
   LayoutDashboard, List, Zap, Loader2,
 } from "lucide-react";
 
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
+
 const OverviewTab = lazy(() => import("./stage-gate/OverviewTab"));
 const ChecklistsTab = lazy(() => import("./stage-gate/ChecklistsTab"));
 const PullSignalsTab = lazy(() => import("./stage-gate/PullSignalsTab"));
 const AnalyticsTab = lazy(() => import("./stage-gate/AnalyticsTab"));
-
-// Mock project list (to be replaced with real data)
-const MOCK_PROJECTS = [
-  { id: 1, name: "CL-2024-001 清洗机项目" },
-  { id: 2, name: "CL-2024-002 超声波清洗线" },
-  { id: 3, name: "CL-2024-003 汽车零部件清洗机" },
-  { id: 4, name: "CL-2024-004 半导体清洗设备" },
-  { id: 5, name: "CL-2024-005 通用清洗平台" },
-];
 
 function TabLoading() {
   return (
@@ -37,14 +33,26 @@ function TabLoading() {
 
 export default function StageGateDashboard() {
   const { t } = useLanguage();
-  const [selectedProject, setSelectedProject] = useState<string>("1");
+  const [selectedProject, setSelectedProject] = useState<string>("");
   const [activeTab, setActiveTab] = useState("overview");
-  const projectId = parseInt(selectedProject);
+
+  // ─── Project list query ───
+  const projectsQuery = trpc.project.list.useQuery(undefined, QUERY_OPTS);
+  const projectList = (projectsQuery.data ?? []) as any[];
+
+  // Auto-select first project when list loads
+  useEffect(() => {
+    if (projectList.length > 0 && !selectedProject) {
+      setSelectedProject(String(projectList[0].id));
+    }
+  }, [projectList, selectedProject]);
+
+  const projectId = parseInt(selectedProject) || 0;
 
   // Stats query
   const { data: statsData, isLoading: statsLoading } = trpc.stageGate.getStats.useQuery(
     { projectId },
-    { enabled: projectId > 0 }
+    { enabled: projectId > 0, ...QUERY_OPTS }
   );
 
   // Compute stat card values from raw stats
@@ -68,6 +76,18 @@ export default function StageGateDashboard() {
     ? (statsData.signals as any[]).reduce((sum: number, s: any) => sum + s.count, 0)
     : 0;
 
+  if (projectsQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader icon={CheckSquare} title={t("projects.stageGate.title")} description="..." />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+        </div>
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    );
+  }
+
   return (
       <div className="space-y-6">
         <PageHeader
@@ -80,9 +100,9 @@ export default function StageGateDashboard() {
                 <SelectValue placeholder={t("projects.stageGate.selectProject")} />
               </SelectTrigger>
               <SelectContent>
-                {MOCK_PROJECTS.map((p) => (
+                {projectList.map((p: any) => (
                   <SelectItem key={p.id} value={String(p.id)}>
-                    {p.name}
+                    {p.projectCode ? `${p.projectCode} ${p.name}` : p.name}
                   </SelectItem>
                 ))}
               </SelectContent>

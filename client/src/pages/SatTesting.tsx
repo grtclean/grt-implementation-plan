@@ -1,10 +1,12 @@
 /**
  * SAT测试页面 (TX-014)
  * 现场验收测试、测试报告、缺陷跟踪
+ *
+ * Data source: trpc.rndPipeline.satTest.* (DB-backed)
  */
 import { useState } from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -14,8 +16,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfile } from "@/contexts/UserProfileContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { TestTube, Plus, Building2, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
+
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 const statusColorMap = createStatusColorMap({
   "测试中": "blue",
@@ -24,56 +30,54 @@ const statusColorMap = createStatusColorMap({
   "有缺陷": "red",
 });
 
-// TODO: 接入 tRPC 后端接口替换
-const MOCK_TESTS = [
-  { id: "SAT-001", project: "缸体清洗线", customer: "上海大众", bu: "BU3", status: "测试中", passRate: 85, totalItems: 48, passed: 41, failed: 3, pending: 4 },
-  { id: "SAT-002", project: "半导体清洗", customer: "英飞凌", bu: "BU4", status: "已通过", passRate: 100, totalItems: 32, passed: 32, failed: 0, pending: 0 },
-  { id: "SAT-003", project: "商用车清洗", customer: "潍柴动力", bu: "BU2", status: "待测试", passRate: 0, totalItems: 36, passed: 0, failed: 0, pending: 36 },
-];
-
 export default function SatTesting() {
   const { t } = useLanguage();
   const { currentBU } = useUserProfile();
-  const [tests, setTests] = useState(MOCK_TESTS);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [formData, setFormData] = useState({ project: "", customer: "", totalItems: "" });
 
-  const filtered = tests.filter(item => !currentBU || item.bu === currentBU);
+  // ─── tRPC queries ───
+  const satQuery = trpc.rndPipeline.satTest.list.useQuery(
+    { bu: currentBU || undefined },
+    QUERY_OPTS,
+  );
+
+  const createMut = trpc.rndPipeline.satTest.create.useMutation({
+    onSuccess: () => {
+      satQuery.refetch();
+      setShowCreateDialog(false);
+      setFormData({ project: "", customer: "", totalItems: "" });
+      toast.success(t("afterSales.sat.createSuccess"));
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const tests = (satQuery.data?.items ?? []) as any[];
+  const isLoading = satQuery.isLoading;
 
   const handleCreate = () => {
-    if (!formData.project.trim()) {
-      toast.error(t("afterSales.sat.fillProject"));
-      return;
-    }
-    if (!formData.customer.trim()) {
-      toast.error(t("afterSales.sat.fillCustomer"));
-      return;
-    }
-    if (!formData.totalItems || Number(formData.totalItems) <= 0) {
-      toast.error(t("afterSales.sat.fillTestItems"));
-      return;
-    }
-
-    const totalItems = Number(formData.totalItems);
-    const newId = `SAT-${String(tests.length + 1).padStart(3, "0")}`;
-    const newTest = {
-      id: newId,
+    if (!formData.project.trim()) { toast.error(t("afterSales.sat.fillProject")); return; }
+    if (!formData.customer.trim()) { toast.error(t("afterSales.sat.fillCustomer")); return; }
+    if (!formData.totalItems || Number(formData.totalItems) <= 0) { toast.error(t("afterSales.sat.fillTestItems")); return; }
+    createMut.mutate({
       project: formData.project.trim(),
       customer: formData.customer.trim(),
-      bu: currentBU || "BU3",
-      status: "待测试",
-      passRate: 0,
-      totalItems,
-      passed: 0,
-      failed: 0,
-      pending: totalItems,
-    };
-
-    setTests(prev => [newTest, ...prev]);
-    setShowCreateDialog(false);
-    setFormData({ project: "", customer: "", totalItems: "" });
-    toast.success(t("afterSales.sat.createSuccess"));
+      totalItems: Number(formData.totalItems),
+      bu: currentBU || undefined,
+    });
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader icon={TestTube} title={t("afterSales.sat.title")} description="..." />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+        </div>
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -91,20 +95,20 @@ export default function SatTesting() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard icon={TestTube} label={t("afterSales.sat.totalPlans")} value={tests.length} />
-        <StatCard icon={Clock} label={t("afterSales.sat.testing")} value={tests.filter(x => x.status === "测试中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={CheckCircle2} label={t("afterSales.sat.passed")} value={tests.filter(x => x.status === "已通过").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={AlertTriangle} label={t("afterSales.sat.hasDefects")} value={tests.filter(x => x.status === "有缺陷").length} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Clock} label={t("afterSales.sat.testing")} value={tests.filter((x: any) => x.status === "测试中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label={t("afterSales.sat.passed")} value={tests.filter((x: any) => x.status === "已通过").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label={t("afterSales.sat.hasDefects")} value={tests.filter((x: any) => x.status === "有缺陷").length} iconColor="text-red-500" iconBg="bg-red-500/10" />
       </div>
 
       <Card>
         <CardHeader><CardTitle>{t("afterSales.sat.testList")}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {filtered.map(item => (
+            {tests.map((item: any) => (
               <div key={item.id} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm text-muted-foreground">{item.id}</span>
+                    <span className="font-mono text-sm text-muted-foreground">{item.satNumber}</span>
                     <Badge variant="outline">{item.bu}</Badge>
                   </div>
                   <p className="font-medium mt-1">{item.project} - {item.customer}</p>
@@ -120,7 +124,7 @@ export default function SatTesting() {
                 </div>
               </div>
             ))}
-            {filtered.length === 0 && (
+            {tests.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <TestTube className="w-12 h-12 mb-3 opacity-50" />
                 <p className="font-medium">{t("afterSales.sat.noPlans")}</p>
@@ -174,7 +178,7 @@ export default function SatTesting() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>{t("afterSales.sat.cancel")}</Button>
-            <Button onClick={handleCreate}>{t("afterSales.sat.create")}</Button>
+            <Button onClick={handleCreate} disabled={createMut.isPending}>{t("afterSales.sat.create")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

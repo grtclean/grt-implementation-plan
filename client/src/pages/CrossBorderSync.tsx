@@ -11,6 +11,8 @@
  *   4. Green "Compliance Verification" panel: shows EXACT stripped JSON
  */
 import { useState } from "react";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -121,36 +123,32 @@ interface SyncResult {
 
 // ── Component ──────────────────────────────────────────────
 export default function CrossBorderSync() {
-  const [syncing, setSyncing] = useState(false);
   const [result, setResult] = useState<SyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Dispatch handler ─────────────────────────────────────
-  const handleSync = async () => {
-    setSyncing(true);
+  // ── tRPC mutation ─────────────────────────────────────
+  const dispatchMut = trpc.syncDispatch.dispatch.useMutation({
+    onSuccess: (data) => {
+      if (data.success) {
+        setResult(data as any);
+        setError(null);
+        toast.success("Cross-border sync dispatched successfully");
+      } else {
+        setError((data as any).error || "Dispatch failed");
+      }
+    },
+    onError: (err) => {
+      setError(err.message || "Network error");
+      toast.error("Dispatch failed");
+    },
+  });
+
+  const syncing = dispatchMut.isPending;
+
+  const handleSync = () => {
     setError(null);
     setResult(null);
-
-    try {
-      const res = await fetch("/api/trpc/syncDispatch.dispatch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ json: { orders: MOCK_US_ORDERS } }),
-      });
-
-      const data = await res.json();
-      const payload = data?.result?.data?.json;
-
-      if (payload?.success) {
-        setResult(payload);
-      } else {
-        setError(payload?.error || "Dispatch failed");
-      }
-    } catch (err: any) {
-      setError(err?.message || "Network error");
-    }
-    setSyncing(false);
+    dispatchMut.mutate({ orders: MOCK_US_ORDERS });
   };
 
   return (

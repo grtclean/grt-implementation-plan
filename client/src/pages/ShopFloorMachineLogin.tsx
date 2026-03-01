@@ -12,11 +12,12 @@
  *   4. GRANTED → massive green screen "START PRODUCTION"
  *   5. BLOCKED → massive red screen with reason + "Review SOP" button
  *
- * Mock mode: Works entirely with mock data when backend is unavailable.
+ * Data source: trpc.sopInterlock.* (DB-backed)
  */
 
 import { useState, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -44,57 +45,7 @@ interface InterlockResult {
   };
 }
 
-// ─── Mock Data (works without backend) ──────────────────────────────
-
-const MOCK_MACHINES = [
-  { id: 1, name: "CNC-001 5-Axis Mill", code: "CNC-001", location: "Workshop A, Bay 3" },
-  { id: 2, name: "WASH-003 Ultrasonic Cleaner", code: "WASH-003", location: "Cleanroom B" },
-  { id: 3, name: "WELD-007 Robotic Welder", code: "WELD-007", location: "Workshop C, Bay 1" },
-];
-
-const MOCK_OPERATORS: Record<number, { name: string; badge: string }> = {
-  1001: { name: "Zhang Wei", badge: "GRT-1001" },
-  1002: { name: "Li Ming", badge: "GRT-1002" },
-  1003: { name: "Wang Jun", badge: "GRT-1003" },
-};
-
-// Mock interlock results — demonstrates both GRANTED and BLOCKED
-const MOCK_RESULTS: Record<string, InterlockResult> = {
-  // Zhang Wei on CNC-001: fully qualified
-  "1001-1": {
-    status: "GRANTED",
-    reason: null,
-    details: { certCheckPassed: true, sopCheckPassed: true, missingCerts: [], outdatedSops: [] },
-  },
-  // Li Ming on CNC-001: expired cert
-  "1002-1": {
-    status: "BLOCKED",
-    reason: "Missing certifications: CNC_MILL_L2. Certificate expired on 2025-06-15.",
-    details: {
-      certCheckPassed: false, sopCheckPassed: true,
-      missingCerts: ["CNC_MILL_L2"], outdatedSops: [],
-    },
-  },
-  // Wang Jun on WASH-003: SOP not signed
-  "1003-2": {
-    status: "BLOCKED",
-    reason: "SOP #101 requires v2.1, you signed v1.4. Please review and acknowledge the latest SOP before operating.",
-    details: {
-      certCheckPassed: true, sopCheckPassed: false,
-      missingCerts: [],
-      outdatedSops: [{ sopId: 101, required: "2.1", signed: "1.4" }],
-    },
-  },
-};
-
-function getMockResult(userId: number, machineId: number): InterlockResult {
-  const key = `${userId}-${machineId}`;
-  return MOCK_RESULTS[key] ?? {
-    status: "BLOCKED",
-    reason: "Machine has no skill requirements configured. Contact supervisor.",
-    details: { certCheckPassed: false, sopCheckPassed: false, missingCerts: [], outdatedSops: [] },
-  };
-}
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 // ─── Component ──────────────────────────────────────────────────────
 
@@ -103,49 +54,55 @@ type Screen = "scan" | "granted" | "blocked";
 export default function ShopFloorMachineLogin() {
   const [screen, setScreen] = useState<Screen>("scan");
   const [badgeInput, setBadgeInput] = useState("");
-  const [selectedMachine, setSelectedMachine] = useState(MOCK_MACHINES[0]);
+  const [selectedMachineId, setSelectedMachineId] = useState<number | null>(null);
   const [result, setResult] = useState<InterlockResult | null>(null);
   const [operatorName, setOperatorName] = useState("");
   const [checking, setChecking] = useState(false);
   const [sopSigningId, setSopSigningId] = useState<number | null>(null);
 
-  // Try live tRPC, fall back to mock
-  const liveVerify = trpc.sopInterlock.verifyAccess.useQuery(
-    { userId: 0, machineId: 0 },
-    { enabled: false }, // manual trigger only
-  );
+  const utils = trpc.useUtils();
+
+  // ─── tRPC ───
+  const machinesQuery = trpc.sopInterlock.listMachines.useQuery(undefined, QUERY_OPTS);
+  const machines = (machinesQuery.data ?? []) as any[];
+  const selectedMachine = machines.find((m: any) => m.id === selectedMachineId) ?? machines[0];
+
+  const signSopMut = trpc.sopInterlock.acknowledgeSop.useMutation({
+    onSuccess: (res: any) => {
+      toast.success(`SOP v${res.version} acknowledged`);
+      setSopSigningId(null);
+      handleReset();
+    },
+    onError: (err) => {
+      toast.error(err.message);
+      setSopSigningId(null);
+    },
+  });
 
   const handleScan = useCallback(async () => {
     const userId = parseInt(badgeInput.replace(/\D/g, ""), 10);
     if (!userId || isNaN(userId)) return;
-
-    setChecking(true);
-    setOperatorName(MOCK_OPERATORS[userId]?.name ?? `Operator #${userId}`);
-
-    // Simulate network delay for realistic feel on demo
-    await new Promise((r) => setTimeout(r, 800));
-
-    // Try live backend first
-    try {
-      const res = await (liveVerify as any).refetch?.({
-        queryKey: ["sopInterlock.verifyAccess", { userId, machineId: selectedMachine.id }],
-      });
-      if (res?.data) {
-        setResult(res.data);
-        setScreen(res.data.status === "GRANTED" ? "granted" : "blocked");
-        setChecking(false);
-        return;
-      }
-    } catch {
-      // Backend unavailable — use mock
+    if (!selectedMachine) {
+      toast.error("No machine selected");
+      return;
     }
 
-    // Fallback: mock data
-    const mockResult = getMockResult(userId, selectedMachine.id);
-    setResult(mockResult);
-    setScreen(mockResult.status === "GRANTED" ? "granted" : "blocked");
-    setChecking(false);
-  }, [badgeInput, selectedMachine, liveVerify]);
+    setChecking(true);
+    setOperatorName(`Operator #${userId}`);
+
+    try {
+      const res = await utils.sopInterlock.verifyAccess.fetch({
+        userId,
+        machineId: selectedMachine.id,
+      }) as InterlockResult;
+      setResult(res);
+      setScreen(res.status === "GRANTED" ? "granted" : "blocked");
+    } catch (err: any) {
+      toast.error(err.message || "Verification failed");
+    } finally {
+      setChecking(false);
+    }
+  }, [badgeInput, selectedMachine, utils]);
 
   const handleReset = useCallback(() => {
     setScreen("scan");
@@ -157,13 +114,19 @@ export default function ShopFloorMachineLogin() {
 
   const handleSignSop = useCallback((sopId: number) => {
     setSopSigningId(sopId);
-    // Simulate SOP acknowledgment — in production this calls sopInterlock.acknowledgeSop
-    setTimeout(() => {
-      setSopSigningId(null);
-      // Re-verify after signing
-      handleReset();
-    }, 2000);
-  }, [handleReset]);
+    signSopMut.mutate({ sopTemplateId: sopId });
+  }, [signSopMut]);
+
+  // ─── LOADING SCREEN ─────────────────────────────────────────────
+
+  if (machinesQuery.isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center">
+        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <p className="mt-4 text-gray-400 text-lg">Loading machines...</p>
+      </div>
+    );
+  }
 
   // ─── SCAN SCREEN ──────────────────────────────────────────────
 
@@ -188,22 +151,26 @@ export default function ShopFloorMachineLogin() {
         {/* Machine Selector */}
         <div className="bg-gray-900/50 px-6 py-4 border-b border-gray-800">
           <label className="text-sm text-gray-400 mb-2 block">Active Machine</label>
-          <div className="flex gap-3">
-            {MOCK_MACHINES.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setSelectedMachine(m)}
-                className={`flex-1 px-4 py-3 rounded-lg border-2 text-left transition-all ${
-                  selectedMachine.id === m.id
-                    ? "border-blue-500 bg-blue-500/10 text-blue-300"
-                    : "border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600"
-                }`}
-              >
-                <div className="font-bold text-lg">{m.code}</div>
-                <div className="text-sm opacity-75">{m.name}</div>
-                <div className="text-xs opacity-50 mt-1">{m.location}</div>
-              </button>
-            ))}
+          <div className="flex gap-3 overflow-x-auto">
+            {machines.length === 0 ? (
+              <div className="text-gray-500 py-3">No machines configured. Contact admin.</div>
+            ) : (
+              machines.map((m: any) => (
+                <button
+                  key={m.id}
+                  onClick={() => setSelectedMachineId(m.id)}
+                  className={`flex-1 min-w-[200px] px-4 py-3 rounded-lg border-2 text-left transition-all ${
+                    selectedMachine?.id === m.id
+                      ? "border-blue-500 bg-blue-500/10 text-blue-300"
+                      : "border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600"
+                  }`}
+                >
+                  <div className="font-bold text-lg">{m.code}</div>
+                  <div className="text-sm opacity-75">{m.name}</div>
+                  <div className="text-xs opacity-50 mt-1">{m.location ?? "—"}</div>
+                </button>
+              ))
+            )}
           </div>
         </div>
 
@@ -226,13 +193,13 @@ export default function ShopFloorMachineLogin() {
                 value={badgeInput}
                 onChange={(e) => setBadgeInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleScan()}
-                placeholder="Employee ID (e.g., 1001, 1002, 1003)"
+                placeholder="Employee ID"
                 className="w-full px-6 py-5 text-2xl text-center bg-gray-800 border-2 border-gray-600 rounded-xl focus:border-blue-500 focus:outline-none text-white placeholder-gray-500"
                 autoFocus
               />
               <button
                 onClick={handleScan}
-                disabled={!badgeInput.trim() || checking}
+                disabled={!badgeInput.trim() || checking || !selectedMachine}
                 className="w-full px-6 py-5 text-xl font-bold bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-xl transition-colors flex items-center justify-center gap-3"
               >
                 {checking ? (
@@ -246,11 +213,6 @@ export default function ShopFloorMachineLogin() {
                   </>
                 )}
               </button>
-            </div>
-
-            {/* Demo hint */}
-            <div className="text-sm text-gray-600 space-y-1">
-              <p>Demo IDs: <span className="text-gray-400">1001</span> (granted), <span className="text-gray-400">1002</span> (cert expired), <span className="text-gray-400">1003</span> (SOP outdated)</p>
             </div>
           </div>
         </div>
@@ -277,7 +239,7 @@ export default function ShopFloorMachineLogin() {
               ACCESS GRANTED
             </h1>
             <div className="mt-4 text-2xl text-green-200">
-              {operatorName} verified for {selectedMachine.code}
+              {operatorName} verified for {selectedMachine?.code ?? "—"}
             </div>
           </div>
 
@@ -331,7 +293,7 @@ export default function ShopFloorMachineLogin() {
             ACCESS BLOCKED
           </h1>
           <div className="mt-4 text-2xl text-red-200">
-            {operatorName} cannot operate {selectedMachine.code}
+            {operatorName} cannot operate {selectedMachine?.code ?? "—"}
           </div>
         </div>
 
@@ -380,7 +342,7 @@ export default function ShopFloorMachineLogin() {
                     {/* Review & Sign SOP button */}
                     <button
                       onClick={() => handleSignSop(sop.sopId)}
-                      disabled={sopSigningId === sop.sopId}
+                      disabled={sopSigningId === sop.sopId || signSopMut.isPending}
                       className="w-full px-6 py-4 bg-yellow-600 hover:bg-yellow-500 disabled:bg-yellow-800 rounded-xl text-xl font-bold flex items-center justify-center gap-3 transition-colors"
                     >
                       {sopSigningId === sop.sopId ? (
@@ -416,7 +378,7 @@ export default function ShopFloorMachineLogin() {
         {/* Timestamp */}
         <div className="text-red-400/50 text-sm flex items-center justify-center gap-2">
           <Clock className="w-4 h-4" />
-          Blocked at {new Date().toLocaleString()} | Machine: {selectedMachine.code}
+          Blocked at {new Date().toLocaleString()} | Machine: {selectedMachine?.code ?? "—"}
         </div>
       </div>
     </div>

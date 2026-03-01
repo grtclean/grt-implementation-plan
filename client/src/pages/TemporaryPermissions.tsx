@@ -1,8 +1,12 @@
 /**
  * 临时权限管理页面
  * 管理员可为员工授予时限性临时权限
+ *
+ * Data source: trpc.accessControl.tempPermission.* (DB-backed)
  */
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,32 +14,67 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Shield, Plus, Clock, User, CheckCircle2, XCircle, AlertTriangle, Calendar, Search } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Shield, Plus, Clock, User, CheckCircle2, AlertTriangle, Calendar, Search } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/grt";
 
-interface TempPermission {
-  id: string;
-  user: string;
-  role: string;
-  module: string;
-  reason: string;
-  grantedBy: string;
-  startDate: string;
-  endDate: string;
-  status: "active" | "expired" | "revoked";
-}
-
-const MOCK_TEMP_PERMS: TempPermission[] = [
-  { id: "TP-001", user: "赵工", role: "bu_sales", module: "客户管理", reason: "临时支援BU3销售", grantedBy: "王总", startDate: "2026-02-01", endDate: "2026-02-28", status: "active" },
-  { id: "TP-002", user: "陈工", role: "finance_specialist", module: "费用报销审批", reason: "财务休假期间代理审批", grantedBy: "钱经理", startDate: "2026-02-10", endDate: "2026-02-14", status: "active" },
-  { id: "TP-003", user: "李工", role: "hr_specialist", module: "考勤管理", reason: "协助HR月度考勤统计", grantedBy: "孙经理", startDate: "2026-01-25", endDate: "2026-01-31", status: "expired" },
-  { id: "TP-004", user: "张工", role: "bu_pm", module: "项目管理", reason: "紧急项目临时项目经理", grantedBy: "李总", startDate: "2026-02-05", endDate: "2026-03-05", status: "active" },
-];
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 export default function TemporaryPermissions() {
   const [search, setSearch] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const filtered = MOCK_TEMP_PERMS.filter(p => !search || p.user.includes(search) || p.module.includes(search));
+  const [formData, setFormData] = useState({ user: "", role: "", module: "", reason: "", startDate: "", endDate: "" });
+
+  // ─── tRPC ───
+  const listQuery = trpc.accessControl.tempPermission.list.useQuery(undefined, QUERY_OPTS);
+  const items = (listQuery.data?.items ?? []) as any[];
+  const stats = listQuery.data?.stats ?? { active: 0, expired: 0, expiringSoon: 0, total: 0 };
+
+  const createMut = trpc.accessControl.tempPermission.create.useMutation({
+    onSuccess: () => {
+      listQuery.refetch();
+      setShowCreateDialog(false);
+      setFormData({ user: "", role: "", module: "", reason: "", startDate: "", endDate: "" });
+      toast.success("临时权限已授予");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const revokeMut = trpc.accessControl.tempPermission.revoke.useMutation({
+    onSuccess: () => {
+      listQuery.refetch();
+      toast.success("临时权限已撤销");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const filtered = items.filter((p: any) => !search || (p.user ?? "").includes(search) || (p.module ?? "").includes(search));
+
+  const handleCreate = () => {
+    if (!formData.user.trim()) { toast.error("请选择用户"); return; }
+    if (!formData.role) { toast.error("请选择角色"); return; }
+    if (!formData.startDate || !formData.endDate) { toast.error("请填写日期范围"); return; }
+    createMut.mutate({
+      user: formData.user.trim(),
+      role: formData.role,
+      module: formData.module.trim(),
+      reason: formData.reason.trim(),
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+    });
+  };
+
+  if (listQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader icon={Shield} title="临时权限管理" description="..." />
+        <div className="grid grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+        </div>
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -51,25 +90,45 @@ export default function TemporaryPermissions() {
             <DialogContent>
               <DialogHeader><DialogTitle>授予临时权限</DialogTitle></DialogHeader>
               <div className="space-y-4 py-4">
-                <div className="space-y-2"><Label>目标用户</Label><Select><SelectTrigger><SelectValue placeholder="选择用户" /></SelectTrigger><SelectContent><SelectItem value="zhao">赵工</SelectItem><SelectItem value="chen">陈工</SelectItem><SelectItem value="li">李工</SelectItem></SelectContent></Select></div>
-                <div className="space-y-2"><Label>授予角色</Label><Select><SelectTrigger><SelectValue placeholder="选择角色" /></SelectTrigger><SelectContent><SelectItem value="bu_sales">销售工程师</SelectItem><SelectItem value="bu_pm">项目经理</SelectItem><SelectItem value="finance_specialist">财务专员</SelectItem><SelectItem value="hr_specialist">HR专员</SelectItem></SelectContent></Select></div>
-                <div className="space-y-2"><Label>授权模块</Label><Input placeholder="如: 客户管理、项目管理" /></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>开始日期</Label><Input type="date" /></div>
-                  <div className="space-y-2"><Label>结束日期</Label><Input type="date" /></div>
+                <div className="space-y-2">
+                  <Label>目标用户</Label>
+                  <Input placeholder="用户姓名" value={formData.user} onChange={e => setFormData(prev => ({ ...prev, user: e.target.value }))} />
                 </div>
-                <div className="space-y-2"><Label>授权原因</Label><Input placeholder="说明授权原因..." /></div>
+                <div className="space-y-2">
+                  <Label>授予角色</Label>
+                  <Select value={formData.role} onValueChange={v => setFormData(prev => ({ ...prev, role: v }))}>
+                    <SelectTrigger><SelectValue placeholder="选择角色" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="bu_sales">销售工程师</SelectItem>
+                      <SelectItem value="bu_pm">项目经理</SelectItem>
+                      <SelectItem value="finance_specialist">财务专员</SelectItem>
+                      <SelectItem value="hr_specialist">HR专员</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>授权模块</Label>
+                  <Input placeholder="如: 客户管理、项目管理" value={formData.module} onChange={e => setFormData(prev => ({ ...prev, module: e.target.value }))} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>开始日期</Label><Input type="date" value={formData.startDate} onChange={e => setFormData(prev => ({ ...prev, startDate: e.target.value }))} /></div>
+                  <div className="space-y-2"><Label>结束日期</Label><Input type="date" value={formData.endDate} onChange={e => setFormData(prev => ({ ...prev, endDate: e.target.value }))} /></div>
+                </div>
+                <div className="space-y-2">
+                  <Label>授权原因</Label>
+                  <Input placeholder="说明授权原因..." value={formData.reason} onChange={e => setFormData(prev => ({ ...prev, reason: e.target.value }))} />
+                </div>
               </div>
-              <DialogFooter><Button onClick={() => setShowCreateDialog(false)}>确认授予</Button></DialogFooter>
+              <DialogFooter><Button onClick={handleCreate} disabled={createMut.isPending}>{createMut.isPending ? "授予中..." : "确认授予"}</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         }
       />
 
       <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={CheckCircle2} label="生效中" value={3} iconColor="text-blue-600" iconBg="bg-blue-500/10" />
-        <StatCard icon={Clock} label="已过期" value={8} iconColor="text-gray-400" iconBg="bg-gray-500/10" />
-        <StatCard icon={AlertTriangle} label="即将过期(3天内)" value={1} iconColor="text-amber-600" iconBg="bg-amber-500/10" />
+        <StatCard icon={CheckCircle2} label="生效中" value={stats.active} iconColor="text-blue-600" iconBg="bg-blue-500/10" />
+        <StatCard icon={Clock} label="已过期" value={stats.expired} iconColor="text-gray-400" iconBg="bg-gray-500/10" />
+        <StatCard icon={AlertTriangle} label="即将过期(3天内)" value={stats.expiringSoon} iconColor="text-amber-600" iconBg="bg-amber-500/10" />
       </div>
 
       <Card>
@@ -81,7 +140,7 @@ export default function TemporaryPermissions() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {filtered.map(p => (
+            {filtered.map((p: any) => (
               <div key={p.id} className="flex items-center gap-4 p-4 rounded-lg border">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center"><User className="h-5 w-5 text-primary" /></div>
                 <div className="flex-1">
@@ -98,11 +157,17 @@ export default function TemporaryPermissions() {
                     {p.status === "active" ? "生效中" : p.status === "expired" ? "已过期" : "已撤销"}
                   </Badge>
                   {p.status === "active" && (
-                    <div><Button variant="ghost" size="sm" className="h-6 text-xs text-destructive">撤销</Button></div>
+                    <div><Button variant="ghost" size="sm" className="h-6 text-xs text-destructive" onClick={() => revokeMut.mutate({ id: p.id })} disabled={revokeMut.isPending}>撤销</Button></div>
                   )}
                 </div>
               </div>
             ))}
+            {filtered.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Shield className="w-12 h-12 mb-3 opacity-50" />
+                <p className="font-medium">暂无临时权限记录</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

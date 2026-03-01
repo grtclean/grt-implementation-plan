@@ -8,10 +8,14 @@
  *   Right: AI Career Advice panel
  *   Bottom: Dimension detail tabs
  *
+ * Data source: trpc.employeeProfile.* (DB-backed)
  * Route: /my-workspace/profile/:userId
  */
 
-import React, { useState, useMemo } from "react";
+import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -46,183 +50,7 @@ interface Profile360 {
   generatedAt: string;
 }
 
-// ─── Fusion Engine (matches server logic) ────────────────────────────
-
 const CERT_WEIGHTS: Record<string, number> = { basic: 15, intermediate: 25, advanced: 35, expert: 50 };
-
-function classifyTier(score: number): ProfileTier {
-  if (score >= 90) return "S";
-  if (score >= 75) return "A";
-  if (score >= 60) return "B";
-  return "C";
-}
-
-function clamp(v: number, min: number, max: number): number { return Math.max(min, Math.min(max, v)); }
-function round2(n: number): number { return Math.round(n * 100) / 100; }
-
-function generateMockProfile(userId: number): Profile360 | null {
-  const employee = MOCK_EMPLOYEES.find(e => e.userId === userId);
-  if (!employee) return null;
-
-  // Execution
-  const execAvg = employee.kpiScores.length > 0
-    ? employee.kpiScores.reduce((s, k) => s + k.score, 0) / employee.kpiScores.length
-    : 50;
-  const execution: DimensionResult = {
-    name: "Execution", score: clamp(round2(execAvg), 0, 100),
-    breakdown: employee.kpiScores.length > 0
-      ? `Average of ${employee.kpiScores.length} monthly KPI scores: ${round2(execAvg)}`
-      : "No KPI records — baseline 50",
-    dataPoints: employee.kpiScores.length,
-  };
-
-  // Learning
-  const validCerts = employee.certificates.filter(c => c.isValid);
-  const certScore = validCerts.length > 0
-    ? validCerts.reduce((s, c) => s + (CERT_WEIGHTS[c.level] ?? 15), 0)
-    : 20;
-  const learning: DimensionResult = {
-    name: "Learning", score: clamp(certScore, 0, 100),
-    breakdown: validCerts.length > 0
-      ? `${validCerts.length} valid certificates → ${clamp(certScore, 0, 100)}`
-      : "No valid certificates — baseline 20",
-    dataPoints: validCerts.length,
-  };
-
-  // Collaboration
-  const meetingAvg = employee.meetingScores.length > 0
-    ? employee.meetingScores.reduce((s, m) => s + m.meetingScore, 0) / employee.meetingScores.length
-    : 50;
-  const totalAtt = employee.meetingScores.reduce((s, m) => s + m.attended, 0);
-  const totalMeet = employee.meetingScores.reduce((s, m) => s + m.total, 0);
-  const attRate = totalMeet > 0 ? totalAtt / totalMeet : 0;
-  const attBonus = round2(attRate * 10);
-  const collaboration: DimensionResult = {
-    name: "Collaboration", score: clamp(round2(meetingAvg + attBonus), 0, 100),
-    breakdown: `Meeting avg ${round2(meetingAvg)} + attendance bonus ${attBonus} (${round2(attRate * 100)}%)`,
-    dataPoints: employee.meetingScores.length,
-  };
-
-  // Innovation
-  const completedTasks = employee.aiTasks.filter(t => t.status === "completed");
-  let innovScore = 30;
-  let innovBreakdown = "No completed AI tasks — baseline 30";
-  if (completedTasks.length > 0) {
-    const avgQ = completedTasks.reduce((s, t) => s + t.quality, 0) / completedTasks.length;
-    const volBonus = Math.min(completedTasks.length * 2, 20);
-    let synergy = 0;
-    if (meetingAvg >= 80) synergy = 5;
-    innovScore = clamp(round2(avgQ + volBonus + synergy), 0, 100);
-    innovBreakdown = `Avg quality ${round2(avgQ)} + volume ${volBonus}${synergy > 0 ? ` + synergy ${synergy}` : ""} = ${innovScore}`;
-  }
-  const innovation: DimensionResult = {
-    name: "Innovation", score: innovScore, breakdown: innovBreakdown, dataPoints: completedTasks.length,
-  };
-
-  const dimensions = [execution, learning, collaboration, innovation];
-  const overall = clamp(round2(
-    execution.score * 0.30 + learning.score * 0.20 + collaboration.score * 0.25 + innovation.score * 0.25
-  ), 0, 100);
-
-  const sorted = [...dimensions].sort((a, b) => b.score - a.score);
-  const strongest = sorted[0];
-  const weakest = sorted[sorted.length - 1];
-
-  const careerAdvice: CareerAdvice[] = [
-    { type: "STRENGTH", dimension: strongest.name, message: `Your ${strongest.name} (${strongest.score}) is your strongest area. Leverage this for team leadership.` },
-    { type: "DEVELOPMENT", dimension: weakest.name, message: `${weakest.name} (${weakest.score}) is your growth opportunity. Focus on improving this dimension.` },
-  ];
-  if (dimensions.some(d => d.score >= 80 && d.name !== strongest.name)) {
-    const opp = dimensions.find(d => d.score >= 80 && d.name !== strongest.name)!;
-    careerAdvice.push({ type: "OPPORTUNITY", dimension: opp.name, message: `${opp.name} (${opp.score}) shows emerging excellence!` });
-  }
-
-  return {
-    userId: employee.userId, employeeCode: employee.code, name: employee.name,
-    department: employee.department, position: employee.position, level: employee.level,
-    hireDate: employee.hireDate, dimensions, overallScore: overall, tier: classifyTier(overall),
-    careerAdvice, generatedAt: new Date().toISOString(),
-  };
-}
-
-// ─── Mock Employees ──────────────────────────────────────────────────
-
-interface MockEmployeeData {
-  userId: number; code: string; name: string; department: string; position: string; level: string; hireDate: string;
-  kpiScores: { month: string; score: number }[];
-  certificates: { name: string; level: string; isValid: boolean }[];
-  meetingScores: { month: string; meetingScore: number; attended: number; total: number }[];
-  aiTasks: { type: string; quality: number; status: string }[];
-}
-
-const MOCK_EMPLOYEES: MockEmployeeData[] = [
-  {
-    userId: 1001, code: "GRT-E001", name: "张伟 (Zhang Wei)", department: "Engineering",
-    position: "Senior Mechanical Engineer", level: "P6", hireDate: "2020-03-15",
-    kpiScores: [{ month: "2025-12", score: 92 }, { month: "2026-01", score: 88 }, { month: "2026-02", score: 95 }],
-    certificates: [
-      { name: "ISO 9001 Internal Auditor", level: "advanced", isValid: true },
-      { name: "PLC Programming (Siemens S7)", level: "expert", isValid: true },
-      { name: "Lean Six Sigma Green Belt", level: "intermediate", isValid: true },
-    ],
-    meetingScores: [
-      { month: "2025-12", meetingScore: 88, attended: 12, total: 14 },
-      { month: "2026-01", meetingScore: 92, attended: 10, total: 11 },
-      { month: "2026-02", meetingScore: 90, attended: 8, total: 9 },
-    ],
-    aiTasks: [
-      { type: "document_draft", quality: 88, status: "completed" },
-      { type: "data_analysis", quality: 92, status: "completed" },
-      { type: "report_generation", quality: 85, status: "completed" },
-      { type: "code_review", quality: 90, status: "completed" },
-      { type: "risk_assessment", quality: 87, status: "completed" },
-      { type: "meeting_summary", quality: 91, status: "completed" },
-      { type: "email_draft", quality: 86, status: "completed" },
-      { type: "data_analysis", quality: 93, status: "completed" },
-      { type: "document_draft", quality: 89, status: "completed" },
-      { type: "quality_inspection", quality: 94, status: "completed" },
-    ],
-  },
-  {
-    userId: 1002, code: "GRT-E042", name: "李明 (Li Ming)", department: "Quality",
-    position: "Junior QC Inspector", level: "P2", hireDate: "2025-11-01",
-    kpiScores: [{ month: "2026-01", score: 68 }, { month: "2026-02", score: 72 }],
-    certificates: [{ name: "IPC-A-610 Acceptability", level: "basic", isValid: true }],
-    meetingScores: [
-      { month: "2026-01", meetingScore: 55, attended: 4, total: 8 },
-      { month: "2026-02", meetingScore: 62, attended: 6, total: 9 },
-    ],
-    aiTasks: [{ type: "document_draft", quality: 65, status: "completed" }],
-  },
-  {
-    userId: 1003, code: "GRT-E018", name: "王芳 (Wang Fang)", department: "R&D",
-    position: "Product Innovation Lead", level: "P7", hireDate: "2019-07-20",
-    kpiScores: [{ month: "2025-12", score: 82 }, { month: "2026-01", score: 78 }, { month: "2026-02", score: 85 }],
-    certificates: [
-      { name: "AWS Solutions Architect", level: "expert", isValid: true },
-      { name: "Certified ScrumMaster", level: "intermediate", isValid: true },
-    ],
-    meetingScores: [
-      { month: "2025-12", meetingScore: 85, attended: 15, total: 16 },
-      { month: "2026-01", meetingScore: 88, attended: 14, total: 15 },
-      { month: "2026-02", meetingScore: 92, attended: 12, total: 12 },
-    ],
-    aiTasks: [
-      { type: "data_analysis", quality: 92, status: "completed" },
-      { type: "report_generation", quality: 88, status: "completed" },
-      { type: "risk_assessment", quality: 90, status: "completed" },
-      { type: "code_review", quality: 95, status: "completed" },
-      { type: "meeting_summary", quality: 91, status: "completed" },
-      { type: "document_draft", quality: 87, status: "completed" },
-      { type: "data_analysis", quality: 93, status: "completed" },
-      { type: "quality_inspection", quality: 89, status: "completed" },
-      { type: "email_draft", quality: 85, status: "completed" },
-      { type: "report_generation", quality: 94, status: "completed" },
-      { type: "data_analysis", quality: 91, status: "completed" },
-      { type: "risk_assessment", quality: 96, status: "completed" },
-    ],
-  },
-];
 
 // ─── SVG Radar Chart ────────────────────────────────────────────────
 
@@ -402,12 +230,30 @@ export default function EmployeeProfile() {
   const [selectedUserId, setSelectedUserId] = useState(1001);
   const [activeTab, setActiveTab] = useState<"dimensions" | "kpi" | "certs" | "meetings" | "ai">("dimensions");
 
-  const profile = useMemo(() => generateMockProfile(selectedUserId), [selectedUserId]);
-  const employeeData = useMemo(() => MOCK_EMPLOYEES.find(e => e.userId === selectedUserId), [selectedUserId]);
+  // ─── tRPC queries ───
+  const profileQuery = trpc.employeeProfile.getProfile.useQuery(
+    { userId: selectedUserId },
+    QUERY_OPTS,
+  );
+  const listQuery = trpc.employeeProfile.listProfiles.useQuery(undefined, QUERY_OPTS);
+
+  const profileData = profileQuery.data;
+  const profile = (profileData as any)?.found ? (profileData as any).profile as Profile360 : null;
+  const employees = (listQuery.data?.profiles ?? []) as Profile360[];
+
+  if (profileQuery.isLoading) {
+    return (
+      <div style={{ minHeight: "100vh", backgroundColor: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center", color: "#94a3b8" }}>
+          <div style={{ fontSize: 14 }}>Loading 360° profile...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (!profile) {
     return (
-      <div style={{ padding: 40, color: "#ef4444", textAlign: "center" }}>
+      <div style={{ padding: 40, color: "#ef4444", textAlign: "center", backgroundColor: "#0f172a", minHeight: "100vh" }}>
         Employee not found (userId: {selectedUserId})
       </div>
     );
@@ -436,9 +282,9 @@ export default function EmployeeProfile() {
             border: "1px solid #334155", borderRadius: 6, fontSize: 14,
           }}
         >
-          {MOCK_EMPLOYEES.map(e => (
+          {employees.map(e => (
             <option key={e.userId} value={e.userId}>
-              {e.code} — {e.name}
+              {e.employeeCode} — {e.name}
             </option>
           ))}
         </select>
@@ -602,125 +448,27 @@ export default function EmployeeProfile() {
               </div>
             )}
 
-            {activeTab === "kpi" && employeeData && (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid #334155" }}>
-                    {["Month", "KPI Score", "Grade"].map(h => (
-                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {employeeData.kpiScores.map((k, i) => (
-                    <tr key={i} style={{ borderBottom: "1px solid #1e293b" }}>
-                      <td style={{ padding: "10px 12px", fontSize: 13 }}>{k.month}</td>
-                      <td style={{ padding: "10px 12px", fontSize: 13, fontWeight: 600, color: k.score >= 85 ? "#22c55e" : k.score >= 60 ? "#3b82f6" : "#f59e0b" }}>
-                        {k.score}
-                      </td>
-                      <td style={{ padding: "10px 12px", fontSize: 13 }}>
-                        {k.score >= 90 ? "Excellent" : k.score >= 80 ? "Good" : k.score >= 70 ? "Average" : "Below"}
-                      </td>
-                    </tr>
+            {(activeTab === "kpi" || activeTab === "certs" || activeTab === "meetings" || activeTab === "ai") && (
+              <div style={{ textAlign: "center", padding: "32px 0" }}>
+                <div style={{ fontSize: 14, color: "#64748b", marginBottom: 8 }}>
+                  {activeTab === "kpi" && "KPI History"}
+                  {activeTab === "certs" && "Certificates"}
+                  {activeTab === "meetings" && "Meeting Records"}
+                  {activeTab === "ai" && "AI Task History"}
+                </div>
+                <div style={{ fontSize: 12, color: "#475569" }}>
+                  Detailed {activeTab} records are aggregated into the dimension scores above.
+                </div>
+                <div style={{ marginTop: 16 }}>
+                  {profile.dimensions.map(d => (
+                    <div key={d.name} style={{ display: "inline-block", margin: "0 12px", textAlign: "center" }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: d.score >= 85 ? "#22c55e" : d.score >= 60 ? "#3b82f6" : "#f59e0b" }}>{d.score}</div>
+                      <div style={{ fontSize: 11, color: "#64748b" }}>{d.name}</div>
+                      <div style={{ fontSize: 10, color: "#475569" }}>{d.dataPoints} records</div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            )}
-
-            {activeTab === "certs" && employeeData && (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid #334155" }}>
-                    {["Certificate", "Level", "Status", "Points"].map(h => (
-                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {employeeData.certificates.map((c, i) => (
-                    <tr key={i} style={{ borderBottom: "1px solid #1e293b" }}>
-                      <td style={{ padding: "10px 12px", fontSize: 13 }}>{c.name}</td>
-                      <td style={{ padding: "10px 12px" }}>
-                        <span style={{
-                          padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 600,
-                          backgroundColor: c.level === "expert" ? "#78350f" : c.level === "advanced" ? "#14532d" : "#1e3a5f",
-                          color: c.level === "expert" ? "#fbbf24" : c.level === "advanced" ? "#4ade80" : "#60a5fa",
-                        }}>
-                          {c.level}
-                        </span>
-                      </td>
-                      <td style={{ padding: "10px 12px", fontSize: 13, color: c.isValid ? "#22c55e" : "#ef4444" }}>
-                        {c.isValid ? "Valid" : "Expired"}
-                      </td>
-                      <td style={{ padding: "10px 12px", fontSize: 13, fontWeight: 600 }}>
-                        +{CERT_WEIGHTS[c.level] ?? 15}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {activeTab === "meetings" && employeeData && (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid #334155" }}>
-                    {["Month", "Meeting Score", "Attended", "Attendance %"].map(h => (
-                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {employeeData.meetingScores.map((m, i) => {
-                    const pct = m.total > 0 ? round2((m.attended / m.total) * 100) : 0;
-                    return (
-                      <tr key={i} style={{ borderBottom: "1px solid #1e293b" }}>
-                        <td style={{ padding: "10px 12px", fontSize: 13 }}>{m.month}</td>
-                        <td style={{ padding: "10px 12px", fontSize: 13, fontWeight: 600, color: m.meetingScore >= 80 ? "#22c55e" : "#3b82f6" }}>
-                          {m.meetingScore}
-                        </td>
-                        <td style={{ padding: "10px 12px", fontSize: 13 }}>{m.attended} / {m.total}</td>
-                        <td style={{ padding: "10px 12px", fontSize: 13, color: pct >= 80 ? "#22c55e" : "#f59e0b" }}>
-                          {pct}%
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-
-            {activeTab === "ai" && employeeData && (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid #334155" }}>
-                    {["Task Type", "Quality Score", "Status"].map(h => (
-                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {employeeData.aiTasks.map((t, i) => (
-                    <tr key={i} style={{ borderBottom: "1px solid #1e293b" }}>
-                      <td style={{ padding: "10px 12px", fontSize: 13, textTransform: "capitalize" }}>
-                        {t.type.replace(/_/g, " ")}
-                      </td>
-                      <td style={{ padding: "10px 12px", fontSize: 13, fontWeight: 600, color: t.quality >= 85 ? "#22c55e" : t.quality >= 70 ? "#3b82f6" : "#f59e0b" }}>
-                        {t.quality}
-                      </td>
-                      <td style={{ padding: "10px 12px" }}>
-                        <span style={{
-                          padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 600,
-                          backgroundColor: t.status === "completed" ? "#14532d" : t.status === "failed" ? "#7f1d1d" : "#78350f",
-                          color: t.status === "completed" ? "#4ade80" : t.status === "failed" ? "#fca5a5" : "#fbbf24",
-                        }}>
-                          {t.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
             )}
           </div>
         </div>

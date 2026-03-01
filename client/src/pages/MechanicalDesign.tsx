@@ -1,9 +1,12 @@
 /**
  * 机械设计页面 (TX-003)
  * 机械结构设计、图纸管理、设计变更
+ *
+ * Data source: trpc.rndPipeline.mechanical.* (DB-backed)
  */
 import { useState } from "react";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge";
@@ -13,9 +16,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Cog, Plus, Upload, Building2, CheckCircle2, Clock, AlertTriangle, FileText } from "lucide-react";
+
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 const statusColorMap = createStatusColorMap({
   "设计中": "blue",
@@ -23,58 +29,58 @@ const statusColorMap = createStatusColorMap({
   "审核中": "orange",
 });
 
-// TODO: 接入 tRPC 后端接口替换
-const MOCK_DESIGNS = [
-  { id: "MD-001", name: "清洗槽体结构设计", project: "缸体清洗线", status: "设计中", bu: "BU3", rev: "R3", engineer: "王工", progress: 75 },
-  { id: "MD-002", name: "传送机构总装图", project: "变速箱清洗", status: "已审核", bu: "BU1", rev: "R1", engineer: "李工", progress: 100 },
-  { id: "MD-003", name: "干燥室结构设计", project: "晶圆清洗", status: "审核中", bu: "BU4", rev: "R2", engineer: "张工", progress: 90 },
-  { id: "MD-004", name: "框架结构优化", project: "柴油机清洗", status: "设计中", bu: "BU2", rev: "R1", engineer: "赵工", progress: 40 },
-];
-
 export default function MechanicalDesign() {
   const { currentBU } = useUserProfile();
   const { t } = useLanguage();
-  const [designs, setDesigns] = useState(MOCK_DESIGNS);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [formData, setFormData] = useState({ name: "", project: "", engineer: "" });
 
-  const filtered = designs.filter(d => !currentBU || d.bu === currentBU);
+  // ─── tRPC queries ───
+  const designQuery = trpc.rndPipeline.mechanical.list.useQuery(
+    { bu: currentBU || undefined },
+    QUERY_OPTS,
+  );
+
+  const createMut = trpc.rndPipeline.mechanical.create.useMutation({
+    onSuccess: () => {
+      designQuery.refetch();
+      setShowCreateDialog(false);
+      setFormData({ name: "", project: "", engineer: "" });
+      toast.success(t("rnd.mechanical.createSuccess"));
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const designs = (designQuery.data?.items ?? []) as any[];
+  const isLoading = designQuery.isLoading;
 
   const handleCreate = () => {
-    if (!formData.name.trim()) {
-      toast.error(t("rnd.mechanical.enterName"));
-      return;
-    }
-    if (!formData.project.trim()) {
-      toast.error(t("rnd.mechanical.enterProject"));
-      return;
-    }
-    if (!formData.engineer.trim()) {
-      toast.error(t("rnd.mechanical.enterEngineer"));
-      return;
-    }
-
-    const newId = `MD-${String(designs.length + 1).padStart(3, "0")}`;
-    const newDesign = {
-      id: newId,
+    if (!formData.name.trim()) { toast.error(t("rnd.mechanical.enterName")); return; }
+    if (!formData.project.trim()) { toast.error(t("rnd.mechanical.enterProject")); return; }
+    if (!formData.engineer.trim()) { toast.error(t("rnd.mechanical.enterEngineer")); return; }
+    createMut.mutate({
       name: formData.name.trim(),
       project: formData.project.trim(),
-      status: "设计中",
-      bu: currentBU || "BU3",
-      rev: "R1",
       engineer: formData.engineer.trim(),
-      progress: 0,
-    };
-
-    setDesigns(prev => [newDesign, ...prev]);
-    setShowCreateDialog(false);
-    setFormData({ name: "", project: "", engineer: "" });
-    toast.success(t("rnd.mechanical.createSuccess"));
+      bu: currentBU || undefined,
+    });
   };
 
   const handleUploadComingSoon = () => {
     toast.info(t("rnd.mechanical.uploadComingSoon"));
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader icon={Cog} title={t("rnd.mechanical.title")} description="..." />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+        </div>
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -93,20 +99,20 @@ export default function MechanicalDesign() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard icon={FileText} label={t("rnd.mechanical.totalTasks")} value={designs.length} />
-        <StatCard icon={Clock} label={t("rnd.mechanical.designing")} value={designs.filter(d => d.status === "设计中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={AlertTriangle} label={t("rnd.mechanical.reviewing")} value={designs.filter(d => d.status === "审核中").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={CheckCircle2} label={t("rnd.mechanical.completed")} value={designs.filter(d => d.status === "已审核").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Clock} label={t("rnd.mechanical.designing")} value={designs.filter((d: any) => d.status === "设计中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={AlertTriangle} label={t("rnd.mechanical.reviewing")} value={designs.filter((d: any) => d.status === "审核中").length} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={CheckCircle2} label={t("rnd.mechanical.completed")} value={designs.filter((d: any) => d.status === "已审核").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
         <CardHeader><CardTitle>{t("rnd.mechanical.taskList")}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {filtered.map(d => (
+            {designs.map((d: any) => (
               <div key={d.id} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm text-muted-foreground">{d.id}</span>
+                    <span className="font-mono text-sm text-muted-foreground">{d.taskNumber}</span>
                     <Badge variant="outline">{d.bu}</Badge>
                     <Badge variant="secondary">{d.rev}</Badge>
                   </div>
@@ -124,7 +130,7 @@ export default function MechanicalDesign() {
                 </div>
               </div>
             ))}
-            {filtered.length === 0 && (
+            {designs.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Cog className="w-12 h-12 mb-3 opacity-50" />
                 <p className="font-medium">{t("rnd.mechanical.noTasks")}</p>
@@ -176,7 +182,7 @@ export default function MechanicalDesign() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>{t("rnd.mechanical.cancel")}</Button>
-            <Button onClick={handleCreate}>{t("rnd.mechanical.create")}</Button>
+            <Button onClick={handleCreate} disabled={createMut.isPending}>{t("rnd.mechanical.create")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -152,6 +152,21 @@ export function evaluateAccess(
 // ─── Router ─────────────────────────────────────────────────────────
 
 export const sopInterlockRouter = router({
+  /** List all machines available for shop-floor login */
+  listMachines: protectedProcedure.query(async () => {
+    const db = await requireDb();
+    const machines = await db
+      .select({
+        id: productionEquipments.id,
+        name: productionEquipments.name,
+        code: productionEquipments.code,
+        location: productionEquipments.location,
+      })
+      .from(productionEquipments)
+      .orderBy(productionEquipments.code);
+    return machines;
+  }),
+
   /**
    * Core gateway: verify if operator may access machine.
    * Called from shop-floor tablet at badge scan.

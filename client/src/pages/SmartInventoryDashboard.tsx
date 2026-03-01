@@ -10,78 +10,18 @@
  *   - Top 5 "Shortage Risks" to buy now
  *   - Forecast trend cards per product
  *
+ * Data source: trpc.smartInventory.dashboard / forecasts (DB-backed)
  * Route: /supply-chain/smart-inventory
  */
 
 import React, { useState, useMemo } from "react";
+import { trpc } from "@/lib/trpc";
 
 // ─── Types (mirrors server) ──────────────────────────────────────
 
 type ForecastTrend = "HIGH_GROWTH" | "MODERATE_GROWTH" | "STABLE" | "DECLINING" | "STEEP_DECLINE";
 type StockHealth = "OVERSTOCK" | "ADEQUATE" | "LOW" | "SHORTAGE_RISK" | "STOCKOUT";
 type InventoryAction = "INCREASE_STOCK" | "DECREASE_STOCK" | "EXPEDITE" | "HOLD" | "REBALANCE";
-
-interface DynamicStockResult {
-  partNumber: string;
-  partName: string;
-  category: string;
-  currentStock: number;
-  staticMin: number;
-  dynamicSafetyStock: number;
-  forecastTrend: ForecastTrend;
-  stockHealth: StockHealth;
-  action: InventoryAction;
-  reason: string;
-  potentialSavings: number;
-  demandNext3Months: number;
-  unitCost: number;
-  leadTimeDays: number;
-}
-
-interface ProductForecast {
-  productCode: string;
-  productName: string;
-  trend: ForecastTrend;
-  months: { month: string; forecastedQty: number; confidenceLevel: number }[];
-}
-
-// ─── Engine (same logic as server for mock rendering) ─────────────
-
-function analyzeTrend(fcs: { forecastedQty: number; month: string }[]): ForecastTrend {
-  if (fcs.length < 2) return "STABLE";
-  const sorted = [...fcs].sort((a, b) => a.month.localeCompare(b.month));
-  const first = sorted[0].forecastedQty;
-  const last = sorted[sorted.length - 1].forecastedQty;
-  if (first === 0) return last > 0 ? "HIGH_GROWTH" : "STABLE";
-  const pct = ((last - first) / first) * 100;
-  if (pct > 20) return "HIGH_GROWTH";
-  if (pct > 5) return "MODERATE_GROWTH";
-  if (pct >= -5) return "STABLE";
-  if (pct >= -20) return "DECLINING";
-  return "STEEP_DECLINE";
-}
-
-// ─── Mock Data ────────────────────────────────────────────────────
-
-const PRODUCTS: ProductForecast[] = [
-  { productCode: "GWM-3000", productName: "High-Pressure Industrial Washer", trend: "HIGH_GROWTH",
-    months: [{ month: "2026-03", forecastedQty: 50, confidenceLevel: 85 }, { month: "2026-04", forecastedQty: 60, confidenceLevel: 80 }, { month: "2026-05", forecastedQty: 75, confidenceLevel: 72 }] },
-  { productCode: "GUC-500", productName: "Ultrasonic Cleaning System 500L", trend: "STABLE",
-    months: [{ month: "2026-03", forecastedQty: 30, confidenceLevel: 90 }, { month: "2026-04", forecastedQty: 32, confidenceLevel: 88 }, { month: "2026-05", forecastedQty: 31, confidenceLevel: 85 }] },
-  { productCode: "GSC-200", productName: "Spray Cabinet Degreaser", trend: "STEEP_DECLINE",
-    months: [{ month: "2026-03", forecastedQty: 40, confidenceLevel: 78 }, { month: "2026-04", forecastedQty: 25, confidenceLevel: 75 }, { month: "2026-05", forecastedQty: 15, confidenceLevel: 70 }] },
-];
-
-const MOCK_RESULTS: DynamicStockResult[] = [
-  { partNumber: "SS316-PLATE-3MM", partName: "SS316 Plate 3mm", category: "RAW", currentStock: 2000, staticMin: 500, dynamicSafetyStock: 750, forecastTrend: "HIGH_GROWTH", stockHealth: "OVERSTOCK", action: "HOLD", reason: "CASH TRAP: 2000 units on hand but dynamic safety only requires 750.", potentialSavings: 106875, demandNext3Months: 1665, unitCost: 85.50, leadTimeDays: 21 },
-  { partNumber: "PUMP-HP-15KW", partName: "High-Pressure Pump 15kW", category: "COMPONENT", currentStock: 8, staticMin: 20, dynamicSafetyStock: 30, forecastTrend: "HIGH_GROWTH", stockHealth: "SHORTAGE_RISK", action: "EXPEDITE", reason: "SHORTAGE RISK: Only 8 units, need 30 minimum.", potentialSavings: -281600, demandNext3Months: 185, unitCost: 12800, leadTimeDays: 45 },
-  { partNumber: "NOZZLE-FAN-45", partName: "Fan Nozzle 45°", category: "COMPONENT", currentStock: 300, staticMin: 200, dynamicSafetyStock: 300, forecastTrend: "HIGH_GROWTH", stockHealth: "ADEQUATE", action: "HOLD", reason: "Stock level 300 is adequate for dynamic safety stock 300.", potentialSavings: 0, demandNext3Months: 1170, unitCost: 145, leadTimeDays: 14 },
-  { partNumber: "SEAL-VITON-DN50", partName: "Viton Seal DN50", category: "RAW", currentStock: 1500, staticMin: 500, dynamicSafetyStock: 750, forecastTrend: "HIGH_GROWTH", stockHealth: "ADEQUATE", action: "HOLD", reason: "Stock level adequate.", potentialSavings: 13875, demandNext3Months: 3900, unitCost: 18.50, leadTimeDays: 7 },
-  { partNumber: "PLC-SIEMENS-1200", partName: "Siemens S7-1200 PLC", category: "COMPONENT", currentStock: 15, staticMin: 10, dynamicSafetyStock: 15, forecastTrend: "HIGH_GROWTH", stockHealth: "ADEQUATE", action: "HOLD", reason: "Stock level adequate.", potentialSavings: 0, demandNext3Months: 278, unitCost: 4200, leadTimeDays: 60 },
-  { partNumber: "TRANSDUCER-40KHZ", partName: "Ultrasonic Transducer 40kHz", category: "COMPONENT", currentStock: 200, staticMin: 100, dynamicSafetyStock: 100, forecastTrend: "STABLE", stockHealth: "ADEQUATE", action: "HOLD", reason: "Stock level adequate.", potentialSavings: 68000, demandNext3Months: 744, unitCost: 680, leadTimeDays: 30 },
-  { partNumber: "HEATER-3KW", partName: "Immersion Heater 3kW", category: "COMPONENT", currentStock: 50, staticMin: 30, dynamicSafetyStock: 30, forecastTrend: "STABLE", stockHealth: "ADEQUATE", action: "HOLD", reason: "Stock level adequate.", potentialSavings: 7000, demandNext3Months: 186, unitCost: 350, leadTimeDays: 14 },
-  { partNumber: "PUMP-LP-5KW", partName: "Low-Pressure Pump 5kW", category: "COMPONENT", currentStock: 35, staticMin: 15, dynamicSafetyStock: 8, forecastTrend: "STEEP_DECLINE", stockHealth: "OVERSTOCK", action: "DECREASE_STOCK", reason: "CASH TRAP: 35 units on hand but dynamic safety only requires 8. ¥86,400 trapped.", potentialSavings: 86400, demandNext3Months: 80, unitCost: 3200, leadTimeDays: 30 },
-];
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -116,20 +56,52 @@ function fmtMoney(val: number): string {
   return `¥${abs.toFixed(0)}`;
 }
 
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
+
 // ─── Component ────────────────────────────────────────────────────
 
 export default function SmartInventoryDashboard() {
   const [tab, setTab] = useState<"overview" | "forecasts" | "details">("overview");
 
-  const results = MOCK_RESULTS;
-  const products = PRODUCTS;
+  // ─── tRPC Queries ───
+  const dashboardQuery = trpc.smartInventory.dashboard.useQuery(undefined, QUERY_OPTS);
+  const forecastsQuery = trpc.smartInventory.forecasts.useQuery(undefined, QUERY_OPTS);
+
+  const results = dashboardQuery.data?.results ?? [];
+  const summaryData = dashboardQuery.data?.summary;
+  const topCashTraps = dashboardQuery.data?.topCashTraps ?? [];
+  const topShortageRisks = dashboardQuery.data?.topShortageRisks ?? [];
+  const products = forecastsQuery.data?.products ?? [];
+  const dataSource = dashboardQuery.data?.dataSource ?? "seed";
+
+  const isLoading = dashboardQuery.isLoading;
 
   // Derived stats
-  const overstockItems = useMemo(() => results.filter(r => r.stockHealth === "OVERSTOCK"), [results]);
-  const shortageItems = useMemo(() => results.filter(r => r.stockHealth === "SHORTAGE_RISK" || r.stockHealth === "STOCKOUT"), [results]);
-  const totalCashTrapped = useMemo(() => overstockItems.reduce((s, r) => s + Math.max(0, r.potentialSavings), 0), [overstockItems]);
-  const totalCashNeeded = useMemo(() => shortageItems.reduce((s, r) => s + Math.abs(Math.min(0, r.potentialSavings)), 0), [shortageItems]);
-  const adequateCount = useMemo(() => results.filter(r => r.stockHealth === "ADEQUATE").length, [results]);
+  const overstockCount = summaryData?.overstock ?? 0;
+  const adequateCount = summaryData?.adequate ?? 0;
+  const shortageCount = (summaryData?.shortageRisk ?? 0) + (summaryData?.stockout ?? 0);
+  const totalCashTrapped = summaryData?.totalCashTrapped ?? 0;
+  const totalCashNeeded = summaryData?.totalCashNeeded ?? 0;
+
+  // Loading skeleton
+  if (isLoading) {
+    return (
+      <div style={{ padding: 24, maxWidth: 1400, margin: "0 auto", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#0f172a", margin: "0 0 20px" }}>Smart Inventory Dashboard</h1>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{ height: 100, background: "#f1f5f9", borderRadius: 14, animation: "pulse 1.5s infinite" }} />
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} style={{ height: 300, background: "#f1f5f9", borderRadius: 12, animation: "pulse 1.5s infinite" }} />
+          ))}
+        </div>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 24, maxWidth: 1400, margin: "0 auto", fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -144,9 +116,13 @@ export default function SmartInventoryDashboard() {
           </p>
         </div>
         <span style={{
-          background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20,
-          padding: "6px 14px", fontSize: 12, color: "#2563eb",
-        }}>MOCK DATA</span>
+          background: dataSource === "database" ? "#f0fdf4" : "#eff6ff",
+          border: `1px solid ${dataSource === "database" ? "#86efac" : "#bfdbfe"}`,
+          borderRadius: 20, padding: "6px 14px", fontSize: 12,
+          color: dataSource === "database" ? "#16a34a" : "#2563eb",
+        }}>
+          {dataSource === "database" ? "LIVE DATA" : "SEED DATA"}
+        </span>
       </div>
 
       {/* ── CFO Headline Metrics ── */}
@@ -163,7 +139,7 @@ export default function SmartInventoryDashboard() {
             {fmtMoney(totalCashTrapped)}
           </div>
           <div style={{ fontSize: 12, color: "#4ade80", marginTop: 2 }}>
-            {overstockItems.length} overstocked parts to liquidate
+            {overstockCount} overstocked parts to liquidate
           </div>
         </div>
 
@@ -179,7 +155,7 @@ export default function SmartInventoryDashboard() {
             {fmtMoney(totalCashNeeded)}
           </div>
           <div style={{ fontSize: 12, color: "#f87171", marginTop: 2 }}>
-            {shortageItems.length} critical part{shortageItems.length !== 1 ? "s" : ""} to expedite
+            {shortageCount} critical part{shortageCount !== 1 ? "s" : ""} to expedite
           </div>
         </div>
 
@@ -212,11 +188,11 @@ export default function SmartInventoryDashboard() {
               <div style={{ fontSize: 10, color: "#94a3b8" }}>OK</div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>{overstockItems.length}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>{overstockCount}</div>
               <div style={{ fontSize: 10, color: "#94a3b8" }}>Over</div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#ef4444" }}>{shortageItems.length}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#ef4444" }}>{shortageCount}</div>
               <div style={{ fontSize: 10, color: "#94a3b8" }}>Risk</div>
             </div>
           </div>
@@ -246,7 +222,7 @@ export default function SmartInventoryDashboard() {
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "#f59e0b", margin: "0 0 16px" }}>
               Top Cash Traps — Liquidate
             </h3>
-            {overstockItems.sort((a, b) => b.potentialSavings - a.potentialSavings).slice(0, 5).map(item => (
+            {topCashTraps.map((item: any) => (
               <div key={item.partNumber} style={{
                 padding: "12px 14px", borderRadius: 8, marginBottom: 8,
                 background: "#fffbeb", border: "1px solid #fde68a",
@@ -282,7 +258,7 @@ export default function SmartInventoryDashboard() {
                 </div>
               </div>
             ))}
-            {overstockItems.length === 0 && (
+            {topCashTraps.length === 0 && (
               <div style={{ textAlign: "center", padding: 20, color: "#94a3b8", fontSize: 13 }}>No overstock items.</div>
             )}
           </div>
@@ -292,7 +268,7 @@ export default function SmartInventoryDashboard() {
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "#ef4444", margin: "0 0 16px" }}>
               Top Shortage Risks — Buy Now
             </h3>
-            {shortageItems.sort((a, b) => a.potentialSavings - b.potentialSavings).slice(0, 5).map(item => (
+            {topShortageRisks.map((item: any) => (
               <div key={item.partNumber} style={{
                 padding: "12px 14px", borderRadius: 8, marginBottom: 8,
                 background: "#fef2f2", border: "1px solid #fca5a5",
@@ -315,7 +291,7 @@ export default function SmartInventoryDashboard() {
                 </div>
               </div>
             ))}
-            {shortageItems.length === 0 && (
+            {topShortageRisks.length === 0 && (
               <div style={{ textAlign: "center", padding: 20, color: "#94a3b8", fontSize: 13 }}>No shortage risks.</div>
             )}
           </div>
@@ -325,7 +301,7 @@ export default function SmartInventoryDashboard() {
       {/* ── FORECASTS TAB ── */}
       {tab === "forecasts" && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-          {products.map(p => (
+          {products.map((p: any) => (
             <div key={p.productCode} style={{
               background: "white", border: "1px solid #e2e8f0", borderRadius: 12, padding: 20,
               borderTop: `4px solid ${trendColor(p.trend)}`,
@@ -344,8 +320,8 @@ export default function SmartInventoryDashboard() {
               </div>
               {/* Mini bar chart */}
               <div style={{ display: "flex", gap: 8, alignItems: "flex-end", height: 80 }}>
-                {p.months.map((m, i) => {
-                  const maxQty = Math.max(...p.months.map(x => x.forecastedQty));
+                {(p.months ?? []).map((m: any, i: number) => {
+                  const maxQty = Math.max(...(p.months ?? []).map((x: any) => x.forecastedQty));
                   const barH = maxQty > 0 ? (m.forecastedQty / maxQty) * 60 : 0;
                   return (
                     <div key={m.month} style={{ flex: 1, textAlign: "center" }}>
@@ -364,10 +340,15 @@ export default function SmartInventoryDashboard() {
                 })}
               </div>
               <div style={{ marginTop: 8, fontSize: 11, color: "#64748b" }}>
-                Avg confidence: {Math.round(p.months.reduce((s, m) => s + m.confidenceLevel, 0) / p.months.length)}%
+                Avg confidence: {Math.round((p.months ?? []).reduce((s: number, m: any) => s + m.confidenceLevel, 0) / ((p.months ?? []).length || 1))}%
               </div>
             </div>
           ))}
+          {products.length === 0 && (
+            <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 40, color: "#94a3b8" }}>
+              No forecast data available.
+            </div>
+          )}
         </div>
       )}
 
@@ -383,7 +364,7 @@ export default function SmartInventoryDashboard() {
               </tr>
             </thead>
             <tbody>
-              {results.map(r => (
+              {results.map((r: any) => (
                 <tr key={r.partNumber} style={{
                   borderBottom: "1px solid #f1f5f9",
                   background: r.stockHealth === "SHORTAGE_RISK" || r.stockHealth === "STOCKOUT" ? "#fef2f2" :
@@ -406,7 +387,7 @@ export default function SmartInventoryDashboard() {
                     </span>
                     {r.dynamicSafetyStock !== r.staticMin && (
                       <span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 4 }}>
-                        ({r.dynamicSafetyStock > r.staticMin ? "+" : ""}{Math.round(((r.dynamicSafetyStock - r.staticMin) / r.staticMin) * 100)}%)
+                        ({r.dynamicSafetyStock > r.staticMin ? "+" : ""}{r.staticMin > 0 ? Math.round(((r.dynamicSafetyStock - r.staticMin) / r.staticMin) * 100) : 0}%)
                       </span>
                     )}
                   </td>
@@ -435,6 +416,9 @@ export default function SmartInventoryDashboard() {
               ))}
             </tbody>
           </table>
+          {results.length === 0 && (
+            <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>No inventory data available.</div>
+          )}
         </div>
       )}
 

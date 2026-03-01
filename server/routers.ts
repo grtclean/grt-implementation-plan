@@ -74,6 +74,7 @@ import { aiRouter } from "./ai/ai.router";
 import { employeeAiAssistantRouter } from "./routers/employee-ai-assistant.router";
 import { skillRecommendationRouter } from "./routers/skill-recommendation.router";
 import { permissionManagementRouter } from "./routers/permission-management.router";
+import { accessControlRouter } from "./routers/access-control.router";
 
 
 // Import AI services and capability evidence routers
@@ -106,6 +107,7 @@ import { fieldMappingRouter as realFieldMappingRouter } from "./routers/field-ma
 import { employeeDARouter as realEmployeeDARouter } from "./routers/employee-da.router";
 import { ruleVersionRouter as realRuleVersionRouter } from "./routers/rule-version.router";
 import { notificationChannelTestRouter as realNotificationChannelTestRouter } from "./routers/notification-channel-test.router";
+import { notificationRouter } from "./routers/notification.router";
 import { leadAnalyticsRouter as realLeadAnalyticsRouter } from "./routers/lead-analytics.router";
 import { newAiAssistantRouter as realNewAiAssistantRouter } from "./routers/new-ai-assistant.router";
 import { leadAutoFollowRouter as realLeadAutoFollowRouter } from "./routers/lead-auto-follow.router";
@@ -254,6 +256,7 @@ import { okrRouter } from "./routers/okr.router";
 import { excellenceCultureRouter } from "./routers/excellence-culture.router";
 import { capabilitySystemRouter } from "./routers/capability-system.router";
 import { cleaningProjectRouter } from "./routers/cleaning-project.router";
+import { rndPipelineRouter } from "./routers/rnd-pipeline.router";
 import { roleAgentRouter } from "./routers/role-agent.router";
 import { automationRouter } from "./routers/automation.router";
 import { aiTaskRouter } from "./routers/ai-task.router";
@@ -358,6 +361,7 @@ export const appRouter = router({
   employeeAiAssistant: employeeAiAssistantRouter,
   skillRecommendation: skillRecommendationRouter,
   permissionManagement: permissionManagementRouter,
+  accessControl: accessControlRouter,
   deadlockMonitor: realDeadlockMonitorRouter,
   aiTrigger: realAiTriggerRouter,
   templateUsageStats: realTemplateUsageStatsRouter,
@@ -373,6 +377,7 @@ export const appRouter = router({
   ruleTemplate: realRuleTemplateRouter,
   planningDependency: realPlanningDependencyRouter,
   notificationChannelTest: realNotificationChannelTestRouter,
+  notification: notificationRouter,
   leadAnalytics: realLeadAnalyticsRouter,
   importHistory: realImportHistoryRouter,
   devTasks: realDevTasksRouter,
@@ -676,6 +681,9 @@ export const appRouter = router({
 
   // Cleaning Machine Project Wizard (M0→M2 lifecycle + T1-T15 milestones)
   cleaningProject: cleaningProjectRouter,
+
+  // R&D Pipeline (Quotation + Requirements + Solution Design)
+  rndPipeline: rndPipelineRouter,
 
   // Role-Based AI Agent (role-specific quick actions + suggestions)
   roleAgent: roleAgentRouter,

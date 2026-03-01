@@ -18,6 +18,44 @@ import {
 
 const successResponse = { success: true, message: "操作成功" };
 
+// ─── Attendance bootstrap ─────────────────────────────────────────
+let attendanceBootstrapped = false;
+async function ensureAttendance() {
+  if (attendanceBootstrapped) return;
+  attendanceBootstrapped = true;
+  try {
+    const db = await requireDb();
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS attendance_records (
+        id            SERIAL PRIMARY KEY,
+        employee_name VARCHAR(100) NOT NULL,
+        department    VARCHAR(100) NOT NULL DEFAULT '',
+        record_date   DATE NOT NULL DEFAULT CURRENT_DATE,
+        clock_in      VARCHAR(10) NOT NULL DEFAULT '-',
+        clock_out     VARCHAR(10) NOT NULL DEFAULT '-',
+        work_hours    VARCHAR(10) NOT NULL DEFAULT '-',
+        status        VARCHAR(20) NOT NULL DEFAULT '正常'
+      )
+    `);
+    const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM attendance_records`);
+    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+      await db.execute(sql`
+        INSERT INTO attendance_records (employee_name, department, record_date, clock_in, clock_out, work_hours, status) VALUES
+        ('王工', '研发设计部', CURRENT_DATE, '08:28', '17:35', '9.1h', '正常'),
+        ('李工', '销售部',     CURRENT_DATE, '09:15', '-',     '-',    '迟到'),
+        ('张工', '技术服务部', CURRENT_DATE, '-',     '-',     '-',    '请假'),
+        ('赵工', '生产部',     CURRENT_DATE, '07:55', '17:00', '9.1h', '正常'),
+        ('陈工', '研发设计部', CURRENT_DATE, '08:30', '18:20', '9.8h', '正常'),
+        ('孙工', '事业一部',   CURRENT_DATE, '08:00', '17:05', '9.1h', '正常'),
+        ('周工', '事业二部',   CURRENT_DATE, '-',     '-',     '-',    '缺勤'),
+        ('吴工', '品质部',     CURRENT_DATE, '08:35', '17:40', '9.1h', '正常')
+      `);
+    }
+  } catch (e: any) {
+    console.warn("hrm attendance bootstrap:", e.message);
+  }
+}
+
 export const hrmRouter = router({
   // ==================== CRUD (employees as default entity) ====================
 
@@ -314,10 +352,72 @@ export const hrmRouter = router({
     }));
   }),
 
-  // ==================== Attendance (stub - no table) ====================
+  // ==================== Attendance (DB-backed) ====================
 
-  getAttendance: protectedProcedure.input(z.object({ employeeId: z.string().optional(), startDate: z.string().optional(), endDate: z.string().optional() }).optional()).query(() => {
-    return [] as Array<{ employeeId: string; date: string; checkIn: string; checkOut: string; status: string }>;
+  getAttendance: protectedProcedure
+    .input(z.object({
+      date: z.string().optional(),
+      status: z.string().optional(),
+      search: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      await ensureAttendance();
+      const db = await requireDb();
+      let result;
+      if (input?.search) {
+        const pat = `%${input.search}%`;
+        result = await db.execute(sql`
+          SELECT id, employee_name, department, TO_CHAR(record_date, 'YYYY-MM-DD') AS record_date,
+                 clock_in, clock_out, work_hours, status
+          FROM attendance_records
+          WHERE employee_name LIKE ${pat} OR department LIKE ${pat}
+          ORDER BY id
+        `);
+      } else {
+        result = await db.execute(sql`
+          SELECT id, employee_name, department, TO_CHAR(record_date, 'YYYY-MM-DD') AS record_date,
+                 clock_in, clock_out, work_hours, status
+          FROM attendance_records ORDER BY id
+        `);
+      }
+      const items = (result.rows as any[]).map((r: any) => ({
+        id: r.id,
+        name: r.employee_name,
+        dept: r.department,
+        date: r.record_date,
+        clockIn: r.clock_in,
+        clockOut: r.clock_out,
+        hours: r.work_hours,
+        status: r.status,
+      }));
+      // Apply status filter client-side if provided
+      const filtered = input?.status && input.status !== "all"
+        ? items.filter((i: any) => i.status === input.status)
+        : items;
+      return filtered;
+    }),
+
+  getAttendanceStats: protectedProcedure.query(async () => {
+    await ensureAttendance();
+    const db = await requireDb();
+    const result = await db.execute(sql`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE status = '正常')::int AS present,
+        COUNT(*) FILTER (WHERE status = '迟到')::int AS late,
+        COUNT(*) FILTER (WHERE status = '缺勤')::int AS absent,
+        COUNT(*) FILTER (WHERE status = '请假')::int AS leave_count
+      FROM attendance_records
+      WHERE record_date = CURRENT_DATE
+    `);
+    const row = (result.rows as any[])[0] ?? {};
+    return {
+      total: row.total ?? 0,
+      present: row.present ?? 0,
+      late: row.late ?? 0,
+      absent: row.absent ?? 0,
+      leave: row.leave_count ?? 0,
+    };
   }),
 
   // ==================== Leave Requests (stub - no table) ====================

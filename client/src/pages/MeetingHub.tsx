@@ -14,7 +14,7 @@
  * Backend: tRPC smartMeeting.* procedures
  * Integration: Microsoft Teams via Graph API mock
  */
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,9 @@ import {
   Video,
   ExternalLink,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import SpeakerRadarTab from "@/components/meeting/SpeakerRadarTab";
 
 // ── Fluent Design tokens ───────────────────────────────────
@@ -85,59 +88,7 @@ interface Meeting {
   teamsUrl?: string | null;
 }
 
-// ── Mock data (used when no tRPC server available) ─────────
-const DEMO_MEETING: Meeting = {
-  id: 1,
-  title: "GRT 2026 年度启动大会 — CEO 战略宣讲",
-  type: "MAJOR",
-  status: "LIVE",
-  description:
-    "2026年度全体大会：CEO分享新年战略规划，涵盖AI智能制造转型、海外市场拓展、组织架构升级三大核心议题。",
-  transcript: `各位同事，大家好！今天我们召开2026年度启动大会。
-过去一年，GRT在智能制造领域取得了突破性进展。我们的自动化产线覆盖率从65%提升至89%。
-展望2026年，我提出三个核心战略方向：
-第一，AI驱动的智能制造转型——我们将在所有产线部署AI质检和预测性维护系统。
-第二，海外市场加速拓展——聚焦东南亚和欧洲市场，目标海外营收占比达到35%。
-第三，组织架构全面升级——推行项目型组织（POS），提升跨部门协作效率。
-全员需在Q1完成个人KPI目标制定，与部门负责人对齐。
-让我们一起开创GRT的新篇章！`,
-  organizerName: "CEO",
-  expectedAttendees: 500,
-  actualStart: new Date().toISOString(),
-  aiQuizQuestions: [
-    {
-      id: 1,
-      question:
-        "根据CEO的战略宣讲，2025年GRT的自动化产线覆盖率达到了多少？",
-      type: "MULTIPLE_CHOICE",
-      options: ["75%", "89%", "92%", "65%"],
-      correctAnswer: "89%",
-    },
-    {
-      id: 2,
-      question: "2026年海外营收占比的目标是多少？",
-      type: "MULTIPLE_CHOICE",
-      options: ["20%", "25%", "30%", "35%"],
-      correctAnswer: "35%",
-    },
-    {
-      id: 3,
-      question:
-        "CEO要求全员在Q1完成个人KPI目标制定并与部门负责人对齐。",
-      type: "TRUE_FALSE",
-      options: ["True", "False"],
-      correctAnswer: "True",
-    },
-  ],
-};
-
-const DEMO_CHAT: ChatMessage[] = [
-  { userId: 101, userName: "张工", message: "CEO的战略规划非常振奋人心！💪", time: new Date(Date.now() - 300000).toISOString() },
-  { userId: 102, userName: "李经理", message: "海外市场35%的目标很有挑战性，期待更多支持资源", time: new Date(Date.now() - 240000).toISOString() },
-  { userId: 103, userName: "王主管", message: "POS组织架构升级是我最关注的，希望能提升协作效率", time: new Date(Date.now() - 180000).toISOString() },
-  { userId: 104, userName: "陈博士", message: "AI质检系统的技术路线已经准备就绪，随时可以部署", time: new Date(Date.now() - 120000).toISOString() },
-  { userId: 105, userName: "赵总监", message: "建议增加东南亚市场本地化团队的预算", time: new Date(Date.now() - 60000).toISOString() },
-];
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 // ── Collaboration Canvas (inline — imported from SmartMeeting concepts) ──
 function CollaborationCanvas() {
@@ -257,251 +208,126 @@ export default function MeetingHub() {
   const { t } = useLanguage();
 
   // ── State ──────────────────────────────────────────────
-  const [meeting, setMeeting] = useState<Meeting>(DEMO_MEETING);
   const [activeTab, setActiveTab] = useState<"notes" | "quiz" | "chat" | "speaker">("notes");
   const [checkInStatus, setCheckInStatus] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [seedLoading, setSeedLoading] = useState(false);
-  const [teamsLoading, setTeamsLoading] = useState(false);
-
-  // Notes state
   const [notes, setNotes] = useState("");
   const [notesSaved, setNotesSaved] = useState(false);
-
-  // Quiz state
   const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizScore, setQuizScore] = useState(0);
-
-  // Chat state
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(DEMO_CHAT);
+  const [localChatMessages, setLocalChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
-
-  // Current user (simulated)
   const currentUser = { id: 12, name: "系统管理员" };
 
-  // ── Load live meeting from backend ─────────────────────
-  const loadMeeting = useCallback(async () => {
-    try {
-      // Try to fetch the live meeting from the backend via tRPC
-      const res = await fetch(
-        `/api/trpc/smartMeeting.meeting.list?input=${encodeURIComponent(
-          JSON.stringify({ json: { status: "LIVE", limit: 1 } })
-        )}`
-      );
-      const data = await res.json();
-      const meetings = data?.result?.data?.json;
-      if (meetings && meetings.length > 0) {
-        setMeeting(meetings[0]);
-        // Also load chat messages
-        loadChat(meetings[0].id);
-      }
-    } catch {
-      // Backend not available — use demo data
-    }
-  }, []);
+  // ─── tRPC Queries ───
+  const meetingListQuery = trpc.smartMeeting.meeting.list.useQuery(
+    { status: "LIVE", limit: 1 },
+    QUERY_OPTS,
+  );
+  const meeting = meetingListQuery.data?.[0] ?? null;
 
-  const loadChat = async (meetingId: number) => {
-    try {
-      const res = await fetch(
-        `/api/trpc/smartMeeting.chat.getMessages?input=${encodeURIComponent(
-          JSON.stringify({ json: { id: meetingId } })
-        )}`
-      );
-      const data = await res.json();
-      const msgs = data?.result?.data?.json;
-      if (msgs && msgs.length > 0) {
-        setChatMessages(msgs);
-      }
-    } catch {
-      // use demo chat
-    }
-  };
+  const chatQuery = trpc.smartMeeting.chat.getMessages.useQuery(
+    { id: meeting?.id ?? 0 },
+    { ...QUERY_OPTS, enabled: meeting != null },
+  );
 
+  // Sync server chat to local state
   useEffect(() => {
-    loadMeeting();
-  }, [loadMeeting]);
+    if (chatQuery.data && chatQuery.data.length > 0) {
+      setLocalChatMessages(chatQuery.data as ChatMessage[]);
+    }
+  }, [chatQuery.data]);
 
   // Auto-scroll chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
+  }, [localChatMessages]);
 
-  // ── Seed demo data ─────────────────────────────────────
-  const seedDemo = async () => {
-    setSeedLoading(true);
-    try {
-      const res = await fetch("/api/trpc/smartMeeting.seed.seedDemo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ json: {} }),
-      });
-      const data = await res.json();
-      if (data?.result?.data?.json?.meeting) {
-        setMeeting(data.result.data.json.meeting);
-        loadChat(data.result.data.json.meeting.id);
-      }
-    } catch {
-      // Seed failed — demo data is already loaded
-    }
-    setSeedLoading(false);
-  };
+  // ─── tRPC Mutations ───
+  const seedMut = trpc.smartMeeting.seed.seedDemo.useMutation({
+    onSuccess: () => { meetingListQuery.refetch(); toast.success("已初始化示例会议"); },
+  });
+  const teamsLinkMut = trpc.smartMeeting.meeting.createTeamsLink.useMutation({
+    onSuccess: (data: any) => {
+      if (data.teamsUrl) window.open(data.teamsUrl, "_blank", "noopener");
+      meetingListQuery.refetch();
+    },
+  });
+  const checkInMut = trpc.smartMeeting.attendance.checkIn.useMutation();
+  const requestLeaveMut = trpc.smartMeeting.attendance.requestLeave.useMutation();
+  const saveNotesMut = trpc.smartMeeting.interaction.saveNotes.useMutation({
+    onSuccess: () => { setNotesSaved(true); setTimeout(() => setNotesSaved(false), 2000); },
+  });
+  const submitQuizMut = trpc.smartMeeting.interaction.submitQuiz.useMutation();
+  const sendMessageMut = trpc.smartMeeting.chat.sendMessage.useMutation();
 
-  // ── Create/Launch Teams meeting ───────────────────────
-  const handleLaunchTeams = async () => {
+  const mutLoading = checkInMut.isPending || requestLeaveMut.isPending;
+
+  // ── Handlers ─────────────────────────────────────────────
+  const handleLaunchTeams = () => {
+    if (!meeting) return;
     if (meeting.teamsUrl) {
       window.open(meeting.teamsUrl, "_blank", "noopener");
       return;
     }
-    setTeamsLoading(true);
-    try {
-      const res = await fetch("/api/trpc/smartMeeting.meeting.createTeamsLink", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ json: { meetingId: meeting.id } }),
-      });
-      const data = await res.json();
-      const teamsUrl = data?.result?.data?.json?.teamsUrl;
-      if (teamsUrl) {
-        setMeeting((prev) => ({ ...prev, teamsUrl }));
-        window.open(teamsUrl, "_blank", "noopener");
-      }
-    } catch {
-      // Teams link creation failed — user can still use the meeting without a Teams URL
-    }
-    setTeamsLoading(false);
+    teamsLinkMut.mutate({ meetingId: meeting.id });
   };
 
-  // ── Check-in handler ───────────────────────────────────
-  const handleCheckIn = async (
-    status: "PRESENT_PHYSICAL" | "PRESENT_ONLINE" | "LEAVED"
-  ) => {
-    setLoading(true);
-    try {
-      if (status === "LEAVED") {
-        await fetch("/api/trpc/smartMeeting.attendance.requestLeave", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            json: {
-              meetingId: meeting.id,
-              userId: currentUser.id,
-              reason: "临时有紧急事务需要处理",
-            },
-          }),
-        });
-      } else {
-        await fetch("/api/trpc/smartMeeting.attendance.checkIn", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            json: {
-              meetingId: meeting.id,
-              userId: currentUser.id,
-              userName: currentUser.name,
-              status,
-              checkInMethod: status === "PRESENT_PHYSICAL" ? "NFC Badge" : "Browser",
-            },
-          }),
-        });
-      }
-    } catch {
-      // Backend unavailable — local-only
+  const handleCheckIn = (status: "PRESENT_PHYSICAL" | "PRESENT_ONLINE" | "LEAVED") => {
+    if (!meeting) return;
+    if (status === "LEAVED") {
+      requestLeaveMut.mutate({ meetingId: meeting.id, reason: "临时有紧急事务需要处理" });
+    } else {
+      checkInMut.mutate({
+        meetingId: meeting.id,
+        status,
+        checkInMethod: status === "PRESENT_PHYSICAL" ? "NFC Badge" : "Browser",
+      });
     }
     setCheckInStatus(status);
-    setLoading(false);
   };
 
-  // ── Save notes handler ─────────────────────────────────
-  const handleSaveNotes = async () => {
-    try {
-      await fetch("/api/trpc/smartMeeting.interaction.saveNotes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          json: {
-            meetingId: meeting.id,
-            userId: currentUser.id,
-            userName: currentUser.name,
-            personalNotes: notes,
-          },
-        }),
-      });
-    } catch {
-      // local-only save
-    }
-    setNotesSaved(true);
-    setTimeout(() => setNotesSaved(false), 2000);
+  const handleSaveNotes = () => {
+    if (!meeting) return;
+    saveNotesMut.mutate({ meetingId: meeting.id, personalNotes: notes });
   };
 
-  // ── Quiz submission ────────────────────────────────────
-  const handleSubmitQuiz = async () => {
-    const questions = meeting.aiQuizQuestions ?? [];
+  const handleSubmitQuiz = () => {
+    if (!meeting) return;
+    const qs = ((meeting as any).aiQuizQuestions ?? []) as QuizQuestion[];
     let correct = 0;
-    const answers = questions.map((q) => {
+    const answers = qs.map((q) => {
       const selected = quizAnswers[q.id] ?? "";
       const isCorrect = selected === q.correctAnswer;
       if (isCorrect) correct++;
       return { questionId: q.id, selectedAnswer: selected, isCorrect };
     });
-    const score = questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0;
+    const score = qs.length > 0 ? Math.round((correct / qs.length) * 100) : 0;
     setQuizScore(score);
     setQuizSubmitted(true);
-
-    try {
-      await fetch("/api/trpc/smartMeeting.interaction.submitQuiz", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          json: {
-            meetingId: meeting.id,
-            userId: currentUser.id,
-            userName: currentUser.name,
-            answers,
-            score,
-          },
-        }),
-      });
-    } catch {
-      // local-only
-    }
+    submitQuizMut.mutate({ meetingId: meeting.id, answers, score });
   };
 
-  // ── Chat send ──────────────────────────────────────────
-  const handleSendChat = async () => {
-    if (!chatInput.trim()) return;
+  const handleSendChat = () => {
+    if (!chatInput.trim() || !meeting) return;
     const msg: ChatMessage = {
       userId: currentUser.id,
       userName: currentUser.name,
       message: chatInput.trim(),
       time: new Date().toISOString(),
     };
-    setChatMessages((prev) => [...prev, msg]);
+    setLocalChatMessages((prev) => [...prev, msg]);
     setChatInput("");
-
-    try {
-      await fetch("/api/trpc/smartMeeting.chat.sendMessage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          json: {
-            meetingId: meeting.id,
-            message: msg.message,
-          },
-        }),
-      });
-    } catch {
-      // local-only
-    }
+    sendMessageMut.mutate({ meetingId: meeting.id, message: msg.message });
   };
 
   // ── Elapsed time ───────────────────────────────────────
   const [elapsed, setElapsed] = useState("00:00:00");
   useEffect(() => {
-    if (meeting.status !== "LIVE") return;
+    if (!meeting || meeting.status !== "LIVE") return;
     const start = meeting.actualStart
-      ? new Date(meeting.actualStart).getTime()
+      ? new Date(meeting.actualStart as string).getTime()
       : Date.now();
     const interval = setInterval(() => {
       const diff = Date.now() - start;
@@ -511,10 +337,46 @@ export default function MeetingHub() {
       setElapsed(`${h}:${m}:${s}`);
     }, 1000);
     return () => clearInterval(interval);
-  }, [meeting.status, meeting.actualStart]);
+  }, [meeting?.status, meeting?.actualStart]);
+
+  // ── Loading State ───
+  if (meetingListQuery.isLoading) {
+    return (
+      <div className="min-h-screen p-6 space-y-6" style={{ background: FLUENT_BG }}>
+        <Skeleton className="h-16 rounded-lg" />
+        <div className="flex gap-4">
+          <Skeleton className="flex-1 h-[500px] rounded-lg" />
+          <Skeleton className="w-[40%] h-[500px] rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
+  // ── No Meeting State ──
+  if (!meeting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: FLUENT_BG }}>
+        <Card style={{ background: FLUENT_CARD, border: `1px solid ${FLUENT_BORDER}` }}>
+          <CardContent className="p-8 text-center">
+            <Tv className="w-16 h-16 mx-auto mb-4 opacity-30" style={{ color: FLUENT_ACCENT }} />
+            <h2 className="text-lg font-semibold mb-2">暂无进行中的会议</h2>
+            <p className="text-sm mb-6" style={{ color: FLUENT_SUBTLE }}>点击下方按钮初始化示例会议数据</p>
+            <Button
+              onClick={() => seedMut.mutate()}
+              disabled={seedMut.isPending}
+              style={{ background: FLUENT_ACCENT, color: "#fff" }}
+            >
+              {seedMut.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+              初始化示例会议
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // ── Render ─────────────────────────────────────────────
-  const questions = meeting.aiQuizQuestions ?? [];
+  const questions = ((meeting as any).aiQuizQuestions ?? []) as QuizQuestion[];
 
   return (
     <div
@@ -573,13 +435,13 @@ export default function MeetingHub() {
           <Button
             size="sm"
             onClick={handleLaunchTeams}
-            disabled={teamsLoading}
+            disabled={teamsLinkMut.isPending}
             style={{
               background: meeting.teamsUrl ? "#6264a7" : "#6264a7",
               color: "#fff",
             }}
           >
-            {teamsLoading ? (
+            {teamsLinkMut.isPending ? (
               <Loader2 className="w-4 h-4 mr-1 animate-spin" />
             ) : (
               <Video className="w-4 h-4 mr-1" />
@@ -592,11 +454,11 @@ export default function MeetingHub() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={seedDemo}
-            disabled={seedLoading}
+            onClick={() => seedMut.mutate()}
+            disabled={seedMut.isPending}
             className="text-xs"
           >
-            {seedLoading ? (
+            {seedMut.isPending ? (
               <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
             ) : (
               <RefreshCw className="w-3.5 h-3.5 mr-1" />
@@ -607,7 +469,7 @@ export default function MeetingHub() {
           {/* Physical check-in */}
           <Button
             size="sm"
-            disabled={loading || checkInStatus === "PRESENT_PHYSICAL"}
+            disabled={mutLoading || checkInStatus === "PRESENT_PHYSICAL"}
             onClick={() => handleCheckIn("PRESENT_PHYSICAL")}
             style={{
               background:
@@ -627,7 +489,7 @@ export default function MeetingHub() {
           <Button
             size="sm"
             variant="outline"
-            disabled={loading || checkInStatus === "PRESENT_ONLINE"}
+            disabled={mutLoading || checkInStatus === "PRESENT_ONLINE"}
             onClick={() => handleCheckIn("PRESENT_ONLINE")}
             style={
               checkInStatus === "PRESENT_ONLINE"
@@ -647,7 +509,7 @@ export default function MeetingHub() {
           <Button
             size="sm"
             variant="outline"
-            disabled={loading || checkInStatus === "LEAVED"}
+            disabled={mutLoading || checkInStatus === "LEAVED"}
             onClick={() => handleCheckIn("LEAVED")}
             style={
               checkInStatus === "LEAVED"
@@ -971,7 +833,7 @@ export default function MeetingHub() {
                       全体讨论区
                     </h3>
                     <span className="text-xs" style={{ color: FLUENT_SUBTLE }}>
-                      {chatMessages.length} 条消息
+                      {localChatMessages.length} 条消息
                     </span>
                   </div>
 
@@ -980,7 +842,7 @@ export default function MeetingHub() {
                     className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1"
                     style={{ minHeight: 0 }}
                   >
-                    {chatMessages.map((msg, i) => {
+                    {localChatMessages.map((msg, i) => {
                       const isMe = msg.userId === currentUser.id;
                       return (
                         <div

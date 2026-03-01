@@ -45,20 +45,9 @@ function GreetingIcon() {
 }
 
 // ---------------------------------------------------------------------------
-// Mock feed data
+// Feed types (backed by notification.list)
 // ---------------------------------------------------------------------------
 type FeedTab = "all" | "tasks" | "docs" | "approvals";
-
-const MOCK_FEED = [
-  { id: 1, type: "task",     dept: "项目管理", deptEn: "PM",      text: "M3 Gate Review — CX200项目待审核", textEn: "M3 Gate Review — CX200 pending", time: "10min", priority: "high" },
-  { id: 2, type: "doc",      dept: "研发",     deptEn: "R&D",     text: "FMEA文档 v2.3 已更新",          textEn: "FMEA doc v2.3 updated",          time: "25min", priority: "medium" },
-  { id: 3, type: "approval", dept: "HR",       deptEn: "HR",      text: "出差申请待审批 — 张三",           textEn: "Travel request pending — Zhang",  time: "1h",    priority: "medium" },
-  { id: 4, type: "task",     dept: "客服",     deptEn: "CS",      text: "客户投诉 #892 待跟进",           textEn: "Complaint #892 follow-up",        time: "2h",    priority: "high" },
-  { id: 5, type: "doc",      dept: "质量",     deptEn: "Quality", text: "8D报告已提交 — 供应商B",          textEn: "8D report submitted — Vendor B",  time: "3h",    priority: "low" },
-  { id: 6, type: "approval", dept: "财务",     deptEn: "Finance", text: "费用报销 ¥12,500 待审批",        textEn: "Expense ¥12,500 pending",         time: "4h",    priority: "low" },
-  { id: 7, type: "task",     dept: "采购",     deptEn: "Procure", text: "供应商评审截止明日",              textEn: "Supplier audit due tomorrow",     time: "5h",    priority: "medium" },
-  { id: 8, type: "doc",      dept: "制造",     deptEn: "Mfg",     text: "SOP-MF-021 版本更新通知",        textEn: "SOP-MF-021 version update",       time: "6h",    priority: "low" },
-];
 
 const DEPT_COLORS: Record<string, string> = {
   "项目管理": "bg-blue-100 text-blue-700",
@@ -85,6 +74,20 @@ const FEED_TABS: { key: FeedTab; labelZh: string; labelEn: string; icon: React.C
 ];
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function formatTimeAgo(dateString: string): string {
+  if (!dateString) return "-";
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "刚刚";
+  if (mins < 60) return `${mins}min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  return `${Math.floor(hrs / 24)}d`;
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 export default function PersonalizedPortal() {
@@ -96,14 +99,45 @@ export default function PersonalizedPortal() {
   // tRPC queries
   const perfQuery = trpc.aiPerformance.dashboard.useQuery();
   const statsQuery = trpc.aiPerformance.actionItemStats.useQuery({ months: 6 });
+  const notifQuery = trpc.notification.list.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
 
   const portalQueryError = perfQuery.error || statsQuery.error;
   const perf = perfQuery.data;
   const stats = statsQuery.data ?? [];
 
+  // Map notifications to feed items
+  const CATEGORY_DEPT: Record<string, { zh: string; en: string }> = {
+    hr: { zh: "HR", en: "HR" },
+    procurement: { zh: "采购", en: "Procure" },
+    delivery: { zh: "项目管理", en: "PM" },
+    meeting: { zh: "协作", en: "Collab" },
+    performance: { zh: "绩效", en: "Perf" },
+    system: { zh: "系统", en: "System" },
+  };
+  const TYPE_TO_FEED: Record<string, string> = {
+    warning: "task", error: "task", ai_suggestion: "task",
+    info: "doc", success: "approval",
+  };
+  const TYPE_PRIORITY: Record<string, string> = {
+    error: "high", warning: "medium", ai_suggestion: "medium",
+    info: "low", success: "low",
+  };
+
+  const notifItems = (notifQuery.data?.items ?? []) as any[];
+  const feedItems = notifItems.map((n: any) => ({
+    id: n.id,
+    type: TYPE_TO_FEED[n.type] ?? "doc",
+    dept: CATEGORY_DEPT[n.category]?.zh ?? n.category,
+    deptEn: CATEGORY_DEPT[n.category]?.en ?? n.category,
+    text: n.title,
+    textEn: n.title,
+    time: formatTimeAgo(n.createdAt),
+    priority: n.isImportant ? "high" : (TYPE_PRIORITY[n.type] ?? "low"),
+  }));
+
   const filteredFeed = feedTab === "all"
-    ? MOCK_FEED
-    : MOCK_FEED.filter((f) =>
+    ? feedItems
+    : feedItems.filter((f: any) =>
         feedTab === "tasks" ? f.type === "task"
           : feedTab === "docs" ? f.type === "doc"
           : f.type === "approval"

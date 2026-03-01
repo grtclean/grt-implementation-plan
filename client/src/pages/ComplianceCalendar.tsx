@@ -5,10 +5,13 @@
  * 3 metric cards (top) → chronological timeline (center) → action buttons.
  * Dark industrial theme matching OEE Dashboard (Phase 1.3).
  *
+ * Data source: trpc.complianceCalendar.* (DB-backed)
  * Route: /admin/compliance-calendar
  */
 
 import React, { useState, useMemo } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -28,18 +31,6 @@ interface ComplianceAlert {
   isAcknowledged: boolean;
 }
 
-interface ComplianceSummary {
-  total: number;
-  safe: number;
-  warning: number;
-  critical: number;
-  danger: number;
-  expired: number;
-  alerts: ComplianceAlert[];
-  generatedAt: string;
-  dataSource: "mock" | "live";
-}
-
 // ─── Tier Configuration ──────────────────────────────────────────────
 
 const TIER_CONFIG: Record<ComplianceTier, { label: string; color: string; bg: string; border: string; icon: string }> = {
@@ -56,67 +47,7 @@ const CATEGORY_LABELS: Record<ComplianceCategory, string> = {
   SAFETY: "Safety",
 };
 
-// ─── Mock Data Engine (matches router logic) ─────────────────────────
-
-function buildMockData(): ComplianceSummary {
-  const now = new Date();
-  const addDays = (n: number): string => {
-    const d = new Date(now);
-    d.setDate(d.getDate() + n);
-    return d.toISOString().slice(0, 10);
-  };
-
-  const daysUntilExpiry = (expiryDate: string): number => {
-    const expiry = new Date(expiryDate + "T00:00:00Z");
-    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-    return Math.floor((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  };
-
-  const classifyTier = (days: number): ComplianceTier => {
-    if (days >= 90) return "SAFE";
-    if (days >= 60) return "WARNING";
-    if (days >= 30) return "CRITICAL";
-    return "DANGER";
-  };
-
-  const rawCerts = [
-    { id: 1, certName: "ISO 9001:2015 QMS", category: "ISO" as ComplianceCategory, expiryDate: addDays(240), ownerId: 101, ownerName: "Zhang Wei (质量部)", status: "valid" },
-    { id: 2, certName: "ISO 14001 Environmental", category: "ISO" as ComplianceCategory, expiryDate: addDays(85), ownerId: 102, ownerName: "Li Ming (环境部)", status: "valid" },
-    { id: 3, certName: "CE Marking — Machinery Directive", category: "CE" as ComplianceCategory, expiryDate: addDays(72), ownerId: 103, ownerName: "Wang Jun (工程部)", status: "valid" },
-    { id: 4, certName: "BMW Supplier Audit (VDA 6.3)", category: "CUSTOMER_AUDIT" as ComplianceCategory, expiryDate: addDays(28), ownerId: 104, ownerName: "Chen Li (销售部)", status: "valid" },
-    { id: 5, certName: "IATF 16949:2016 Automotive QMS", category: "ISO" as ComplianceCategory, expiryDate: addDays(45), ownerId: 101, ownerName: "Zhang Wei (质量部)", status: "valid" },
-    { id: 6, certName: "Bosch First Article Inspection", category: "CUSTOMER_AUDIT" as ComplianceCategory, expiryDate: addDays(12), ownerId: 105, ownerName: "Zhao Peng (项目部)", status: "valid" },
-    { id: 7, certName: "Fire Safety Certificate", category: "SAFETY" as ComplianceCategory, expiryDate: addDays(-15), ownerId: 106, ownerName: "Liu Fang (行政部)", status: "expired" },
-    { id: 8, certName: "UL Certification (Electrical Safety)", category: "SAFETY" as ComplianceCategory, expiryDate: addDays(180), ownerId: 103, ownerName: "Wang Jun (工程部)", status: "valid" },
-    { id: 9, certName: "Volkswagen Group Q-Capability", category: "CUSTOMER_AUDIT" as ComplianceCategory, expiryDate: addDays(63), ownerId: 104, ownerName: "Chen Li (销售部)", status: "valid" },
-    { id: 10, certName: "CE Marking — Low Voltage Directive", category: "CE" as ComplianceCategory, expiryDate: addDays(38), ownerId: 103, ownerName: "Wang Jun (工程部)", status: "valid" },
-  ];
-
-  const alerts: ComplianceAlert[] = rawCerts.map(cert => {
-    const days = daysUntilExpiry(cert.expiryDate);
-    return {
-      ...cert,
-      daysRemaining: days,
-      tier: cert.status === "expired" ? "DANGER" as ComplianceTier : classifyTier(days),
-      isAcknowledged: false,
-    };
-  });
-
-  const tierOrder: Record<ComplianceTier, number> = { DANGER: 0, CRITICAL: 1, WARNING: 2, SAFE: 3 };
-  alerts.sort((a, b) => tierOrder[a.tier] - tierOrder[b.tier] || a.daysRemaining - b.daysRemaining);
-
-  return {
-    total: alerts.length,
-    safe: alerts.filter(a => a.tier === "SAFE").length,
-    warning: alerts.filter(a => a.tier === "WARNING").length,
-    critical: alerts.filter(a => a.tier === "CRITICAL").length,
-    danger: alerts.filter(a => a.tier === "DANGER").length,
-    expired: alerts.filter(a => a.status === "expired").length,
-    alerts,
-    generatedAt: now.toISOString(),
-    dataSource: "mock",
-  };
-}
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 // ─── Components ──────────────────────────────────────────────────────
 
@@ -180,7 +111,7 @@ function CategoryBadge({ category }: { category: ComplianceCategory }) {
   );
 }
 
-function AlertRow({ alert, onAcknowledge }: { alert: ComplianceAlert; onAcknowledge: (id: number, action: string) => void }) {
+function AlertRow({ alert, onAcknowledge, isPending }: { alert: ComplianceAlert; onAcknowledge: (id: number, action: string) => void; isPending: boolean }) {
   const cfg = TIER_CONFIG[alert.tier];
   const isExpired = alert.status === "expired";
   const daysText = isExpired
@@ -229,20 +160,24 @@ function AlertRow({ alert, onAcknowledge }: { alert: ComplianceAlert; onAcknowle
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
           <button
             onClick={() => onAcknowledge(alert.id, "ACKNOWLEDGED")}
+            disabled={isPending}
             style={{
               padding: "6px 12px", borderRadius: 6, border: "1px solid #334155",
               background: "rgba(255,255,255,0.06)", color: "#e2e8f0", fontSize: 12,
-              cursor: "pointer", fontWeight: 500,
+              cursor: isPending ? "not-allowed" : "pointer", fontWeight: 500,
+              opacity: isPending ? 0.5 : 1,
             }}
           >
             Acknowledge
           </button>
           <button
             onClick={() => onAcknowledge(alert.id, "DELEGATED")}
+            disabled={isPending}
             style={{
               padding: "6px 12px", borderRadius: 6, border: `1px solid ${cfg.color}40`,
               background: cfg.bg, color: cfg.color, fontSize: 12,
-              cursor: "pointer", fontWeight: 500,
+              cursor: isPending ? "not-allowed" : "pointer", fontWeight: 500,
+              opacity: isPending ? 0.5 : 1,
             }}
           >
             Delegate
@@ -290,18 +225,28 @@ function ProgressRing({ value, max, color, label, size = 80 }: { value: number; 
 // ─── Main Page ───────────────────────────────────────────────────────
 
 export default function ComplianceCalendar() {
-  const [data] = useState<ComplianceSummary>(() => buildMockData());
   const [acknowledged, setAcknowledged] = useState<Set<number>>(new Set());
   const [filterTier, setFilterTier] = useState<ComplianceTier | "ALL">("ALL");
   const [filterCategory, setFilterCategory] = useState<ComplianceCategory | "ALL">("ALL");
 
+  // ─── tRPC ───
+  const dashboardQuery = trpc.complianceCalendar.dashboard.useQuery(undefined, QUERY_OPTS);
+  const data = dashboardQuery.data ?? { total: 0, safe: 0, warning: 0, critical: 0, danger: 0, expired: 0, alerts: [] as ComplianceAlert[], generatedAt: new Date().toISOString(), dataSource: "mock" as string };
+
+  const acknowledgeMut = trpc.complianceCalendar.acknowledge.useMutation({
+    onSuccess: (res: any) => {
+      setAcknowledged(prev => new Set(prev).add(res.alertId));
+      toast.success(res.action === "DELEGATED" ? "Alert delegated" : "Alert acknowledged");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const handleAcknowledge = (id: number, action: string) => {
-    setAcknowledged(prev => new Set(prev).add(id));
-    // Phase 4: call trpc.complianceCalendar.acknowledge.mutate(...)
+    acknowledgeMut.mutate({ alertId: id, action: action as any });
   };
 
   const filteredAlerts = useMemo(() => {
-    return data.alerts
+    return (data.alerts as ComplianceAlert[])
       .map(a => ({ ...a, isAcknowledged: acknowledged.has(a.id) }))
       .filter(a => filterTier === "ALL" || a.tier === filterTier)
       .filter(a => filterCategory === "ALL" || a.category === filterCategory);
@@ -309,6 +254,18 @@ export default function ComplianceCalendar() {
 
   const actionRequired = data.danger + data.critical;
   const healthPct = data.total > 0 ? Math.round(((data.safe + data.warning) / data.total) * 100) : 100;
+
+  // ─── Loading ───
+  if (dashboardQuery.isLoading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0f172a", color: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: 48, height: 48, border: "4px solid #3b82f6", borderTop: "4px solid transparent", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto" }} />
+          <p style={{ color: "#64748b", marginTop: 16, fontSize: 14 }}>Loading compliance data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#0f172a", color: "#f1f5f9", fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -321,7 +278,6 @@ export default function ComplianceCalendar() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 28 }}>🛡️</span>
               Compliance Calendar & Risk Radar
             </h1>
             <p style={{ color: "#64748b", margin: "6px 0 0", fontSize: 14 }}>
@@ -331,9 +287,11 @@ export default function ComplianceCalendar() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{
               padding: "4px 12px", borderRadius: 9999, fontSize: 11, fontWeight: 500,
-              background: "rgba(234,179,8,0.15)", color: "#eab308", border: "1px solid rgba(234,179,8,0.3)",
+              background: data.dataSource === "live" ? "rgba(34,197,94,0.15)" : "rgba(234,179,8,0.15)",
+              color: data.dataSource === "live" ? "#22c55e" : "#eab308",
+              border: `1px solid ${data.dataSource === "live" ? "rgba(34,197,94,0.3)" : "rgba(234,179,8,0.3)"}`,
             }}>
-              {data.dataSource === "mock" ? "DEMO" : "LIVE"} Data
+              {data.dataSource === "live" ? "LIVE" : "DB-backed"} Data
             </span>
             <span style={{ color: "#64748b", fontSize: 12 }}>
               Updated: {new Date(data.generatedAt).toLocaleTimeString()}
@@ -380,7 +338,7 @@ export default function ComplianceCalendar() {
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", paddingLeft: 24, borderLeft: "1px solid #1e293b" }}>
             <div style={{ fontSize: 13, color: "#64748b", marginBottom: 8 }}>Tier Distribution</div>
             {(["SAFE", "WARNING", "CRITICAL", "DANGER"] as ComplianceTier[]).map(tier => {
-              const count = data[tier.toLowerCase() as keyof ComplianceSummary] as number;
+              const count = (data as any)[tier.toLowerCase()] as number ?? 0;
               const pct = data.total > 0 ? (count / data.total) * 100 : 0;
               const cfg = TIER_CONFIG[tier];
               return (
@@ -395,7 +353,7 @@ export default function ComplianceCalendar() {
             })}
             {data.expired > 0 && (
               <div style={{ fontSize: 12, color: "#ef4444", marginTop: 4, fontWeight: 500 }}>
-                ⚠ {data.expired} certification{data.expired > 1 ? "s" : ""} already expired
+                {data.expired} certification{data.expired > 1 ? "s" : ""} already expired
               </div>
             )}
           </div>
@@ -464,7 +422,7 @@ export default function ComplianceCalendar() {
             </div>
           ) : (
             filteredAlerts.map(alert => (
-              <AlertRow key={alert.id} alert={alert} onAcknowledge={handleAcknowledge} />
+              <AlertRow key={alert.id} alert={alert} onAcknowledge={handleAcknowledge} isPending={acknowledgeMut.isPending} />
             ))
           )}
         </div>
@@ -481,7 +439,7 @@ export default function ComplianceCalendar() {
             SAFE ≥90d · WARNING 60–89d · CRITICAL 30–59d · DANGER &lt;30d
           </div>
           <div>
-            Phase 1.4 — IATF 16949 Compliance Calendar · GRT System v4.5
+            IATF 16949 Compliance Calendar · GRT System v4.5
           </div>
         </div>
       </div>

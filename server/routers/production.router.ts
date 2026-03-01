@@ -563,21 +563,58 @@ export const productionRouter = router({
 
   getProgressTrend: protectedProcedure
     .input(z.object({ days: z.number().default(7) }).optional())
-    .query(({ input }) => {
+    .query(async ({ input }) => {
+      const db = await requireDb();
       const days = input?.days || 7;
-      const trend = [];
-      const today = new Date();
-      for (let i = days - 1; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        trend.push({
-          date: date.toISOString().split('T')[0],
-          completed: Math.floor(Math.random() * 3) + 1,
-          inProgress: Math.floor(Math.random() * 5) + 2,
-          planned: Math.floor(Math.random() * 4) + 1,
-        });
+
+      try {
+        const rows = await db.execute(sql`
+          SELECT
+            TO_CHAR(COALESCE(updated_at, created_at)::date, 'YYYY-MM-DD') as date,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)::int as completed,
+            SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END)::int as in_progress,
+            SUM(CASE WHEN status IN ('planned', 'pending', 'draft') THEN 1 ELSE 0 END)::int as planned
+          FROM production_work_orders
+          WHERE COALESCE(updated_at, created_at)::date >= CURRENT_DATE - ${days}
+          GROUP BY COALESCE(updated_at, created_at)::date
+          ORDER BY date
+        `);
+
+        const trend = [];
+        const today = new Date();
+        const rowArr = (rows as any).rows ?? [];
+        const dataMap = new Map(rowArr.map((r: any) => [r.date, r]));
+
+        for (let i = days - 1; i >= 0; i--) {
+          const date = new Date(today);
+          date.setDate(date.getDate() - i);
+          const dateStr = date.toISOString().split('T')[0];
+          const row = dataMap.get(dateStr) as any;
+          trend.push({
+            date: dateStr,
+            completed: Number(row?.completed ?? 0),
+            inProgress: Number(row?.in_progress ?? 0),
+            planned: Number(row?.planned ?? 0),
+          });
+        }
+
+        return trend;
+      } catch {
+        // Fallback: zero-filled trend if table doesn't exist yet
+        const trend = [];
+        const today = new Date();
+        for (let i = days - 1; i >= 0; i--) {
+          const date = new Date(today);
+          date.setDate(date.getDate() - i);
+          trend.push({
+            date: date.toISOString().split('T')[0],
+            completed: 0,
+            inProgress: 0,
+            planned: 0,
+          });
+        }
+        return trend;
       }
-      return trend;
     }),
 
   getTeamCapacity: protectedProcedure.query(async () => {

@@ -25,10 +25,13 @@
  *   HEALTHY:   health >= 70 → normal operations
  *
  * Architecture: Pure calculation functions exported for Vitest.
+ * Data source: DB-first with mock fallback.
  */
 
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { requireDb } from "../db";
+import { sql } from "drizzle-orm";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -375,72 +378,47 @@ export function monitorHealthAndReschedule(
   };
 }
 
-// ─── Mock Data (GRT Cleaning Equipment Factory) ──────────────────────
+// ─── Seed/Fallback Data (GRT Cleaning Equipment Factory) ─────────────
 
 const NOW = new Date();
 const h = (hoursOffset: number) => new Date(NOW.getTime() + hoursOffset * 3600000).toISOString();
 
-const MOCK_FLEET: SensorReading[] = [
+const SEED_FLEET: SensorReading[] = [
   // CNC-001: CRITICAL — vibration spike, overheating
-  {
-    machineId: 101, machineCode: "CNC-001", machineName: "CNC Milling Center #1",
+  { machineId: 101, machineCode: "CNC-001", machineName: "CNC Milling Center #1",
     vibrationLevel: 7.2, temperature: 78, spindleLoad: 95, coolantPressure: 4.5, powerConsumption: 18.5,
-    healthScore: 35, healthStatus: "CRITICAL", healthTrend: "DEGRADING",
-    lastUpdated: h(-0.5),
-  },
+    healthScore: 35, healthStatus: "CRITICAL", healthTrend: "DEGRADING", lastUpdated: h(-0.5) },
   // CNC-002: HEALTHY — good backup
-  {
-    machineId: 102, machineCode: "CNC-002", machineName: "CNC Milling Center #2",
+  { machineId: 102, machineCode: "CNC-002", machineName: "CNC Milling Center #2",
     vibrationLevel: 1.2, temperature: 42, spindleLoad: 65, coolantPressure: 5.0, powerConsumption: 12.3,
-    healthScore: 88, healthStatus: "HEALTHY", healthTrend: "STABLE",
-    lastUpdated: h(-0.5),
-  },
+    healthScore: 88, healthStatus: "HEALTHY", healthTrend: "STABLE", lastUpdated: h(-0.5) },
   // CNC-003: WARNING — slightly elevated vibration
-  {
-    machineId: 103, machineCode: "CNC-003", machineName: "CNC Milling Center #3",
+  { machineId: 103, machineCode: "CNC-003", machineName: "CNC Milling Center #3",
     vibrationLevel: 4.5, temperature: 55, spindleLoad: 82, coolantPressure: 4.8, powerConsumption: 14.1,
-    healthScore: 62, healthStatus: "WARNING", healthTrend: "DEGRADING",
-    lastUpdated: h(-0.5),
-  },
+    healthScore: 62, healthStatus: "WARNING", healthTrend: "DEGRADING", lastUpdated: h(-0.5) },
   // HYD-BENCH-001: HEALTHY
-  {
-    machineId: 201, machineCode: "HYD-BENCH-001", machineName: "Hydraulic Test Bench #1",
+  { machineId: 201, machineCode: "HYD-BENCH-001", machineName: "Hydraulic Test Bench #1",
     vibrationLevel: 0.8, temperature: 38, spindleLoad: 45, coolantPressure: 5.2, powerConsumption: 8.7,
-    healthScore: 94, healthStatus: "HEALTHY", healthTrend: "STABLE",
-    lastUpdated: h(-0.5),
-  },
+    healthScore: 94, healthStatus: "HEALTHY", healthTrend: "STABLE", lastUpdated: h(-0.5) },
   // HYD-BENCH-002: HEALTHY
-  {
-    machineId: 202, machineCode: "HYD-BENCH-002", machineName: "Hydraulic Test Bench #2",
+  { machineId: 202, machineCode: "HYD-BENCH-002", machineName: "Hydraulic Test Bench #2",
     vibrationLevel: 1.0, temperature: 40, spindleLoad: 50, coolantPressure: 5.0, powerConsumption: 9.2,
-    healthScore: 91, healthStatus: "HEALTHY", healthTrend: "STABLE",
-    lastUpdated: h(-0.5),
-  },
+    healthScore: 91, healthStatus: "HEALTHY", healthTrend: "STABLE", lastUpdated: h(-0.5) },
   // WLD-TIG-001: WARNING — temp climbing
-  {
-    machineId: 301, machineCode: "WLD-TIG-001", machineName: "TIG Welding Station #1",
+  { machineId: 301, machineCode: "WLD-TIG-001", machineName: "TIG Welding Station #1",
     vibrationLevel: 2.1, temperature: 62, spindleLoad: 70, coolantPressure: 4.2, powerConsumption: 22.0,
-    healthScore: 58, healthStatus: "WARNING", healthTrend: "DEGRADING",
-    lastUpdated: h(-0.5),
-  },
+    healthScore: 58, healthStatus: "WARNING", healthTrend: "DEGRADING", lastUpdated: h(-0.5) },
   // NZL-CAL-001: HEALTHY — nozzle calibration rig
-  {
-    machineId: 401, machineCode: "NZL-CAL-001", machineName: "Nozzle Calibration Rig #1",
+  { machineId: 401, machineCode: "NZL-CAL-001", machineName: "Nozzle Calibration Rig #1",
     vibrationLevel: 0.3, temperature: 35, spindleLoad: 30, coolantPressure: 5.5, powerConsumption: 5.1,
-    healthScore: 97, healthStatus: "HEALTHY", healthTrend: "IMPROVING",
-    lastUpdated: h(-0.5),
-  },
+    healthScore: 97, healthStatus: "HEALTHY", healthTrend: "IMPROVING", lastUpdated: h(-0.5) },
   // LASER-001: HEALTHY — laser cutting station
-  {
-    machineId: 501, machineCode: "LASER-001", machineName: "Fiber Laser Cutter #1",
+  { machineId: 501, machineCode: "LASER-001", machineName: "Fiber Laser Cutter #1",
     vibrationLevel: 0.5, temperature: 44, spindleLoad: 55, coolantPressure: 5.1, powerConsumption: 30.0,
-    healthScore: 85, healthStatus: "HEALTHY", healthTrend: "STABLE",
-    lastUpdated: h(-0.5),
-  },
+    healthScore: 85, healthStatus: "HEALTHY", healthTrend: "STABLE", lastUpdated: h(-0.5) },
 ];
 
-const MOCK_SCHEDULE: ScheduledJob[] = [
-  // Jobs on CNC-001 (will be auto-rescheduled)
+const SEED_SCHEDULE: ScheduledJob[] = [
   { id: 1, jobId: "JOB-2026-0041", jobName: "Manifold Body Machining (P-240)", projectCode: "P-240",
     machineId: 101, machineCode: "CNC-001", startTime: h(2), endTime: h(6),
     status: "SCHEDULED", priority: 2, estimatedHours: 4,
@@ -453,32 +431,101 @@ const MOCK_SCHEDULE: ScheduledJob[] = [
     machineId: 101, machineCode: "CNC-001", startTime: h(24), endTime: h(30),
     status: "SCHEDULED", priority: 5, estimatedHours: 6,
     originalMachineId: null, originalMachineCode: null, movedAt: null, moveReason: null },
-  // Job on CNC-001 beyond 48h window — should NOT move
   { id: 4, jobId: "JOB-2026-0044", jobName: "Valve Block Precision Cut", projectCode: "P-243",
     machineId: 101, machineCode: "CNC-001", startTime: h(72), endTime: h(78),
     status: "SCHEDULED", priority: 4, estimatedHours: 6,
     originalMachineId: null, originalMachineCode: null, movedAt: null, moveReason: null },
-  // Already completed job on CNC-001 — should NOT move
   { id: 5, jobId: "JOB-2026-0040", jobName: "Shaft Turning (P-239)", projectCode: "P-239",
     machineId: 101, machineCode: "CNC-001", startTime: h(-8), endTime: h(-2),
     status: "COMPLETED", priority: 1, estimatedHours: 6,
     originalMachineId: null, originalMachineCode: null, movedAt: null, moveReason: null },
-  // Jobs on CNC-002 — healthy, no action
   { id: 6, jobId: "JOB-2026-0045", jobName: "Cover Plate Milling", projectCode: "P-244",
     machineId: 102, machineCode: "CNC-002", startTime: h(4), endTime: h(8),
     status: "SCHEDULED", priority: 3, estimatedHours: 4,
     originalMachineId: null, originalMachineCode: null, movedAt: null, moveReason: null },
-  // Jobs on HYD-BENCH-001 — healthy
   { id: 7, jobId: "JOB-2026-0046", jobName: "Hydraulic Cylinder Test", projectCode: "P-240",
     machineId: 201, machineCode: "HYD-BENCH-001", startTime: h(6), endTime: h(10),
     status: "SCHEDULED", priority: 2, estimatedHours: 4,
     originalMachineId: null, originalMachineCode: null, movedAt: null, moveReason: null },
-  // Job on WLD-TIG-001 — WARNING but not CRITICAL
   { id: 8, jobId: "JOB-2026-0047", jobName: "SS316 Frame Welding", projectCode: "P-241",
     machineId: 301, machineCode: "WLD-TIG-001", startTime: h(10), endTime: h(18),
     status: "SCHEDULED", priority: 3, estimatedHours: 8,
     originalMachineId: null, originalMachineCode: null, movedAt: null, moveReason: null },
 ];
+
+// ─── DB helpers ──────────────────────────────────────────────────────
+
+/** Load fleet sensor readings from DB, fallback to SEED_FLEET */
+async function loadFleetFromDb(): Promise<{ fleet: SensorReading[]; dataSource: "database" | "seed" }> {
+  try {
+    const db = await requireDb();
+    const rows = await db.execute(sql`
+      SELECT machine_id, machine_code, machine_name,
+             vibration_level, temperature, spindle_load, coolant_pressure, power_consumption,
+             health_score, health_status, health_trend, last_updated
+      FROM equipment_sensor_readings
+      ORDER BY machine_code
+    `);
+    const arr = (rows as any).rows ?? [];
+    if (arr.length === 0) return { fleet: SEED_FLEET, dataSource: "seed" };
+
+    const fleet: SensorReading[] = arr.map((r: any) => ({
+      machineId: r.machine_id,
+      machineCode: r.machine_code,
+      machineName: r.machine_name,
+      vibrationLevel: Number(r.vibration_level),
+      temperature: Number(r.temperature),
+      spindleLoad: Number(r.spindle_load),
+      coolantPressure: Number(r.coolant_pressure),
+      powerConsumption: Number(r.power_consumption),
+      healthScore: Number(r.health_score),
+      healthStatus: r.health_status as HealthStatus,
+      healthTrend: r.health_trend as HealthTrend,
+      lastUpdated: r.last_updated ? new Date(r.last_updated).toISOString() : new Date().toISOString(),
+    }));
+    return { fleet, dataSource: "database" };
+  } catch {
+    return { fleet: SEED_FLEET, dataSource: "seed" };
+  }
+}
+
+/** Load scheduled jobs from DB, fallback to SEED_SCHEDULE */
+async function loadScheduleFromDb(): Promise<{ schedule: ScheduledJob[]; dataSource: "database" | "seed" }> {
+  try {
+    const db = await requireDb();
+    const rows = await db.execute(sql`
+      SELECT id, job_id, job_name, project_code,
+             machine_id, machine_code, start_time, end_time,
+             status, priority, estimated_hours,
+             original_machine_id, original_machine_code, moved_at, move_reason
+      FROM equipment_scheduled_jobs
+      ORDER BY start_time
+    `);
+    const arr = (rows as any).rows ?? [];
+    if (arr.length === 0) return { schedule: SEED_SCHEDULE, dataSource: "seed" };
+
+    const schedule: ScheduledJob[] = arr.map((r: any) => ({
+      id: r.id,
+      jobId: r.job_id,
+      jobName: r.job_name,
+      projectCode: r.project_code,
+      machineId: r.machine_id,
+      machineCode: r.machine_code,
+      startTime: r.start_time ? new Date(r.start_time).toISOString() : "",
+      endTime: r.end_time ? new Date(r.end_time).toISOString() : "",
+      status: r.status as ScheduleStatus,
+      priority: r.priority,
+      estimatedHours: Number(r.estimated_hours),
+      originalMachineId: r.original_machine_id,
+      originalMachineCode: r.original_machine_code,
+      movedAt: r.moved_at ? new Date(r.moved_at).toISOString() : null,
+      moveReason: r.move_reason,
+    }));
+    return { schedule, dataSource: "database" };
+  } catch {
+    return { schedule: SEED_SCHEDULE, dataSource: "seed" };
+  }
+}
 
 // ─── tRPC Router ─────────────────────────────────────────────────────
 
@@ -487,18 +534,20 @@ export const smartSchedulerRouter = router({
    * fleetHealth — live fleet health status (all machines).
    */
   fleetHealth: protectedProcedure.query(async () => {
+    const { fleet, dataSource } = await loadFleetFromDb();
+
     return {
-      machines: MOCK_FLEET,
+      machines: fleet,
       summary: {
-        total: MOCK_FLEET.length,
-        healthy: MOCK_FLEET.filter(m => m.healthStatus === "HEALTHY").length,
-        warning: MOCK_FLEET.filter(m => m.healthStatus === "WARNING").length,
-        critical: MOCK_FLEET.filter(m => m.healthStatus === "CRITICAL").length,
-        offline: MOCK_FLEET.filter(m => m.healthStatus === "OFFLINE").length,
-        avgHealth: Math.round(MOCK_FLEET.reduce((s, m) => s + m.healthScore, 0) / MOCK_FLEET.length),
+        total: fleet.length,
+        healthy: fleet.filter(m => m.healthStatus === "HEALTHY").length,
+        warning: fleet.filter(m => m.healthStatus === "WARNING").length,
+        critical: fleet.filter(m => m.healthStatus === "CRITICAL").length,
+        offline: fleet.filter(m => m.healthStatus === "OFFLINE").length,
+        avgHealth: Math.round(fleet.reduce((s, m) => s + m.healthScore, 0) / (fleet.length || 1)),
       },
       generatedAt: new Date().toISOString(),
-      dataSource: "mock" as const,
+      dataSource,
     };
   }),
 
@@ -506,11 +555,14 @@ export const smartSchedulerRouter = router({
    * ganttView — production schedule with reschedule highlights.
    */
   ganttView: protectedProcedure.query(async () => {
+    const { fleet, dataSource: fleetSource } = await loadFleetFromDb();
+    const { schedule, dataSource: schedSource } = await loadScheduleFromDb();
+
     // Run the engine to get rescheduled state
-    const result = monitorHealthAndReschedule(MOCK_FLEET, MOCK_SCHEDULE, NOW);
+    const result = monitorHealthAndReschedule(fleet, schedule, new Date());
 
     // Merge moved jobs back into schedule
-    const updatedSchedule = MOCK_SCHEDULE.map(job => {
+    const updatedSchedule = schedule.map(job => {
       const moved = result.movedJobs.find(m => m.id === job.id);
       return moved ?? job;
     });
@@ -521,7 +573,7 @@ export const smartSchedulerRouter = router({
       maintenanceOrder: result.maintenanceOrder,
       summary: result.summary,
       generatedAt: new Date().toISOString(),
-      dataSource: "mock" as const,
+      dataSource: fleetSource === "database" && schedSource === "database" ? "database" as const : "seed" as const,
     };
   }),
 
@@ -529,21 +581,134 @@ export const smartSchedulerRouter = router({
    * reschedule — manually trigger the self-healing engine.
    */
   reschedule: protectedProcedure.mutation(async () => {
-    const result = monitorHealthAndReschedule(MOCK_FLEET, MOCK_SCHEDULE, new Date());
-    return { ...result, dataSource: "mock" as const };
+    const { fleet, dataSource: fleetSource } = await loadFleetFromDb();
+    const { schedule, dataSource: schedSource } = await loadScheduleFromDb();
+    const result = monitorHealthAndReschedule(fleet, schedule, new Date());
+    const dataSource = fleetSource === "database" && schedSource === "database" ? "database" as const : "seed" as const;
+    return { ...result, dataSource };
   }),
 
   /**
    * decisionLog — AI decision audit trail.
    */
   decisionLog: protectedProcedure.query(async () => {
-    const result = monitorHealthAndReschedule(MOCK_FLEET, MOCK_SCHEDULE, NOW);
+    const { fleet, dataSource: fleetSource } = await loadFleetFromDb();
+    const { schedule, dataSource: schedSource } = await loadScheduleFromDb();
+    const result = monitorHealthAndReschedule(fleet, schedule, new Date());
+    const dataSource = fleetSource === "database" && schedSource === "database" ? "database" as const : "seed" as const;
     return {
       log: result.decisionLog,
       triggered: result.triggered,
       summary: result.summary,
       timestamp: result.timestamp,
-      dataSource: "mock" as const,
+      dataSource,
+    };
+  }),
+
+  /**
+   * seedDemo — create DB tables and seed demo fleet + schedule data.
+   */
+  seedDemo: protectedProcedure.mutation(async () => {
+    const db = await requireDb();
+
+    // Create tables
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS equipment_sensor_readings (
+        machine_id INTEGER PRIMARY KEY,
+        machine_code VARCHAR(50) NOT NULL UNIQUE,
+        machine_name VARCHAR(200) NOT NULL,
+        vibration_level DECIMAL(6,2) NOT NULL DEFAULT 0,
+        temperature DECIMAL(6,2) NOT NULL DEFAULT 0,
+        spindle_load DECIMAL(6,2) NOT NULL DEFAULT 0,
+        coolant_pressure DECIMAL(6,2) NOT NULL DEFAULT 0,
+        power_consumption DECIMAL(8,2) NOT NULL DEFAULT 0,
+        health_score INTEGER NOT NULL DEFAULT 100,
+        health_status VARCHAR(20) NOT NULL DEFAULT 'HEALTHY',
+        health_trend VARCHAR(20) NOT NULL DEFAULT 'STABLE',
+        last_updated TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS equipment_scheduled_jobs (
+        id SERIAL PRIMARY KEY,
+        job_id VARCHAR(50) NOT NULL,
+        job_name VARCHAR(200) NOT NULL,
+        project_code VARCHAR(50),
+        machine_id INTEGER NOT NULL,
+        machine_code VARCHAR(50) NOT NULL,
+        start_time TIMESTAMP NOT NULL,
+        end_time TIMESTAMP NOT NULL,
+        status VARCHAR(30) NOT NULL DEFAULT 'SCHEDULED',
+        priority INTEGER DEFAULT 3,
+        estimated_hours DECIMAL(6,2) DEFAULT 0,
+        original_machine_id INTEGER,
+        original_machine_code VARCHAR(50),
+        moved_at TIMESTAMP,
+        move_reason TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS equipment_maintenance_orders (
+        id SERIAL PRIMARY KEY,
+        order_code VARCHAR(50) NOT NULL UNIQUE,
+        machine_id INTEGER NOT NULL,
+        machine_code VARCHAR(50) NOT NULL,
+        machine_name VARCHAR(200),
+        type VARCHAR(30) NOT NULL DEFAULT 'PREDICTIVE',
+        priority VARCHAR(20) NOT NULL DEFAULT 'MEDIUM',
+        status VARCHAR(30) NOT NULL DEFAULT 'OPEN',
+        health_score_at_creation INTEGER,
+        trigger_reason TEXT,
+        assigned_to VARCHAR(100),
+        estimated_duration_minutes INTEGER DEFAULT 120,
+        created_at TIMESTAMP DEFAULT NOW(),
+        completed_at TIMESTAMP
+      )
+    `);
+
+    // Seed fleet data (upsert)
+    const fleetResults = [];
+    for (const m of SEED_FLEET) {
+      try {
+        await db.execute(sql`
+          INSERT INTO equipment_sensor_readings (machine_id, machine_code, machine_name, vibration_level, temperature, spindle_load, coolant_pressure, power_consumption, health_score, health_status, health_trend, last_updated)
+          VALUES (${m.machineId}, ${m.machineCode}, ${m.machineName}, ${m.vibrationLevel}, ${m.temperature}, ${m.spindleLoad}, ${m.coolantPressure}, ${m.powerConsumption}, ${m.healthScore}, ${m.healthStatus}, ${m.healthTrend}, NOW())
+          ON CONFLICT (machine_id) DO UPDATE SET
+            vibration_level = EXCLUDED.vibration_level, temperature = EXCLUDED.temperature,
+            spindle_load = EXCLUDED.spindle_load, coolant_pressure = EXCLUDED.coolant_pressure,
+            power_consumption = EXCLUDED.power_consumption, health_score = EXCLUDED.health_score,
+            health_status = EXCLUDED.health_status, health_trend = EXCLUDED.health_trend,
+            last_updated = NOW()
+        `);
+        fleetResults.push({ machineCode: m.machineCode, status: "ok" });
+      } catch (e) {
+        fleetResults.push({ machineCode: m.machineCode, status: "error", error: String(e) });
+      }
+    }
+
+    // Seed schedule data (clear + insert)
+    await db.execute(sql`DELETE FROM equipment_scheduled_jobs WHERE job_id LIKE 'JOB-2026-%'`);
+    const schedResults = [];
+    for (const j of SEED_SCHEDULE) {
+      try {
+        await db.execute(sql`
+          INSERT INTO equipment_scheduled_jobs (job_id, job_name, project_code, machine_id, machine_code, start_time, end_time, status, priority, estimated_hours)
+          VALUES (${j.jobId}, ${j.jobName}, ${j.projectCode}, ${j.machineId}, ${j.machineCode}, ${j.startTime}::timestamp, ${j.endTime}::timestamp, ${j.status}, ${j.priority}, ${j.estimatedHours})
+        `);
+        schedResults.push({ jobId: j.jobId, status: "ok" });
+      } catch (e) {
+        schedResults.push({ jobId: j.jobId, status: "error", error: String(e) });
+      }
+    }
+
+    return {
+      seeded: true,
+      fleet: fleetResults,
+      schedule: schedResults,
+      tables: ["equipment_sensor_readings", "equipment_scheduled_jobs", "equipment_maintenance_orders"],
     };
   }),
 });

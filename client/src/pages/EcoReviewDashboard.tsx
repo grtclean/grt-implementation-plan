@@ -7,164 +7,20 @@
  *   Right Panel: Financial Impact Radar (scrap in red, procurement in orange)
  *   Bottom: Change lines table + Approve/Reject
  *
- * Route: /engineering/eco-review/:id
+ * Data source: trpc.ecoImpact.listEcos + trpc.ecoImpact.getEcoImpact (server-backed)
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// ─── Types ───────────────────────────────────────────────────────────
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
-type EcoChangeType = "SUBSTITUTE" | "ADD" | "REMOVE" | "QUANTITY";
+// ─── Style Helpers ───────────────────────────────────────────────
+
 type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-
-interface BomChangeInput {
-  id: number;
-  changeType: EcoChangeType;
-  oldPartNumber: string | null;
-  oldPartName: string | null;
-  newPartNumber: string | null;
-  newPartName: string | null;
-  oldQuantity: number;
-  newQuantity: number;
-  oldUnitCost: number;
-  newUnitCost: number;
-  reason: string;
-}
-
-interface InventoryLookup {
-  partNumber: string;
-  stockQuantity: number;
-  warehouseLocation: string;
-}
-
-interface PartImpactDetail {
-  changeId: number;
-  changeType: EcoChangeType;
-  oldPartNumber: string | null;
-  oldPartName: string | null;
-  newPartNumber: string | null;
-  newPartName: string | null;
-  stockQuantity: number;
-  oldUnitCost: number;
-  newUnitCost: number;
-  scrapCost: number;
-  procurementCost: number;
-  reason: string;
-}
-
-interface EcoData {
-  ecoId: string;
-  title: string;
-  description: string;
-  status: string;
-  requestedBy: string;
-  requestDate: string;
-  targetMachine: string;
-  changes: BomChangeInput[];
-  inventory: InventoryLookup[];
-}
-
-// ─── Impact Engine (matches server logic) ────────────────────────────
-
-function calculateImpact(eco: EcoData) {
-  const invMap = new Map<string, InventoryLookup>();
-  eco.inventory.forEach(i => invMap.set(i.partNumber, i));
-
-  let totalScrap = 0;
-  let totalProc = 0;
-  let affectedCount = 0;
-  const details: PartImpactDetail[] = [];
-
-  for (const c of eco.changes) {
-    let scrap = 0, proc = 0, stock = 0;
-    if (c.changeType === "SUBSTITUTE" || c.changeType === "REMOVE") {
-      if (c.oldPartNumber) {
-        const inv = invMap.get(c.oldPartNumber);
-        stock = inv ? Math.max(0, inv.stockQuantity) : 0;
-        scrap = stock * c.oldUnitCost;
-        if (stock > 0) affectedCount += stock;
-      }
-    }
-    if (c.changeType === "SUBSTITUTE" || c.changeType === "ADD") {
-      proc = Math.max(0, c.newQuantity) * c.newUnitCost;
-    }
-    if (c.changeType === "QUANTITY") {
-      const delta = c.newQuantity - c.oldQuantity;
-      if (delta > 0) proc = delta * c.newUnitCost;
-    }
-    totalScrap += scrap;
-    totalProc += proc;
-    details.push({
-      changeId: c.id, changeType: c.changeType,
-      oldPartNumber: c.oldPartNumber, oldPartName: c.oldPartName,
-      newPartNumber: c.newPartNumber, newPartName: c.newPartName,
-      stockQuantity: stock, oldUnitCost: c.oldUnitCost, newUnitCost: c.newUnitCost,
-      scrapCost: Math.round(scrap * 100) / 100,
-      procurementCost: Math.round(proc * 100) / 100,
-      reason: c.reason,
-    });
-  }
-
-  const total = totalScrap + totalProc;
-  const risk: RiskLevel = total >= 200000 ? "CRITICAL" : total >= 50000 ? "HIGH" : total >= 10000 ? "MEDIUM" : "LOW";
-
-  return {
-    scrapRiskValue: Math.round(totalScrap * 100) / 100,
-    newProcurementCost: Math.round(totalProc * 100) / 100,
-    totalFinancialImpact: Math.round(total * 100) / 100,
-    affectedInventoryCount: affectedCount,
-    riskLevel: risk,
-    partDetails: details,
-  };
-}
-
-// ─── Mock ECO Data ───────────────────────────────────────────────────
-
-const MOCK_ECOS: Record<string, EcoData> = {
-  "ECO-2026-001": {
-    ecoId: "ECO-2026-001",
-    title: "Upgrade bearing to high-temp variant for WASH-003",
-    description: "Production line WASH-003 experiences bearing failures at 180°C alkaline wash cycles. Replace SKF 6205-2Z with SKF 6205-2Z/VA208 (high-temp rated to 250°C). This ECO also requires a new thermal gasket kit and removal of the incompatible NBR gasket.",
-    status: "pending_review",
-    requestedBy: "Wang Jun (工程部)",
-    requestDate: "2026-02-20",
-    targetMachine: "WASH-003 (Industrial Parts Washer)",
-    changes: [
-      { id: 1, changeType: "SUBSTITUTE", oldPartNumber: "BRG-SKF-6205-2Z", oldPartName: "SKF 6205-2Z Standard Bearing", newPartNumber: "BRG-SKF-6205-HT", newPartName: "SKF 6205-2Z/VA208 High-Temp Bearing", oldQuantity: 4, newQuantity: 4, oldUnitCost: 85, newUnitCost: 220, reason: "Standard bearings fail at 180°C alkaline wash. High-temp variant rated to 250°C." },
-      { id: 2, changeType: "ADD", oldPartNumber: null, oldPartName: null, newPartNumber: "GSK-VITON-003", newPartName: "Viton Thermal Gasket Kit (WASH-003)", oldQuantity: 0, newQuantity: 2, oldUnitCost: 0, newUnitCost: 340, reason: "New thermal gasket required for high-temp bearing housing seal." },
-      { id: 3, changeType: "REMOVE", oldPartNumber: "GSK-NBR-003", oldPartName: "NBR Standard Gasket Kit", newPartNumber: null, newPartName: null, oldQuantity: 2, newQuantity: 0, oldUnitCost: 45, newUnitCost: 0, reason: "NBR gaskets not compatible with new high-temp configuration." },
-    ],
-    inventory: [
-      { partNumber: "BRG-SKF-6205-2Z", stockQuantity: 24, warehouseLocation: "WH01-A-02-03" },
-      { partNumber: "GSK-NBR-003", stockQuantity: 8, warehouseLocation: "WH01-B-01-05" },
-      { partNumber: "BRG-SKF-6205-HT", stockQuantity: 0, warehouseLocation: "N/A" },
-      { partNumber: "GSK-VITON-003", stockQuantity: 0, warehouseLocation: "N/A" },
-    ],
-  },
-  "ECO-2026-002": {
-    ecoId: "ECO-2026-002",
-    title: "Replace PLC controller for CNC-001 spray nozzle system",
-    description: "Siemens S7-300 PLC is end-of-life (EOL 2027). Upgrade to S7-1500 for CNC-001 spray nozzle control. Requires new I/O module and PROFINET cabling.",
-    status: "pending_review",
-    requestedBy: "Li Ming (自动化部)",
-    requestDate: "2026-02-18",
-    targetMachine: "CNC-001 (5-Axis CNC Mill)",
-    changes: [
-      { id: 1, changeType: "SUBSTITUTE", oldPartNumber: "PLC-S7-300-CPU", oldPartName: "Siemens S7-300 CPU 315-2DP", newPartNumber: "PLC-S7-1500-CPU", newPartName: "Siemens S7-1500 CPU 1515-2PN", oldQuantity: 1, newQuantity: 1, oldUnitCost: 12800, newUnitCost: 18500, reason: "S7-300 series end-of-life 2027. Proactive upgrade." },
-      { id: 2, changeType: "SUBSTITUTE", oldPartNumber: "IO-S7-300-DI16", oldPartName: "S7-300 Digital Input Module (16ch)", newPartNumber: "IO-S7-1500-DI32", newPartName: "S7-1500 Digital Input Module (32ch)", oldQuantity: 2, newQuantity: 1, oldUnitCost: 2200, newUnitCost: 3800, reason: "New 32ch module replaces two 16ch. Halves slot count." },
-      { id: 3, changeType: "ADD", oldPartNumber: null, oldPartName: null, newPartNumber: "CBL-PROFINET-10M", newPartName: "PROFINET Cable Assembly (10m, shielded)", oldQuantity: 0, newQuantity: 3, oldUnitCost: 0, newUnitCost: 185, reason: "S7-1500 uses PROFINET instead of MPI." },
-    ],
-    inventory: [
-      { partNumber: "PLC-S7-300-CPU", stockQuantity: 2, warehouseLocation: "WH02-C-01-01" },
-      { partNumber: "IO-S7-300-DI16", stockQuantity: 6, warehouseLocation: "WH02-C-01-03" },
-      { partNumber: "PLC-S7-1500-CPU", stockQuantity: 0, warehouseLocation: "N/A" },
-      { partNumber: "IO-S7-1500-DI32", stockQuantity: 0, warehouseLocation: "N/A" },
-      { partNumber: "CBL-PROFINET-10M", stockQuantity: 0, warehouseLocation: "N/A" },
-    ],
-  },
-};
-
-// ─── Style Helpers ───────────────────────────────────────────────────
+type EcoChangeType = "SUBSTITUTE" | "ADD" | "REMOVE" | "QUANTITY";
 
 const RISK_COLORS: Record<RiskLevel, { color: string; bg: string; border: string }> = {
   LOW:      { color: "#22c55e", bg: "rgba(34,197,94,0.12)",  border: "rgba(34,197,94,0.3)" },
@@ -184,7 +40,7 @@ function formatCurrency(amount: number): string {
   return `¥${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-// ─── SVG Impact Gauge ────────────────────────────────────────────────
+// ─── SVG Impact Gauge ────────────────────────────────────────────
 
 function ImpactGauge({ scrap, procurement, total }: { scrap: number; procurement: number; total: number }) {
   const maxVal = Math.max(total, 1);
@@ -194,17 +50,12 @@ function ImpactGauge({ scrap, procurement, total }: { scrap: number; procurement
   const r = 75;
   const circ = 2 * Math.PI * r;
 
-  // Two-arc donut: scrap (red) + procurement (orange)
   const scrapArc = (scrapPct / 100) * circ;
   const procArc = (procPct / 100) * circ;
-  const gap = circ - scrapArc - procArc;
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {/* Background ring */}
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={20} />
-
-      {/* Scrap arc (red) */}
       <circle
         cx={size/2} cy={size/2} r={r} fill="none"
         stroke="#ef4444" strokeWidth={20}
@@ -213,8 +64,6 @@ function ImpactGauge({ scrap, procurement, total }: { scrap: number; procurement
         transform={`rotate(-90 ${size/2} ${size/2})`}
         style={{ filter: "drop-shadow(0 0 6px rgba(239,68,68,0.5))" }}
       />
-
-      {/* Procurement arc (orange) */}
       <circle
         cx={size/2} cy={size/2} r={r} fill="none"
         stroke="#f97316" strokeWidth={20}
@@ -224,8 +73,6 @@ function ImpactGauge({ scrap, procurement, total }: { scrap: number; procurement
         transform={`rotate(-90 ${size/2} ${size/2})`}
         style={{ filter: "drop-shadow(0 0 6px rgba(249,115,22,0.5))" }}
       />
-
-      {/* Center text */}
       <text x={size/2} y={size/2 - 8} textAnchor="middle" fill="#f1f5f9" fontSize={14} fontWeight={700}>
         TOTAL
       </text>
@@ -236,7 +83,7 @@ function ImpactGauge({ scrap, procurement, total }: { scrap: number; procurement
   );
 }
 
-// ─── Components ──────────────────────────────────────────────────────
+// ─── Components ──────────────────────────────────────────────────
 
 function InfoRow({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
@@ -259,10 +106,23 @@ function ChangeTypeBadge({ type }: { type: EcoChangeType }) {
   );
 }
 
-// ─── Main Page ───────────────────────────────────────────────────────
+function LoadingSkeleton() {
+  return (
+    <div style={{ minHeight: "100vh", background: "#0f172a", padding: "32px" }}>
+      <Skeleton className="h-10 w-96 mb-4 bg-slate-800" />
+      <Skeleton className="h-4 w-64 mb-8 bg-slate-800" />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 24 }}>
+        <Skeleton className="h-96 rounded-xl bg-slate-800" />
+        <Skeleton className="h-96 rounded-xl bg-slate-800" />
+      </div>
+      <Skeleton className="h-48 rounded-xl bg-slate-800" />
+    </div>
+  );
+}
+
+// ─── Main Page ───────────────────────────────────────────────────
 
 export default function EcoReviewDashboard() {
-  // Extract ECO ID from URL path
   const pathParts = window.location.pathname.split("/");
   const ecoIdFromUrl = pathParts[pathParts.length - 1] || "ECO-2026-001";
 
@@ -271,19 +131,64 @@ export default function EcoReviewDashboard() {
   const [rejectReason, setRejectReason] = useState("");
   const [showConfirmApprove, setShowConfirmApprove] = useState(false);
 
-  const eco = MOCK_ECOS[selectedEcoId] || MOCK_ECOS["ECO-2026-001"];
-  const impact = useMemo(() => calculateImpact(eco), [eco]);
-  const riskCfg = RISK_COLORS[impact.riskLevel];
+  // ─── tRPC queries ───
+  const listQuery = trpc.ecoImpact.listEcos.useQuery(undefined, QUERY_OPTS);
+  const ecoList = (listQuery.data?.ecos ?? []) as any[];
+
+  const impactQuery = trpc.ecoImpact.getEcoImpact.useQuery(
+    { ecoId: selectedEcoId },
+    { enabled: !!selectedEcoId, ...QUERY_OPTS },
+  );
+  const ecoData = impactQuery.data as any;
+  const eco = ecoData?.eco;
+  const impact = ecoData?.impact;
+
+  // ─── tRPC mutations ───
+  const approveMut = trpc.ecoImpact.approveEco.useMutation({
+    onSuccess: () => {
+      setDecision("approved");
+      setShowConfirmApprove(false);
+      toast.success("ECO approved — procurement workflow initiated");
+      impactQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const rejectMut = trpc.ecoImpact.rejectEco.useMutation({
+    onSuccess: () => {
+      setDecision("rejected");
+      toast.success("ECO rejected");
+      impactQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
 
   const handleApprove = () => {
-    setDecision("approved");
-    setShowConfirmApprove(false);
+    approveMut.mutate({ ecoId: selectedEcoId });
   };
 
   const handleReject = () => {
     if (!rejectReason.trim()) return;
-    setDecision("rejected");
+    rejectMut.mutate({ ecoId: selectedEcoId, rejectReason: rejectReason.trim() });
   };
+
+  const riskCfg = RISK_COLORS[(impact?.riskLevel as RiskLevel) ?? "LOW"];
+
+  if (listQuery.isLoading || impactQuery.isLoading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (!eco || !impact) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0f172a", color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🔗</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: "#e2e8f0" }}>ECO Not Found</div>
+          <div style={{ fontSize: 14, marginTop: 4 }}>No data for ECO ID: {selectedEcoId}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#0f172a", color: "#f1f5f9", fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -304,7 +209,6 @@ export default function EcoReviewDashboard() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {/* ECO selector */}
             <select
               value={selectedEcoId}
               onChange={(e) => { setSelectedEcoId(e.target.value); setDecision(null); setShowConfirmApprove(false); }}
@@ -313,15 +217,15 @@ export default function EcoReviewDashboard() {
                 background: "#1e293b", color: "#e2e8f0", fontSize: 13,
               }}
             >
-              {Object.keys(MOCK_ECOS).map(id => (
-                <option key={id} value={id}>{id}</option>
+              {ecoList.map((e: any) => (
+                <option key={e.ecoId} value={e.ecoId}>{e.ecoId}</option>
               ))}
             </select>
             <span style={{
               padding: "4px 12px", borderRadius: 9999, fontSize: 11, fontWeight: 500,
-              background: "rgba(234,179,8,0.15)", color: "#eab308", border: "1px solid rgba(234,179,8,0.3)",
+              background: "rgba(59,130,246,0.15)", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.3)",
             }}>
-              DEMO Data
+              DB-backed
             </span>
           </div>
         </div>
@@ -372,18 +276,18 @@ export default function EcoReviewDashboard() {
               {eco.description}
             </p>
 
-            <InfoRow label="Status" value={eco.status.replace(/_/g, " ").toUpperCase()} color="#eab308" />
+            <InfoRow label="Status" value={(eco.status ?? "").replace(/_/g, " ").toUpperCase()} color="#eab308" />
             <InfoRow label="Requested By" value={eco.requestedBy} />
             <InfoRow label="Request Date" value={eco.requestDate} />
             <InfoRow label="Target Machine" value={eco.targetMachine} />
-            <InfoRow label="Change Lines" value={`${eco.changes.length} parts affected`} />
+            <InfoRow label="Change Lines" value={`${(eco.changes ?? []).length} parts affected`} />
 
             {/* Inventory lookup */}
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: "20px 0 10px", color: "#e2e8f0" }}>
               Warehouse Inventory (WMS)
             </h3>
             <div style={{ borderRadius: 8, overflow: "hidden", border: "1px solid #1e293b" }}>
-              {eco.inventory.map((inv, i) => (
+              {(eco.inventory ?? []).map((inv: any, i: number) => (
                 <div key={inv.partNumber} style={{
                   display: "flex", justifyContent: "space-between", padding: "8px 12px",
                   background: i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent",
@@ -423,7 +327,6 @@ export default function EcoReviewDashboard() {
               <ImpactGauge scrap={impact.scrapRiskValue} procurement={impact.newProcurementCost} total={impact.totalFinancialImpact} />
 
               <div style={{ flex: 1 }}>
-                {/* Scrap Cost */}
                 <div style={{
                   background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)",
                   borderRadius: 10, padding: 16, marginBottom: 12,
@@ -439,7 +342,6 @@ export default function EcoReviewDashboard() {
                   </div>
                 </div>
 
-                {/* New Procurement */}
                 <div style={{
                   background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.25)",
                   borderRadius: 10, padding: 16,
@@ -497,7 +399,7 @@ export default function EcoReviewDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {impact.partDetails.map((d, i) => (
+                {(impact.partDetails ?? []).map((d: any, i: number) => (
                   <tr key={d.changeId} style={{ borderBottom: "1px solid #1e293b", background: i % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent" }}>
                     <td style={{ padding: "10px 12px", color: "#64748b" }}>{d.changeId}</td>
                     <td style={{ padding: "10px 12px" }}><ChangeTypeBadge type={d.changeType} /></td>
@@ -569,12 +471,11 @@ export default function EcoReviewDashboard() {
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "#e2e8f0", marginBottom: 4 }}>Executive Decision Required</div>
               <div style={{ fontSize: 12, color: "#64748b" }}>
-                This ECO affects {impact.partDetails.length} BOM lines across Engineering, Warehouse, and Finance.
+                This ECO affects {(impact.partDetails ?? []).length} BOM lines across Engineering, Warehouse, and Finance.
               </div>
             </div>
 
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              {/* Reject flow */}
               <input
                 type="text"
                 placeholder="Rejection reason..."
@@ -587,7 +488,7 @@ export default function EcoReviewDashboard() {
               />
               <button
                 onClick={handleReject}
-                disabled={!rejectReason.trim()}
+                disabled={!rejectReason.trim() || rejectMut.isPending}
                 style={{
                   padding: "10px 24px", borderRadius: 8,
                   border: "1px solid rgba(239,68,68,0.4)",
@@ -596,10 +497,9 @@ export default function EcoReviewDashboard() {
                   opacity: rejectReason.trim() ? 1 : 0.5,
                 }}
               >
-                Reject ECO
+                {rejectMut.isPending ? "Rejecting..." : "Reject ECO"}
               </button>
 
-              {/* Approve flow */}
               {!showConfirmApprove ? (
                 <button
                   onClick={() => setShowConfirmApprove(true)}
@@ -615,6 +515,7 @@ export default function EcoReviewDashboard() {
               ) : (
                 <button
                   onClick={handleApprove}
+                  disabled={approveMut.isPending}
                   style={{
                     padding: "10px 24px", borderRadius: 8,
                     border: "2px solid #22c55e",
@@ -623,7 +524,7 @@ export default function EcoReviewDashboard() {
                     animation: "pulse 1.5s infinite",
                   }}
                 >
-                  CONFIRM — Accept ¥{impact.totalFinancialImpact.toLocaleString()} Impact
+                  {approveMut.isPending ? "Approving..." : `CONFIRM — Accept ¥${impact.totalFinancialImpact.toLocaleString()} Impact`}
                 </button>
               )}
             </div>

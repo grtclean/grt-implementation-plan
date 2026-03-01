@@ -859,28 +859,6 @@ function PerformanceLinkTab() {
 // Tab: AI Performance Engine (AI 绩效引擎) — Real tRPC + fallback mock
 // ============================================================================
 
-// Fallback mock data used when backend has no records yet
-const MOCK_LEADERBOARD = [
-  { rank: 1, userName: "张伟", breadthScore: 92, depthScore: 88, executionScore: 95, disciplineScore: 100, meetingScore: 93, meetingsAttended: 12 },
-  { rank: 2, userName: "李敏", breadthScore: 85, depthScore: 91, executionScore: 88, disciplineScore: 100, meetingScore: 90, meetingsAttended: 11 },
-  { rank: 3, userName: "王强", breadthScore: 88, depthScore: 82, executionScore: 90, disciplineScore: 95, meetingScore: 88, meetingsAttended: 14 },
-  { rank: 4, userName: "陈芳", breadthScore: 78, depthScore: 86, executionScore: 92, disciplineScore: 100, meetingScore: 87, meetingsAttended: 10 },
-  { rank: 5, userName: "赵磊", breadthScore: 80, depthScore: 78, executionScore: 88, disciplineScore: 95, meetingScore: 84, meetingsAttended: 13 },
-  { rank: 6, userName: "刘洋", breadthScore: 75, depthScore: 82, executionScore: 85, disciplineScore: 90, meetingScore: 82, meetingsAttended: 9 },
-  { rank: 7, userName: "黄鑫", breadthScore: 72, depthScore: 80, executionScore: 82, disciplineScore: 100, meetingScore: 81, meetingsAttended: 8 },
-  { rank: 8, userName: "周婷", breadthScore: 70, depthScore: 85, executionScore: 78, disciplineScore: 90, meetingScore: 80, meetingsAttended: 11 },
-  { rank: 9, userName: "吴军", breadthScore: 68, depthScore: 72, executionScore: 80, disciplineScore: 95, meetingScore: 77, meetingsAttended: 10 },
-  { rank: 10, userName: "孙静", breadthScore: 65, depthScore: 70, executionScore: 75, disciplineScore: 85, meetingScore: 73, meetingsAttended: 7 },
-];
-
-const MOCK_ACTION_TREND = [
-  { month: "2025-09", total: 42, completed: 35, overdue: 3, rate: 83 },
-  { month: "2025-10", total: 56, completed: 48, overdue: 4, rate: 86 },
-  { month: "2025-11", total: 61, completed: 55, overdue: 2, rate: 90 },
-  { month: "2025-12", total: 48, completed: 44, overdue: 1, rate: 92 },
-  { month: "2026-01", total: 53, completed: 50, overdue: 1, rate: 94 },
-  { month: "2026-02", total: 38, completed: 35, overdue: 1, rate: 92 },
-];
 
 function AIPerformanceTab() {
   // ── tRPC queries with fallback ─────────────────────────────
@@ -895,29 +873,17 @@ function AIPerformanceTab() {
   });
   const roiData = roiQuery.data ?? null;
 
-  // Use real data if available, else fallback to mock
-  const leaderboard = (Array.isArray(leaderboardQuery.data) && leaderboardQuery.data.length > 0)
-    ? leaderboardQuery.data
-    : MOCK_LEADERBOARD;
-  const actionTrend = (Array.isArray(actionStatsQuery.data) && actionStatsQuery.data.some(d => d.total > 0))
-    ? actionStatsQuery.data
-    : MOCK_ACTION_TREND;
+  // Use real data from DB (seed via button if empty)
+  const leaderboard = Array.isArray(leaderboardQuery.data) ? leaderboardQuery.data : [];
+  const actionTrend = Array.isArray(actionStatsQuery.data) ? actionStatsQuery.data : [];
   const dash = dashboardQuery.data;
   const isLive = !!(dash && dash.employeesEvaluated > 0);
 
-  const avgScore = isLive
-    ? (dash?.avgMeetingScore ?? 0)
-    : Math.round(MOCK_LEADERBOARD.reduce((s, p) => s + p.meetingScore, 0) / MOCK_LEADERBOARD.length);
-  const completionRate = isLive
-    ? (dash?.actionItemCompletionRate ?? 0)
-    : MOCK_ACTION_TREND[MOCK_ACTION_TREND.length - 1].rate;
-  const topName = isLive
-    ? (dash?.topPerformer?.name ?? "—")
-    : MOCK_LEADERBOARD[0].userName;
-  const topScore = isLive
-    ? (dash?.topPerformer?.score ?? 0)
-    : MOCK_LEADERBOARD[0].meetingScore;
-  const totalEvaluated = isLive ? (dash?.employeesEvaluated ?? 0) : MOCK_LEADERBOARD.length;
+  const avgScore = dash?.avgMeetingScore ?? 0;
+  const completionRate = dash?.actionItemCompletionRate ?? 0;
+  const topName = dash?.topPerformer?.name ?? "—";
+  const topScore = dash?.topPerformer?.score ?? 0;
+  const totalEvaluated = dash?.employeesEvaluated ?? 0;
 
   const tierColor = (score: number) =>
     score >= 90 ? "text-emerald-600" : score >= 75 ? "text-blue-600" : score >= 60 ? "text-amber-600" : "text-red-600";
@@ -1034,8 +1000,8 @@ function AIPerformanceTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {leaderboard.map((p, idx) => {
-                const rank = p.rank ?? idx + 1;
+              {leaderboard.map((p: any, idx: number) => {
+                const rank = idx + 1;
                 const score = p.meetingScore ?? 0;
                 return (
                   <TableRow key={rank}>
@@ -1048,10 +1014,10 @@ function AIPerformanceTab() {
                       ) : rank}
                     </TableCell>
                     <TableCell className="font-medium">{p.userName}</TableCell>
-                    <TableCell className="text-center">{p.breadthScore}</TableCell>
-                    <TableCell className="text-center">{p.depthScore}</TableCell>
-                    <TableCell className="text-center">{p.executionScore}</TableCell>
-                    <TableCell className="text-center">{p.disciplineScore}</TableCell>
+                    <TableCell className="text-center">{p.breadth ?? p.breadthScore ?? 0}</TableCell>
+                    <TableCell className="text-center">{p.depth ?? p.depthScore ?? 0}</TableCell>
+                    <TableCell className="text-center">{p.execution ?? p.executionScore ?? 0}</TableCell>
+                    <TableCell className="text-center">{p.discipline ?? p.disciplineScore ?? 0}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant={score >= 80 ? "default" : "secondary"}>
                         {score}
@@ -1062,7 +1028,7 @@ function AIPerformanceTab() {
                         {tierLabel(score)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-center">{p.meetingsAttended}</TableCell>
+                    <TableCell className="text-center">{p.actionItemRate ?? p.meetingsAttended ?? 0}%</TableCell>
                   </TableRow>
                 );
               })}
@@ -1081,10 +1047,10 @@ function AIPerformanceTab() {
             <ResponsiveContainer width="100%" height={280}>
               <RadarChart
                 data={[
-                  { dimension: "Breadth", ...Object.fromEntries(leaderboard.slice(0, 3).map((p) => [p.userName, p.breadthScore])) },
-                  { dimension: "Depth", ...Object.fromEntries(leaderboard.slice(0, 3).map((p) => [p.userName, p.depthScore])) },
-                  { dimension: "Execution", ...Object.fromEntries(leaderboard.slice(0, 3).map((p) => [p.userName, p.executionScore])) },
-                  { dimension: "Discipline", ...Object.fromEntries(leaderboard.slice(0, 3).map((p) => [p.userName, p.disciplineScore])) },
+                  { dimension: "Breadth", ...Object.fromEntries(leaderboard.slice(0, 3).map((p: any) => [p.userName, p.breadth ?? p.breadthScore ?? 0])) },
+                  { dimension: "Depth", ...Object.fromEntries(leaderboard.slice(0, 3).map((p: any) => [p.userName, p.depth ?? p.depthScore ?? 0])) },
+                  { dimension: "Execution", ...Object.fromEntries(leaderboard.slice(0, 3).map((p: any) => [p.userName, p.execution ?? p.executionScore ?? 0])) },
+                  { dimension: "Discipline", ...Object.fromEntries(leaderboard.slice(0, 3).map((p: any) => [p.userName, p.discipline ?? p.disciplineScore ?? 0])) },
                 ]}
               >
                 <PolarGrid />

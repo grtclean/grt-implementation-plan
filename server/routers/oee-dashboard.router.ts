@@ -293,22 +293,9 @@ export const oeeDashboardRouter = router({
           .limit(input.days);
       });
 
-      // Mock history if no live data
+      // No snapshots yet — return empty history instead of random data
       if (!history || history.length === 0) {
-        const mockHistory = [];
-        for (let i = 0; i < Math.min(input.days, 14); i++) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          const base = 70 + Math.random() * 20;
-          mockHistory.push({
-            date: d.toISOString().split("T")[0],
-            oee: Math.round(base * 10) / 10,
-            availability: Math.round((80 + Math.random() * 15) * 10) / 10,
-            performance: Math.round((75 + Math.random() * 20) * 10) / 10,
-            quality: Math.round((90 + Math.random() * 9) * 10) / 10,
-          });
-        }
-        return { history: mockHistory, isLive: false };
+        return { history: [], isLive: false };
       }
 
       return {

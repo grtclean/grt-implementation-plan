@@ -1,5 +1,6 @@
 /**
  * 物料管理页面
+ * Wired to real tRPC mutations (materials.createMaterial, materials.deleteMaterial)
  */
 
 import { useState } from 'react';
@@ -17,17 +18,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Plus, Download, Upload, Search, Edit2, Trash2, Package, AlertTriangle, XCircle, BarChart3 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 
-interface LocalMaterial {
-  id: string;
-  materialCode: string;
-  materialName: string;
-  categoryCode: string;
-  specificationCode: string;
-  quantityOnHand: number;
-  standardCost: number;
-  status: string;
-}
-
 export default function MaterialManagement() {
   const { t, tpl } = useLanguage();
   const { toast } = useToast();
@@ -35,65 +25,79 @@ export default function MaterialManagement() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [activeTab, setActiveTab] = useState('list');
 
-  // 新增物料 Dialog 状态
+  // Create dialog state
   const [createOpen, setCreateOpen] = useState(false);
-  const [formMaterialCode, setFormMaterialCode] = useState('');
   const [formMaterialName, setFormMaterialName] = useState('');
   const [formCategoryCode, setFormCategoryCode] = useState('');
   const [formSpecificationCode, setFormSpecificationCode] = useState('');
-  const [formQuantityOnHand, setFormQuantityOnHand] = useState('');
   const [formStandardCost, setFormStandardCost] = useState('');
-
-  // 本地新增物料（无后端mutation时追加到本地）
-  const [localMaterials, setLocalMaterials] = useState<LocalMaterial[]>([]);
+  const [formMaterialType, setFormMaterialType] = useState<string>('component');
 
   const resetForm = () => {
-    setFormMaterialCode('');
     setFormMaterialName('');
     setFormCategoryCode('');
     setFormSpecificationCode('');
-    setFormQuantityOnHand('');
     setFormStandardCost('');
+    setFormMaterialType('component');
   };
 
-  const handleCreateSubmit = () => {
-    if (!formMaterialCode || !formMaterialName) {
-      toast({ title: t("supply.material.fillRequired"), description: t("supply.material.codeNameRequired"), variant: 'destructive' });
-      return;
-    }
-    const newMaterial: LocalMaterial = {
-      id: `local_${Date.now()}`,
-      materialCode: formMaterialCode,
-      materialName: formMaterialName,
-      categoryCode: formCategoryCode,
-      specificationCode: formSpecificationCode,
-      quantityOnHand: Number(formQuantityOnHand) || 0,
-      standardCost: Number(formStandardCost) || 0,
-      status: 'active',
-    };
-    setLocalMaterials((prev) => [newMaterial, ...prev]);
-    setCreateOpen(false);
-    resetForm();
-    toast({ title: t("supply.material.addSuccess"), description: tpl("supply.material.materialAdded", { name: newMaterial.materialName }) });
-  };
+  // ── Queries ──
+  const utils = trpc.useUtils();
 
-  const handleDeleteMaterial = (material: LocalMaterial) => {
-    setLocalMaterials((prev) => prev.filter((m) => m.id !== material.id));
-    toast({ title: t("supply.material.deleted"), description: tpl("supply.material.materialDeleted", { name: material.materialName }) });
-  };
-
-  // 获取物料列表
   const { data: materialsData, isLoading } = trpc.materials.getAllMaterials.useQuery({
     categoryCode: selectedCategory || undefined,
     page: 1,
     pageSize: 20,
   }, { retry: false, throwOnError: false });
 
-  // 获取物料分类
   const { data: categoriesData } = trpc.materials.getCategories.useQuery(undefined, { retry: false, throwOnError: false });
 
-  // 获取库存统计
   const { data: statsData } = trpc.materials.getInventoryStats.useQuery(undefined, { retry: false, throwOnError: false });
+
+  // ── Mutations ──
+  const createMutation = trpc.materials.createMaterial.useMutation({
+    onSuccess: (data: any) => {
+      utils.materials.getAllMaterials.invalidate();
+      utils.materials.getInventoryStats.invalidate();
+      setCreateOpen(false);
+      resetForm();
+      toast({ title: t("supply.material.addSuccess"), description: tpl("supply.material.materialAdded", { name: data?.materialName ?? '' }) });
+    },
+    onError: (err: any) => {
+      toast({ title: t("supply.material.fillRequired"), description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteMutation = trpc.materials.deleteMaterial.useMutation({
+    onSuccess: () => {
+      utils.materials.getAllMaterials.invalidate();
+      utils.materials.getInventoryStats.invalidate();
+    },
+    onError: (err: any) => {
+      toast({ title: t("supply.material.deleteTitle"), description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const handleCreateSubmit = () => {
+    if (!formMaterialName || !formCategoryCode) {
+      toast({ title: t("supply.material.fillRequired"), description: t("supply.material.codeNameRequired"), variant: 'destructive' });
+      return;
+    }
+    createMutation.mutate({
+      materialName: formMaterialName,
+      categoryCode: formCategoryCode,
+      specificationCode: formSpecificationCode || undefined,
+      materialType: formMaterialType as any,
+      standardCost: formStandardCost ? Number(formStandardCost) : undefined,
+    });
+  };
+
+  const handleDeleteMaterial = (material: any) => {
+    if (typeof material.id === 'number') {
+      deleteMutation.mutate({ id: material.id });
+      toast({ title: t("supply.material.deleted"), description: tpl("supply.material.materialDeleted", { name: material.materialName }) });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -190,8 +194,7 @@ export default function MaterialManagement() {
                         </TableCell>
                       </TableRow>
                     ) : (() => {
-                      const serverItems: any[] = materialsData?.items ?? [];
-                      const allItems = [...localMaterials, ...serverItems];
+                      const allItems: any[] = materialsData?.items ?? [];
                       if (allItems.length === 0) {
                         return (
                           <TableRow>
@@ -230,13 +233,7 @@ export default function MaterialManagement() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => {
-                                  if (String(material.id).startsWith('local_')) {
-                                    handleDeleteMaterial(material as LocalMaterial);
-                                  } else {
-                                    toast({ title: t("supply.material.deleteTitle"), description: tpl("supply.material.deleteComingSoon", { name: material.materialName }) });
-                                  }
-                                }}
+                                onClick={() => handleDeleteMaterial(material)}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -330,15 +327,6 @@ export default function MaterialManagement() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="materialCode">{t("supply.material.colMaterialCode")} *</Label>
-              <Input
-                id="materialCode"
-                placeholder="UC-PMP-DN50-0001"
-                value={formMaterialCode}
-                onChange={(e) => setFormMaterialCode(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
               <Label htmlFor="materialName">{t("supply.material.colMaterialName")} *</Label>
               <Input
                 id="materialName"
@@ -347,7 +335,7 @@ export default function MaterialManagement() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="categoryCode">{t("supply.material.colCategory")}</Label>
+              <Label htmlFor="categoryCode">{t("supply.material.colCategory")} *</Label>
               <Input
                 id="categoryCode"
                 placeholder="PMP"
@@ -356,22 +344,28 @@ export default function MaterialManagement() {
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="materialType">{t("supply.material.colSpec")}</Label>
+              <Select value={formMaterialType} onValueChange={setFormMaterialType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="equipment">Equipment</SelectItem>
+                  <SelectItem value="component">Component</SelectItem>
+                  <SelectItem value="part">Part</SelectItem>
+                  <SelectItem value="consumable">Consumable</SelectItem>
+                  <SelectItem value="chemical">Chemical</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="specificationCode">{t("supply.material.colSpec")}</Label>
               <Input
                 id="specificationCode"
                 placeholder="DN50"
                 value={formSpecificationCode}
                 onChange={(e) => setFormSpecificationCode(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="quantityOnHand">{t("supply.material.colStock")}</Label>
-              <Input
-                id="quantityOnHand"
-                type="number"
-                placeholder="0"
-                value={formQuantityOnHand}
-                onChange={(e) => setFormQuantityOnHand(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
@@ -387,7 +381,9 @@ export default function MaterialManagement() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setCreateOpen(false); resetForm(); }}>{t("supply.common.cancel")}</Button>
-            <Button onClick={handleCreateSubmit}>{t("supply.material.confirmAdd")}</Button>
+            <Button onClick={handleCreateSubmit} disabled={createMutation.isPending}>
+              {createMutation.isPending ? t("supply.common.loading") : t("supply.material.confirmAdd")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
