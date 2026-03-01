@@ -32,33 +32,7 @@ const DOMAINS = [
   { code: "L", name: "领导力", fullName: "Leadership/Influence", color: "#ec4899" },
 ];
 
-// 模拟证书数据
-const MOCK_CERTIFICATES = [
-  {
-    id: "cert1",
-    certificateNumber: "GRT-T-2026-001234",
-    domainCode: "T",
-    domainName: "技术能力",
-    level: 3,
-    userName: "张工程师",
-    issueDate: "2026-01-15",
-    expiryDate: "2027-01-15",
-    status: "valid",
-    pdfUrl: "#",
-  },
-  {
-    id: "cert2",
-    certificateNumber: "GRT-D-2025-005678",
-    domainCode: "D",
-    domainName: "交付能力",
-    level: 4,
-    userName: "张工程师",
-    issueDate: "2025-08-20",
-    expiryDate: "2026-08-20",
-    status: "valid",
-    pdfUrl: "#",
-  },
-];
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 export default function CapabilityCertificates() {
   const { t } = useLanguage();
@@ -69,16 +43,10 @@ export default function CapabilityCertificates() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   // 获取证书资格
-  const eligibilityQuery = trpc.capabilityOs.checkCertificateEligibility.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
+  const eligibilityQuery = trpc.capabilityOs.checkCertificateEligibility.useQuery(undefined, QUERY_OPTS);
 
   // 获取我的证书
-  const certificatesQuery = trpc.capabilityOs.getMyCertificates.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
+  const certificatesQuery = trpc.capabilityOs.getMyCertificates.useQuery(undefined, QUERY_OPTS);
 
   // 生成证书
   const generateMutation = trpc.capabilityOs.generateCertificate.useMutation({
@@ -147,12 +115,9 @@ export default function CapabilityCertificates() {
     );
   };
 
-  // 使用模拟数据或真实数据
-  const certificates = certificatesQuery.data || MOCK_CERTIFICATES;
-  const eligibleDomains = (eligibilityQuery.data as any)?.eligibleDomains || [
-    { code: "T", name: "技术能力", level: 3 },
-    { code: "D", name: "交付能力", level: 4 },
-  ];
+  // DB-backed data
+  const certificates = (certificatesQuery.data ?? []) as any[];
+  const eligibleDomains = ((eligibilityQuery.data as any)?.eligibleDomains ?? []) as any[];
 
   return (
       <div className="space-y-6">

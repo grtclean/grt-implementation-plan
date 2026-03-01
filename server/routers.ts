@@ -75,6 +75,9 @@ import { employeeAiAssistantRouter } from "./routers/employee-ai-assistant.route
 import { skillRecommendationRouter } from "./routers/skill-recommendation.router";
 import { permissionManagementRouter } from "./routers/permission-management.router";
 import { accessControlRouter } from "./routers/access-control.router";
+import { aiModelRouter } from "./routers/ai-model.router";
+import { rdVerificationRouter } from "./routers/rd-verification.router";
+import { operationsDashboardRouter } from "./routers/operations-dashboard.router";
 
 
 // Import AI services and capability evidence routers
@@ -362,6 +365,9 @@ export const appRouter = router({
   skillRecommendation: skillRecommendationRouter,
   permissionManagement: permissionManagementRouter,
   accessControl: accessControlRouter,
+  aiModel: aiModelRouter,
+  rdVerification: rdVerificationRouter,
+  operationsDashboard: operationsDashboardRouter,
   deadlockMonitor: realDeadlockMonitorRouter,
   aiTrigger: realAiTriggerRouter,
   templateUsageStats: realTemplateUsageStatsRouter,

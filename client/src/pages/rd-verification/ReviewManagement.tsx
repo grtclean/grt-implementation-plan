@@ -1,34 +1,19 @@
 /**
  * 评审管理 Tab - 阶段评审流程 + AI智能建议
- * 使用Mock数据
+ * Data source: rdVerification.getReviews (DB-backed)
  */
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { GATE_STATUSES } from "../../../../shared/stage-definitions";
 import {
   Clock, CheckCircle2, XCircle, AlertTriangle, ChevronRight,
   FileText, Sparkles, Lightbulb, Inbox,
 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
-interface MockReview {
-  id: number;
-  projectName: string;
-  projectCode: string;
-  gatePhase: string;
-  gateName: string;
-  status: string;
-  reviewer: string;
-  reviewNotes?: string;
-  createdAt: string;
-}
-
-const MOCK_REVIEWS: MockReview[] = [
-  { id: 1, projectName: "汽车动力总成超声波清洗线", projectCode: "GRT-2026-001", gatePhase: "M3", gateName: "立项评审", status: "approved", reviewer: "张总", reviewNotes: "商业价值明确，资源充足，批准立项", createdAt: "2026-01-15" },
-  { id: 2, projectName: "半导体晶圆精密清洗设备", projectCode: "GRT-2026-002", gatePhase: "M5", gateName: "详细设计评审", status: "conditional", reviewer: "李工", reviewNotes: "BOM一致性需修正后重新提交", createdAt: "2026-02-01" },
-  { id: 3, projectName: "医疗器械超声波清洗系统", projectCode: "GRT-2026-003", gatePhase: "M2", gateName: "方案设计评审", status: "in_review", reviewer: "王经理", createdAt: "2026-02-10" },
-  { id: 4, projectName: "航空发动机叶片清洗线", projectCode: "GRT-2026-004", gatePhase: "M8", gateName: "FAT验收", status: "pending", reviewer: "赵工", createdAt: "2026-02-12" },
-];
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 const statusIconMap: Record<string, React.ComponentType<{className?: string}>> = {
   pending: Clock, in_review: Clock, approved: CheckCircle2, rejected: XCircle, conditional: AlertTriangle,
@@ -41,6 +26,18 @@ const AI_STAGES = [
 ];
 
 export default function ReviewManagement() {
+  const reviewsQuery = trpc.rdVerification.getReviews.useQuery(undefined, QUERY_OPTS);
+  const reviews = (reviewsQuery.data ?? []) as any[];
+
+  if (reviewsQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-64" />
+        <Skeleton className="h-48" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* 审批记录 */}
@@ -50,13 +47,13 @@ export default function ReviewManagement() {
           <CardDescription>所有项目的阶段门审批历史</CardDescription>
         </CardHeader>
         <CardContent>
-          {MOCK_REVIEWS.length === 0 ? (
+          {reviews.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>暂无审批记录</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {MOCK_REVIEWS.map((review) => {
+              {reviews.map((review: any) => {
                 const status = GATE_STATUSES[review.status] || GATE_STATUSES.pending;
                 const StatusIcon = statusIconMap[review.status] || Clock;
                 return (

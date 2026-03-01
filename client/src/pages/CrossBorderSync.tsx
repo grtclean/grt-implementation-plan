@@ -44,48 +44,7 @@ const FLUENT_DANGER = "#d13438";
 const FLUENT_SUBTLE = "#605e5c";
 const FLUENT_WARN = "#ffaa44";
 
-// ── Mock US Orders (with PII that must be stripped) ────────
-const MOCK_US_ORDERS = [
-  {
-    order_id: "US-2026-0042",
-    customer_name: "John Doe",
-    customer_email: "john.doe@acme-corp.com",
-    customer_phone: "+1-555-0142",
-    unit_price: 2500,
-    total_price: 5000,
-    sku: "GRT-CLN-R200",
-    quantity: 2,
-    specs: "Robotic Cleaning System R200, 220V/60Hz, EN ISO 13849",
-    shipping_address: "1234 Innovation Dr, San Jose, CA 95134",
-    payment_method: "Wire Transfer — Chase Bank ****4821",
-  },
-  {
-    order_id: "US-2026-0043",
-    customer_name: "Sarah Miller",
-    customer_email: "s.miller@globaltech.io",
-    customer_phone: "+1-555-0198",
-    unit_price: 8200,
-    total_price: 24600,
-    sku: "GRT-WLD-X500",
-    quantity: 3,
-    specs: "Welding Cell X500, 480V/3Ph, AWS D1.1 certified",
-    shipping_address: "5678 Tech Park Blvd, Austin, TX 78759",
-    payment_method: "L/C — Bank of America ****7733",
-  },
-  {
-    order_id: "US-2026-0044",
-    customer_name: "Michael Chen",
-    customer_email: "m.chen@nextgen-mfg.com",
-    customer_phone: "+1-555-0276",
-    unit_price: 15000,
-    total_price: 15000,
-    sku: "GRT-ASM-A800",
-    quantity: 1,
-    specs: "Assembly Line A800, 380V/50Hz, IATF 16949 compliant",
-    shipping_address: "9012 Industrial Way, Detroit, MI 48201",
-    payment_method: "Net 60 — PO#GTX-20260044",
-  },
-];
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 // ── PII field definitions for visual marking ───────────────
 const PII_FIELDS = new Set([
@@ -126,6 +85,10 @@ export default function CrossBorderSync() {
   const [result, setResult] = useState<SyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Fetch demo US orders from DB ──────────────────────
+  const ordersQuery = trpc.operationsDashboard.getUSOrders.useQuery(undefined, QUERY_OPTS);
+  const usOrders = (ordersQuery.data ?? []) as any[];
+
   // ── tRPC mutation ─────────────────────────────────────
   const dispatchMut = trpc.syncDispatch.dispatch.useMutation({
     onSuccess: (data) => {
@@ -148,7 +111,7 @@ export default function CrossBorderSync() {
   const handleSync = () => {
     setError(null);
     setResult(null);
-    dispatchMut.mutate({ orders: MOCK_US_ORDERS });
+    dispatchMut.mutate({ orders: usOrders });
   };
 
   return (
@@ -319,7 +282,7 @@ export default function CrossBorderSync() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_US_ORDERS.map((order) => (
+                  {usOrders.map((order) => (
                     <tr
                       key={order.order_id}
                       style={{ borderBottom: `1px solid ${FLUENT_BORDER}` }}

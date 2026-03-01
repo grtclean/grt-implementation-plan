@@ -1,6 +1,6 @@
 /**
  * 项目总览 Tab - 项目列表 + M0-M12管线视图
- * 使用Mock数据，后续对接tRPC
+ * Data source: rdVerification.getProjects (DB-backed)
  */
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,49 +8,49 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { STAGES, STAGE_MAP, STAGE_CATEGORIES, type StageCategory } from "../../../../shared/stage-definitions";
 import StagePipeline from "./StagePipeline";
 import { Target, FolderKanban, ChevronRight, Inbox, Search, BarChart3, CheckCircle } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
-interface MockProject {
-  id: number;
-  name: string;
-  code: string;
-  currentStage: string;
-  completedStages: string[];
-  customer: string;
-  risk: "low" | "medium" | "high";
-}
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
-const MOCK_PROJECTS: MockProject[] = [
-  { id: 1, name: "汽车动力总成超声波清洗线", code: "GRT-2026-001", currentStage: "M4", completedStages: ["M0","M1","M2","M3"], customer: "上汽集团", risk: "low" },
-  { id: 2, name: "半导体晶圆精密清洗设备", code: "GRT-2026-002", currentStage: "M7", completedStages: ["M0","M1","M2","M3","M4","M5","M6"], customer: "台积电", risk: "medium" },
-  { id: 3, name: "医疗器械超声波清洗系统", code: "GRT-2026-003", currentStage: "M2", completedStages: ["M0","M1"], customer: "美敦力", risk: "low" },
-  { id: 4, name: "航空发动机叶片清洗线", code: "GRT-2026-004", currentStage: "M10", completedStages: ["M0","M1","M2","M3","M4","M5","M6","M7","M8","M9"], customer: "中航工业", risk: "high" },
-  { id: 5, name: "光伏硅片清洗设备", code: "GRT-2026-005", currentStage: "M5", completedStages: ["M0","M1","M2","M3","M4"], customer: "隆基绿能", risk: "low" },
-];
-
-function computeStats(projects: MockProject[]) {
+function computeStats(projects: any[]) {
   const total = projects.length;
   const stageDistMap: Record<string, number> = {};
   for (const p of projects) { stageDistMap[p.currentStage] = (stageDistMap[p.currentStage] || 0) + 1; }
   const gatePassRate = total > 0
-    ? Math.round((projects.filter(p => p.completedStages.length >= 3).length / total) * 100) : 0;
+    ? Math.round((projects.filter((p: any) => (p.completedStages?.length ?? 0) >= 3).length / total) * 100) : 0;
   return { total, stageDistMap, gatePassRate };
 }
 
 export default function StageOverview() {
   const [search, setSearch] = useState("");
+  const projectsQuery = trpc.rdVerification.getProjects.useQuery(undefined, QUERY_OPTS);
+  const projects = (projectsQuery.data ?? []) as any[];
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return MOCK_PROJECTS;
+    if (!search.trim()) return projects;
     const q = search.toLowerCase();
-    return MOCK_PROJECTS.filter(p =>
-      p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q) || p.customer.toLowerCase().includes(q)
+    return projects.filter((p: any) =>
+      p.name?.toLowerCase().includes(q) || p.code?.toLowerCase().includes(q) || p.customer?.toLowerCase().includes(q)
     );
-  }, [search]);
+  }, [search, projects]);
 
-  const stats = useMemo(() => computeStats(MOCK_PROJECTS), []);
+  const stats = useMemo(() => computeStats(projects), [projects]);
+
+  if (projectsQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1,2,3].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-64" />
+        <Skeleton className="h-48" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -135,7 +135,7 @@ export default function StageOverview() {
             </div>
           ) : (
             <div className="space-y-6">
-              {filtered.map((project) => (
+              {filtered.map((project: any) => (
                 <div key={project.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between mb-3">
                     <div>
@@ -151,7 +151,7 @@ export default function StageOverview() {
                     </div>
                     <Button variant="ghost" size="sm"><ChevronRight className="w-4 h-4" /></Button>
                   </div>
-                  <StagePipeline currentStage={project.currentStage} completedStages={project.completedStages} projectId={String(project.id)} compact />
+                  <StagePipeline currentStage={project.currentStage} completedStages={project.completedStages ?? []} projectId={String(project.id)} compact />
                 </div>
               ))}
             </div>

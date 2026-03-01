@@ -1,4 +1,11 @@
+/**
+ * AI质量助手
+ * 缺陷根因分析、检测计划生成与CAPA追踪管理
+ *
+ * Data source: trpc.qualityAssistant.getDashboard (DB-backed)
+ */
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,57 +14,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Shield, Loader2, BarChart3, Sparkles, ClipboardCheck,
+  Shield, Loader2, Sparkles, ClipboardCheck,
   ArrowRight, TrendingUp, Target, Bug, Plus,
 } from "lucide-react";
 
-// ============================================================
-// Types & Mock Data
-// ============================================================
-
-interface RootCause { category: string; cause: string; probability: number; }
-interface InspectionItem { id: string; name: string; method: string; frequency: string; standard: string; stage: string; }
-interface QualityMetric { label: string; value: number; target: number; unit: string; trend: "up" | "down" | "stable"; }
-interface CAPAItem { id: string; type: "CA" | "PA"; title: string; status: "open" | "in_progress" | "closed"; priority: string; assignee: string; dueDate: string; }
-
-const MOCK_CAUSES: RootCause[] = [
-  { category: "人员", cause: "操作员未按SOP设定清洗参数", probability: 35 },
-  { category: "机器", cause: "超声波换能器功率衰减", probability: 25 },
-  { category: "材料", cause: "清洗液浓度偏低（低于3%）", probability: 20 },
-  { category: "方法", cause: "清洗时间不足（<5分钟）", probability: 10 },
-  { category: "环境", cause: "环境温度过低影响清洗效果", probability: 5 },
-  { category: "测量", cause: "检测设备校准偏差", probability: 5 },
-];
-
-const MOCK_INSPECTION: InspectionItem[] = [
-  { id: "i1", name: "清洁度重量法检测", method: "称重法", frequency: "每批次", standard: "残留<2mg", stage: "M8" },
-  { id: "i2", name: "颗粒度检测", method: "颗粒计数", frequency: "每批次", standard: "≤500um颗粒<100个", stage: "M8" },
-  { id: "i3", name: "表面荧光检测", method: "UV荧光", frequency: "抽检10%", standard: "无荧光残留", stage: "M8" },
-  { id: "i4", name: "尺寸精度复检", method: "三坐标", frequency: "首件+抽检", standard: "公差IT7级", stage: "M7" },
-  { id: "i5", name: "干燥完整性验证", method: "目测+仪器", frequency: "每件", standard: "无水渍残留", stage: "M7" },
-  { id: "i6", name: "设备运行参数记录", method: "PLC数据", frequency: "连续", standard: "参数在控", stage: "M7" },
-  { id: "i7", name: "FAT性能测试", method: "综合测试", frequency: "全检", standard: "按合同指标", stage: "M8" },
-  { id: "i8", name: "SAT现场验证", method: "实际工况", frequency: "全检", standard: "客户标准", stage: "M11" },
-];
-
-const MOCK_METRICS: QualityMetric[] = [
-  { label: "一次合格率", value: 96.5, target: 98, unit: "%", trend: "up" },
-  { label: "客户投诉率", value: 0.8, target: 1.0, unit: "%", trend: "down" },
-  { label: "FAT通过率", value: 94.2, target: 95, unit: "%", trend: "stable" },
-  { label: "返工率", value: 3.2, target: 2.0, unit: "%", trend: "down" },
-  { label: "交付准时率", value: 91.8, target: 95, unit: "%", trend: "up" },
-  { label: "CAPA闭环率", value: 87.5, target: 90, unit: "%", trend: "up" },
-];
-
-const MOCK_CAPA: CAPAItem[] = [
-  { id: "CA-001", type: "CA", title: "USC-3000清洗不均匀问题纠正", status: "in_progress", priority: "高", assignee: "张工", dueDate: "2026-02-20" },
-  { id: "CA-002", type: "CA", title: "喷嘴堵塞导致清洁度不达标", status: "open", priority: "高", assignee: "王工", dueDate: "2026-02-15" },
-  { id: "PA-001", type: "PA", title: "引入清洗液在线浓度监测系统", status: "in_progress", priority: "中", assignee: "陈工", dueDate: "2026-03-01" },
-  { id: "CA-003", type: "CA", title: "FAT测试急停功能延迟", status: "closed", priority: "高", assignee: "李工", dueDate: "2026-01-30" },
-  { id: "PA-002", type: "PA", title: "建立供应商来料检验强化流程", status: "open", priority: "中", assignee: "赵工", dueDate: "2026-03-15" },
-  { id: "PA-003", type: "PA", title: "工人操作认证体系升级", status: "in_progress", priority: "低", assignee: "周工", dueDate: "2026-04-01" },
-];
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 const capaStatusConfig: Record<string, { label: string; color: string }> = {
   open: { label: "待处理", color: "bg-red-500/20 text-red-400" },
@@ -65,15 +28,19 @@ const capaStatusConfig: Record<string, { label: string; color: string }> = {
   closed: { label: "已关闭", color: "bg-green-500/20 text-green-400" },
 };
 
-// ============================================================
-// Component
-// ============================================================
-
 export default function AIQualityAssistant() {
   const [defectDesc, setDefectDesc] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [selectedStage, setSelectedStage] = useState("all");
+
+  // ─── tRPC ───
+  const dashQuery = trpc.qualityAssistant.getDashboard.useQuery(undefined, QUERY_OPTS);
+  const dash = dashQuery.data ?? { causes: [], inspection: [], metrics: [], capa: [] };
+  const causes = dash.causes as any[];
+  const inspection = dash.inspection as any[];
+  const metrics = dash.metrics as any[];
+  const capa = dash.capa as any[];
 
   const handleAnalyze = () => {
     if (!defectDesc.trim()) return;
@@ -81,7 +48,19 @@ export default function AIQualityAssistant() {
     setTimeout(() => { setAnalyzing(false); setShowAnalysis(true); }, 2000);
   };
 
-  const filteredInspection = selectedStage === "all" ? MOCK_INSPECTION : MOCK_INSPECTION.filter(i => i.stage === selectedStage);
+  const filteredInspection = selectedStage === "all" ? inspection : inspection.filter((i: any) => i.stage === selectedStage);
+
+  if (dashQuery.isLoading) {
+    return (
+      <div className="space-y-6 p-6">
+        <PageHeader icon={Shield} title="AI质量助手" description="..." />
+        <Skeleton className="h-10 w-96" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
       <div className="space-y-6 p-6">
@@ -91,7 +70,7 @@ export default function AIQualityAssistant() {
           <TabsList>
             <TabsTrigger value="defect"><Bug className="w-4 h-4 mr-1" />缺陷分析</TabsTrigger>
             <TabsTrigger value="inspection"><ClipboardCheck className="w-4 h-4 mr-1" />检测计划</TabsTrigger>
-            <TabsTrigger value="metrics"><BarChart3 className="w-4 h-4 mr-1" />质量报告</TabsTrigger>
+            <TabsTrigger value="metrics"><TrendingUp className="w-4 h-4 mr-1" />质量报告</TabsTrigger>
             <TabsTrigger value="capa"><Target className="w-4 h-4 mr-1" />CAPA追踪</TabsTrigger>
           </TabsList>
 
@@ -113,7 +92,7 @@ export default function AIQualityAssistant() {
                 <CardContent className="space-y-3">
                   <p className="text-sm text-muted-foreground">AI基于历史数据和专家知识库分析的可能根因（按概率排序）：</p>
                   <div className="space-y-2">
-                    {MOCK_CAUSES.map(c => (
+                    {causes.map((c: any) => (
                       <div key={c.cause} className="flex items-center gap-3 p-3 rounded-lg border">
                         <Badge variant="outline" className="min-w-[60px] justify-center">{c.category}</Badge>
                         <div className="flex-1">
@@ -158,7 +137,7 @@ export default function AIQualityAssistant() {
                     <thead><tr className="border-b">
                       <th className="text-left py-2 px-3">检测项目</th><th className="text-left py-2 px-3">方法</th><th className="text-left py-2 px-3">频次</th><th className="text-left py-2 px-3">标准</th><th className="text-left py-2 px-3">阶段</th>
                     </tr></thead>
-                    <tbody>{filteredInspection.map(item => (
+                    <tbody>{filteredInspection.map((item: any) => (
                       <tr key={item.id} className="border-b last:border-0">
                         <td className="py-2 px-3 font-medium">{item.name}</td>
                         <td className="py-2 px-3">{item.method}</td>
@@ -176,8 +155,8 @@ export default function AIQualityAssistant() {
           {/* Quality Metrics */}
           <TabsContent value="metrics" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {MOCK_METRICS.map(m => {
-                const isGood = m.label.includes("投诉") || m.label.includes("返工") ? m.value <= m.target : m.value >= m.target;
+              {metrics.map((m: any) => {
+                const isGood = String(m.label).includes("投诉") || String(m.label).includes("返工") ? m.value <= m.target : m.value >= m.target;
                 return (
                   <Card key={m.label}>
                     <CardContent className="pt-4">
@@ -204,15 +183,15 @@ export default function AIQualityAssistant() {
           <TabsContent value="capa" className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex gap-2">
-                <Badge variant="outline" className="text-red-400">待处理: {MOCK_CAPA.filter(c => c.status === "open").length}</Badge>
-                <Badge variant="outline" className="text-blue-400">进行中: {MOCK_CAPA.filter(c => c.status === "in_progress").length}</Badge>
-                <Badge variant="outline" className="text-green-400">已关闭: {MOCK_CAPA.filter(c => c.status === "closed").length}</Badge>
+                <Badge variant="outline" className="text-red-400">待处理: {capa.filter((c: any) => c.status === "open").length}</Badge>
+                <Badge variant="outline" className="text-blue-400">进行中: {capa.filter((c: any) => c.status === "in_progress").length}</Badge>
+                <Badge variant="outline" className="text-green-400">已关闭: {capa.filter((c: any) => c.status === "closed").length}</Badge>
               </div>
               <Button size="sm"><Plus className="w-4 h-4 mr-1" />新建CAPA</Button>
             </div>
             <div className="space-y-3">
-              {MOCK_CAPA.map(item => {
-                const statusCfg = capaStatusConfig[item.status];
+              {capa.map((item: any) => {
+                const statusCfg = capaStatusConfig[item.status] ?? { label: item.status, color: "bg-gray-500/20 text-gray-400" };
                 return (
                   <Card key={item.id} className={item.status === "open" ? "border-red-500/30" : ""}>
                     <CardContent className="pt-4">
@@ -242,4 +221,3 @@ export default function AIQualityAssistant() {
       </div>
   );
 }
-

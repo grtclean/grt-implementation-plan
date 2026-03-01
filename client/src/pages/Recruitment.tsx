@@ -1,8 +1,9 @@
 /**
  * 招聘管理页面
  * 职位发布、候选人管理、面试安排、Offer管理
+ * Data source: operationsDashboard.getPositions (DB-backed)
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
@@ -10,12 +11,16 @@ import { StatusBadge, createStatusColorMap } from "@/components/grt/StatusBadge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserCheck, Plus, Users, Clock, CheckCircle2, Briefcase } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trpc } from "@/lib/trpc";
+
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 const positionStatusColorMap = createStatusColorMap({
   "招聘中": "blue",
@@ -23,17 +28,11 @@ const positionStatusColorMap = createStatusColorMap({
   "已关闭": "gray",
 });
 
-// TODO: 接入 tRPC 后端接口替换
-const MOCK_POSITIONS = [
-  { id: 1, title: "高级机械工程师", dept: "研发设计部", bu: "BU3", applicants: 12, status: "招聘中", urgency: "紧急", salary: "20-35K" },
-  { id: 2, title: "PLC程序员", dept: "研发设计部", bu: "BU1", applicants: 8, status: "招聘中", urgency: "高", salary: "18-28K" },
-  { id: 3, title: "销售经理", dept: "销售部", bu: "BU4", applicants: 15, status: "面试中", urgency: "正常", salary: "25-40K" },
-  { id: 4, title: "现场服务工程师", dept: "技术服务部", bu: "通用", applicants: 6, status: "已关闭", urgency: "正常", salary: "15-22K" },
-];
-
 export default function Recruitment() {
-  const [tab, setTab] = useState("open");
-  const [positions, setPositions] = useState(MOCK_POSITIONS);
+  const { t } = useLanguage();
+  const positionsQuery = trpc.operationsDashboard.getPositions.useQuery(undefined, QUERY_OPTS);
+  const serverPositions = (positionsQuery.data ?? []) as any[];
+  const [positions, setPositions] = useState<any[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -42,7 +41,12 @@ export default function Recruitment() {
     urgency: "正常",
   });
 
-  const { t } = useLanguage();
+  // Initialize from server data
+  useEffect(() => {
+    if (serverPositions.length > 0 && positions.length === 0) {
+      setPositions(serverPositions);
+    }
+  }, [serverPositions, positions.length]);
 
   const handleCreate = () => {
     if (!formData.title.trim()) {
@@ -58,7 +62,7 @@ export default function Recruitment() {
       return;
     }
 
-    const newId = Math.max(...positions.map(p => p.id), 0) + 1;
+    const newId = Math.max(...positions.map((p: any) => p.id), 0) + 1;
     const newPosition = {
       id: newId,
       title: formData.title.trim(),
@@ -76,6 +80,18 @@ export default function Recruitment() {
     toast.success(t("hr.recruit.publishSuccess"));
   };
 
+  if (positionsQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-16" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -86,17 +102,17 @@ export default function Recruitment() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Briefcase} label={t("hr.recruit.openPositions")} value={positions.filter(p => p.status === "招聘中").length} />
-        <StatCard icon={Users} label={t("hr.recruit.candidates")} value={positions.reduce((sum, p) => sum + p.applicants, 0)} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={Clock} label={t("hr.recruit.interviewing")} value={positions.filter(p => p.status === "面试中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={CheckCircle2} label={t("hr.recruit.closed")} value={positions.filter(p => p.status === "已关闭").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Briefcase} label={t("hr.recruit.openPositions")} value={positions.filter((p: any) => p.status === "招聘中").length} />
+        <StatCard icon={Users} label={t("hr.recruit.candidates")} value={positions.reduce((sum: number, p: any) => sum + (p.applicants ?? 0), 0)} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Clock} label={t("hr.recruit.interviewing")} value={positions.filter((p: any) => p.status === "面试中").length} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label={t("hr.recruit.closed")} value={positions.filter((p: any) => p.status === "已关闭").length} iconColor="text-green-500" iconBg="bg-green-500/10" />
       </div>
 
       <Card>
         <CardHeader><CardTitle>{t("hr.recruit.positionList")}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {positions.map(p => (
+            {positions.map((p: any) => (
               <div key={p.id} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors">
                 <Briefcase className="h-10 w-10 text-primary/20" />
                 <div className="flex-1">

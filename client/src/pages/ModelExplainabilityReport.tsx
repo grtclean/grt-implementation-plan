@@ -1,9 +1,12 @@
 /**
  * 模型解释性报告前端可视化页面
- * v2.5.7 - 特征重要性柱状图、模型对比雷达图、预测对比折线图
+ * 特征重要性柱状图、模型对比、预测对比折线图
+ *
+ * Data source: trpc.aiModel.getExplainabilityReport (DB-backed)
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { trpc } from '@/lib/trpc';
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,11 +14,12 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { 
-  BarChart3, 
-  LineChart, 
-  PieChart, 
-  TrendingUp, 
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  BarChart3,
+  LineChart,
+  PieChart,
+  TrendingUp,
   TrendingDown,
   AlertCircle,
   CheckCircle2,
@@ -25,6 +29,8 @@ import {
   Target,
   Zap
 } from 'lucide-react';
+
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 // ==================== 类型定义 ====================
 
@@ -65,97 +71,6 @@ interface DataCharacteristics {
   variance: number;
   autocorrelation: number;
   nonlinearity: number;
-}
-
-interface SelectionReason {
-  primaryReason: string;
-  supportingReasons: string[];
-  dataCharacteristicsMatch: Record<string, boolean>;
-  confidenceScore: number;
-}
-
-interface ExplainabilityReport {
-  selectedModel: {
-    id: string;
-    name: string;
-    type: string;
-  };
-  selectionReason: SelectionReason;
-  featureImportances: FeatureImportance[];
-  modelComparisons: ModelComparison[];
-  dataCharacteristics: DataCharacteristics;
-  recommendations: string[];
-  visualizationData: {
-    metricsComparison: {
-      labels: string[];
-      datasets: Array<{ modelName: string; values: number[] }>;
-    };
-    featureImportanceChart: {
-      features: string[];
-      importances: number[];
-      colors: string[];
-    };
-    predictionComparison: {
-      timestamps: number[];
-      actual: number[];
-      predictions: Record<string, number[]>;
-    };
-  };
-  generatedAt: number;
-}
-
-// ==================== 模拟数据生成 ====================
-
-function generateMockReport(): ExplainabilityReport {
-  const now = Date.now();
-  const timestamps = Array.from({ length: 30 }, (_, i) => now - (29 - i) * 86400000);
-  const actual = timestamps.map((_, i) => 10000 + i * 500 + Math.random() * 2000);
-  
-  return {
-    selectedModel: { id: 'linear', name: '线性回归', type: 'linear' },
-    selectionReason: {
-      primaryReason: '数据呈现明显的线性增长趋势，线性回归模型能够最好地捕捉这种模式',
-      supportingReasons: ['数据方差较低，适合简单模型', '样本量适中，避免过拟合风险', '无明显季节性波动'],
-      dataCharacteristicsMatch: { '线性趋势': true, '低方差': true, '无季节性': true, '足够样本': true },
-      confidenceScore: 0.87
-    },
-    featureImportances: [
-      { feature: '时间序列', importance: 0.45, direction: 'positive', contribution: 0.45, rank: 1 },
-      { feature: '使用量', importance: 0.30, direction: 'positive', contribution: 0.30, rank: 2 },
-      { feature: '历史均值', importance: 0.15, direction: 'positive', contribution: 0.15, rank: 3 },
-      { feature: '波动率', importance: 0.07, direction: 'negative', contribution: -0.07, rank: 4 },
-      { feature: '季节因子', importance: 0.03, direction: 'positive', contribution: 0.03, rank: 5 }
-    ],
-    modelComparisons: [
-      { modelId: 'linear', modelName: '线性回归', modelType: 'linear', metrics: { mae: 850, mse: 1200000, rmse: 1095, mape: 6.2, r2: 0.92 }, rank: 1, strengths: ['解释性强', '计算效率高'], weaknesses: ['无法捕捉非线性关系'], suitableFor: ['线性趋势数据'] },
-      { modelId: 'poly2', modelName: '二次多项式', modelType: 'polynomial', metrics: { mae: 920, mse: 1350000, rmse: 1162, mape: 6.8, r2: 0.89 }, rank: 2, strengths: ['能捕捉曲线趋势'], weaknesses: ['可能过拟合'], suitableFor: ['加速/减速趋势'] },
-      { modelId: 'exp', modelName: '指数模型', modelType: 'exponential', metrics: { mae: 1100, mse: 1800000, rmse: 1342, mape: 8.1, r2: 0.85 }, rank: 3, strengths: ['适合指数增长'], weaknesses: ['对初始值敏感'], suitableFor: ['指数增长数据'] },
-      { modelId: 'ma5', modelName: '移动平均(5期)', modelType: 'moving_average', metrics: { mae: 1250, mse: 2100000, rmse: 1449, mape: 9.2, r2: 0.78 }, rank: 4, strengths: ['平滑噪声'], weaknesses: ['滞后于实际变化'], suitableFor: ['稳定趋势数据'] }
-    ],
-    dataCharacteristics: { size: 30, timeSpan: 30, trend: 'increasing', seasonality: false, outlierRatio: 0.03, variance: 2500000, autocorrelation: 0.85, nonlinearity: 0.12 },
-    recommendations: [
-      '当前数据量适中，建议持续收集更多历史数据以提高预测准确性',
-      '数据中存在少量异常值(3%)，建议定期检查数据质量',
-      '线性模型表现良好，但建议定期重新评估模型以适应数据变化',
-      '考虑添加更多特征（如季节因子、外部因素）以进一步提升预测精度'
-    ],
-    visualizationData: {
-      metricsComparison: { labels: ['MAE', 'RMSE', 'MAPE(%)', 'R²(%)'], datasets: [
-        { modelName: '线性回归', values: [850, 1095, 6.2, 92] },
-        { modelName: '二次多项式', values: [920, 1162, 6.8, 89] },
-        { modelName: '指数模型', values: [1100, 1342, 8.1, 85] },
-        { modelName: '移动平均', values: [1250, 1449, 9.2, 78] }
-      ]},
-      featureImportanceChart: { features: ['时间序列', '使用量', '历史均值', '波动率', '季节因子'], importances: [0.45, 0.30, 0.15, 0.07, 0.03], colors: ['#22c55e', '#22c55e', '#22c55e', '#ef4444', '#22c55e'] },
-      predictionComparison: { timestamps, actual, predictions: {
-        '线性回归': actual.map(v => v + (Math.random() - 0.5) * 1000),
-        '二次多项式': actual.map(v => v + (Math.random() - 0.5) * 1200),
-        '指数模型': actual.map(v => v + (Math.random() - 0.5) * 1500),
-        '移动平均': actual.map(v => v + (Math.random() - 0.5) * 1800)
-      }}
-    },
-    generatedAt: now
-  };
 }
 
 // ==================== 子组件 ====================
@@ -272,7 +187,7 @@ function DataCharacteristicsCard({ data }: { data: DataCharacteristics }) {
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">数据量</div><div className="text-2xl font-bold">{data.size}</div><div className="text-xs text-muted-foreground">个样本</div></div>
       <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">时间跨度</div><div className="text-2xl font-bold">{data.timeSpan}</div><div className="text-xs text-muted-foreground">天</div></div>
-      <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">趋势</div><div className={`text-2xl font-bold ${trendColors[data.trend]}`}>{trendLabels[data.trend]}</div><div className="text-xs text-muted-foreground">{data.seasonality ? `季节性(${data.seasonalPeriod}期)` : '无季节性'}</div></div>
+      <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">趋势</div><div className={`text-2xl font-bold ${trendColors[data.trend] ?? ''}`}>{trendLabels[data.trend] ?? data.trend}</div><div className="text-xs text-muted-foreground">{data.seasonality ? `季节性(${data.seasonalPeriod}期)` : '无季节性'}</div></div>
       <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">异常值比例</div><div className={`text-2xl font-bold ${data.outlierRatio > 0.1 ? 'text-red-500' : 'text-green-500'}`}>{(data.outlierRatio * 100).toFixed(1)}%</div><div className="text-xs text-muted-foreground">非线性度: {(data.nonlinearity * 100).toFixed(1)}%</div></div>
     </div>
   );
@@ -281,17 +196,16 @@ function DataCharacteristicsCard({ data }: { data: DataCharacteristics }) {
 // ==================== 主组件 ====================
 
 export default function ModelExplainabilityReport() {
-  const [report, setReport] = useState<ExplainabilityReport | null>(null);
-  const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState('project-a');
 
-  useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => { setReport(generateMockReport()); setLoading(false); }, 1000);
-    return () => clearTimeout(timer);
-  }, [selectedProject]);
+  // ─── tRPC ───
+  const reportQuery = trpc.aiModel.getExplainabilityReport.useQuery(
+    { projectId: selectedProject },
+    QUERY_OPTS,
+  );
+  const report = reportQuery.data as any;
 
-  const handleRefresh = () => { setLoading(true); setTimeout(() => { setReport(generateMockReport()); setLoading(false); }, 1000); };
+  const handleRefresh = () => { reportQuery.refetch(); };
   const handleExport = () => {
     if (!report) return;
     const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
@@ -300,8 +214,30 @@ export default function ModelExplainabilityReport() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading) return <div className="container py-8"><div className="flex items-center justify-center h-96"><div className="text-center space-y-4"><RefreshCw className="w-12 h-12 animate-spin mx-auto text-primary" /><p className="text-muted-foreground">正在生成模型解释性报告...</p></div></div></div>;
-  if (!report) return <div className="container py-8"><div className="flex items-center justify-center h-96"><div className="text-center space-y-4"><AlertCircle className="w-12 h-12 mx-auto text-destructive" /><p className="text-muted-foreground">无法加载报告数据</p><Button onClick={handleRefresh}>重试</Button></div></div></div>;
+  if (reportQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader icon={BarChart3} title="模型解释性报告" description="..." />
+        <Skeleton className="h-48 rounded-lg" />
+        <Skeleton className="h-32 rounded-lg" />
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    );
+  }
+
+  if (!report) {
+    return (
+      <div className="container py-8">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center space-y-4">
+            <AlertCircle className="w-12 h-12 mx-auto text-destructive" />
+            <p className="text-muted-foreground">无法加载报告数据</p>
+            <Button onClick={handleRefresh}>重试</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -356,11 +292,11 @@ export default function ModelExplainabilityReport() {
           <TabsTrigger value="prediction" className="flex items-center gap-2"><LineChart className="w-4 h-4" />预测对比</TabsTrigger>
         </TabsList>
         <TabsContent value="importance"><Card><CardHeader><CardTitle>特征重要性分析</CardTitle><CardDescription>展示各特征对预测结果的贡献程度，绿色表示正向影响，红色表示负向影响</CardDescription></CardHeader><CardContent><FeatureImportanceChart data={report.featureImportances} /></CardContent></Card></TabsContent>
-        <TabsContent value="comparison"><Card><CardHeader><CardTitle>模型性能对比</CardTitle><CardDescription>比较不同模型在各项指标上的表现，第一行为推荐模型</CardDescription></CardHeader><CardContent><ModelComparisonRadar data={report.modelComparisons} /><Separator className="my-6" /><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{report.modelComparisons.slice(0, 2).map(model => (<div key={model.modelId} className="p-4 border rounded-lg"><h4 className="font-medium mb-3">{model.modelName}</h4><div className="space-y-2 text-sm"><div><span className="text-muted-foreground">优势: </span>{model.strengths.join('、')}</div><div><span className="text-muted-foreground">劣势: </span>{model.weaknesses.join('、')}</div><div><span className="text-muted-foreground">适用场景: </span>{model.suitableFor.join('、')}</div></div></div>))}</div></CardContent></Card></TabsContent>
+        <TabsContent value="comparison"><Card><CardHeader><CardTitle>模型性能对比</CardTitle><CardDescription>比较不同模型在各项指标上的表现，第一行为推荐模型</CardDescription></CardHeader><CardContent><ModelComparisonRadar data={report.modelComparisons} /><Separator className="my-6" /><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{report.modelComparisons.slice(0, 2).map((model: any) => (<div key={model.modelId} className="p-4 border rounded-lg"><h4 className="font-medium mb-3">{model.modelName}</h4><div className="space-y-2 text-sm"><div><span className="text-muted-foreground">优势: </span>{model.strengths.join('、')}</div><div><span className="text-muted-foreground">劣势: </span>{model.weaknesses.join('、')}</div><div><span className="text-muted-foreground">适用场景: </span>{model.suitableFor.join('、')}</div></div></div>))}</div></CardContent></Card></TabsContent>
         <TabsContent value="prediction"><Card><CardHeader><CardTitle>预测结果对比</CardTitle><CardDescription>对比不同模型的预测结果与实际值，点击按钮切换显示的模型</CardDescription></CardHeader><CardContent><PredictionComparisonChart data={report.visualizationData.predictionComparison} /></CardContent></Card></TabsContent>
       </Tabs>
 
-      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Zap className="w-5 h-5 text-yellow-500" />优化建议</CardTitle></CardHeader><CardContent><ul className="space-y-3">{report.recommendations.map((rec, index) => (<li key={index} className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium flex-shrink-0 mt-0.5">{index + 1}</div><span className="text-muted-foreground">{rec}</span></li>))}</ul></CardContent></Card>
+      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Zap className="w-5 h-5 text-yellow-500" />优化建议</CardTitle></CardHeader><CardContent><ul className="space-y-3">{report.recommendations.map((rec: string, index: number) => (<li key={index} className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium flex-shrink-0 mt-0.5">{index + 1}</div><span className="text-muted-foreground">{rec}</span></li>))}</ul></CardContent></Card>
     </div>
   );
 }

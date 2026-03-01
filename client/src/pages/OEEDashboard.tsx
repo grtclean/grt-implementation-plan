@@ -52,52 +52,7 @@ interface MachineEntry {
   lastUpdated: string;
 }
 
-// ─── OEE Calculation (inline for mock — same as server) ─────────────
-
-function calcOEE(planned: number, operating: number, idealCycle: number, total: number, defects: number): OEEResult {
-  const clamp = (v: number) => Math.min(1, Math.max(0, v));
-  const availability = planned > 0 ? clamp(operating / planned) : 0;
-  const opSec = operating * 60;
-  const performance = opSec > 0 ? clamp((idealCycle * total) / opSec) : 0;
-  const quality = total > 0 ? clamp(Math.max(0, total - defects) / total) : 0;
-  const oee = availability * performance * quality;
-  const oeePct = Math.round(oee * 1000) / 10;
-  return {
-    availability, performance, quality, oee,
-    availabilityPct: Math.round(availability * 1000) / 10,
-    performancePct: Math.round(performance * 1000) / 10,
-    qualityPct: Math.round(quality * 1000) / 10,
-    oeePct,
-    grade: oeePct >= 85 ? "world-class" : oeePct >= 70 ? "acceptable" : "critical",
-  };
-}
-
-const MOCK_MACHINES: MachineEntry[] = [
-  {
-    machineId: 1, machineCode: "CNC-001", machineName: "5-Axis CNC Mill",
-    location: "Workshop A, Bay 3", status: "running",
-    oee: calcOEE(480, 438, 120, 198, 5), shiftsToday: 2,
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    machineId: 2, machineCode: "WASH-003", machineName: "Ultrasonic Cleaning Station",
-    location: "Cleanroom B", status: "running",
-    oee: calcOEE(480, 462, 90, 285, 3), shiftsToday: 2,
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    machineId: 3, machineCode: "WELD-007", machineName: "Robotic Welder Cell",
-    location: "Workshop C, Bay 1", status: "idle",
-    oee: calcOEE(480, 360, 180, 95, 12), shiftsToday: 1,
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    machineId: 4, machineCode: "PAINT-002", machineName: "Automated Paint Booth",
-    location: "Workshop D", status: "maintenance",
-    oee: calcOEE(480, 210, 300, 32, 8), shiftsToday: 1,
-    lastUpdated: new Date().toISOString(),
-  },
-];
+// Server provides mock fallback data — no frontend MOCK needed
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -312,12 +267,26 @@ function SummaryBar({ machines }: { machines: MachineEntry[] }) {
 // ─── Main Component ─────────────────────────────────────────────────
 
 export default function OEEDashboard() {
-  const { data: liveData } = trpc.oeeDashboard.dashboard.useQuery(undefined, {
+  const dashQuery = trpc.oeeDashboard.dashboard.useQuery(undefined, {
     refetchInterval: 30000, // Refresh every 30s for live factory data
   });
 
-  const machines = (liveData?.machines ?? MOCK_MACHINES) as MachineEntry[];
-  const isLive = liveData?.isLive ?? false;
+  const machines = ((dashQuery.data as any)?.machines ?? []) as MachineEntry[];
+  const isLive = (dashQuery.data as any)?.isLive ?? false;
+
+  if (dashQuery.isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white p-6 space-y-6">
+        <div className="bg-gray-900/80 rounded-lg h-16 animate-pulse" />
+        <div className="grid grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <div key={i} className="bg-gray-900/60 rounded-xl h-20 animate-pulse" />)}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+          {[1,2,3,4].map(i => <div key={i} className="bg-gray-900/80 rounded-2xl h-80 animate-pulse" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">

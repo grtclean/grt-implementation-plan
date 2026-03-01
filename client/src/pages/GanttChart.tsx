@@ -1,33 +1,36 @@
 /**
  * 甘特图页面
  * 项目甘特图、任务依赖、里程碑追踪
+ * Data source: operationsDashboard.getGanttTasks (DB-backed)
  */
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { BarChart3, Building2, Calendar, ChevronLeft, ChevronRight, Milestone } from "lucide-react";
+import { BarChart3, Building2, ChevronLeft, ChevronRight, Milestone } from "lucide-react";
 import { PageHeader } from "@/components/grt";
+import { trpc } from "@/lib/trpc";
 
-const MOCK_TASKS = [
-  { id: 1, name: "需求分析", project: "缸体清洗线", start: 1, duration: 3, progress: 100, color: "bg-green-500" },
-  { id: 2, name: "方案设计", project: "缸体清洗线", start: 3, duration: 4, progress: 80, color: "bg-blue-500" },
-  { id: 3, name: "机械设计", project: "缸体清洗线", start: 5, duration: 6, progress: 45, color: "bg-primary" },
-  { id: 4, name: "电气设计", project: "缸体清洗线", start: 6, duration: 5, progress: 30, color: "bg-cyan-500" },
-  { id: 5, name: "采购", project: "缸体清洗线", start: 8, duration: 4, progress: 10, color: "bg-amber-500" },
-  { id: 6, name: "组装", project: "缸体清洗线", start: 11, duration: 5, progress: 0, color: "bg-purple-500" },
-  { id: 7, name: "调试", project: "缸体清洗线", start: 15, duration: 3, progress: 0, color: "bg-rose-500" },
-  { id: 8, name: "发货安装", project: "缸体清洗线", start: 17, duration: 3, progress: 0, color: "bg-indigo-500" },
-];
-
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 const WEEKS = Array.from({ length: 20 }, (_, i) => `W${i + 1}`);
 
 export default function GanttChart() {
   const { currentBU } = useUserProfile();
   const { t } = useLanguage();
+  const tasksQuery = trpc.operationsDashboard.getGanttTasks.useQuery(undefined, QUERY_OPTS);
+  const tasks = (tasksQuery.data ?? []) as any[];
+
+  if (tasksQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-16" />
+        <Skeleton className="h-96" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -72,16 +75,16 @@ export default function GanttChart() {
             </div>
             {/* 甘特条 */}
             <div className="space-y-1 min-w-[800px]">
-              {MOCK_TASKS.map(task => (
+              {tasks.map((task: any) => (
                 <div key={task.id} className="flex items-center h-8">
                   <div className="w-40 shrink-0 text-sm truncate pr-2">{task.name}</div>
                   <div className="flex-1 relative h-6">
                     <div
                       className={`absolute top-0 h-full rounded ${task.color} opacity-80`}
-                      style={{ left: `${(task.start - 1) * 5}%`, width: `${task.duration * 5}%` }}
+                      style={{ left: `${((task.start ?? 1) - 1) * 5}%`, width: `${(task.duration ?? 1) * 5}%` }}
                     >
-                      <div className="h-full bg-white/30 rounded" style={{ width: `${task.progress}%` }} />
-                      <span className="absolute inset-0 flex items-center justify-center text-[10px] text-white font-bold">{task.progress}%</span>
+                      <div className="h-full bg-white/30 rounded" style={{ width: `${task.progress ?? 0}%` }} />
+                      <span className="absolute inset-0 flex items-center justify-center text-[10px] text-white font-bold">{task.progress ?? 0}%</span>
                     </div>
                   </div>
                 </div>

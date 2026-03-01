@@ -1,27 +1,31 @@
 /**
  * 物料追踪页面
  * 物料入库、出库、追踪、库存预警
+ * Data source: operationsDashboard.getMaterials (DB-backed)
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Package, Search, Truck, AlertTriangle, CheckCircle2, ArrowRight, BarChart3 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Package, Search, Truck, AlertTriangle, BarChart3 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
-const MOCK_MATERIALS = [
-  { id: "MAT-001", name: "304不锈钢板 3mm", batch: "B2026-001", location: "A区-01-03", qty: 120, unit: "张", status: "在库", project: "缸体清洗线" },
-  { id: "MAT-002", name: "西门子S7-1500 CPU", batch: "B2026-015", location: "B区-02-01", qty: 5, unit: "个", status: "已领料", project: "变速箱清洗" },
-  { id: "MAT-003", name: "耐酸泵 50L/min", batch: "B2026-008", location: "C区-01-02", qty: 8, unit: "台", status: "在途", project: "晶圆清洗" },
-  { id: "MAT-004", name: "PTFE密封圈 DN80", batch: "B2026-022", location: "A区-03-05", qty: 3, unit: "包", status: "低库存", project: "通用" },
-];
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 export default function MaterialTracking() {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
-  const filtered = MOCK_MATERIALS.filter(m => !search || m.name.includes(search) || m.id.includes(search));
+  const materialsQuery = trpc.operationsDashboard.getMaterials.useQuery(undefined, QUERY_OPTS);
+  const materials = (materialsQuery.data ?? []) as any[];
+
+  const filtered = useMemo(() => {
+    if (!search) return materials;
+    return materials.filter((m: any) => (m.name ?? "").includes(search) || (m.id ?? "").includes(search));
+  }, [materials, search]);
 
   const statusLabels: Record<string, string> = {
     "在库": t("supply.materialTracking.statusInStockLabel"),
@@ -29,6 +33,18 @@ export default function MaterialTracking() {
     "在途": t("supply.materialTracking.statusInTransitLabel"),
     "低库存": t("supply.materialTracking.statusLowStockLabel"),
   };
+
+  if (materialsQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-16" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -60,7 +76,7 @@ export default function MaterialTracking() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {filtered.map(m => (
+            {filtered.map((m: any) => (
               <div key={m.id} className="flex items-center gap-4 p-3 rounded-lg border hover:bg-accent/50 cursor-pointer">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">

@@ -1,84 +1,58 @@
+/**
+ * AI采购助手
+ * 智能供应商推荐、价格对比与采购策略优化
+ *
+ * Data source: trpc.purchaseAssistant.getDashboard (DB-backed)
+ */
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/grt";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ShoppingCart, Search, Loader2, Star, TrendingUp, Package,
-  DollarSign, Clock, CheckCircle, BarChart3, Sparkles,
+  ShoppingCart, Search, Loader2, TrendingUp, Package,
+  DollarSign, Clock, CheckCircle, Sparkles,
   ArrowRight, Building2, CalendarDays, Layers,
 } from "lucide-react";
 
-// ============================================================
-// Types & Mock Data
-// ============================================================
-
-interface Supplier { id: number; name: string; score: number; rating: string; deliveryDays: number; qualityRate: number; location: string; }
-interface PriceComparison { material: string; unit: string; suppliers: { name: string; price: number; moq: number; leadTime: string; }[]; }
-interface Strategy { id: string; title: string; type: "JIT" | "bulk" | "framework"; description: string; saving: string; risk: string; }
-interface PlanItem { id: number; material: string; qty: number; supplier: string; orderDate: string; deliveryDate: string; status: string; }
-
-const MOCK_SUPPLIERS: Supplier[] = [
-  { id: 1, name: "精密轴承(苏州)有限公司", score: 95, rating: "A+", deliveryDays: 7, qualityRate: 99.8, location: "苏州" },
-  { id: 2, name: "宁波永力电机制造", score: 91, rating: "A", deliveryDays: 10, qualityRate: 99.5, location: "宁波" },
-  { id: 3, name: "上海汇通不锈钢材料", score: 88, rating: "A", deliveryDays: 5, qualityRate: 99.2, location: "上海" },
-  { id: 4, name: "深圳鑫达传感器科技", score: 85, rating: "B+", deliveryDays: 14, qualityRate: 98.8, location: "深圳" },
-  { id: 5, name: "东莞锐丰密封件厂", score: 82, rating: "B+", deliveryDays: 8, qualityRate: 98.5, location: "东莞" },
-];
-
-const MOCK_PRICES: PriceComparison[] = [
-  { material: "不锈钢304板材 2mm", unit: "kg", suppliers: [
-    { name: "上海汇通", price: 28.5, moq: 500, leadTime: "3天" },
-    { name: "无锡宝钢", price: 29.8, moq: 1000, leadTime: "5天" },
-    { name: "佛山联众", price: 27.2, moq: 2000, leadTime: "7天" },
-    { name: "太原太钢", price: 30.1, moq: 500, leadTime: "10天" },
-  ]},
-  { material: "超声波换能器 40kHz", unit: "个", suppliers: [
-    { name: "深圳新超声", price: 680, moq: 10, leadTime: "14天" },
-    { name: "北京声科", price: 720, moq: 5, leadTime: "10天" },
-    { name: "济南超声", price: 650, moq: 20, leadTime: "21天" },
-    { name: "杭州声辰", price: 710, moq: 10, leadTime: "7天" },
-  ]},
-  { material: "西门子PLC S7-1200", unit: "台", suppliers: [
-    { name: "上海西门子", price: 3800, moq: 1, leadTime: "3天" },
-    { name: "北京天拓", price: 3650, moq: 1, leadTime: "5天" },
-    { name: "广州正通", price: 3720, moq: 1, leadTime: "3天" },
-  ]},
-];
-
-const MOCK_STRATEGIES: Strategy[] = [
-  { id: "s1", title: "JIT准时制采购 - 标准件", type: "JIT", description: "对螺栓、垫圈等标准件采用JIT模式，与供应商签订VMI协议，由供应商管理库存，按需配送。", saving: "库存成本降低30%", risk: "低" },
-  { id: "s2", title: "批量采购 - 不锈钢板材", type: "bulk", description: "不锈钢板材按季度集中采购，利用批量折扣。建议Q2集中下单，预计节省8-12%。", saving: "采购成本降低10%", risk: "中（库存占用）" },
-  { id: "s3", title: "框架协议 - 电气元件", type: "framework", description: "与西门子、施耐德签订年度框架协议，锁定价格和交期。适用于PLC、变频器等高价值电气件。", saving: "价格锁定，交期保障", risk: "低" },
-  { id: "s4", title: "国产替代 - 传感器类", type: "bulk", description: "对非关键传感器推进国产替代，建议试用深圳鑫达产品，已通过3个月可靠性测试。", saving: "单件成本降低40%", risk: "中（需验证）" },
-];
-
-const MOCK_PLAN: PlanItem[] = [
-  { id: 1, material: "不锈钢304板材", qty: 2000, supplier: "上海汇通", orderDate: "2026-01-15", deliveryDate: "2026-01-20", status: "已下单" },
-  { id: 2, material: "超声波换能器", qty: 24, supplier: "深圳新超声", orderDate: "2026-01-10", deliveryDate: "2026-01-24", status: "生产中" },
-  { id: 3, material: "西门子PLC", qty: 2, supplier: "北京天拓", orderDate: "2026-01-20", deliveryDate: "2026-01-25", status: "待下单" },
-  { id: 4, material: "高压泵组", qty: 1, supplier: "格兰富(上海)", orderDate: "2026-01-05", deliveryDate: "2026-02-15", status: "已下单" },
-  { id: 5, material: "不锈钢管路组件", qty: 50, supplier: "无锡管业", orderDate: "2026-01-18", deliveryDate: "2026-01-28", status: "待下单" },
-];
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 const strategyColor: Record<string, string> = { JIT: "bg-blue-500/20 text-blue-400", bulk: "bg-green-500/20 text-green-400", framework: "bg-purple-500/20 text-purple-400" };
 const strategyLabel: Record<string, string> = { JIT: "准时制", bulk: "批量采购", framework: "框架协议" };
-
-// ============================================================
-// Component
-// ============================================================
 
 export default function AIPurchaseAssistant() {
   const [materialQuery, setMaterialQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
+  // ─── tRPC ───
+  const dashQuery = trpc.purchaseAssistant.getDashboard.useQuery(undefined, QUERY_OPTS);
+  const dash = dashQuery.data ?? { suppliers: [], prices: [], strategies: [], plan: [] };
+  const suppliers = dash.suppliers as any[];
+  const prices = dash.prices as any[];
+  const strategies = dash.strategies as any[];
+  const plan = dash.plan as any[];
+
   const handleSearch = () => {
     setSearching(true);
     setTimeout(() => { setSearching(false); setShowResults(true); }, 1500);
   };
+
+  if (dashQuery.isLoading) {
+    return (
+      <div className="space-y-6 p-6">
+        <PageHeader icon={ShoppingCart} title="AI采购助手" description="..." />
+        <Skeleton className="h-10 w-96" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
       <div className="space-y-6 p-6">
@@ -104,14 +78,14 @@ export default function AIPurchaseAssistant() {
               </Button>
             </div>
             <div className="space-y-3">
-              {MOCK_SUPPLIERS.map((s, idx) => (
+              {suppliers.map((s: any, idx: number) => (
                 <Card key={s.id} className={idx === 0 ? "border-primary" : ""}>
                   <CardContent className="pt-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium">{s.name}</span>
-                          <Badge className={s.rating.startsWith("A") ? "bg-green-500/20 text-green-400" : "bg-blue-500/20 text-blue-400"}>{s.rating}</Badge>
+                          <Badge className={String(s.rating).startsWith("A") ? "bg-green-500/20 text-green-400" : "bg-blue-500/20 text-blue-400"}>{s.rating}</Badge>
                           {idx === 0 && <Badge className="bg-primary text-primary-foreground">最佳推荐</Badge>}
                         </div>
                         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-2">
@@ -128,12 +102,18 @@ export default function AIPurchaseAssistant() {
                   </CardContent>
                 </Card>
               ))}
+              {suppliers.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Building2 className="w-12 h-12 mb-3 opacity-50" />
+                  <p className="font-medium">暂无供应商数据</p>
+                </div>
+              )}
             </div>
           </TabsContent>
 
           {/* Price Comparison */}
           <TabsContent value="prices" className="space-y-4">
-            {MOCK_PRICES.map(item => (
+            {prices.map((item: any) => (
               <Card key={item.material}>
                 <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Package className="w-4 h-4" />{item.material}<span className="text-sm text-muted-foreground">({item.unit})</span></CardTitle></CardHeader>
                 <CardContent>
@@ -142,12 +122,12 @@ export default function AIPurchaseAssistant() {
                       <thead><tr className="border-b">
                         <th className="text-left py-2 px-3">供应商</th><th className="text-right py-2 px-3">单价</th><th className="text-right py-2 px-3">MOQ</th><th className="text-right py-2 px-3">交期</th><th className="text-right py-2 px-3"></th>
                       </tr></thead>
-                      <tbody>{item.suppliers.map((sp, idx) => {
-                        const isLowest = sp.price === Math.min(...item.suppliers.map(x => x.price));
+                      <tbody>{(item.suppliers ?? []).map((sp: any) => {
+                        const isLowest = sp.price === Math.min(...(item.suppliers ?? []).map((x: any) => x.price));
                         return (
                           <tr key={sp.name} className={`border-b last:border-0 ${isLowest ? "bg-green-500/5" : ""}`}>
                             <td className="py-2 px-3 font-medium">{sp.name}{isLowest && <Badge className="ml-2 bg-green-500/20 text-green-400 text-xs">最低</Badge>}</td>
-                            <td className="text-right py-2 px-3 font-mono">{sp.price.toLocaleString()}</td>
+                            <td className="text-right py-2 px-3 font-mono">{Number(sp.price).toLocaleString()}</td>
                             <td className="text-right py-2 px-3">{sp.moq}</td>
                             <td className="text-right py-2 px-3">{sp.leadTime}</td>
                             <td className="text-right py-2 px-3"><Button size="sm" variant="ghost"><ArrowRight className="w-3 h-3" /></Button></td>
@@ -165,11 +145,11 @@ export default function AIPurchaseAssistant() {
           <TabsContent value="strategy" className="space-y-4">
             <p className="text-sm text-muted-foreground">AI基于历史采购数据和供应链分析生成的采购策略建议</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {MOCK_STRATEGIES.map(s => (
+              {strategies.map((s: any) => (
                 <Card key={s.id} className="hover:border-primary/50">
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
-                      <Badge className={strategyColor[s.type]}>{strategyLabel[s.type]}</Badge>
+                      <Badge className={strategyColor[s.type] ?? "bg-gray-500/20 text-gray-400"}>{strategyLabel[s.type] ?? s.type}</Badge>
                       <CardTitle className="text-base">{s.title}</CardTitle>
                     </div>
                   </CardHeader>
@@ -199,7 +179,7 @@ export default function AIPurchaseAssistant() {
                     <thead><tr className="border-b">
                       <th className="text-left py-2 px-3">物料</th><th className="text-right py-2 px-3">数量</th><th className="text-left py-2 px-3">供应商</th><th className="text-left py-2 px-3">下单日期</th><th className="text-left py-2 px-3">交货日期</th><th className="text-left py-2 px-3">状态</th>
                     </tr></thead>
-                    <tbody>{MOCK_PLAN.map(item => (
+                    <tbody>{plan.map((item: any) => (
                       <tr key={item.id} className="border-b last:border-0">
                         <td className="py-2 px-3 font-medium">{item.material}</td>
                         <td className="text-right py-2 px-3">{item.qty}</td>

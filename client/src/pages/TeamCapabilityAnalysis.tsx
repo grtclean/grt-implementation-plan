@@ -1,12 +1,16 @@
+/**
+ * 团队能力对比分析页面
+ * Data source: operationsDashboard.getTeamMembers (DB-backed)
+ */
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { BarChart3, Download, Radar, TrendingUp, Users } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   Legend,
   PolarAngleAxis,
@@ -17,6 +21,9 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
+
 // 能力域配置
 const DOMAINS = [
   { code: "T", name: "技术能力", fullName: "Technology", color: "#f97316" },
@@ -27,57 +34,18 @@ const DOMAINS = [
   { code: "L", name: "领导力", fullName: "Leadership/Influence", color: "#ec4899" },
 ];
 
-// 模拟团队成员数据
-const MOCK_TEAM_MEMBERS = [
-  {
-    id: "user1",
-    name: "张工程师",
-    role: "高级服务工程师",
-    capabilities: { T: 4, S: 3, D: 4, C: 3, K: 2, L: 2 },
-    totalPoints: 850,
-  },
-  {
-    id: "user2",
-    name: "李技术员",
-    role: "技术支持工程师",
-    capabilities: { T: 3, S: 4, D: 3, C: 4, K: 3, L: 2 },
-    totalPoints: 720,
-  },
-  {
-    id: "user3",
-    name: "王专家",
-    role: "技术专家",
-    capabilities: { T: 5, S: 4, D: 3, C: 3, K: 4, L: 3 },
-    totalPoints: 1200,
-  },
-  {
-    id: "user4",
-    name: "赵工程师",
-    role: "现场服务工程师",
-    capabilities: { T: 2, S: 2, D: 3, C: 3, K: 1, L: 1 },
-    totalPoints: 320,
-  },
-  {
-    id: "user5",
-    name: "陈主管",
-    role: "服务主管",
-    capabilities: { T: 3, S: 3, D: 4, C: 4, K: 3, L: 4 },
-    totalPoints: 980,
-  },
-];
-
 // 团队平均能力计算
-function calculateTeamAverage(members: typeof MOCK_TEAM_MEMBERS) {
+function calculateTeamAverage(members: any[]) {
   const avg: Record<string, number> = {};
   DOMAINS.forEach((d) => {
-    const sum = members.reduce((acc, m) => acc + (m.capabilities[d.code as keyof typeof m.capabilities] || 0), 0);
+    const sum = members.reduce((acc: number, m: any) => acc + ((m.capabilities?.[d.code]) || 0), 0);
     avg[d.code] = Math.round((sum / members.length) * 10) / 10;
   });
   return avg;
 }
 
 // 能力差距分析
-function analyzeCapabilityGaps(members: typeof MOCK_TEAM_MEMBERS) {
+function analyzeCapabilityGaps(members: any[]) {
   const gaps: Array<{
     domain: string;
     domainName: string;
@@ -89,8 +57,8 @@ function analyzeCapabilityGaps(members: typeof MOCK_TEAM_MEMBERS) {
   }> = [];
 
   DOMAINS.forEach((d) => {
-    const levels = members.map((m) => m.capabilities[d.code as keyof typeof m.capabilities] || 0);
-    const avg = levels.reduce((a, b) => a + b, 0) / levels.length;
+    const levels = members.map((m: any) => (m.capabilities?.[d.code]) || 0);
+    const avg = levels.reduce((a: number, b: number) => a + b, 0) / levels.length;
     const max = Math.max(...levels);
     const min = Math.min(...levels);
     const gap = max - min;
@@ -122,23 +90,24 @@ function analyzeCapabilityGaps(members: typeof MOCK_TEAM_MEMBERS) {
 
 export default function TeamCapabilityAnalysis() {
   const { t } = useLanguage();
+  const membersQuery = trpc.operationsDashboard.getTeamMembers.useQuery(undefined, QUERY_OPTS);
+  const allMembers = (membersQuery.data ?? []) as any[];
   const [selectedMembers, setSelectedMembers] = useState<string[]>(["user1", "user2", "user3"]);
-  const [viewMode, setViewMode] = useState<"radar" | "bar" | "table">("radar");
 
   // 获取选中成员的数据
-  const selectedMemberData = MOCK_TEAM_MEMBERS.filter((m) => selectedMembers.includes(m.id));
-  const teamAverage = calculateTeamAverage(selectedMemberData);
-  const capabilityGaps = analyzeCapabilityGaps(selectedMemberData);
+  const selectedMemberData = allMembers.filter((m: any) => selectedMembers.includes(m.id));
+  const teamAverage = selectedMemberData.length > 0 ? calculateTeamAverage(selectedMemberData) : {};
+  const capabilityGaps = selectedMemberData.length > 0 ? analyzeCapabilityGaps(selectedMemberData) : [];
 
   // 准备雷达图数据
   const radarData = DOMAINS.map((d) => {
     const data: Record<string, any> = {
       domain: d.name,
       fullMark: 5,
-      teamAvg: teamAverage[d.code],
+      teamAvg: teamAverage[d.code] ?? 0,
     };
-    selectedMemberData.forEach((m) => {
-      data[m.id] = m.capabilities[d.code as keyof typeof m.capabilities] || 0;
+    selectedMemberData.forEach((m: any) => {
+      data[m.id] = (m.capabilities?.[d.code]) || 0;
     });
     return data;
   });
@@ -159,7 +128,7 @@ export default function TeamCapabilityAnalysis() {
     const report = {
       title: "团队能力对比分析报告",
       generatedAt: new Date().toISOString(),
-      members: selectedMemberData.map((m) => ({
+      members: selectedMemberData.map((m: any) => ({
         name: m.name,
         role: m.role,
         capabilities: m.capabilities,
@@ -177,6 +146,16 @@ export default function TeamCapabilityAnalysis() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  if (membersQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-16" />
+        <Skeleton className="h-24" />
+        <Skeleton className="h-96" />
+      </div>
+    );
+  }
 
   return (
       <div className="space-y-6">
@@ -203,7 +182,7 @@ export default function TeamCapabilityAnalysis() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
-              {MOCK_TEAM_MEMBERS.map((member) => (
+              {allMembers.map((member: any, index: number) => (
                 <Button
                   key={member.id}
                   variant={selectedMembers.includes(member.id) ? "default" : "outline"}
@@ -214,7 +193,7 @@ export default function TeamCapabilityAnalysis() {
                     className="w-3 h-3 rounded-full"
                     style={{
                       backgroundColor: selectedMembers.includes(member.id)
-                        ? DOMAINS[MOCK_TEAM_MEMBERS.indexOf(member) % DOMAINS.length].color
+                        ? DOMAINS[index % DOMAINS.length].color
                         : "#6b7280",
                     }}
                   />
@@ -257,7 +236,7 @@ export default function TeamCapabilityAnalysis() {
                       <PolarGrid stroke="#374151" />
                       <PolarAngleAxis dataKey="domain" tick={{ fill: "#9ca3af", fontSize: 12 }} />
                       <PolarRadiusAxis angle={30} domain={[0, 5]} tick={{ fill: "#6b7280" }} />
-                      {selectedMemberData.map((member, index) => (
+                      {selectedMemberData.map((member: any, index: number) => (
                         <RechartsRadar
                           key={member.id}
                           name={member.name}
@@ -385,12 +364,12 @@ export default function TeamCapabilityAnalysis() {
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedMemberData.map((member) => (
+                      {selectedMemberData.map((member: any) => (
                         <tr key={member.id} className="border-b border-border/50 hover:bg-muted/50">
                           <td className="p-3 font-medium">{member.name}</td>
                           <td className="p-3 text-muted-foreground">{member.role}</td>
                           {DOMAINS.map((d) => {
-                            const level = member.capabilities[d.code as keyof typeof member.capabilities] || 0;
+                            const level = (member.capabilities?.[d.code]) || 0;
                             return (
                               <td key={d.code} className="text-center p-3">
                                 <span
@@ -419,14 +398,14 @@ export default function TeamCapabilityAnalysis() {
                         {DOMAINS.map((d) => (
                           <td key={d.code} className="text-center p-3">
                             <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary text-sm font-bold">
-                              {teamAverage[d.code]}
+                              {teamAverage[d.code] ?? 0}
                             </span>
                           </td>
                         ))}
                         <td className="text-right p-3 text-primary">
-                          {Math.round(
-                            selectedMemberData.reduce((acc, m) => acc + m.totalPoints, 0) / selectedMemberData.length
-                          )}
+                          {selectedMemberData.length > 0 ? Math.round(
+                            selectedMemberData.reduce((acc: number, m: any) => acc + (m.totalPoints ?? 0), 0) / selectedMemberData.length
+                          ) : 0}
                         </td>
                       </tr>
                     </tbody>

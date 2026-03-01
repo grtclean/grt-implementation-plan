@@ -1,9 +1,12 @@
 /**
  * 模型性能监控仪表盘
  * 展示预测准确率、调用次数、响应时间、趋势图表
+ *
+ * Data source: trpc.aiModel.getPerformanceDashboard / getModelTrend (DB-backed)
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { trpc } from '@/lib/trpc';
 import { PageHeader, StatCard } from '@/components/grt';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,31 +16,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Activity,
   AlertTriangle,
-  ArrowDown,
-  ArrowUp,
   BarChart3,
   CheckCircle2,
   Clock,
   Cpu,
-  Database,
   Gauge,
-  LineChart,
   RefreshCw,
-  Settings,
   Target,
   XCircle,
   Zap
 } from 'lucide-react';
 
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
+
 // ==================== 类型定义 ====================
 
-type ModelType = 
-  | 'cost_prediction' 
-  | 'demand_forecast' 
+type ModelType =
+  | 'cost_prediction'
+  | 'demand_forecast'
   | 'quality_prediction'
   | 'delivery_time_estimation'
   | 'resource_allocation'
@@ -76,7 +76,7 @@ interface TrendDataPoint {
   avgLatency: number;
 }
 
-// ==================== 模拟数据 ====================
+// ==================== 常量 ====================
 
 const MODEL_NAMES: Record<ModelType, string> = {
   cost_prediction: '成本预测',
@@ -87,94 +87,25 @@ const MODEL_NAMES: Record<ModelType, string> = {
   anomaly_detection: '异常检测'
 };
 
-function generateMockMetrics(modelType: ModelType, period: Period): ModelMetrics {
-  const baseAccuracy = {
-    cost_prediction: 0.85,
-    demand_forecast: 0.78,
-    quality_prediction: 0.92,
-    delivery_time_estimation: 0.81,
-    resource_allocation: 0.76,
-    anomaly_detection: 0.88
-  };
-  
-  const baseCalls = {
-    hour: 50,
-    day: 500,
-    week: 3000,
-    month: 12000
-  };
-  
-  return {
-    modelType,
-    modelVersion: 'v1.2.0',
-    period,
-    totalCalls: Math.floor(baseCalls[period] * (0.8 + Math.random() * 0.4)),
-    accuracy: baseAccuracy[modelType] + (Math.random() - 0.5) * 0.1,
-    avgLatency: 200 + Math.random() * 800,
-    p95Latency: 500 + Math.random() * 1500,
-    avgConfidence: 0.7 + Math.random() * 0.25,
-    mae: 100 + Math.random() * 200,
-    rmse: 150 + Math.random() * 300
-  };
-}
+const MODEL_TYPES: ModelType[] = [
+  'cost_prediction',
+  'demand_forecast',
+  'quality_prediction',
+  'delivery_time_estimation',
+  'resource_allocation',
+  'anomaly_detection'
+];
 
-function generateMockHealth(modelType: ModelType): HealthStatus {
-  const statuses: HealthStatus['status'][] = ['healthy', 'healthy', 'healthy', 'degraded', 'critical'];
-  const status = statuses[Math.floor(Math.random() * statuses.length)];
-  
-  const issues: HealthStatus['issues'] = [];
-  const recommendations: string[] = [];
-  
-  if (status === 'degraded') {
-    issues.push({
-      type: 'accuracy_drop',
-      severity: 'warning',
-      message: '准确率下降5%'
-    });
-    recommendations.push('建议检查最近的输入数据分布');
-  } else if (status === 'critical') {
-    issues.push({
-      type: 'latency_spike',
-      severity: 'critical',
-      message: '响应时间超过阈值200%'
-    });
-    recommendations.push('建议立即检查服务器负载');
-    recommendations.push('考虑增加计算资源');
-  }
-  
-  return { modelType, status, issues, recommendations };
-}
-
-function generateMockTrend(modelType: ModelType, period: Period): TrendDataPoint[] {
-  const pointCount = period === 'hour' ? 12 : period === 'day' ? 24 : period === 'week' ? 7 : 30;
-  const now = Date.now();
-  const interval = {
-    hour: 5 * 60 * 1000,
-    day: 60 * 60 * 1000,
-    week: 24 * 60 * 60 * 1000,
-    month: 24 * 60 * 60 * 1000
-  }[period];
-  
-  return Array.from({ length: pointCount }, (_, i) => ({
-    timestamp: now - (pointCount - i - 1) * interval,
-    calls: Math.floor(20 + Math.random() * 80),
-    accuracy: 0.75 + Math.random() * 0.2,
-    avgLatency: 200 + Math.random() * 600
-  }));
-}
-
-// ==================== 组件 ====================
+// ==================== 子组件 ====================
 
 function ModelStatusBadge({ status }: { status: HealthStatus['status'] }) {
   const config = {
-    healthy: { label: '健康', variant: 'default' as const, icon: CheckCircle2, className: 'bg-green-500/10 text-green-500 border-green-500/20' },
-    degraded: { label: '降级', variant: 'secondary' as const, icon: AlertTriangle, className: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
-    critical: { label: '严重', variant: 'destructive' as const, icon: XCircle, className: 'bg-red-500/10 text-red-500 border-red-500/20' },
-    unknown: { label: '未知', variant: 'outline' as const, icon: Activity, className: 'bg-gray-500/10 text-gray-500 border-gray-500/20' }
+    healthy: { label: '健康', icon: CheckCircle2, className: 'bg-green-500/10 text-green-500 border-green-500/20' },
+    degraded: { label: '降级', icon: AlertTriangle, className: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
+    critical: { label: '严重', icon: XCircle, className: 'bg-red-500/10 text-red-500 border-red-500/20' },
+    unknown: { label: '未知', icon: Activity, className: 'bg-gray-500/10 text-gray-500 border-gray-500/20' }
   };
-  
   const { label, icon: Icon, className } = config[status];
-  
   return (
     <Badge variant="outline" className={className}>
       <Icon className="w-3 h-3 mr-1" />
@@ -183,18 +114,16 @@ function ModelStatusBadge({ status }: { status: HealthStatus['status'] }) {
   );
 }
 
-
 function TrendChart({ data, metric }: { data: TrendDataPoint[]; metric: 'calls' | 'accuracy' | 'avgLatency' }) {
+  if (data.length === 0) return null;
   const maxValue = Math.max(...data.map(d => d[metric]));
   const minValue = Math.min(...data.map(d => d[metric]));
   const range = maxValue - minValue || 1;
-  
   const formatValue = (v: number) => {
     if (metric === 'accuracy') return `${(v * 100).toFixed(1)}%`;
     if (metric === 'avgLatency') return `${v.toFixed(0)}ms`;
     return v.toString();
   };
-  
   return (
     <div className="h-40 flex items-end gap-1">
       {data.map((point, i) => {
@@ -217,19 +146,19 @@ function TrendChart({ data, metric }: { data: TrendDataPoint[]; metric: 'calls' 
   );
 }
 
-function ModelCard({ 
-  modelType, 
-  metrics, 
+function ModelCard({
+  modelType,
+  metrics,
   health,
   onSelect
-}: { 
-  modelType: ModelType; 
+}: {
+  modelType: ModelType;
   metrics: ModelMetrics;
   health: HealthStatus;
   onSelect: () => void;
 }) {
   return (
-    <Card 
+    <Card
       className="bg-card/50 border-border hover:border-primary/50 transition-colors cursor-pointer"
       onClick={onSelect}
     >
@@ -254,7 +183,6 @@ function ModelCard({
             <p className="text-lg font-bold">{metrics.totalCalls.toLocaleString()}</p>
           </div>
         </div>
-        
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-xs text-muted-foreground">平均延迟</p>
@@ -265,7 +193,6 @@ function ModelCard({
             <p className="font-medium">{metrics.p95Latency.toFixed(0)}ms</p>
           </div>
         </div>
-        
         {health.issues.length > 0 && (
           <div className="pt-2 border-t border-border">
             <p className="text-xs text-muted-foreground mb-1">问题 ({health.issues.length})</p>
@@ -285,73 +212,65 @@ function ModelCard({
 // ==================== 主组件 ====================
 
 export default function ModelPerformanceMonitor() {
-  const { t } = useLanguage();
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('day');
   const [selectedModel, setSelectedModel] = useState<ModelType | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
-  
-  const modelTypes: ModelType[] = [
-    'cost_prediction',
-    'demand_forecast',
-    'quality_prediction',
-    'delivery_time_estimation',
-    'resource_allocation',
-    'anomaly_detection'
-  ];
-  
-  // 生成模拟数据
-  const allMetrics = useMemo(() => 
-    modelTypes.map(type => generateMockMetrics(type, selectedPeriod)),
-    [selectedPeriod, lastRefresh]
+
+  // ─── tRPC ───
+  const dashQuery = trpc.aiModel.getPerformanceDashboard.useQuery(
+    { period: selectedPeriod },
+    { ...QUERY_OPTS, refetchInterval: autoRefresh ? 30000 : false },
   );
-  
-  const allHealth = useMemo(() => 
-    modelTypes.map(type => generateMockHealth(type)),
-    [lastRefresh]
+  const allMetrics = (dashQuery.data?.metrics ?? []) as ModelMetrics[];
+  const allHealth = (dashQuery.data?.health ?? []) as HealthStatus[];
+
+  const trendQuery = trpc.aiModel.getModelTrend.useQuery(
+    { modelType: selectedModel!, period: selectedPeriod },
+    { ...QUERY_OPTS, enabled: !!selectedModel },
   );
-  
-  const selectedMetrics = selectedModel 
-    ? allMetrics.find(m => m.modelType === selectedModel) 
+  const trendData = (trendQuery.data ?? []) as TrendDataPoint[];
+
+  const selectedMetrics = selectedModel
+    ? allMetrics.find(m => m.modelType === selectedModel) ?? null
     : null;
-    
   const selectedHealth = selectedModel
-    ? allHealth.find(h => h.modelType === selectedModel)
+    ? allHealth.find(h => h.modelType === selectedModel) ?? null
     : null;
-    
-  const trendData = useMemo(() => 
-    selectedModel ? generateMockTrend(selectedModel, selectedPeriod) : [],
-    [selectedModel, selectedPeriod, lastRefresh]
-  );
-  
-  // 汇总统计
+
   const summary = useMemo(() => {
-    const totalCalls = allMetrics.reduce((sum, m) => sum + m.totalCalls, 0);
-    const avgAccuracy = allMetrics.reduce((sum, m) => sum + m.accuracy, 0) / allMetrics.length;
-    const avgLatency = allMetrics.reduce((sum, m) => sum + m.avgLatency, 0) / allMetrics.length;
-    const healthyCount = allHealth.filter(h => h.status === 'healthy').length;
-    
-    return { totalCalls, avgAccuracy, avgLatency, healthyCount };
+    if (allMetrics.length === 0) return { totalCalls: 0, avgAccuracy: 0, avgLatency: 0, healthyCount: 0 };
+    return {
+      totalCalls: allMetrics.reduce((sum, m) => sum + m.totalCalls, 0),
+      avgAccuracy: allMetrics.reduce((sum, m) => sum + m.accuracy, 0) / allMetrics.length,
+      avgLatency: allMetrics.reduce((sum, m) => sum + m.avgLatency, 0) / allMetrics.length,
+      healthyCount: allHealth.filter(h => h.status === 'healthy').length,
+    };
   }, [allMetrics, allHealth]);
-  
-  // 自动刷新
-  useEffect(() => {
-    if (!autoRefresh) return;
-    
-    const interval = setInterval(() => {
-      setLastRefresh(Date.now());
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, [autoRefresh]);
-  
+
   const handleRefresh = () => {
-    setLastRefresh(Date.now());
+    dashQuery.refetch();
+    if (selectedModel) trendQuery.refetch();
   };
-  
+
+  if (dashQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader icon={Gauge} title="模型性能监控" description="..." />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}
+          </div>
+          <div className="lg:col-span-2"><Skeleton className="h-96 rounded-lg" /></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
       <div className="space-y-6">
-        {/* 页面标题 */}
         <PageHeader
           icon={Gauge}
           title="模型性能监控"
@@ -384,7 +303,7 @@ export default function ModelPerformanceMonitor() {
             </>
           }
         />
-        
+
         {/* 汇总指标 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard
@@ -410,12 +329,12 @@ export default function ModelPerformanceMonitor() {
           <StatCard
             icon={CheckCircle2}
             label="健康模型"
-            value={`${summary.healthyCount}/${modelTypes.length}`}
-            iconColor={summary.healthyCount === modelTypes.length ? "text-green-600" : "text-yellow-600"}
-            iconBg={summary.healthyCount === modelTypes.length ? "bg-green-100" : "bg-yellow-100"}
+            value={`${summary.healthyCount}/${MODEL_TYPES.length}`}
+            iconColor={summary.healthyCount === MODEL_TYPES.length ? "text-green-600" : "text-yellow-600"}
+            iconBg={summary.healthyCount === MODEL_TYPES.length ? "bg-green-100" : "bg-yellow-100"}
           />
         </div>
-        
+
         {/* 主内容区 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 模型列表 */}
@@ -425,18 +344,23 @@ export default function ModelPerformanceMonitor() {
               模型列表
             </h2>
             <div className="space-y-3">
-              {modelTypes.map((type, i) => (
-                <ModelCard
-                  key={type}
-                  modelType={type}
-                  metrics={allMetrics[i]}
-                  health={allHealth[i]}
-                  onSelect={() => setSelectedModel(type)}
-                />
-              ))}
+              {MODEL_TYPES.map((type) => {
+                const m = allMetrics.find(x => x.modelType === type);
+                const h = allHealth.find(x => x.modelType === type);
+                if (!m || !h) return null;
+                return (
+                  <ModelCard
+                    key={type}
+                    modelType={type}
+                    metrics={m}
+                    health={h}
+                    onSelect={() => setSelectedModel(type)}
+                  />
+                );
+              })}
             </div>
           </div>
-          
+
           {/* 详细信息 */}
           <div className="lg:col-span-2 space-y-4">
             {selectedModel && selectedMetrics && selectedHealth ? (
@@ -463,7 +387,7 @@ export default function ModelPerformanceMonitor() {
                         <TabsTrigger value="trends">趋势图表</TabsTrigger>
                         <TabsTrigger value="health">健康状态</TabsTrigger>
                       </TabsList>
-                      
+
                       <TabsContent value="metrics" className="space-y-4 mt-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="p-4 bg-secondary/30 rounded-lg">
@@ -483,7 +407,6 @@ export default function ModelPerformanceMonitor() {
                             <p className="text-2xl font-bold">{(selectedMetrics.avgConfidence * 100).toFixed(1)}%</p>
                           </div>
                         </div>
-                        
                         {selectedMetrics.mae && (
                           <div className="grid grid-cols-2 gap-4">
                             <div className="p-4 bg-secondary/30 rounded-lg">
@@ -496,7 +419,6 @@ export default function ModelPerformanceMonitor() {
                             </div>
                           </div>
                         )}
-                        
                         <div className="p-4 bg-secondary/30 rounded-lg">
                           <p className="text-xs text-muted-foreground mb-2">延迟分布</p>
                           <div className="space-y-2">
@@ -515,7 +437,7 @@ export default function ModelPerformanceMonitor() {
                           </div>
                         </div>
                       </TabsContent>
-                      
+
                       <TabsContent value="trends" className="space-y-4 mt-4">
                         <div className="space-y-6">
                           <div>
@@ -525,7 +447,6 @@ export default function ModelPerformanceMonitor() {
                             </h4>
                             <TrendChart data={trendData} metric="calls" />
                           </div>
-                          
                           <div>
                             <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                               <Target className="w-4 h-4" />
@@ -533,7 +454,6 @@ export default function ModelPerformanceMonitor() {
                             </h4>
                             <TrendChart data={trendData} metric="accuracy" />
                           </div>
-                          
                           <div>
                             <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                               <Clock className="w-4 h-4" />
@@ -543,7 +463,7 @@ export default function ModelPerformanceMonitor() {
                           </div>
                         </div>
                       </TabsContent>
-                      
+
                       <TabsContent value="health" className="space-y-4 mt-4">
                         <div className="flex items-center gap-4 p-4 bg-secondary/30 rounded-lg">
                           <div className={`p-3 rounded-full ${
@@ -574,16 +494,15 @@ export default function ModelPerformanceMonitor() {
                             </p>
                           </div>
                         </div>
-                        
                         {selectedHealth.issues.length > 0 && (
                           <div className="space-y-2">
                             <h4 className="font-medium">发现的问题</h4>
                             {selectedHealth.issues.map((issue, i) => (
-                              <div 
-                                key={i} 
+                              <div
+                                key={i}
                                 className={`p-3 rounded-lg border ${
-                                  issue.severity === 'critical' 
-                                    ? 'bg-red-500/10 border-red-500/20' 
+                                  issue.severity === 'critical'
+                                    ? 'bg-red-500/10 border-red-500/20'
                                     : 'bg-yellow-500/10 border-yellow-500/20'
                                 }`}
                               >
@@ -597,7 +516,6 @@ export default function ModelPerformanceMonitor() {
                             ))}
                           </div>
                         )}
-                        
                         {selectedHealth.recommendations.length > 0 && (
                           <div className="space-y-2">
                             <h4 className="font-medium">建议措施</h4>
@@ -629,10 +547,10 @@ export default function ModelPerformanceMonitor() {
             )}
           </div>
         </div>
-        
+
         {/* 最后更新时间 */}
         <div className="text-center text-sm text-muted-foreground">
-          最后更新: {new Date(lastRefresh).toLocaleString()}
+          最后更新: {new Date(dashQuery.dataUpdatedAt).toLocaleString()}
           {autoRefresh && ' (每30秒自动刷新)'}
         </div>
       </div>

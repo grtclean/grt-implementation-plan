@@ -1,50 +1,22 @@
 /**
  * 阶段门管理 Tab - 检查清单与状态管理
- * 使用Mock数据，后续对接tRPC
+ * Data source: rdVerification.getChecklists (DB-backed)
  */
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { STAGES, CHECKLIST_STATUSES, M5_REVIEW_CATEGORIES } from "../../../../shared/stage-definitions";
+import { STAGES, CHECKLIST_STATUSES } from "../../../../shared/stage-definitions";
 import {
   CheckCircle, XCircle, Clock, AlertTriangle, Shield,
-  FileCheck, ArrowRight, Settings, Inbox,
+  ArrowRight, Settings, Inbox,
 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
-interface MockCheckItem {
-  id: number;
-  checkItem: string;
-  status: "pending" | "pass" | "fail";
-  isMandatory: boolean;
-  autoVerifySource?: string;
-}
-
-const MOCK_CHECKLISTS: Record<string, MockCheckItem[]> = {
-  M3: [
-    { id: 1, checkItem: "商业价值评估完成", status: "pass", isMandatory: true },
-    { id: 2, checkItem: "项目范围定义确认", status: "pass", isMandatory: true },
-    { id: 3, checkItem: "资源配置计划审批", status: "pending", isMandatory: false },
-    { id: 4, checkItem: "RACI矩阵确认", status: "pending", isMandatory: false },
-    { id: 5, checkItem: "风险评估报告", status: "fail", isMandatory: true },
-  ],
-  M4: [
-    { id: 6, checkItem: "机械方案评审通过", status: "pass", isMandatory: true },
-    { id: 7, checkItem: "电气方案评审通过", status: "pass", isMandatory: true },
-    { id: 8, checkItem: "质量方案确认", status: "pending", isMandatory: true },
-    { id: 9, checkItem: "采购BOM初版确认", status: "pending", isMandatory: false },
-  ],
-  M5: [
-    { id: 10, checkItem: "3D模型最终版发布", status: "pass", isMandatory: true, autoVerifySource: "PLM_Model_Status" },
-    { id: 11, checkItem: "加工图纸完成", status: "pass", isMandatory: true, autoVerifySource: "PLM_Drawing_Status" },
-    { id: 12, checkItem: "PLC程序设计完成", status: "pending", isMandatory: true },
-    { id: 13, checkItem: "BOM与3D模型一致性", status: "fail", isMandatory: true, autoVerifySource: "ERP_BOM_Consistency" },
-    { id: 14, checkItem: "结构仿真通过", status: "pass", isMandatory: false },
-  ],
-};
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 const statusIcons: Record<string, React.ComponentType<{className?: string}>> = {
   pending: Clock, pass: CheckCircle, fail: XCircle,
@@ -62,11 +34,24 @@ function getStatusBadge(status: string) {
 
 export default function GateManagement() {
   const [selectedStage, setSelectedStage] = useState("M5");
-  const items = MOCK_CHECKLISTS[selectedStage] || [];
-  const passCount = items.filter(i => i.status === "pass").length;
+  const checklistsQuery = trpc.rdVerification.getChecklists.useQuery(undefined, QUERY_OPTS);
+  const allChecklists = (checklistsQuery.data ?? {}) as Record<string, any[]>;
+
+  const items = allChecklists[selectedStage] || [];
+  const passCount = items.filter((i: any) => i.status === "pass").length;
   const progress = items.length > 0 ? Math.round((passCount / items.length) * 100) : 0;
-  const hasMandFail = items.some(i => i.isMandatory && i.status === "fail");
+  const hasMandFail = items.some((i: any) => i.isMandatory && i.status === "fail");
   const currentStage = STAGES.find(s => s.id === selectedStage);
+
+  if (checklistsQuery.isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-20" />
+        <Skeleton className="h-16" />
+        <Skeleton className="h-48" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -123,7 +108,7 @@ export default function GateManagement() {
               <p>该阶段暂无检查项</p>
             </CardContent>
           </Card>
-        ) : items.map((item) => (
+        ) : items.map((item: any) => (
           <Card key={item.id} className={"border-l-4 hover:shadow-md transition-shadow " + (item.status === "pass" ? "border-l-green-500" : item.status === "fail" ? "border-l-red-500" : "border-l-yellow-500")}>
             <CardContent className="p-4">
               <div className="flex items-start justify-between">

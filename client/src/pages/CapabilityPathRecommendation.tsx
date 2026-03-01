@@ -28,124 +28,16 @@ const DOMAINS: Record<string, { name: string; fullName: string; color: string }>
   L: { name: "领导力", fullName: "Leadership/Influence", color: "#ec4899" },
 };
 
-// 模拟推荐数据
-const MOCK_RECOMMENDATION = {
-  userId: "user1",
-  currentCapabilities: {
-    T: { level: 3, points: 450 },
-    S: { level: 2, points: 180 },
-    D: { level: 3, points: 380 },
-    C: { level: 2, points: 150 },
-    K: { level: 1, points: 60 },
-    L: { level: 1, points: 40 },
-  },
-  weakestDomains: [
-    { code: "K", name: "知识沉淀", level: 1, gap: 1.5 },
-    { code: "L", name: "领导力", level: 1, gap: 1.5 },
-    { code: "C", name: "客户价值", level: 2, gap: 0.5 },
-  ],
-  strongestDomains: [
-    { code: "T", name: "技术能力", level: 3 },
-    { code: "D", name: "交付能力", level: 3 },
-  ],
-  recommendedPath: {
-    shortTerm: [
-      { action: "完成知识沉淀基础培训课程", domain: "K", expectedPoints: 30 },
-      { action: "参与1个知识沉淀相关的简单项目", domain: "K", expectedPoints: 50 },
-      { action: "完成领导力基础培训课程", domain: "L", expectedPoints: 30 },
-    ],
-    midTerm: [
-      { action: "独立完成2-3个知识沉淀相关项目", domain: "K", expectedPoints: 150 },
-      { action: "获取知识沉淀领域的专业认证", domain: "K", expectedPoints: 100 },
-      { action: "独立完成2-3个客户价值相关项目", domain: "C", expectedPoints: 150 },
-    ],
-    longTerm: [
-      { action: "成为知识沉淀领域的内部专家", domain: "K", expectedPoints: 200 },
-      { action: "指导新人在知识沉淀领域的成长", domain: "K", expectedPoints: 100 },
-    ],
-  },
-  projectOpportunities: [
-    {
-      id: "k1",
-      name: "技术文档编写",
-      description: "编写技术文档和操作手册",
-      requiredDomains: ["K"],
-      requiredLevel: 1,
-      potentialPoints: 30,
-      difficulty: "easy",
-    },
-    {
-      id: "c1",
-      name: "客户需求调研",
-      description: "参与客户需求调研和分析",
-      requiredDomains: ["C"],
-      requiredLevel: 1,
-      potentialPoints: 40,
-      difficulty: "easy",
-    },
-    {
-      id: "l1",
-      name: "项目协调角色",
-      description: "担任项目协调角色，锻炼协调能力",
-      requiredDomains: ["L"],
-      requiredLevel: 2,
-      potentialPoints: 60,
-      difficulty: "medium",
-    },
-  ],
-  trainingResources: [
-    {
-      id: "kr1",
-      name: "技术写作课程",
-      description: "学习技术文档写作规范",
-      targetDomain: "K",
-      targetLevel: 2,
-      duration: "4小时",
-      type: "online",
-    },
-    {
-      id: "lr1",
-      name: "团队管理基础课程",
-      description: "学习团队管理基础知识",
-      targetDomain: "L",
-      targetLevel: 2,
-      duration: "8小时",
-      type: "online",
-    },
-    {
-      id: "cr1",
-      name: "客户沟通技巧课程",
-      description: "学习专业的客户沟通技巧",
-      targetDomain: "C",
-      targetLevel: 2,
-      duration: "6小时",
-      type: "online",
-    },
-  ],
-  aiAnalysis:
-    "根据您的能力数据分析，您在技术能力(T)和交付能力(D)方面表现优秀，已达到L3等级。建议优先提升知识沉淀(K)和领导力(L)两个短板领域。可以通过编写技术文档、参与内部培训等方式积累知识沉淀积分；通过担任项目协调角色来锻炼领导力。预计3-6个月内可以将这两个领域提升至L2等级。",
-  generatedAt: new Date().toISOString(),
-};
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 export default function CapabilityPathRecommendation() {
-  // 获取路径推荐
-  const recommendationQuery = trpc.capabilityOs.getPathRecommendation.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
+  // 获取路径推荐 (DB-backed)
+  const recommendationQuery = trpc.capabilityOs.getPathRecommendation.useQuery(undefined, QUERY_OPTS);
 
-  // 使用模拟数据或真实数据
-  // 确保数据有效：如果后端返回空数组或无效数据，使用模拟数据
-  const rawData = recommendationQuery.data;
-  const isValidData = rawData && 
-    typeof rawData === 'object' && 
-    !Array.isArray(rawData) && 
-    rawData.recommendedPath && 
-    rawData.weakestDomains;
-  const recommendation = isValidData ? rawData : MOCK_RECOMMENDATION;
+  const recommendation = recommendationQuery.data as any;
   const isLoading = recommendationQuery.isLoading;
 
-  if (isLoading) {
+  if (isLoading || !recommendation) {
     return (
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">

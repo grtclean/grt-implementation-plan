@@ -1,29 +1,16 @@
 /**
  * 拉动信号 Tab - JIT/JIS信号管理
- * 使用Mock数据
+ * Data source: rdVerification.getSignals (DB-backed)
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { STAGES } from "../../../../shared/stage-definitions";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Zap, ArrowRight, Factory, Inbox, CheckCircle, Clock } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
-interface MockSignal {
-  id: number;
-  upstreamGate: string;
-  triggerEvent: string;
-  targetAasId: string;
-  status: "pending" | "triggered" | "confirmed";
-  actionPayload: Record<string, unknown>;
-}
-
-const MOCK_SIGNALS: MockSignal[] = [
-  { id: 1, upstreamGate: "M6", triggerEvent: "上汽JIS订单到达", targetAasId: "AAS-GRT501-CL01", status: "triggered", actionPayload: { action: "start_production", line: "A3" } },
-  { id: 2, upstreamGate: "M7", triggerEvent: "装配完成信号", targetAasId: "AAS-GRT501-TST01", status: "pending", actionPayload: { action: "start_test", protocol: "FAT" } },
-  { id: 3, upstreamGate: "M9", triggerEvent: "发货确认", targetAasId: "AAS-GRT502-INS01", status: "confirmed", actionPayload: { action: "prepare_installation", site: "台积电南京" } },
-  { id: 4, upstreamGate: "M4", triggerEvent: "方案冻结完成", targetAasId: "AAS-GRT503-PRO01", status: "pending", actionPayload: { action: "start_procurement", priority: "high" } },
-];
+const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ComponentType<{className?: string}> }> = {
   pending: { label: "待触发", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: Clock },
@@ -32,7 +19,16 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.C
 };
 
 export default function PullSignals() {
-  const [signals, setSignals] = useState(MOCK_SIGNALS);
+  const signalsQuery = trpc.rdVerification.getSignals.useQuery(undefined, QUERY_OPTS);
+  const serverSignals = (signalsQuery.data ?? []) as any[];
+  const [signals, setSignals] = useState<any[]>([]);
+
+  // Initialize local state from server data
+  useEffect(() => {
+    if (serverSignals.length > 0 && signals.length === 0) {
+      setSignals(serverSignals);
+    }
+  }, [serverSignals, signals.length]);
 
   const handleTrigger = (id: number) => {
     setSignals(prev => prev.map(s => s.id === id ? { ...s, status: "triggered" as const } : s));
@@ -40,6 +36,15 @@ export default function PullSignals() {
   const handleConfirm = (id: number) => {
     setSignals(prev => prev.map(s => s.id === id ? { ...s, status: "confirmed" as const } : s));
   };
+
+  if (signalsQuery.isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-12" />
+        {[1,2,3].map(i => <Skeleton key={i} className="h-32" />)}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -57,8 +62,8 @@ export default function PullSignals() {
               <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>暂无拉动信号</p>
             </CardContent>
           </Card>
-        ) : signals.map((signal) => {
-          const sc = statusConfig[signal.status];
+        ) : signals.map((signal: any) => {
+          const sc = statusConfig[signal.status] ?? statusConfig.pending;
           const StatusIcon = sc.icon;
           return (
             <Card key={signal.id} className="hover:shadow-md transition-shadow border-l-4 border-l-purple-500">
