@@ -12090,3 +12090,32 @@ export const aiTasks = pgTable('ai_tasks', {
 
 export type AiTask = InferSelectModel<typeof aiTasks>;
 export type InsertAiTask = InferInsertModel<typeof aiTasks>;
+
+// ==================== 自动化触发会议 ====================
+
+export const automationTriggerTypeEnum = pgEnum('automationTriggerTypeEnum', [
+  'PHASE_CHANGE', 'T_NODE_DELAY', 'OKR_AT_RISK', 'QUALITY_ESCALATION', 'SUPPLIER_PENALTY',
+]);
+
+export const automationMeetingStatusEnum = pgEnum('automationMeetingStatusEnum', [
+  'UPCOMING', 'IN_PROGRESS', 'ENDED', 'CANCELLED',
+]);
+
+export const automationTriggeredMeetings = pgTable("automation_triggered_meetings", {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 300 }).notNull(),
+  type: automationTriggerTypeEnum('type').notNull(),
+  status: automationMeetingStatusEnum('status').default('UPCOMING').notNull(),
+  description: text('description'),
+  scheduledStart: timestamp('scheduled_start', { mode: 'string' }).notNull(),
+  triggerSource: varchar('trigger_source', { length: 300 }),
+  createdBy: integer('created_by'),
+  createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_auto_meetings_type').on(table.type),
+  index('idx_auto_meetings_status').on(table.status),
+  index('idx_auto_meetings_scheduled').on(table.scheduledStart),
+]);
+
+export type AutomationTriggeredMeeting = InferSelectModel<typeof automationTriggeredMeetings>;
+export type InsertAutomationTriggeredMeeting = InferInsertModel<typeof automationTriggeredMeetings>;
