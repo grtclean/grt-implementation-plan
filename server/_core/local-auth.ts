@@ -23,8 +23,9 @@ function getJwtSecret() {
     if (process.env.NODE_ENV === "production") {
       throw new Error("FATAL: JWT_SECRET is not set. Set JWT_SECRET env var (≥32 chars).");
     }
-    console.warn("[SECURITY] JWT_SECRET not set — using insecure dev default. Set JWT_SECRET in .env");
-    return new TextEncoder().encode("grt-local-dev-only-insecure-default");
+    const devFallback = `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    console.warn("[SECURITY] JWT_SECRET not set — using random ephemeral key (tokens won't survive restarts). Set JWT_SECRET in .env");
+    return new TextEncoder().encode(devFallback);
   }
   return new TextEncoder().encode(secret);
 }

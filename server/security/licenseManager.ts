@@ -367,7 +367,11 @@ export function getCurrentLicense(): LicenseConfig | null {
  * 获取许可证密钥（用于签名）
  */
 function getLicenseSecret(): string {
-  return process.env.LICENSE_SECRET || 'grt-license-secret-change-in-production';
+  const secret = process.env.LICENSE_SECRET || '';
+  if (!secret) {
+    console.warn("[SECURITY] LICENSE_SECRET not set — license signing disabled. Set LICENSE_SECRET in .env");
+  }
+  return secret;
 }
 
 /**

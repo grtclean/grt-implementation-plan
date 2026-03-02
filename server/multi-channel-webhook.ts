@@ -334,10 +334,10 @@ export async function sendToAllChannels(
 let channelConfigs: WebhookConfig[] = [
   {
     channel: 'dingtalk',
-    webhookUrl: 'https://oapi.dingtalk.com/robot/send?access_token=8d003ada94b037153ee995bdfe955049e378af2b7e54e6bb87b686c959893b6c',
-    secret: 'SEC179f421330c60dae9e928cdcafced74e38c80b2df72062e7eb08c14f98043235',
+    webhookUrl: process.env.DINGTALK_WEBHOOK_URL || '',
+    secret: process.env.DINGTALK_WEBHOOK_SECRET || '',
     keyword: '1',
-    enabled: true,
+    enabled: !!(process.env.DINGTALK_WEBHOOK_URL),
   },
   {
     channel: 'wecom',

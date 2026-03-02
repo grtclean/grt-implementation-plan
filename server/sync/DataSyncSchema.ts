@@ -183,7 +183,11 @@ export class DataSyncService {
   
   constructor(nodeInfo: SyncNodeInfo, secretKey?: string) {
     this.nodeInfo = nodeInfo;
-    this.secretKey = secretKey || process.env.SYNC_SECRET_KEY || 'grt-sync-default-key';
+    const resolvedKey = secretKey || process.env.SYNC_SECRET_KEY || '';
+    if (!resolvedKey) {
+      console.warn("[SECURITY] SYNC_SECRET_KEY not set — sync HMAC signatures will be rejected. Set SYNC_SECRET_KEY in .env");
+    }
+    this.secretKey = resolvedKey;
   }
   
   /**
