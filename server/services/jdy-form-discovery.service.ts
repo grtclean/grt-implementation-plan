@@ -6,6 +6,9 @@
 import { requireDb } from '../db';
 import { sql as drizzleSql } from 'drizzle-orm';
 import { getJiandaoyunSyncService, JiandaoyunField } from '../jiandaoyun';
+import { createChildLogger } from '../lib/logger';
+
+const log = createChildLogger("jdy-forms");
 
 // 表单分类规则 — 20+ 实体类型，按匹配优先级排序（精确匹配在前，模糊匹配在后）
 const FORM_CLASSIFICATION_RULES: Array<{
@@ -486,11 +489,11 @@ export class JdyFormDiscoveryService {
               fieldCount: fields.length,
             });
           } catch (error: any) {
-            console.warn(`[FormDiscovery] 处理表单失败 ${app.name}/${form.name}:`, error.message);
+            log.warn({ appName: app.name, formName: form.name, error: error.message }, "处理表单失败");
           }
         }
       } catch (error: any) {
-        console.warn(`[FormDiscovery] 获取应用表单失败 ${app.name}:`, error.message);
+        log.warn({ appName: app.name, error: error.message }, "获取应用表单失败");
       }
     }
 

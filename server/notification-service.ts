@@ -10,6 +10,9 @@
 
 import { notifyOwner } from "./_core/notification";
 import crypto from "crypto";
+import { createChildLogger } from "./lib/logger";
+
+const log = createChildLogger("notification");
 
 // 通知渠道类型
 export type NotificationChannel = "email" | "dingtalk" | "wechat" | "system";
@@ -311,10 +314,11 @@ async function sendEmailNotification(message: NotificationMessage): Promise<Noti
   try {
     // 注意：实际生产环境需要使用nodemailer等邮件库
     // 这里提供一个模拟实现，实际部署时需要替换
-    console.log(`[EmailNotification] 邮件通知模拟发送:`);
-    console.log(`  收件人: ${config.recipients.join(", ")}`);
-    console.log(`  主题: ${message.title}`);
-    console.log(`  内容: ${message.content.substring(0, 100)}...`);
+    log.info({
+      recipients: config.recipients,
+      subject: message.title,
+      contentPreview: message.content.substring(0, 100),
+    }, "邮件通知模拟发送");
     
     // 模拟成功（实际需要集成nodemailer）
     return {

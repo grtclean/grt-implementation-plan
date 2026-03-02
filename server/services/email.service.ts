@@ -4,6 +4,8 @@
  */
 
 import { env } from "../_core/env";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("email-svc");
 
 // 邮件配置接口
 export interface EmailConfig {
@@ -269,7 +271,7 @@ async function sendViaInternal(config: EmailConfig, message: EmailMessage): Prom
 export async function sendEmail(message: EmailMessage): Promise<EmailSendResult> {
   const config = getEmailConfig();
   
-  console.log(`[Email] Sending email via ${config.provider} to ${Array.isArray(message.to) ? message.to.join(', ') : message.to}`);
+  log.info({ provider: config.provider, to: Array.isArray(message.to) ? message.to.join(', ') : message.to }, "Sending email");
   
   switch (config.provider) {
     case 'sendgrid':

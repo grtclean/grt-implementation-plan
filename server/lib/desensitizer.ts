@@ -16,6 +16,10 @@
  *   later. A whitelist ensures ONLY known-safe fields are transmitted.
  */
 
+import { createChildLogger } from "./logger";
+
+const log = createChildLogger("desensitizer");
+
 // ── Types ──────────────────────────────────────────────────
 
 /** Raw US order object — contains PII fields that must NOT cross the border */
@@ -110,12 +114,12 @@ export function desensitizeOrders(
     },
   };
 
-  // Console log for server-side audit trail
-  console.log(`[Desensitizer] ══════════════════════════════════════`);
-  console.log(`[Desensitizer] Processed ${orders.length} order(s)`);
-  console.log(`[Desensitizer] Retained:  ${result.audit.fieldsRetained.join(", ")}`);
-  console.log(`[Desensitizer] DROPPED:   ${result.audit.fieldsDropped.join(", ")}`);
-  console.log(`[Desensitizer] ══════════════════════════════════════`);
+  // Structured log for server-side audit trail
+  log.info({
+    totalOrders: orders.length,
+    fieldsRetained: result.audit.fieldsRetained,
+    fieldsDropped: result.audit.fieldsDropped,
+  }, "Desensitization complete");
 
   return result;
 }

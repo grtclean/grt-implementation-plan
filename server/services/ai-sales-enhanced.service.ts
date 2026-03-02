@@ -5,6 +5,8 @@
 
 import { requireDb } from "../db";
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-sales-enhanced");
 
 // ==================== ZOPA计算引擎 ====================
 
@@ -307,7 +309,7 @@ export class EmotionAnalyzer {
 
       return JSON.parse(response.choices[0].message.content || "{}");
     } catch (error) {
-      console.error("情绪分析失败:", error);
+      log.error({ err: error }, "情绪分析失败:");
       return {
         primaryEmotion: "neutral",
         emotionScore: 50,

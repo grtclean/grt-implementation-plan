@@ -11,6 +11,9 @@
 
 import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage } from 'http';
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("ccd-ws");
 
 // ============================================================
 // 类型定义
@@ -225,7 +228,7 @@ export function pushCcdDetectionResult(data: CcdDetectionPushData) {
         sentCount++;
       } catch (err) {
         failedCount++;
-        console.error(`[CCD-WS] Failed to send to ${connId}:`, err);
+        log.error({ err, connId }, "Failed to send detection result");
       }
     }
   });
@@ -308,7 +311,7 @@ export function initCcdWebSocketServer(server: any): WebSocketServer {
     };
     ccdConnections.set(connId, connection);
 
-    console.log(`[CCD-WS] New connection: ${connId}, user: ${userName}`);
+    log.info({ connId, userName }, "New connection");
 
     // 处理消息
     ws.on('message', (data: Buffer) => {
@@ -336,19 +339,19 @@ export function initCcdWebSocketServer(server: any): WebSocketServer {
             break;
         }
       } catch (error) {
-        console.error('[CCD-WS] Message parse error:', error);
+        log.error({ err: error }, "Message parse error");
       }
     });
 
     // 处理断开连接
     ws.on('close', () => {
-      console.log(`[CCD-WS] Connection closed: ${connId}`);
+      log.info({ connId }, "Connection closed");
       handleCcdDisconnect(connId);
     });
 
     // 处理错误
     ws.on('error', (error) => {
-      console.error(`[CCD-WS] Connection error: ${connId}`, error);
+      log.error({ err: error, connId }, "Connection error");
       handleCcdDisconnect(connId);
     });
 
@@ -371,14 +374,14 @@ export function initCcdWebSocketServer(server: any): WebSocketServer {
 
     ccdConnections.forEach((conn, connId) => {
       if (now.getTime() - conn.lastActivity.getTime() > timeout) {
-        console.log(`[CCD-WS] Cleaning up inactive connection: ${connId}`);
+        log.info({ connId }, "Cleaning up inactive connection");
         conn.ws.close(4002, 'Inactive');
         handleCcdDisconnect(connId);
       }
     });
   }, 60 * 1000);
 
-  console.log('[CCD-WS] CCD Detection real-time push server initialized');
+  log.info("CCD Detection real-time push server initialized");
   return wss;
 }
 

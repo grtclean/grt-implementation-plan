@@ -17,6 +17,9 @@
  */
 import { registerTaskHandler } from "./task-worker.service";
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("ai-async");
 import { requireDb } from "../db";
 import {
   aiChatMessages,
@@ -137,7 +140,7 @@ registerTaskHandler("AI_SUGGESTION_GENERATE", async (_taskId, input) => {
       suggestion = { summary: raw.slice(0, 200), details: raw, suggestedActions: [], references: [] };
     }
   } catch (err) {
-    console.error("[AI_SUGGESTION_GENERATE] LLM error:", err);
+    log.error({ err }, "AI_SUGGESTION_GENERATE LLM error");
     suggestion = { summary: "AI建议生成失败", details: "请稍后重试或手动分析", suggestedActions: [], references: [] };
   }
 
@@ -156,7 +159,7 @@ registerTaskHandler("AI_SUGGESTION_GENERATE", async (_taskId, input) => {
     }).returning();
     savedId = saved?.id ?? null;
   } catch (dbErr) {
-    console.error("[AI_SUGGESTION_GENERATE] DB save error:", dbErr);
+    log.error({ err: dbErr }, "AI_SUGGESTION_GENERATE DB save error");
   }
 
   return { suggestion, id: savedId } as Record<string, unknown>;
@@ -211,7 +214,7 @@ registerTaskHandler("AI_NOTEBOOK_ANALYZE", async (_taskId, input) => {
       suggestions = [{ type: "finding", value: raw.slice(0, 500), keywords: [] }];
     }
   } catch (err) {
-    console.error("[AI_NOTEBOOK_ANALYZE] LLM error:", err);
+    log.error({ err }, "AI_NOTEBOOK_ANALYZE LLM error");
     return { message: "AI分析失败", suggestions: [] } as Record<string, unknown>;
   }
 
@@ -236,7 +239,7 @@ registerTaskHandler("AI_NOTEBOOK_ANALYZE", async (_taskId, input) => {
       }).returning();
       if (saved) savedSuggestions.push(saved);
     } catch (dbErr) {
-      console.error("[AI_NOTEBOOK_ANALYZE] DB save error:", dbErr);
+      log.error({ err: dbErr }, "AI_NOTEBOOK_ANALYZE DB save error");
     }
   }
 
@@ -288,7 +291,7 @@ registerTaskHandler("EMPLOYEE_AI_ASSISTANT_REPLY", async (_taskId, input) => {
       knowledgeContext = `基于以下知识库条目:\n\n${knowledgeEntries}\n\n`;
     }
   } catch (ragError) {
-    console.error("[EMPLOYEE_AI_ASSISTANT_REPLY] RAG error:", ragError);
+    log.error({ err: ragError }, "EMPLOYEE_AI_ASSISTANT_REPLY RAG error");
   }
 
   // Load personality config
@@ -520,12 +523,12 @@ async function registerIntelligenceHandlers() {
       return result as unknown as Record<string, unknown>;
     });
 
-    console.log("[AI Async Handlers] Registered 20 intelligence task handlers");
+    log.info({ count: 20 }, "Registered intelligence task handlers");
   } catch (err) {
-    console.error("[AI Async Handlers] Failed to register intelligence handlers:", err);
+    log.error({ err }, "Failed to register intelligence handlers");
   }
 }
 
 registerIntelligenceHandlers();
 
-console.log("[AI Async Handlers] Registered 5 core task handlers: AI_CHAT_REPLY, AI_SUGGESTION_GENERATE, AI_NOTEBOOK_ANALYZE, EMPLOYEE_AI_ASSISTANT_REPLY, MEETING_QUIZ_GENERATE");
+log.info({ handlers: ["AI_CHAT_REPLY", "AI_SUGGESTION_GENERATE", "AI_NOTEBOOK_ANALYZE", "EMPLOYEE_AI_ASSISTANT_REPLY", "MEETING_QUIZ_GENERATE"] }, "Registered 5 core task handlers");

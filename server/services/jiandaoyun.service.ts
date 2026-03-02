@@ -6,6 +6,8 @@
  */
 
 import { env } from "../_core/env";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("jiandaoyun-svc");
 
 // 简道云API基础URL
 const JIANDAOYUN_API_BASE = "https://api.jiandaoyun.com/api/v5";
@@ -109,7 +111,7 @@ export async function getMember(memberId: string): Promise<JDYMember | null> {
     );
     return response.member;
   } catch (error) {
-    console.error(`获取成员 ${memberId} 失败:`, error);
+    log.error({ err: error, memberId }, "Failed to get member");
     return null;
   }
 }

@@ -16,6 +16,8 @@ import {
 } from "./capability-system.router";
 import { parseCapabilityModel, whatIfSimulate, type ParsingResult } from "../services/hr-sandbox.service";
 import { submitTask } from "../services/task-worker.service";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("hr-sandbox-router");
 
 const TASK_TYPE = "HR_CAPABILITY_PARSING";
 
@@ -41,7 +43,7 @@ async function ensureTables() {
     `);
     tablesEnsured = true;
   } catch (err) {
-    console.warn("[HR Sandbox] ensureTables failed:", err);
+    log.warn({ err: err }, "[HR Sandbox] ensureTables failed:");
   }
 }
 

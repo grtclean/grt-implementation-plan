@@ -6,6 +6,8 @@
 import { getDb } from '../db';
 import { v4 as uuidv4 } from 'uuid';
 import { handleWorkReportEvent } from './scheduling-auto-refresh.service';
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("uwb-svc");
 
 // ==================== 类型定义 ====================
 
@@ -123,7 +125,7 @@ export async function processBatchLocationData(dataList: UwbLocationData[]): Pro
       await processLocationData(data);
       processed++;
     } catch (error) {
-      console.error(`[UWB] 处理定位数据失败: ${error}`);
+      log.error(`[UWB] 处理定位数据失败: ${error}`);
       errors++;
     }
   }

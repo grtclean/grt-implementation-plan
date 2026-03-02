@@ -19,6 +19,9 @@
  */
 
 import { ENV } from './_core/env';
+import { createChildLogger } from './lib/logger';
+
+const log = createChildLogger("jiandaoyun");
 
 // 简道云 API 配置
 interface JiandaoyunConfig {
@@ -164,7 +167,7 @@ export class JiandaoyunClient {
       'Content-Type': 'application/json',
     };
 
-    console.log(`[Jiandaoyun API] ${method} ${url}`);
+    log.info({ method, url }, "Jiandaoyun API request");
 
     try {
       const response = await fetch(url, {
@@ -178,7 +181,7 @@ export class JiandaoyunClient {
       
       // 检查响应状态
       if (!response.ok) {
-        console.error(`[Jiandaoyun API] Response: ${response.status} - ${responseText.substring(0, 500)}`);
+        log.error({ status: response.status, body: responseText.substring(0, 500) }, "Jiandaoyun API error response");
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
@@ -187,13 +190,13 @@ export class JiandaoyunClient {
       try {
         result = JSON.parse(responseText) as T;
       } catch (parseError) {
-        console.error(`[Jiandaoyun API] Failed to parse JSON: ${responseText.substring(0, 200)}`);
+        log.error({ body: responseText.substring(0, 200) }, "Jiandaoyun API failed to parse JSON");
         throw new Error(`API returned invalid JSON response`);
       }
 
       return result;
     } catch (error) {
-      console.error('[Jiandaoyun API] Request failed:', error);
+      log.error({ err: error }, "Jiandaoyun API request failed");
       throw error;
     }
   }
@@ -301,7 +304,7 @@ export class JiandaoyunClient {
       'Authorization': `Bearer ${this.config.apiKey}`,
       'Content-Type': 'application/json',
     };
-    console.log(`[Jiandaoyun API] POST ${url}`);
+    log.info({ method: "POST", url }, "Jiandaoyun API request");
     const response = await fetch(url, {
       method: 'POST',
       headers,
@@ -652,11 +655,11 @@ export class JiandaoyunSyncService {
             formCounts[`${app.name}/${form.name}`] = count;
             totalRecords += count;
           } catch (error) {
-            console.warn(`[Jiandaoyun] Failed to get count for form ${form.name}:`, error);
+            log.warn({ err: error, formName: form.name }, "Failed to get count for form");
           }
         }
       } catch (error) {
-        console.warn(`[Jiandaoyun] Failed to get forms for app ${app.name}:`, error);
+        log.warn({ err: error, appName: app.name }, "Failed to get forms for app");
       }
     }
 
@@ -1072,7 +1075,7 @@ export class JiandaoyunUserSyncService {
       );
       return true;
     } catch (error) {
-      console.error('Failed to link user:', error);
+      log.error({ err: error }, "Failed to link user");
       return false;
     }
   }
@@ -1093,7 +1096,7 @@ export class JiandaoyunUserSyncService {
       );
       return true;
     } catch (error) {
-      console.error('Failed to link role:', error);
+      log.error({ err: error }, "Failed to link role");
       return false;
     }
   }

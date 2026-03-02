@@ -11,6 +11,9 @@
 
 import { eq, and, sql } from "drizzle-orm";
 import { requireDb } from "../db";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("doc-embedding");
 import {
   documentEmbeddings,
   projectDocuments,
@@ -130,7 +133,7 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult> 
       return await generateOpenAIEmbedding(truncated);
     }
   } catch (err) {
-    console.error("[DocIntelligence] OpenAI embedding failed, using fallback:", err);
+    log.error({ err }, "OpenAI embedding failed, using fallback");
   }
 
   // 降级方案：确定性哈希向量
@@ -278,7 +281,7 @@ export async function embedProjectDocuments(projectId?: number): Promise<number>
       });
       count++;
     } catch (err) {
-      console.error(`[DocIntelligence] Failed to embed project_document #${doc.id}:`, err);
+      log.error({ err, docId: doc.id }, "Failed to embed project_document");
     }
   }
   return count;
@@ -313,7 +316,7 @@ export async function embedTechnicalDocuments(projectId?: number): Promise<numbe
       });
       count++;
     } catch (err) {
-      console.error(`[DocIntelligence] Failed to embed technical_document #${doc.id}:`, err);
+      log.error({ err, docId: doc.id }, "Failed to embed technical_document");
     }
   }
   return count;

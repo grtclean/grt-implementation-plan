@@ -3,6 +3,10 @@
  * Phase 21 P0: US-006 — 自动分类 · 优先级评估 · 知识库匹配
  */
 
+
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("customer-repair");
+
 export interface RepairTriageResult {
   ticketCategory: string;
   priority: string;
@@ -128,7 +132,7 @@ ${params.urgencyLevel ? `客户自评紧急度: ${params.urgencyLevel}` : ""}`;
     if (content) return JSON.parse(content);
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[CustomerRepair] triageRepairRequest failed:", error);
+    log.error({ err: error }, "[CustomerRepair] triageRepairRequest failed:");
     return {
       ticketCategory: "待分类",
       priority: "P3-普通",

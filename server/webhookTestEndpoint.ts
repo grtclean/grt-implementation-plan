@@ -6,6 +6,8 @@
 import { router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { jsonValue } from "../shared/validators";
+import { createChildLogger } from "./lib/logger";
+const log = createChildLogger("webhook-test");
 
 // 存储接收到的Webhook消息（用于测试验证）
 const receivedMessages: Array<{
@@ -43,7 +45,7 @@ export const webhookTestRouter = router({
         receivedMessages.pop();
       }
 
-      console.log(`[Webhook Test] Received ${input.webhookType} message:`, JSON.stringify(input.payload, null, 2));
+      log.info({ webhookType: input.webhookType, payload: input.payload }, "Received webhook test message");
 
       return {
         success: true,

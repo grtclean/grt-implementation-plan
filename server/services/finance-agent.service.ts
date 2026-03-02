@@ -14,6 +14,8 @@ import {
   aiTasks,
 } from "../../drizzle/schema";
 import { eq, and, sql, inArray, gte, lte } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("finance-agent-svc");
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -345,7 +347,7 @@ export async function analyzeExpenseClaim(
       policyViolations,
     );
   } catch (err) {
-    console.warn("[Finance Agent] LLM failed, falling back to algorithmic:", err);
+    log.warn({ err: err }, "[Finance Agent] LLM failed, falling back to algorithmic:");
     source = "algorithmic";
     analysisResult = algorithmicFallback({ amount, type: claimType }, buContext, policyViolations);
   }

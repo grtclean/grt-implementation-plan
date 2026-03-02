@@ -17,6 +17,8 @@ import {
   crmInteractions,
 } from "../../drizzle/schema";
 import { eq, ilike, and, desc, sql, or } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("crm");
 
 // ============================================================
 // Customers
@@ -910,16 +912,11 @@ export async function convertOpportunityToProject(opportunityId: number, pmId?: 
           WHERE related_opportunity_id = ${String(opportunityId)}
             AND (related_project_id IS NULL OR related_project_id = '')`
     );
-    console.log(
-      `[convertOpportunityToProject] Back-linked customer_solution_meetings for opportunity #${opportunityId} to project #${project.id}`
-    );
+    log.info({ opportunityId, projectId: project.id }, "Back-linked customer_solution_meetings to project");
   } catch (error) {
     // Log but do not fail the conversion if the table doesn't exist or query fails
     // This may happen if customer_solution_meetings table has not been migrated yet
-    console.warn(
-      '[convertOpportunityToProject] Could not back-link customer_solution_meetings:',
-      error
-    );
+    log.warn({ err: error }, "Could not back-link customer_solution_meetings");
   }
 
   return project;

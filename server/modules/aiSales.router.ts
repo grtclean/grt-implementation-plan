@@ -11,6 +11,8 @@ import { invokeLLM } from "../_core/llm";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "crypto";
 import { createHash } from "crypto";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-sales-mod");
 
 // ==================== AI销售路由 ====================
 export const aiSalesRouter = router({
@@ -550,7 +552,7 @@ async function analyzeClientSentiment(
     
     return JSON.parse(response.choices[0]?.message?.content || '{}');
   } catch (error) {
-    console.error('情绪分析失败:', error);
+    log.error({ err: error }, '情绪分析失败:');
     return {
       sentiment: 'neutral',
       urgency: 'medium',

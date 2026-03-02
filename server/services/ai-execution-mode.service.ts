@@ -5,6 +5,8 @@
 
 import { invokeLLM } from "../_core/llm";
 import { v4 as uuidv4 } from "uuid";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-exec-mode");
 
 // AI执行模式类型
 export type AIExecutionMode = "internal" | "generative" | "shadow";
@@ -189,7 +191,7 @@ export async function executeAI(request: ExecuteRequest): Promise<ExecuteResult>
     
     return result;
   } catch (error) {
-    console.error("[AI Execution Error]", error);
+    log.error({ err: error }, "[AI Execution Error]");
     throw new Error(`AI执行失败: ${error instanceof Error ? error.message : '未知错误'}`);
   }
 }

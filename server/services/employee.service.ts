@@ -5,6 +5,9 @@
 
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("employee-svc");
 
 // RBAC角色类型 (matches UserProfileContext 18-role system)
 export type SystemRole =
@@ -102,7 +105,7 @@ async function ensureSystemRoleColumn(): Promise<void> {
     if (e.message?.includes('already exists') || e.message?.includes('duplicate column')) {
       systemRoleColumnEnsured = true;
     } else {
-      console.warn('ensureSystemRoleColumn warning:', e.message);
+      log.warn({ message: e.message }, "ensureSystemRoleColumn warning");
       systemRoleColumnEnsured = true; // proceed anyway, column might exist
     }
   }
@@ -228,7 +231,7 @@ export async function batchCreateEmployees(employees: CreateEmployeeInput[]): Pr
       `);
       created++;
     } catch (error) {
-      console.error(`Failed to create employee ${emp.employeeId}:`, error);
+      log.error({ err: error, employeeId: emp.employeeId }, "Failed to create employee");
       skipped++;
     }
   }
@@ -389,7 +392,7 @@ export async function batchUpdateRoles(
       `);
       updated++;
     } catch (e) {
-      console.error(`batchUpdateRoles failed for ${employeeId}:`, e);
+      log.error({ err: e, employeeId }, "batchUpdateRoles failed");
       failed++;
     }
   }

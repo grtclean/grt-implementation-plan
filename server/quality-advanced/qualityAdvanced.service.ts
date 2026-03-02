@@ -3,6 +3,10 @@
  * Phase 21 P1: US-007 合格证 · US-008 SPC · US-009 NCR
  */
 
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("quality-advanced");
+
 // ============================================================
 // Types
 // ============================================================
@@ -117,7 +121,7 @@ ${params.inspectorName ? `检测员: ${params.inspectorName}` : ""}`;
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[QualityAdvanced] generateCertificate failed:", error);
+    log.error({ err: error }, "generateCertificate failed");
     return { certificateNumber: "CERT-ERROR", productName: params.productName, batchNumber: params.batchNumber, inspectionSummary: "AI服务不可用", testItems: [], overallVerdict: "不合格", cleanlinessCode: "待定", qrCodeData: "{}", validUntil: "待定", issuedBy: "系统", recommendations: ["请人工生成合格证"] };
   }
 }
@@ -196,7 +200,7 @@ ${params.chartType ? `图表类型: ${params.chartType}` : ""}`;
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[QualityAdvanced] analyzeSPC failed:", error);
+    log.error({ err: error }, "analyzeSPC failed");
     return { processCapability: { cp: 0, cpk: 0, pp: 0, ppk: 0 }, controlLimits: { ucl: 0, lcl: 0, cl: 0 }, outOfControlPoints: [], trendAnalysis: "AI服务不可用", distributionType: "未知", chartData: [], stabilityScore: 0, recommendations: ["请人工分析SPC数据"] };
   }
 }
@@ -282,7 +286,7 @@ ${params.previousOccurrences ? `历史发生: ${params.previousOccurrences}` : "
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[QualityAdvanced] analyzeNCR failed:", error);
+    log.error({ err: error }, "analyzeNCR failed");
     return { ncrNumber: `NCR-${Date.now()}`, severity: "major", rootCauseAnalysis: [], dispositionOptions: [], correctiveActions: [], preventiveActions: ["请人工分析"], impactAssessment: "AI服务不可用", recommendations: ["请人工处理NCR"] };
   }
 }

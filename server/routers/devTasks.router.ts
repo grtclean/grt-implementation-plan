@@ -8,6 +8,9 @@ import {
   deleteDevTask,
   initDefaultDevTasks,
 } from "../db";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("dev-tasks");
 
 /**
  * DevTasks Router - 开发任务管理
@@ -31,7 +34,7 @@ export const devTasksRouter = router({
         // 确保返回数组格式
         return Array.isArray(tasks) ? tasks : [];
       } catch (error) {
-        console.error("[devTasks.list] Error:", error);
+        log.error({ err: error }, "devTasks.list failed");
         return [];
       }
     }),
@@ -43,7 +46,7 @@ export const devTasksRouter = router({
       try {
         return await getDevTaskById(input.id);
       } catch (error) {
-        console.error("[devTasks.getById] Error:", error);
+        log.error({ err: error }, "devTasks.getById failed");
         return null;
       }
     }),
@@ -82,7 +85,7 @@ export const devTasksRouter = router({
         });
         return result;
       } catch (error) {
-        console.error("[devTasks.create] Error:", error);
+        log.error({ err: error }, "devTasks.create failed");
         throw error;
       }
     }),
@@ -126,7 +129,7 @@ export const devTasksRouter = router({
         
         return await updateDevTask(id, updateData);
       } catch (error) {
-        console.error("[devTasks.update] Error:", error);
+        log.error({ err: error }, "devTasks.update failed");
         throw error;
       }
     }),
@@ -138,7 +141,7 @@ export const devTasksRouter = router({
       try {
         return await deleteDevTask(input.id);
       } catch (error) {
-        console.error("[devTasks.delete] Error:", error);
+        log.error({ err: error }, "devTasks.delete failed");
         throw error;
       }
     }),
@@ -148,7 +151,7 @@ export const devTasksRouter = router({
     try {
       return await initDefaultDevTasks();
     } catch (error) {
-      console.error("[devTasks.init] Error:", error);
+      log.error({ err: error }, "devTasks.init failed");
       throw error;
     }
   }),
@@ -174,7 +177,7 @@ export const devTasksRouter = router({
         message: `成功删除 ${deletedCount} 个测试任务`
       };
     } catch (error) {
-      console.error("[devTasks.deleteTestTasks] Error:", error);
+      log.error({ err: error }, "devTasks.deleteTestTasks failed");
       throw error;
     }
   }),

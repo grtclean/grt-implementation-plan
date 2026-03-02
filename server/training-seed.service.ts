@@ -1,5 +1,8 @@
 import { requireDb } from "./db";
 import { trainingPlans, trainingParticipants, trainingAssessments, trainingCertificates } from "../drizzle/schema";
+import { createChildLogger } from "./lib/logger";
+
+const log = createChildLogger("training-seed");
 
 // 培训类型
 const trainingTypes = ['internal', 'external', 'online', 'certification'] as const;
@@ -218,7 +221,7 @@ export async function seedTrainingData(): Promise<SeedTrainingResult> {
       message: `成功创建 ${trainingsCreated} 个培训计划，${participantsCreated} 个参与者记录，${assessmentsCreated} 个评估，${certificatesCreated} 个证书`,
     };
   } catch (error) {
-    console.error('Seed training data error:', error);
+    log.error({ err: error }, "Seed training data error");
     return {
       success: false,
       trainingsCreated,
@@ -245,7 +248,7 @@ export async function clearTrainingData(): Promise<{ success: boolean; message: 
       message: '成功清除所有培训数据',
     };
   } catch (error) {
-    console.error('Clear training data error:', error);
+    log.error({ err: error }, "Clear training data error");
     return {
       success: false,
       message: `清除培训数据时出错: ${error instanceof Error ? error.message : String(error)}`,
@@ -289,7 +292,7 @@ export async function getTrainingStats() {
     
     return stats;
   } catch (error) {
-    console.error('Get training stats error:', error);
+    log.error({ err: error }, "Get training stats error");
     return {
       totalTrainings: 0,
       completedTrainings: 0,

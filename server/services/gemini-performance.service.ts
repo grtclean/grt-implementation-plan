@@ -4,6 +4,9 @@
  */
 
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("gemini-perf");
 
 export interface PerformanceMetrics {
   emailQuality: number;      // 邮件质量评分 0-100
@@ -135,7 +138,7 @@ export async function evaluateDailyPerformance(
       areasForImprovement: evaluation.areasForImprovement
     };
   } catch (error) {
-    console.error("Gemini performance evaluation error:", error);
+    log.error({ err: error }, "Gemini performance evaluation error");
     // 返回默认评估
     return getDefaultEvaluation(workData);
   }
@@ -254,7 +257,7 @@ export async function generateWeeklySummary(
 
     return response.choices[0]?.message?.content || "本周工作进展顺利，各项指标达标。";
   } catch (error) {
-    console.error("Weekly summary generation error:", error);
+    log.error({ err: error }, "Weekly summary generation error");
     return "本周工作进展顺利，各项指标达标。";
   }
 }

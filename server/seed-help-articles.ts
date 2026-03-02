@@ -3,6 +3,8 @@
  * Run: npx tsx server/seed-help-articles.ts
  */
 import pg from "pg";
+import { createChildLogger } from "./lib/logger";
+const log = createChildLogger("seed-help");
 const { Pool } = pg;
 
 const pool = new Pool({
@@ -343,11 +345,11 @@ async function main() {
       );
       count++;
     }
-    console.log(`Seeded ${count} help articles`);
+    log.info({ count }, "Seeded help articles");
   } finally {
     client.release();
     await pool.end();
   }
 }
 
-main().catch(console.error);
+main().catch((err) => log.error({ err }, "Seed help articles failed"));

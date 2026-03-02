@@ -14,6 +14,9 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("access-control");
 
 // ─── Bootstrap helpers ───────────────────────────────────────────
 
@@ -48,7 +51,7 @@ async function ensureBlacklist() {
       `);
     }
   } catch (e: any) {
-    console.warn("access-control blacklist bootstrap:", e.message);
+    log.warn({ message: e.message }, "blacklist bootstrap warning");
   }
 }
 
@@ -82,7 +85,7 @@ async function ensureTempPerm() {
       `);
     }
   } catch (e: any) {
-    console.warn("access-control tempPerm bootstrap:", e.message);
+    log.warn({ message: e.message }, "tempPerm bootstrap warning");
   }
 }
 
@@ -129,7 +132,7 @@ async function ensureUserStatus() {
       `);
     }
   } catch (e: any) {
-    console.warn("access-control userStatus bootstrap:", e.message);
+    log.warn({ message: e.message }, "userStatus bootstrap warning");
   }
 }
 

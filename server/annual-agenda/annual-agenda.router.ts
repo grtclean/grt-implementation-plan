@@ -12,6 +12,8 @@ import {
   getCalendarEvents,
   validateCredentials,
 } from "../services/microsoft-graph";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("annual-agenda");
 
 /**
  * 同步事件到Microsoft Graph日历
@@ -26,7 +28,7 @@ async function syncEventToGraph(eventId: any, input: any): Promise<{ success: bo
     } as any);
     return { success: true, graphEventId: (result as any)?.id };
   } catch (error) {
-    console.error('Failed to sync event to Graph:', error);
+    log.error({ err: error }, 'Failed to sync event to Graph:');
     return { success: false };
   }
 }

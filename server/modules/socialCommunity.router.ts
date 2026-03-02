@@ -16,6 +16,8 @@ import {
   SocialPlatformType,
 } from "../services/social-platforms";
 import { jsonValue } from "@shared/validators";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("social-community");
 
 // ==================== 社群管理路由 ====================
 export const socialCommunityRouter = router({
@@ -618,7 +620,7 @@ export const socialCommunityRouter = router({
             [platform]: config,
           });
         } catch (error) {
-          console.error(`初始化${platform}平台失败:`, error);
+          log.error({ err: error, platform }, "Platform initialization failed");
           // 不抛出错误，配置已保存
         }
       }
@@ -721,7 +723,7 @@ async function generateAIDraft(db: any, messageId: number, content: string) {
       [messageId, draftContent, confidenceScore]
     );
   } catch (error) {
-    console.error('生成AI草稿失败:', error);
+    log.error({ err: error }, "Failed to generate AI draft");
     // 生成默认草稿
     await db.execute(
       `INSERT INTO ai_draft_replies (message_id, draft_content, confidence_score, model_used)

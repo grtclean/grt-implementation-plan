@@ -3,6 +3,10 @@
  * AI建议安全检查，防止物理超限和危险操作
  */
 
+
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("safety-filter-svc");
+
 export interface SafetyRule {
   id: string;
   name: string;
@@ -288,6 +292,6 @@ export function logSafetyEvent(
   eventType: 'violation' | 'warning' | 'interception',
   details: Record<string, any>
 ): void {
-  console.log(`[SAFETY EVENT] ${eventType}:`, JSON.stringify(details));
+  log.info({ eventType, details }, "Safety event recorded");
   // 实际实现中应写入数据库或日志系统
 }

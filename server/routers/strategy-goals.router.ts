@@ -5,6 +5,9 @@ import { requireDb } from "../db";
 import { eq, and, count, sql } from "drizzle-orm";
 import { companyGoals, divisionKpis } from "../../drizzle/strategy-goals-schema";
 import { buSalesPlans, buSalesPlanDetails } from "../../drizzle/schema";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("strategy-goals");
 
 // ---------------------------------------------------------------------------
 // Ensure tables exist (auto-migrate — keeps backward compat)
@@ -56,7 +59,7 @@ async function ensureTables() {
     `);
     tablesEnsured = true;
   } catch (e: any) {
-    console.warn("strategy-goals ensureTables:", e.message);
+    log.warn({ message: e.message }, "ensureTables warning");
     tablesEnsured = true;
   }
 }
@@ -158,9 +161,9 @@ async function seedIfEmpty() {
     ];
 
     await db.insert(divisionKpis).values(allKpis);
-    console.log("[strategy-goals] Seeded 6 company goals + 30 division KPIs");
+    log.info({}, "Seeded 6 company goals + 30 division KPIs");
   } catch (e: any) {
-    console.warn("strategy-goals seedIfEmpty:", e.message);
+    log.warn({ message: e.message }, "seedIfEmpty warning");
   }
 }
 

@@ -8,6 +8,8 @@
  */
 
 import { TRPCError } from "@trpc/server";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("tailscale");
 
 /**
  * Tailscale ACL 配置接口
@@ -199,8 +201,8 @@ export function getSecureDatabaseURL(config: DatabaseConfig): string {
  * 连接失败处理 - 禁止切换到公网接口
  */
 export function handleConnectionFailure(error: Error, host: string): void {
-  console.error(`[DLP] Database connection failed for host: ${host}`);
-  console.error(`[DLP] Error: ${error.message}`);
+  log.error({ host }, "Database connection failed");
+  log.error({ err: error }, "Connection error details");
 
   // 不要尝试切换回备用公网接口
   throw new TRPCError({

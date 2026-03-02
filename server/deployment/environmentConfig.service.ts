@@ -5,6 +5,8 @@
 
 import { getDb } from '../db';
 import { sql } from 'drizzle-orm';
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("env-config");
 
 export type Environment = 'test' | 'production';
 
@@ -105,7 +107,7 @@ export async function setEnvironmentConfig(
     `);
     return true;
   } catch (error) {
-    console.error('[EnvironmentConfig] Failed to set config:', error);
+    log.error({ err: error }, "Failed to set config");
     return false;
   }
 }
@@ -127,7 +129,7 @@ export async function deleteEnvironmentConfig(
     `);
     return true;
   } catch (error) {
-    console.error('[EnvironmentConfig] Failed to delete config:', error);
+    log.error({ err: error }, "Failed to delete config");
     return false;
   }
 }

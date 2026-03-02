@@ -1,4 +1,6 @@
 import { invokeLLM } from '../_core/llm';
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("meeting-processor");
 
 /**
  * 会议处理器服务
@@ -139,7 +141,7 @@ export async function processMeeting(meetingData: MeetingData): Promise<Processe
   try {
     analysisData = typeof content === 'string' ? JSON.parse(content) : content;
   } catch (error) {
-    console.error('Failed to parse LLM response:', error);
+    log.error({ err: error }, 'Failed to parse LLM response:');
     throw new Error('Failed to parse meeting analysis response');
   }
 

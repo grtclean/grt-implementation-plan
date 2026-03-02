@@ -35,6 +35,8 @@ import {
 } from "../../drizzle/oa-schema";
 import { projectTasks, eightDReports, users, projects } from "../../drizzle/schema";
 import { sendDingTalkMessage } from "../dingtalk-webhook";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("oa-svc");
 
 // ══════════════════════════════════════════════════════
 // DB type alias (mirrors time-reconciliation.service.ts pattern)
@@ -128,7 +130,7 @@ async function notifyDingTalk(
     });
     return result.success;
   } catch (e) {
-    console.error("[OA] DingTalk notification failed:", e);
+    log.error({ err: e }, "[OA] DingTalk notification failed:");
     return false;
   }
 }

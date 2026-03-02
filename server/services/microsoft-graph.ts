@@ -8,6 +8,8 @@
  */
 
 import { env } from "../_core/env";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ms-graph");
 
 // Microsoft Graph API 基础URL
 const GRAPH_API_BASE = "https://graph.microsoft.com/v1.0";
@@ -245,7 +247,7 @@ export async function getRecentTeamsMessages(
       const messages = await getTeamsChatMessages(chat.id, 5);
       allMessages.push(...messages.map(m => ({ ...m, chatId: chat.id })));
     } catch (error) {
-      console.error(`获取聊天 ${chat.id} 消息失败:`, error);
+      log.error({ err: error, chatId: chat.id }, "Failed to get chat messages");
     }
   }
 

@@ -7,6 +7,9 @@ import { requireDb } from '../db';
 import { sql as drizzleSql } from 'drizzle-orm';
 import { getJiandaoyunSyncService, JiandaoyunRecord } from '../jiandaoyun';
 import { getJdyFormDiscoveryService } from './jdy-form-discovery.service';
+import { createChildLogger } from '../lib/logger';
+
+const log = createChildLogger("jdy-project");
 
 export interface ProjectImportResult {
   projectsCreated: number;
@@ -155,7 +158,7 @@ export class JdyProjectImportService {
           ? JSON.parse(mapping.field_mapping)
           : mapping.field_mapping;
         if (!fieldMapping || Object.keys(fieldMapping).length === 0) {
-          console.warn(`[ProjectImport] 跳过无字段映射的表单: ${mapping.jdy_form_name}`);
+          log.warn({ formName: mapping.jdy_form_name }, "跳过无字段映射的表单");
           continue;
         }
 
@@ -229,7 +232,7 @@ export class JdyProjectImportService {
           // 检查失败率
           const total = result.projectsCreated + result.projectsUpdated + result.projectsFailed;
           if (total > 10 && result.projectsFailed / total > 0.5) {
-            console.error('[ProjectImport] 失败率超过50%，暂停导入');
+            log.error({ failRate: result.projectsFailed / total }, "失败率超过50%，暂停导入");
             result.errors.push({
               entity: 'project',
               jdyId: '',

@@ -11,6 +11,8 @@
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("bom-verification");
 
 const PROCESS_NAMES: Record<string, string> = {
   T1: '机加工', T2: '冷作', T3: '机械部件装配', T4: '机械装配', T5: '机械总装',
@@ -334,7 +336,7 @@ export async function executeBomVerification(params: {
         content: `项目 ${params.projectId}\n从 ${params.fromProcess} 到 ${params.toProcess} 的物料流转BOM校验不通过。\n${message}\n缺失物料：${missingNames || '无'}\n请及时处理。`,
       });
     } catch (e) {
-      console.error('[BomVerification] Notification error:', e);
+      log.error({ err: e }, '[BomVerification] Notification error:');
     }
   }
   

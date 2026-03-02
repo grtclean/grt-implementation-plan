@@ -8,6 +8,8 @@ import { requireDb } from '../utils/db-helpers';
 import { v4 as uuidv4 } from "uuid";
 import { meetings, meetingNotes } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("transcription-svc");
 
 export interface TranscriptionResult {
   text: string;
@@ -62,7 +64,7 @@ export async function transcribeMeetingAudio(
 
     return result as TranscriptionResult;
   } catch (error) {
-    console.error("Error transcribing audio:", error);
+    log.error({ err: error }, "Error transcribing audio:");
     throw error;
   }
 }

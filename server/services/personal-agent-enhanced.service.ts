@@ -6,6 +6,9 @@
 import { requireDb } from "../db";
 import { invokeLLM } from "../_core/llm";
 import { sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("personal-agent");
 
 // ==================== 行为探针数据采集 ====================
 
@@ -84,7 +87,7 @@ export class BehaviorProbeCollector {
         await this.recordEvent(probe);
         count++;
       } catch (error) {
-        console.error("记录行为事件失败:", error);
+        log.error({ err: error }, "记录行为事件失败");
       }
     }
 
@@ -374,7 +377,7 @@ ${JSON.stringify(learning, null, 2)}
       const result = JSON.parse(response.choices[0].message.content || "{}");
       return result.skills || [];
     } catch (error) {
-      console.error("AI技能推断失败:", error);
+      log.error({ err: error }, "AI技能推断失败");
       return [];
     }
   }

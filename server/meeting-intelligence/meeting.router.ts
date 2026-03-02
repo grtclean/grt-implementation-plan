@@ -11,6 +11,9 @@ import * as meetingDb from "./meeting.db";
 import { invokeLLM } from "../_core/llm";
 import * as reminderService from "./meeting-reminder.service";
 import * as transcriptionService from "./meeting-transcription.service";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("meeting");
 
 // ============================================================================
 // Input Schemas
@@ -206,7 +209,7 @@ Format as JSON with keys: summary, decisions, actionItems, risks, strategicAlign
           await meetingDb.updateMeetingSummary(input.meetingId, insights.summary, insights);
           return { success: true, insights };
         } catch (error) {
-          console.error('Failed to generate meeting summary:', error);
+          log.error({ err: error }, "Failed to generate meeting summary");
           throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to generate summary' });
         }
       }),
@@ -280,12 +283,10 @@ Format as JSON with keys: summary, decisions, actionItems, risks, strategicAlign
 
             if (taskResult) {
               linkedTaskCreated = true;
-              console.log(
-                `[contentBlocks.create] Created linked devTask for action_item. Assignee: ${assignee}, Deadline: ${deadline}, Task ID: ${(taskResult as any).id}`
-              );
+              log.info({ assignee, deadline, taskId: (taskResult as any).id }, "Created linked devTask for action_item");
             }
           } catch (error) {
-            console.error('[contentBlocks.create] Failed to create linked task for action_item:', error);
+            log.error({ err: error }, "Failed to create linked task for action_item");
           }
         }
 
@@ -441,7 +442,7 @@ Format as JSON array with objects containing: name, technicalClarity, proactivit
 
           return { success: true, count: result.assessments.length };
         } catch (error) {
-          console.error('Failed to generate assessments:', error);
+          log.error({ err: error }, "Failed to generate assessments");
           throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to generate assessments' });
         }
       }),
@@ -517,7 +518,7 @@ Provide 3-5 actionable insights connecting meeting performance to strategic goal
             }
           };
         } catch (error) {
-          console.error('Failed to generate Gemini insights:', error);
+          log.error({ err: error }, "Failed to generate Gemini insights");
           return {
             insights: 'Unable to generate insights at this time.',
             stats,
@@ -643,7 +644,7 @@ Provide 3-5 actionable insights connecting meeting performance to strategic goal
               }
             }
           })
-          .catch(console.error);
+          .catch(err => log.error({ err }, "Transcription processing failed"));
         
         return { jobId: job.id, status: 'processing' };
       }),

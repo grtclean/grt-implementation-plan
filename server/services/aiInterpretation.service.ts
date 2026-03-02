@@ -6,6 +6,9 @@
 
 import { invokeLLM } from '../_core/llm';
 import { z } from 'zod';
+import { createChildLogger } from '../lib/logger';
+
+const log = createChildLogger('ai-interpretation');
 
 // Types
 export interface KPIInterpretation {
@@ -157,7 +160,7 @@ export async function interpretKPIContent(content: string): Promise<KPIInterpret
     const result = JSON.parse(response.choices[0].message.content);
     return result.kpis || [];
   } catch (error) {
-    console.error('Error interpreting KPI content:', error);
+    log.error({ err: error }, "error interpreting KPI content");
     return [];
   }
 }
@@ -222,7 +225,7 @@ export async function interpretOrgStructure(content: string): Promise<OrgStructu
     const result = JSON.parse(response.choices[0].message.content);
     return result.departments || [];
   } catch (error) {
-    console.error('Error interpreting org structure:', error);
+    log.error({ err: error }, "error interpreting org structure");
     return [];
   }
 }
@@ -295,7 +298,7 @@ export async function interpretProcessImprovements(content: string): Promise<Pro
     const result = JSON.parse(response.choices[0].message.content);
     return result.processes || [];
   } catch (error) {
-    console.error('Error interpreting process improvements:', error);
+    log.error({ err: error }, "error interpreting process improvements");
     return [];
   }
 }
@@ -476,7 +479,7 @@ export async function analyzeBusinessLogic(
     const result = JSON.parse(response.choices[0].message.content);
     return result.insights || [];
   } catch (error) {
-    console.error('Error analyzing business logic:', error);
+    log.error({ err: error }, "error analyzing business logic");
     return [];
   }
 }
@@ -545,7 +548,7 @@ export async function analyzeSystemImpact(
     const result = JSON.parse(response.choices[0].message.content);
     return result.impacts || [];
   } catch (error) {
-    console.error('Error analyzing system impact:', error);
+    log.error({ err: error }, "error analyzing system impact");
     return [];
   }
 }
@@ -686,7 +689,7 @@ export async function generateInterpretationResult(
       summary: summary.trim()
     };
   } catch (error) {
-    console.error('Error generating interpretation result:', error);
+    log.error({ err: error }, "error generating interpretation result");
     throw error;
   }
 }
@@ -715,7 +718,7 @@ export async function generateAIRecommendations(
 
     return response.choices[0].message.content;
   } catch (error) {
-    console.error('Error generating AI recommendations:', error);
+    log.error({ err: error }, "error generating AI recommendations");
     return 'Unable to generate recommendations at this time.';
   }
 }

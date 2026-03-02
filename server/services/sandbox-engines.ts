@@ -12,6 +12,9 @@ import { registerTaskHandler, type TaskHandler } from "./task-worker.service";
 import { registerFinanceAgentHandler } from "./finance-agent.service";
 import { registerProjectAgentHandlers } from "./project-agent-engines";
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("sandbox");
 
 // ══════════════════════════════════════════════════════════════
 // Engine 1: DOC_PARSING — 6-Dimension Capability Matrix
@@ -90,7 +93,7 @@ const docParsingHandler: TaskHandler = async (_taskId, input) => {
       } satisfies DocParsingResult as unknown as Record<string, unknown>;
     }
   } catch (err) {
-    console.warn("[DOC_PARSING] LLM failed, using algorithmic:", err);
+    log.warn({ err }, "DOC_PARSING LLM failed, using algorithmic");
   }
 
   // Algorithmic fallback: keyword scoring
@@ -341,7 +344,7 @@ const incidentAnalysisHandler: TaskHandler = async (_taskId, input) => {
       } satisfies IncidentAnalysisResult as unknown as Record<string, unknown>;
     }
   } catch (err) {
-    console.warn("[INCIDENT_ANALYSIS] LLM failed, using template:", err);
+    log.warn({ err }, "INCIDENT_ANALYSIS LLM failed, using template");
   }
 
   // Algorithmic fallback — template-based report
@@ -455,6 +458,6 @@ export function registerAllEngines(): void {
   // P0-1: 5 async AI handlers (chat, suggestion, notebook, employee assistant, meeting quiz)
   // Side-effect import registers all handlers
   import("./ai-async-handlers.service").catch(err => {
-    console.error("[registerAllEngines] Failed to load ai-async-handlers:", err);
+    log.error({ err }, "Failed to load ai-async-handlers");
   });
 }

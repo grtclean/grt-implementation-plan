@@ -4,6 +4,9 @@
  */
 
 import crypto from 'crypto';
+import { createChildLogger } from './lib/logger';
+
+const log = createChildLogger("dingtalk-wh");
 
 // 钉钉Webhook配置
 export interface DingTalkConfig {
@@ -118,10 +121,10 @@ export async function sendDingTalkMessage(
     const result = await response.json();
     
     if (result.errcode === 0) {
-      console.log(`[DingTalk] 消息发送成功: ${message.title}`);
+      log.info({ title: message.title }, "消息发送成功");
       return { success: true, response: result };
     } else {
-      console.error(`[DingTalk] 消息发送失败: ${result.errcode} - ${result.errmsg}`);
+      log.error({ errcode: result.errcode, errmsg: result.errmsg }, "消息发送失败");
       return { 
         success: false, 
         error: `钉钉API错误: ${result.errcode} - ${result.errmsg}`,
@@ -130,7 +133,7 @@ export async function sendDingTalkMessage(
     }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`[DingTalk] 消息发送异常: ${errorMsg}`);
+    log.error({ error: errorMsg }, "消息发送异常");
     return {
       success: false,
       error: errorMsg,

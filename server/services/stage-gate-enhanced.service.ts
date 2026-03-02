@@ -5,6 +5,9 @@
 
 import { requireDb } from "../db";
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("stage-gate-enhanced");
 
 // ==================== 项目导入向导 ====================
 
@@ -377,7 +380,7 @@ export class SAPAdapter implements ERPAdapter {
 
   async connect(): Promise<boolean> {
     // 模拟SAP连接
-    console.log(`[SAP] 连接到 ${this.config.host}:${this.config.port}`);
+    log.info({ host: this.config.host, port: this.config.port }, "SAP connecting");
     return true;
   }
 
@@ -419,7 +422,7 @@ export class SAPAdapter implements ERPAdapter {
 
   async pushDelivery(projectId: number): Promise<boolean> {
     // 实现交付推送逻辑
-    console.log(`[SAP] 推送项目 ${projectId} 交付信息`);
+    log.info({ projectId }, "SAP pushing delivery info");
     return true;
   }
 
@@ -444,7 +447,7 @@ export class OracleAdapter implements ERPAdapter {
   }
 
   async connect(): Promise<boolean> {
-    console.log(`[Oracle] 连接到 ${this.config.host}:${this.config.port}`);
+    log.info({ host: this.config.host, port: this.config.port }, "Oracle connecting");
     return true;
   }
 
@@ -478,7 +481,7 @@ export class KingdeeAdapter implements ERPAdapter {
   }
 
   async connect(): Promise<boolean> {
-    console.log(`[Kingdee] 连接到 ${this.config.host}:${this.config.port}`);
+    log.info({ host: this.config.host, port: this.config.port }, "Kingdee connecting");
     return true;
   }
 

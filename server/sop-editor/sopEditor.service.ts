@@ -3,6 +3,10 @@
  * Phase 21 P0: US-005 — AI工序生成 · 参数推荐 · 质检点绑定
  */
 
+
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("sop-editor");
+
 export interface ProcessCardResult {
   processName: string;
   totalSteps: number;
@@ -146,7 +150,7 @@ ${params.existingSOPReference ? `参考SOP: ${params.existingSOPReference}` : ""
     if (content) return JSON.parse(content);
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[SOPEditor] generateProcessCard failed:", error);
+    log.error({ err: error }, "[SOPEditor] generateProcessCard failed:");
     return {
       processName: "工艺卡片生成失败",
       totalSteps: 0,

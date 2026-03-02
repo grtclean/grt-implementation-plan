@@ -9,6 +9,8 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-model");
 
 // ─── Bootstrap ───────────────────────────────────────────────────
 let _aiModelReady = false;
@@ -87,7 +89,7 @@ async function ensureAiModelData() {
       `);
     }
   } catch (e: any) {
-    console.warn("ai model data bootstrap:", e.message);
+    log.warn({ err: e }, "AI model data bootstrap failed");
   }
 }
 

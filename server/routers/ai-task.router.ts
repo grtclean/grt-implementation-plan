@@ -10,6 +10,8 @@ import { requireDb } from "../db";
 import { jsonValue } from "@shared/validators";
 import { aiTasks } from "../../drizzle/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-task");
 
 // ─── ensureTables ────────────────────────────────────────────
 let tablesEnsured = false;
@@ -36,7 +38,7 @@ async function ensureTables() {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS ai_tasks_status_idx ON ai_tasks (status)`);
     tablesEnsured = true;
   } catch (err) {
-    console.warn("[AI Task] ensureTables failed:", err);
+    log.warn({ err: err }, "[AI Task] ensureTables failed:");
   }
 }
 

@@ -20,6 +20,8 @@ import {
   getFileDownloadUrl,
   searchFiles,
 } from "./microsoft-graph";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ms-graph-router");
 
 export const microsoftGraphRouter = router({
   // 验证凭据
@@ -45,7 +47,7 @@ export const microsoftGraphRouter = router({
     .mutation(async ({ input }) => {
       // TODO: 保存配置到数据库或环境变量
       // 目前返回成功，实际生产环境需要实现持久化
-      console.log('Saving Microsoft Graph config:', { tenantId: input.tenantId, clientId: input.clientId });
+      log.info({ tenantId: input.tenantId, clientId: input.clientId }, "Saving Microsoft Graph config");
       return { success: true };
     }),
 

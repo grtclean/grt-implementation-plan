@@ -7,6 +7,9 @@
 
 import { Router, json } from "express";
 import { createLead } from "../crm/crm.service";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("showcase");
 
 export const showcaseLeadsRouter = Router();
 
@@ -52,9 +55,7 @@ showcaseLeadsRouter.post("/", async (req, res) => {
       status: "new",
     });
 
-    console.log(
-      `[Showcase] New lead captured: ${companyName} (${email}) — industry: ${industry}`,
-    );
+    log.info({ companyName, email, industry }, "New lead captured");
 
     return res.json({
       success: true,
@@ -62,7 +63,7 @@ showcaseLeadsRouter.post("/", async (req, res) => {
       message: "Lead successfully injected into M0-CRM system.",
     });
   } catch (error: any) {
-    console.error("[Showcase] Lead capture error:", error);
+    log.error({ err: error }, "Lead capture error");
     return res.status(500).json({
       success: false,
       error: "Internal server error. Please try again.",

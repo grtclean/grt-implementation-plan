@@ -5,6 +5,8 @@
 
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("meeting-reminder");
 
 // ============================================================================
 // Types
@@ -315,7 +317,7 @@ export async function processReminders(): Promise<{ processed: number; sent: num
         sent++;
       }
     } catch (error) {
-      console.error(`Failed to process reminder ${reminder.id}:`, error);
+      log.error({ err: error, reminderId: reminder.id }, "Failed to process reminder");
       await updateReminderStatus(reminder.id, "failed", error instanceof Error ? error.message : "Unknown error");
       failed++;
     }
@@ -324,4 +326,4 @@ export async function processReminders(): Promise<{ processed: number; sent: num
   return { processed: pendingReminders.length, sent, failed };
 }
 
-console.log("[MeetingReminder] Meeting reminder service loaded");
+log.info("Meeting reminder service loaded");

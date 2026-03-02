@@ -10,6 +10,8 @@
  */
 
 import { logSecurityEvent } from "./auditLog";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-deident-proxy");
 
 // 敏感数据模式定义
 interface SensitivePattern {
@@ -229,7 +231,7 @@ export function reidentifyResponse(
 ): string {
   const map = deidentificationMaps.get(mapId);
   if (!map) {
-    console.warn(`[AI Deidentification] Map not found: ${mapId}`);
+    log.warn(`[AI Deidentification] Map not found: ${mapId}`);
     return content;
   }
   

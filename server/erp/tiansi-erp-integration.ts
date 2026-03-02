@@ -10,6 +10,9 @@
  */
 
 import { z } from "zod";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("erp");
 
 /**
  * 天思ERP连接配置
@@ -157,7 +160,7 @@ export class TiansiERPIntegrationService {
       const response = await this.makeRequest('GET', '/api/system/health');
       return response.code === 0;
     } catch (error) {
-      console.error('天思ERP连接测试失败:', error);
+      log.error({ err: error }, "天思ERP连接测试失败");
       return false;
     }
   }
@@ -548,7 +551,7 @@ export class TiansiERPIntegrationService {
    */
   startSync(syncType: 'materials' | 'orders' | 'inventory' | 'bom' | 'warehouse' | 'lots' | 'all'): void {
     if (!this.config.isEnabled) {
-      console.warn('天思ERP集成未启用');
+      log.warn("天思ERP集成未启用");
       return;
     }
 
@@ -562,7 +565,7 @@ export class TiansiERPIntegrationService {
             await this.importMaterials(materials.data || []);
           }
         } catch (error) {
-          console.error('物料同步失败:', error);
+          log.error({ err: error }, "物料同步失败");
         }
       }, interval));
     }
@@ -572,7 +575,7 @@ export class TiansiERPIntegrationService {
         try {
           await this.syncPurchaseOrders();
         } catch (error) {
-          console.error('采购订单同步失败:', error);
+          log.error({ err: error }, "采购订单同步失败");
         }
       }, interval));
     }
@@ -582,7 +585,7 @@ export class TiansiERPIntegrationService {
         try {
           await this.syncInventory();
         } catch (error) {
-          console.error('库存同步失败:', error);
+          log.error({ err: error }, "库存同步失败");
         }
       }, interval));
     }
@@ -592,7 +595,7 @@ export class TiansiERPIntegrationService {
         try {
           await this.syncBOMs();
         } catch (error) {
-          console.error('BOM同步失败:', error);
+          log.error({ err: error }, "BOM同步失败");
         }
       }, interval));
     }
@@ -602,7 +605,7 @@ export class TiansiERPIntegrationService {
         try {
           await this.syncWarehouses();
         } catch (error) {
-          console.error('仓库同步失败:', error);
+          log.error({ err: error }, "仓库同步失败");
         }
       }, interval));
     }
@@ -612,7 +615,7 @@ export class TiansiERPIntegrationService {
         try {
           await this.syncLots();
         } catch (error) {
-          console.error('批次同步失败:', error);
+          log.error({ err: error }, "批次同步失败");
         }
       }, interval));
     }
@@ -687,7 +690,7 @@ export class TiansiERPIntegrationService {
 
       return await response.json();
     } catch (error) {
-      console.error(`天思ERP API请求失败: ${endpoint}`, error);
+      log.error({ err: error, endpoint }, "天思ERP API请求失败");
       throw error;
     }
   }

@@ -11,6 +11,8 @@ import { requireDb } from '../db';
 import { sql } from 'drizzle-orm';
 import * as wecomService from '../services/wecom.service';
 import * as dingtalkService from '../services/dingtalk.service';
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("social-config");
 
 // 平台类型枚举
 const PlatformEnum = z.enum(['wecom', 'dingtalk', 'feishu']);
@@ -358,13 +360,13 @@ export const socialPlatformConfigRouter = router({
           case 'wecom':
             // 企业微信同步逻辑
             const wecomUsers = await wecomService.getDepartmentUsers(config, 1);
-            console.log(`同步到 ${wecomUsers.length} 个企业微信用户`);
+            log.info({ count: wecomUsers.length }, "Synced WeCom users");
             break;
           
           case 'dingtalk':
             // 钉钉同步逻辑
             const depts = await dingtalkService.getDepartmentList(config);
-            console.log(`同步到 ${depts.length} 个钉钉部门`);
+            log.info({ count: depts.length }, "Synced DingTalk departments");
             break;
           
           case 'feishu':

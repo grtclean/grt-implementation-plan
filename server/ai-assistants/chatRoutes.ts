@@ -7,6 +7,8 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-chat-routes");
 
 // 助手类型
 const assistantTypes = ["solution", "quotation", "planning", "kpi"] as const;
@@ -134,7 +136,7 @@ export const aiChatRouter = router({
           usage: response.usage
         };
       } catch (error) {
-        console.error("[AI Chat Error]", error);
+        log.error({ err: error }, "[AI Chat Error]");
         return {
           success: false,
           response: "抱歉，AI服务暂时不可用。请稍后再试。",

@@ -5,6 +5,10 @@
  * 4 core AI functions using invokeLLM() with structured JSON output.
  */
 
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("sales-finance");
+
 // ============================================================
 // Types
 // ============================================================
@@ -142,7 +146,7 @@ ${params.timeHorizon ? `预测周期: ${params.timeHorizon}` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[SalesFinanceIntelligence] forecastSales failed:", error);
+    log.error({ err: error }, "forecastSales failed");
     return {
       forecastRevenue: 0,
       confidenceLevel: 0,
@@ -257,7 +261,7 @@ ${params.competitorActivity ? `竞品动态: ${params.competitorActivity}` : ""}
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[SalesFinanceIntelligence] predictChurn failed:", error);
+    log.error({ err: error }, "predictChurn failed");
     return {
       churnProbability: 0,
       riskLevel: "low",
@@ -359,7 +363,7 @@ ${params.comparisonPeriod ? `对比周期: ${params.comparisonPeriod}` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[SalesFinanceIntelligence] analyzeBudget failed:", error);
+    log.error({ err: error }, "analyzeBudget failed");
     return {
       variancePercent: 0,
       anomalyScore: 0,
@@ -468,7 +472,7 @@ ${params.overheadRate != null ? `管理费率: ${params.overheadRate}%` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[SalesFinanceIntelligence] optimizeCost failed:", error);
+    log.error({ err: error }, "optimizeCost failed");
     return {
       optimizedTotal: 0,
       savingsPercent: 0,

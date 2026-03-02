@@ -10,6 +10,8 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { ServiceAssistant } from "./serviceAssistant";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-service-routes");
 
 // ─── Dashboard Bootstrap ─────────────────────────────────────────
 let _serviceDashReady = false;
@@ -72,7 +74,7 @@ async function ensureServiceDashboard() {
       `);
     }
   } catch (e: any) {
-    console.warn("service dashboard bootstrap:", e.message);
+    log.warn({ err: e }, "service dashboard bootstrap failed");
   }
 }
 

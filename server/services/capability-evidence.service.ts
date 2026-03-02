@@ -3,6 +3,10 @@
  * 能力升级证据管理，自动触发能力升级
  */
 
+
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("capability-evidence");
+
 export type CapabilityDomain = 'T' | 'S' | 'D' | 'C' | 'K' | 'L';
 // T: Technology 技术
 // S: System Understanding 系统理解
@@ -304,7 +308,7 @@ export function verifyEvidence(
   comments?: string
 ): boolean {
   // 实际实现中应更新数据库
-  console.log(`Evidence ${evidenceId} verified by ${verifierId}: ${verified}`);
+  log.info({ evidenceId, verifierId, verified }, "Evidence verification recorded");
   return true;
 }
 

@@ -4,6 +4,8 @@ import { requireDb } from "../db";
 import { capabilityProofConfigs, capabilityEvidences, publicCapabilityShowcase } from "../../drizzle/schema";
 import { eq, desc, count, sql } from "drizzle-orm";
 import { jsonValue } from "../../shared/validators";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("capability-os");
 
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 const successResponse = { success: true, message: "操作成功" };
@@ -86,7 +88,7 @@ async function ensureCapCertData() {
       `);
     }
   } catch (e: any) {
-    console.warn("capability bootstrap:", e.message);
+    log.warn({ err: e }, "capability bootstrap failed");
   }
 }
 

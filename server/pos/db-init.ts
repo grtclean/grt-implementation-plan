@@ -4,6 +4,9 @@
  */
 
 import { requireDb } from "../db";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("pos-db-init");
 import { 
   customersV2, 
   projectsV2, 
@@ -266,13 +269,13 @@ export const SAMPLE_PROJECTS = [
  * 初始化POS数据库表和示例数据
  */
 export async function initPOSDatabase() {
-  console.log('[POS] 开始初始化数据库...');
+  log.info("开始初始化数据库");
   
   try {
     const db = await requireDb();
     
     // 插入示例客户数据
-    console.log('[POS] 插入示例客户数据...');
+    log.info("插入示例客户数据");
     for (const customer of SAMPLE_CUSTOMERS) {
       await db.insert(customersV2).values({
         customerCode: customer.customerCode,
@@ -290,13 +293,13 @@ export async function initPOSDatabase() {
     }
 
     // 插入示例项目数据
-    console.log('[POS] 插入示例项目数据...');
+    log.info("插入示例项目数据");
     for (const project of SAMPLE_PROJECTS) {
       await db.insert(projectsV2).values(project as any).onConflictDoNothing();
     }
 
     // 为每个项目创建M0-M12阶段记录
-    console.log('[POS] 创建项目阶段记录...');
+    log.info("创建项目阶段记录");
     for (let projectId = 1; projectId <= SAMPLE_PROJECTS.length; projectId++) {
       for (const stage of PROJECT_STAGES) {
         await db.insert(projectStagesV2).values({
@@ -313,10 +316,10 @@ export async function initPOSDatabase() {
       }
     }
     
-    console.log('[POS] 数据库初始化完成！');
+    log.info("数据库初始化完成");
     return { success: true, message: '数据库初始化完成' };
   } catch (error) {
-    console.error('[POS] 数据库初始化失败:', error);
+    log.error({ err: error }, "数据库初始化失败");
     return { success: false, message: String(error) };
   }
 }

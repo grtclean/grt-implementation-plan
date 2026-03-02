@@ -13,6 +13,9 @@
  */
 
 import { invokeLLM, type Message } from '../_core/llm';
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("ai-coach");
 import { auditLogger } from '../audit/audit-logger';
 import { deidentificationProxy, deidentifyLLMRequest } from '../security/deidentification-proxy';
 import { safetyFilter } from '../security/safety-filter';
@@ -198,7 +201,7 @@ export class GRTCoachInterceptor {
 
       return decision;
     } catch (error) {
-      console.error('[Coach] Interceptor error:', error);
+      log.error({ err: error }, "Interceptor error");
       await this.logInterceptionDecision(context, formData, 'ERROR', String(error), startTime);
       // 降级处理：拦截器出错时允许通过，但记录日志
       return {
@@ -526,7 +529,7 @@ ${JSON.stringify(data.data, null, 2)}
       
       return result;
     } catch (error) {
-      console.error('[Coach] Semantic analysis error:', error);
+      log.error({ err: error }, "Semantic analysis error");
       // 返回默认低风险结果
       return {
         riskScore: 20,
@@ -702,7 +705,7 @@ class NotificationService {
         })
       });
     } catch (error) {
-      console.error('[Notification] Failed to send WeChat Work message:', error);
+      log.error({ err: error }, "Failed to send WeChat Work message");
     }
   }
 
@@ -724,7 +727,7 @@ class NotificationService {
         })
       });
     } catch (error) {
-      console.error('[Notification] Failed to send DingTalk message:', error);
+      log.error({ err: error }, "Failed to send DingTalk message");
     }
   }
 

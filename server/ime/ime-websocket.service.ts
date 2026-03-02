@@ -11,6 +11,9 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { IncomingMessage } from "http";
 import * as imeService from "./ime.service";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("ime-ws");
 
 interface IMEConnection {
   ws: WebSocket;
@@ -62,7 +65,7 @@ export function initIMEWebSocket(server: any): WebSocketServer {
     }
     sessions.get(params.sessionId)!.add(conn);
 
-    console.log(`[IME-WS] Connected: user=${params.userName} session=${params.sessionId}`);
+    log.info({ userName: params.userName, sessionId: params.sessionId }, "Connected");
 
     ws.on("message", async (data) => {
       try {
@@ -70,7 +73,7 @@ export function initIMEWebSocket(server: any): WebSocketServer {
         conn.lastActivity = new Date();
         await handleMessage(conn, message);
       } catch (e) {
-        console.error("[IME-WS] Message error:", e);
+        log.error({ err: e }, "Message error");
         ws.send(JSON.stringify({ type: "error", message: "Invalid message" }));
       }
     });
@@ -83,11 +86,11 @@ export function initIMEWebSocket(server: any): WebSocketServer {
           sessions.delete(params.sessionId);
         }
       }
-      console.log(`[IME-WS] Disconnected: user=${params.userName} session=${params.sessionId}`);
+      log.info({ userName: params.userName, sessionId: params.sessionId }, "Disconnected");
     });
 
     ws.on("error", (err) => {
-      console.error(`[IME-WS] Error: user=${params.userName}`, err.message);
+      log.error({ err, userName: params.userName }, "Connection error");
     });
   });
 
@@ -137,7 +140,7 @@ async function handleMessage(conn: IMEConnection, message: any) {
           });
         }
       } catch (e) {
-        console.error("[IME-WS] Segment processing error:", e);
+        log.error({ err: e, sessionId: conn.sessionId }, "Segment processing error");
       }
       break;
     }
@@ -147,7 +150,7 @@ async function handleMessage(conn: IMEConnection, message: any) {
       break;
 
     default:
-      console.warn(`[IME-WS] Unknown message type: ${message.type}`);
+      log.warn({ messageType: message.type }, "Unknown message type");
   }
 }
 

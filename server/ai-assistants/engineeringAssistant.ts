@@ -4,6 +4,9 @@
  */
 
 import { invokeLLM } from '../_core/llm';
+import { createChildLogger } from '../lib/logger';
+
+const log = createChildLogger("eng-assistant");
 
 // 项目生命周期阶段定义
 export const PROJECT_PHASES = {
@@ -385,7 +388,7 @@ ${Object.entries(roleMatrix)
       const result = JSON.parse(content);
       return result.tasks;
     } catch (error) {
-      console.error('Error generating task assignments:', error);
+      log.error({ err: error }, "Error generating task assignments");
       // 返回基于规则的默认分配
       return this.generateDefaultTaskAssignments(input, phaseInfo, roleMatrix);
     }
@@ -533,7 +536,7 @@ ${input.rawContent}
         }))
       };
     } catch (error) {
-      console.error('Error analyzing customer communication:', error);
+      log.error({ err: error }, "Error analyzing customer communication");
       return {
         summary: '沟通内容分析失败，请人工处理',
         keyPoints: ['需要人工审核'],
@@ -662,7 +665,7 @@ ${inputContent}
         ...result
       };
     } catch (error) {
-      console.error('Error analyzing engineering input:', error);
+      log.error({ err: error }, "Error analyzing engineering input");
       return {
         sourceType,
         extractedRequirements: [],

@@ -10,6 +10,9 @@
 
 import { TRPCError } from "@trpc/server";
 import axios from "axios";
+import { createChildLogger } from "../lib/logger";
+
+const dlpLogger = createChildLogger("dlp");
 
 /**
  * DLP审计结果接口
@@ -162,7 +165,7 @@ export async function auditContent(content: string): Promise<DLPAuditResult> {
 
     return result;
   } catch (error) {
-    console.error("[DLP] AI Auditor service error:", error);
+    dlpLogger.error({ err: error }, "AI Auditor service error");
 
     // 服务不可用时进行本地检查
     return performLocalAudit(content);
@@ -247,11 +250,11 @@ export async function validateEmailExport(request: EmailExportRequest): Promise<
 
   if (auditResult.recommendation === "review") {
     // 标记为需要审查，但允许发送
-    console.warn("[DLP] Email flagged for review:", {
+    dlpLogger.warn({
       recipients: request.recipients,
       riskScore: auditResult.riskScore,
       violations: auditResult.violations,
-    });
+    }, "Email flagged for review");
   }
 
   // 步骤3: 检查附件
@@ -262,7 +265,7 @@ export async function validateEmailExport(request: EmailExportRequest): Promise<
         attachment.filename.endsWith(".xls")
       ) {
         // BOM表格需要加密
-        console.warn("[DLP] Excel attachment detected - encryption required");
+        dlpLogger.warn("Excel attachment detected - encryption required");
       }
     }
   }
@@ -275,7 +278,7 @@ export async function validateEmailExport(request: EmailExportRequest): Promise<
  */
 export async function logComplianceEvent(log: ComplianceLog): Promise<void> {
   // 将日志写入数据库或日志系统
-  console.log("[COMPLIANCE LOG]", {
+  dlpLogger.info({
     timestamp: log.timestamp.toISOString(),
     action: log.action,
     userId: log.userId,
@@ -283,11 +286,11 @@ export async function logComplianceEvent(log: ComplianceLog): Promise<void> {
     riskScore: log.riskScore,
     violations: log.violations,
     details: log.details,
-  });
+  }, "Compliance event logged");
 
   // 如果是被拦截的操作，发送告警
   if (log.status === "blocked") {
-    console.error("[ALERT] DLP Block Event:", log);
+    dlpLogger.error({ event: log }, "DLP Block Event");
     // 可以在这里集成告警系统（邮件、Slack等）
   }
 }

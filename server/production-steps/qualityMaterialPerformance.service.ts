@@ -6,6 +6,8 @@
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("qm-perf");
 
 // ============================================================
 // 类型定义
@@ -261,7 +263,7 @@ export async function analyzeCCDImage(imageUrl: string, checkpointName: string, 
     const content = response.choices?.[0]?.message?.content;
     return content ? JSON.parse(content) : null;
   } catch (error) {
-    console.error("[CCD Analysis] Error:", error);
+    log.error({ err: error }, "CCD analysis error");
     return null;
   }
 }
@@ -678,7 +680,7 @@ export async function detectBottlenecks(projectId: string) {
         }
       }
     } catch (e) {
-      console.error("[Bottleneck AI] Error generating suggestions:", e);
+      log.error({ err: e }, "Error generating bottleneck suggestions");
     }
   }
 

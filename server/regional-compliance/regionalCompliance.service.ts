@@ -3,6 +3,9 @@
  * Phase I: CN劳动法 · 五险一金 · 区域认证 · 工作日计算 · VAT · 内容本地化
  */
 
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("regional-compliance");
+
 // ============================================================
 // Result Types
 // ============================================================
@@ -114,7 +117,7 @@ export async function analyzeCNOvertime(params: {
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[RegionalCompliance] analyzeCNOvertime failed:", error);
+    log.error({ err: error }, "analyzeCNOvertime failed");
     return { totalOvertimeHours: 0, monthlyLimit: 36, complianceStatus: "AI服务不可用", violations: [], weekdayOT: 0, weekendOT: 0, holidayOT: 0, overtimePay: 0, recommendations: ["请联系IT支持"] };
   }
 }
@@ -159,7 +162,7 @@ GRT运营城市社保参考（2026年）：
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[RegionalCompliance] calculateSocialInsurance failed:", error);
+    log.error({ err: error }, "calculateSocialInsurance failed");
     return { city: params.city, baseSalary: params.baseSalary, employeeContribution: { pension: 0, medical: 0, unemployment: 0, housingFund: 0, total: 0 }, employerContribution: { pension: 0, medical: 0, unemployment: 0, workInjury: 0, housingFund: 0, total: 0 }, totalMonthly: 0, annualCost: 0, breakdown: [], comparisonWithBenchmark: "AI服务不可用", recommendations: ["请联系IT支持"] };
   }
 }
@@ -204,7 +207,7 @@ GRT产品线：碳氢真空清洗机、水基清洗线、超声波清洗机、�
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[RegionalCompliance] assessRegionalCertification failed:", error);
+    log.error({ err: error }, "assessRegionalCertification failed");
     return { requiredCerts: [], certificationGaps: [], timeline: { totalWeeks: 0, phases: [] }, estimatedCost: "AI服务不可用", documentChecklist: [], testingRequirements: [], recommendations: ["请联系IT支持"] };
   }
 }
@@ -249,7 +252,7 @@ export async function calculateWorkingDaysAI(params: {
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[RegionalCompliance] calculateWorkingDaysAI failed:", error);
+    log.error({ err: error }, "calculateWorkingDaysAI failed");
     return { endDate: "", workingDays: params.estimatedDays, holidaysEncountered: [], calendarDays: 0, bufferDays: 0, criticalPeriods: [], recommendations: ["请联系IT支持"] };
   }
 }
@@ -301,7 +304,7 @@ export async function calculateVAT(params: {
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[RegionalCompliance] calculateVAT failed:", error);
+    log.error({ err: error }, "calculateVAT failed");
     return { netAmount: params.amount, taxAmount: 0, totalAmount: params.amount, taxRate: 0, taxType: "AI服务不可用", breakdown: [], invoiceRequirements: "", notes: ["AI服务不可用"], recommendations: ["请联系IT支持"] };
   }
 }
@@ -352,7 +355,7 @@ export async function localizeContent(params: {
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[RegionalCompliance] localizeContent failed:", error);
+    log.error({ err: error }, "localizeContent failed");
     return { translatedContent: "AI服务不可用", terminology: [], qualityScore: 0, culturalNotes: [], warnings: ["AI服务当前不可用"], alternatives: [] };
   }
 }

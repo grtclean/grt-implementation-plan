@@ -4,6 +4,8 @@
  */
 
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-solution");
 
 export interface CustomerRequirement {
   productType: string;           // 产品类型
@@ -164,7 +166,7 @@ GRT公司的核心产品线：
       referenceProjects: similarProjects.map(p => p.projectId)
     }));
   } catch (error) {
-    console.error("AI solution recommendation error:", error);
+    log.error({ err: error }, "AI solution recommendation error");
     // 返回默认推荐
     return getDefaultRecommendations(requirement);
   }
@@ -251,7 +253,7 @@ function getDefaultRecommendations(requirement: CustomerRequirement): SolutionRe
 export function learnFromProject(project: HistoricalProject): void {
   // 将新项目添加到历史数据中
   historicalProjects.push(project);
-  console.log(`Learned from project: ${project.projectId}`);
+  log.info({ projectId: project.projectId }, "Learned from project");
 }
 
 /**

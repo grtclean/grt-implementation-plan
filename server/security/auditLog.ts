@@ -6,6 +6,9 @@
 import { requireDb } from "../db";
 import { securityAuditLogs } from "../../drizzle/schema";
 import crypto from "crypto";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("audit-log");
 
 // 安全事件类型
 export type SecurityEventType =
@@ -147,8 +150,7 @@ export async function logSecurityEvent(entry: AuditLogEntry): Promise<void> {
     }
   } catch (error) {
     // 审计日志失败不应影响业务流程，但需要记录到控制台
-    console.error('[Security Audit] Failed to log event:', error);
-    console.error('[Security Audit] Event data:', JSON.stringify(entry));
+    log.error({ err: error, entry }, "Failed to log security audit event");
   }
 }
 
@@ -157,8 +159,7 @@ export async function logSecurityEvent(entry: AuditLogEntry): Promise<void> {
  */
 async function triggerSecurityAlert(entry: AuditLogEntry, severity: Severity): Promise<void> {
   // TODO: 实现告警通知（邮件、短信、Webhook等）
-  console.warn(`[Security Alert] ${severity.toUpperCase()}: ${entry.eventType} - ${entry.action}`);
-  console.warn(`[Security Alert] Details:`, JSON.stringify(entry.details));
+  log.warn({ severity, eventType: entry.eventType, action: entry.action, details: entry.details }, "Security alert triggered");
 }
 
 /**

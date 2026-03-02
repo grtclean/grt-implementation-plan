@@ -5,6 +5,9 @@
  * 4 core AI functions using invokeLLM + existing knowledge base & embedding services.
  */
 
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("project-intel");
+
 // ============================================================
 // Types
 // ============================================================
@@ -73,7 +76,7 @@ export async function askProjectKnowledge(
   try {
     kbResults = await searchDocuments(question, { limit: 5 });
   } catch (err) {
-    console.error("[ProjectIntelligence] Knowledge base search failed:", err);
+    log.error({ err }, "Knowledge base search failed");
   }
 
   // Also try embedding search for semantic matches
@@ -82,7 +85,7 @@ export async function askProjectKnowledge(
     const { searchSimilarByText } = await import("../doc-intelligence/embedding.service");
     embeddingResults = await searchSimilarByText(question, { limit: 3, minSimilarity: 0.2 });
   } catch (err) {
-    console.error("[ProjectIntelligence] Embedding search failed:", err);
+    log.error({ err }, "Embedding search failed");
   }
 
   // Build context from search results
@@ -132,7 +135,7 @@ ${contextBlock}`;
       })),
     };
   } catch (error) {
-    console.error("[ProjectIntelligence] askProjectKnowledge failed:", error);
+    log.error({ err: error }, "askProjectKnowledge failed");
     return {
       answer: "AI服务暂时不可用，请稍后再试。",
       sources: [],
@@ -183,7 +186,7 @@ export async function findSimilarProjects(params: {
       }
     }
   } catch (err) {
-    console.error("[ProjectIntelligence] KB search for similar projects failed:", err);
+    log.error({ err }, "KB search for similar projects failed");
   }
 
   // Also try embedding-based semantic search
@@ -201,7 +204,7 @@ export async function findSimilarProjects(params: {
       }
     }
   } catch (err) {
-    console.error("[ProjectIntelligence] Embedding search for similar projects failed:", err);
+    log.error({ err }, "Embedding search for similar projects failed");
   }
 
   if (kbResults.length === 0) {
@@ -270,7 +273,7 @@ export async function findSimilarProjects(params: {
     }
     return { matches: [] };
   } catch (error) {
-    console.error("[ProjectIntelligence] findSimilarProjects LLM failed:", error);
+    log.error({ err: error }, "findSimilarProjects LLM failed");
     // Fallback: return KB results as-is
     return {
       matches: kbResults.slice(0, 5).map((r) => ({
@@ -371,7 +374,7 @@ ${params.projectId ? `关联项目: ${params.projectId}` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[ProjectIntelligence] analyzeChangeImpact failed:", error);
+    log.error({ err: error }, "analyzeChangeImpact failed");
     return {
       impactAreas: [
         { area: "BOM", severity: "medium", description: "AI分析暂时不可用，建议人工评估BOM影响" },
@@ -480,7 +483,7 @@ ${params.openIssues != null ? `未关闭问题数: ${params.openIssues}` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[ProjectIntelligence] predictProjectRisk failed:", error);
+    log.error({ err: error }, "predictProjectRisk failed");
     return {
       overallRisk: "medium",
       riskScore: 50,

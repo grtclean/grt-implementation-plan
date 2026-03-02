@@ -10,6 +10,8 @@
  */
 
 import { notifyOwner } from '../_core/notification';
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("prod-notif");
 
 // ============================================================================
 // 类型定义
@@ -514,7 +516,7 @@ export class NotificationService {
   ): Promise<NotificationResult> {
     // 邮件发送需要配置SMTP服务器
     // 这里使用系统通知作为备选
-    console.log('[Notification] Email channel not fully implemented, falling back to system notification');
+    log.info("Email channel not fully implemented, falling back to system notification");
     return this.sendToSystem(payload);
   }
 
@@ -528,7 +530,7 @@ export class NotificationService {
   ): Promise<NotificationResult> {
     // 短信发送需要配置短信网关
     // 这里使用系统通知作为备选
-    console.log('[Notification] SMS channel not fully implemented, falling back to system notification');
+    log.info("SMS channel not fully implemented, falling back to system notification");
     return this.sendToSystem(payload);
   }
 

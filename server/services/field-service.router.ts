@@ -18,6 +18,9 @@ import { eq, desc, and, sql, count, type SQL } from "drizzle-orm";
 import * as schema from "../../drizzle/schema";
 import { searchDocuments } from "../modules/knowledge-base.service";
 import { triggerProcessLock } from "../production-steps/qualityInterlock.service";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("field-service");
 // Task #60
 const getRecommendedArticles = protectedProcedure
   .input(
@@ -41,7 +44,7 @@ const getRecommendedArticles = protectedProcedure
       const results = await searchDocuments(query, { limit: 5 });
       return { articles: results, query };
     } catch (error) {
-      console.error("[FieldService] KB search error:", error);
+      log.error({ err: error }, "KB search error");
       return { articles: [], query, error: "Knowledge base search failed" };
     }
   });
@@ -108,7 +111,7 @@ const escalateToFactory = protectedProcedure
           escalation.factoryLockId = lockResult.lockedProcesses[0].id;
         }
       } catch (error) {
-        console.error("[FieldService] triggerProcessLock error:", error);
+        log.error({ err: error }, "triggerProcessLock error");
       }
     }
 

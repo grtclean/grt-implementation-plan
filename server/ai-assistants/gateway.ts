@@ -13,6 +13,9 @@ import { getDb, requireDb } from "../db";
 import { aiAssistantConfigs, aiAssistantLogs, aiKnowledgeBases } from "../../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("ai-gateway");
 import { 
   ALL_ASSISTANTS, 
   getAssistantConfig, 
@@ -140,7 +143,7 @@ export async function logAssistantCall(params: {
     
     return (result as any).insertId ? Number((result as any).insertId) : null;
   } catch (error) {
-    console.error("[AI Gateway] Failed to log assistant call:", error);
+    log.error({ err: error }, "Failed to log assistant call");
     return null;
   }
 }
@@ -187,7 +190,7 @@ export async function getAssistantLogs(params: {
     
     return logs;
   } catch (error) {
-    console.error("[AI Gateway] Failed to get assistant logs:", error);
+    log.error({ err: error }, "Failed to get assistant logs");
     return [];
   }
 }
@@ -230,7 +233,7 @@ export async function getAssistantStats(assistantId: string): Promise<{
       avgRating: result.avgRating ? Number(result.avgRating) : null,
     };
   } catch (error) {
-    console.error("[AI Gateway] Failed to get assistant stats:", error);
+    log.error({ err: error }, "Failed to get assistant stats");
     return { totalCalls: 0, successRate: 0, avgResponseTime: 0, totalTokens: 0, avgRating: null };
   }
 }
@@ -517,7 +520,7 @@ export async function updateAssistantRating(
       .where(eq(aiAssistantLogs.id, logId));
     return true;
   } catch (error) {
-    console.error("[AI Gateway] Failed to update rating:", error);
+    log.error({ err: error }, "Failed to update rating");
     return false;
   }
 }

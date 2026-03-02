@@ -5,6 +5,10 @@
  * 4 core AI functions using invokeLLM() with structured JSON output.
  */
 
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("rd-service");
+
 // ============================================================
 // Types
 // ============================================================
@@ -161,7 +165,7 @@ ${params.budget ? `预算范围: ${params.budget}万元` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[RdServiceIntelligence] analyzeRequirements failed:", error);
+    log.error({ err: error }, "analyzeRequirements failed");
     return {
       feasibilityScore: 0,
       technicalSpecs: [],
@@ -281,7 +285,7 @@ ${params.standardsRequired ? `标准要求: ${params.standardsRequired}` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[RdServiceIntelligence] reviewDesign failed:", error);
+    log.error({ err: error }, "reviewDesign failed");
     return {
       overallScore: 0,
       grade: "D",
@@ -398,7 +402,7 @@ ${params.equipmentAge ? `设备年限: ${params.equipmentAge}年` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[RdServiceIntelligence] diagnoseFault failed:", error);
+    log.error({ err: error }, "diagnoseFault failed");
     return {
       diagnosis: "AI服务暂时不可用",
       confidence: 0,
@@ -526,7 +530,7 @@ ${params.usageIntensity ? `使用强度: ${params.usageIntensity}` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[RdServiceIntelligence] planMaintenance failed:", error);
+    log.error({ err: error }, "planMaintenance failed");
     return {
       healthScore: 0,
       nextMaintenanceDate: "待定",

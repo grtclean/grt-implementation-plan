@@ -7,6 +7,9 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("project-gate");
 import {
   projects, projectGates, projectMilestones,
   projectsV2, projectStagesV2,
@@ -401,10 +404,10 @@ export const projectGateRouter = router({
                   status: "active",
                 }).returning();
 
-                console.log(`[ProjectGate:V1] M12 reached for project ${gate.projectId} — after-sales equipment + warranty created`);
+                log.info({ projectId: gate.projectId }, "M12 reached — after-sales equipment + warranty created (V1)");
               }
             } catch (e: any) {
-              console.warn(`[ProjectGate:V1] M12 after-sales auto-trigger failed:`, e.message);
+              log.warn({ err: e, projectId: gate.projectId }, "M12 after-sales auto-trigger failed (V1)");
             }
           }
         }
@@ -425,10 +428,10 @@ export const projectGateRouter = router({
               description: `项目门禁${gate.phaseCode}(${label})审批被拒绝。${input.comments || ""}`,
               status: "open",
             });
-            console.log(`[ProjectGate] ${label} rejection → violation event (${severity}) for project ${gate.projectId}`);
+            log.info({ label, severity, projectId: gate.projectId }, "FAT/SAT rejection created violation event");
           }
         } catch (violationErr) {
-          console.error("[ProjectGate] Failed to create violation event:", violationErr);
+          log.error({ err: violationErr }, "failed to create violation event");
         }
       }
 
@@ -727,10 +730,10 @@ export const projectGateRouter = router({
             }).returning();
 
             afterSalesCreated = true;
-            console.log(`[ProjectGate] M12 reached for project ${input.projectId} — after-sales equipment + warranty created`);
+            log.info({ projectId: input.projectId }, "M12 reached — after-sales equipment + warranty created (V2)");
           }
         } catch (e: any) {
-          console.warn(`[ProjectGate] M12 after-sales auto-trigger failed:`, e.message);
+          log.warn({ err: e, projectId: input.projectId }, "M12 after-sales auto-trigger failed (V2)");
           // Non-blocking — gate advance still succeeds
         }
       }

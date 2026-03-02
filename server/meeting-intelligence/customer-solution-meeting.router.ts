@@ -25,6 +25,8 @@ import {
   compareSolutionVersions,
   reviewSolutionVersion
 } from './customer-solution-meeting.service';
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("customer-meeting");
 
 export const customerSolutionMeetingRouter = router({
   // ========== 会议管理 ==========
@@ -396,16 +398,14 @@ export const customerSolutionMeetingRouter = router({
                     .set({ expectedAmount: String(quoted_price) })
                     .where(eq(crmOpportunitiesV2.id, opportunityId));
 
-                  console.log(
-                    `[reviewVersion] Auto-updated opportunity #${opportunityId} expectedAmount to ${quoted_price} from approved solution version ${input.versionId}`
-                  );
+                  log.info({ opportunityId, quotedPrice: quoted_price, versionId: input.versionId }, "Auto-updated opportunity expectedAmount from approved solution version");
                 }
               }
             }
           }
         } catch (error) {
           // Log but do not fail the review operation
-          console.error('[reviewVersion] Failed to auto-update opportunity amount:', error);
+          log.error({ err: error }, "Failed to auto-update opportunity amount");
         }
       }
     })

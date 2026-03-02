@@ -6,6 +6,9 @@
 import { getDb } from '../db';
 import { SchedulingEngine, type SchedulingInput } from './scheduling.service';
 import { v4 as uuidv4 } from 'uuid';
+import { createChildLogger } from '../lib/logger';
+
+const log = createChildLogger("scheduling");
 
 // ==================== 类型定义 ====================
 
@@ -73,13 +76,13 @@ export function getAutoRefreshConfig(): AutoRefreshConfig {
  */
 export async function handleWorkReportEvent(event: WorkReportEvent): Promise<void> {
   if (!currentConfig.enabled) {
-    console.log('[AutoRefresh] 自动刷新已禁用，忽略事件');
+    log.info("自动刷新已禁用，忽略事件");
     return;
   }
 
   // 添加到待处理队列
   pendingEvents.push(event);
-  console.log(`[AutoRefresh] 收到报工事件: ${event.type}, 任务: ${event.taskId}`);
+  log.info({ eventType: event.type, taskId: event.taskId }, "收到报工事件");
 
   // 重置延迟触发器
   if (refreshTimer) {
@@ -106,7 +109,7 @@ async function processRefresh(): Promise<RefreshResult> {
     const minInterval = currentConfig.minIntervalMinutes * 60 * 1000;
     if (elapsed < minInterval) {
       const waitMinutes = Math.ceil((minInterval - elapsed) / 60000);
-      console.log(`[AutoRefresh] 距离上次刷新不足${currentConfig.minIntervalMinutes}分钟，跳过本次刷新`);
+      log.info({ minIntervalMinutes: currentConfig.minIntervalMinutes }, "距离上次刷新不足最小间隔，跳过本次刷新");
       return {
         triggered: false,
         reason: `距离上次刷新不足${currentConfig.minIntervalMinutes}分钟，需等待${waitMinutes}分钟`,
@@ -120,7 +123,7 @@ async function processRefresh(): Promise<RefreshResult> {
   const affectedTaskIds = new Set(events.map(e => e.taskId));
   const affectedResourceIds = new Set(events.map(e => e.resourceId));
 
-  console.log(`[AutoRefresh] 处理${events.length}个事件，影响${affectedTaskIds.size}个任务`);
+  log.info({ eventCount: events.length, affectedTaskCount: affectedTaskIds.size }, "处理报工事件");
 
   try {
     // 获取受影响任务的BU分布
@@ -145,7 +148,7 @@ async function processRefresh(): Promise<RefreshResult> {
     const affectedBus = new Set(taskRows.map((r: any) => r.bu_code));
     const isGlobalRefresh = affectedBus.size >= currentConfig.affectedBuThreshold;
 
-    console.log(`[AutoRefresh] 影响${affectedBus.size}个BU，${isGlobalRefresh ? '触发全局刷新' : '触发局部刷新'}`);
+    log.info({ affectedBuCount: affectedBus.size, isGlobalRefresh }, "触发排程刷新");
 
     // 执行排程
     const result = await executeAutoRefresh(
@@ -163,7 +166,7 @@ async function processRefresh(): Promise<RefreshResult> {
       timestamp: new Date(),
     };
   } catch (error) {
-    console.error('[AutoRefresh] 刷新失败:', error);
+    log.error({ err: error }, "排程刷新失败");
     return {
       triggered: false,
       reason: `刷新失败: ${error instanceof Error ? error.message : '未知错误'}`,
@@ -298,7 +301,7 @@ async function executeAutoRefresh(
     );
   }
 
-  console.log(`[AutoRefresh] 排程完成，任务ID: ${jobId}，成功: ${result.feasible}`);
+  log.info({ jobId, feasible: result.feasible }, "排程完成");
 
   return { jobId, success: result.feasible };
 }
@@ -307,7 +310,7 @@ async function executeAutoRefresh(
  * 手动触发刷新
  */
 export async function triggerManualRefresh(): Promise<RefreshResult> {
-  console.log('[AutoRefresh] 手动触发刷新');
+  log.info("手动触发刷新");
   
   // 清除待处理事件
   pendingEvents = [];

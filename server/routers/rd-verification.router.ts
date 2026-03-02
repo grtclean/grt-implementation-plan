@@ -8,6 +8,8 @@
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("rd-verification");
 
 // ─── Bootstrap ───────────────────────────────────────────────────
 let _rdVerReady = false;
@@ -74,7 +76,7 @@ async function ensureRdVerData() {
       `);
     }
   } catch (e: any) {
-    console.warn("rd-verification bootstrap:", e.message);
+    log.warn({ err: e }, "rd-verification bootstrap failed");
   }
 }
 

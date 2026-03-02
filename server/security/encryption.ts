@@ -4,6 +4,9 @@
  */
 
 import crypto from "crypto";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("encryption");
 
 // 加密配置
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
@@ -20,7 +23,7 @@ function getMasterKey(): string {
     if (process.env.NODE_ENV === "production") {
       throw new Error("FATAL: ENCRYPTION_MASTER_KEY is not set.");
     }
-    console.warn("[SECURITY] ENCRYPTION_MASTER_KEY not set — using insecure dev default.");
+    log.warn("ENCRYPTION_MASTER_KEY not set — using insecure dev default");
     return "grt-dev-only-insecure-default-key-32ch";
   }
   return key;
@@ -68,7 +71,7 @@ export function encrypt(plaintext: string): string {
     
     return combined.toString('base64');
   } catch (error) {
-    console.error('[Encryption] Failed to encrypt data:', error);
+    log.error({ err: error }, "Failed to encrypt data");
     throw new Error('Encryption failed');
   }
 }
@@ -102,7 +105,7 @@ export function decrypt(ciphertext: string): string {
     
     return decrypted.toString('utf8');
   } catch (error) {
-    console.error('[Encryption] Failed to decrypt data:', error);
+    log.error({ err: error }, "Failed to decrypt data");
     throw new Error('Decryption failed - data may be corrupted or tampered');
   }
 }
@@ -134,7 +137,7 @@ export function verifyPassword(password: string, hashedPassword: string): boolea
     
     return crypto.timingSafeEqual(expectedHash, actualHash);
   } catch (error) {
-    console.error('[Encryption] Password verification failed:', error);
+    log.error({ err: error }, "Password verification failed");
     return false;
   }
 }

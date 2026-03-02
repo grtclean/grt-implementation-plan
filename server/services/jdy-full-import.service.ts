@@ -10,6 +10,9 @@ import { provisionUsersFromJiandaoyun } from './jdy-user-provisioning.service';
 import { getJdyFormDiscoveryService } from './jdy-form-discovery.service';
 import { getJdyProjectImportService } from './jdy-project-import.service';
 import { getJdyApprovalImportService } from './jdy-approval-import.service';
+import { createChildLogger } from '../lib/logger';
+
+const log = createChildLogger("jdy-full");
 
 export type ImportPhase = 'org' | 'user' | 'discovery' | 'project' | 'approval' | 'knowledge';
 
@@ -183,7 +186,7 @@ export class JdyFullImportService {
 
     // 异步执行导入（不阻塞请求）
     this.executeImport(runCode, config).catch((error) => {
-      console.error(`[FullImport] 运行 ${runCode} 发生未捕获错误:`, error);
+      log.error({ err: error, runCode }, "运行发生未捕获错误");
     });
 
     return runCode;
@@ -252,7 +255,7 @@ export class JdyFullImportService {
           }
         } catch (error: any) {
           allErrors.push({ phase, message: error.message });
-          console.error(`[FullImport] 阶段 ${phase} 失败:`, error);
+          log.error({ err: error, phase }, "阶段失败");
           // 继续下一阶段
         }
       }

@@ -6,6 +6,8 @@
  */
 
 import * as crypto from 'crypto';
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("data-sync-schema");
 
 // =============================================================================
 // 类型定义
@@ -185,7 +187,7 @@ export class DataSyncService {
     this.nodeInfo = nodeInfo;
     const resolvedKey = secretKey || process.env.SYNC_SECRET_KEY || '';
     if (!resolvedKey) {
-      console.warn("[SECURITY] SYNC_SECRET_KEY not set — sync HMAC signatures will be rejected. Set SYNC_SECRET_KEY in .env");
+      log.warn("[SECURITY] SYNC_SECRET_KEY not set — sync HMAC signatures will be rejected. Set SYNC_SECRET_KEY in .env");
     }
     this.secretKey = resolvedKey;
   }

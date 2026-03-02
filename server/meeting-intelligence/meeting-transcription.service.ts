@@ -7,6 +7,8 @@ import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 import { transcribeAudio } from "../_core/voiceTranscription";
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("meeting-transcription");
 
 // ============================================================================
 // Types
@@ -449,4 +451,4 @@ Format as JSON array:
   }
 }
 
-console.log("[MeetingTranscription] Meeting transcription service loaded");
+log.info("[MeetingTranscription] Meeting transcription service loaded");

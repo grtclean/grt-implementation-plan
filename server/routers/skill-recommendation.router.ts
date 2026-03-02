@@ -5,6 +5,9 @@ import { eq, desc } from "drizzle-orm";
 import { employeeSkillMaps, aiLearningRecords } from "../../drizzle/schema";
 import { invokeLLM } from "../_core/llm";
 import { TRPCError } from "@trpc/server";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("skill-rec");
 
 export const skillRecommendationRouter = router({
   getRecommendations: protectedProcedure
@@ -64,7 +67,7 @@ Return a JSON object with a "recommendations" array containing skill objects wit
             recommendations = parsed.recommendations || [];
           }
         } catch (error) {
-          console.error("Failed to parse recommendations:", error);
+          log.error({ err: error }, "failed to parse recommendations");
         }
 
         return {
@@ -73,7 +76,7 @@ Return a JSON object with a "recommendations" array containing skill objects wit
           totalCount: recommendations.length,
         };
       } catch (error) {
-        console.error("Error getting recommendations:", error);
+        log.error({ err: error }, "error getting recommendations");
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to get recommendations",
@@ -126,7 +129,7 @@ Return a JSON object with a "learningPath" object containing: skillName, targetL
             learningPath = parsed.learningPath;
           }
         } catch (error) {
-          console.error("Failed to parse learning path:", error);
+          log.error({ err: error }, "failed to parse learning path");
         }
 
         return {
@@ -134,7 +137,7 @@ Return a JSON object with a "learningPath" object containing: skillName, targetL
           learningPath,
         };
       } catch (error) {
-        console.error("Error getting learning path:", error);
+        log.error({ err: error }, "error getting learning path");
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to get learning path",
@@ -150,13 +153,13 @@ Return a JSON object with a "learningPath" object containing: skillName, targetL
     }))
     .mutation(async ({ ctx, input }) => {
       try {
-        console.log(`User ${ctx.user.id} provided feedback on skill recommendation:`, input);
+        log.info({ userId: ctx.user.id, skillName: input.skillName, helpful: input.helpful }, "user provided feedback on skill recommendation");
         return {
           success: true,
           message: "Feedback recorded successfully",
         };
       } catch (error) {
-        console.error("Error recording feedback:", error);
+        log.error({ err: error }, "error recording feedback");
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to record feedback",
@@ -194,7 +197,7 @@ Return a JSON object with a "learningPath" object containing: skillName, targetL
         },
       };
     } catch (error) {
-      console.error("Error getting stats:", error);
+      log.error({ err: error }, "error getting stats");
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to get stats",

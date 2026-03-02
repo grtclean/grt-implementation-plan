@@ -6,6 +6,9 @@
 import { requireDb } from '../db';
 import { sql } from 'drizzle-orm';
 import { notifyOwner } from '../_core/notification';
+import { createChildLogger } from '../lib/logger';
+
+const log = createChildLogger("sync-health");
 
 // 类型定义
 export type RegionCode = 'CN' | 'US' | 'DE';
@@ -321,7 +324,7 @@ async function recordHealthCheck(result: HealthCheckResult): Promise<void> {
     `);
   } catch (error) {
     // 表可能不存在，静默失败
-    console.error('Failed to record health check:', error);
+    log.error({ err: error }, "Failed to record health check");
   }
 }
 
@@ -416,13 +419,13 @@ export const HEALTH_CHECK_SCHEDULE = {
 export function startHealthCheckScheduler(): void {
   // 这里实际应该使用node-cron或类似库
   // 为了演示，我们只是导出配置
-  console.log(`[HealthCheck] Scheduler configured: ${HEALTH_CHECK_SCHEDULE.cronExpression}`);
+  log.info({ cron: HEALTH_CHECK_SCHEDULE.cronExpression }, "Scheduler configured");
 }
 
 /**
  * 手动触发健康检查
  */
 export async function triggerManualHealthCheck(): Promise<HealthCheckResult> {
-  console.log('[HealthCheck] Manual health check triggered');
+  log.info({}, "Manual health check triggered");
   return performHealthCheck();
 }

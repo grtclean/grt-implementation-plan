@@ -6,6 +6,9 @@
 
 import { requireDb } from "../db";
 import { sql, eq, and, inArray } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("scheduler-svc");
 import { sendTaskReminderEmails } from "./email-reminder.service";
 import { sendEmail, generateHtmlEmail } from "./email.service";
 import { notifyOwner } from "../_core/notification";
@@ -263,7 +266,7 @@ async function handleTrainingExpiryReminder(): Promise<TaskExecutionResult> {
         
         sentCount++;
       } catch (error) {
-        console.error(`[Scheduler] 培训提醒发送失败: ${training.employee_name}`, error);
+        log.error({ err: error, employeeName: training.employee_name }, "培训提醒发送失败");
       }
     }
     
@@ -345,7 +348,7 @@ async function handlePerformanceReviewReminder(): Promise<TaskExecutionResult> {
         });
         sentCount++;
       } catch (error) {
-        console.error(`[Scheduler] 绩效提醒发送失败: ${user.name}`, error);
+        log.error({ err: error, userName: user.name }, "绩效提醒发送失败");
       }
     }
     
@@ -454,7 +457,7 @@ async function handleProjectDelayPrediction(): Promise<TaskExecutionResult> {
 
         tasksSubmitted++;
       } catch (err) {
-        console.error(`[DelayPrediction] Failed for project ${project.id}:`, err);
+        log.error({ err, projectId: project.id }, "delay prediction failed for project");
       }
     }
 
@@ -721,20 +724,20 @@ export function updateTaskCron(taskId: string, cronExpression: string): boolean 
 
 // 初始化调度器
 export function initScheduler(): void {
-  console.log("[Scheduler] 初始化定时任务调度器...");
+  log.info("初始化定时任务调度器");
   
   for (const task of scheduledTasks) {
     task.nextRun = getNextRunTime(task.cronExpression);
-    console.log(`[Scheduler] 任务 ${task.name} 下次执行时间: ${task.nextRun.toISOString()}`);
+    log.info({ taskName: task.name, nextRun: task.nextRun.toISOString() }, "任务下次执行时间");
   }
   
   // 每分钟检查一次是否有任务需要执行
   setInterval(async () => {
     const result = await checkAndRunScheduledTasks();
     if (result.errors.length > 0) {
-      console.error(`[Scheduler] 任务执行错误:`, result.errors);
+      log.error({ errors: result.errors }, "任务执行错误");
     }
   }, 60 * 1000); // 每分钟检查一次
   
-  console.log(`[Scheduler] 定时任务调度器已启动，共 ${scheduledTasks.length} 个任务`);
+  log.info({ taskCount: scheduledTasks.length }, "定时任务调度器已启动");
 }

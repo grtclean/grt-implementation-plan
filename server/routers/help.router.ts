@@ -13,6 +13,9 @@ import { aiLearningRecords, feedback } from "../../drizzle/schema";
 import { eq, and, desc, asc, sql, or, ilike, count, gte } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { searchDocuments, incrementRelevance } from "../modules/knowledge-base.service";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("help");
 
 const idInput = z.object({ id: z.union([z.string(), z.number()]) });
 const toNum = (id: string | number) =>
@@ -351,7 +354,7 @@ export const helpRouter = router({
         const llmResult = await invokeLLM({ messages });
         answer = llmResult.choices?.[0]?.message?.content || "抱歉，暂时无法回答您的问题。";
       } catch (err) {
-        console.error("[askCopilot] LLM error:", err);
+        log.error({ err }, "askCopilot LLM error");
         answer = "AI服务暂时不可用，请查阅帮助文档或稍后重试。";
       }
 
@@ -405,7 +408,7 @@ export const helpRouter = router({
           appliedCount: 0,
         });
       } catch (err) {
-        console.error("[recordCopilotFeedback] learning record error:", err);
+        log.error({ err }, "recordCopilotFeedback learning record error");
       }
 
       // Save to feedback table for admin review
@@ -416,7 +419,7 @@ export const helpRouter = router({
           content: `[Copilot ${isPositive ? "+" : "-"}] ${query}\n---\n${answer}${comment ? `\n\nUser comment: ${comment}` : ""}`,
         });
       } catch (err) {
-        console.error("[recordCopilotFeedback] feedback error:", err);
+        log.error({ err }, "recordCopilotFeedback feedback error");
       }
 
       return { success: true };

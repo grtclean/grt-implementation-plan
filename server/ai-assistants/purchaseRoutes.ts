@@ -10,6 +10,8 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { PurchaseAssistant } from "./purchaseAssistant";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-purchase-routes");
 
 // ─── Dashboard Bootstrap ─────────────────────────────────────────
 let _purchaseDashReady = false;
@@ -74,7 +76,7 @@ async function ensurePurchaseDashboard() {
       `);
     }
   } catch (e: any) {
-    console.warn("purchase dashboard bootstrap:", e.message);
+    log.warn({ err: e }, "purchase dashboard bootstrap failed");
   }
 }
 

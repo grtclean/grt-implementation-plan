@@ -2,6 +2,8 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("collab-docs");
 
 // ---------------------------------------------------------------------------
 // Ensure tables exist (auto-migrate)
@@ -39,7 +41,7 @@ async function ensureTables() {
     `);
     tablesEnsured = true;
   } catch (e: any) {
-    console.warn("collaboration-docs ensureTables:", e.message);
+    log.warn({ err: e }, "ensureTables failed");
     tablesEnsured = true;
   }
 }
@@ -113,7 +115,7 @@ async function seedIfEmpty() {
     // Reset sequence
     await db.execute(sql`SELECT setval('collaboration_docs_files_id_seq', 4, true)`);
   } catch (e: any) {
-    console.warn("collaboration-docs seed:", e.message);
+    log.warn({ err: e }, "seed failed");
   }
 }
 

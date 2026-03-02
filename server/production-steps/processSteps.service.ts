@@ -14,6 +14,8 @@ import { requireDb } from "../db";
 import { sql, eq, and, desc, asc, like, or, inArray, type SQL } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { createTimeRecord } from "../production-execution/production-execution.db";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("process-steps");
 
 // ============================================================
 // 类型定义
@@ -660,7 +662,7 @@ ${currentBomItems ? `## 当前项目BOM清单\n${currentBomItems}` : ''}
       sourceProjectName
     };
   } catch (error) {
-    console.error("[AI Preset] Error generating preset steps:", error);
+    log.error({ err: error }, "[AI Preset] Error generating preset steps:");
     
     // 降级方案：直接复制历史步骤
     const fallbackSteps: any[] = [];

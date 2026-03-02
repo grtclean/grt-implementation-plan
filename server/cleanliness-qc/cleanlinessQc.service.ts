@@ -5,6 +5,10 @@
  * 3 AI functions covering the full cleanliness inspection workflow.
  */
 
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("cleanliness-qc");
+
 // ============================================================
 // Types
 // ============================================================
@@ -187,7 +191,7 @@ ${params.notes ? `备注: ${params.notes}` : ""}`;
     if (content) return JSON.parse(content);
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[CleanlinessQC] inspectCleanliness failed:", error);
+    log.error({ err: error }, "inspectCleanliness failed");
     return {
       inspectionId: `INS-${Date.now()}`,
       structuredData: {
@@ -293,7 +297,7 @@ ${params.customerSpecialLimits ? `客户特殊限值: ${params.customerSpecialLi
     if (content) return JSON.parse(content);
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[CleanlinessQC] judgeCompliance failed:", error);
+    log.error({ err: error }, "judgeCompliance failed");
     return {
       overallVerdict: "不合格",
       verdictConfidence: 0,
@@ -424,7 +428,7 @@ ${params.historicalBatches ? `历史批次数据: ${params.historicalBatches}` :
     if (content) return JSON.parse(content);
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[CleanlinessQC] generateQCReport failed:", error);
+    log.error({ err: error }, "generateQCReport failed");
     return {
       reportTitle: "清洁度检测报告(生成失败)",
       executiveSummary: "AI服务暂时不可用，请人工编写报告",

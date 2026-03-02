@@ -4,6 +4,8 @@
  */
 
 import { requireDb } from "../db";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("social-community-svc");
 
 // ==================== 脱敏规则管理 ====================
 
@@ -169,7 +171,7 @@ export async function applyDeidentification(text: string): Promise<{
           deidentifiedText = deidentifiedText.replace(regex, rule.replacement);
         }
       } catch (e) {
-        console.error(`Invalid regex pattern: ${rule.pattern}`, e);
+        log.error({ err: e, pattern: rule.pattern }, "Invalid regex pattern");
       }
     }
     // AI检测类型需要调用LLM，这里暂时跳过

@@ -11,6 +11,8 @@
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("quality-interlock");
 
 // T1-T15工序顺序映射
 const PROCESS_ORDER: Record<string, number> = {
@@ -126,7 +128,7 @@ export async function triggerProcessLock(params: {
         content: `项目 ${params.projectId}\n缺陷描述：${params.reason}\n已锁定工序：${lockedNames}\n请及时处理。`,
       });
     } catch (e) {
-      console.error('[QualityInterlock] Notification error:', e);
+      log.error({ err: e }, '[QualityInterlock] Notification error:');
     }
   }
 

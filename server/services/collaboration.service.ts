@@ -11,6 +11,8 @@ import { requireDb } from '../utils/db-helpers';
 import { collaborationStates } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("collab-svc");
 
 interface CollaborationSession {
   meetingId: string;
@@ -324,7 +326,7 @@ export async function cleanupAllSessions(): Promise<void> {
     try {
       await saveCollaborationState(meetingId);
     } catch (error) {
-      console.error(`Error saving collaboration state for meeting ${meetingId}:`, error);
+      log.error({ err: error, meetingId }, "Error saving collaboration state");
     }
   }
 

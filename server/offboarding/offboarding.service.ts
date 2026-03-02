@@ -22,6 +22,9 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, desc, asc, sql, like, or, inArray, gte, lte } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("offboarding");
 
 // ============================================================
 // 通知辅助函数
@@ -37,9 +40,9 @@ const APPROVAL_LEVEL_LABELS: Record<string, string> = {
 async function sendOffboardingNotification(title: string, content: string) {
   try {
     await notifyOwner({ title, content });
-    console.log(`[Offboarding Notification] Sent: ${title}`);
+    log.info({ title }, "Notification sent");
   } catch (error) {
-    console.warn(`[Offboarding Notification] Failed to send: ${title}`, error);
+    log.warn({ err: error, title }, "Failed to send notification");
   }
 }
 
@@ -1126,7 +1129,7 @@ export async function searchJiandaoyunEmployees(keyword: string) {
           }));
       }
     } catch (e) {
-      console.warn('[Offboarding] Failed to fetch from Jiandaoyun:', e);
+      log.warn({ err: e }, "Failed to fetch from Jiandaoyun");
     }
 
     return {
@@ -1136,7 +1139,7 @@ export async function searchJiandaoyunEmployees(keyword: string) {
       totalJiandaoyun: jiandaoyunMembers.length,
     };
   } catch (error: any) {
-    console.error('[Offboarding] searchJiandaoyunEmployees error:', error);
+    log.error({ err: error }, "searchJiandaoyunEmployees error");
     return { localEmployees: [], jiandaoyunMembers: [], totalLocal: 0, totalJiandaoyun: 0 };
   }
 }

@@ -10,6 +10,8 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { QualityAssistant } from "./qualityAssistant";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-quality-routes");
 
 // ─── Dashboard Bootstrap ─────────────────────────────────────────
 let _qualityDashReady = false;
@@ -69,7 +71,7 @@ async function ensureQualityDashboard() {
       `);
     }
   } catch (e: any) {
-    console.warn("quality dashboard bootstrap:", e.message);
+    log.warn({ err: e }, "quality dashboard bootstrap failed");
   }
 }
 

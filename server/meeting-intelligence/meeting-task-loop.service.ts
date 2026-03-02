@@ -9,6 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { invokeLLM } from '../_core/llm';
 import { requireDb } from '../db';
 import { MEETING_TEMPLATES, MeetingTemplate } from '../../client/src/config/meeting-templates';
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("meeting-task-loop");
 
 // ============================================================================
 // 类型定义
@@ -275,7 +277,7 @@ ${meetingData.transcription ? `会议转写：\n${meetingData.transcription}` : 
 
     return minutes;
   } catch (error) {
-    console.error('[MeetingMinutes] AI generation failed:', error);
+    log.error({ err: error }, "AI meeting minutes generation failed");
     throw new Error('会议纪要生成失败');
   }
 }
@@ -799,7 +801,7 @@ async function notifyMeetingOwnerForReview(reportId: string): Promise<void> {
   if (!owner) return;
 
   // TODO: 发送通知给MO
-  console.log(`[MeetingTaskLoop] Notifying MO ${owner.userName} for report review: ${reportId}`);
+  log.info({ ownerName: owner.userName, reportId }, "Notifying meeting owner for report review");
 }
 
 // ============================================================================

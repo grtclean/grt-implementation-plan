@@ -8,6 +8,9 @@ import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
 import { generateMaterialCode, parseMaterialCode, validateMaterialCode } from "./material-coding.config";
 import { requireDb } from "../db";
 import { eq, desc, and, like, count, sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("material");
 import {
   materials,
   materialCategories,
@@ -166,7 +169,7 @@ export const materialRouter = router({
           pageSize: input.pageSize,
         };
       } catch (e) {
-        console.error("[materials.getAllMaterials] DB error:", e);
+        log.error({ err: e }, "getAllMaterials DB error");
         return { items: [], total: 0, page: input.page, pageSize: input.pageSize };
       }
     }),
@@ -289,7 +292,7 @@ export const materialRouter = router({
         .limit(1000);
       return { categories };
     } catch (e) {
-      console.error("[materials.getCategories] DB error:", e);
+      log.error({ err: e }, "getCategories DB error");
       return { categories: [] };
     }
   }),
@@ -363,7 +366,7 @@ export const materialRouter = router({
         totalInventoryValue: Number(totalInventoryValue),
       };
     } catch (e) {
-      console.error("[materials.getInventoryStats] DB error:", e);
+      log.error({ err: e }, "getInventoryStats DB error");
       return { totalMaterials: 0, activeMaterials: 0, lowStockMaterials: 0, outOfStockMaterials: 0, totalInventoryValue: 0 };
     }
   }),

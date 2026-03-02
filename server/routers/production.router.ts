@@ -12,6 +12,8 @@ import { requireDb } from "../db";
 import { eq, desc, and, or, count, sql } from "drizzle-orm";
 import { productionWorkOrders, qcInspectionRecords } from "../../drizzle/schema";
 import { productionEquipments, productionEquipmentStatusHistory } from "../../drizzle/production-equipment-schema";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("production-router");
 
 // ===== Schema定义 =====
 
@@ -474,7 +476,7 @@ export const productionRouter = router({
             }
           }
         } catch (error) {
-          console.warn('[Production] Failed to update scheduling resource availability:', error);
+          log.warn({ err: error }, '[Production] Failed to update scheduling resource availability:');
         }
       }
 

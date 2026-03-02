@@ -7,6 +7,8 @@ import { parse as parseCookieHeader } from "cookie";
 import { resolveLanguageFromHeader, type Language } from "../lib/server-i18n";
 import { sanitizeName } from "@shared/sanitize";
 import type { BuContext } from "./gateway-bu-context.middleware";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("context");
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -43,7 +45,7 @@ async function authenticateLocalUser(req: CreateExpressContextOptions["req"]): P
     const user = await getUserByOpenId(session.openId);
     return user ?? null;
   } catch (error) {
-    console.error("[LocalAuth] Failed to look up user:", error);
+    log.error({ err: error }, "[LocalAuth] Failed to look up user:");
     return null;
   }
 }

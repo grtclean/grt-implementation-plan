@@ -13,6 +13,9 @@ import {
   purchaseReceipts,
   purchaseInvoices,
 } from "../../drizzle/procurement-schema";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("procurement");
 import { materials } from "../../drizzle/material-schema";
 
 // 验证Schema
@@ -117,7 +120,7 @@ export const procurementRouter = router({
           pageSize: input.pageSize,
         };
       } catch (e) {
-        console.error("[procurement.getPurchaseRequests] DB error:", e);
+        log.error({ err: e }, "getPurchaseRequests DB error");
         return { items: [], total: 0, page: input.page, pageSize: input.pageSize };
       }
     }),
@@ -269,7 +272,7 @@ export const procurementRouter = router({
           pageSize: input.pageSize,
         };
       } catch (e) {
-        console.error("[procurement.getPurchaseOrders] DB error:", e);
+        log.error({ err: e }, "getPurchaseOrders DB error");
         return { items: [], total: 0, page: input.page, pageSize: input.pageSize };
       }
     }),
@@ -474,7 +477,7 @@ export const procurementRouter = router({
           pageSize: input.pageSize,
         };
       } catch (e) {
-        console.error("[procurement.getSuppliers] DB error:", e);
+        log.error({ err: e }, "getSuppliers DB error");
         return { items: [], total: 0, page: input.page, pageSize: input.pageSize };
       }
     }),
@@ -581,7 +584,7 @@ export const procurementRouter = router({
         overdueAmount,
       };
     } catch (e) {
-      console.error("[procurement.getProcurementStats] DB error:", e);
+      log.error({ err: e }, "getProcurementStats DB error");
       return { totalPOAmount: 0, totalPOCount: 0, averagePOAmount: 0, activeSupplierCount: 0, onTimeDeliveryRate: 0, qualityPassRate: 0, unpaidAmount: 0, overdueAmount: 0 };
     }
   }),

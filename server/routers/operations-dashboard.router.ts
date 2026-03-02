@@ -9,6 +9,8 @@
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ops-dashboard");
 
 // ─── Bootstrap ───────────────────────────────────────────────────
 let _opsDashReady = false;
@@ -77,7 +79,7 @@ async function ensureOpsDashData() {
       `);
     }
   } catch (e: any) {
-    console.warn("operations-dashboard bootstrap:", e.message);
+    log.warn({ err: e }, "operations-dashboard bootstrap failed");
   }
 }
 

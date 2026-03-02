@@ -4,6 +4,8 @@
  */
 
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-planning");
 
 export interface PlanInput {
   companyPlans?: CompanyPlan[];
@@ -213,7 +215,7 @@ export async function generateWorkPlan(
       aiNotes: result.aiNotes
     };
   } catch (error) {
-    console.error("AI planning error:", error);
+    log.error({ err: error }, "AI planning error");
     return getDefaultPlan(planType);
   }
 }
@@ -330,7 +332,7 @@ export function updatePlanStatus(
   status: 'pending' | 'in_progress' | 'completed'
 ): boolean {
   // 实际实现中应更新数据库
-  console.log(`Updated task ${taskId} in plan ${planId} to ${status}`);
+  log.info({ taskId, planId, status }, "Updated task status in plan");
   return true;
 }
 

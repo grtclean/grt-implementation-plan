@@ -13,6 +13,13 @@
  *
  * ═══════════════════════════════════════════════════════════════════
  * FUTURE ARCHITECTURE: Configurable Database-Driven Rules Engine
+ */
+
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("automation-hooks");
+
+/**
  * ═══════════════════════════════════════════════════════════════════
  *
  * DATABASE-DRIVEN RULES:
@@ -229,9 +236,7 @@ export class WorkflowEngine {
     });
 
     // Mock notification to division manager
-    console.log(
-      `[AUTOMATION] Notification sent to Division Manager: T-node ${tNode} delay detected for project "${context.projectTitle ?? "N/A"}". Emergency meeting #${meetingId} created.`
-    );
+    log.info({ tNode, projectTitle: context.projectTitle ?? "N/A", meetingId }, "Exception escalation: T-node delay detected, emergency meeting created");
 
     return {
       triggered: true,
@@ -295,9 +300,7 @@ export class WorkflowEngine {
       expectedAttendees: 4,
     });
 
-    console.log(
-      `[AUTOMATION] OKR at-risk alert: "${context.objectiveTitle}" at ${progress}% (threshold ${threshold}%). Recovery meeting #${meetingId} created.`
-    );
+    log.info({ objectiveTitle: context.objectiveTitle, progress, threshold, meetingId }, "OKR at-risk alert: recovery meeting created");
 
     return { triggered: true, meetingId, rule: "OKR_AT_RISK" };
   }
@@ -362,9 +365,7 @@ export class WorkflowEngine {
       expectedAttendees: isCritical ? 8 : 5,
     });
 
-    console.log(
-      `[AUTOMATION] Quality escalation: "${context.reportTitle}" severity=${severity}. Quality review meeting #${meetingId} created.`
-    );
+    log.info({ reportTitle: context.reportTitle, severity, meetingId }, "Quality escalation: quality review meeting created");
 
     return { triggered: true, meetingId, rule: "QUALITY_ESCALATION" };
   }
@@ -427,9 +428,7 @@ export class WorkflowEngine {
       expectedAttendees: isBlacklist ? 6 : 4,
     });
 
-    console.log(
-      `[AUTOMATION] Supplier penalty: "${context.supplierName}" penalties=${penaltyCount} (threshold ${threshold}). ${isBlacklist ? "Blacklist" : "Warning"} meeting #${meetingId} created.`
-    );
+    log.info({ supplierName: context.supplierName, penaltyCount, threshold, isBlacklist, meetingId }, "Supplier penalty: review meeting created");
 
     return { triggered: true, meetingId, rule: "SUPPLIER_PENALTY" };
   }

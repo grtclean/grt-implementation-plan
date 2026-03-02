@@ -13,6 +13,9 @@ import * as path from 'path';
 
 const execAsync = promisify(exec);
 
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("consistency");
+
 // ===== 类型定义 =====
 
 export interface FileChangeRecord {
@@ -612,7 +615,7 @@ export class ConsistencyEngine {
       const { stdout } = await execAsync(cmd, { cwd: projectPath });
       return stdout.trim().split('\n').filter(f => f.length > 0);
     } catch (error) {
-      console.error('获取Git变更文件失败:', error);
+      log.error({ err: error }, "Failed to get git changed files");
       return [];
     }
   }
@@ -625,7 +628,7 @@ export class ConsistencyEngine {
       const { stdout } = await execAsync('git rev-parse HEAD', { cwd: projectPath });
       return stdout.trim();
     } catch (error) {
-      console.error('获取Git提交哈希失败:', error);
+      log.error({ err: error }, "Failed to get git commit hash");
       return '';
     }
   }

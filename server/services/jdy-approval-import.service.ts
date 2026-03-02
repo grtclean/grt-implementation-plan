@@ -7,6 +7,9 @@ import { requireDb } from '../db';
 import { sql as drizzleSql } from 'drizzle-orm';
 import { getJiandaoyunSyncService, JiandaoyunRecord } from '../jiandaoyun';
 import { getJdyFormDiscoveryService } from './jdy-form-discovery.service';
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("jdy-import");
 
 export interface ApprovalImportResult {
   templatesCreated: number;
@@ -85,7 +88,7 @@ export class JdyApprovalImportService {
         name: row.jdy_name,
       });
     }
-    console.log(`[ApprovalImport] 用户缓存已构建: ${this.userCache.size} 条`);
+    log.info({ cacheSize: this.userCache.size }, "用户缓存已构建");
   }
 
   /**
@@ -227,7 +230,7 @@ export class JdyApprovalImportService {
     for (const mapping of templateMappings) {
       try {
         const allRecords = await syncService.getAllFormData(mapping.jdy_app_id, mapping.jdy_form_id);
-        console.log(`[ApprovalImport] 模板表单 ${mapping.jdy_form_name}: ${allRecords.length} 条`);
+        log.info({ formName: mapping.jdy_form_name, recordCount: allRecords.length }, "模板表单数据已获取");
 
         for (const record of allRecords) {
           try {
@@ -291,7 +294,7 @@ export class JdyApprovalImportService {
           : mapping.field_mapping || {};
 
         const allRecords = await syncService.getAllFormData(mapping.jdy_app_id, mapping.jdy_form_id);
-        console.log(`[ApprovalImport] 实例表单 ${mapping.jdy_form_name}: ${allRecords.length} 条`);
+        log.info({ formName: mapping.jdy_form_name, recordCount: allRecords.length }, "实例表单数据已获取");
 
         for (const record of allRecords) {
           try {
@@ -395,7 +398,7 @@ export class JdyApprovalImportService {
                 }
               } catch (stepError: any) {
                 // 步骤创建失败不中断
-                console.warn(`[ApprovalImport] 创建步骤记录失败:`, stepError.message);
+                log.warn({ err: stepError.message }, "创建步骤记录失败");
               }
 
               // 6. 创建操作日志
@@ -416,7 +419,7 @@ export class JdyApprovalImportService {
                   result.logsCreated++;
                 }
               } catch (logError: any) {
-                console.warn(`[ApprovalImport] 创建日志失败:`, logError.message);
+                log.warn({ err: logError.message }, "创建日志失败");
               }
             }
           } catch (error: any) {

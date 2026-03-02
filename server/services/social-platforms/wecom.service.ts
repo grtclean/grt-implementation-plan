@@ -12,6 +12,9 @@ import {
   SendMessageResponse,
   MessageType,
 } from './types';
+import { createChildLogger } from '../../lib/logger';
+
+const log = createChildLogger('wecom-platform');
 
 // 企业微信API基础URL
 const WECOM_API_BASE = 'https://qyapi.weixin.qq.com/cgi-bin';
@@ -64,7 +67,7 @@ export class WeComService implements ISocialPlatformService {
 
       return this.tokenCache.accessToken;
     } catch (error) {
-      console.error('获取企业微信访问令牌失败:', error);
+      log.error({ err: error }, "获取企业微信访问令牌失败");
       throw error;
     }
   }
@@ -83,7 +86,7 @@ export class WeComService implements ISocialPlatformService {
       // 实际使用时需要通过Webhook接收群聊事件来维护群列表
       return [];
     } catch (error) {
-      console.error('获取企业微信群组列表失败:', error);
+      log.error({ err: error }, "获取企业微信群组列表失败");
       return [];
     }
   }
@@ -97,7 +100,7 @@ export class WeComService implements ISocialPlatformService {
       const data = await response.json();
 
       if (data.errcode !== 0) {
-        console.error('获取群信息失败:', data.errmsg);
+        log.error({ errmsg: data.errmsg }, "获取群信息失败");
         return null;
       }
 
@@ -109,7 +112,7 @@ export class WeComService implements ISocialPlatformService {
         memberCount: data.chat_info.userlist?.length || 0,
       };
     } catch (error) {
-      console.error('获取企业微信群信息失败:', error);
+      log.error({ err: error }, "获取企业微信群信息失败");
       return null;
     }
   }
@@ -121,7 +124,7 @@ export class WeComService implements ISocialPlatformService {
   }): Promise<SocialMessage[]> {
     // 企业微信需要通过会话存档API获取消息
     // 这里返回空数组，实际消息通过Webhook接收
-    console.log('企业微信消息通过Webhook接收，不支持主动拉取');
+    log.info("企业微信消息通过Webhook接收，不支持主动拉取");
     return [];
   }
 
@@ -187,7 +190,7 @@ export class WeComService implements ISocialPlatformService {
         messageId: data.msgid,
       };
     } catch (error) {
-      console.error('发送企业微信消息失败:', error);
+      log.error({ err: error }, "发送企业微信消息失败");
       return {
         success: false,
         error: error instanceof Error ? error.message : '发送失败',
@@ -215,7 +218,7 @@ export class WeComService implements ISocialPlatformService {
         platform: 'wecom',
       };
     } catch (error) {
-      console.error('解析企业微信Webhook失败:', error);
+      log.error({ err: error }, "解析企业微信Webhook失败");
       return null;
     }
   }

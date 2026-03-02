@@ -2,6 +2,9 @@
 // Microsoft Graph API 配置和认证服务
 
 import { env } from "../../_core/env";
+import { createChildLogger } from "../../lib/logger";
+
+const log = createChildLogger("ms-graph-config");
 
 // Graph API 配置
 export const graphConfig = {
@@ -32,7 +35,7 @@ export async function getAccessToken(): Promise<string> {
 
   // 如果没有配置凭据，返回空字符串（使用模拟数据）
   if (!graphConfig.clientId || !graphConfig.clientSecret || !graphConfig.tenantId) {
-    console.log("[Graph API] No credentials configured, using mock data");
+    log.info({}, "No credentials configured, using mock data");
     return "";
   }
 
@@ -68,7 +71,7 @@ export async function getAccessToken(): Promise<string> {
 
     return cachedToken.token;
   } catch (error) {
-    console.error("[Graph API] Failed to get access token:", error);
+    log.error({ err: error }, "Failed to get access token");
     return "";
   }
 }
@@ -100,7 +103,7 @@ export async function graphRequest<T>(
 
     return await response.json();
   } catch (error) {
-    console.error("[Graph API] Request failed:", error);
+    log.error({ err: error, endpoint }, "Request failed");
     return null;
   }
 }

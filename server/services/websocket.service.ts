@@ -10,6 +10,9 @@
 
 import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage } from 'http';
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("websocket");
 
 // 连接类型定义
 interface WSConnection {
@@ -432,7 +435,7 @@ export function initWebSocketServer(server: any): WebSocketServer {
     };
     connections.set(connId, connection);
 
-    console.log(`[WebSocket] New connection: ${connId}, user: ${userName}`);
+    log.info({ connId, userName }, "New connection");
 
     // 处理消息
     ws.on('message', (data: Buffer) => {
@@ -470,19 +473,19 @@ export function initWebSocketServer(server: any): WebSocketServer {
             break;
         }
       } catch (error) {
-        console.error('[WebSocket] Message parse error:', error);
+        log.error({ err: error }, "Message parse error");
       }
     });
 
     // 处理断开连接
     ws.on('close', () => {
-      console.log(`[WebSocket] Connection closed: ${connId}`);
+      log.info({ connId }, "Connection closed");
       handleDisconnect(connId);
     });
 
     // 处理错误
     ws.on('error', (error) => {
-      console.error(`[WebSocket] Connection error: ${connId}`, error);
+      log.error({ err: error, connId }, "Connection error");
       handleDisconnect(connId);
     });
 
@@ -501,14 +504,14 @@ export function initWebSocketServer(server: any): WebSocketServer {
 
     connections.forEach((conn, connId) => {
       if (now.getTime() - conn.lastActivity.getTime() > timeout) {
-        console.log(`[WebSocket] Cleaning up inactive connection: ${connId}`);
+        log.info({ connId }, "Cleaning up inactive connection");
         conn.ws.close(4002, 'Inactive');
         handleDisconnect(connId);
       }
     });
   }, 60 * 1000); // 每分钟检查一次
 
-  console.log('[WebSocket] Collaboration server initialized');
+  log.info("Collaboration server initialized");
   return wss;
 }
 

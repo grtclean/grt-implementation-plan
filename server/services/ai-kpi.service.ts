@@ -4,6 +4,8 @@
  */
 
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-kpi");
 
 export interface KPIAssessment {
   employeeId: string;
@@ -172,7 +174,7 @@ ${workData.projectContributions.map(pc =>
       suggestions: result.suggestions
     };
   } catch (error) {
-    console.error("AI KPI assessment error:", error);
+    log.error({ err: error }, "AI KPI assessment error");
     return getDefaultAssessment(workData, period);
   }
 }
@@ -235,7 +237,7 @@ export async function generateCommunicationSuggestion(
 
     return JSON.parse(content);
   } catch (error) {
-    console.error("AI communication suggestion error:", error);
+    log.error({ err: error }, "AI communication suggestion error");
     return {
       timing: "下午3点",
       content: "绩效反馈沟通",

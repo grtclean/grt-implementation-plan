@@ -9,6 +9,8 @@ import { requireDb } from "../db";
 import { invokeLLM } from "../_core/llm";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "crypto";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("liquid-workforce-mod");
 
 // ==================== 液态用工路由 ====================
 export const liquidWorkforceRouter = router({
@@ -610,7 +612,7 @@ async function evaluateBidWithAI(
     const result = JSON.parse(response.choices[0]?.message?.content || '{"score": 70, "reason": "默认评估"}');
     return result;
   } catch (error) {
-    console.error('AI评估竞标失败:', error);
+    log.error({ err: error }, 'AI评估竞标失败:');
     return { score: 70, reason: '自动评估（AI服务暂时不可用）' };
   }
 }

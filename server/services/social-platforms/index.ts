@@ -15,6 +15,9 @@ import {
 } from './types';
 import { WeComService } from './wecom.service';
 import { DingTalkService, dingtalkService } from './dingtalk.service';
+import { createChildLogger } from '../../lib/logger';
+
+const log = createChildLogger("social-platforms");
 
 // 平台服务实例缓存
 const platformServices: Map<SocialPlatformType, ISocialPlatformService> = new Map();
@@ -72,7 +75,7 @@ export async function getAllGroups(): Promise<SocialGroup[]> {
       const groups = await service.getGroups();
       allGroups.push(...groups);
     } catch (error) {
-      console.error(`获取${platform}群组失败:`, error);
+      log.error({ err: error, platform }, "获取群组失败");
     }
   }
   
@@ -125,7 +128,7 @@ export async function handleWebhook(
   const service = platformServices.get(platform);
   
   if (!service) {
-    console.error(`平台${platform}未初始化，无法处理Webhook`);
+    log.error({ platform }, "平台未初始化，无法处理Webhook");
     return null;
   }
   
@@ -149,7 +152,7 @@ export async function getPlatformStats(): Promise<PlatformStats[]> {
         lastSyncTime: new Date(),
       });
     } catch (error) {
-      console.error(`获取${platform}统计失败:`, error);
+      log.error({ err: error, platform }, "获取统计失败");
       stats.push({
         platform,
         groupCount: 0,

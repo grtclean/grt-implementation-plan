@@ -17,6 +17,8 @@ import {
   fetchBuBudgetContext,
   type AiDiagnosticReport,
 } from "../services/finance-agent.service";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("finance-agent-router");
 
 // Roles allowed to see all pending reviews (not just own claims)
 const FINANCE_ROLES = new Set(["admin", "director", "finance_manager", "finance_specialist"]);
@@ -426,7 +428,7 @@ export const financeAgentRouter = router({
         const [row] = await db.insert(expenseClaims).values(claim).returning({ id: expenseClaims.id });
         inserted.push(row);
       } catch (err) {
-        console.warn("[Finance Agent] Seed insert error:", err);
+        log.warn({ err: err }, "[Finance Agent] Seed insert error:");
       }
     }
 

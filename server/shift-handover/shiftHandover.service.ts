@@ -7,6 +7,10 @@
 // Types
 // ============================================================
 
+
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("shift-handover");
+
 export interface ShiftHandoverAnalysisResult {
   riskLevel: string;
   riskItems: Array<{ item: string; severity: string; description: string; suggestedAction: string }>;
@@ -121,7 +125,7 @@ ${params.materialStatus ? `物料状态: ${params.materialStatus}` : ""}`;
     if (content) return JSON.parse(content);
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[ShiftHandover] analyzeShiftHandover failed:", error);
+    log.error({ err: error }, "[ShiftHandover] analyzeShiftHandover failed:");
     return {
       riskLevel: "medium",
       riskItems: [{ item: "AI服务不可用", severity: "medium", description: "请人工确认交接内容", suggestedAction: "逐项核对" }],

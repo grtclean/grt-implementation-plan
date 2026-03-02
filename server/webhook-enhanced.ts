@@ -12,6 +12,9 @@ import {
   getAllWebhooks,
   registerWebhook,
 } from './webhook';
+import { createChildLogger } from './lib/logger';
+
+const log = createChildLogger("webhook-enhanced");
 
 // 告警级别
 export type AlertLevel = 'info' | 'warning' | 'critical' | 'emergency';
@@ -265,7 +268,7 @@ export function initializeDefaultWebhooks(): void {
   // 检查是否已有Webhook配置
   const existing = getAllWebhooks();
   if (existing.length > 0) {
-    console.log('[Webhook] 已存在Webhook配置，跳过初始化');
+    log.info({}, "已存在Webhook配置，跳过初始化");
     return;
   }
 
@@ -293,7 +296,7 @@ export function initializeDefaultWebhooks(): void {
     enabled: false, // 默认禁用，用户配置后启用
   });
 
-  console.log('[Webhook] 已初始化默认Webhook配置模板');
+  log.info({}, "已初始化默认Webhook配置模板");
 }
 
 /**

@@ -12,6 +12,9 @@ import {
   SendMessageResponse,
   MessageType,
 } from './types';
+import { createChildLogger } from '../../lib/logger';
+
+const log = createChildLogger("dingtalk-platform");
 
 // 钉钉API基础URL
 const DINGTALK_API_BASE = 'https://oapi.dingtalk.com';
@@ -65,7 +68,7 @@ export class DingTalkService implements ISocialPlatformService {
 
       return this.tokenCache.accessToken;
     } catch (error) {
-      console.error('获取钉钉访问令牌失败:', error);
+      log.error({ err: error }, "获取钉钉访问令牌失败");
       throw error;
     }
   }
@@ -89,7 +92,7 @@ export class DingTalkService implements ISocialPlatformService {
       const data = await response.json();
 
       if (data.errcode !== 0) {
-        console.error('获取钉钉群列表失败:', data.errmsg);
+        log.error({ errmsg: data.errmsg }, "获取钉钉群列表失败");
         return [];
       }
 
@@ -99,7 +102,7 @@ export class DingTalkService implements ISocialPlatformService {
         platform: 'dingtalk' as const,
       }));
     } catch (error) {
-      console.error('获取钉钉群组列表失败:', error);
+      log.error({ err: error }, "获取钉钉群组列表失败");
       return [];
     }
   }
@@ -118,7 +121,7 @@ export class DingTalkService implements ISocialPlatformService {
       const data = await response.json();
 
       if (data.errcode !== 0) {
-        console.error('获取群信息失败:', data.errmsg);
+        log.error({ errmsg: data.errmsg }, "获取群信息失败");
         return null;
       }
 
@@ -130,7 +133,7 @@ export class DingTalkService implements ISocialPlatformService {
         memberCount: data.chat_info.useridlist?.length || 0,
       };
     } catch (error) {
-      console.error('获取钉钉群信息失败:', error);
+      log.error({ err: error }, "获取钉钉群信息失败");
       return null;
     }
   }
@@ -141,7 +144,7 @@ export class DingTalkService implements ISocialPlatformService {
     limit?: number;
   }): Promise<SocialMessage[]> {
     // 钉钉消息通过Webhook接收，不支持主动拉取历史消息
-    console.log('钉钉消息通过Webhook接收，不支持主动拉取');
+    log.info("钉钉消息通过Webhook接收，不支持主动拉取");
     return [];
   }
 
@@ -224,7 +227,7 @@ export class DingTalkService implements ISocialPlatformService {
         messageId: data.messageId,
       };
     } catch (error) {
-      console.error('发送钉钉消息失败:', error);
+      log.error({ err: error }, "发送钉钉消息失败");
       return {
         success: false,
         error: error instanceof Error ? error.message : '发送失败',
@@ -307,7 +310,7 @@ export class DingTalkService implements ISocialPlatformService {
         success: true,
       };
     } catch (error) {
-      console.error('发送钉钉Webhook消息失败:', error);
+      log.error({ err: error }, "发送钉钉Webhook消息失败");
       return {
         success: false,
         error: error instanceof Error ? error.message : '发送失败',
@@ -356,7 +359,7 @@ export class DingTalkService implements ISocialPlatformService {
         platform: 'dingtalk',
       };
     } catch (error) {
-      console.error('解析钉钉Webhook失败:', error);
+      log.error({ err: error }, "解析钉钉Webhook失败");
       return null;
     }
   }

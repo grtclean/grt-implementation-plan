@@ -3,6 +3,10 @@
  * 提供AI Coach语义分析和风险评估功能
  */
 
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("vertex-ai");
+
 // AI服务配置接口
 export interface VertexAIConfig {
   projectId: string;
@@ -115,7 +119,7 @@ export async function analyzeSemantics(
 
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[VertexAI] 语义分析失败:", error);
+    log.error({ err: error }, "语义分析失败");
     // 返回默认结果
     return {
       intent: "unknown",
@@ -226,7 +230,7 @@ export async function assessRisk(
 
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[VertexAI] 风险评估失败:", error);
+    log.error({ err: error }, "风险评估失败");
     // 返回默认结果
     return {
       riskLevel: "medium",
@@ -300,7 +304,7 @@ export async function askAICoach(
       confidence: 0.85,
     };
   } catch (error) {
-    console.error("[VertexAI] AI Coach回答失败:", error);
+    log.error({ err: error }, "AI Coach回答失败");
     return {
       answer: "抱歉，AI服务暂时不可用，请稍后再试。",
       confidence: 0,
@@ -392,7 +396,7 @@ ${request.rules ? `审核规则：\n${request.rules.join("\n")}` : ""}
 
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[VertexAI] 表单审核失败:", error);
+    log.error({ err: error }, "表单审核失败");
     return {
       isValid: true,
       issues: [],

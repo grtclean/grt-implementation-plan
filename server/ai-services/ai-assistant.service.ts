@@ -9,6 +9,8 @@
  */
 
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-assistant-svc");
 
 // AI助手类型
 export type AIAssistantType = 'solution' | 'quotation' | 'planning' | 'kpi';
@@ -148,7 +150,7 @@ export async function chatWithAssistant(
 
     return response.choices[0]?.message?.content || '抱歉，我无法生成回复。';
   } catch (error) {
-    console.error(`AI ${type} assistant error:`, error);
+    log.error({ err: error, type }, "AI assistant error");
     throw new Error(`AI助手服务暂时不可用，请稍后重试。`);
   }
 }

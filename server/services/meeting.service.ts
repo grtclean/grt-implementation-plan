@@ -16,6 +16,8 @@ import {
   meetingAttachments 
 } from "../../drizzle/schema";
 import { eq, and, or, desc, gte, lte } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("meeting-svc");
 
 export interface CreateMeetingInput {
   title: string;
@@ -111,7 +113,7 @@ export async function createMeeting(
 
     return { id: meetingId, ...input, status: "scheduled" };
   } catch (error) {
-    console.error("Error creating meeting:", error);
+    log.error({ err: error }, "Error creating meeting:");
     throw error;
   }
 }

@@ -15,6 +15,9 @@
 import { createMachine, assign } from 'xstate';
 import { auditLogger } from '../audit/audit-logger';
 import { eventBus, Events } from '../queue/message-queue';
+import { createChildLogger } from '../lib/logger';
+
+const log = createChildLogger("project-lifecycle");
 
 // 项目上下文类型
 export interface ProjectContext {
@@ -479,7 +482,7 @@ export const projectLifecycleMachine = createMachine({
           context,
           timestamp: new Date()
         }).catch(err => {
-          console.error('[StateMachine] Failed to persist state:', err);
+          log.error({ err, projectId: context.projectId }, "Failed to persist state");
         });
       }
     },
@@ -534,7 +537,7 @@ export const projectLifecycleMachine = createMachine({
     // M4: 记录设计失败
     logDesignFailure: ({ context, event }) => {
       if (event.type === 'REVIEW_FAILED') {
-        console.warn(`[StateMachine] Design review failed for project ${context.projectId}: ${event.data.reason}`);
+        log.warn({ projectId: context.projectId, reason: event.data.reason }, "Design review failed");
         // TODO: 发送通知给设计团队
       }
     },
@@ -552,7 +555,7 @@ export const projectLifecycleMachine = createMachine({
     // M5: 记录客户拒绝
     logCustomerRejection: ({ context, event }) => {
       if (event.type === 'CUSTOMER_REJECTED') {
-        console.warn(`[StateMachine] Customer rejected design for project ${context.projectId}: ${event.data.reason}`);
+        log.warn({ projectId: context.projectId, reason: event.data.reason }, "Customer rejected design");
       }
     },
 

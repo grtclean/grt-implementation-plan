@@ -7,6 +7,9 @@ import { eq, and, desc } from "drizzle-orm";
 import { requireDb } from "../db";
 import { projectsV2, projectStagesV2, mesSync } from "../../drizzle/schema";
 import { sendNotification, type NotificationConfig } from "./notification.service";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("mes-sync");
 
 // MES工单类型
 export type MESWorkOrderType = 'Production' | 'Assembly' | 'Testing' | 'Debugging' | 'Packaging';
@@ -242,7 +245,7 @@ export async function createWorkOrderFromM6Stage(
       message: `已成功创建 ${workOrders.length} 个MES工单，等待同步到MES系统`,
     };
   } catch (error) {
-    console.error('[MES] 创建工单失败:', error);
+    log.error({ err: error }, "创建工单失败");
     return {
       success: false,
       workOrders: [],
@@ -308,7 +311,7 @@ export async function syncWorkOrderToMES(
       message: `工单已成功同步到MES系统，MES工单号: ${mesReference}`,
     };
   } catch (error) {
-    console.error('[MES] 同步工单失败:', error);
+    log.error({ err: error }, "同步工单失败");
     
     // 更新同步状态为Failed
     const db2 = await requireDb();
@@ -427,7 +430,7 @@ export async function writeBackProgressToProject(
       message: `进度已回写到项目阶段 ${stageCode}`,
     };
   } catch (error) {
-    console.error('[MES] 回写进度失败:', error);
+    log.error({ err: error }, "回写进度失败");
     return {
       success: false,
       message: `回写失败: ${error instanceof Error ? error.message : '未知错误'}`,
@@ -504,7 +507,7 @@ async function sendWorkOrderCreatedNotification(
       await sendNotification(config, message);
     }
   } catch (error) {
-    console.error('[MES] 发送通知失败:', error);
+    log.error({ err: error }, "发送通知失败");
   }
 }
 

@@ -11,6 +11,9 @@ import { invokeLLM } from "../_core/llm";
 import { requireDb } from "../db";
 import { projects, projectVersions } from "../../drizzle/schema";
 import { eq, desc, sql, like, and, or } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("pos-ai-version");
 
 // 项目信息接口
 interface ProjectInfo {
@@ -81,7 +84,7 @@ export async function generateProjectSummary(project: ProjectInfo): Promise<stri
 
     return response.choices[0]?.message?.content || "无法生成项目摘要";
   } catch (error) {
-    console.error("Error generating project summary:", error);
+    log.error({ err: error }, "Error generating project summary");
     return "项目摘要生成失败，请稍后重试";
   }
 }
@@ -189,7 +192,7 @@ ${historicalProjects.map((p, i) => `${i + 1}. ${p.name} - ${p.description || '�
       outcome: p.recommendation
     }));
   } catch (error) {
-    console.error("Error finding similar projects:", error);
+    log.error({ err: error }, "Error finding similar projects");
     return getMockSimilarProjects();
   }
 }
@@ -267,7 +270,7 @@ export async function generateAIVersions(project: ProjectInfo): Promise<AIVersio
     const result = JSON.parse(content);
     return result.versions;
   } catch (error) {
-    console.error("Error generating AI versions:", error);
+    log.error({ err: error }, "Error generating AI versions");
     return getMockAIVersions(project);
   }
 }
@@ -305,7 +308,7 @@ export async function saveAIVersion(
 
     return result?.id ?? 0;
   } catch (error) {
-    console.error("Error saving AI version:", error);
+    log.error({ err: error }, "Error saving AI version");
     throw error;
   }
 }
@@ -333,7 +336,7 @@ export async function getProjectVersions(projectId: number): Promise<any[]> {
       };
     });
   } catch (error) {
-    console.error("Error getting project versions:", error);
+    log.error({ err: error }, "Error getting project versions");
     return [];
   }
 }

@@ -3,6 +3,10 @@
  * 负责管理会议参与者的权限和访问控制
  */
 
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("collab-perms");
+
 export type PermissionLevel = 'owner' | 'editor' | 'viewer' | 'none';
 export type AccessControl = 'read' | 'write' | 'delete' | 'share';
 
@@ -239,7 +243,7 @@ export async function getUserPermission(
 
     return null;
   } catch (error) {
-    console.error('获取权限失败:', error);
+    log.error({ err: error }, "获取权限失败");
     return null;
   }
 }
@@ -259,7 +263,7 @@ export async function getMeetingPermissions(
 
     return [];
   } catch (error) {
-    console.error('获取会议权限失败:', error);
+    log.error({ err: error }, "获取会议权限失败");
     return [];
   }
 }
@@ -339,7 +343,7 @@ export async function cleanupExpiredPermissions(
 
     return { cleaned: 0 };
   } catch (error) {
-    console.error('清理过期权限失败:', error);
+    log.error({ err: error }, "清理过期权限失败");
     return { cleaned: 0 };
   }
 }
@@ -362,7 +366,7 @@ export async function getPermissionChangeLogs(
 
     return [];
   } catch (error) {
-    console.error('获取权限日志失败:', error);
+    log.error({ err: error }, "获取权限日志失败");
     return [];
   }
 }

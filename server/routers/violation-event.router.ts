@@ -10,6 +10,8 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { violationEvents, performanceRecords } from "../../drizzle/performance-schema";
 import { eq, and, desc, sql, count, type SQL } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("violation-event");
 
 export const violationEventRouter = router({
   /**
@@ -325,9 +327,9 @@ async function autoFreezePerformance(
         frozePerformanceId: record.id,
       }).where(eq(violationEvents.id, violationId));
 
-      console.log(`[ViolationEvent] Auto-froze performance #${record.id} due to ${severity} violation #${violationId}`);
+      log.info({ performanceId: record.id, severity, violationId }, "Auto-froze performance due to violation");
     }
   } catch (err) {
-    console.warn("[ViolationEvent] Auto-freeze failed (non-fatal):", err);
+    log.warn({ err }, "Auto-freeze failed (non-fatal)");
   }
 }

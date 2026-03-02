@@ -27,6 +27,8 @@ import {
 import { sysAuditLogs } from "../../drizzle/governance-schema";
 import { sysDictionaries } from "../../drizzle/governance-schema";
 import { users } from "../../drizzle/schema";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("knowledge-genesis");
 
 // ══════════════════════════════════════════════════════
 // DB type alias (mirrors oa.service.ts pattern)
@@ -529,10 +531,7 @@ export async function commitProposalToControlTower(
     }
   } else {
     // Future entity-specific handlers: log the intended action
-    console.log(
-      `[KnowledgeGenesis] Proposal #${proposalId} targets "${proposal.targetEntity}" — ` +
-        `entity-specific handler not yet implemented; recording commit for audit.`,
-    );
+    log.info({ proposalId, targetEntity: proposal.targetEntity }, "Entity-specific handler not yet implemented; recording commit for audit");
   }
 
   // 3. Update proposal status to COMMITTED

@@ -10,6 +10,9 @@
  * 4. 权限验证（操作员资质证书）
  */
 
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("safety-filter");
+
 // 安全规则类型
 export interface SafetyRule {
   id: string;
@@ -297,8 +300,8 @@ export class SafetyFilter {
 
     if (!checkResult.allowed) {
       // 记录安全拦截日志
-      console.error(`[SafetyFilter] AI建议被拦截 - 错误码: ${checkResult.errorCode}`);
-      console.error(`[SafetyFilter] 违规项: ${checkResult.violations.map(v => v.message).join('; ')}`);
+      log.error({ errorCode: checkResult.errorCode }, "AI suggestion intercepted");
+      log.error({ violations: checkResult.violations.map(v => v.message) }, "Violation details");
       
       // 生成安全提示替代内容
       checkResult.filteredContent = this.generateSafeAlternative(checkResult);

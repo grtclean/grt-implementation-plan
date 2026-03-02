@@ -8,6 +8,9 @@ import { requireDb } from '../utils/db-helpers';
 import { v4 as uuidv4 } from "uuid";
 import { aiInsights, meetingNotes, meetings } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("ai-insights");
 
 export interface AIInsightRequest {
   meetingId: string;
@@ -150,7 +153,7 @@ export async function generateMeetingInsights(
 
     return insights;
   } catch (error) {
-    console.error("Error generating AI insights:", error);
+    log.error({ err: error }, "Error generating AI insights");
     throw error;
   }
 }
@@ -296,7 +299,7 @@ function extractTextFromTiptap(content: string): string {
     const doc = JSON.parse(content);
     return extractTextFromNode(doc);
   } catch (error) {
-    console.error("Error parsing Tiptap content:", error);
+    log.error({ err: error }, "Error parsing Tiptap content");
     return content;
   }
 }
@@ -394,7 +397,7 @@ export async function streamMeetingInsights(
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
   } catch (error) {
-    console.error("Error streaming AI insights:", error);
+    log.error({ err: error }, "Error streaming AI insights");
     throw error;
   }
 }

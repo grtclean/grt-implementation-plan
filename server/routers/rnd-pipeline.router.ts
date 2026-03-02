@@ -12,6 +12,9 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql, SQL } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("rnd-pipeline");
 
 // ---------------------------------------------------------------------------
 // Table bootstrap helpers
@@ -50,7 +53,7 @@ async function ensureQuotationTable() {
       `);
     }
   } catch (e: any) {
-    console.warn("rnd-pipeline quotation bootstrap:", e.message);
+    log.warn({ err: e }, "quotation table bootstrap failed");
   }
 }
 
@@ -83,7 +86,7 @@ async function ensureRequirementTable() {
       `);
     }
   } catch (e: any) {
-    console.warn("rnd-pipeline requirement bootstrap:", e.message);
+    log.warn({ err: e }, "requirement table bootstrap failed");
   }
 }
 
@@ -115,7 +118,7 @@ async function ensureSolutionTable() {
       `);
     }
   } catch (e: any) {
-    console.warn("rnd-pipeline solution bootstrap:", e.message);
+    log.warn({ err: e }, "solution table bootstrap failed");
   }
 }
 
@@ -379,7 +382,7 @@ async function ensureDesignTaskTable() {
       `);
     }
   } catch (e: any) {
-    console.warn("rnd-pipeline design-task bootstrap:", e.message);
+    log.warn({ err: e }, "design-task table bootstrap failed");
   }
 }
 
@@ -469,7 +472,7 @@ async function ensureInstallationTable() {
       `);
     }
   } catch (e: any) {
-    console.warn("rnd-pipeline installation bootstrap:", e.message);
+    log.warn({ err: e }, "installation table bootstrap failed");
   }
 }
 
@@ -559,7 +562,7 @@ async function ensureSatTestTable() {
       `);
     }
   } catch (e: any) {
-    console.warn("rnd-pipeline sat-test bootstrap:", e.message);
+    log.warn({ err: e }, "sat-test table bootstrap failed");
   }
 }
 
@@ -641,7 +644,7 @@ async function ensureAcceptanceTable() {
       `);
     }
   } catch (e: any) {
-    console.warn("rnd-pipeline acceptance bootstrap:", e.message);
+    log.warn({ err: e }, "acceptance table bootstrap failed");
   }
 }
 
@@ -732,7 +735,7 @@ async function ensureRfqCardTable() {
       `);
     }
   } catch (e: any) {
-    console.warn("rnd-pipeline rfq-card bootstrap:", e.message);
+    log.warn({ err: e }, "rfq-card table bootstrap failed");
   }
 }
 

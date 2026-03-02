@@ -11,6 +11,9 @@
  * 5. 数据变更日志
  */
 
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("audit");
+
 // 审计日志类型
 export type AuditLogType = 
   | 'user_action'      // 用户操作
@@ -444,12 +447,7 @@ export class AuditLogger {
     const reset = '\x1b[0m';
     const color = levelColors[entry.level];
 
-    console.log(
-      `${color}[AUDIT][${entry.level.toUpperCase()}]${reset} ` +
-      `[${entry.type}] ${entry.action} - ` +
-      `User: ${entry.actor.userName || entry.actor.userId || 'system'} - ` +
-      `Result: ${entry.result}`
-    );
+    log.info({ level: entry.level, type: entry.type, action: entry.action, user: entry.actor.userName || entry.actor.userId || 'system', result: entry.result }, "Audit log entry");
   }
 
   /**
@@ -457,7 +455,7 @@ export class AuditLogger {
    */
   private triggerAlert(entry: AuditLogEntry): void {
     // TODO: 集成告警服务
-    console.error(`[AUDIT ALERT] ${entry.level.toUpperCase()}: ${entry.action}`);
+    log.error({ level: entry.level, action: entry.action }, "Audit alert triggered");
   }
 
   /**

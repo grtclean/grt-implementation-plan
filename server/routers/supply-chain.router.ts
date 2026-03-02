@@ -30,6 +30,8 @@ import { bomItems } from "../../drizzle/bom-schema";
 import { inventoryLots } from "../../drizzle/inventory-lot-schema";
 import { deliveryRegistrations } from "../../drizzle/p2p-lifecycle-schema";
 import { suppliers } from "../../drizzle/procurement-schema";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("supply-chain-router");
 
 const idInput = z.object({ id: z.union([z.string(), z.number()]) });
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id, 10) : id;
@@ -317,7 +319,7 @@ const incomingInspectionRouter = router({
               const allSuppliers = await db.select().from(suppliers).limit(1000);
               const supplier = allSuppliers.find(s => s.id === Number(sid));
               if (supplier?.contactEmail) {
-                console.log(`[QC-PASS] Notification → ${supplier.supplierName} <${supplier.contactEmail}>: 质检合格(IQC #${numId})，请提交发票`);
+                log.info({ supplierName: supplier.supplierName, contactEmail: supplier.contactEmail, iqcId: numId }, "QC-PASS notification sent");
                 // In production: integrate with email/webhook service
                 // await emailService.send({ to: supplier.contactEmail, subject: "质检合格通知 — 请提交发票", ... });
               }

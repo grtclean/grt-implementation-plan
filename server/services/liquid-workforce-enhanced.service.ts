@@ -7,6 +7,8 @@ import { requireDb } from "../db";
 import { invokeLLM } from "../_core/llm";
 import { createHash, randomBytes } from "crypto";
 import { sql } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("liquid-workforce-svc");
 
 // ==================== ZKP技能证明机制 ====================
 
@@ -632,7 +634,7 @@ ${providers
 
     return providers.sort((a, b) => b.matchScore - a.matchScore);
   } catch (error) {
-    console.error("AI匹配评估失败:", error);
+    log.error({ err: error }, "AI匹配评估失败:");
     return providers;
   }
 }

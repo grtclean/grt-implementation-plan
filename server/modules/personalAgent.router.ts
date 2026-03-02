@@ -10,6 +10,8 @@ import { invokeLLM } from "../_core/llm";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "crypto";
 import { jsonValue } from "@shared/validators";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("personal-agent-mod");
 
 // ==================== 个人智能体路由 ====================
 export const personalAgentRouter = router({
@@ -609,7 +611,7 @@ async function inferSkillFromBehavior(context: string, actionData: any): Promise
     
     return JSON.parse(response.choices[0]?.message?.content || '{"skill": "通用操作", "confidence": 50}');
   } catch (error) {
-    console.error('技能推断失败:', error);
+    log.error({ err: error }, "Skill inference failed");
     
     // 基于上下文的简单规则推断
     const contextLower = context.toLowerCase();
@@ -674,7 +676,7 @@ async function extractKnowledgeFromNote(problemDesc: string, solutionDesc: strin
     
     return JSON.parse(response.choices[0]?.message?.content || '{}');
   } catch (error) {
-    console.error('知识提取失败:', error);
+    log.error({ err: error }, "Knowledge extraction failed");
     return {
       problem_type: '未分类',
       root_cause: '待分析',

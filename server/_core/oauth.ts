@@ -4,6 +4,8 @@ import type { Express, Request, Response } from "express";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("oauth");
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -79,7 +81,7 @@ export function registerOAuthRoutes(app: Express) {
       const redirectUrl = `/login-success?returnPath=${encodeURIComponent(returnPath)}&token=${encodeURIComponent(sessionToken)}`;
       res.redirect(302, redirectUrl);
     } catch (error) {
-      console.error("[OAuth] Callback failed", error);
+      log.error({ err: error }, "[OAuth] Callback failed");
       res.status(500).json({ error: "OAuth callback failed" });
     }
   });

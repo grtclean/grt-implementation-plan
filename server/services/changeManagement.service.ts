@@ -4,6 +4,9 @@
  */
 
 import { storagePut, storageGet } from '../storage';
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("change-mgmt");
 
 export interface AuthorizationLevel {
   level: 1 | 2 | 3 | 4;
@@ -362,7 +365,7 @@ export async function createBackup(
     // TODO: Save backup metadata to database
     return backup;
   } catch (error) {
-    console.error('Error creating backup:', error);
+    log.error({ err: error }, "Error creating backup");
     throw error;
   }
 }
@@ -388,7 +391,7 @@ export async function verifyBackup(
     
     return calculatedChecksum === backup.checksum;
   } catch (error) {
-    console.error('Error verifying backup:', error);
+    log.error({ err: error }, "Error verifying backup");
     return false;
   }
 }
@@ -416,7 +419,7 @@ export async function executeChange(
       try {
         // TODO: Implement actual execution based on step.action
       } catch (error) {
-        console.error(`    ✗ Error: ${error}`);
+        log.error({ err: error, stepOrder: step.order }, "Execution step failed");
         errors.push(`Step ${step.order} failed: ${error}`);
       }
     }
@@ -449,7 +452,7 @@ export async function executeChange(
       errors
     };
   } catch (error) {
-    console.error('Error executing change:', error);
+    log.error({ err: error, changeId }, "Error executing change");
     return {
       success: false,
       executionId,
@@ -495,7 +498,7 @@ export async function rollbackChange(
       errors
     };
   } catch (error) {
-    console.error('Error rolling back change:', error);
+    log.error({ err: error, changeId }, "Error rolling back change");
     return {
       success: false,
       rollbackId,
@@ -511,7 +514,7 @@ export async function logAudit(auditLog: AuditLog): Promise<void> {
   try {
     // TODO: Save to database
   } catch (error) {
-    console.error('Error logging audit:', error);
+    log.error({ err: error }, "Error logging audit");
   }
 }
 

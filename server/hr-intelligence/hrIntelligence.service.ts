@@ -5,6 +5,10 @@
  * 4 core AI functions using invokeLLM() with structured JSON output.
  */
 
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("hr-intel");
+
 // ============================================================
 // Types
 // ============================================================
@@ -132,7 +136,7 @@ ${params.certifications ? `持有证书: ${params.certifications}` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[HRIntelligence] assessTalent failed:", error);
+    log.error({ err: error }, "assessTalent failed");
     return {
       talentGrade: "C",
       potentialLevel: "medium",
@@ -242,7 +246,7 @@ ${params.department ? `所属部门: ${params.department}` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[HRIntelligence] recommendTraining failed:", error);
+    log.error({ err: error }, "recommendTraining failed");
     return {
       skillGaps: [],
       recommendedCourses: [],
@@ -338,7 +342,7 @@ ${params.education ? `学历: ${params.education}` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[HRIntelligence] analyzeCompensation failed:", error);
+    log.error({ err: error }, "analyzeCompensation failed");
     return {
       marketPosition: "at",
       competitivenessScore: 0,
@@ -459,7 +463,7 @@ ${params.timeHorizon ? `规划周期: ${params.timeHorizon}` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[HRIntelligence] planWorkforce failed:", error);
+    log.error({ err: error }, "planWorkforce failed");
     return {
       optimalHeadcount: 0,
       hiringNeeds: [],

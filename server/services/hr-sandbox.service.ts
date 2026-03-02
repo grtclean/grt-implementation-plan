@@ -16,6 +16,8 @@ import {
   EMPLOYEE_ASSESSMENTS,
   computeGrade,
 } from "../routers/capability-system.router";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("hr-sandbox-svc");
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -97,7 +99,7 @@ export async function parseCapabilityModel(taskId: number): Promise<ParsingResul
 
     return result;
   } catch (err) {
-    console.warn("[HR Sandbox] LLM failed, falling back to algorithmic:", err);
+    log.warn({ err: err }, "[HR Sandbox] LLM failed, falling back to algorithmic:");
 
     // 5. Fallback
     const result = algorithmicFallback(employee, criteria, role, freeformText, currentScores);

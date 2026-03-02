@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("env");
 
 /**
  * GRT Environment Loader — 3-Tier Isolation
@@ -22,9 +24,9 @@ dotenv.config({ path: path.resolve(rootDir, `.env.${nodeEnv}`) });
 dotenv.config({ path: path.resolve(rootDir, ".env") });
 
 // Log which environment is active (once at startup)
-console.log(`[ENV] Active environment: ${nodeEnv.toUpperCase()}`);
+log.info({ environment: nodeEnv.toUpperCase() }, "Active environment");
 if (nodeEnv === "production") {
-  console.log("[ENV] ⚠ PRODUCTION MODE — all safety guards active");
+  log.info("PRODUCTION MODE — all safety guards active");
 }
 
 export const ENV = {

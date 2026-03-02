@@ -3,6 +3,10 @@
  * Phase 21 P2: 工单→知识库 · NPS调查 · 评审→报价 · 质量月报 · BOM冻结通知 · 验收通知
  */
 
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("p2-automation");
+
 export interface TicketToKBResult {
   articleTitle: string;
   summary: string;
@@ -109,7 +113,7 @@ GRT设备类型：碳氢真空清洗机、水基清洗线、超声波清洗机�
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[P2Automation] convertTicketToKB failed:", error);
+    log.error({ err: error }, "convertTicketToKB failed");
     return { articleTitle: params.ticketTitle, summary: "AI服务不可用", symptoms: [], rootCause: "待分析", solutionSteps: [], preventionTips: [], tags: [], applicableModels: [params.equipmentModel], difficulty: "待评估", estimatedTime: "待评估", recommendations: ["请人工编写知识库文章"] };
   }
 }
@@ -150,7 +154,7 @@ export async function generateNPSSurvey(params: {
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[P2Automation] generateNPSSurvey failed:", error);
+    log.error({ err: error }, "generateNPSSurvey failed");
     return { surveyId: `NPS-${Date.now()}`, customerName: params.customerName, questions: [], npsQuestion: "您有多大可能将GRT推荐给同事或合作伙伴？(0-10分)", trendAnalysis: { currentPeriodAvg: 0, previousPeriodAvg: 0, trend: "无数据", topIssues: [] }, recommendations: ["请人工设计调查问卷"] };
   }
 }
@@ -194,7 +198,7 @@ GRT产品线：
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[P2Automation] linkReviewToQuotation failed:", error);
+    log.error({ err: error }, "linkReviewToQuotation failed");
     return { quotationDraft: { projectName: params.projectName, productLine: "待定", configuration: "待定", specifications: [], estimatedPrice: "待定", deliveryTime: "待定", warranty: "标准质保1年" }, mappedParameters: [], missingInfo: ["评审数据解析失败，请人工填写"], recommendations: ["请人工编写报价单"] };
   }
 }
@@ -246,7 +250,7 @@ GRT质量标准：
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[P2Automation] generateQualityMonthlyReport failed:", error);
+    log.error({ err: error }, "generateQualityMonthlyReport failed");
     return { reportMonth: params.month, executiveSummary: "AI服务不可用", overallPassRate: 0, metrics: [], defectPareto: [], ncrSummary: { total: 0, open: 0, closed: 0, avgClosureTime: "N/A" }, customerComplaintSummary: "AI服务不可用", monthOverMonth: [], actionItems: [], recommendations: ["请人工编写质量月报"] };
   }
 }
@@ -296,7 +300,7 @@ GRT生产准备标准：
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[P2Automation] triggerBOMFreezeNotification failed:", error);
+    log.error({ err: error }, "triggerBOMFreezeNotification failed");
     return { notificationId: `BOMN-${Date.now()}`, bomId: params.bomId, projectName: params.projectName, schedulingTask: { priority: "待评估", suggestedStartDate: "待定", estimatedDuration: "待定", prerequisites: [] }, materialReadiness: [], longLeadItems: [], notificationContent: "AI服务不可用，请人工评估排产计划", recipients: [], recommendations: ["请人工评估BOM物料齐套情况"] };
   }
 }
@@ -341,7 +345,7 @@ GRT验收流程：
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[P2Automation] generateAcceptanceNotification failed:", error);
+    log.error({ err: error }, "generateAcceptanceNotification failed");
     return { notificationId: `ACC-${Date.now()}`, customerNotification: { subject: `${params.projectName} - 设备检验通过通知`, body: "AI服务不可用，请人工编写通知", attachments: [] }, acceptanceReport: { reportTitle: `${params.projectName} 验收报告`, projectInfo: `客户: ${params.customerName}, 设备: ${params.equipmentModel}`, inspectionSummary: params.inspectionResult, testItems: [], complianceStatement: "待填写", nextSteps: [], signoffRequired: [] }, scheduleSuggestion: "建议终检通过后1-2周安排FAT", recommendations: ["请人工编写验收通知和报告"] };
   }
 }

@@ -4,6 +4,8 @@
  */
 
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-quotation");
 
 export interface QuotationRequest {
   solutionId: string;
@@ -182,7 +184,7 @@ export async function generateQuotation(
       confidence: aiSuggestions.confidence
     };
   } catch (error) {
-    console.error("AI quotation generation error:", error);
+    log.error({ err: error }, "AI quotation generation error");
     throw error;
   }
 }
@@ -274,7 +276,7 @@ async function getAIQuotationSuggestions(
 
     return JSON.parse(content);
   } catch (error) {
-    console.error("AI quotation suggestions error:", error);
+    log.error({ err: error }, "AI quotation suggestions error");
     return {
       suggestedDiscount: 0,
       notes: ["标准报价，如需特殊优惠请联系销售经理"],

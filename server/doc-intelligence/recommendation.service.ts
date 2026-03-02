@@ -23,6 +23,8 @@ import {
   type SimilarDocument,
 } from "./embedding.service";
 import { generateText } from "../ai-adapter/AIServiceFactory";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("doc-recommend");
 
 // =============================================================================
 // 类型定义
@@ -349,7 +351,7 @@ ${missingDocs.map((d) => `- ${d.documentName}: ${d.description}`).join("\n")}
       });
       aiReasoning = result.content;
     } catch (err) {
-      console.error("[DocIntelligence] AI reasoning generation failed:", err);
+      log.error({ err: err }, "[DocIntelligence] AI reasoning generation failed:");
     }
   }
 

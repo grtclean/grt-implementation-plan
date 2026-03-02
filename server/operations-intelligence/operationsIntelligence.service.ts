@@ -5,6 +5,10 @@
  * 4 core AI functions using invokeLLM() with structured JSON output.
  */
 
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("ops-intel");
+
 // ============================================================
 // Types
 // ============================================================
@@ -135,7 +139,7 @@ ${params.certifications ? `资质认证: ${params.certifications}` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[OperationsIntelligence] assessSupplier failed:", error);
+    log.error({ err: error }, "assessSupplier failed");
     return {
       overallScore: 0,
       grade: "D",
@@ -219,7 +223,7 @@ ${params.serviceLevel ? `目标服务水平: ${params.serviceLevel}` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[OperationsIntelligence] optimizeInventory failed:", error);
+    log.error({ err: error }, "optimizeInventory failed");
     return {
       reorderPoint: 0,
       safetyStock: 0,
@@ -314,7 +318,7 @@ ${params.equipmentAge != null ? `设备使用年限: ${params.equipmentAge}年` 
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[OperationsIntelligence] predictQualityTrend failed:", error);
+    log.error({ err: error }, "predictQualityTrend failed");
     return {
       trendDirection: "stable",
       predictedDefectRate: 0,
@@ -416,7 +420,7 @@ ${params.defectRate != null ? `缺陷率: ${params.defectRate}%` : ""}`;
     }
     throw new Error("Empty response from LLM");
   } catch (error) {
-    console.error("[OperationsIntelligence] analyzeProductionEfficiency failed:", error);
+    log.error({ err: error }, "analyzeProductionEfficiency failed");
     return {
       oeeScore: 0,
       bottleneckIdentified: false,

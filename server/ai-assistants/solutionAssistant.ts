@@ -22,6 +22,8 @@ import {
 } from "../../drizzle/schema";
 import { eq, like, and, or, desc, sql } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("ai-solution-assistant");
 
 // ============================================================================
 // 类型定义
@@ -177,7 +179,7 @@ export async function parseProcessParameters(naturalLanguageInput: string): Prom
 
     return JSON.parse(content) as ProcessParameters;
   } catch (error) {
-    console.error("[Solution Assistant] 参数解析失败:", error);
+    log.error({ err: error }, "[Solution Assistant] 参数解析失败:");
     // 返回基础参数
     return {
       workpieceName: naturalLanguageInput,

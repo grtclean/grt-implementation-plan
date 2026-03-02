@@ -15,6 +15,8 @@
  *   O365_PASS  — App password or OAuth token
  */
 import nodemailer from "nodemailer";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("mailer");
 
 // ── Transport configuration ────────────────────────────────
 // Points to Office 365 SMTP endpoint with mandatory TLS encryption.
@@ -86,7 +88,7 @@ export async function sendSecureMail(
       });
       return { success: true, messageId: info.messageId, simulated: false };
     } catch (err: any) {
-      console.error("[O365 Mailer] Send failed:", err?.message);
+      log.error({ err }, "Send failed");
       return { success: false, error: err?.message, simulated: false };
     }
   }

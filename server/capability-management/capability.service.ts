@@ -10,6 +10,9 @@
 
 import { requireDb } from '../db';
 import { eq, and, sql, like } from 'drizzle-orm';
+import { createChildLogger } from '../lib/logger';
+
+const log = createChildLogger("capability");
 import {
   capabilityProofConfigs,
   publicCapabilityShowcase,
@@ -76,7 +79,7 @@ export async function getCapabilityConfigs(options?: {
       pageSize,
     };
   } catch (error) {
-    console.error('获取能力配置失败:', error);
+    log.error({ err: error }, "获取能力配置失败");
     return {
       data: [],
       total: 0,
@@ -100,7 +103,7 @@ export async function getCapabilityConfig(id: number) {
     
     return results[0] || null;
   } catch (error) {
-    console.error('获取能力配置失败:', error);
+    log.error({ err: error }, "获取能力配置失败");
     return null;
   }
 }
@@ -133,7 +136,7 @@ export async function createCapabilityConfig(data: {
 
     return { success: true, id: result?.id };
   } catch (error) {
-    console.error('创建能力配置失败:', error);
+    log.error({ err: error }, "创建能力配置失败");
     return { success: false, error: String(error) };
   }
 }
@@ -164,7 +167,7 @@ export async function updateCapabilityConfig(id: number, data: Partial<{
     
     return { success: true };
   } catch (error) {
-    console.error('更新能力配置失败:', error);
+    log.error({ err: error }, "更新能力配置失败");
     return { success: false, error: String(error) };
   }
 }
@@ -181,7 +184,7 @@ export async function deleteCapabilityConfig(id: number) {
     
     return { success: true };
   } catch (error) {
-    console.error('删除能力配置失败:', error);
+    log.error({ err: error }, "删除能力配置失败");
     return { success: false, error: String(error) };
   }
 }
@@ -223,7 +226,7 @@ export async function getPublicCapabilityShowcases(options?: {
       pageSize,
     };
   } catch (error) {
-    console.error('获取公开能力展示失败:', error);
+    log.error({ err: error }, "获取公开能力展示失败");
     return {
       data: [],
       total: 0,
@@ -266,7 +269,7 @@ export async function createPublicCapabilityShowcase(data: {
 
     return { success: true, id: result?.id };
   } catch (error) {
-    console.error('创建公开能力展示失败:', error);
+    log.error({ err: error }, "创建公开能力展示失败");
     return { success: false, error: String(error) };
   }
 }
@@ -368,11 +371,11 @@ export async function initializeDefaultCapabilities() {
           created++;
         }
       } catch (error) {
-        console.error(`创建能力配置失败: ${cap.code}`, error);
+        log.error({ err: error, capabilityCode: cap.code }, "创建能力配置失败");
       }
     }
   } catch (error) {
-    console.error('初始化默认能力配置失败:', error);
+    log.error({ err: error }, "初始化默认能力配置失败");
     return { success: false, created: 0, total: defaultCapabilities.length };
   }
   

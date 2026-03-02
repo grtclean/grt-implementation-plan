@@ -3,6 +3,10 @@
  * Phase 21 P1: US-010 缺料预警 · US-011 工位领料 · US-012 异常上报 · US-018 日报生成
  */
 
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("production-advanced");
+
 export interface MaterialShortageResult {
   alertLevel: string;
   shortageItems: Array<{ material: string; currentStock: number; safetyStock: number; dailyUsage: number; daysRemaining: number; suggestedOrderQty: number; urgency: string }>;
@@ -78,7 +82,7 @@ GRT物料分类：泵阀(交期3-6周)、电气件(2-4周)、结构件(1-3周)�
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[ProductionAdvanced] analyzeShortage failed:", error);
+    log.error({ err: error }, "analyzeShortage failed");
     return { alertLevel: "warning", shortageItems: [], schedulingImpact: "AI服务不可用", purchaseSuggestions: [], alternativeMaterials: [], recommendations: ["请人工检查库存"] };
   }
 }
@@ -115,7 +119,7 @@ GRT仓库布局：原材料区(A区)、半成品区(B区)、标准件区(C区)�
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[ProductionAdvanced] optimizeRequisition failed:", error);
+    log.error({ err: error }, "optimizeRequisition failed");
     return { requisitionNumber: `REQ-${Date.now()}`, workstation: params.workstation, items: [], pickingRoute: [], estimatedPickTime: "待定", shortfalls: [], recommendations: ["请人工生成领料单"] };
   }
 }
@@ -158,7 +162,7 @@ export async function analyzeException(params: {
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[ProductionAdvanced] analyzeException failed:", error);
+    log.error({ err: error }, "analyzeException failed");
     return { exceptionId: `EXC-${Date.now()}`, classification: params.exceptionType, severity: "major", escalationLevel: "L2", escalationTargets: [], immediateActions: ["请立即通知生产主管"], rootCauseHypothesis: [], impactScope: "待评估", estimatedDowntime: "待定", recommendations: ["请人工处理异常"] };
   }
 }
@@ -203,7 +207,7 @@ export async function generateDailyReport(params: {
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[ProductionAdvanced] generateDailyReport failed:", error);
+    log.error({ err: error }, "generateDailyReport failed");
     return { reportDate: params.date, summary: "AI服务不可用", productionMetrics: [], qualitySummary: { totalInspected: 0, passRate: "0%", mainDefects: [] }, equipmentStatus: [], abnormalEvents: [], tomorrowPlan: [], keyHighlights: [], recommendations: ["请人工编写日报"] };
   }
 }

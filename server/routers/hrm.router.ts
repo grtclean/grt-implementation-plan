@@ -15,6 +15,8 @@ import {
   hrmPerformanceGrades,
   hrmTrainingPlans,
 } from "../../drizzle/schema";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("hrm-router");
 
 const successResponse = { success: true, message: "操作成功" };
 
@@ -52,7 +54,7 @@ async function ensureAttendance() {
       `);
     }
   } catch (e: any) {
-    console.warn("hrm attendance bootstrap:", e.message);
+    log.warn({ err: e }, "HRM attendance bootstrap failed");
   }
 }
 

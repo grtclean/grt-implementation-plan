@@ -18,6 +18,9 @@
 import { requireDb } from './utils/db-helpers';
 import { teamsMeetingConfigs } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { createChildLogger } from "./lib/logger";
+
+const log = createChildLogger("ms-graph");
 
 // Microsoft Graph API配置
 const GRAPH_API_BASE = "https://graph.microsoft.com/v1.0";
@@ -35,7 +38,7 @@ async function getAccessToken(): Promise<string | null> {
   const config = getConfig();
   
   if (!config.clientId || !config.clientSecret || !config.tenantId) {
-    console.warn("[Microsoft Graph] API credentials not configured");
+    log.warn("API credentials not configured");
     return null;
   }
 
@@ -57,14 +60,14 @@ async function getAccessToken(): Promise<string | null> {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("[Microsoft Graph] Token error:", error);
+      log.error({ err: error }, "Token error");
       return null;
     }
 
     const data = await response.json();
     return data.access_token;
   } catch (error) {
-    console.error("[Microsoft Graph] Token fetch error:", error);
+    log.error({ err: error }, "Token fetch error");
     return null;
   }
 }
@@ -161,7 +164,7 @@ export async function createTeamsOnlineMeeting(
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("[Microsoft Graph] Create meeting error:", error);
+      log.error({ err: error, statusCode: response.status }, "Create meeting API error");
       return { success: false, error: `API Error: ${response.status}` };
     }
 
@@ -181,7 +184,7 @@ export async function createTeamsOnlineMeeting(
       },
     };
   } catch (error) {
-    console.error("[Microsoft Graph] Create meeting error:", error);
+    log.error({ err: error }, "Create meeting error");
     return { success: false, error: String(error) };
   }
 }

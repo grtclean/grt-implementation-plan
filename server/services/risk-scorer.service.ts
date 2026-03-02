@@ -7,6 +7,8 @@
 import { getDb } from "../db";
 import * as schema from "../../drizzle/schema";
 import { eq, desc, and } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("risk-scorer");
 
 // ===== Type Definitions =====
 
@@ -190,7 +192,7 @@ export async function getRiskDashboard(): Promise<RiskResult[]> {
       results.push(result);
     } catch (err) {
       // Skip projects that fail risk calculation
-      console.warn("Failed to calculate risk for project " + project.id, err);
+      log.warn({ err, projectId: project.id }, "Failed to calculate risk for project");
     }
   }
 

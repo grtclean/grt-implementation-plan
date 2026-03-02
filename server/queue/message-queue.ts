@@ -1,14 +1,18 @@
 /**
  * 消息队列服务 (Message Queue)
- * 
+ *
  * 功能：提供异步任务处理和事件驱动架构支持
- * 
+ *
  * 队列类型：
  * 1. 任务队列 - 异步任务处理
  * 2. 事件队列 - 事件发布订阅
  * 3. 延迟队列 - 定时任务
  * 4. 优先级队列 - 优先级任务处理
  */
+
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("message-queue");
 
 // 任务状态
 export type TaskStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
@@ -199,7 +203,7 @@ export class TaskQueue<T = any, R = any> {
     const handler = this.handlers.get(task.type);
 
     if (!handler) {
-      console.error(`[Queue] No handler for task type: ${task.type}`);
+      log.error({ taskType: task.type }, "No handler for task type");
       task.status = 'failed';
       task.error = `No handler registered for type: ${task.type}`;
       return;
@@ -225,7 +229,7 @@ export class TaskQueue<T = any, R = any> {
         task.scheduledAt = new Date(Date.now() + this.config.retryDelay);
       } else {
         task.status = 'failed';
-        console.error(`[Queue] Task failed: ${task.id} - ${task.error}`);
+        log.error({ taskId: task.id, error: task.error }, "Task failed");
       }
     } finally {
       this.processing--;
@@ -342,7 +346,7 @@ export class EventBus {
           promises.push(result);
         }
       } catch (error) {
-        console.error(`[EventBus] Error in listener for ${event}:`, error);
+        log.error({ err: error, event }, "Error in event listener");
       }
     }
 

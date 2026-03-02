@@ -1,8 +1,8 @@
 /**
  * 数据脱敏代理层 (De-identification Proxy)
- * 
+ *
  * 功能：在LLM交互前对敏感数据进行脱敏处理，防止核心知识产权泄露
- * 
+ *
  * 脱敏规则：
  * 1. 客户分级价格 → 替换为占位符
  * 2. 核心工艺配方 → 替换为通用描述
@@ -10,6 +10,10 @@
  * 4. 联系方式 → 部分遮蔽
  * 5. 财务数据 → 范围化处理
  */
+
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("deident-proxy");
 
 // 脱敏规则类型
 export interface DeidentificationRule {
@@ -211,20 +215,20 @@ export class DeidentificationProxy {
    */
   reidentify(text: string, sessionId: string): string {
     if (!this.enableReidentification) {
-      console.warn('[DeidentificationProxy] Reidentification is disabled');
+      log.warn({}, "Reidentification is disabled");
       return text;
     }
 
     const mapping = sessionMappings.get(sessionId);
     if (!mapping) {
-      console.warn(`[DeidentificationProxy] No mapping found for session: ${sessionId}`);
+      log.warn({ sessionId }, "No mapping found for session");
       return text;
     }
 
     // 检查是否过期
     if (new Date() > mapping.expiresAt) {
       sessionMappings.delete(sessionId);
-      console.warn(`[DeidentificationProxy] Mapping expired for session: ${sessionId}`);
+      log.warn({ sessionId }, "Mapping expired for session");
       return text;
     }
 

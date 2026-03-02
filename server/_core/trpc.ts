@@ -15,6 +15,8 @@ import { createRateLimitMiddleware, RATE_LIMIT_PRESETS } from "../security/rateL
 
 // Mutation auto-audit
 import { createAuditMiddleware } from "./audit-middleware";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("trpc");
 
 export const router = t.router;
 
@@ -63,7 +65,7 @@ export const safeMutationMiddleware = t.middleware(async ({ ctx, next, type }) =
     if (err instanceof TRPCError) throw err;
 
     const message = err instanceof Error ? err.message : 'Unknown mutation error';
-    console.error(`[safeMutation] ${message}`);
+    log.error(`[safeMutation] ${message}`);
     throw new TRPCError({
       code: 'INTERNAL_SERVER_ERROR',
       message,

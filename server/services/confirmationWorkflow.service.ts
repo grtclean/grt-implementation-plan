@@ -5,6 +5,9 @@
 
 import { invokeLLM } from '../_core/llm';
 import { InterpretationResult } from './aiInterpretation.service';
+import { createChildLogger } from '../lib/logger';
+
+const log = createChildLogger("confirm-workflow");
 
 export interface ConfirmationLevel {
   level: number;
@@ -373,7 +376,7 @@ export async function generateConfirmationSummary(
 
     return response.choices[0].message.content;
   } catch (error) {
-    console.error('Error generating confirmation summary:', error);
+    log.error({ err: error }, "Error generating confirmation summary");
     return 'Unable to generate summary at this time.';
   }
 }
@@ -493,7 +496,7 @@ export async function generateAdjustmentSuggestions(
 
     return response.choices[0].message.content;
   } catch (error) {
-    console.error('Error generating adjustment suggestions:', error);
+    log.error({ err: error }, "Error generating adjustment suggestions");
     return 'Unable to generate suggestions at this time.';
   }
 }

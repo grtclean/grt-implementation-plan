@@ -6,6 +6,9 @@
 import crypto from "crypto";
 import os from "os";
 import { logLicenseCheck } from "./auditLog";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("license");
 
 // 许可证类型
 export type LicenseType = 'trial' | 'standard' | 'enterprise' | 'unlimited';
@@ -224,7 +227,7 @@ export function parseLicenseKey(licenseKey: string): LicenseConfig | null {
       .slice(0, 16);
     
     if (signature !== expectedSignature) {
-      console.warn('[License] Invalid signature');
+      log.warn({}, "Invalid signature");
       return null;
     }
     
@@ -240,7 +243,7 @@ export function parseLicenseKey(licenseKey: string): LicenseConfig | null {
       hardwareFingerprint: payload.fingerprint,
     };
   } catch (error) {
-    console.error('[License] Failed to parse license key:', error);
+    log.error({ err: error }, "Failed to parse license key");
     return null;
   }
 }
@@ -369,7 +372,7 @@ export function getCurrentLicense(): LicenseConfig | null {
 function getLicenseSecret(): string {
   const secret = process.env.LICENSE_SECRET || '';
   if (!secret) {
-    console.warn("[SECURITY] LICENSE_SECRET not set — license signing disabled. Set LICENSE_SECRET in .env");
+    log.warn({}, "LICENSE_SECRET not set — license signing disabled. Set LICENSE_SECRET in .env");
   }
   return secret;
 }

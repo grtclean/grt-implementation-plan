@@ -4,6 +4,9 @@
  */
 
 import { notifyOwner } from '../_core/notification';
+import { createChildLogger } from '../lib/logger';
+
+const log = createChildLogger('alert-rules');
 
 // 告警级别
 export enum AlertLevel {
@@ -294,7 +297,7 @@ export class AlertManager {
         if (state?.lastTriggered) {
           const cooldownMs = rule.cooldownMinutes * 60 * 1000;
           if (Date.now() - state.lastTriggered.getTime() < cooldownMs) {
-            console.log(`[Alert] Rule ${rule.id} is in cooldown period`);
+            log.info({ ruleId: rule.id }, "rule is in cooldown period");
             continue;
           }
         }
@@ -358,7 +361,7 @@ export class AlertManager {
       await this.executeAction(action, rule, record);
     }
 
-    console.log(`[Alert] Triggered: ${rule.id} - ${rule.name}`);
+    log.info({ ruleId: rule.id, ruleName: rule.name }, "alert triggered");
     return record;
   }
 
@@ -391,7 +394,7 @@ export class AlertManager {
               })
             });
           } catch (error) {
-            console.error('[Alert] Webhook failed:', error);
+            log.error({ err: error }, "webhook failed");
           }
         }
         break;
@@ -411,19 +414,19 @@ export class AlertManager {
               '触发时间': record.triggeredAt.toLocaleString('zh-CN'),
             },
           });
-          console.log(`[Alert] Webhook notification sent: ${record.message}`);
+          log.info({ message: record.message }, "webhook notification sent");
         } catch (error) {
-          console.error('[Alert] Webhook notification failed:', error);
+          log.error({ err: error }, "webhook notification failed");
         }
         break;
 
       case 'email':
         // TODO: 实现邮件通知
-        console.log(`[Alert] Email notification: ${record.message}`);
+        log.info({ message: record.message }, "email notification");
         break;
 
       case 'log':
-        console.log(`[Alert][${rule.level}] ${record.message}`);
+        log.info({ level: rule.level, message: record.message }, "alert log action");
         break;
     }
   }

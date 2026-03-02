@@ -3,6 +3,10 @@
  * Phase 21 P1: US-014 远程协助 · US-015 SLA · US-016 商机转化 · US-017 售后反馈
  */
 
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("service-sales");
+
 export interface RemoteAssistanceResult {
   sessionSummary: string;
   diagnosticSteps: Array<{ step: number; instruction: string; expectedResult: string; ifFail: string }>;
@@ -80,7 +84,7 @@ GRT设备远程可操作项：PLC参数查看/修改、传感器读数、报警�
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[ServiceSalesAdvanced] guideRemoteAssistance failed:", error);
+    log.error({ err: error }, "guideRemoteAssistance failed");
     return { sessionSummary: "AI服务不可用", diagnosticSteps: [], visualGuides: [], escalationNeeded: true, escalationReason: "AI服务不可用，建议派人现场", partsToInspect: [], recommendations: ["请联系技术支持"] };
   }
 }
@@ -122,7 +126,7 @@ GRT SLA标准：
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[ServiceSalesAdvanced] analyzeSLA failed:", error);
+    log.error({ err: error }, "analyzeSLA failed");
     return { overallSLARate: 0, periodSummary: "AI服务不可用", metrics: [], ticketAnalysis: { total: 0, resolved: 0, pending: 0, overdue: 0, avgResponseHours: 0, avgResolutionHours: 0 }, topIssues: [], engineerPerformance: [], recommendations: ["请人工统计SLA数据"] };
   }
 }
@@ -161,7 +165,7 @@ export async function convertOpportunity(params: {
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[ServiceSalesAdvanced] convertOpportunity failed:", error);
+    log.error({ err: error }, "convertOpportunity failed");
     return { requirementDoc: { projectName: params.opportunityName, customerProfile: params.customerName, technicalRequirements: [], cleanlinessSpec: "待定", throughputSpec: "待定", budgetRange: "待定", timeline: "待定" }, riskAssessment: [], suggestedTeam: [], estimatedEffort: "待评估", recommendations: ["请人工编写需求文档"] };
   }
 }
@@ -209,7 +213,7 @@ GRT常见设计改进方向：
     if (content) return JSON.parse(content);
     throw new Error("Empty response");
   } catch (error) {
-    console.error("[ServiceSalesAdvanced] analyzeFieldFeedback failed:", error);
+    log.error({ err: error }, "analyzeFieldFeedback failed");
     return { patternId: `FP-${Date.now()}`, faultPattern: "AI服务不可用", frequency: 0, affectedModels: [], rootCauseHypothesis: "待分析", designImprovements: [], costOfInaction: "待评估", recommendations: ["请人工分析售后数据"] };
   }
 }
