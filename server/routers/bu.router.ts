@@ -6,6 +6,9 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import * as buQueries from "../db/bu-queries";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("bu");
 
 /**
  * 验证模式
@@ -96,7 +99,7 @@ export const buRouter = router({
       const units = await buQueries.getAllBusinessUnits();
       return { success: true, data: units };
     } catch (error) {
-      console.error("[BU] Failed to list business units:", error);
+      log.error({ err: error }, "Failed to list business units");
       return { success: false, error: "Failed to fetch business units" };
     }
   }),
@@ -106,7 +109,7 @@ export const buRouter = router({
       const [unit] = await buQueries.getBusinessUnitById(input.id);
       return { success: true, data: unit || null };
     } catch (error) {
-      console.error("[BU] Failed to get business unit:", error);
+      log.error({ err: error }, "Failed to get business unit");
       return { success: false, error: "Failed to fetch business unit" };
     }
   }),
@@ -116,7 +119,7 @@ export const buRouter = router({
       const [unit] = await buQueries.getBusinessUnitByCode(input.code);
       return { success: true, data: unit || null };
     } catch (error) {
-      console.error("[BU] Failed to get business unit by code:", error);
+      log.error({ err: error }, "Failed to get business unit by code");
       return { success: false, error: "Failed to fetch business unit" };
     }
   }),
@@ -126,7 +129,7 @@ export const buRouter = router({
       const result = await buQueries.createBusinessUnit(input);
       return { success: true, data: result[0] };
     } catch (error) {
-      console.error("[BU] Failed to create business unit:", error);
+      log.error({ err: error }, "Failed to create business unit");
       return { success: false, error: "Failed to create business unit" };
     }
   }),
@@ -137,7 +140,7 @@ export const buRouter = router({
       const result = await buQueries.updateBusinessUnit(id, data);
       return { success: true, data: result[0] };
     } catch (error) {
-      console.error("[BU] Failed to update business unit:", error);
+      log.error({ err: error }, "Failed to update business unit");
       return { success: false, error: "Failed to update business unit" };
     }
   }),
@@ -147,7 +150,7 @@ export const buRouter = router({
       await buQueries.deleteBusinessUnit(input.id);
       return { success: true };
     } catch (error) {
-      console.error("[BU] Failed to delete business unit:", error);
+      log.error({ err: error }, "Failed to delete business unit");
       return { success: false, error: "Failed to delete business unit" };
     }
   }),
@@ -160,7 +163,7 @@ export const buRouter = router({
         const performance = await buQueries.getPerformanceByBuAndYear(input.buId, input.fiscalYear);
         return { success: true, data: performance };
       } catch (error) {
-        console.error("[BU] Failed to get performance:", error);
+        log.error({ err: error }, "Failed to get performance");
         return { success: false, error: "Failed to fetch performance data" };
       }
     }),
@@ -178,7 +181,7 @@ export const buRouter = router({
 
       return { success: true, data: result[0] };
     } catch (error) {
-      console.error("[BU] Failed to save performance:", error);
+      log.error({ err: error }, "Failed to save performance");
       return { success: false, error: "Failed to save performance data" };
     }
   }),
@@ -194,7 +197,7 @@ export const buRouter = router({
         );
         return { success: true, data: trend };
       } catch (error) {
-        console.error("[BU] Failed to get performance trend:", error);
+        log.error({ err: error }, "Failed to get performance trend");
         return { success: false, error: "Failed to fetch performance trend" };
       }
     }),
@@ -207,7 +210,7 @@ export const buRouter = router({
         const kpis = await buQueries.getKpisByBu(input.buId, input.fiscalYear);
         return { success: true, data: kpis };
       } catch (error) {
-        console.error("[BU] Failed to get KPIs:", error);
+        log.error({ err: error }, "Failed to get KPIs");
         return { success: false, error: "Failed to fetch KPIs" };
       }
     }),
@@ -217,7 +220,7 @@ export const buRouter = router({
       const result = await buQueries.createKpi(input);
       return { success: true, data: result[0] };
     } catch (error) {
-      console.error("[BU] Failed to create KPI:", error);
+      log.error({ err: error }, "Failed to create KPI");
       return { success: false, error: "Failed to create KPI" };
     }
   }),
@@ -230,7 +233,7 @@ export const buRouter = router({
         const result = await buQueries.updateKpi(id, data);
         return { success: true, data: result[0] };
       } catch (error) {
-        console.error("[BU] Failed to update KPI:", error);
+        log.error({ err: error }, "Failed to update KPI");
         return { success: false, error: "Failed to update KPI" };
       }
     }),
@@ -243,7 +246,7 @@ export const buRouter = router({
         const stats = await buQueries.getBuStatistics(input.buId, input.fiscalYear);
         return { success: true, data: stats };
       } catch (error) {
-        console.error("[BU] Failed to get statistics:", error);
+        log.error({ err: error }, "Failed to get statistics");
         return { success: false, error: "Failed to fetch statistics" };
       }
     }),
@@ -256,7 +259,7 @@ export const buRouter = router({
         const employees = await buQueries.getBuEmployees(input.buId);
         return { success: true, data: employees };
       } catch (error) {
-        console.error("[BU] Failed to get employees:", error);
+        log.error({ err: error }, "Failed to get employees");
         return { success: false, error: "Failed to fetch employees" };
       }
     }),
@@ -277,7 +280,7 @@ export const buRouter = router({
         const result = await buQueries.addEmployeeToBu(input);
         return { success: true, data: result[0] };
       } catch (error) {
-        console.error("[BU] Failed to add employee:", error);
+        log.error({ err: error }, "Failed to add employee");
         return { success: false, error: "Failed to add employee" };
       }
     }),
@@ -289,7 +292,7 @@ export const buRouter = router({
         await buQueries.removeBuEmployee(input.id);
         return { success: true };
       } catch (error) {
-        console.error("[BU] Failed to remove employee:", error);
+        log.error({ err: error }, "Failed to remove employee");
         return { success: false, error: "Failed to remove employee" };
       }
     }),

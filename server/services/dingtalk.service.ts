@@ -11,6 +11,9 @@
  */
 
 import crypto from 'crypto';
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("dingtalk");
 
 // 钉钉API基础URL
 const DINGTALK_API_BASE = 'https://oapi.dingtalk.com';
@@ -65,7 +68,7 @@ export async function getAccessToken(config: DingTalkConfig): Promise<string> {
 
     return tokenCache.accessToken;
   } catch (error) {
-    console.error('获取钉钉访问令牌失败:', error);
+    log.error({ err: error }, "获取钉钉访问令牌失败");
     throw error;
   }
 }
@@ -119,7 +122,7 @@ export async function getUserGroups(config: DingTalkConfig, userId: string): Pro
     };
 
     if (!data.success || !data.result) {
-      console.error('获取钉钉群列表失败');
+      log.error("获取钉钉群列表失败");
       return [];
     }
 
@@ -132,7 +135,7 @@ export async function getUserGroups(config: DingTalkConfig, userId: string): Pro
       icon: g.icon
     }));
   } catch (error) {
-    console.error('获取钉钉群列表失败:', error);
+    log.error({ err: error }, "获取钉钉群列表失败");
     return [];
   }
 }
@@ -180,7 +183,7 @@ export async function getGroupMembers(
       name: m.name
     }));
   } catch (error) {
-    console.error('获取钉钉群成员失败:', error);
+    log.error({ err: error }, "获取钉钉群成员失败");
     return [];
   }
 }
@@ -257,13 +260,13 @@ export async function sendRobotMessage(
     const data = await response.json() as { errcode: number; errmsg: string };
 
     if (data.errcode !== 0) {
-      console.error(`发送钉钉机器人消息失败: ${data.errmsg}`);
+      log.error({ errmsg: data.errmsg }, "发送钉钉机器人消息失败");
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('发送钉钉机器人消息失败:', error);
+    log.error({ err: error }, "发送钉钉机器人消息失败");
     return false;
   }
 }
@@ -279,7 +282,7 @@ export async function sendWorkNotification(
   title?: string
 ): Promise<boolean> {
   if (!config.agentId) {
-    console.error('发送工作通知需要agentId');
+    log.error("发送工作通知需要agentId");
     return false;
   }
 
@@ -319,13 +322,13 @@ export async function sendWorkNotification(
     const data = await response.json() as { errcode: number; errmsg: string };
 
     if (data.errcode !== 0) {
-      console.error(`发送钉钉工作通知失败: ${data.errmsg}`);
+      log.error({ errmsg: data.errmsg }, "发送钉钉工作通知失败");
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('发送钉钉工作通知失败:', error);
+    log.error({ err: error }, "发送钉钉工作通知失败");
     return false;
   }
 }
@@ -360,13 +363,13 @@ export async function getDepartmentList(config: DingTalkConfig): Promise<Array<{
     };
 
     if (data.errcode !== 0) {
-      console.error(`获取钉钉部门列表失败: ${data.errmsg}`);
+      log.error({ errmsg: data.errmsg }, "获取钉钉部门列表失败");
       return [];
     }
 
     return data.result || [];
   } catch (error) {
-    console.error('获取钉钉部门列表失败:', error);
+    log.error({ err: error }, "获取钉钉部门列表失败");
     return [];
   }
 }
@@ -412,7 +415,7 @@ export async function getDepartmentUsers(
 
     return users;
   } catch (error) {
-    console.error('获取钉钉部门用户失败:', error);
+    log.error({ err: error }, "获取钉钉部门用户失败");
     return [];
   }
 }
@@ -451,7 +454,7 @@ export async function getUserInfo(
 
     return data.result;
   } catch (error) {
-    console.error('获取钉钉用户信息失败:', error);
+    log.error({ err: error }, "获取钉钉用户信息失败");
     return null;
   }
 }

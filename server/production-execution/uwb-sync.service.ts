@@ -11,6 +11,9 @@
 
 import { requireDb } from '../db';
 import { sql } from 'drizzle-orm';
+import { createChildLogger } from '../lib/logger';
+
+const log = createChildLogger("uwb-sync");
 
 // ============================================================================
 // 类型定义
@@ -123,7 +126,7 @@ export class UWBSyncService {
         }
       }
     } catch (error) {
-      console.error('[UWB] Failed to load device configurations:', error);
+      log.error({ err: error }, "Failed to load device configurations");
     }
   }
 
@@ -132,12 +135,12 @@ export class UWBSyncService {
    */
   public async start(intervalSeconds: number = 30): Promise<void> {
     if (this.isRunning) {
-      console.log('[UWB] Service is already running');
+      log.info("Service is already running");
       return;
     }
 
     this.isRunning = true;
-    console.log(`[UWB] Starting sync service with ${intervalSeconds}s interval`);
+    log.info({ intervalSeconds }, "Starting sync service");
 
     // 立即执行一次同步
     await this.syncAllDevices();
@@ -157,7 +160,7 @@ export class UWBSyncService {
       this.syncInterval = null;
     }
     this.isRunning = false;
-    console.log('[UWB] Sync service stopped');
+    log.info("Sync service stopped");
   }
 
   /**
@@ -182,7 +185,7 @@ export class UWBSyncService {
       } catch (error) {
         const errorMsg = `Device ${deviceId}: ${error}`;
         result.errors.push(errorMsg);
-        console.error(`[UWB] ${errorMsg}`);
+        log.error({ deviceId, error: String(error) }, "Device sync error");
       }
     }
 
@@ -239,7 +242,7 @@ export class UWBSyncService {
       const data = await response.json();
       return this.transformDecawaveData(data, config);
     } catch (error) {
-      console.error('[UWB] Decawave fetch error:', error);
+      log.error({ err: error }, "Decawave fetch error");
       return [];
     }
   }
@@ -304,7 +307,7 @@ export class UWBSyncService {
       const xmlText = await response.text();
       return this.parseUbisenseXML(xmlText, config);
     } catch (error) {
-      console.error('[UWB] Ubisense fetch error:', error);
+      log.error({ err: error }, "Ubisense fetch error");
       return [];
     }
   }
@@ -342,7 +345,7 @@ export class UWBSyncService {
       const data = await response.json();
       return this.transformSewioData(data, config);
     } catch (error) {
-      console.error('[UWB] Sewio fetch error:', error);
+      log.error({ err: error }, "Sewio fetch error");
       return [];
     }
   }
@@ -404,7 +407,7 @@ export class UWBSyncService {
       const data = await response.json();
       return this.transformPozyxData(data, config);
     } catch (error) {
-      console.error('[UWB] Pozyx fetch error:', error);
+      log.error({ err: error }, "Pozyx fetch error");
       return [];
     }
   }
@@ -597,7 +600,7 @@ export class UWBSyncService {
         `);
         savedCount++;
       } catch (error) {
-        console.error('[UWB] Failed to save time entry:', error);
+        log.error({ err: error }, "Failed to save time entry");
       }
     }
 

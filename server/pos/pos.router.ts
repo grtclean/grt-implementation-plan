@@ -12,6 +12,9 @@ import {
 } from "./ai.service";
 import { HISTORICAL_PROJECTS_INDEX, PROJECT_STAGES, initPOSDatabase } from "./db-init";
 import * as posDb from "./pos.db";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("pos");
 
 /**
  * 项目型组织操作系统 (POS) API路由
@@ -89,10 +92,10 @@ const projectRouter = router({
       search: z.string().optional(),
     }))
     .query(async ({ input }) => {
-      console.log('[POS] 查询项目列表, 参数:', JSON.stringify(input));
+      log.info({ input }, "Querying project list");
       try {
         const result = await posDb.listProjects(input);
-        console.log('[POS] 查询项目列表成功, 返回:', result.items.length, '条记录');
+        log.info({ count: result.items.length }, "Project list query succeeded");
         // 如果数据库为空，返回模拟数据
         if (result.items.length === 0) {
           return {
@@ -111,7 +114,7 @@ const projectRouter = router({
         }
         return result;
       } catch (error) {
-        console.error('[POS] 查询项目列表失败:', error);
+        log.error({ err: error }, "Failed to query project list");
         // 出错时也返回模拟数据
         return {
           items: [
@@ -133,7 +136,7 @@ const projectRouter = router({
       try {
         return await posDb.getProjectById(input.id);
       } catch (error) {
-        console.error('[POS] 查询项目详情失败:', error);
+        log.error({ err: error }, "Failed to query project detail");
         return null;
       }
     }),
@@ -160,7 +163,7 @@ const projectRouter = router({
           createdBy: ctx.user?.id,
         });
       } catch (error) {
-        console.error('[POS] 创建项目失败:', error);
+        log.error({ err: error }, "Failed to create project");
         throw new Error('创建项目失败');
       }
     }),
@@ -186,7 +189,7 @@ const projectRouter = router({
         const { id, ...data } = input;
         return await posDb.updateProject(id, data);
       } catch (error) {
-        console.error('[POS] 更新项目失败:', error);
+        log.error({ err: error }, "Failed to update project");
         throw new Error('更新项目失败');
       }
     }),
@@ -197,7 +200,7 @@ const projectRouter = router({
       try {
         return await posDb.deleteProject(input.id);
       } catch (error) {
-        console.error('[POS] 删除项目失败:', error);
+        log.error({ err: error }, "Failed to delete project");
         throw new Error('删除项目失败');
       }
     }),
@@ -220,7 +223,7 @@ const projectRouter = router({
         }
         return stages;
       } catch (error) {
-        console.error('[POS] 查询项目阶段失败:', error);
+        log.error({ err: error }, "Failed to query project stages");
         return [];
       }
     }),
@@ -274,7 +277,7 @@ const projectRouter = router({
       try {
         return await posDb.getProjectStatistics();
       } catch (error) {
-        console.error('[POS] 查询项目统计失败:', error);
+        log.error({ err: error }, "Failed to query project statistics");
         return { total: 0, byStatus: [], byStage: [] };
       }
     }),
@@ -288,7 +291,7 @@ const stageRouter = router({
       try {
         return await posDb.getStageById(input.id);
       } catch (error) {
-        console.error('[POS] 查询阶段详情失败:', error);
+        log.error({ err: error }, "Failed to query stage detail");
         return null;
       }
     }),
@@ -305,7 +308,7 @@ const stageRouter = router({
         await posDb.addStageAuditLog(input.id, `状态变更为${input.status}`, ctx.user?.id || 0);
         return result;
       } catch (error) {
-        console.error('[POS] 更新阶段状态失败:', error);
+        log.error({ err: error }, "Failed to update stage status");
         return { success: false };
       }
     }),
@@ -323,7 +326,7 @@ const stageRouter = router({
           outputJson: input.outputJson,
         });
       } catch (error) {
-        console.error('[POS] 更新阶段输入输出失败:', error);
+        log.error({ err: error }, "Failed to update stage input/output");
         return { success: false };
       }
     }),
@@ -357,7 +360,7 @@ const stageRouter = router({
         await posDb.updateStageTasks(input.stageId, JSON.stringify(existingTasks));
         return newTask;
       } catch (error) {
-        console.error('[POS] 添加阶段任务失败:', error);
+        log.error({ err: error }, "Failed to add stage task");
         return { id: 0, ...input };
       }
     }),
@@ -386,7 +389,7 @@ const stageRouter = router({
         }
         return { success: true };
       } catch (error) {
-        console.error('[POS] 更新阶段任务失败:', error);
+        log.error({ err: error }, "Failed to update stage task");
         return { success: false };
       }
     }),
@@ -406,7 +409,7 @@ const stageRouter = router({
           input.details
         );
       } catch (error) {
-        console.error('[POS] 添加审计日志失败:', error);
+        log.error({ err: error }, "Failed to add audit log");
         return {
           id: 0,
           stageId: input.stageId,
@@ -1422,7 +1425,7 @@ const reviewRouter = router({
             triggerSource: 'M4_Review_Completion',
           };
         } catch (error) {
-          console.error('PO建议生成失败:', error);
+          log.error({ err: error }, "Failed to generate PO suggestions");
         }
       }
       
@@ -1986,7 +1989,7 @@ const stageGateRouter = router({
             triggerSource: 'M4_Auto_Advance',
           };
         } catch (error) {
-          console.error('PO建议生成失败:', error);
+          log.error({ err: error }, "Failed to generate PO suggestions");
         }
       }
 

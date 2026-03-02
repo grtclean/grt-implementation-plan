@@ -64,6 +64,9 @@ import {
 } from "../drizzle/schema";
 
 import { ENV } from './_core/env';
+import { createChildLogger } from './lib/logger';
+
+const log = createChildLogger("db");
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -73,10 +76,7 @@ export async function getDb() {
     const connUrl = process.env.DATABASE_URL;
     // Safety: prevent dev/test from accidentally connecting to production
     if (!ENV.isProduction && connUrl.includes("grt_prod_db")) {
-      console.error(
-        "[Database] SAFETY HALT: DATABASE_URL points to production but NODE_ENV=%s. Refusing to connect.",
-        ENV.nodeEnv
-      );
+      log.error({ nodeEnv: ENV.nodeEnv }, "SAFETY HALT: DATABASE_URL points to production. Refusing to connect");
       return null;
     }
     try {
@@ -86,9 +86,9 @@ export async function getDb() {
         options: '-c client_encoding=UTF8',
       });
       _db = drizzle(pool);
-      console.log("[Database] PostgreSQL connected (%s)", ENV.nodeEnv);
+      log.info({ nodeEnv: ENV.nodeEnv }, "PostgreSQL connected");
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      log.warn({ err: error }, "Failed to connect to database");
       _db = null;
     }
   }
@@ -111,7 +111,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
+    log.warn("Cannot upsert user: database not available");
     return;
   }
 
@@ -159,7 +159,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       set: updateSet,
     });
   } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
+    log.error({ err: error }, "Failed to upsert user");
     throw error;
   }
 }
@@ -167,7 +167,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 export async function getUserByOpenId(openId: string) {
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
+    log.warn("Cannot get user: database not available");
     return undefined;
   }
 
@@ -181,7 +181,7 @@ export async function getUserByOpenId(openId: string) {
 export async function createFeedback(data: InsertFeedback) {
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot create feedback: database not available");
+    log.warn("Cannot create feedback: database not available");
     return null;
   }
 
@@ -189,7 +189,7 @@ export async function createFeedback(data: InsertFeedback) {
     const result = await db.insert(feedback).values(data);
     return { id: result[0].insertId };
   } catch (error) {
-    console.error("[Database] Failed to create feedback:", error);
+    log.error({ err: error }, "Failed to create feedback");
     throw error;
   }
 }
@@ -197,7 +197,7 @@ export async function createFeedback(data: InsertFeedback) {
 export async function getAllFeedback() {
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot get feedback: database not available");
+    log.warn("Cannot get feedback: database not available");
     return [];
   }
 
@@ -207,7 +207,7 @@ export async function getAllFeedback() {
 export async function updateFeedbackStatus(id: number, status: "pending" | "reviewed" | "resolved") {
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot update feedback: database not available");
+    log.warn("Cannot update feedback: database not available");
     return null;
   }
 
@@ -220,7 +220,7 @@ export async function updateFeedbackStatus(id: number, status: "pending" | "revi
 export async function trackEvent(data: InsertAnalyticsEvent) {
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot track event: database not available");
+    log.warn("Cannot track event: database not available");
     return null;
   }
 
@@ -228,7 +228,7 @@ export async function trackEvent(data: InsertAnalyticsEvent) {
     await db.insert(analyticsEvents).values(data);
     return { success: true };
   } catch (error) {
-    console.error("[Database] Failed to track event:", error);
+    log.error({ err: error }, "Failed to track event");
     throw error;
   }
 }
@@ -236,7 +236,7 @@ export async function trackEvent(data: InsertAnalyticsEvent) {
 export async function getAnalyticsEvents(limit = 100) {
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot get analytics: database not available");
+    log.warn("Cannot get analytics: database not available");
     return [];
   }
 
@@ -248,7 +248,7 @@ export async function getAnalyticsEvents(limit = 100) {
 export async function createMigrationTask(data: InsertMigrationTask) {
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot create migration task: database not available");
+    log.warn("Cannot create migration task: database not available");
     return null;
   }
 
@@ -256,7 +256,7 @@ export async function createMigrationTask(data: InsertMigrationTask) {
     const result = await db.insert(migrationTasks).values(data);
     return { id: result[0].insertId };
   } catch (error) {
-    console.error("[Database] Failed to create migration task:", error);
+    log.error({ err: error }, "Failed to create migration task");
     throw error;
   }
 }
@@ -264,7 +264,7 @@ export async function createMigrationTask(data: InsertMigrationTask) {
 export async function getAllMigrationTasks() {
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot get migration tasks: database not available");
+    log.warn("Cannot get migration tasks: database not available");
     return [];
   }
 
@@ -274,7 +274,7 @@ export async function getAllMigrationTasks() {
 export async function getMigrationTaskById(id: number) {
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot get migration task: database not available");
+    log.warn("Cannot get migration task: database not available");
     return null;
   }
 
@@ -288,7 +288,7 @@ export async function updateMigrationTask(
 ) {
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot update migration task: database not available");
+    log.warn("Cannot update migration task: database not available");
     return null;
   }
 
@@ -299,7 +299,7 @@ export async function updateMigrationTask(
 export async function deleteMigrationTask(id: number) {
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot delete migration task: database not available");
+    log.warn("Cannot delete migration task: database not available");
     return null;
   }
 
@@ -310,7 +310,7 @@ export async function deleteMigrationTask(id: number) {
 export async function initDefaultMigrationTasks() {
   const db = await requireDb();
   if (!db) {
-    console.warn("[Database] Cannot init migration tasks: database not available");
+    log.warn("Cannot init migration tasks: database not available");
     return null;
   }
 
@@ -419,7 +419,7 @@ export async function createCustomer(data: InsertCrmCustomer) {
     });
     return { id: result[0].insertId, customerCode: code };
   } catch (error) {
-    console.error("[Database] Failed to create customer:", error);
+    log.error({ err: error }, "Failed to create customer");
     throw error;
   }
 }
@@ -495,7 +495,7 @@ export async function createContact(data: InsertCrmContact) {
     const result = await db.insert(crmContacts).values(data);
     return { id: result[0].insertId };
   } catch (error) {
-    console.error("[Database] Failed to create contact:", error);
+    log.error({ err: error }, "Failed to create contact");
     throw error;
   }
 }
@@ -569,7 +569,7 @@ export async function createOpportunity(data: InsertCrmOpportunity) {
     });
     return { id: result[0].insertId, opportunityCode: code };
   } catch (error) {
-    console.error("[Database] Failed to create opportunity:", error);
+    log.error({ err: error }, "Failed to create opportunity");
     throw error;
   }
 }
@@ -651,7 +651,7 @@ export async function createBantScore(data: InsertCrmBantScore) {
     });
     return { id: result[0].insertId };
   } catch (error) {
-    console.error("[Database] Failed to create BANT score:", error);
+    log.error({ err: error }, "Failed to create BANT score");
     throw error;
   }
 }
@@ -688,7 +688,7 @@ export async function createFollowUp(data: InsertCrmFollowUp) {
     const result = await db.insert(crmFollowUps).values(data);
     return { id: result[0].insertId };
   } catch (error) {
-    console.error("[Database] Failed to create follow-up:", error);
+    log.error({ err: error }, "Failed to create follow-up");
     throw error;
   }
 }
@@ -723,7 +723,7 @@ export async function createDevTask(data: InsertDevTask) {
     });
     return { id: result[0].insertId, taskCode: code };
   } catch (error) {
-    console.error("[Database] Failed to create dev task:", error);
+    log.error({ err: error }, "Failed to create dev task");
     throw error;
   }
 }
@@ -1425,7 +1425,7 @@ export async function createProject(data: InsertProject) {
     const result = await db.insert(projects).values({ ...data, projectCode: code });
     return { id: result[0].insertId, projectCode: code };
   } catch (error) {
-    console.error("[Database] Failed to create project:", error);
+    log.error({ err: error }, "Failed to create project");
     throw error;
   }
 }
@@ -2872,7 +2872,7 @@ export async function checkProjectCostAlerts(projectId: number, sendWebhook: boo
           }
         }
       } catch (error) {
-        console.error('[Cost Alert Webhook] Failed to send:', error);
+        log.error({ err: error }, "Cost alert webhook failed to send");
       }
     }
   }
@@ -3017,7 +3017,7 @@ export async function processMeetingReminders() {
       if (reminder.reminderType === 'email' || reminder.reminderType === 'both') {
         // TODO: Integrate with email service
         // For now, log the email notification
-        console.log(`[Email Reminder] Meeting: ${meeting.title}, Attendees: ${attendees.length}`);
+        log.info({ meetingTitle: meeting.title, attendeeCount: attendees.length }, "Email reminder queued");
         sendResult += 'email_queued;';
       }
       
@@ -3031,7 +3031,7 @@ export async function processMeetingReminders() {
           });
           sendResult += 'system_sent;';
         } catch (notifyError) {
-          console.error('[System Notification Error]', notifyError);
+          log.error({ err: notifyError }, "System notification failed");
           sendResult += 'system_failed;';
         }
       }
@@ -3070,7 +3070,7 @@ export async function processMeetingReminders() {
           }
         }
       } catch (webhookError) {
-        console.error('[Webhook Notification Error]', webhookError);
+        log.error({ err: webhookError }, "Webhook notification failed");
         sendResult += 'webhook_failed;';
       }
       
@@ -3083,7 +3083,7 @@ export async function processMeetingReminders() {
         message: sendResult
       });
     } catch (error) {
-      console.error('[Reminder Processing Error]', error);
+      log.error({ err: error }, "Reminder processing failed");
       results.push({
         reminderId: item.reminder.id,
         success: false,

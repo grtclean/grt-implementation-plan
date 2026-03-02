@@ -8,6 +8,9 @@ import { requireDb } from "../db";
 import { sql, type SQL } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { tracePerformance } from "../services/performance-trace.service";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("ime");
 
 // ============================================================================
 // Analyze Contributions for a Meeting
@@ -143,7 +146,7 @@ export async function analyzeContributions(meetingId: string) {
         }
       }
     } catch (e) {
-      console.error("[IME] LLM scoring failed, using heuristic scoring:", e);
+      log.error({ err: e }, "LLM scoring failed, using heuristic scoring");
     }
   }
 
@@ -244,7 +247,7 @@ export async function scoreMeetingEffectiveness(meetingId: string) {
     });
     aiNarrative = llmResult.choices[0]?.message?.content || "";
   } catch (e) {
-    console.error("[IME] LLM narrative failed:", e);
+    log.error({ err: e }, "LLM narrative failed");
     aiNarrative = `会议"${meeting.title}"共有${contributions.length}位参会者，产生${decisionCount}个决策和${actionItemCount}个行动项。`;
   }
 
@@ -613,7 +616,7 @@ Return strict JSON only.`,
       }));
     }
   } catch (e) {
-    console.error("[IME] Engagement LLM scoring failed, using heuristic:", e);
+    log.error({ err: e }, "Engagement LLM scoring failed, using heuristic");
   }
 
   // 7. Heuristic fallback for speakers not scored by LLM
@@ -992,7 +995,7 @@ export async function detectMeetingPatterns(
         patterns[0].description = narrative + "\n\n" + patterns[0].description;
       }
     } catch (e) {
-      console.error("[IME] Pattern LLM narrative failed:", e);
+      log.error({ err: e }, "Pattern LLM narrative failed");
     }
   }
 
@@ -1076,7 +1079,7 @@ export async function getMeetingCultureReport(department?: string) {
     });
     narrative = llmResult.choices[0]?.message?.content || "";
   } catch (e) {
-    console.error("[IME] Culture report LLM failed:", e);
+    log.error({ err: e }, "Culture report LLM failed");
     narrative = `共分析 ${cultureMetrics.totalMeetings} 个会议，平均效能 ${cultureMetrics.avgEffectiveness} 分，决策会议比 ${cultureMetrics.decisionToMeetingRatio}。`;
   }
 
@@ -1175,7 +1178,7 @@ For each applicable signal, provide confidence (0-1), reasoning, and suggested a
     const parsed = JSON.parse(llmResult.choices[0]?.message?.content || '{"signals":[]}');
     signals = parsed.signals || [];
   } catch (e) {
-    console.error("[IME] HR signal LLM failed:", e);
+    log.error({ err: e }, "HR signal LLM failed");
     // Heuristic fallback
     const avgScore = contributions.reduce((s, c) => s + Number(c.contribution_score), 0) / contributions.length;
     if (avgScore >= 80) {
@@ -1218,7 +1221,7 @@ For each applicable signal, provide confidence (0-1), reasoning, and suggested a
       });
     }
   } catch (e) {
-    console.error("[IME] Performance trace for HR signal failed:", e);
+    log.error({ err: e }, "Performance trace for HR signal failed");
   }
 
   return { employeeId, employeeName, signals };
@@ -1331,7 +1334,7 @@ ${JSON.stringify(existingPlans.map(p => ({ name: p.name, type: p.planType, statu
     const parsed = JSON.parse(llmResult.choices[0]?.message?.content || '{"recommendations":[]}');
     recommendations = parsed.recommendations || [];
   } catch (e) {
-    console.error("[IME] Training recommendation LLM failed:", e);
+    log.error({ err: e }, "Training recommendation LLM failed");
     recommendations = [{ name: "综合能力提升培训", type: "skill", reasoning: "基于会议贡献分析的通用建议", priority: "medium" }];
   }
 
@@ -1414,7 +1417,7 @@ export async function processLiveSegment(
       });
       suggestion = llmResult.choices[0]?.message?.content || null;
     } catch (e) {
-      console.error("[IME] Live suggestion LLM failed:", e);
+      log.error({ err: e }, "Live suggestion LLM failed");
     }
   }
 
@@ -1458,7 +1461,7 @@ export async function endLiveSession(sessionId: number) {
     const effectiveness = await scoreMeetingEffectiveness(session.meeting_id);
     analysisResult = { contributions, effectiveness };
   } catch (e) {
-    console.error("[IME] Post-session analysis failed:", e);
+    log.error({ err: e }, "Post-session analysis failed");
     analysisResult = { error: (e as Error).message };
   }
 
@@ -1803,7 +1806,7 @@ export async function extractAndTrackActionItems(meetingId: string) {
     matches = parsed.matches || [];
     newItems = parsed.newItems || [];
   } catch (e) {
-    console.error("[IME] Action item LLM matching failed, using heuristic:", e);
+    log.error({ err: e }, "Action item LLM matching failed, using heuristic");
     // Heuristic fallback: exact content substring matching
     const matchedIndices = new Set<number>();
     for (let i = 0; i < newBlocks.length; i++) {
@@ -2061,7 +2064,7 @@ export async function extractAndTrackTopics(meetingId: string) {
     const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
     topicResults = { matched: parsed.matched || [], newTopics: parsed.newTopics || [] };
   } catch (e) {
-    console.error("[IME] Topic extraction LLM failed, using heuristic:", e);
+    log.error({ err: e }, "Topic extraction LLM failed, using heuristic");
     // Heuristic fallback: extract from decision/insight blocks
     const decisionBlocks = blocks.filter((b: any) => b.block_type === "decision" || b.block_type === "insight");
     for (const block of decisionBlocks.slice(0, 5)) {
@@ -3208,7 +3211,7 @@ export async function computeMeetingRoi(meetingId: string) {
     outcomes = parsed.outcomes ?? [];
     aiNarrative = parsed.narrative ?? "";
   } catch (e) {
-    console.error("[IME] ROI LLM analysis failed, using heuristic:", e);
+    log.error({ err: e }, "ROI LLM analysis failed, using heuristic");
     const costNormalized = Math.min(totalCost / 5000, 1);
     outcomeScore = Math.min(100, (decisionCount * 20 + completedActionCount * 15 + resolvedTopics * 10) * (1 - costNormalized * 0.3));
     outcomeScore = Math.max(0, Math.round(outcomeScore));
@@ -3469,7 +3472,7 @@ export async function optimizeAttendees(meetingId: string) {
     compositionAdvice = parsed.compositionAdvice ?? null;
     aiNarrative = parsed.narrative ?? "";
   } catch (e) {
-    console.error("[IME] Attendee optimization LLM failed, using heuristic:", e);
+    log.error({ err: e }, "Attendee optimization LLM failed, using heuristic");
     overInvitedParticipants = enrichedParticipants
       .filter((p) => p.avgScore < 30 && p.meetingCount >= 3)
       .map((p) => ({
@@ -3751,7 +3754,7 @@ export async function predictMeetingEffectiveness(meetingId: string) {
     recommendations = parsed.recommendations ?? [];
     aiNarrative = parsed.narrative ?? "";
   } catch (e) {
-    console.error("[IME] Prediction LLM failed, using heuristic:", e);
+    log.error({ err: e }, "Prediction LLM failed, using heuristic");
     const sizeBonus = participants.length >= 3 && participants.length <= 8 ? 10 : participants.length > 12 ? -10 : 0;
     predictedScore = Math.round(avgParticipantScore * 0.4 + channelAvg * 0.3 + (recentTrend > 0 ? 60 : 40) * 0.2 + (50 + sizeBonus) * 0.1);
     predictedScore = Math.max(0, Math.min(100, predictedScore));
@@ -3887,7 +3890,7 @@ export async function detectMeetingFatigue(scope: string, scopeId?: string, peri
     recommendations = parsed.recommendations ?? [];
     aiNarrative = parsed.narrative ?? "";
   } catch (e) {
-    console.error("[IME] Fatigue detection LLM failed, using heuristic:", e);
+    log.error({ err: e }, "Fatigue detection LLM failed, using heuristic");
     const declineRatio = firstHalfAvg > 0 ? (firstHalfAvg - secondHalfAvg) / firstHalfAvg : 0;
     fatigueIndex = Math.min(100, Math.max(0, Math.round(declineRatio * 100 + (slope < 0 ? Math.abs(slope) * 20 : 0) + (meetingsPerWeek > 5 ? 15 : 0))));
     trendDirection = slope < -0.5 ? "declining" : slope > 0.5 ? "improving" : "stable";

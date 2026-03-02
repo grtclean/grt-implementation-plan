@@ -13,7 +13,7 @@
  *                  → Suggest -5 KPI points
  *                  → Auto-create "Mandatory Makeup Report" task
  *
- * Integration targets (simulated via console.log):
+ * Integration targets (simulated via pino structured logging):
  *   - Enterprise WeChat (企业微信) push notification
  *   - Corporate email gateway
  *   - HR KPI deduction API
@@ -27,6 +27,9 @@ import {
   sysMeetings,
 } from "../../drizzle/smart-meetings-schema";
 import { eq, and, count } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("hr-meeting");
 
 // ── Types ──────────────────────────────────────────────────
 type PenaltyLevel = "WARNING" | "BLACK_L3" | "BLACK_L2" | "BLACK_L1";
@@ -64,7 +67,7 @@ export async function processAbsences(
     .where(eq(sysMeetings.id, meetingId));
 
   if (!meeting) {
-    console.log(`[HR-Engine] Meeting ${meetingId} not found — skipping`);
+    log.info({ meetingId }, "meeting not found, skipping");
     return [];
   }
 
@@ -80,14 +83,13 @@ export async function processAbsences(
     );
 
   if (absentees.length === 0) {
-    console.log(
-      `[HR-Engine] Meeting "${meeting.title}" — no absences detected`
-    );
+    log.info({ meetingTitle: meeting.title }, "no absences detected");
     return [];
   }
 
-  console.log(
-    `[HR-Engine] Processing ${absentees.length} absence(s) for ${meetingType} meeting "${meeting.title}"`
+  log.info(
+    { absenteeCount: absentees.length, meetingType, meetingTitle: meeting.title },
+    "processing absences for meeting"
   );
 
   // 3) For each absentee, determine the penalty
@@ -123,8 +125,9 @@ export async function processAbsences(
     actions.push(action);
   }
 
-  console.log(
-    `[HR-Engine] ✅ Processed ${actions.length} penalty action(s) for meeting #${meetingId}`
+  log.info(
+    { actionCount: actions.length, meetingId },
+    "processed penalty actions for meeting"
   );
   return actions;
 }
@@ -184,11 +187,9 @@ function applyMajorPenalty(
 ): PenaltyAction {
   const userName = absentee.userName ?? `User #${absentee.userId}`;
 
-  console.log(
-    `[HR-Engine] 🔴 MAJOR meeting absence: ${userName} missed "${meeting.title}"`
-  );
-  console.log(
-    `[HR-Engine]    → Immediate BLACK_L2 + suggest -5 KPI + Makeup Report task`
+  log.warn(
+    { userName, meetingTitle: meeting.title },
+    "MAJOR meeting absence detected — immediate BLACK_L2 + suggest -5 KPI + Makeup Report task"
   );
 
   return {
@@ -216,23 +217,27 @@ function simulateNotifications(action: PenaltyAction): void {
   for (const channel of action.notifications) {
     switch (channel) {
       case "enterprise_wechat":
-        console.log(
-          `[WeChat API] 📱 Pushing penalty notification to ${action.userName}: ${action.penaltyLevel}`
+        log.info(
+          { channel, userName: action.userName, penaltyLevel: action.penaltyLevel },
+          "pushing penalty notification via WeChat"
         );
         break;
       case "email":
-        console.log(
-          `[Email API] 📧 Sending penalty email to ${action.userName}: "${action.reason}"`
+        log.info(
+          { channel, userName: action.userName, reason: action.reason },
+          "sending penalty email"
         );
         break;
       case "hr_system":
-        console.log(
-          `[HR System] 📊 Recording KPI deduction for ${action.userName}: ${action.deductedKpiPoints} points`
+        log.info(
+          { channel, userName: action.userName, deductedKpiPoints: action.deductedKpiPoints },
+          "recording KPI deduction"
         );
         break;
       case "oa_task":
-        console.log(
-          `[OA Task API] 📋 Creating "Mandatory Makeup Report" task for ${action.userName}`
+        log.info(
+          { channel, userName: action.userName },
+          "creating mandatory makeup report task"
         );
         break;
     }

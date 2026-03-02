@@ -25,6 +25,9 @@ import { eq, desc, sql, and, count, type SQL } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import fs from "fs";
 import path from "path";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("cicd");
 
 // ── File-Based Queue Bridge ────────────────────────────────
 // When a task enters IN_PROGRESS, the backend writes a .md file to
@@ -42,7 +45,7 @@ const RULEBOOK_PATH = path.join(QUEUE_BASE, "grtclaudeexcute.txt");
 for (const dir of [PENDING_DIR, COMPLETED_DIR, QUESTIONS_DIR, ANSWERS_DIR]) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
-    console.log(`[DevQueue] Created directory: ${dir}`);
+    log.info({ dir }, "Created directory");
   }
 }
 
@@ -133,7 +136,7 @@ decision, and then **delete the question file** from \`data/dev-queue/questions/
 `;
 
   fs.writeFileSync(filepath, content, "utf-8");
-  console.log(`[DevQueue] ✅ Task file written: ${filepath}`);
+  log.info({ filepath }, "Task file written");
   return { filepath, filename };
 }
 
@@ -348,7 +351,7 @@ export const cicdRouter = router({
             note: `Task dispatched to Claude CLI queue: ${filepath}`,
           });
         } catch (err: any) {
-          console.error(`[DevQueue] Failed to write task file:`, err?.message);
+          log.error({ err: err?.message }, "Failed to write task file");
         }
       }
 
@@ -663,15 +666,15 @@ Always respond in the same language as the user's prompt.`;
         dispatched = response.status === 204;
         if (!dispatched) {
           const errorText = await response.text();
-          console.error(`[GitHub Dispatch] Failed (${response.status}): ${errorText}`);
+          log.error({ status: response.status, errorText }, "GitHub dispatch failed");
           throw new Error(`GitHub dispatch failed: ${response.status}`);
         }
         runUrl = `https://github.com/${OWNER}/${REPO}/actions`;
-        console.log(`[GitHub Dispatch] Triggered workflow for: ${input.title}`);
+        log.info({ title: input.title }, "Triggered GitHub Actions workflow");
       } else {
         // Demo mode: simulate dispatch (no GITHUB_TOKEN configured)
-        console.log(`[GitHub Dispatch] [MOCK] Would POST to: ${url}`);
-        console.log(`[GitHub Dispatch] [MOCK] Payload:`, JSON.stringify(body, null, 2));
+        log.info({ url }, "MOCK: Would POST to GitHub dispatch URL");
+        log.info({ payload: body }, "MOCK: Dispatch payload");
         dispatched = true;
         runUrl = `https://github.com/${OWNER}/${REPO}/actions`;
       }
@@ -796,7 +799,7 @@ Always respond in the same language as the user's prompt.`;
         });
 
         updated.push(taskId);
-        console.log(`[DevQueue] ✅ Task #${taskId} marked COMPLETED from file queue`);
+        log.info({ taskId }, "Task marked COMPLETED from file queue");
       }
     }
 
@@ -836,7 +839,7 @@ Always respond in the same language as the user's prompt.`;
         });
       } catch {
         // Skip malformed JSON files
-        console.warn(`[HITL] Skipping malformed question file: ${filename}`);
+        log.warn({ filename }, "Skipping malformed question file");
       }
     }
 
@@ -859,7 +862,7 @@ Always respond in the same language as the user's prompt.`;
       // Write the CEO's answer
       const content = `${input.answer}\n\n--- Answered by CEO at ${new Date().toISOString()} ---`;
       fs.writeFileSync(answerFile, content, "utf-8");
-      console.log(`[HITL] CEO answered task #${input.taskId}: ${answerFile}`);
+      log.info({ taskId: input.taskId, answerFile }, "CEO answered HITL question");
 
       // Log the interaction in the DB audit trail
       try {

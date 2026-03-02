@@ -13,6 +13,9 @@
 import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 import { requireDb } from "../db";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("employee-ai");
 import {
   employeeAiAssistants,
   aiAssistantSessions,
@@ -105,7 +108,7 @@ export const employeeAiAssistantRouter = router({
           assistantId: result[0]?.id,
         };
       } catch (error) {
-        console.error("[initialize] Error:", error);
+        log.error({ err: error }, "Failed to initialize assistant");
         return {
           success: false,
           error: "初始化失败",
@@ -133,7 +136,7 @@ export const employeeAiAssistantRouter = router({
 
       return result[0] || null;
     } catch (error) {
-      console.error("[getMyAssistant] Error:", error);
+      log.error({ err: error }, "Failed to get assistant");
       return null;
     }
   }),
@@ -180,7 +183,7 @@ export const employeeAiAssistantRouter = router({
           title: result[0]?.title,
         };
       } catch (error) {
-        console.error("[getOrCreateSession] Error:", error);
+        log.error({ err: error }, "Failed to get or create session");
         throw error;
       }
     }),
@@ -220,7 +223,7 @@ export const employeeAiAssistantRouter = router({
 
         return result;
       } catch (error) {
-        console.error("[getMySessions] Error:", error);
+        log.error({ err: error }, "Failed to get sessions");
         return [];
       }
     }),
@@ -277,7 +280,7 @@ export const employeeAiAssistantRouter = router({
           response: null,
         };
       } catch (error) {
-        console.error("[sendMessage] Error:", error);
+        log.error({ err: error }, "Failed to send message");
         return {
           success: false,
           error: "发送失败",
@@ -346,7 +349,7 @@ export const employeeAiAssistantRouter = router({
         // Fallback: static suggestions
         return [{ title: "查看帮助文档", description: "浏览系统帮助获取操作指引" }];
       } catch (error) {
-        console.error("[getPageSuggestions] Error:", error);
+        log.error({ err: error }, "Failed to get page suggestions");
         return [{ title: "查看帮助文档", description: "浏览系统帮助获取操作指引" }];
       }
     }),
@@ -401,7 +404,7 @@ export const employeeAiAssistantRouter = router({
         totalSkills: skills?.length || 0,
       };
     } catch (error) {
-      console.error("[getSkillMap] Error:", error);
+      log.error({ err: error }, "Failed to get skill map");
       return null;
     }
   }),
@@ -436,7 +439,7 @@ export const employeeAiAssistantRouter = router({
 
       return paths || [];
     } catch (error) {
-      console.error("[getCareerPaths] Error:", error);
+      log.error({ err: error }, "Failed to get career paths");
       return [];
     }
   }),
@@ -486,7 +489,7 @@ export const employeeAiAssistantRouter = router({
           feedbackId: result[0]?.id,
         };
       } catch (error) {
-        console.error("[recordFeedback] Error:", error);
+        log.error({ err: error }, "Failed to record feedback");
         return {
           success: false,
           error: "记录失败",
@@ -525,7 +528,7 @@ export const employeeAiAssistantRouter = router({
 
       return records || [];
     } catch (error) {
-      console.error("[getLearningRecords] Error:", error);
+      log.error({ err: error }, "Failed to get learning records");
       return [];
     }
   }),
@@ -539,7 +542,7 @@ export const employeeAiAssistantRouter = router({
     try {
       return await provisionAllEmployees();
     } catch (error: any) {
-      console.error("[provisionAll] Error:", error);
+      log.error({ err: error }, "Failed to provision all employees");
       return { created: 0, skipped: 0, errors: [error.message] };
     }
   }),
@@ -553,7 +556,7 @@ export const employeeAiAssistantRouter = router({
       try {
         return await provisionSingleEmployee(input.employeeId);
       } catch (error: any) {
-        console.error("[provisionOne] Error:", error);
+        log.error({ err: error }, "Failed to provision single employee");
         return { created: 0, skipped: 0, errors: [error.message] };
       }
     }),
@@ -565,7 +568,7 @@ export const employeeAiAssistantRouter = router({
     try {
       return await getProvisioningStatus();
     } catch (error: any) {
-      console.error("[getProvisioningStatus] Error:", error);
+      log.error({ err: error }, "Failed to get provisioning status");
       return {
         totalEmployees: 0,
         provisionedCount: 0,
@@ -593,7 +596,7 @@ export const employeeAiAssistantRouter = router({
       try {
         return await listAllAssistants(input ?? undefined);
       } catch (error: any) {
-        console.error("[listAllAssistants] Error:", error);
+        log.error({ err: error }, "Failed to list all assistants");
         return { items: [], total: 0 };
       }
     }),
@@ -607,7 +610,7 @@ export const employeeAiAssistantRouter = router({
       try {
         return await refreshPresetsByRole(input?.roleId);
       } catch (error: any) {
-        console.error("[refreshPresets] Error:", error);
+        log.error({ err: error }, "Failed to refresh presets");
         return { created: 0, skipped: 0, errors: [error.message] };
       }
     }),

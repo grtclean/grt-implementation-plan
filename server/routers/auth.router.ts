@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("auth");
 
 const successResponse = { success: true, message: "操作成功" };
 
@@ -32,7 +35,7 @@ export const authRouter = router({
       }
       return { language: "zh", theme: "dark", sidebarCollapsed: false, timezone: "Asia/Shanghai" };
     } catch (error) {
-      console.error("Failed to get user preferences:", error);
+      log.error({ err: error }, "Failed to get user preferences");
       return { language: "zh", theme: "dark", sidebarCollapsed: false, timezone: "Asia/Shanghai" };
     }
   }),
@@ -52,7 +55,7 @@ export const authRouter = router({
         const updated = await upsertUserPreferences(ctx.user.id, input);
         return { success: true, preferences: updated };
       } catch (error) {
-        console.error("Failed to update user preferences:", error);
+        log.error({ err: error }, "Failed to update user preferences");
         return { success: false, error: "Failed to update preferences" };
       }
     }),
@@ -66,7 +69,7 @@ export const authRouter = router({
         await upsertUserPreferences(ctx.user.id, { language: input.language });
         return { success: true, language: input.language };
       } catch (error) {
-        console.error("Failed to update language preference:", error);
+        log.error({ err: error }, "Failed to update language preference");
         return { success: false, error: "Failed to update language preference" };
       }
     }),
@@ -80,7 +83,7 @@ export const authRouter = router({
         await upsertUserPreferences(ctx.user.id, { theme: input.theme });
         return { success: true, theme: input.theme };
       } catch (error) {
-        console.error("Failed to update theme preference:", error);
+        log.error({ err: error }, "Failed to update theme preference");
         return { success: false, error: "Failed to update theme preference" };
       }
     }),
@@ -92,7 +95,7 @@ export const authRouter = router({
       const prefs = await getUserPreferences(ctx.user.id);
       return { language: prefs?.language || "zh" };
     } catch (error) {
-      console.error("Failed to get language preference:", error);
+      log.error({ err: error }, "Failed to get language preference");
       return { language: "zh" };
     }
   }),
@@ -103,7 +106,7 @@ export const authRouter = router({
       const { getUserFavorites } = await import("../db");
       return await getUserFavorites(ctx.user.id);
     } catch (error) {
-      console.error("Failed to get user favorites:", error);
+      log.error({ err: error }, "Failed to get user favorites");
       return [];
     }
   }),
@@ -126,7 +129,7 @@ export const authRouter = router({
         });
         return { success: true, data: favorite };
       } catch (error: any) {
-        console.error("Failed to add favorite:", error);
+        log.error({ err: error }, "Failed to add favorite");
         return { success: false, error: error.message || "Failed to add favorite" };
       }
     }),
@@ -140,7 +143,7 @@ export const authRouter = router({
         const result = await removeUserFavorite(ctx.user.id, input.menuPath);
         return { success: result };
       } catch (error) {
-        console.error("Failed to remove favorite:", error);
+        log.error({ err: error }, "Failed to remove favorite");
         return { success: false, error: "Failed to remove favorite" };
       }
     }),
@@ -153,7 +156,7 @@ export const authRouter = router({
         const { isFavorite } = await import("../db");
         return await isFavorite(ctx.user.id, input.menuPath);
       } catch (error) {
-        console.error("Failed to check favorite:", error);
+        log.error({ err: error }, "Failed to check favorite");
         return false;
       }
     }),
@@ -167,7 +170,7 @@ export const authRouter = router({
         const result = await updateFavoriteOrder(ctx.user.id, input.menuPath, input.newOrder);
         return { success: result };
       } catch (error) {
-        console.error("Failed to update favorite order:", error);
+        log.error({ err: error }, "Failed to update favorite order");
         return { success: false, error: "Failed to update favorite order" };
       }
     }),
@@ -185,7 +188,7 @@ export const authRouter = router({
         }
         return { success: true };
       } catch (error) {
-        console.error("Failed to reorder favorites:", error);
+        log.error({ err: error }, "Failed to reorder favorites");
         return { success: false, error: "Failed to reorder favorites" };
       }
     }),

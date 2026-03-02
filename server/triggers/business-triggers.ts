@@ -19,6 +19,9 @@ import {
   ApprovalEvent,
   SystemEvent,
 } from "../business-notifications";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("triggers");
 
 // 通知开关配置（可从数据库读取）
 interface NotificationSettings {
@@ -65,10 +68,10 @@ export async function triggerProjectGateChange(params: {
 
   try {
     await notifyProjectGateChange(params);
-    console.log(`[Trigger] 项目阶段变更通知已发送: ${params.projectName}`);
+    log.info({ projectName: params.projectName }, "项目阶段变更通知已发送");
     return true;
   } catch (error) {
-    console.error(`[Trigger] 项目阶段变更通知发送失败:`, error);
+    log.error({ err: error }, "项目阶段变更通知发送失败");
     return false;
   }
 }
@@ -91,10 +94,10 @@ export async function triggerCostAlert(params: {
 
   try {
     await notifyCostAlert(params);
-    console.log(`[Trigger] 成本预警通知已发送: ${params.projectName}`);
+    log.info({ projectName: params.projectName }, "成本预警通知已发送");
     return true;
   } catch (error) {
-    console.error(`[Trigger] 成本预警通知发送失败:`, error);
+    log.error({ err: error }, "成本预警通知发送失败");
     return false;
   }
 }
@@ -126,10 +129,10 @@ export async function triggerServiceTicket(params: {
       assignee: params.assignee,
       dueDate: params.createTime,
     });
-    console.log(`[Trigger] 售后工单通知已发送: ${params.ticketId}`);
+    log.info({ ticketId: params.ticketId }, "售后工单通知已发送");
     return true;
   } catch (error) {
-    console.error(`[Trigger] 售后工单通知发送失败:`, error);
+    log.error({ err: error }, "售后工单通知发送失败");
     return false;
   }
 }
@@ -162,10 +165,10 @@ export async function triggerQCAlert(params: {
       defectTypes: [params.defectType],
       severity: params.defectCount > params.totalCount * 0.1 ? 'critical' : 'major',
     });
-    console.log(`[Trigger] 质检异常通知已发送: ${params.batchNumber}`);
+    log.info({ batchNumber: params.batchNumber }, "质检异常通知已发送");
     return true;
   } catch (error) {
-    console.error(`[Trigger] 质检异常通知发送失败:`, error);
+    log.error({ err: error }, "质检异常通知发送失败");
     return false;
   }
 }
@@ -198,10 +201,10 @@ export async function triggerInterview(params: {
       location: params.location,
       notes: params.meetingLink ? `会议链接: ${params.meetingLink}` : undefined,
     });
-    console.log(`[Trigger] 面试安排通知已发送: ${params.candidateName}`);
+    log.info({ candidateName: params.candidateName }, "面试安排通知已发送");
     return true;
   } catch (error) {
-    console.error(`[Trigger] 面试安排通知发送失败:`, error);
+    log.error({ err: error }, "面试安排通知发送失败");
     return false;
   }
 }
@@ -234,10 +237,10 @@ export async function triggerApproval(params: {
       approver: params.currentApprover,
       deadline: params.submitTime,
     });
-    console.log(`[Trigger] 审批流程通知已发送: ${params.title}`);
+    log.info({ title: params.title }, "审批流程通知已发送");
     return true;
   } catch (error) {
-    console.error(`[Trigger] 审批流程通知发送失败:`, error);
+    log.error({ err: error }, "审批流程通知发送失败");
     return false;
   }
 }
@@ -265,10 +268,10 @@ export async function triggerSystemEvent(params: {
       severity: params.severity,
       affectedServices: params.affectedServices,
     });
-    console.log(`[Trigger] 系统事件通知已发送: ${params.title}`);
+    log.info({ title: params.title }, "系统事件通知已发送");
     return true;
   } catch (error) {
-    console.error(`[Trigger] 系统事件通知发送失败:`, error);
+    log.error({ err: error }, "系统事件通知发送失败");
     return false;
   }
 }

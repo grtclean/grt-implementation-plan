@@ -11,6 +11,9 @@
  */
 
 import { env } from '../_core/env';
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("wecom");
 
 // 企业微信API基础URL
 const WECOM_API_BASE = 'https://qyapi.weixin.qq.com/cgi-bin';
@@ -64,7 +67,7 @@ export async function getAccessToken(config: WeComConfig): Promise<string> {
 
     return tokenCache.accessToken;
   } catch (error) {
-    console.error('获取企业微信访问令牌失败:', error);
+    log.error({ err: error }, "获取企业微信访问令牌失败");
     throw error;
   }
 }
@@ -94,10 +97,10 @@ export async function getGroupList(config: WeComConfig): Promise<WeComGroup[]> {
     // 注意：企业微信没有直接获取所有群聊列表的API
     // 需要通过其他方式获取群聊ID，然后逐个查询
     // 这里返回模拟数据，实际使用时需要根据业务逻辑调整
-    console.log('企业微信群聊列表API需要先知道chat_id');
+    log.info("企业微信群聊列表API需要先知道chat_id");
     return [];
   } catch (error) {
-    console.error('获取企业微信群聊列表失败:', error);
+    log.error({ err: error }, "获取企业微信群聊列表失败");
     throw error;
   }
 }
@@ -124,7 +127,7 @@ export async function getGroupDetail(config: WeComConfig, chatId: string): Promi
     };
 
     if (data.errcode !== 0) {
-      console.error(`获取群聊详情失败: ${data.errmsg}`);
+      log.error({ errmsg: data.errmsg }, "获取群聊详情失败");
       return null;
     }
 
@@ -136,7 +139,7 @@ export async function getGroupDetail(config: WeComConfig, chatId: string): Promi
       create_time: Date.now()
     };
   } catch (error) {
-    console.error('获取企业微信群聊详情失败:', error);
+    log.error({ err: error }, "获取企业微信群聊详情失败");
     throw error;
   }
 }
@@ -173,13 +176,13 @@ export async function sendGroupMessage(
     const data = await response.json() as { errcode: number; errmsg: string };
 
     if (data.errcode !== 0) {
-      console.error(`发送群消息失败: ${data.errmsg}`);
+      log.error({ errmsg: data.errmsg }, "发送群消息失败");
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('发送企业微信群消息失败:', error);
+    log.error({ err: error }, "发送企业微信群消息失败");
     return false;
   }
 }
@@ -205,13 +208,13 @@ export async function getDepartmentUsers(config: WeComConfig, departmentId: numb
     };
 
     if (data.errcode !== 0) {
-      console.error(`获取部门成员失败: ${data.errmsg}`);
+      log.error({ errmsg: data.errmsg }, "获取部门成员失败");
       return [];
     }
 
     return data.userlist || [];
   } catch (error) {
-    console.error('获取企业微信部门成员失败:', error);
+    log.error({ err: error }, "获取企业微信部门成员失败");
     return [];
   }
 }
@@ -228,7 +231,7 @@ export function verifyCallback(
 ): string | null {
   // 实际实现需要使用企业微信提供的加解密库
   // 这里仅作为示例
-  console.log('企业微信回调验证需要使用官方加解密库');
+  log.info("企业微信回调验证需要使用官方加解密库");
   return echostr;
 }
 
@@ -253,7 +256,7 @@ export function parseMessage(
 ): WeComMessage | null {
   // 实际实现需要使用企业微信提供的加解密库
   // 这里仅作为示例
-  console.log('企业微信消息解析需要使用官方加解密库');
+  log.info("企业微信消息解析需要使用官方加解密库");
   return null;
 }
 

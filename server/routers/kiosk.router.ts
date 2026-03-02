@@ -10,6 +10,9 @@
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { protectedProcedure, router } from "../_core/trpc";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("kiosk");
 
 // ── QR session in-memory store (ephemeral, no DB needed) ──
 const qrSessions = new Map<string, {
@@ -97,7 +100,7 @@ export const kioskRouter = router({
 
         return { operator, qualificationStatus };
       } catch (err) {
-        console.error("[Kiosk] identifyOperator error:", err);
+        log.error({ err }, "identifyOperator error");
         return { operator: null, qualificationStatus: "error" as const };
       }
     }),
@@ -151,7 +154,7 @@ export const kioskRouter = router({
 
         return { tasks };
       } catch (err) {
-        console.error("[Kiosk] getStationQueue error:", err);
+        log.error({ err }, "getStationQueue error");
         return { tasks: [] };
       }
     }),
@@ -211,7 +214,7 @@ export const kioskRouter = router({
                       ${"open"}, ${now}, ${now})
             `);
           } catch (defectErr) {
-            console.error("[Kiosk] createDefect error:", defectErr);
+            log.error({ err: defectErr }, "createDefect error");
           }
         }
 
@@ -279,14 +282,15 @@ export const kioskRouter = router({
                       ${input.remark || null}, NOW(), NOW())
             `);
           }
-          console.log(`[Kiosk] execution_logs record created for barcode=${input.materialBarcode}`);
+          log.info({ barcode: input.materialBarcode }, "execution_logs record created");
         } catch (execLogErr) {
           // Non-blocking: execution_logs insert failure should not break the inspection flow
-          console.error("[Kiosk] execution_logs insert error (non-blocking):", execLogErr);
+          log.error({ err: execLogErr }, "execution_logs insert error (non-blocking)");
         }
 
-        console.log(
-          `[Kiosk] Inspection submitted: project=${input.projectId}, process=${input.processCode}, result=${input.result}, operator=${ctx.user.id}, station=${input.stationId}, barcode=${input.materialBarcode}`
+        log.info(
+          { projectId: input.projectId, processCode: input.processCode, result: input.result, operatorId: ctx.user.id, stationId: input.stationId, barcode: input.materialBarcode },
+          "inspection submitted"
         );
 
         return {
@@ -295,7 +299,7 @@ export const kioskRouter = router({
           nextAction: input.result === "fail" ? "review_required" : "continue",
         };
       } catch (err) {
-        console.error("[Kiosk] submitInspection error:", err);
+        log.error({ err }, "submitInspection error");
         return { success: false, inspectionId: 0, nextAction: "error" };
       }
     }),
@@ -394,7 +398,7 @@ export const kioskRouter = router({
           })),
         };
       } catch (err) {
-        console.error("[Kiosk] getStationSOP error:", err);
+        log.error({ err }, "getStationSOP error");
         return { sop: null, steps: [], checkpoints: [] };
       }
     }),
@@ -445,13 +449,14 @@ export const kioskRouter = router({
           };
         }
 
-        console.log(
-          `[Kiosk] Operator ${ctx.user.id} punched in at station ${input.stationId} for process ${input.processCode}`
+        log.info(
+          { operatorId: ctx.user.id, stationId: input.stationId, processCode: input.processCode },
+          "operator punched in"
         );
 
         return { allowed: true };
       } catch (err) {
-        console.error("[Kiosk] operatorPunchIn error:", err);
+        log.error({ err }, "operatorPunchIn error");
         return { allowed: true, reason: "资质验证服务异常，默认放行" };
       }
     }),
@@ -523,7 +528,7 @@ export const kioskRouter = router({
 
         return { success: true, operatorName: user.name || input.employeeId, stationId: session.stationId, error: null };
       } catch (err) {
-        console.error("[Kiosk] confirmQrSession error:", err);
+        log.error({ err }, "confirmQrSession error");
         return { success: false, operatorName: null, stationId: session.stationId, error: "服务器错误" };
       }
     }),

@@ -7,6 +7,9 @@ import { eq, and } from "drizzle-orm";
 import { requireDb } from "../db";
 import { projectsV2, projectStagesV2, stageReviews } from "../../drizzle/schema";
 import { sendNotification, NotificationTemplates, type NotificationConfig } from "./notification.service";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("stage-gate");
 
 // 阶段推进规则定义
 const STAGE_ADVANCE_RULES: Record<string, {
@@ -228,7 +231,7 @@ export async function autoAdvanceStage(
       auditLog,
     };
   } catch (error) {
-    console.error('[StageGate] 自动推进失败:', error);
+    log.error({ err: error }, "Auto-advance failed");
     return {
       success: false,
       fromStage: currentStage,
@@ -268,7 +271,7 @@ async function sendStageAdvanceNotification(
     ].filter(c => c.webhookUrl);
 
     if (configs.length === 0) {
-      console.log('[StageGate] 未配置通知渠道，跳过通知发送');
+      log.info("No notification channels configured, skipping notification");
       return;
     }
 
@@ -284,7 +287,7 @@ async function sendStageAdvanceNotification(
       await sendNotification(config, message);
     }
   } catch (error) {
-    console.error('[StageGate] 发送通知失败:', error);
+    log.error({ err: error }, "Failed to send notification");
   }
 }
 
@@ -308,35 +311,35 @@ export async function executeAutoTriggers(
       switch (trigger) {
         case '生成AI版本建议':
           // TODO: 调用AI版本生成服务
-          console.log(`[StageGate] 执行触发器: ${trigger}`);
+          log.info({ trigger }, "Executing trigger");
           executedTriggers.push(trigger);
           break;
         case '创建设计任务清单':
           // TODO: 创建设计任务
-          console.log(`[StageGate] 执行触发器: ${trigger}`);
+          log.info({ trigger }, "Executing trigger");
           executedTriggers.push(trigger);
           break;
         case '生成采购建议草案':
           // TODO: 调用采购建议生成服务
-          console.log(`[StageGate] 执行触发器: ${trigger}`);
+          log.info({ trigger }, "Executing trigger");
           executedTriggers.push(trigger);
           break;
         case '冻结BOM版本':
           // TODO: 冻结BOM
-          console.log(`[StageGate] 执行触发器: ${trigger}`);
+          log.info({ trigger }, "Executing trigger");
           executedTriggers.push(trigger);
           break;
         case '创建MES生产工单':
           // TODO: 调用MES工单创建服务
-          console.log(`[StageGate] 执行触发器: ${trigger}`);
+          log.info({ trigger }, "Executing trigger");
           executedTriggers.push(trigger);
           break;
         default:
-          console.log(`[StageGate] 未知触发器: ${trigger}`);
+          log.info({ trigger }, "Unknown trigger");
           executedTriggers.push(trigger);
       }
     } catch (error) {
-      console.error(`[StageGate] 触发器执行失败: ${trigger}`, error);
+      log.error({ err: error, trigger }, "Trigger execution failed");
       failedTriggers.push(trigger);
     }
   }

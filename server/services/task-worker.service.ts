@@ -8,6 +8,9 @@ import { requireDb } from "../db";
 import { aiTasks } from "../../drizzle/schema";
 import { eq, and, sql, lt, or, isNull } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { createChildLogger } from "../lib/logger";
+
+const log = createChildLogger("task-worker");
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -43,7 +46,7 @@ const workerId = `worker-${uuidv4().slice(0, 8)}`;
  */
 export function registerTaskHandler(taskType: string, handler: TaskHandler): void {
   handlers.set(taskType, handler);
-  console.log(`[TaskWorker] Registered handler: ${taskType}`);
+  log.info({ taskType }, "Registered handler");
 }
 
 /**
@@ -51,22 +54,22 @@ export function registerTaskHandler(taskType: string, handler: TaskHandler): voi
  */
 export function startTaskWorker(overrides?: Partial<WorkerConfig>): void {
   if (pollTimer) {
-    console.warn("[TaskWorker] Already running");
+    log.warn("Already running");
     return;
   }
 
   config = { ...DEFAULT_CONFIG, ...overrides };
-  console.log(`[TaskWorker] Starting (id=${workerId}, poll=${config.pollIntervalMs}ms, concurrency=${config.concurrency})`);
+  log.info({ workerId, pollIntervalMs: config.pollIntervalMs, concurrency: config.concurrency }, "Starting worker");
 
   pollTimer = setInterval(() => {
     pollAndProcess().catch(err => {
-      console.error("[TaskWorker] Poll error:", err);
+      log.error({ err }, "Poll error");
     });
   }, config.pollIntervalMs);
 
   // Also run immediately
   pollAndProcess().catch(err => {
-    console.error("[TaskWorker] Initial poll error:", err);
+    log.error({ err }, "Initial poll error");
   });
 }
 
@@ -77,7 +80,7 @@ export function stopTaskWorker(): void {
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;
-    console.log("[TaskWorker] Stopped");
+    log.info("Stopped");
   }
 }
 
@@ -179,7 +182,7 @@ async function pollAndProcess(): Promise<void> {
       });
     }
   } catch (err) {
-    console.error("[TaskWorker] Claim error:", err);
+    log.error({ err }, "Claim error");
   }
 }
 
@@ -190,7 +193,7 @@ async function processTask(
 ): Promise<void> {
   const handler = handlers.get(taskType);
   if (!handler) {
-    console.warn(`[TaskWorker] No handler for ${taskType}, skipping task ${taskId}`);
+    log.warn({ taskType, taskId }, "No handler found, skipping task");
     return;
   }
 
@@ -216,7 +219,7 @@ async function processTask(
 
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error(`[TaskWorker] Task ${taskId} (${taskType}) failed:`, message);
+    log.error({ taskId, taskType, message }, "Task failed");
 
     // Check retry
     const [task] = await db.select({
@@ -236,7 +239,7 @@ async function processTask(
         workerLockId: null,
         timeoutAt: null,
       }).where(eq(aiTasks.id, taskId));
-      console.log(`[TaskWorker] Task ${taskId} retrying (${retryCount}/${maxRetries})`);
+      log.info({ taskId, retryCount, maxRetries }, "Task retrying");
     } else {
       // Final failure
       await db.update(aiTasks).set({
