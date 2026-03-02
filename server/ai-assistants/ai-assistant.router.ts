@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { jsonValue } from '../../shared/validators';
 import { router, protectedProcedure } from '../_core/trpc';
 import {
   createEmployeeDA,
@@ -120,7 +121,7 @@ export const aiAssistantRouter = router({
       mode: z.enum(['internal', 'generative']),
       processType: z.string(),
       processId: z.string(),
-      context: z.record(z.string(), z.any()).optional(),
+      context: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ input }) => {
       return generateAiSuggestion(
@@ -171,7 +172,7 @@ export const aiAssistantRouter = router({
     .input(z.object({
       logId: z.number(),
       status: z.enum(['pending', 'running', 'success', 'partial_success', 'failed']),
-      result: z.record(z.string(), z.any()).optional(),
+      result: z.record(z.string(), jsonValue).optional(),
       error: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
@@ -211,7 +212,7 @@ export const aiAssistantRouter = router({
     }),
 
   createAssistant: protectedProcedure
-    .input(z.record(z.string(), z.unknown()).optional())
+    .input(z.record(z.string(), jsonValue).optional())
     .mutation(async () => {
       return { success: true, id: `ast_${Date.now()}` };
     }),

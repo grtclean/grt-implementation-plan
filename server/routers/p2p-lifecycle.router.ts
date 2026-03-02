@@ -8,6 +8,7 @@
  *   quality loss agreements, quality loss incidents
  */
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
@@ -90,7 +91,7 @@ const frameworkAgreementRouter = router({
       title: z.string().optional(),
       startDate: z.string(),
       endDate: z.string(),
-      pricingItems: z.union([z.string(), z.array(z.record(z.string(), z.unknown()))]).optional(),
+      pricingItems: z.union([z.string(), z.array(z.record(z.string(), jsonValue))]).optional(),
       totalBudget: z.string().optional(),
       paymentTerms: z.string().optional(),
       currency: z.string().optional(),
@@ -109,7 +110,7 @@ const frameworkAgreementRouter = router({
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       title: z.string().optional(),
-      pricingItems: z.array(z.record(z.string(), z.unknown())).optional(),
+      pricingItems: z.array(z.record(z.string(), jsonValue)).optional(),
       totalBudget: z.string().optional(),
       paymentTerms: z.string().optional(),
       notes: z.string().optional(),
@@ -181,7 +182,7 @@ const rfqRouter = router({
       unit: z.string().optional(),
       biddingType: z.enum(["sealed", "open", "reverse", "negotiated"]).optional(),
       deadline: z.string().optional(),
-      evaluationCriteria: z.array(z.record(z.string(), z.unknown())).optional(),
+      evaluationCriteria: z.array(z.record(z.string(), jsonValue)).optional(),
       invitedSupplierIds: z.array(z.number()).optional(),
       frameworkAgreementId: z.number().optional(),
       notes: z.string().optional(),
@@ -384,7 +385,7 @@ const deliveryRouter = router({
       deliveredQuantity: z.string().optional(),
       unit: z.string().optional(),
       trackingNumber: z.string().optional(),
-      packingList: z.array(z.record(z.string(), z.unknown())).optional(),
+      packingList: z.array(z.record(z.string(), jsonValue)).optional(),
       testReportUrls: z.array(z.string()).optional(),
       receivedByName: z.string().optional(),
       notes: z.string().optional(),

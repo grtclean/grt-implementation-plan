@@ -48,15 +48,15 @@ const createConfigSchema = z.object({
 
   redTeamLeaderId: z.number().int().optional(),
   redTeamLeaderName: z.string().max(128).optional(),
-  redTeamMembers: z.array(z.record(z.string(), z.unknown())).optional(),
+  redTeamMembers: z.array(z.record(z.string(), jsonValue)).optional(),
   redTeamObjectives: z.string().optional(),
-  redTeamScenarios: z.array(z.record(z.string(), z.unknown())).optional(),
+  redTeamScenarios: z.array(z.record(z.string(), jsonValue)).optional(),
 
   blueTeamLeaderId: z.number().int().optional(),
   blueTeamLeaderName: z.string().max(128).optional(),
-  blueTeamMembers: z.array(z.record(z.string(), z.unknown())).optional(),
+  blueTeamMembers: z.array(z.record(z.string(), jsonValue)).optional(),
   blueTeamObjectives: z.string().optional(),
-  blueTeamResources: z.array(z.record(z.string(), z.unknown())).optional(),
+  blueTeamResources: z.array(z.record(z.string(), jsonValue)).optional(),
 
   schedule: jsonValue.optional(),
   evaluationCriteria: jsonValue.optional(),
@@ -78,15 +78,15 @@ const updateConfigSchema = z.object({
 
   redTeamLeaderId: z.number().int().nullable().optional(),
   redTeamLeaderName: z.string().max(128).nullable().optional(),
-  redTeamMembers: z.array(z.record(z.string(), z.unknown())).optional(),
+  redTeamMembers: z.array(z.record(z.string(), jsonValue)).optional(),
   redTeamObjectives: z.string().nullable().optional(),
-  redTeamScenarios: z.array(z.record(z.string(), z.unknown())).optional(),
+  redTeamScenarios: z.array(z.record(z.string(), jsonValue)).optional(),
 
   blueTeamLeaderId: z.number().int().nullable().optional(),
   blueTeamLeaderName: z.string().max(128).nullable().optional(),
-  blueTeamMembers: z.array(z.record(z.string(), z.unknown())).optional(),
+  blueTeamMembers: z.array(z.record(z.string(), jsonValue)).optional(),
   blueTeamObjectives: z.string().nullable().optional(),
-  blueTeamResources: z.array(z.record(z.string(), z.unknown())).optional(),
+  blueTeamResources: z.array(z.record(z.string(), jsonValue)).optional(),
 
   schedule: jsonValue.optional(),
   evaluationCriteria: jsonValue.optional(),

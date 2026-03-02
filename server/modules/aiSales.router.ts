@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { invokeLLM } from "../_core/llm";
@@ -367,7 +368,7 @@ export const aiSalesRouter = router({
       entityType: z.enum(['company', 'product', 'project', 'employee']),
       entityId: z.number(),
       entityName: z.string().optional(),
-      publicInputs: z.record(z.string(), z.any()),
+      publicInputs: z.record(z.string(), jsonValue),
       expiresInDays: z.number().default(365),
     }))
     .mutation(async ({ input }) => {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
@@ -20,7 +21,7 @@ export const expenseReportSchedulerRouter = router({
     name: z.string().min(1).max(200),
     description: z.string().max(2000).optional(),
     frequency: z.string().max(50).optional(),
-    config: z.record(z.string(), z.unknown()).optional(),
+    config: z.record(z.string(), jsonValue).optional(),
   })).mutation(async () => {
     return successResponse;
   }),
@@ -31,7 +32,7 @@ export const expenseReportSchedulerRouter = router({
     name: z.string().min(1).max(200).optional(),
     description: z.string().max(2000).optional(),
     frequency: z.string().max(50).optional(),
-    config: z.record(z.string(), z.unknown()).optional(),
+    config: z.record(z.string(), jsonValue).optional(),
   })).mutation(async () => {
     return successResponse;
   }),
@@ -53,7 +54,7 @@ export const expenseReportSchedulerRouter = router({
     frequency: z.enum(["daily", "weekly", "monthly", "quarterly"]),
     cronExpression: z.string().max(100).optional(),
     enabled: z.boolean().optional(),
-    reportConfig: z.record(z.string(), z.unknown()).optional(),
+    reportConfig: z.record(z.string(), jsonValue).optional(),
     recipients: z.array(z.object({
       type: z.string().max(50),
       target: z.string().max(500),
@@ -72,7 +73,7 @@ export const expenseReportSchedulerRouter = router({
     name: z.string().min(1).max(200).optional(),
     description: z.string().max(2000).optional(),
     frequency: z.enum(["daily", "weekly", "monthly", "quarterly"]).optional(),
-    reportConfig: z.record(z.string(), z.unknown()).optional(),
+    reportConfig: z.record(z.string(), jsonValue).optional(),
   })).mutation(async () => {
     return successResponse;
   }),

@@ -1402,7 +1402,7 @@ function CreateAssetDialog({
       tags: form.tags.trim() ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : undefined,
       storageUrl: `pending://upload/${Date.now()}`,
       sha256Hash: "0000000000000000000000000000000000000000000000000000000000000000",
-      metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+      metadata: Object.keys(metadata).length > 0 ? metadata as any : undefined,
     });
   };
 

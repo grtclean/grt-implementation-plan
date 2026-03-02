@@ -258,8 +258,8 @@ export default function TrainingManagement() {
                         description: formData.get("description") as string || undefined,
                         externalTrainer: formData.get("trainer") as string || undefined,
                         trainingOrg: formData.get("location") as string || undefined,
-                        plannedStartDate: new Date(formData.get("startTime") as string),
-                        plannedEndDate: new Date(formData.get("endTime") as string),
+                        plannedStartDate: new Date(formData.get("startTime") as string).toISOString(),
+                        plannedEndDate: new Date(formData.get("endTime") as string).toISOString(),
                         maxParticipants: parseInt(formData.get("maxParticipants") as string) || undefined,
                       });
                     }}

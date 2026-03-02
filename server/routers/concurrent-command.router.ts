@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { protectedProcedure, router } from "../_core/trpc";
 import { broadcastToWorkspace } from "../services/websocket.service";
 import { requireDb } from "../db";
@@ -543,7 +544,7 @@ export const concurrentCommandRouter = router({
     .input(z.object({
       id: z.number(),
       resultSummary: z.string().min(1),
-      resultEvidence: z.record(z.string(), z.unknown()).optional(),
+      resultEvidence: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();

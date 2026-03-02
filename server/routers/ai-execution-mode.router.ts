@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import {
   executeAI,
@@ -118,12 +119,12 @@ export const aiExecutionModeRouter = router({
   
   // 创建（兼容占位符接口）
   create: protectedProcedure
-    .input(z.object({ name: z.string().optional(), mode: z.string().optional(), config: z.record(z.string(), z.unknown()).optional() }))
+    .input(z.object({ name: z.string().optional(), mode: z.string().optional(), config: z.record(z.string(), jsonValue).optional() }))
     .mutation(() => ({ success: true })),
 
   // 更新（兼容占位符接口）
   update: protectedProcedure
-    .input(z.object({ id: z.string(), name: z.string().optional(), mode: z.string().optional(), config: z.record(z.string(), z.unknown()).optional() }))
+    .input(z.object({ id: z.string(), name: z.string().optional(), mode: z.string().optional(), config: z.record(z.string(), jsonValue).optional() }))
     .mutation(() => ({ success: true })),
   
   // 删除（兼容占位符接口）

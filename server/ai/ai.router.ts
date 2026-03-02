@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import {
   analyzeSemantics,
@@ -45,7 +46,7 @@ export const aiRouter = router({
     .input(
       z.object({
         type: z.enum(["project", "cost", "quality", "delivery", "security"]),
-        data: z.record(z.string(), z.any()),
+        data: z.record(z.string(), jsonValue),
         context: z.string().optional(),
       })
     )
@@ -78,7 +79,7 @@ export const aiRouter = router({
     .input(
       z.object({
         formType: z.string(),
-        formData: z.record(z.string(), z.any()),
+        formData: z.record(z.string(), jsonValue),
         rules: z.array(z.string()).optional(),
       })
     )

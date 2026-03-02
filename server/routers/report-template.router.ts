@@ -91,7 +91,7 @@ export const reportTemplateRouter = router({
   // 生成报表
   generate: protectedProcedure.input(z.object({
     templateId: z.union([z.string(), z.number()]),
-    params: z.record(z.string(), z.unknown()).optional(),
+    params: z.record(z.string(), jsonValue).optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [template] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, toNum(input.templateId))).limit(1000);

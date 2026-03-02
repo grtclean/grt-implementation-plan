@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { costAlertRuleTemplates } from "../../drizzle/schema";
@@ -45,7 +46,7 @@ export const ruleTemplateRouter = router({
     description: z.string().max(1000).optional(),
     templateType: z.string().max(50).optional(),
     category: z.string().max(50).optional(),
-    ruleConfig: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+    ruleConfig: jsonValue.optional(),
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [template] = await db.insert(costAlertRuleTemplates).values({
@@ -64,7 +65,7 @@ export const ruleTemplateRouter = router({
     id: z.union([z.string(), z.number()]),
     name: z.string().max(200).optional(),
     description: z.string().max(1000).optional(),
-    ruleConfig: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+    ruleConfig: jsonValue.optional(),
     isActive: z.union([z.boolean(), z.number()]).optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
@@ -88,7 +89,7 @@ export const ruleTemplateRouter = router({
     name: z.string().max(200).optional(),
     description: z.string().max(1000).optional(),
     category: z.string().max(50).optional(),
-    ruleConfig: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+    ruleConfig: jsonValue.optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [template] = await db.insert(costAlertRuleTemplates).values({

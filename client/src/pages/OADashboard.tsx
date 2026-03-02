@@ -500,7 +500,7 @@ export default function OADashboard() {
 
       {/* Dialogs */}
       <NewWorkflowDialog open={showNewWorkflow} onOpenChange={setShowNewWorkflow}
-        onSubmit={(data) => createWorkflowMut.mutate(data)} isPending={createWorkflowMut.isPending} />
+        onSubmit={(data) => createWorkflowMut.mutate(data as any)} isPending={createWorkflowMut.isPending} />
       <TripReportSheet report={selectedReport} open={!!selectedReport}
         onOpenChange={(open) => !open && setSelectedReport(null)} />
     </div>

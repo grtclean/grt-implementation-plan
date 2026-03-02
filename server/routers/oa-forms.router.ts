@@ -10,6 +10,7 @@
  */
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import {
@@ -105,8 +106,8 @@ export const oaFormsRouter = router({
         category: z.string().optional(),
         icon: z.string().optional(),
         color: z.string().optional(),
-        fields: z.array(z.record(z.string(), z.unknown())),
-        approvalFlow: z.record(z.string(), z.unknown()).optional(),
+        fields: z.array(z.record(z.string(), jsonValue)),
+        approvalFlow: z.record(z.string(), jsonValue).optional(),
         isSystem: z.boolean().optional(),
       }),
     )
@@ -143,8 +144,8 @@ export const oaFormsRouter = router({
         category: z.string().optional(),
         icon: z.string().optional(),
         color: z.string().optional(),
-        fields: z.array(z.record(z.string(), z.unknown())).optional(),
-        approvalFlow: z.record(z.string(), z.unknown()).optional(),
+        fields: z.array(z.record(z.string(), jsonValue)).optional(),
+        approvalFlow: z.record(z.string(), jsonValue).optional(),
         isActive: z.boolean().optional(),
       }),
     )
@@ -288,7 +289,7 @@ export const oaFormsRouter = router({
         templateId: z.number(),
         departmentName: z.string().optional(),
         title: z.string(),
-        formData: z.record(z.string(), z.unknown()),
+        formData: z.record(z.string(), jsonValue),
         priority: z.string().optional(),
         linkedProjectId: z.number().optional(),
       }),

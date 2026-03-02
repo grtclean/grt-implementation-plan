@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { taskExecutionLogs } from "../../drizzle/schema";
@@ -26,9 +27,9 @@ export const taskExecutionLogRouter = router({
     taskType: z.string().optional(),
     cronExpression: z.string().optional(),
     status: z.string().optional(),
-    inputParams: z.unknown().optional(),
+    inputParams: jsonValue.optional(),
     triggeredBy: z.string().optional(),
-    metadata: z.unknown().optional(),
+    metadata: jsonValue.optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [log] = await db.insert(taskExecutionLogs).values({
@@ -51,7 +52,7 @@ export const taskExecutionLogRouter = router({
     status: z.string().optional(),
     endTime: z.string().optional(),
     duration: z.number().optional(),
-    outputResult: z.unknown().optional(),
+    outputResult: jsonValue.optional(),
     errorMessage: z.string().optional(),
     errorStack: z.string().optional(),
   })).mutation(async ({ input }) => {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { annualAgendas, annualMilestones, departmentAgendas } from "../../drizzle/schema";
@@ -21,7 +22,7 @@ export const agendaRouter = router({
     ];
   }),
 
-  getMeetings: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input }) => {
+  getMeetings: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const milestones = await db.select().from(annualMilestones).orderBy(annualMilestones.scheduledDate).limit(1000);
     return milestones;
@@ -106,7 +107,7 @@ export const agendaRouter = router({
     return { success: true, data: milestone };
   }),
 
-  createTraining: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).mutation(async () => {
+  createTraining: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).mutation(async () => {
     return { success: true, message: "培训已创建" };
   }),
 
@@ -170,7 +171,7 @@ export const agendaRouter = router({
     agendaId: z.number().optional(),
     milestoneId: z.union([z.string(), z.number()]).optional(),
     trainingId: z.union([z.string(), z.number()]).optional(),
-    departments: z.array(z.record(z.string(), z.unknown())).optional(),
+    departments: z.array(z.record(z.string(), jsonValue)).optional(),
     userIds: z.array(z.union([z.string(), z.number()])).optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();

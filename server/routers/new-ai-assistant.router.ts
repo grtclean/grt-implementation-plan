@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
@@ -16,13 +17,13 @@ export const newAiAssistantRouter = router({
     }),
 
   create: protectedProcedure
-    .input(z.object({ name: z.string().optional(), type: z.string().optional(), config: z.record(z.string(), z.unknown()).optional(), displayName: z.string().optional() }))
+    .input(z.object({ name: z.string().optional(), type: z.string().optional(), config: z.record(z.string(), jsonValue).optional(), displayName: z.string().optional() }))
     .mutation(() => {
       return successResponse;
     }),
 
   update: protectedProcedure
-    .input(z.object({ id: z.string(), name: z.string().optional(), config: z.record(z.string(), z.unknown()).optional(), displayName: z.string().optional() }))
+    .input(z.object({ id: z.string(), name: z.string().optional(), config: z.record(z.string(), jsonValue).optional(), displayName: z.string().optional() }))
     .mutation(() => {
       return successResponse;
     }),

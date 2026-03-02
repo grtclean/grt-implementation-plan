@@ -3,6 +3,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { protectedProcedure, router } from "../_core/trpc";
 import {
   createQualityCheckpoint,
@@ -88,7 +89,7 @@ export const qualityMaterialPerformanceRouter = router({
       result: z.enum(['pass', 'fail', 'conditional_pass', 'pending']),
       score: z.number().optional(),
       ccdImageUrl: z.string().optional(),
-      ccdAnalysisData: z.record(z.string(), z.unknown()).optional(),
+      ccdAnalysisData: z.record(z.string(), jsonValue).optional(),
       defectCount: z.number().optional(),
       remarks: z.string().optional(),
       // IATF 16949 traceability fields (optional, injected by kiosk)

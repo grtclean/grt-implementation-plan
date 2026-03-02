@@ -8,7 +8,7 @@ import { jsonValue } from "../../shared/validators";
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 const successResponse = { success: true, message: "操作成功" };
 /** Stub procedures accept any object shape — will be replaced with proper schemas when implemented */
-const stubInput = z.record(z.string(), z.unknown()).optional();
+const stubInput = z.record(z.string(), jsonValue).optional();
 
 // ─── Bootstrap: seed capability certificate + path recommendation data ───
 let _capCertReady = false;

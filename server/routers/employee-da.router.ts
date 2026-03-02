@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
@@ -20,13 +21,13 @@ export const employeeDARouter = router({
     }),
 
   create: protectedProcedure
-    .input(z.object({ name: z.string().optional(), type: z.string().optional(), config: z.record(z.string(), z.unknown()).optional(), employeeId: z.string().optional(), assistantCode: z.string().optional(), displayName: z.string().optional(), workHabits: z.string().optional(), preferences: z.string().optional(), expertise: z.string().optional(), communicationStyle: z.string().optional(), canTaskAssist: z.boolean().optional(), canScheduleManage: z.boolean().optional(), canDocumentDraft: z.boolean().optional(), canDataAnalysis: z.boolean().optional(), canCommunicationProxy: z.boolean().optional() }))
+    .input(z.object({ name: z.string().optional(), type: z.string().optional(), config: z.record(z.string(), jsonValue).optional(), employeeId: z.string().optional(), assistantCode: z.string().optional(), displayName: z.string().optional(), workHabits: z.string().optional(), preferences: z.string().optional(), expertise: z.string().optional(), communicationStyle: z.string().optional(), canTaskAssist: z.boolean().optional(), canScheduleManage: z.boolean().optional(), canDocumentDraft: z.boolean().optional(), canDataAnalysis: z.boolean().optional(), canCommunicationProxy: z.boolean().optional() }))
     .mutation(() => {
       return successResponse;
     }),
 
   update: protectedProcedure
-    .input(z.object({ id: z.string(), name: z.string().optional(), config: z.record(z.string(), z.unknown()).optional(), displayName: z.string().optional(), workHabits: z.string().optional(), preferences: z.string().optional(), expertise: z.string().optional(), communicationStyle: z.string().optional(), canTaskAssist: z.boolean().optional(), canScheduleManage: z.boolean().optional(), canDocumentDraft: z.boolean().optional(), canDataAnalysis: z.boolean().optional(), canCommunicationProxy: z.boolean().optional() }))
+    .input(z.object({ id: z.string(), name: z.string().optional(), config: z.record(z.string(), jsonValue).optional(), displayName: z.string().optional(), workHabits: z.string().optional(), preferences: z.string().optional(), expertise: z.string().optional(), communicationStyle: z.string().optional(), canTaskAssist: z.boolean().optional(), canScheduleManage: z.boolean().optional(), canDocumentDraft: z.boolean().optional(), canDataAnalysis: z.boolean().optional(), canCommunicationProxy: z.boolean().optional() }))
     .mutation(() => {
       return successResponse;
     }),

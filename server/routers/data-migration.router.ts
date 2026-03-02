@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 
 // ────────────────── GRT Standard Field Schema ──────────────────
@@ -134,7 +135,7 @@ export const dataMigrationRouter = router({
   /** Analyze a dirty JSON payload and return AI-mapped field suggestions */
   analyzePayload: protectedProcedure
     .input(z.object({
-      data: z.array(z.record(z.string(), z.unknown())).min(1),
+      data: z.array(z.record(z.string(), jsonValue)).min(1),
       source: z.string().optional().default("manual"),
     }))
     .mutation(({ input }) => {
@@ -175,7 +176,7 @@ export const dataMigrationRouter = router({
   /** Commit analyzed data to sandbox (staging area) */
   commitToSandbox: protectedProcedure
     .input(z.object({
-      data: z.array(z.record(z.string(), z.unknown())),
+      data: z.array(z.record(z.string(), jsonValue)),
       fieldMappings: z.array(z.object({
         sourceField: z.string(),
         targetField: z.string(),

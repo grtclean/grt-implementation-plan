@@ -508,7 +508,7 @@ export default function DualAIMatrix() {
       rules: formRules || undefined,
       assignee: "Claude",
       geminiAnalysis: stagingTask
-        ? { suggestion: stagingTask, approvedAt: new Date().toISOString() }
+        ? { suggestion: stagingTask, approvedAt: new Date().toISOString() } as any
         : undefined,
     });
   }, [

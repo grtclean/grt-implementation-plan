@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { expenseClaims } from "../../drizzle/schema";
@@ -19,7 +20,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 对比查询
-  compare: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input, ctx }) => {
+  compare: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const role = ctx.user.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
@@ -29,7 +30,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 获取对比数据
-  getComparison: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input, ctx }) => {
+  getComparison: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const role = ctx.user.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
@@ -54,7 +55,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 月度趋势
-  getMonthlyTrend: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input, ctx }) => {
+  getMonthlyTrend: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const role = ctx.user.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
@@ -77,7 +78,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 季度对比
-  getQuarterComparison: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input, ctx }) => {
+  getQuarterComparison: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const role = ctx.user.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
@@ -100,7 +101,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 导出
-  expenseComparisonExport: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).mutation(async () => {
+  expenseComparisonExport: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).mutation(async () => {
     return { url: "" };
   }),
 });

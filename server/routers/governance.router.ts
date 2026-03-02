@@ -8,6 +8,7 @@
  *   Audit Logs        (3): list (paginated), create, stats
  */
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
@@ -87,7 +88,7 @@ export const governanceRouter = router({
         value: z.string().optional(),
         sortOrder: z.number().default(0),
         parentId: z.number().optional(),
-        metadata: z.record(z.string(), z.unknown()).optional(),
+        metadata: z.record(z.string(), jsonValue).optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -119,7 +120,7 @@ export const governanceRouter = router({
         value: z.string().optional(),
         sortOrder: z.number().optional(),
         parentId: z.number().nullable().optional(),
-        metadata: z.record(z.string(), z.unknown()).optional(),
+        metadata: z.record(z.string(), jsonValue).optional(),
         isActive: z.boolean().optional(),
       })
     )
@@ -259,7 +260,7 @@ export const governanceRouter = router({
         description: z.string().optional(),
         entityType: z.string().max(100).optional(),
         triggerConditions: z
-          .record(z.string(), z.unknown())
+          .record(z.string(), jsonValue)
           .optional(),
         isActive: z.boolean().default(true),
       })
@@ -294,7 +295,7 @@ export const governanceRouter = router({
         description: z.string().optional(),
         entityType: z.string().max(100).optional(),
         triggerConditions: z
-          .record(z.string(), z.unknown())
+          .record(z.string(), jsonValue)
           .optional(),
         isActive: z.boolean().optional(),
         version: z.number().optional(),
@@ -335,7 +336,7 @@ export const governanceRouter = router({
         workflowDefinitionId: z.union([z.string(), z.number()]),
         nodeType: z.enum(SYS_WORKFLOW_NODE_TYPES),
         name: z.string().min(1).max(200),
-        config: z.record(z.string(), z.unknown()).optional(),
+        config: z.record(z.string(), jsonValue).optional(),
         nextNodeIds: z.array(z.number()).optional(),
         sortOrder: z.number().default(0),
       })
@@ -374,7 +375,7 @@ export const governanceRouter = router({
         id: z.union([z.string(), z.number()]),
         nodeType: z.enum(SYS_WORKFLOW_NODE_TYPES).optional(),
         name: z.string().min(1).max(200).optional(),
-        config: z.record(z.string(), z.unknown()).optional(),
+        config: z.record(z.string(), jsonValue).optional(),
         nextNodeIds: z.array(z.number()).optional(),
         sortOrder: z.number().optional(),
       })
@@ -605,12 +606,12 @@ export const governanceRouter = router({
         entityType: z.string().min(1).max(100),
         entityId: z.number().optional(),
         action: z.enum(SYS_AUDIT_ACTIONS),
-        previousData: z.record(z.string(), z.unknown()).optional(),
-        newData: z.record(z.string(), z.unknown()).optional(),
+        previousData: z.record(z.string(), jsonValue).optional(),
+        newData: z.record(z.string(), jsonValue).optional(),
         ipAddress: z.string().max(45).optional(),
         userAgent: z.string().optional(),
         sessionId: z.string().max(100).optional(),
-        metadata: z.record(z.string(), z.unknown()).optional(),
+        metadata: z.record(z.string(), jsonValue).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {

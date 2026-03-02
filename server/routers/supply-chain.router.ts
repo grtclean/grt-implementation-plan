@@ -8,6 +8,7 @@
  *   scrap disposal, spare parts, supplier penalties, traceability
  */
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
@@ -248,7 +249,7 @@ const incomingInspectionRouter = router({
       testReportGrtMaterialMatch: z.boolean().optional(),
       testReportOrderMatch: z.boolean().optional(),
       controlPlanId: z.number().optional(),
-      measurementData: z.array(z.record(z.string(), z.unknown())).optional(),
+      measurementData: z.array(z.record(z.string(), jsonValue)).optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -280,7 +281,7 @@ const incomingInspectionRouter = router({
       disposition: z.enum(["accept", "reject", "rework", "return_to_supplier", "hold"]),
       dispositionReason: z.string().optional(),
       defectCount: z.number().optional(),
-      measurementData: z.array(z.record(z.string(), z.unknown())).optional(),
+      measurementData: z.array(z.record(z.string(), jsonValue)).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -809,7 +810,7 @@ const customerComplaintRouter = router({
       equipmentSerialNumber: z.string().optional(),
       severity: z.enum(["low", "medium", "high", "critical"]).default("medium"),
       description: z.string(),
-      affectedParts: z.array(z.record(z.string(), z.unknown())).optional(),
+      affectedParts: z.array(z.record(z.string(), jsonValue)).optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -983,7 +984,7 @@ const maintenanceRouter = router({
       id: z.union([z.string(), z.number()]),
       workPerformed: z.string().optional(),
       findings: z.string().optional(),
-      partsConsumed: z.array(z.record(z.string(), z.unknown())).optional(),
+      partsConsumed: z.array(z.record(z.string(), jsonValue)).optional(),
       laborCost: z.string().optional(),
       partsCost: z.string().optional(),
       nextMaintenanceDate: z.string().optional(),

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { leadImportLogs } from "../../drizzle/schema";
@@ -28,7 +29,7 @@ export const leadImportRouter = router({
 
   importFromCSV: protectedProcedure.input(z.object({
     fileName: z.string(),
-    data: z.array(z.record(z.string(), z.any())).optional(),
+    data: z.array(z.record(z.string(), jsonValue)).optional(),
     totalRows: z.number().optional(),
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();

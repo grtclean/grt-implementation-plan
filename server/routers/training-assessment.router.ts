@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { trainingAssessments, trainingAssessmentResults } from "../../drizzle/schema";
@@ -33,7 +34,7 @@ export const trainingAssessmentRouter = router({
     description: z.string().optional(),
     totalScore: z.number().optional(),
     passingScore: z.number().optional(),
-    questions: z.union([z.string(), z.array(z.unknown())]).optional(),
+    questions: jsonValue.optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [assessment] = await db.insert(trainingAssessments).values({
@@ -56,7 +57,7 @@ export const trainingAssessmentRouter = router({
     description: z.string().optional(),
     totalScore: z.number().optional(),
     passingScore: z.number().optional(),
-    questions: z.union([z.string(), z.array(z.unknown())]).optional(),
+    questions: jsonValue.optional(),
     status: z.string().optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();

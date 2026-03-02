@@ -158,7 +158,7 @@ export default function DataMigrationHub() {
     setIsAnalyzing(true);
     try {
       const result = await analyzeMutation.mutateAsync({
-        data: rawData,
+        data: rawData as any,
         source: uploadedFileName ?? "unknown",
       });
       setAnalysis(result as AnalysisResult);
@@ -207,7 +207,7 @@ export default function DataMigrationHub() {
         confidence: mappingOverrides[m.sourceField] ? 1.0 : m.confidence,
       }));
       const result = await commitMutation.mutateAsync({
-        data: rawData,
+        data: rawData as any,
         fieldMappings: effectiveMappings,
         source: uploadedFileName ?? "import",
       });

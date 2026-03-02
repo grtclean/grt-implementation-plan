@@ -3,6 +3,7 @@
  * IATF 16949 compliant 3D asset management, versioning, and audit
  */
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
@@ -114,7 +115,7 @@ export const digitalTwinRouter = router({
     vertexCount: z.number().optional(),
     faceCount: z.number().optional(),
     thumbnailUrl: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
+    metadata: z.record(z.string(), jsonValue).optional(),
   })).mutation(async ({ input, ctx }) => {
     return createAsset({ ...input, createdBy: ctx.user.id });
   }),

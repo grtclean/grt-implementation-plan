@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
@@ -16,13 +17,13 @@ export const notificationChannelTestRouter = router({
     }),
 
   create: protectedProcedure
-    .input(z.object({ channelType: z.string().optional(), name: z.string().optional(), config: z.record(z.string(), z.unknown()).optional() }))
+    .input(z.object({ channelType: z.string().optional(), name: z.string().optional(), config: z.record(z.string(), jsonValue).optional() }))
     .mutation(() => {
       return successResponse;
     }),
 
   update: protectedProcedure
-    .input(z.object({ id: z.string(), name: z.string().optional(), config: z.record(z.string(), z.unknown()).optional() }))
+    .input(z.object({ id: z.string(), name: z.string().optional(), config: z.record(z.string(), jsonValue).optional() }))
     .mutation(() => {
       return successResponse;
     }),

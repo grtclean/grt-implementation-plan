@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { analyticsEvents } from "../../drizzle/schema";
@@ -38,7 +39,7 @@ export const analyticsRouter = router({
   // 追踪事件
   track: protectedProcedure.input(z.object({
     eventType: z.string().optional(),
-    eventData: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+    eventData: jsonValue.optional(),
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [event] = await db.insert(analyticsEvents).values({

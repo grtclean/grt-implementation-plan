@@ -3,6 +3,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import * as commService from "./customerComm.service";
 
@@ -36,7 +37,7 @@ export const customerCommRouter = router({
         subject: z.string(),
         content: z.string().optional(),
         summary: z.string().optional(),
-        participants: z.record(z.string(), z.unknown()).optional(),
+        participants: z.record(z.string(), jsonValue).optional(),
         commDate: z.string(),
         duration: z.number().optional(),
         actionItems: z.string().optional(),

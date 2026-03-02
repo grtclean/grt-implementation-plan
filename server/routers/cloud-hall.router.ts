@@ -9,6 +9,7 @@
  *   updateSlideContext, heartbeat, endSession, listSessions, seedDemo
  */
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
@@ -261,7 +262,7 @@ export const cloudHallRouter = router({
           productName: z.string().optional(),
           productCategory: z.string().optional(),
           pageUrl: z.string().optional(),
-          customData: z.record(z.string(), z.unknown()).optional(),
+          customData: z.record(z.string(), jsonValue).optional(),
         }),
       })
     )

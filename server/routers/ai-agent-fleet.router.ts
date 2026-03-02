@@ -11,6 +11,7 @@
 
 import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { requireDb } from "../db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import {
@@ -181,7 +182,7 @@ export const aiAgentFleetRouter = router({
           "quality_inspection",
         ]),
         taskTitle: z.string().min(1),
-        taskInput: z.record(z.string(), z.unknown()).optional().default({}),
+        taskInput: z.record(z.string(), jsonValue).optional().default({}),
       }),
     )
     .mutation(async ({ input }) => {

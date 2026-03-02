@@ -9,6 +9,7 @@
  *   Stats      (1): getGenesisStats
  */
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
@@ -452,7 +453,7 @@ export const genesisRouter = router({
     .input(
       z.object({
         proposalId: z.union([z.string(), z.number()]),
-        proposedJsonDiff: z.record(z.string(), z.unknown()),
+        proposedJsonDiff: z.record(z.string(), jsonValue),
       })
     )
     .mutation(async ({ input }) => {
@@ -525,7 +526,7 @@ export const genesisRouter = router({
       z.object({
         proposalId: z.union([z.string(), z.number()]),
         content: z.string().min(1).max(10000),
-        metadata: z.record(z.string(), z.unknown()).optional(),
+        metadata: z.record(z.string(), jsonValue).optional(),
       })
     )
     .mutation(async ({ input }) => {

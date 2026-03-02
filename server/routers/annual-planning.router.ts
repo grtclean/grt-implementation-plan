@@ -13,6 +13,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, and, count, sql, ne } from "drizzle-orm";
@@ -298,7 +299,7 @@ export const annualPlanningRouter = router({
     category: z.string().optional(),
     name: z.string().optional(),
     description: z.string().optional(),
-    tasks: z.union([z.string(), z.array(z.record(z.string(), z.unknown()))]).optional(),
+    tasks: jsonValue.optional(),
     frequency: z.string().optional(),
     startDate: z.string().optional(),
     endDate: z.string().optional(),
@@ -356,7 +357,7 @@ export const annualPlanningRouter = router({
     category: z.string().optional(),
     name: z.string().optional(),
     description: z.string().optional(),
-    tasks: z.union([z.string(), z.array(z.record(z.string(), z.unknown()))]).optional(),
+    tasks: jsonValue.optional(),
     frequency: z.string().optional(),
     startDate: z.string().optional(),
     endDate: z.string().optional(),

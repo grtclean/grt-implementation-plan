@@ -196,7 +196,7 @@ export default function OAFormWorkbench() {
       await createSub.mutateAsync({
         templateId: selTpl.id,
         title: `${selTpl.templateName} - ${new Date().toLocaleDateString("zh-CN")}`,
-        formData: values, priority: "normal",
+        formData: values as any, priority: "normal",
       });
       setSuccess(true); subQ.refetch();
       setTimeout(() => { setTab("submissions"); setSelTpl(null); setSuccess(false); }, 1500);

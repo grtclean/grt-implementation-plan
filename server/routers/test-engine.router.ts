@@ -3,6 +3,7 @@
  * Reusable test plan management across domains: Software UAT, PLC, FAT/SAT, custom
  */
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
@@ -508,13 +509,13 @@ export const testEngineRouter = router({
   logAiGeneration: protectedProcedure.input(z.object({
     templateId: z.number().optional(),
     source: z.enum(['template_generation', 'test_suggestion', 'case_optimization', 'risk_analysis']),
-    promptInputConditions: z.record(z.string(), z.unknown()),
+    promptInputConditions: z.record(z.string(), jsonValue),
     modelUsed: z.string(),
     modelVersion: z.string().optional(),
     responseTokens: z.number().optional(),
     promptTokens: z.number().optional(),
     totalTokens: z.number().optional(),
-    generatedContent: z.record(z.string(), z.unknown()).optional(),
+    generatedContent: z.record(z.string(), jsonValue).optional(),
     confidenceScore: z.string().optional(),
     userAccepted: z.boolean().optional(),
     userModifications: z.string().optional(),

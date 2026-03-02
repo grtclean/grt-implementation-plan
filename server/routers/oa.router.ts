@@ -9,6 +9,7 @@
  *   Announcements  (4): list, get, create, publish
  */
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
@@ -84,7 +85,7 @@ export const oaRouter = router({
   createWorkflow: protectedProcedure.input(z.object({
     type: z.enum(OA_WORKFLOW_TYPES),
     title: z.string().min(1).max(200),
-    content: z.record(z.string(), z.unknown()).optional(),
+    content: z.record(z.string(), jsonValue).optional(),
     linkedProjectId: z.number().optional(),
     approverId: z.number().optional(),
   })).mutation(async ({ input, ctx }) => {
@@ -396,7 +397,7 @@ export const oaRouter = router({
       assignee: z.string(),
       deadline: z.string(),
     })).optional(),
-    technicalQuestionnaireData: z.record(z.string(), z.unknown()).optional(),
+    technicalQuestionnaireData: z.record(z.string(), jsonValue).optional(),
     attachments: z.array(z.object({
       name: z.string(),
       url: z.string(),

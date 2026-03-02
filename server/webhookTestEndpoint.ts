@@ -5,6 +5,7 @@
 
 import { router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
+import { jsonValue } from "../shared/validators";
 
 // 存储接收到的Webhook消息（用于测试验证）
 const receivedMessages: Array<{
@@ -23,7 +24,7 @@ export const webhookTestRouter = router({
   receiveWebhook: protectedProcedure
     .input(z.object({
       webhookType: z.enum(["wecom", "dingtalk", "feishu", "custom"]),
-      payload: z.record(z.string(), z.unknown()),
+      payload: z.record(z.string(), jsonValue),
       headers: z.record(z.string(), z.string()).optional(),
     }))
     .mutation(async ({ input }) => {

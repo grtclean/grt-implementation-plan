@@ -8,6 +8,7 @@
  *   Inventory Freeze   (3): listFreezeLogs, freeze, unfreeze
  */
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
@@ -130,7 +131,7 @@ export const campaignRouter = router({
         name: z.string().min(1).max(200),
         description: z.string().optional(),
         campaignType: z.enum(CAMPAIGN_TYPES),
-        metadata: z.record(z.string(), z.unknown()).optional(),
+        metadata: z.record(z.string(), jsonValue).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -158,7 +159,7 @@ export const campaignRouter = router({
         name: z.string().min(1).max(200).optional(),
         description: z.string().optional(),
         campaignType: z.enum(CAMPAIGN_TYPES).optional(),
-        metadata: z.record(z.string(), z.unknown()).optional(),
+        metadata: z.record(z.string(), jsonValue).optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -256,8 +257,8 @@ export const campaignRouter = router({
         entityType: z.string().min(1).max(100),
         entityId: z.number().optional(),
         operation: z.enum(PAYLOAD_OPERATIONS),
-        payloadBefore: z.record(z.string(), z.unknown()).optional(),
-        payloadAfter: z.record(z.string(), z.unknown()).optional(),
+        payloadBefore: z.record(z.string(), jsonValue).optional(),
+        payloadAfter: z.record(z.string(), jsonValue).optional(),
         executionOrder: z.number().default(0),
       })
     )
@@ -305,8 +306,8 @@ export const campaignRouter = router({
         entityType: z.string().min(1).max(100).optional(),
         entityId: z.number().optional(),
         operation: z.enum(PAYLOAD_OPERATIONS).optional(),
-        payloadBefore: z.record(z.string(), z.unknown()).optional(),
-        payloadAfter: z.record(z.string(), z.unknown()).optional(),
+        payloadBefore: z.record(z.string(), jsonValue).optional(),
+        payloadAfter: z.record(z.string(), jsonValue).optional(),
         executionOrder: z.number().optional(),
       })
     )

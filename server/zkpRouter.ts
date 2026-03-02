@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "../shared/validators";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { requireDb } from './utils/db-helpers';
 import { sql, SQL } from "drizzle-orm";
@@ -72,7 +73,7 @@ export const zkpRouter = router({
       targetEntityCode: z.string().optional(),
       claimType: z.string(),
       claimDescription: z.string().optional(),
-      claimParameters: z.record(z.string(), z.unknown()).optional(),
+      claimParameters: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();

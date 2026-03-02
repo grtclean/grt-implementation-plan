@@ -17,6 +17,7 @@
  *                    addGeminiAnalysis, askGeminiPlanner, autoFetch, delete
  */
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { cicdTasks, cicdStageLogs } from "../../drizzle/cicd-pipeline-schema";
@@ -252,7 +253,7 @@ export const cicdRouter = router({
         rules: z.string().optional(),
         assignee: z.string().default("Claude"),
         // Optional: Gemini's initial analysis
-        geminiAnalysis: z.record(z.string(), z.unknown()).optional(),
+        geminiAnalysis: z.record(z.string(), jsonValue).optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -458,7 +459,7 @@ export const cicdRouter = router({
       z.object({
         id: z.union([z.string(), z.number()]),
         stage: z.enum(STAGES),
-        analysis: z.record(z.string(), z.unknown()),
+        analysis: z.record(z.string(), jsonValue),
       })
     )
     .mutation(async ({ input }) => {

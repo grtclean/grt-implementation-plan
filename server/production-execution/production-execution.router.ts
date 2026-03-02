@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import * as db from "./production-execution.db";
 
@@ -710,7 +711,7 @@ export const productionExecutionRouter = router({
       stageCode: z.string(),
       stageName: z.string(),
       status: z.enum(['STARTED', 'COMPLETED', 'ALERT']),
-      metadata: z.record(z.string(), z.any()).optional(),
+      metadata: z.record(z.string(), jsonValue).optional(),
       recipients: z.array(z.object({
         userId: z.number(),
         userName: z.string(),

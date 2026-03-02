@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { webhookConfigs, webhookLogs, webhookTemplates, webhookTriggerConditions } from "../../drizzle/schema";
@@ -262,7 +263,7 @@ export const webhookRouter = router({
     return { success: true, message: "模板删除成功" };
   }),
 
-  previewTemplate: protectedProcedure.input(z.object({ template: z.string().optional(), variables: z.record(z.string(), z.unknown()).optional() }).optional()).mutation(() => ({ preview: "" })),
+  previewTemplate: protectedProcedure.input(z.object({ template: z.string().optional(), variables: z.record(z.string(), jsonValue).optional() }).optional()).mutation(() => ({ preview: "" })),
 
   // 初始化默认模板
   initTemplates: protectedProcedure.mutation(async () => {

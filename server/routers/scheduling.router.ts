@@ -3,6 +3,7 @@
  */
 
 import { z } from 'zod';
+import { jsonValue } from '../../shared/validators';
 import { router, protectedProcedure, requirePermission } from '../_core/trpc';
 import { getDb } from '../db';
 import { v4 as uuidv4 } from 'uuid';
@@ -56,7 +57,7 @@ const constraintInputSchema = z.object({
   constraintType: z.enum(['time_window', 'resource_capacity', 'task_dependency', 'bu_sequence', 'skill_requirement', 'changeover_time']),
   constraintName: z.string(),
   description: z.string().optional(),
-  parameters: z.record(z.string(), z.any()),
+  parameters: z.record(z.string(), jsonValue),
   priority: z.number().min(1).max(10).default(5),
   isHardConstraint: z.boolean().default(true),
   penaltyWeight: z.number().min(0).default(1),

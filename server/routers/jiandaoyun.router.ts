@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "../../shared/validators";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import { getJiandaoyunSyncService, getJiandaoyunUserSyncService } from "../jiandaoyun";
 import { getJiandaoyunScheduler } from "../services/jiandaoyun-scheduler.service";
@@ -315,7 +316,7 @@ export const jiandaoyunRouter = router({
       jdyRoleNo: z.number(),
       grtRoleId: z.string(),
       grtRoleName: z.string(),
-      permissionMapping: z.record(z.string(), z.any()).optional(),
+      permissionMapping: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ input }) => {
       const userSyncService = getJiandaoyunUserSyncService();
@@ -404,7 +405,7 @@ export const jiandaoyunRouter = router({
       jdyFormId: z.string().optional(),
       syncDirection: z.enum(['jdy_to_grt', 'grt_to_jdy', 'bidirectional']),
       fieldMapping: z.record(z.string(), z.string()).optional(),
-      filterCondition: z.record(z.string(), z.any()).optional(),
+      filterCondition: z.record(z.string(), jsonValue).optional(),
       cronExpression: z.string().optional(),
       isEnabled: z.boolean(),
     }))

@@ -93,7 +93,7 @@ export const importHistoryRouter = router({
   }),
 
   // 导入统计（前端调用 getStats）
-  getStats: protectedProcedure.input(z.record(z.string(), z.unknown()).optional()).query(async ({ input }) => {
+  getStats: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).query(async ({ input }) => {
     const db = await requireDb();
     const [total] = await db.select({ count: count() }).from(importHistory);
     const [pending] = await db.select({ count: count() }).from(importHistory).where(eq(importHistory.status, "pending"));
