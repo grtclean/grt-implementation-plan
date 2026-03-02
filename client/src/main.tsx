@@ -5,9 +5,60 @@ import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { BehaviorProbeProvider } from "./components/BehaviorProbeProvider";
 import { getLoginUrl } from "./const";
 import "./index.css";
+
+// ============================================================
+// P0 DIAGNOSTIC: Global error capture for fatal mount failures
+// Catches errors BEFORE React even mounts (module-level crashes)
+// ============================================================
+const _fatalErrors: Array<{ ts: string; msg: string; stack?: string; source?: string }> = [];
+
+function renderFatalDiagnostic() {
+  const root = document.getElementById("root");
+  if (!root) return;
+  root.innerHTML = `
+    <div style="font-family:monospace;padding:24px;max-width:900px;margin:0 auto">
+      <h1 style="color:#dc2626;font-size:20px">🚨 FATAL: Frontend failed to mount</h1>
+      <p style="color:#666;margin:8px 0">${_fatalErrors.length} error(s) captured at ${new Date().toISOString()}</p>
+      ${_fatalErrors.map((e, i) => `
+        <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:16px;margin:12px 0">
+          <p style="font-weight:bold;color:#dc2626;margin:0 0 4px">Error #${i + 1} [${e.source || 'unknown'}]</p>
+          <p style="color:#b91c1c;margin:0 0 8px;font-size:14px">${e.msg}</p>
+          <pre style="background:#1e1e1e;color:#d4d4d4;padding:12px;border-radius:4px;overflow-x:auto;font-size:11px;max-height:300px;overflow-y:auto">${e.stack || 'No stack trace'}</pre>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+window.onerror = (message, source, lineno, colno, error) => {
+  const entry = {
+    ts: new Date().toISOString(),
+    msg: String(message),
+    stack: error?.stack || `at ${source}:${lineno}:${colno}`,
+    source: 'window.onerror',
+  };
+  _fatalErrors.push(entry);
+  console.error("🚨 [FATAL window.onerror]", entry);
+  renderFatalDiagnostic();
+};
+
+window.onunhandledrejection = (event) => {
+  const err = event.reason;
+  const entry = {
+    ts: new Date().toISOString(),
+    msg: err?.message || String(err),
+    stack: err?.stack || 'No stack trace (unhandled promise rejection)',
+    source: 'unhandledrejection',
+  };
+  _fatalErrors.push(entry);
+  console.error("🚨 [FATAL unhandledrejection]", entry);
+  renderFatalDiagnostic();
+};
+// ============================================================
 
 // Storage key for session token (must match server-side)
 const SESSION_STORAGE_KEY = "app_session_token";
@@ -165,15 +216,36 @@ function dismissLoader() {
 setTimeout(dismissLoader, 4000);
 
 authReady.then(async () => {
-  createRoot(document.getElementById("root")!).render(
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <BehaviorProbeProvider enabled={true}>
-          <App />
-        </BehaviorProbeProvider>
-      </QueryClientProvider>
-    </trpc.Provider>
-  );
+  try {
+    createRoot(document.getElementById("root")!).render(
+      <ErrorBoundary level="page" onError={(error, errorInfo) => {
+        _fatalErrors.push({
+          ts: new Date().toISOString(),
+          msg: error.message,
+          stack: error.stack + '\n\n--- Component Stack ---\n' + errorInfo.componentStack,
+          source: 'React ErrorBoundary (root)',
+        });
+        console.error("🚨 [FATAL React ErrorBoundary]", { error, errorInfo });
+      }}>
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          <QueryClientProvider client={queryClient}>
+            <BehaviorProbeProvider enabled={true}>
+              <App />
+            </BehaviorProbeProvider>
+          </QueryClientProvider>
+        </trpc.Provider>
+      </ErrorBoundary>
+    );
+  } catch (mountError: any) {
+    _fatalErrors.push({
+      ts: new Date().toISOString(),
+      msg: mountError?.message || String(mountError),
+      stack: mountError?.stack || 'No stack (createRoot crash)',
+      source: 'createRoot try-catch',
+    });
+    console.error("🚨 [FATAL createRoot]", mountError);
+    renderFatalDiagnostic();
+  }
 
   // Wait for fonts (max 2s) — display=optional means this resolves fast in practice
   try {

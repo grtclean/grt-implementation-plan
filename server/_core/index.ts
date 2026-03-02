@@ -59,6 +59,8 @@ async function startServer() {
         fontSrc: ["'self'", "data:"],
         objectSrc: ["'none'"],
         frameAncestors: ["'self'", "*.manus.computer", "*.manuspre.computer", "*.manus-asia.computer", "*.manuscomputer.ai", "*.manusvm.computer"],
+        // Don't auto-upgrade HTTP→HTTPS in dev (causes fetch failures on localhost)
+        upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null,
       },
     },
     crossOriginEmbedderPolicy: false,

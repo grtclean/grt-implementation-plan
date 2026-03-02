@@ -106,8 +106,10 @@ export default function LocalLogin() {
       setTimeout(() => {
         window.location.href = "/";
       }, 600);
-    } catch (err) {
-      setError("网络错误，请检查服务器连接后重试");
+    } catch (err: any) {
+      // Show the actual error for diagnostics instead of a generic "network error"
+      const detail = err?.message || String(err);
+      setError(`网络错误: ${detail}。请检查服务器连接后重试`);
       setLoading(false);
     }
   };
