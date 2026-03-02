@@ -10,6 +10,8 @@ import { SignJWT, jwtVerify } from "jose";
 import { getSessionCookieOptions } from "./cookies";
 import { ENV } from "./env";
 import { sanitizeName } from "@shared/sanitize";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("auth");
 
 async function getDbAndSchema() {
   const dbModule = await import("../db");
@@ -24,7 +26,7 @@ function getJwtSecret() {
       throw new Error("FATAL: JWT_SECRET is not set. Set JWT_SECRET env var (≥32 chars).");
     }
     const devFallback = `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    console.warn("[SECURITY] JWT_SECRET not set — using random ephemeral key (tokens won't survive restarts). Set JWT_SECRET in .env");
+    log.warn("JWT_SECRET not set — using random ephemeral key (tokens won't survive restarts). Set JWT_SECRET in .env");
     return new TextEncoder().encode(devFallback);
   }
   return new TextEncoder().encode(secret);
@@ -110,7 +112,7 @@ export function registerLocalAuthRoutes(app: Express) {
           : "注册成功！",
       });
     } catch (error: any) {
-      console.error("[LocalAuth] Register error:", error?.message || error);
+      log.error({ err: error }, "Register failed");
       res.status(500).json({ error: "注册失败，请稍后重试" });
     }
   });
@@ -156,7 +158,7 @@ export function registerLocalAuthRoutes(app: Express) {
 
       res.json({ success: true });
     } catch (error: any) {
-      console.error("[LocalAuth] Login error:", error?.message || error);
+      log.error({ err: error }, "Login failed");
       res.status(500).json({ error: "登录失败，请稍后重试" });
     }
   });
@@ -194,7 +196,7 @@ export function registerLocalAuthRoutes(app: Express) {
 
       res.json({ success: true, stationId, kioskUser: kioskUsername });
     } catch (error) {
-      console.error("[LocalAuth] Kiosk login error:", error);
+      log.error({ err: error }, "Kiosk login failed");
       res.status(500).json({ error: "Kiosk login failed" });
     }
   });
@@ -219,7 +221,7 @@ export function registerLocalAuthRoutes(app: Express) {
         deletedCount: count,
       });
     } catch (error: any) {
-      console.error("[LocalAuth] Reset users error:", error?.message || error);
+      log.error({ err: error }, "Reset users failed");
       res.status(500).json({ error: "重置用户失败，请稍后重试" });
     }
   });
@@ -275,7 +277,7 @@ export function registerLocalAuthRoutes(app: Express) {
         lastSignedIn: user.lastSignedIn,
       });
     } catch (error) {
-      console.error("[LocalAuth] Get me error:", error);
+      log.error({ err: error }, "Get current user failed");
       res.json(null);
     }
   });

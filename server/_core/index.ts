@@ -20,6 +20,8 @@ import { startTaskWorker, stopTaskWorker } from "../services/task-worker.service
 import { registerAllEngines } from "../services/sandbox-engines";
 import imeRestApi from "../ime/ime-rest-api";
 import { showcaseLeadsRouter } from "../showcase/showcase-leads.router";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("server");
 
 const isLocalAuth = process.env.LOCAL_AUTH === "true" || process.env.VITE_LOCAL_AUTH === "true";
 
@@ -82,10 +84,10 @@ async function startServer() {
   // Register auth routes based on deployment mode
   if (isLocalAuth) {
     registerLocalAuthRoutes(app);
-    console.log("[Auth] Local authentication enabled (username/password)");
+    log.info("Local authentication enabled (username/password)");
   } else {
     registerOAuthRoutes(app);
-    console.log("[Auth] Manus OAuth authentication enabled");
+    log.info("Manus OAuth authentication enabled");
   }
 
   // Health check endpoint for production monitoring
@@ -107,7 +109,7 @@ async function startServer() {
       }
     } catch (error) {
       dbStatus = "error";
-      console.error("[Health] Database check failed:", error);
+      log.error({ err: error }, "Database check failed");
     }
 
     const wsStats = getWebSocketStats();
@@ -170,7 +172,7 @@ async function startServer() {
       res.setHeader("Content-Type", doc.mimeType || "application/octet-stream");
       res.sendFile(filePath);
     } catch (error: any) {
-      console.error("[Contract Download] Error:", error);
+      log.error({ err: error }, "Contract document download failed");
       res.status(500).json({ error: "Download failed" });
     }
   });
@@ -183,10 +185,7 @@ async function startServer() {
   const port = parseInt(process.env.PORT || "3000");
   const portFree = await isPortAvailable(port);
   if (!portFree) {
-    console.error(`\n  ❌ Port ${port} is already in use!`);
-    console.error(`  Run: taskkill /F /PID <pid>   (find PID with: netstat -ano | findstr :${port})`);
-    console.error(`  Or set a different PORT in .env\n`);
-    process.exit(1);
+    log.fatal({ port }, "Port is already in use"); process.exit(1);
   }
 
   const wss = initWebSocketServer(server);
@@ -203,9 +202,7 @@ async function startServer() {
   // either 127.0.0.1 or ::1 when they resolve "localhost".
   // Omitting the host parameter makes Node listen on both IPv4 and IPv6.
   server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
-    console.log(`WebSocket collaboration available at ws://localhost:${port}/ws/collaboration`);
-    console.log(`WebSocket IME live available at ws://localhost:${port}/ws/ime-live`);
+    log.info({ port }, "Server started"); log.info({ port }, "WebSocket collaboration ready"); log.info({ port }, "WebSocket IME live ready");
     initScheduler();
 
     // Start async AI task worker (sandbox engines)
@@ -214,22 +211,22 @@ async function startServer() {
   });
 
   process.on("SIGTERM", () => {
-    console.log("SIGTERM received, shutting down gracefully...");
+    log.info("SIGTERM received, shutting down gracefully");
     stopTaskWorker();
     server.close(() => {
-      console.log("Server closed");
+      log.info("Server closed");
       process.exit(0);
     });
   });
 
   process.on("SIGINT", () => {
-    console.log("SIGINT received, shutting down gracefully...");
+    log.info("SIGINT received, shutting down gracefully");
     stopTaskWorker();
     server.close(() => {
-      console.log("Server closed");
+      log.info("Server closed");
       process.exit(0);
     });
   });
 }
 
-startServer().catch(console.error);
+startServer().catch((err) => log.fatal({ err }, "Server failed to start"));

@@ -17,6 +17,8 @@ import {
 } from "../drizzle/schema";
 import { eq, and, lte, gte } from "drizzle-orm";
 import { notifyOwner } from "./_core/notification";
+import { createChildLogger } from "./lib/logger";
+const log = createChildLogger("scheduler");
 
 // 任务执行状态
 interface TaskExecutionResult {
@@ -72,7 +74,7 @@ export async function processPerformanceReviewReminders(): Promise<TaskExecution
       ) || [];
 
     if (!Array.isArray(reminders)) {
-      console.warn("[Scheduler] reminders is not an array:", reminders);
+      log.warn({ reminders }, "Reminders query returned non-array");
       return results;
     }
 
@@ -125,7 +127,7 @@ export async function processPerformanceReviewReminders(): Promise<TaskExecution
       }
     }
   } catch (error) {
-    console.error("[Scheduler] Error processing performance review reminders:", error);
+    log.error({ err: error }, "Error processing performance review reminders");
   }
 
   return results;
@@ -141,7 +143,7 @@ export async function processMeetingRemindersScheduled(): Promise<TaskExecutionR
   // 返回空数组，避免重复发送
   // 会议提醒统一由 db.ts 中的 processMeetingReminders() 处理
   // 该函数通过 routers.ts 中的 meetingReminder.processReminders 端点调用
-  console.log("[Scheduler] processMeetingRemindersScheduled is deprecated, use processMeetingReminders from db.ts instead");
+  log.warn("processMeetingRemindersScheduled is deprecated");
   return [];
 }
 
@@ -166,7 +168,7 @@ export async function processScheduledTasks(): Promise<TaskExecutionResult[]> {
       ) || [];
 
     if (!Array.isArray(tasks)) {
-      console.warn("[Scheduler] tasks is not an array:", tasks);
+      log.warn({ tasks }, "Scheduled tasks query returned non-array");
       return results;
     }
 
@@ -244,7 +246,7 @@ export async function processScheduledTasks(): Promise<TaskExecutionResult[]> {
       }
     }
   } catch (error) {
-    console.error("[Scheduler] Error processing scheduled tasks:", error);
+    log.error({ err: error }, "Error processing scheduled tasks");
   }
 
   return results;
@@ -327,11 +329,11 @@ let schedulerInterval: NodeJS.Timeout | null = null;
 
 export function startScheduler(intervalMs: number = 60000): void {
   if (schedulerInterval) {
-    console.log("[Scheduler] Already running");
+    log.info("Scheduler already running");
     return;
   }
 
-  console.log(`[Scheduler] Starting with interval ${intervalMs}ms`);
+  log.info({ intervalMs }, "Scheduler starting");
   schedulerInterval = setInterval(async () => {
     try {
       const results = await runSchedulerCheck();
@@ -341,10 +343,10 @@ export function startScheduler(intervalMs: number = 60000): void {
         results.scheduledTasks.length;
       
       if (totalExecuted > 0) {
-        console.log(`[Scheduler] Executed ${totalExecuted} tasks`);
+        log.info({ totalExecuted }, "Scheduler cycle completed");
       }
     } catch (error) {
-      console.error("[Scheduler] Error in scheduler check:", error);
+      log.error({ err: error }, "Scheduler check failed");
     }
   }, intervalMs);
 }
@@ -353,7 +355,7 @@ export function stopScheduler(): void {
   if (schedulerInterval) {
     clearInterval(schedulerInterval);
     schedulerInterval = null;
-    console.log("[Scheduler] Stopped");
+    log.info("Scheduler stopped");
   }
 }
 

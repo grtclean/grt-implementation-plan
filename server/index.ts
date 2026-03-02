@@ -2,6 +2,8 @@ import express from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createChildLogger } from "./lib/logger";
+const log = createChildLogger("static-server");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,8 +28,8 @@ async function startServer() {
   const port = process.env.PORT || 3000;
 
   server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+    log.info({ port }, "Static server started");
   });
 }
 
-startServer().catch(console.error);
+startServer().catch((err) => log.fatal({ err }, "Static server failed to start"));

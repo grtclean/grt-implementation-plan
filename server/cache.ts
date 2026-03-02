@@ -4,6 +4,8 @@
  */
 
 import { createClient } from 'redis';
+import { createChildLogger } from "./lib/logger";
+const log = createChildLogger("cache");
 
 // Redis客户端配置
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -22,11 +24,11 @@ let redisClient: ReturnType<typeof createClient> | null = null;
 export async function initRedis() {
   try {
     redisClient = createClient({ url: REDIS_URL });
-    redisClient.on('error', (err) => console.error('Redis错误:', err));
+    redisClient.on('error', (err) => log.error({ err }, "Redis error"));
     await redisClient.connect();
     return redisClient;
   } catch (error) {
-    console.error('❌ Redis连接失败:', error);
+    log.error({ err: error }, "Redis connection failed");
     return null;
   }
 }
@@ -40,7 +42,7 @@ export async function getCache<T>(key: string): Promise<T | null> {
     const data = await redisClient.get(key);
     return data ? JSON.parse(String(data)) : null;
   } catch (error) {
-    console.error(`获取缓存失败 (${key}):`, error);
+    log.error({ key, err: error }, "Cache get failed");
     return null;
   }
 }
@@ -58,7 +60,7 @@ export async function setCache<T>(
     await redisClient.setEx(key, ttl, JSON.stringify(data));
     return true;
   } catch (error) {
-    console.error(`设置缓存失败 (${key}):`, error);
+    log.error({ key, err: error }, "Cache set failed");
     return false;
   }
 }
@@ -72,7 +74,7 @@ export async function deleteCache(key: string): Promise<boolean> {
     await redisClient.del(key);
     return true;
   } catch (error) {
-    console.error(`删除缓存失败 (${key}):`, error);
+    log.error({ key, err: error }, "Cache delete failed");
     return false;
   }
 }
@@ -86,7 +88,7 @@ export async function clearAllCache(): Promise<boolean> {
     await redisClient.flushDb();
     return true;
   } catch (error) {
-    console.error('清空缓存失败:', error);
+    log.error({ err: error }, "Cache flush failed");
     return false;
   }
 }
@@ -159,7 +161,7 @@ export async function warmupCache() {
     };
     await setCache('config:global', globalConfig, CACHE_TTL.MENUS);
   } catch (error) {
-    console.error('❌ 缓存预热失败:', error);
+    log.error({ err: error }, "Cache warmup failed");
   }
 }
 

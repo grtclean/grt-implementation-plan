@@ -9,6 +9,8 @@
 
 import { t } from "./trpc-base";
 import { TRPCError } from "@trpc/server";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("gateway");
 
 /**
  * Whitelist: only these endpoints are allowed without authentication.
@@ -64,7 +66,7 @@ async function persistAuditLog(entry: {
     });
   } catch (err) {
     // Fire-and-forget — don't block the request
-    console.error("[GATEWAY:AUDIT_PERSIST] Failed to write audit log:", err);
+    log.error({ err }, "Failed to persist audit log");
   }
 }
 
@@ -82,15 +84,11 @@ export const gatewayAuditMiddleware = t.middleware(async ({ ctx, next, path, typ
   const timestamp = new Date().toISOString();
 
   // Audit log (all requests)
-  console.log(
-    `[GATEWAY] ${endpoint} | user=${userId} | role=${ctx.user?.role ?? "none"} | ${timestamp}`
-  );
+  log.info({ endpoint, userId, role: ctx.user?.role ?? "none" }, "API request");
 
   // Admin audit — persist to DB for accountability (P0-3 fix)
   if (ctx.user?.role === "admin") {
-    console.log(
-      `[GATEWAY:ADMIN] ${endpoint} | admin=${ctx.user.id} | ${timestamp}`
-    );
+    log.info({ endpoint, adminId: ctx.user.id }, "Admin API access");
     // Fire-and-forget: persist to sys_audit_logs
     persistAuditLog({
       entityType: "gateway_admin_access",
@@ -103,7 +101,7 @@ export const gatewayAuditMiddleware = t.middleware(async ({ ctx, next, path, typ
 
   // Unauthenticated access to non-whitelisted endpoint
   if (!ctx.user && !PUBLIC_ALLOWLIST.has(endpoint)) {
-    console.warn(`[GATEWAY:WARN] Unauthenticated access to ${endpoint}`);
+    log.warn({ endpoint }, "Unauthenticated access attempt");
 
     // Enforcement mode — default to BLOCK (P0-2 fix)
     // Set GATEWAY_ENFORCE=false to disable blocking (development only)

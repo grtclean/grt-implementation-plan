@@ -5,6 +5,8 @@
  */
 
 import { createClient, RedisClientType } from 'redis';
+import { createChildLogger } from "./lib/logger";
+const log = createChildLogger("cache-manager");
 
 // 缓存TTL配置（秒）
 export const CACHE_TTL = {
@@ -125,19 +127,19 @@ class CacheManager {
       try {
         this.redisClient = createClient({ url: redisUrl }) as RedisClientType;
         this.redisClient.on('error', (err) => {
-          console.error('Redis错误:', err);
+          log.error({ err }, "Redis error");
           this.useRedis = false;
         });
         
         await this.redisClient.connect();
         this.useRedis = true;
-        console.log('✅ Redis缓存已启用');
+        log.info("Redis cache enabled");
       } catch (error) {
-        console.warn('⚠️ Redis连接失败，使用内存缓存:', error);
+        log.warn({ err: error }, "Redis connection failed, falling back to memory cache");
         this.useRedis = false;
       }
     } else {
-      console.log('ℹ️ 未配置REDIS_URL，使用内存缓存');
+      log.info("REDIS_URL not configured, using memory cache");
       this.useRedis = false;
     }
 
@@ -153,7 +155,7 @@ class CacheManager {
         const data = await this.redisClient.get(key);
         return data ? JSON.parse(String(data)) : null;
       } catch (error) {
-        console.error(`Redis获取失败 (${key}):`, error);
+        log.error({ key, err: error }, "Redis get failed");
         // 回退到内存缓存
         return this.memoryCache.get<T>(key);
       }
@@ -173,7 +175,7 @@ class CacheManager {
         await this.redisClient.setEx(key, ttlSeconds, JSON.stringify(data));
         return true;
       } catch (error) {
-        console.error(`Redis设置失败 (${key}):`, error);
+        log.error({ key, err: error }, "Redis set failed");
         return true; // 内存缓存已设置
       }
     }
@@ -191,7 +193,7 @@ class CacheManager {
         await this.redisClient.del(key);
         return true;
       } catch (error) {
-        console.error(`Redis删除失败 (${key}):`, error);
+        log.error({ key, err: error }, "Redis delete failed");
         return true;
       }
     }
@@ -212,7 +214,7 @@ class CacheManager {
         }
         return true;
       } catch (error) {
-        console.error(`Redis模式删除失败 (${pattern}):`, error);
+        log.error({ pattern, err: error }, "Redis pattern delete failed");
         return true;
       }
     }
@@ -230,7 +232,7 @@ class CacheManager {
         await this.redisClient.flushDb();
         return true;
       } catch (error) {
-        console.error('Redis清空失败:', error);
+        log.error({ err: error }, "Redis flush failed");
         return true;
       }
     }
