@@ -230,7 +230,7 @@ export async function getAggregatedROI(): Promise<{
   try {
     const db = await requireDb();
 
-    const allMeetings = await db.select().from(sysMeetings);
+    const allMeetings = await db.select().from(sysMeetings).limit(1000);
     const rois: Array<{ meetingId: number; title: string; roiScore: number }> = [];
     let totalRoi = 0;
     let totalParticipation = 0;

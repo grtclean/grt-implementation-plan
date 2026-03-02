@@ -53,7 +53,7 @@ export async function grantXP(userId: number, action: string, points?: number, s
 export async function getEmployeeProfile(userId: number) {
   const db = await requireDb();
   const levelData = await db.select().from(schema.employeeLevels).where(eq(schema.employeeLevels.userId, userId));
-  const achievements = await db.select().from(schema.employeeAchievements).where(eq(schema.employeeAchievements.userId, userId));
+  const achievements = await db.select().from(schema.employeeAchievements).where(eq(schema.employeeAchievements.userId, userId)).limit(1000);
   const recentXP = await db.select().from(schema.employeeXP).where(eq(schema.employeeXP.userId, userId)).orderBy(desc(schema.employeeXP.awardedAt)).limit(20);
   const totalXP = levelData[0]?.totalXP ?? 0;
   const levelInfo = calculateLevel(totalXP);
@@ -70,8 +70,8 @@ const ACHIEVEMENTS = [
 
 export async function checkAchievements(userId: number) {
   const db = await requireDb();
-  const xpHistory = await db.select().from(schema.employeeXP).where(eq(schema.employeeXP.userId, userId));
-  const existing = await db.select().from(schema.employeeAchievements).where(eq(schema.employeeAchievements.userId, userId));
+  const xpHistory = await db.select().from(schema.employeeXP).where(eq(schema.employeeXP.userId, userId)).limit(1000);
+  const existing = await db.select().from(schema.employeeAchievements).where(eq(schema.employeeAchievements.userId, userId)).limit(1000);
   const existingCodes = new Set(existing.map(a => a.achievementCode));
   const newAchievements: string[] = [];
   for (const ach of ACHIEVEMENTS) {

@@ -247,7 +247,7 @@ export async function generateCommunicationSuggestion(input: CommunicationSugges
   // 获取最近的评分记录
   let scoreData = null;
   if (scoreId) {
-    const scores = await db.select().from(kpiScoreRecords).where(eq(kpiScoreRecords.scoreId, scoreId));
+    const scores = await db.select().from(kpiScoreRecords).where(eq(kpiScoreRecords.scoreId, scoreId)).limit(1000);
     if (scores.length > 0) scoreData = scores[0];
   }
 
@@ -342,7 +342,7 @@ export async function generateEmailNotification(input: EmailNotificationInput) {
   // 获取相关评分数据
   let scoreData = null;
   if (relatedScoreId) {
-    const scores = await db.select().from(kpiScoreRecords).where(eq(kpiScoreRecords.scoreId, relatedScoreId));
+    const scores = await db.select().from(kpiScoreRecords).where(eq(kpiScoreRecords.scoreId, relatedScoreId)).limit(1000);
     if (scores.length > 0) scoreData = scores[0];
   }
 
@@ -579,7 +579,7 @@ export async function initializeDefaultKpiConfigs() {
   ];
 
   for (const config of defaultConfigs) {
-    const existing = await db.select().from(kpiConfigurations).where(eq(kpiConfigurations.kpiId, config.kpiId));
+    const existing = await db.select().from(kpiConfigurations).where(eq(kpiConfigurations.kpiId, config.kpiId)).limit(1000);
     if (existing.length === 0) {
       await db.insert(kpiConfigurations).values(config);
     }

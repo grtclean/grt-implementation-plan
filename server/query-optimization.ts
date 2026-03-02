@@ -10,6 +10,9 @@ import {
   getMenuCache,
   setMenuCache,
 } from './cache';
+import { createChildLogger } from "./lib/logger";
+
+const log = createChildLogger("query-opt");
 
 /**
  * 优化的权限查询
@@ -19,12 +22,12 @@ export async function getOptimizedUserPermissions(userId: string) {
   // 1. 尝试从缓存获取
   const cachedPermissions = await getUserPermissionsCache(userId);
   if (cachedPermissions) {
-    console.log(`✅ 从缓存获取权限 (${userId})`);
+    log.debug({ userId }, "Permission cache hit");
     return cachedPermissions;
   }
 
   // 2. 从数据库查询
-  console.log(`📊 从数据库查询权限 (${userId})`);
+  log.debug({ userId }, "Permission cache miss, querying DB");
   const db = await requireDb();
   // 注意：这里需要根据实际的schema实现权限查询
   // 占位符实现
@@ -44,12 +47,12 @@ export async function getOptimizedMenu(userId: string, userPermissions: string[]
   // 1. 尝试从缓存获取
   const cachedMenu = await getMenuCache(userId);
   if (cachedMenu) {
-    console.log(`✅ 从缓存获取菜单 (${userId})`);
+    log.debug({ userId }, "Menu cache hit");
     return cachedMenu;
   }
 
   // 2. 从数据库查询
-  console.log(`📊 从数据库查询菜单 (${userId})`);
+  log.debug({ userId }, "Menu cache miss, querying DB");
   const db = await requireDb();
   // 注意：这里需要根据实际的schema实现菜单查询
   // 占位符实现
@@ -114,15 +117,15 @@ export async function monitorQueryPerformance(
     const duration = Date.now() - startTime;
     
     if (duration > 100) {
-      console.warn(`⚠️  慢查询警告 (${queryName}): ${duration}ms`);
+      log.warn({ queryName, duration }, "Slow query detected");
     } else {
-      console.log(`✅ 查询完成 (${queryName}): ${duration}ms`);
+      log.debug({ queryName, duration }, "Query completed");
     }
-    
+
     return result;
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`❌ 查询失败 (${queryName}): ${duration}ms`, error);
+    log.error({ err: error, queryName, duration }, "Query failed");
     throw error;
   }
 }

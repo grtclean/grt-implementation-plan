@@ -60,7 +60,7 @@ export async function indexDocument(docId: number, content: string): Promise<{ c
 export async function searchSimilar(query: string, topK: number = 5): Promise<Array<{ sourceId: number; contentDigest: string; similarity: number }>> {
   const db = await requireDb();
   const queryEmb = generateEmbedding(query);
-  const allEmbeddings = await db.select().from(schema.documentEmbeddings);
+  const allEmbeddings = await db.select().from(schema.documentEmbeddings).limit(1000);
   const scored = allEmbeddings.map((row) => {
     const emb: number[] = row.embedding ? JSON.parse(row.embedding) : [];
     return { sourceId: row.sourceId, contentDigest: row.contentDigest, similarity: cosineSimilarity(queryEmb, emb) };

@@ -108,7 +108,8 @@ export async function getActiveFunctionalAssistants() {
   
   return db.select()
     .from(functionalAiAssistants)
-    .where(eq(functionalAiAssistants.isActive, 1 as any));
+    .where(eq(functionalAiAssistants.isActive, 1 as any))
+    .limit(1000);
 }
 
 /**

@@ -910,8 +910,8 @@ export const warehouseRouter = router({
       if (!lotRows[0]) return { lot: null, allocations: [], serialNumbers: [] };
 
       const [relatedSerials, relatedIssueItems] = await Promise.all([
-        db.select().from(serialNumbers).where(eq(serialNumbers.lotNumber, input.lotNumber)),
-        db.select().from(warehouseIssueItems).where(eq(warehouseIssueItems.lotNumber, input.lotNumber)),
+        db.select().from(serialNumbers).where(eq(serialNumbers.lotNumber, input.lotNumber)).limit(1000),
+        db.select().from(warehouseIssueItems).where(eq(warehouseIssueItems.lotNumber, input.lotNumber)).limit(1000),
       ]);
 
       const allocations = [];
@@ -950,7 +950,7 @@ export const warehouseRouter = router({
         const items = await db.select().from(warehouseIssueItems).where(eq(warehouseIssueItems.issueId, issue.id)).limit(1000);
         const lotNumbers = Array.from(new Set(items.map(ii => ii.lotNumber).filter((ln): ln is string => ln != null)));
         const lots = lotNumbers.length > 0
-          ? await db.select().from(inventoryLots).where(or(...lotNumbers.map(ln => eq(inventoryLots.lotNumber, ln))))
+          ? await db.select().from(inventoryLots).where(or(...lotNumbers.map(ln => eq(inventoryLots.lotNumber, ln)))).limit(1000)
           : [];
         results.push({
           issueCode: issue.issueCode,

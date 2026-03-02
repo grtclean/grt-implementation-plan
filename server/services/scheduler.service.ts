@@ -420,7 +420,8 @@ async function handleProjectDelayPrediction(): Promise<TaskExecutionResult> {
       .where(and(
         eq(projects.status as any, "active"),
         inArray(projects.currentPhase as any, activePhases),
-      ));
+      ))
+      .limit(1000);
 
     let tasksSubmitted = 0;
     for (const project of activeProjects) {

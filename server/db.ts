@@ -1468,7 +1468,7 @@ export async function initDefaultProjectPhases() {
   if (!db) return null;
 
   // Check if phases already exist
-  const existing = await db.select().from(projectPhases);
+  const existing = await db.select().from(projectPhases).limit(1000);
   if (existing.length > 0) {
     return { success: false, message: "Project phases already initialized" };
   }
@@ -1914,7 +1914,7 @@ export async function initDefaultCostCategories() {
   if (!db) return { success: false, message: "Database not available" };
 
   // Check if categories already exist
-  const existing = await db.select().from(costCategories);
+  const existing = await db.select().from(costCategories).limit(1000);
   if (existing.length > 0) {
     return { success: true, message: "Cost categories already initialized", count: existing.length };
   }
@@ -2423,7 +2423,7 @@ export async function initDefaultMeetingTypes() {
   if (!db) return { success: false, message: "Database not available" };
 
   // Check if meeting types already exist
-  const existing = await db.select().from(meetingTypes);
+  const existing = await db.select().from(meetingTypes).limit(1000);
   if (existing.length > 0) {
     return { success: true, message: "Meeting types already initialized", count: existing.length };
   }
@@ -2637,7 +2637,7 @@ export async function getCertificateByNumber(certificateNo: string) {
   const db = await requireDb();
   if (!db) return null;
   
-  const [cert] = await db.select().from(trainingCertificates).where(eq(trainingCertificates.certificateNo, certificateNo));
+  const [cert] = await db.select().from(trainingCertificates).where(eq(trainingCertificates.certificateNo, certificateNo)).limit(1000);
   return cert || null;
 }
 
@@ -2888,7 +2888,7 @@ export async function initDefaultCostAlertRules() {
   if (!db) return { success: false, message: "Database not available" };
   
   // Check if rules already exist
-  const existing = await db.select().from(costAlertRules);
+  const existing = await db.select().from(costAlertRules).limit(1000);
   if (existing.length > 0) {
     return { success: false, message: "Cost alert rules already initialized", count: existing.length };
   }
@@ -3114,7 +3114,8 @@ export async function createMeetingRemindersFromSchedule(meetingId: number, remi
     .where(and(
       eq(meetingReminders.meetingId, meetingId),
       eq(meetingReminders.reminderMinutes, reminderMinutes)
-    ));
+    ))
+    .limit(1000);
   
   if (existing.length > 0) {
     return existing[0];
@@ -3177,7 +3178,8 @@ export async function getActiveAnnualPlanningConfig(year: number) {
     .where(and(
       eq(annualPlanningConfigs.year, year),
       eq(annualPlanningConfigs.status, "active")
-    ));
+    ))
+    .limit(1000);
   return result[0] || null;
 }
 
@@ -3802,7 +3804,7 @@ export async function getWebhookConfigs(): Promise<WebhookConfig[]> {
   const db = await requireDb();
   if (!db) return [];
   
-  return db.select().from(webhookConfigs).orderBy(desc(webhookConfigs.createdAt));
+  return db.select().from(webhookConfigs).orderBy(desc(webhookConfigs.createdAt)).limit(1000);
 }
 
 /**
@@ -3814,7 +3816,8 @@ export async function getEnabledWebhooksByEvent(eventType: string): Promise<Webh
   
   const allConfigs = await db.select()
     .from(webhookConfigs)
-    .where(eq(webhookConfigs.enabled, true as any));
+    .where(eq(webhookConfigs.enabled, true as any))
+    .limit(1000);
   
   // Filter by event type (stored as JSON array in triggerEvents)
   return allConfigs.filter(config => {
@@ -3915,7 +3918,7 @@ export async function getWebhookTemplates(): Promise<WebhookTemplate[]> {
   const db = await requireDb();
   if (!db) return [];
   
-  return db.select().from(webhookTemplates).orderBy(desc(webhookTemplates.createdAt));
+  return db.select().from(webhookTemplates).orderBy(desc(webhookTemplates.createdAt)).limit(1000);
 }
 
 /**
@@ -3927,7 +3930,8 @@ export async function getWebhookTemplatesByEvent(eventType: string): Promise<Web
   
   return db.select()
     .from(webhookTemplates)
-    .where(eq(webhookTemplates.eventType, eventType));
+    .where(eq(webhookTemplates.eventType, eventType))
+    .limit(1000);
 }
 
 /**
@@ -4029,8 +4033,9 @@ export async function getDefaultTemplate(
         eq(webhookTemplates.webhookType, webhookType),
         eq(webhookTemplates.isDefault, true as any)
       )
-    );
-  
+    )
+    .limit(1000);
+
   return results[0] || null;
 }
 
@@ -4346,8 +4351,8 @@ export async function exportCostAlertRulesToCSV(): Promise<string> {
   const db = await requireDb();
   if (!db) return "";
   
-  const rules = await db.select().from(costAlertRules);
-  
+  const rules = await db.select().from(costAlertRules).limit(1000);
+
   // CSV header
   const headers = [
     "规则名称",
@@ -4418,7 +4423,8 @@ export async function getWebhookConditions(webhookId: number) {
   return await db.select()
     .from(webhookTriggerConditions)
     .where(eq(webhookTriggerConditions.webhookId, webhookId))
-    .orderBy(webhookTriggerConditions.sortOrder);
+    .orderBy(webhookTriggerConditions.sortOrder)
+    .limit(1000);
 }
 
 export async function saveWebhookConditions(webhookId: number, conditions: InsertWebhookTriggerCondition[]) {
@@ -4525,7 +4531,8 @@ export async function getItemDependencies(configId: number) {
   
   return await db.select()
     .from(annualPlanningDependencies)
-    .where(eq(annualPlanningDependencies.configId, configId));
+    .where(eq(annualPlanningDependencies.configId, configId))
+    .limit(1000);
 }
 
 export async function addItemDependency(data: InsertAnnualPlanningDependency) {
@@ -4544,8 +4551,9 @@ export async function addItemDependency(data: InsertAnnualPlanningDependency) {
     .where(and(
       eq(annualPlanningDependencies.sourceItemId, data.sourceItemId),
       eq(annualPlanningDependencies.targetItemId, data.targetItemId)
-    ));
-  
+    ))
+    .limit(1000);
+
   if (existing.length > 0) {
     return { success: false, error: "该依赖关系已存在" };
   }
@@ -4648,7 +4656,8 @@ export async function getRuleVersions(ruleId: number) {
   return await db.select()
     .from(costAlertRuleVersions)
     .where(eq(costAlertRuleVersions.ruleId, ruleId))
-    .orderBy(desc(costAlertRuleVersions.versionNumber));
+    .orderBy(desc(costAlertRuleVersions.versionNumber))
+    .limit(1000);
 }
 
 export async function getRuleVersion(ruleId: number, versionNumber: number) {
@@ -4660,8 +4669,9 @@ export async function getRuleVersion(ruleId: number, versionNumber: number) {
     .where(and(
       eq(costAlertRuleVersions.ruleId, ruleId),
       eq(costAlertRuleVersions.versionNumber, versionNumber)
-    ));
-  
+    ))
+    .limit(1000);
+
   return version || null;
 }
 
@@ -4786,8 +4796,9 @@ export async function calculateCriticalPath(configId: number): Promise<CriticalP
   // Get all items for this config
   const items = await db.select()
     .from(annualPlanningItems)
-    .where(eq(annualPlanningItems.configId, configId));
-  
+    .where(eq(annualPlanningItems.configId, configId))
+    .limit(1000);
+
   // Get all dependencies
   const dependencies = await getItemDependencies(configId);
   
@@ -5088,7 +5099,8 @@ export async function getAlertRuleTemplates(filters?: {
   return db.select()
     .from(costAlertRuleTemplates)
     .where(and(...conditions))
-    .orderBy(desc(costAlertRuleTemplates.usageCount), costAlertRuleTemplates.name);
+    .orderBy(desc(costAlertRuleTemplates.usageCount), costAlertRuleTemplates.name)
+    .limit(1000);
 }
 
 /**
@@ -5401,8 +5413,9 @@ export async function initializeBuiltinTemplates(): Promise<{ created: number; s
       .where(and(
         eq(costAlertRuleTemplates.name, template.name),
         eq(costAlertRuleTemplates.templateType, "builtin")
-      ));
-    
+      ))
+      .limit(1000);
+
     if (existing.length > 0) {
       skipped++;
       continue;
@@ -5464,8 +5477,8 @@ export async function getNamingRuleApprovers(filters?: {
   if (conditions.length > 0) {
     query = query.where(and(...conditions)) as typeof query;
   }
-  
-  return query;
+
+  return query.limit(1000);
 }
 
 /**
@@ -5538,8 +5551,9 @@ export async function getApproversForChange(
       ),
       eq(namingRuleApprovers.isActive, true as any)
     ))
-    .orderBy(namingRuleApprovers.approvalLevel);
-  
+    .orderBy(namingRuleApprovers.approvalLevel)
+    .limit(1000);
+
   return result;
 }
 
@@ -5607,7 +5621,7 @@ export async function getNamingChangeRequests(filters?: {
     query = query.where(and(...conditions)) as typeof query;
   }
   
-  return query.orderBy(desc(namingChangeRequests.createdAt));
+  return query.orderBy(desc(namingChangeRequests.createdAt)).limit(1000);
 }
 
 /**
@@ -5732,7 +5746,8 @@ export async function getNamingChangeImplementations(requestId: number) {
   return db.select()
     .from(namingChangeImplementations)
     .where(eq(namingChangeImplementations.requestId, requestId))
-    .orderBy(namingChangeImplementations.createdAt);
+    .orderBy(namingChangeImplementations.createdAt)
+    .limit(1000);
 }
 
 /**
@@ -5791,7 +5806,8 @@ export async function getNamingChangeTests(requestId: number) {
   return db.select()
     .from(namingChangeTests)
     .where(eq(namingChangeTests.requestId, requestId))
-    .orderBy(desc(namingChangeTests.testDate));
+    .orderBy(desc(namingChangeTests.testDate))
+    .limit(1000);
 }
 
 /**
@@ -5831,7 +5847,7 @@ export async function getNamingVersions(ruleType?: "equipment" | "project" | "ma
     query = query.where(eq(namingVersions.ruleType, ruleType)) as typeof query;
   }
   
-  return query.orderBy(desc(namingVersions.effectiveDate));
+  return query.orderBy(desc(namingVersions.effectiveDate)).limit(1000);
 }
 
 /**
@@ -5846,7 +5862,8 @@ export async function getCurrentNamingVersion(ruleType: "equipment" | "project" 
     .where(and(
       eq(namingVersions.ruleType, ruleType),
       eq(namingVersions.isCurrent, true as any)
-    ));
+    ))
+    .limit(1000);
 
   return result[0] || null;
 }
@@ -5915,7 +5932,7 @@ export async function getEquipmentModels(filters?: {
     query = query.where(and(...conditions)) as typeof query;
   }
   
-  return query.orderBy(equipmentModels.numericCode);
+  return query.orderBy(equipmentModels.numericCode).limit(1000);
 }
 
 /**
@@ -5936,7 +5953,7 @@ export async function getEquipmentModelByCode(numericCode: string) {
   const db = await requireDb();
   if (!db) return null;
   
-  const result = await db.select().from(equipmentModels).where(eq(equipmentModels.numericCode, numericCode));
+  const result = await db.select().from(equipmentModels).where(eq(equipmentModels.numericCode, numericCode)).limit(1000);
   return result[0] || null;
 }
 
@@ -6019,7 +6036,8 @@ export async function getEquipmentNameHistoryByCode(numericCode: string) {
   return db.select()
     .from(equipmentNameHistory)
     .where(eq(equipmentNameHistory.numericCode, numericCode))
-    .orderBy(desc(equipmentNameHistory.createdAt));
+    .orderBy(desc(equipmentNameHistory.createdAt))
+    .limit(1000);
 }
 
 // ============================================
@@ -6033,7 +6051,7 @@ export async function getProjectNumberCounter(prefix: string) {
   const db = await requireDb();
   if (!db) return null;
   
-  const result = await db.select().from(projectNumberCounters).where(eq(projectNumberCounters.prefix, prefix));
+  const result = await db.select().from(projectNumberCounters).where(eq(projectNumberCounters.prefix, prefix)).limit(1000);
   return result[0] || null;
 }
 
@@ -6163,7 +6181,7 @@ export async function getProjectConversionHistory(filters?: {
     query = query.where(and(...conditions)) as typeof query;
   }
   
-  return query.orderBy(desc(projectConversionHistory.conversionDate));
+  return query.orderBy(desc(projectConversionHistory.conversionDate)).limit(1000);
 }
 
 // ============================================
@@ -6270,7 +6288,7 @@ export async function getHrmEmployees(filters?: {
     ) as typeof query;
   }
   
-  return query.orderBy(desc(hrmEmployees.hireDate));
+  return query.orderBy(desc(hrmEmployees.hireDate)).limit(1000);
 }
 
 export async function getHrmEmployeeById(id: number) {
@@ -6283,7 +6301,7 @@ export async function getHrmEmployeeById(id: number) {
 export async function getHrmEmployeeByCode(code: string) {
   const db = await requireDb();
   if (!db) return null;
-  const result = await db.select().from(hrmEmployees).where(eq(hrmEmployees.employeeCode, code));
+  const result = await db.select().from(hrmEmployees).where(eq(hrmEmployees.employeeCode, code)).limit(1000);
   return result[0] || null;
 }
 
@@ -6317,7 +6335,7 @@ export async function getHrmPositions(filters?: {
     query = query.where(eq(hrmPositions.status, filters.status)) as typeof query;
   }
   
-  return query.orderBy(hrmPositions.department);
+  return query.orderBy(hrmPositions.department).limit(1000);
 }
 
 export async function getHrmPositionById(id: number) {
@@ -6363,7 +6381,7 @@ export async function getHrmTrainingPlans(filters?: {
     query = query.where(eq(hrmTrainingPlans.status, filters.status)) as typeof query;
   }
   
-  return query.orderBy(desc(hrmTrainingPlans.startDate));
+  return query.orderBy(desc(hrmTrainingPlans.startDate)).limit(1000);
 }
 
 export async function getHrmTrainingPlanById(id: number) {
@@ -6407,7 +6425,7 @@ export async function getHrmTrainingTests(filters?: {
     query = query.where(eq(hrmTrainingTests.testType, filters.testType)) as typeof query;
   }
   
-  return query.orderBy(desc(hrmTrainingTests.createdAt));
+  return query.orderBy(desc(hrmTrainingTests.createdAt)).limit(1000);
 }
 
 export async function createHrmTrainingTest(data: InsertHrmTrainingTest) {
@@ -6443,7 +6461,7 @@ export async function getHrmPerformanceReviewReminders(filters?: {
     query = query.where(eq(hrmPerformanceReviewReminders.status, filters.status)) as typeof query;
   }
   
-  return query.orderBy(hrmPerformanceReviewReminders.reminderDateTime);
+  return query.orderBy(hrmPerformanceReviewReminders.reminderDateTime).limit(1000);
 }
 
 export async function createHrmPerformanceReviewReminder(data: InsertHrmPerformanceReviewReminder) {
@@ -6565,7 +6583,7 @@ export async function getHrmCandidates(filters?: {
     ) as typeof query;
   }
   
-  return query.orderBy(desc(hrmCandidates.createdAt));
+  return query.orderBy(desc(hrmCandidates.createdAt)).limit(1000);
 }
 
 export async function getHrmCandidateById(id: number) {
@@ -6605,7 +6623,7 @@ export async function getHrmAiInterviewRecords(filters?: {
     query = query.where(eq(hrmAiInterviewRecords.recommendation, filters.recommendation)) as typeof query;
   }
   
-  return query.orderBy(desc(hrmAiInterviewRecords.interviewedAt));
+  return query.orderBy(desc(hrmAiInterviewRecords.interviewedAt)).limit(1000);
 }
 
 export async function getHrmAiInterviewRecordById(id: number) {
@@ -6645,7 +6663,7 @@ export async function getHrmDigitalAgentModels(filters?: {
     query = query.where(eq(hrmDigitalAgentModels.currentStage, filters.currentStage)) as typeof query;
   }
   
-  return query.orderBy(desc(hrmDigitalAgentModels.digitalizationScore));
+  return query.orderBy(desc(hrmDigitalAgentModels.digitalizationScore)).limit(1000);
 }
 
 export async function getHrmDigitalAgentModelById(id: number) {
@@ -6685,7 +6703,7 @@ export async function getHrmSalaryStructures(filters?: {
     query = query.where(eq(hrmSalaryStructures.status, filters.status)) as typeof query;
   }
   
-  return query.orderBy(hrmSalaryStructures.department);
+  return query.orderBy(hrmSalaryStructures.department).limit(1000);
 }
 
 export async function createHrmSalaryStructure(data: InsertHrmSalaryStructure) {
@@ -6705,7 +6723,7 @@ export async function updateHrmSalaryStructure(id: number, data: Partial<InsertH
 export async function getHrmPerformanceGrades() {
   const db = await requireDb();
   if (!db) return [];
-  return db.select().from(hrmPerformanceGrades).orderBy(desc(hrmPerformanceGrades.scoreMin));
+  return db.select().from(hrmPerformanceGrades).orderBy(desc(hrmPerformanceGrades.scoreMin)).limit(1000);
 }
 
 export async function createHrmPerformanceGrade(data: InsertHrmPerformanceGrade) {
@@ -6735,7 +6753,7 @@ export async function getHrmDocumentFiles(filters?: {
     query = query.where(eq(hrmDocumentFiles.fileTypeCode, filters.fileTypeCode)) as typeof query;
   }
   
-  return query.orderBy(desc(hrmDocumentFiles.fileDate));
+  return query.orderBy(desc(hrmDocumentFiles.fileDate)).limit(1000);
 }
 
 export async function createHrmDocumentFile(data: InsertHrmDocumentFile) {
@@ -6794,7 +6812,7 @@ export async function initDefaultSalaryStructures() {
   
   let created = 0;
   for (const structure of structures) {
-    const existing = await db.select().from(hrmSalaryStructures).where(eq(hrmSalaryStructures.department, structure.department));
+    const existing = await db.select().from(hrmSalaryStructures).where(eq(hrmSalaryStructures.department, structure.department)).limit(1000);
     if (existing.length === 0) {
       await db.insert(hrmSalaryStructures).values({
         ...structure,
@@ -6824,7 +6842,7 @@ export async function initDefaultPerformanceGrades() {
   
   let created = 0;
   for (const grade of grades) {
-    const existing = await db.select().from(hrmPerformanceGrades).where(eq(hrmPerformanceGrades.gradeCode, grade.gradeCode));
+    const existing = await db.select().from(hrmPerformanceGrades).where(eq(hrmPerformanceGrades.gradeCode, grade.gradeCode)).limit(1000);
     if (existing.length === 0) {
       await db.insert(hrmPerformanceGrades).values(grade);
       created++;
@@ -6863,7 +6881,7 @@ export async function getTeamsMeetings(filters?: {
     query = query.where(eq(teamsMeetingConfigs.status, filters.status)) as typeof query;
   }
   
-  return query.orderBy(desc(teamsMeetingConfigs.startTime));
+  return query.orderBy(desc(teamsMeetingConfigs.startTime)).limit(1000);
 }
 
 export async function getTeamsMeetingById(id: number) {
@@ -6876,7 +6894,7 @@ export async function getTeamsMeetingById(id: number) {
 export async function getTeamsMeetingByCode(code: string) {
   const db = await requireDb();
   if (!db) return null;
-  const result = await db.select().from(teamsMeetingConfigs).where(eq(teamsMeetingConfigs.meetingCode, code));
+  const result = await db.select().from(teamsMeetingConfigs).where(eq(teamsMeetingConfigs.meetingCode, code)).limit(1000);
   return result[0] || null;
 }
 
@@ -6907,7 +6925,8 @@ export async function getAiInterviewAnalytics(meetingId: number) {
   if (!db) return [];
   return db.select().from(aiInterviewAnalytics)
     .where(eq(aiInterviewAnalytics.meetingId, meetingId))
-    .orderBy(aiInterviewAnalytics.analysisTime);
+    .orderBy(aiInterviewAnalytics.analysisTime)
+    .limit(1000);
 }
 
 export async function createAiInterviewAnalytic(data: InsertAiInterviewAnalytic) {
@@ -6940,7 +6959,7 @@ export async function getPerformanceReviewEmailLogs(filters?: {
     query = query.where(eq(performanceReviewEmailLogs.sendStatus, filters.sendStatus)) as typeof query;
   }
   
-  return query.orderBy(desc(performanceReviewEmailLogs.createdAt));
+  return query.orderBy(desc(performanceReviewEmailLogs.createdAt)).limit(1000);
 }
 
 export async function createPerformanceReviewEmailLog(data: InsertPerformanceReviewEmailLog) {
@@ -6977,7 +6996,7 @@ export async function getScheduledTasks(filters?: {
     query = query.where(eq(scheduledTasks.isEnabled, filters.isEnabled as any)) as typeof query;
   }
   
-  return query.orderBy(scheduledTasks.nextRunAt);
+  return query.orderBy(scheduledTasks.nextRunAt).limit(1000);
 }
 
 export async function getScheduledTaskById(id: number) {
@@ -6990,7 +7009,7 @@ export async function getScheduledTaskById(id: number) {
 export async function getScheduledTaskByCode(code: string) {
   const db = await requireDb();
   if (!db) return null;
-  const result = await db.select().from(scheduledTasks).where(eq(scheduledTasks.taskCode, code));
+  const result = await db.select().from(scheduledTasks).where(eq(scheduledTasks.taskCode, code)).limit(1000);
   return result[0] || null;
 }
 
@@ -7042,7 +7061,7 @@ export async function getSalaryCalculations(filters?: {
     query = query.where(eq(salaryCalculations.calculationType, filters.calculationType)) as typeof query;
   }
   
-  return query.orderBy(desc(salaryCalculations.createdAt));
+  return query.orderBy(desc(salaryCalculations.createdAt)).limit(1000);
 }
 
 export async function getSalaryCalculationById(id: number) {
@@ -7086,7 +7105,8 @@ export async function calculateSalary(params: {
   
   // Get department salary structure
   const structures = await db.select().from(hrmSalaryStructures)
-    .where(eq(hrmSalaryStructures.department, params.department));
+    .where(eq(hrmSalaryStructures.department, params.department))
+    .limit(1000);
   const structure = structures[0];
   
   if (!structure) {
@@ -7111,7 +7131,8 @@ export async function calculateSalary(params: {
   let performanceCoefficient = 1.0;
   if (params.performanceGrade) {
     const grades = await db.select().from(hrmPerformanceGrades)
-      .where(eq(hrmPerformanceGrades.gradeCode, params.performanceGrade));
+      .where(eq(hrmPerformanceGrades.gradeCode, params.performanceGrade))
+      .limit(1000);
     if (grades[0]) {
       performanceCoefficient = parseFloat(grades[0].coefficient);
     }
@@ -7185,7 +7206,8 @@ export async function createEmployeeDA(data: {
   });
   
   const [created] = await db.select().from(employeeDigitalAssistants)
-    .where(eq(employeeDigitalAssistants.assistantCode, assistantCode));
+    .where(eq(employeeDigitalAssistants.assistantCode, assistantCode))
+    .limit(1000);
   return created || null;
 }
 
@@ -7197,7 +7219,8 @@ export async function getEmployeeDAByEmployeeId(employeeId: string): Promise<Emp
   if (!db) return null;
   
   const [da] = await db.select().from(employeeDigitalAssistants)
-    .where(eq(employeeDigitalAssistants.employeeId, employeeId));
+    .where(eq(employeeDigitalAssistants.employeeId, employeeId))
+    .limit(1000);
   return da || null;
 }
 
@@ -7216,7 +7239,7 @@ export async function getAllEmployeeDAs(filters?: {
     query = query.where(eq(employeeDigitalAssistants.isActive, filters.isActive as any)) as typeof query;
   }
   
-  return await query.orderBy(desc(employeeDigitalAssistants.createdAt));
+  return await query.orderBy(desc(employeeDigitalAssistants.createdAt)).limit(1000);
 }
 
 /**
@@ -7304,7 +7327,7 @@ export async function getAllFunctionalAssistants(filters?: {
     query = query.where(and(...conditions)) as typeof query;
   }
   
-  return await query.orderBy(functionalAiAssistants.assistantType);
+  return await query.orderBy(functionalAiAssistants.assistantType).limit(1000);
 }
 
 /**
@@ -7317,7 +7340,8 @@ export async function getFunctionalAssistantByType(
   if (!db) return null;
   
   const [assistant] = await db.select().from(functionalAiAssistants)
-    .where(eq(functionalAiAssistants.assistantType, assistantType));
+    .where(eq(functionalAiAssistants.assistantType, assistantType))
+    .limit(1000);
   return assistant || null;
 }
 
@@ -7427,7 +7451,8 @@ export async function getFullProcessSuggestions(
       eq(aiProcessSuggestions.processId, processId),
       eq(aiProcessSuggestions.suggestionMode, "full_process")
     ))
-    .orderBy(aiProcessSuggestions.stepCode);
+    .orderBy(aiProcessSuggestions.stepCode)
+    .limit(1000);
 }
 
 /**
@@ -7547,7 +7572,8 @@ export async function getSuggestionExecutionLogs(suggestionId: number): Promise<
   
   return await db.select().from(aiSuggestionExecutionLogs)
     .where(eq(aiSuggestionExecutionLogs.suggestionId, suggestionId))
-    .orderBy(desc(aiSuggestionExecutionLogs.createdAt));
+    .orderBy(desc(aiSuggestionExecutionLogs.createdAt))
+    .limit(1000);
 }
 
 

@@ -465,7 +465,8 @@ export async function getLeaveBalances(
     .where(and(
       eq(oaLeaveBalances.employeeId, employeeId),
       eq(oaLeaveBalances.year, year),
-    ));
+    ))
+    .limit(1000);
 }
 
 /**

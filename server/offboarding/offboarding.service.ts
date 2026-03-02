@@ -865,7 +865,8 @@ export async function queryOffboardedEmployeeData(params: {
   const db = await requireDb();
   const [offboarding] = await db.select()
     .from(employeeOffboarding)
-    .where(eq(employeeOffboarding.employeeId, params.targetEmployeeId));
+    .where(eq(employeeOffboarding.employeeId, params.targetEmployeeId))
+    .limit(1000);
 
   const isOffboarded = !!offboarding;
   const offboardingDate = offboarding?.offboardingDate;

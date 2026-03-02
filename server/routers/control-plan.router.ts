@@ -246,7 +246,7 @@ export const controlPlanRouter = router({
 
     const planIds = filtered.map(p => p.id);
     const allItems = planIds.length > 0
-      ? await db.select().from(controlPlanItems)
+      ? await db.select().from(controlPlanItems).limit(1000)
       : [];
     const filteredItems = allItems.filter(i => planIds.includes(i.controlPlanId));
 

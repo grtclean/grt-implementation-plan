@@ -929,7 +929,7 @@ export const projectGateRouter = router({
       // Get associated project info
       const projectIds = [...new Set(pendingGates.map(g => g.projectId))];
       const projectList = projectIds.length > 0
-        ? await db.select().from(projects)
+        ? await db.select().from(projects).limit(1000)
         : [];
 
       return pendingGates

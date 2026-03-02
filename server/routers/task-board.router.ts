@@ -265,7 +265,8 @@ export const taskBoardRouter = router({
     if (input.projectIds.length === 0) return {};
     const db = await requireDb();
     const tasks = await db.select().from(projectTasks)
-      .where(inArray(projectTasks.projectId, input.projectIds));
+      .where(inArray(projectTasks.projectId, input.projectIds))
+      .limit(1000);
     const now = new Date().toISOString();
     const result: Record<number, { total: number; overdue: number }> = {};
     for (const pid of input.projectIds) {

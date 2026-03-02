@@ -137,7 +137,7 @@ export async function exportSalaryStructureToCSV(): Promise<{ csv: string; filen
     return { csv: "Database not available", filename: "error.csv" };
   }
 
-  const structures = await db.select().from(hrmSalaryStructures);
+  const structures = await db.select().from(hrmSalaryStructures).limit(1000);
   
   if (!structures || structures.length === 0) {
     return {
@@ -186,7 +186,7 @@ export async function exportPerformanceGradesToCSV(): Promise<{ csv: string; fil
     return { csv: "Database not available", filename: "error.csv" };
   }
 
-  const grades = await db.select().from(hrmPerformanceGrades);
+  const grades = await db.select().from(hrmPerformanceGrades).limit(1000);
   
   if (!grades || grades.length === 0) {
     return {
