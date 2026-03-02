@@ -83,31 +83,34 @@ export const ppapRouter = router({
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const code = `PPAP-${Date.now().toString(36).toUpperCase()}`;
-    const [sub] = await db.insert(ppapSubmissions).values({
-      submissionCode: code,
-      projectId: input.projectId,
-      partName: input.partName,
-      partNumber: input.partNumber,
-      revision: input.revision,
-      customerId: input.customerId,
-      customerName: input.customerName,
-      submissionLevel: input.submissionLevel,
-      submissionReason: input.submissionReason,
-      notes: input.notes,
-      status: "draft",
-    }).returning();
-
-    // Auto-generate 18 elements
     const required = LEVEL_REQUIREMENTS[input.submissionLevel] || LEVEL_REQUIREMENTS["3"];
-    for (const elem of PPAP_18_ELEMENTS) {
-      await db.insert(ppapElements).values({
-        submissionId: sub.id,
-        elementNumber: elem.number,
-        elementName: elem.name,
-        required: required.includes(elem.number) ? 1 : 0,
-        status: "not_started",
-      });
-    }
+    const [sub] = await db.transaction(async (tx) => {
+      const [submission] = await tx.insert(ppapSubmissions).values({
+        submissionCode: code,
+        projectId: input.projectId,
+        partName: input.partName,
+        partNumber: input.partNumber,
+        revision: input.revision,
+        customerId: input.customerId,
+        customerName: input.customerName,
+        submissionLevel: input.submissionLevel,
+        submissionReason: input.submissionReason,
+        notes: input.notes,
+        status: "draft",
+      }).returning();
+
+      // Batch insert all 18 elements
+      await tx.insert(ppapElements).values(
+        PPAP_18_ELEMENTS.map(elem => ({
+          submissionId: submission.id,
+          elementNumber: elem.number,
+          elementName: elem.name,
+          required: required.includes(elem.number) ? 1 : 0,
+          status: "not_started" as const,
+        }))
+      );
+      return [submission];
+    });
     return { success: true, message: "PPAP提交已创建（含18元素清单）", data: sub };
   }),
 
@@ -136,8 +139,10 @@ export const ppapRouter = router({
   delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
-    await db.delete(ppapElements).where(eq(ppapElements.submissionId, numId));
-    await db.delete(ppapSubmissions).where(eq(ppapSubmissions.id, numId));
+    await db.transaction(async (tx) => {
+      await tx.delete(ppapElements).where(eq(ppapElements.submissionId, numId));
+      await tx.delete(ppapSubmissions).where(eq(ppapSubmissions.id, numId));
+    });
     return { success: true, message: "PPAP已删除" };
   }),
 

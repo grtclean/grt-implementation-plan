@@ -182,9 +182,11 @@ export const taskBoardRouter = router({
   delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
-    // Delete subtasks first
-    await db.delete(projectTasks).where(eq(projectTasks.parentTaskId, numId));
-    await db.delete(projectTasks).where(eq(projectTasks.id, numId));
+    await db.transaction(async (tx) => {
+      // Delete subtasks first
+      await tx.delete(projectTasks).where(eq(projectTasks.parentTaskId, numId));
+      await tx.delete(projectTasks).where(eq(projectTasks.id, numId));
+    });
     return { success: true, message: "任务已删除" };
   }),
 
@@ -194,11 +196,9 @@ export const taskBoardRouter = router({
     status: z.enum(["backlog", "todo", "in_progress", "review", "done", "cancelled"]),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
-    for (const id of input.ids) {
-      await db.update(projectTasks)
-        .set({ status: input.status, updatedAt: new Date().toISOString() })
-        .where(eq(projectTasks.id, id));
-    }
+    await db.update(projectTasks)
+      .set({ status: input.status, updatedAt: new Date().toISOString() })
+      .where(inArray(projectTasks.id, input.ids));
     return { success: true, message: `${input.ids.length} 个任务状态已更新` };
   }),
 

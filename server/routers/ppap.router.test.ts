@@ -50,6 +50,7 @@ vi.mock("../db", () => ({
       insert: vi.fn(() => chain),
       update: vi.fn(() => chain),
       delete: vi.fn(() => chain),
+      transaction: vi.fn(async (cb: any) => cb(db)),
     };
     return db;
   }),

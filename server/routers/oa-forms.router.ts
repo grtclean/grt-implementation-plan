@@ -165,16 +165,6 @@ export const oaFormsRouter = router({
         });
       }
 
-      // Save current version as snapshot
-      await db.insert(oaFormTemplateVersions).values({
-        templateId: id,
-        version: current.version ?? 1,
-        fields: current.fields,
-        approvalFlow: current.approvalFlow,
-        changedBy: current.createdBy,
-        changeNotes: `Auto-snapshot before update to v${(current.version ?? 1) + 1}`,
-      });
-
       // Build update payload
       const setPayload: Record<string, unknown> = {
         version: (current.version ?? 1) + 1,
@@ -190,11 +180,23 @@ export const oaFormsRouter = router({
       if (updates.approvalFlow !== undefined) setPayload.approvalFlow = updates.approvalFlow;
       if (updates.isActive !== undefined) setPayload.isActive = updates.isActive;
 
-      const [updated] = await db
-        .update(oaFormTemplates)
-        .set(setPayload)
-        .where(eq(oaFormTemplates.id, id))
-        .returning();
+      // Snapshot + update in a transaction
+      const [updated] = await db.transaction(async (tx) => {
+        await tx.insert(oaFormTemplateVersions).values({
+          templateId: id,
+          version: current.version ?? 1,
+          fields: current.fields,
+          approvalFlow: current.approvalFlow,
+          changedBy: current.createdBy,
+          changeNotes: `Auto-snapshot before update to v${(current.version ?? 1) + 1}`,
+        });
+
+        return await tx
+          .update(oaFormTemplates)
+          .set(setPayload)
+          .where(eq(oaFormTemplates.id, id))
+          .returning();
+      });
 
       return updated;
     }),

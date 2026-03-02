@@ -133,8 +133,10 @@ export const eightDCapaRouter = router({
   delete8D: protectedProcedure.input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
-    await db.delete(capaRecords).where(eq(capaRecords.eightDReportId, numId));
-    await db.delete(eightDReports).where(eq(eightDReports.id, numId));
+    await db.transaction(async (tx) => {
+      await tx.delete(capaRecords).where(eq(capaRecords.eightDReportId, numId));
+      await tx.delete(eightDReports).where(eq(eightDReports.id, numId));
+    });
     return { success: true, message: "8D报告已删除" };
   }),
 

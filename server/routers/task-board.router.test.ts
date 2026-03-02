@@ -38,12 +38,14 @@ vi.mock("../db", () => ({
       },
       catch() { return chain; },
     };
-    return {
+    const db: any = {
       select: vi.fn(() => chain),
       insert: vi.fn(() => chain),
       update: vi.fn(() => chain),
       delete: vi.fn(() => chain),
+      transaction: vi.fn(async (cb: any) => cb(db)),
     };
+    return db;
   }),
 }));
 
@@ -290,10 +292,8 @@ describe("task-board router", () => {
 
   // ═══ batchUpdateStatus ═══
   describe("batchUpdateStatus", () => {
-    it("updates multiple tasks", async () => {
-      // 3 update chains
-      selectResultsQueue.push([]);
-      selectResultsQueue.push([]);
+    it("updates multiple tasks via single inArray update", async () => {
+      // Single update with inArray (no loop)
       selectResultsQueue.push([]);
       const result = await caller().taskBoard.batchUpdateStatus({
         ids: [1, 2, 3], status: "done",
