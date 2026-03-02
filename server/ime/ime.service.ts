@@ -5,7 +5,7 @@
 
 import crypto from "crypto";
 import { requireDb } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { tracePerformance } from "../services/performance-trace.service";
 
@@ -282,14 +282,14 @@ export async function getContributionDashboard(filters: {
 }) {
   const db = await requireDb();
 
-  const conditions: string[] = ["1=1"];
-  if (filters.channelId) conditions.push(`mr.channel_id = '${filters.channelId}'`);
-  if (filters.dateFrom) conditions.push(`mr.meeting_date >= '${filters.dateFrom}'`);
-  if (filters.dateTo) conditions.push(`mr.meeting_date <= '${filters.dateTo}'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`1=1`];
+  if (filters.channelId) conditions.push(sql`mr.channel_id = ${filters.channelId}`);
+  if (filters.dateFrom) conditions.push(sql`mr.meeting_date >= ${filters.dateFrom}`);
+  if (filters.dateTo) conditions.push(sql`mr.meeting_date <= ${filters.dateTo}`);
+  const where = sql.join(conditions, sql` AND `);
 
   // Stats
-  const statsResult = await db.execute(sql.raw(`
+  const statsResult = await db.execute(sql`
     SELECT
       COUNT(DISTINCT mes.meeting_id) as analyzed_meetings,
       AVG(mes.overall_score) as avg_effectiveness,
@@ -298,11 +298,11 @@ export async function getContributionDashboard(filters: {
     LEFT JOIN meeting_records mr ON mes.meeting_id = mr.id
     LEFT JOIN meeting_contributions mc ON mes.meeting_id = mc.meeting_id
     WHERE ${where}
-  `));
+  `);
   const stats = (statsResult.rows as any[])[0] || {};
 
   // Top contributors
-  const topResult = await db.execute(sql.raw(`
+  const topResult = await db.execute(sql`
     SELECT
       mc.employee_id,
       mc.employee_name,
@@ -316,10 +316,10 @@ export async function getContributionDashboard(filters: {
     GROUP BY mc.employee_id, mc.employee_name
     ORDER BY avg_score DESC
     LIMIT 10
-  `));
+  `);
 
   // Effectiveness trend (last 30 days)
-  const trendResult = await db.execute(sql.raw(`
+  const trendResult = await db.execute(sql`
     SELECT
       mr.meeting_date::date as date,
       AVG(mes.overall_score) as avg_score,
@@ -330,7 +330,7 @@ export async function getContributionDashboard(filters: {
     GROUP BY mr.meeting_date::date
     ORDER BY date DESC
     LIMIT 30
-  `));
+  `);
 
   return {
     stats: {
@@ -350,12 +350,12 @@ export async function getContributionDashboard(filters: {
 export async function getEmployeeTrend(employeeId: string, dateFrom?: string, dateTo?: string) {
   const db = await requireDb();
 
-  const conditions = [`mc.employee_id = '${employeeId}'`];
-  if (dateFrom) conditions.push(`mr.meeting_date >= '${dateFrom}'`);
-  if (dateTo) conditions.push(`mr.meeting_date <= '${dateTo}'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`mc.employee_id = ${employeeId}`];
+  if (dateFrom) conditions.push(sql`mr.meeting_date >= ${dateFrom}`);
+  if (dateTo) conditions.push(sql`mr.meeting_date <= ${dateTo}`);
+  const where = sql.join(conditions, sql` AND `);
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT
       mr.meeting_date::date as date,
       mr.title as meeting_title,
@@ -369,7 +369,7 @@ export async function getEmployeeTrend(employeeId: string, dateFrom?: string, da
     JOIN meeting_records mr ON mc.meeting_id = mr.id
     WHERE ${where}
     ORDER BY mr.meeting_date ASC
-  `));
+  `);
 
   return result.rows;
 }
@@ -505,11 +505,11 @@ export async function analyzeParticipantEngagement(
     if (excludeSet.has(speaker.toLowerCase())) continue;
 
     if (!options?.includeExternal) {
-      const empResult = await db.execute(sql.raw(`
+      const empResult = await db.execute(sql`
         SELECT id FROM hrm_employees
-        WHERE name = '${speaker.replace(/'/g, "''")}' OR "employeeCode" = '${speaker.replace(/'/g, "''")}'
+        WHERE name = ${speaker} OR "employeeCode" = ${speaker}
         LIMIT 1
-      `));
+      `);
       if ((empResult.rows as any[]).length === 0) continue;
     }
     speakersToAnalyze.push(speaker);
@@ -648,12 +648,12 @@ Return strict JSON only.`,
   // 8. Merge engagement into existing ai_analysis JSON via UPDATE
   for (const result of engagementResults) {
     // Read existing ai_analysis
-    const contribResult = await db.execute(sql.raw(`
+    const contribResult = await db.execute(sql`
       SELECT id, ai_analysis FROM meeting_contributions
-      WHERE meeting_id = '${meetingId.replace(/'/g, "''")}'
-        AND (employee_name = '${result.speaker.replace(/'/g, "''")}' OR employee_id = '${result.speaker.replace(/'/g, "''")}')
+      WHERE meeting_id = ${meetingId}
+        AND (employee_name = ${result.speaker} OR employee_id = ${result.speaker})
       LIMIT 1
-    `));
+    `);
     const existing = (contribResult.rows as any[])[0];
     if (!existing) continue;
 
@@ -671,12 +671,12 @@ Return strict JSON only.`,
       coaching_suggestion: result.coaching_suggestion,
     };
 
-    const updatedJson = JSON.stringify(analysis).replace(/'/g, "''");
-    await db.execute(sql.raw(`
+    const updatedJson = JSON.stringify(analysis);
+    await db.execute(sql`
       UPDATE meeting_contributions
-      SET ai_analysis = '${updatedJson}'
+      SET ai_analysis = ${updatedJson}
       WHERE id = ${existing.id}
-    `));
+    `);
   }
 
   // 9. Return structured output
@@ -704,7 +704,7 @@ export async function computeDepartmentRollup(department: string, period: string
   const db = await requireDb();
 
   // Join contributions with hrm_employees to scope to department, then aggregate
-  const statsResult = await db.execute(sql.raw(`
+  const statsResult = await db.execute(sql`
     SELECT
       COUNT(DISTINCT mc.meeting_id) as meeting_count,
       AVG(mes.overall_score) as avg_effectiveness,
@@ -717,13 +717,13 @@ export async function computeDepartmentRollup(department: string, period: string
     JOIN hrm_employees he ON mc.employee_id = he."employeeCode"
     LEFT JOIN meeting_effectiveness_scores mes ON mc.meeting_id = mes.meeting_id
     LEFT JOIN meeting_records mr ON mc.meeting_id = mr.id
-    WHERE he.department = '${department}'
-      AND mr.meeting_date::text LIKE '${period}%'
-  `));
+    WHERE he.department = ${department}
+      AND mr.meeting_date::text LIKE ${period + '%'}
+  `);
   const stats = (statsResult.rows as any[])[0] || {};
 
   // Top contributors for this department
-  const topResult = await db.execute(sql.raw(`
+  const topResult = await db.execute(sql`
     SELECT
       mc.employee_id,
       mc.employee_name,
@@ -731,20 +731,20 @@ export async function computeDepartmentRollup(department: string, period: string
     FROM meeting_contributions mc
     JOIN hrm_employees he ON mc.employee_id = he."employeeCode"
     LEFT JOIN meeting_records mr ON mc.meeting_id = mr.id
-    WHERE he.department = '${department}'
-      AND mr.meeting_date::text LIKE '${period}%'
+    WHERE he.department = ${department}
+      AND mr.meeting_date::text LIKE ${period + '%'}
     GROUP BY mc.employee_id, mc.employee_name
     ORDER BY avg_score DESC
     LIMIT 5
-  `));
+  `);
 
   const topContributors = JSON.stringify(topResult.rows);
 
   // Upsert rollup
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     DELETE FROM ime_department_rollups
-    WHERE department = '${department}' AND period = '${period}'
-  `));
+    WHERE department = ${department} AND period = ${period}
+  `);
 
   await db.execute(sql`
     INSERT INTO ime_department_rollups
@@ -785,11 +785,11 @@ export async function getDepartmentComparison(departments: string[], period: str
   const results: any[] = [];
   for (const dept of departments) {
     // Try to read from pre-computed rollups first
-    const existing = await db.execute(sql.raw(`
+    const existing = await db.execute(sql`
       SELECT * FROM ime_department_rollups
-      WHERE department = '${dept}' AND period = '${period}'
+      WHERE department = ${dept} AND period = ${period}
       ORDER BY computed_at DESC LIMIT 1
-    `));
+    `);
 
     if ((existing.rows as any[]).length > 0) {
       results.push(existing.rows[0]);
@@ -805,11 +805,11 @@ export async function getDepartmentComparison(departments: string[], period: str
 
 export async function getManagementDashboard(scope: string, scopeId?: string, period?: string) {
   const db = await requireDb();
-  const periodFilter = period ? `AND mr.meeting_date::text LIKE '${period}%'` : "";
-  const deptFilter = scope === "department" && scopeId ? `AND he.department = '${scopeId}'` : "";
+  const periodCond = period ? sql`AND mr.meeting_date::text LIKE ${period + '%'}` : sql``;
+  const deptCond = scope === "department" && scopeId ? sql`AND he.department = ${scopeId}` : sql``;
 
   // Rankings by department
-  const rankingsResult = await db.execute(sql.raw(`
+  const rankingsResult = await db.execute(sql`
     SELECT
       he.department,
       COUNT(DISTINCT mc.meeting_id) as meeting_count,
@@ -820,13 +820,13 @@ export async function getManagementDashboard(scope: string, scopeId?: string, pe
     JOIN hrm_employees he ON mc.employee_id = he."employeeCode"
     LEFT JOIN meeting_effectiveness_scores mes ON mc.meeting_id = mes.meeting_id
     LEFT JOIN meeting_records mr ON mc.meeting_id = mr.id
-    WHERE 1=1 ${periodFilter} ${deptFilter}
+    WHERE 1=1 ${periodCond} ${deptCond}
     GROUP BY he.department
     ORDER BY avg_effectiveness DESC
-  `));
+  `);
 
   // Org averages
-  const orgResult = await db.execute(sql.raw(`
+  const orgResult = await db.execute(sql`
     SELECT
       AVG(mes.overall_score) as org_avg_effectiveness,
       AVG(mc.contribution_score) as org_avg_contribution,
@@ -835,11 +835,11 @@ export async function getManagementDashboard(scope: string, scopeId?: string, pe
     FROM meeting_contributions mc
     LEFT JOIN meeting_effectiveness_scores mes ON mc.meeting_id = mes.meeting_id
     LEFT JOIN meeting_records mr ON mc.meeting_id = mr.id
-    WHERE 1=1 ${periodFilter}
-  `));
+    WHERE 1=1 ${periodCond}
+  `);
 
   // 6-period trend
-  const trendResult = await db.execute(sql.raw(`
+  const trendResult = await db.execute(sql`
     SELECT
       TO_CHAR(mr.meeting_date, 'YYYY-MM') as period,
       AVG(mes.overall_score) as avg_effectiveness,
@@ -847,14 +847,14 @@ export async function getManagementDashboard(scope: string, scopeId?: string, pe
     FROM meeting_contributions mc
     LEFT JOIN meeting_effectiveness_scores mes ON mc.meeting_id = mes.meeting_id
     LEFT JOIN meeting_records mr ON mc.meeting_id = mr.id
-    WHERE mr.meeting_date IS NOT NULL ${deptFilter}
+    WHERE mr.meeting_date IS NOT NULL ${deptCond}
     GROUP BY TO_CHAR(mr.meeting_date, 'YYYY-MM')
     ORDER BY period DESC
     LIMIT 6
-  `));
+  `);
 
   // Worst meetings
-  const worstResult = await db.execute(sql.raw(`
+  const worstResult = await db.execute(sql`
     SELECT
       mes.meeting_id,
       mr.title,
@@ -862,10 +862,10 @@ export async function getManagementDashboard(scope: string, scopeId?: string, pe
       mes.overall_score
     FROM meeting_effectiveness_scores mes
     JOIN meeting_records mr ON mes.meeting_id = mr.id
-    WHERE mes.overall_score IS NOT NULL ${periodFilter}
+    WHERE mes.overall_score IS NOT NULL ${periodCond}
     ORDER BY mes.overall_score ASC
     LIMIT 5
-  `));
+  `);
 
   return {
     rankings: rankingsResult.rows,
@@ -4308,20 +4308,18 @@ export async function generateMeetingReport(meetingId: string) {
   const db = await requireDb();
   const PDFDocument = (await import("pdfkit")).default;
 
-  const safeId = meetingId.replace(/'/g, "''");
-
   // Fetch data from 8 tables
-  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
-  const contribRes = await db.execute(sql.raw(`SELECT * FROM meeting_contributions WHERE meeting_id = '${safeId}' ORDER BY contribution_score DESC`));
-  const effRes = await db.execute(sql.raw(`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = '${safeId}' LIMIT 1`));
-  const sentimentRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_sentiment WHERE meeting_id = '${safeId}' LIMIT 1`));
-  const roiRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_roi WHERE meeting_id = '${safeId}' LIMIT 1`));
-  const actionRes = await db.execute(sql.raw(`SELECT * FROM ime_action_items WHERE meeting_id = '${safeId}' ORDER BY priority DESC`));
-  const topicRes = await db.execute(sql.raw(`SELECT * FROM ime_topic_continuity WHERE meeting_id = '${safeId}'`));
-  const optRes = await db.execute(sql.raw(`SELECT * FROM ime_attendee_optimization WHERE meeting_id = '${safeId}' LIMIT 1`));
+  const contribRes = await db.execute(sql`SELECT * FROM meeting_contributions WHERE meeting_id = ${meetingId} ORDER BY contribution_score DESC`);
+  const effRes = await db.execute(sql`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = ${meetingId} LIMIT 1`);
+  const sentimentRes = await db.execute(sql`SELECT * FROM ime_meeting_sentiment WHERE meeting_id = ${meetingId} LIMIT 1`);
+  const roiRes = await db.execute(sql`SELECT * FROM ime_meeting_roi WHERE meeting_id = ${meetingId} LIMIT 1`);
+  const actionRes = await db.execute(sql`SELECT * FROM ime_action_items WHERE meeting_id = ${meetingId} ORDER BY priority DESC`);
+  const topicRes = await db.execute(sql`SELECT * FROM ime_topic_continuity WHERE meeting_id = ${meetingId}`);
+  const optRes = await db.execute(sql`SELECT * FROM ime_attendee_optimization WHERE meeting_id = ${meetingId} LIMIT 1`);
 
   const contributions = contribRes.rows as any[];
   const effectiveness = (effRes.rows as any[])[0];
@@ -4513,10 +4511,10 @@ export async function generateMeetingReport(meetingId: string) {
   const filename = `IME-会议报告-${titleSlug}-${dateStr}.pdf`;
 
   // Record export
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_report_exports (report_type, scope, scope_id, format, filename, file_size, generated_by, generated_at, created_at)
-    VALUES ('meeting', 'meeting', '${safeId}', 'pdf', '${filename.replace(/'/g, "''")}', ${pdfBuffer.length}, 'system', NOW(), NOW())
-  `));
+    VALUES ('meeting', 'meeting', ${meetingId}, 'pdf', ${filename}, ${pdfBuffer.length}, 'system', NOW(), NOW())
+  `);
 
   return { base64, filename };
 }
@@ -4753,16 +4751,13 @@ export async function generateBenchmarkReport(
 
 export async function extractKnowledgeEntities(meetingId: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
 
   // Fetch meeting + content blocks
-  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
-  const blocksRes = await db.execute(sql.raw(
-    `SELECT speaker, content, block_type FROM meeting_content_blocks WHERE meeting_id = '${safeId}' ORDER BY timestamp_start`
-  ));
+  const blocksRes = await db.execute(sql`SELECT speaker, content, block_type FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY timestamp_start`);
   const blocks = blocksRes.rows as any[];
 
   const transcript = blocks.map((b: any) => `[${b.speaker}] ${b.content}`).join("\n").slice(0, 6000);
@@ -4798,16 +4793,16 @@ export async function extractKnowledgeEntities(meetingId: string) {
   const entities = parsed.entities || [];
 
   // Delete old extractions for this meeting
-  await db.execute(sql.raw(`DELETE FROM ime_knowledge_entities WHERE meeting_id = '${safeId}'`));
+  await db.execute(sql`DELETE FROM ime_knowledge_entities WHERE meeting_id = ${meetingId}`);
 
   // Insert new entities
   const insertedIds: number[] = [];
   for (const e of entities) {
-    const res = await db.execute(sql.raw(`
+    const res = await db.execute(sql`
       INSERT INTO ime_knowledge_entities (meeting_id, entity_type, entity_value, confidence, related_speaker, context, ai_narrative, extracted_at, created_at)
-      VALUES ('${safeId}', '${(e.entity_type || "insight").replace(/'/g, "''")}', '${String(e.entity_value || "").replace(/'/g, "''")}', ${Number(e.confidence) || 0.8}, '${String(e.related_speaker || "").replace(/'/g, "''")}', '${String(e.context || "").replace(/'/g, "''")}', '${String(parsed.narrative || "").replace(/'/g, "''")}', NOW(), NOW())
+      VALUES (${meetingId}, ${e.entity_type || "insight"}, ${String(e.entity_value || "")}, ${Number(e.confidence) || 0.8}, ${String(e.related_speaker || "")}, ${String(e.context || "")}, ${String(parsed.narrative || "")}, NOW(), NOW())
       RETURNING id
-    `));
+    `);
     const row = (res.rows as any[])[0];
     if (row) insertedIds.push(Number(row.id));
   }
@@ -4821,19 +4816,14 @@ export async function extractKnowledgeEntities(meetingId: string) {
 
 export async function buildEntityRelationships(meetingId: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
 
   // Get entities from this meeting
-  const currentRes = await db.execute(sql.raw(
-    `SELECT id, entity_type, entity_value, meeting_id FROM ime_knowledge_entities WHERE meeting_id = '${safeId}'`
-  ));
+  const currentRes = await db.execute(sql`SELECT id, entity_type, entity_value, meeting_id FROM ime_knowledge_entities WHERE meeting_id = ${meetingId}`);
   const currentEntities = currentRes.rows as any[];
   if (currentEntities.length === 0) return { relationships: 0 };
 
   // Get entities from other meetings for linking
-  const otherRes = await db.execute(sql.raw(
-    `SELECT id, entity_type, entity_value, meeting_id FROM ime_knowledge_entities WHERE meeting_id != '${safeId}' ORDER BY extracted_at DESC LIMIT 200`
-  ));
+  const otherRes = await db.execute(sql`SELECT id, entity_type, entity_value, meeting_id FROM ime_knowledge_entities WHERE meeting_id != ${meetingId} ORDER BY extracted_at DESC LIMIT 200`);
   const otherEntities = otherRes.rows as any[];
 
   if (otherEntities.length === 0) return { relationships: 0 };
@@ -4877,10 +4867,10 @@ export async function buildEntityRelationships(meetingId: string) {
 
   for (const rel of relationships) {
     if (!validFromIds.has(rel.entity_from_id) || !validToIds.has(rel.entity_to_id)) continue;
-    await db.execute(sql.raw(`
+    await db.execute(sql`
       INSERT INTO ime_entity_relationships (entity_from_id, entity_to_id, relationship_type, strength, context, created_at)
-      VALUES (${rel.entity_from_id}, ${rel.entity_to_id}, '${String(rel.relationship_type).replace(/'/g, "''")}', ${Number(rel.strength) || 0.7}, '${String(rel.context || "").replace(/'/g, "''")}', NOW())
-    `));
+      VALUES (${rel.entity_from_id}, ${rel.entity_to_id}, ${String(rel.relationship_type)}, ${Number(rel.strength) || 0.7}, ${String(rel.context || "")}, NOW())
+    `);
     inserted++;
   }
 
@@ -4901,18 +4891,16 @@ export async function trackDecisionOutcome(
   const db = await requireDb();
 
   // Verify entity exists and is a decision
-  const entityRes = await db.execute(sql.raw(
-    `SELECT id, meeting_id, entity_value FROM ime_knowledge_entities WHERE id = ${entityId} AND entity_type = 'decision'`
-  ));
+  const entityRes = await db.execute(sql`SELECT id, meeting_id, entity_value FROM ime_knowledge_entities WHERE id = ${entityId} AND entity_type = 'decision'`);
   const entity = (entityRes.rows as any[])[0];
   if (!entity) throw new Error("Decision entity not found");
 
   // Upsert decision outcome
-  await db.execute(sql.raw(`DELETE FROM ime_decision_outcomes WHERE entity_id = ${entityId}`));
-  await db.execute(sql.raw(`
+  await db.execute(sql`DELETE FROM ime_decision_outcomes WHERE entity_id = ${entityId}`);
+  await db.execute(sql`
     INSERT INTO ime_decision_outcomes (entity_id, meeting_id, decision_text, decision_date, outcome_status, outcome_notes, impact_score, lessons_learned, outcome_date, created_at)
-    VALUES (${entityId}, '${entity.meeting_id}', '${String(entity.entity_value).replace(/'/g, "''")}', NOW(), '${outcomeStatus.replace(/'/g, "''")}', '${String(outcomeNotes || "").replace(/'/g, "''")}', ${impactScore ?? 0}, '${String(lessonsLearned || "").replace(/'/g, "''")}', NOW(), NOW())
-  `));
+    VALUES (${entityId}, ${entity.meeting_id}, ${String(entity.entity_value)}, NOW(), ${outcomeStatus}, ${String(outcomeNotes || "")}, ${impactScore ?? 0}, ${String(lessonsLearned || "")}, NOW(), NOW())
+  `);
 
   return { entityId, outcomeStatus, tracked: true };
 }
@@ -4923,17 +4911,16 @@ export async function trackDecisionOutcome(
 
 export async function generateRetrospective(meetingId: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
 
   // Gather data from multiple tables
-  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
-  const effRes = await db.execute(sql.raw(`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = '${safeId}' LIMIT 1`));
-  const sentRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_sentiment WHERE meeting_id = '${safeId}' LIMIT 1`));
-  const actionRes = await db.execute(sql.raw(`SELECT content, status, assigned_to FROM ime_action_items WHERE meeting_id = '${safeId}'`));
-  const entityRes = await db.execute(sql.raw(`SELECT entity_type, entity_value FROM ime_knowledge_entities WHERE meeting_id = '${safeId}'`));
+  const effRes = await db.execute(sql`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = ${meetingId} LIMIT 1`);
+  const sentRes = await db.execute(sql`SELECT * FROM ime_meeting_sentiment WHERE meeting_id = ${meetingId} LIMIT 1`);
+  const actionRes = await db.execute(sql`SELECT content, status, assigned_to FROM ime_action_items WHERE meeting_id = ${meetingId}`);
+  const entityRes = await db.execute(sql`SELECT entity_type, entity_value FROM ime_knowledge_entities WHERE meeting_id = ${meetingId}`);
 
   const effectiveness = (effRes.rows as any[])[0];
   const sentiment = (sentRes.rows as any[])[0];
@@ -4970,11 +4957,11 @@ export async function generateRetrospective(meetingId: string) {
   const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
 
   // Upsert retrospective
-  await db.execute(sql.raw(`DELETE FROM ime_meeting_retrospectives WHERE meeting_id = '${safeId}'`));
-  await db.execute(sql.raw(`
+  await db.execute(sql`DELETE FROM ime_meeting_retrospectives WHERE meeting_id = ${meetingId}`);
+  await db.execute(sql`
     INSERT INTO ime_meeting_retrospectives (meeting_id, ai_summary, key_learnings, improvement_areas, what_went_well, actionable_insights, overall_grade, ai_narrative, generated_at, created_at)
-    VALUES ('${safeId}', '${String(parsed.summary || "").replace(/'/g, "''")}', '${JSON.stringify(parsed.key_learnings || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.improvement_areas || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.what_went_well || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.actionable_insights || []).replace(/'/g, "''")}', '${String(parsed.overall_grade || "B").replace(/'/g, "''")}', '${String(parsed.narrative || "").replace(/'/g, "''")}', NOW(), NOW())
-  `));
+    VALUES (${meetingId}, ${String(parsed.summary || "")}, ${JSON.stringify(parsed.key_learnings || [])}, ${JSON.stringify(parsed.improvement_areas || [])}, ${JSON.stringify(parsed.what_went_well || [])}, ${JSON.stringify(parsed.actionable_insights || [])}, ${String(parsed.overall_grade || "B")}, ${String(parsed.narrative || "")}, NOW(), NOW())
+  `);
 
   return {
     meetingId,
@@ -5015,23 +5002,23 @@ export async function computeExpertProfiles(department?: string) {
   // For each contributor, check decision influence
   const profiles: any[] = [];
   for (const c of contributors) {
-    const safeEmpId = String(c.employee_id || "").replace(/'/g, "''");
-    const safeEmpName = String(c.employee_name || "").replace(/'/g, "''");
+    const employeeId = String(c.employee_id || "");
+    const employeeName = String(c.employee_name || "");
 
     // Count decisions they're associated with
-    const decisionRes = await db.execute(sql.raw(`
+    const decisionRes = await db.execute(sql`
       SELECT COUNT(*) as cnt FROM ime_knowledge_entities
-      WHERE entity_type = 'decision' AND related_speaker = '${safeEmpName}'
-    `));
+      WHERE entity_type = 'decision' AND related_speaker = ${employeeName}
+    `);
     const decisionCount = Number((decisionRes.rows as any[])[0]?.cnt) || 0;
 
     // Get top topics from their meetings
-    const topicRes = await db.execute(sql.raw(`
+    const topicRes = await db.execute(sql`
       SELECT tc.topic_name, COUNT(*) as cnt
       FROM ime_topic_continuity tc
-      WHERE tc.meeting_id IN (SELECT meeting_id FROM meeting_contributions WHERE employee_id = '${safeEmpId}')
+      WHERE tc.meeting_id IN (SELECT meeting_id FROM meeting_contributions WHERE employee_id = ${employeeId})
       GROUP BY tc.topic_name ORDER BY cnt DESC LIMIT 5
-    `));
+    `);
     const topTopics = (topicRes.rows as any[]).map((t: any) => t.topic_name);
 
     const meetingCount = Number(c.meeting_count) || 0;
@@ -5046,11 +5033,11 @@ export async function computeExpertProfiles(department?: string) {
     if (topTopics.length > 0) expertiseAreas.push(...topTopics.slice(0, 3));
 
     // Upsert
-    await db.execute(sql.raw(`DELETE FROM ime_expert_profiles WHERE employee_id = '${safeEmpId}'`));
-    await db.execute(sql.raw(`
+    await db.execute(sql`DELETE FROM ime_expert_profiles WHERE employee_id = ${employeeId}`);
+    await db.execute(sql`
       INSERT INTO ime_expert_profiles (employee_id, employee_name, department, expertise_areas, credibility_score, meeting_count, avg_contribution_score, decision_influence_rate, top_topics, computed_at, created_at)
-      VALUES ('${safeEmpId}', '${safeEmpName}', '${(department || "").replace(/'/g, "''")}', '${JSON.stringify(expertiseAreas).replace(/'/g, "''")}', ${Math.round(credibility)}, ${meetingCount}, ${Math.round(avgScore)}, ${Number(decisionCount / Math.max(meetingCount, 1)).toFixed(2)}, '${JSON.stringify(topTopics).replace(/'/g, "''")}', NOW(), NOW())
-    `));
+      VALUES (${employeeId}, ${employeeName}, ${department || ""}, ${JSON.stringify(expertiseAreas)}, ${Math.round(credibility)}, ${meetingCount}, ${Math.round(avgScore)}, ${Number(decisionCount / Math.max(meetingCount, 1)).toFixed(2)}, ${JSON.stringify(topTopics)}, NOW(), NOW())
+    `);
 
     profiles.push({
       employeeId: c.employee_id,
@@ -5167,19 +5154,18 @@ export async function getKnowledgeDashboard(filters?: {
 
 export async function generateMeetingBrief(meetingId: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
 
-  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
   // Gather participant history
-  const contribRes = await db.execute(sql.raw(
-    `SELECT employee_name, employee_id, AVG(contribution_score) as avg_score, COUNT(*) as meetings
-     FROM meeting_contributions WHERE meeting_id = '${safeId}' OR employee_id IN
-       (SELECT DISTINCT employee_id FROM meeting_contributions WHERE meeting_id = '${safeId}')
-     GROUP BY employee_name, employee_id ORDER BY avg_score DESC LIMIT 15`
-  ));
+  const contribRes = await db.execute(sql`
+    SELECT employee_name, employee_id, AVG(contribution_score) as avg_score, COUNT(*) as meetings
+     FROM meeting_contributions WHERE meeting_id = ${meetingId} OR employee_id IN
+       (SELECT DISTINCT employee_id FROM meeting_contributions WHERE meeting_id = ${meetingId})
+     GROUP BY employee_name, employee_id ORDER BY avg_score DESC LIMIT 15
+  `);
 
   // Pending action items from past meetings with same participants
   const actionRes = await db.execute(sql.raw(
@@ -5234,11 +5220,11 @@ export async function generateMeetingBrief(meetingId: string) {
 
   const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
 
-  await db.execute(sql.raw(`DELETE FROM ime_meeting_briefs WHERE meeting_id = '${safeId}'`));
-  await db.execute(sql.raw(`
+  await db.execute(sql`DELETE FROM ime_meeting_briefs WHERE meeting_id = ${meetingId}`);
+  await db.execute(sql`
     INSERT INTO ime_meeting_briefs (meeting_id, participant_summary, pending_action_items, relevant_decisions, topic_history, suggested_questions, risk_alerts, ai_narrative, generated_at, created_at)
-    VALUES ('${safeId}', '${JSON.stringify(parsed.participant_summary || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.pending_items || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.relevant_decisions || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.topic_context || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.suggested_questions || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.risk_alerts || []).replace(/'/g, "''")}', '${String(parsed.narrative || "").replace(/'/g, "''")}', NOW(), NOW())
-  `));
+    VALUES (${meetingId}, ${JSON.stringify(parsed.participant_summary || [])}, ${JSON.stringify(parsed.pending_items || [])}, ${JSON.stringify(parsed.relevant_decisions || [])}, ${JSON.stringify(parsed.topic_context || [])}, ${JSON.stringify(parsed.suggested_questions || [])}, ${JSON.stringify(parsed.risk_alerts || [])}, ${String(parsed.narrative || "")}, NOW(), NOW())
+  `);
 
   return {
     meetingId,
@@ -5309,24 +5295,15 @@ export async function generateAgendaSuggestion(
 
 export async function generateMeetingMinutes(meetingId: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
 
-  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
-  const blocksRes = await db.execute(sql.raw(
-    `SELECT speaker, content, block_type FROM meeting_content_blocks WHERE meeting_id = '${safeId}' ORDER BY timestamp_start`
-  ));
-  const contribRes = await db.execute(sql.raw(
-    `SELECT employee_name FROM meeting_contributions WHERE meeting_id = '${safeId}'`
-  ));
-  const actionRes = await db.execute(sql.raw(
-    `SELECT content, assigned_to, status, priority, due_date FROM ime_action_items WHERE meeting_id = '${safeId}'`
-  ));
-  const entityRes = await db.execute(sql.raw(
-    `SELECT entity_type, entity_value FROM ime_knowledge_entities WHERE meeting_id = '${safeId}' AND entity_type = 'decision'`
-  ));
+  const blocksRes = await db.execute(sql`SELECT speaker, content, block_type FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY timestamp_start`);
+  const contribRes = await db.execute(sql`SELECT employee_name FROM meeting_contributions WHERE meeting_id = ${meetingId}`);
+  const actionRes = await db.execute(sql`SELECT content, assigned_to, status, priority, due_date FROM ime_action_items WHERE meeting_id = ${meetingId}`);
+  const entityRes = await db.execute(sql`SELECT entity_type, entity_value FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} AND entity_type = 'decision'`);
 
   const transcript = (blocksRes.rows as any[]).map((b: any) => `[${b.speaker}] ${b.content}`).join("\n").slice(0, 6000);
   const attendees = (contribRes.rows as any[]).map((c: any) => c.employee_name);
@@ -5370,11 +5347,11 @@ export async function generateMeetingMinutes(meetingId: string) {
 
   const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
 
-  await db.execute(sql.raw(`DELETE FROM ime_meeting_minutes WHERE meeting_id = '${safeId}'`));
-  await db.execute(sql.raw(`
+  await db.execute(sql`DELETE FROM ime_meeting_minutes WHERE meeting_id = ${meetingId}`);
+  await db.execute(sql`
     INSERT INTO ime_meeting_minutes (meeting_id, attendees, agenda_items, decisions_recorded, action_items_summary, key_discussion_points, next_steps, ai_narrative, generated_at, created_at)
-    VALUES ('${safeId}', '${JSON.stringify(attendees).replace(/'/g, "''")}', '${JSON.stringify(parsed.agenda_items || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.decisions || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.action_items || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.key_points || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.next_steps || []).replace(/'/g, "''")}', '${String(parsed.narrative || "").replace(/'/g, "''")}', NOW(), NOW())
-  `));
+    VALUES (${meetingId}, ${JSON.stringify(attendees)}, ${JSON.stringify(parsed.agenda_items || [])}, ${JSON.stringify(parsed.decisions || [])}, ${JSON.stringify(parsed.action_items || [])}, ${JSON.stringify(parsed.key_points || [])}, ${JSON.stringify(parsed.next_steps || [])}, ${String(parsed.narrative || "")}, NOW(), NOW())
+  `);
 
   return {
     meetingId,
@@ -5394,16 +5371,15 @@ export async function generateMeetingMinutes(meetingId: string) {
 
 export async function generateFollowUpPlan(meetingId: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
 
-  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
-  const actionRes = await db.execute(sql.raw(`SELECT * FROM ime_action_items WHERE meeting_id = '${safeId}'`));
-  const entityRes = await db.execute(sql.raw(`SELECT * FROM ime_knowledge_entities WHERE meeting_id = '${safeId}'`));
-  const effRes = await db.execute(sql.raw(`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = '${safeId}' LIMIT 1`));
-  const retroRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_retrospectives WHERE meeting_id = '${safeId}' LIMIT 1`));
+  const actionRes = await db.execute(sql`SELECT * FROM ime_action_items WHERE meeting_id = ${meetingId}`);
+  const entityRes = await db.execute(sql`SELECT * FROM ime_knowledge_entities WHERE meeting_id = ${meetingId}`);
+  const effRes = await db.execute(sql`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = ${meetingId} LIMIT 1`);
+  const retroRes = await db.execute(sql`SELECT * FROM ime_meeting_retrospectives WHERE meeting_id = ${meetingId} LIMIT 1`);
 
   const context = [
     `会议: ${meeting.title}`,
@@ -5557,21 +5533,17 @@ export async function createWorkflowRule(rule: {
 // Phase 9 — Feature 2: Evaluate Workflow Rules for a Meeting Event
 export async function evaluateWorkflowRules(meetingId: string, event: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
-  const safeEvent = event.replace(/'/g, "''");
 
   // Get active rules matching this event
-  const rulesRes = await db.execute(sql.raw(
-    `SELECT * FROM ime_workflow_rules WHERE trigger_event = '${safeEvent}' AND is_active = 1`
-  ));
+  const rulesRes = await db.execute(sql`SELECT * FROM ime_workflow_rules WHERE trigger_event = ${event} AND is_active = 1`);
   const rules = rulesRes.rows as any[];
   if (rules.length === 0) return { executed: 0, results: [] };
 
   // Gather meeting metrics for condition evaluation
-  const healthRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_health WHERE meeting_id = '${safeId}' ORDER BY assessed_at DESC LIMIT 1`));
-  const roiRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_roi WHERE meeting_id = '${safeId}' ORDER BY calculated_at DESC LIMIT 1`));
-  const sentimentRes = await db.execute(sql.raw(`SELECT * FROM ime_meeting_sentiment WHERE meeting_id = '${safeId}' ORDER BY analyzed_at DESC LIMIT 1`));
-  const effRes = await db.execute(sql.raw(`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = '${safeId}' LIMIT 1`));
+  const healthRes = await db.execute(sql`SELECT * FROM ime_meeting_health WHERE meeting_id = ${meetingId} ORDER BY assessed_at DESC LIMIT 1`);
+  const roiRes = await db.execute(sql`SELECT * FROM ime_meeting_roi WHERE meeting_id = ${meetingId} ORDER BY calculated_at DESC LIMIT 1`);
+  const sentimentRes = await db.execute(sql`SELECT * FROM ime_meeting_sentiment WHERE meeting_id = ${meetingId} ORDER BY analyzed_at DESC LIMIT 1`);
+  const effRes = await db.execute(sql`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = ${meetingId} LIMIT 1`);
 
   const metrics: Record<string, number | string> = {};
   const health = (healthRes.rows as any[])[0];
@@ -5611,10 +5583,10 @@ export async function evaluateWorkflowRules(meetingId: string, event: string) {
       ? { triggered: true, actionType: rule.action_type, config: JSON.parse(rule.action_config || "{}"), metricsAtTrigger: metrics }
       : { triggered: false, reason: "condition_not_met" };
 
-    await db.execute(sql.raw(`
+    await db.execute(sql`
       INSERT INTO ime_workflow_executions (rule_id, rule_name, trigger_event, trigger_meeting_id, condition_snapshot, action_type, action_result, status, executed_at)
-      VALUES (${rule.id}, '${(rule.name || "").replace(/'/g, "''")}', '${safeEvent}', '${safeId}', '${JSON.stringify(metrics).replace(/'/g, "''")}', '${rule.action_type}', '${JSON.stringify(actionResult).replace(/'/g, "''")}', '${status}', NOW())
-    `));
+      VALUES (${rule.id}, ${rule.name || ""}, ${event}, ${meetingId}, ${JSON.stringify(metrics)}, ${rule.action_type}, ${JSON.stringify(actionResult)}, ${status}, NOW())
+    `);
 
     results.push({ ruleId: rule.id, ruleName: rule.name, status, actionResult });
   }
@@ -6242,30 +6214,30 @@ export async function createTeamChallenge(challenge: {
 // Phase 11 — Feature 4: Update Challenge Progress
 export async function updateChallengeProgress(challengeId: number) {
   const db = await requireDb();
-  const chalRes = await db.execute(sql.raw(`SELECT * FROM ime_team_challenges WHERE id = ${challengeId}`));
+  const chalRes = await db.execute(sql`SELECT * FROM ime_team_challenges WHERE id = ${challengeId}`);
   const challenge = (chalRes.rows as any[])[0];
   if (!challenge) throw new Error("Challenge not found");
 
   let currentValue = 0;
   switch (challenge.target_metric) {
     case "avg_effectiveness": {
-      const r = await db.execute(sql.raw(`SELECT AVG(overall_score) as v FROM meeting_effectiveness_scores WHERE created_at >= '${challenge.start_date}'`));
+      const r = await db.execute(sql`SELECT AVG(overall_score) as v FROM meeting_effectiveness_scores WHERE created_at >= ${challenge.start_date}`);
       currentValue = Number((r.rows as any[])[0]?.v || 0);
       break;
     }
     case "avg_duration": {
-      const r = await db.execute(sql.raw(`SELECT AVG(duration_minutes) as v FROM meeting_records WHERE meeting_date >= '${challenge.start_date}'`));
+      const r = await db.execute(sql`SELECT AVG(duration_minutes) as v FROM meeting_records WHERE meeting_date >= ${challenge.start_date}`);
       currentValue = Number((r.rows as any[])[0]?.v || 0);
       break;
     }
     case "action_completion_rate": {
-      const r = await db.execute(sql.raw(`SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as done FROM ime_action_items WHERE created_at >= '${challenge.start_date}'`));
+      const r = await db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as done FROM ime_action_items WHERE created_at >= ${challenge.start_date}`);
       const row = (r.rows as any[])[0] || {};
       currentValue = row.total > 0 ? Math.round((Number(row.done) / Number(row.total)) * 100) : 0;
       break;
     }
     case "avg_cost": {
-      const r = await db.execute(sql.raw(`SELECT AVG(total_cost) as v FROM ime_meeting_costs WHERE calculated_at >= '${challenge.start_date}'`));
+      const r = await db.execute(sql`SELECT AVG(total_cost) as v FROM ime_meeting_costs WHERE calculated_at >= ${challenge.start_date}`);
       currentValue = Number((r.rows as any[])[0]?.v || 0);
       break;
     }
@@ -6276,9 +6248,9 @@ export async function updateChallengeProgress(challengeId: number) {
   const met = isImprove ? currentValue >= challenge.target_value : currentValue <= challenge.target_value;
   const newStatus = met ? "completed" : (challenge.end_date && new Date(challenge.end_date) < new Date() ? "failed" : "active");
 
-  await db.execute(sql.raw(`
-    UPDATE ime_team_challenges SET current_value = ${currentValue}, status = '${newStatus}', updated_at = NOW() WHERE id = ${challengeId}
-  `));
+  await db.execute(sql`
+    UPDATE ime_team_challenges SET current_value = ${currentValue}, status = ${newStatus}, updated_at = NOW() WHERE id = ${challengeId}
+  `);
 
   const progress = Math.min(100, Math.round(
     isImprove
@@ -6292,19 +6264,19 @@ export async function updateChallengeProgress(challengeId: number) {
 // Phase 11 — Feature 5: Gamification Dashboard
 export async function getGamificationDashboard(userId?: string) {
   const db = await requireDb();
-  const safeUser = (userId || "").replace(/'/g, "''");
 
   // Achievement definitions
   const defsRes = await db.execute(sql.raw(`SELECT * FROM ime_achievements WHERE is_global = 1 ORDER BY points ASC`));
 
   // User awards
-  const awardsWhere = safeUser ? `WHERE user_id = '${safeUser}' AND is_global = 0` : "WHERE is_global = 0";
-  const awardsRes = await db.execute(sql.raw(`SELECT * FROM ime_achievements ${awardsWhere} ORDER BY awarded_at DESC`));
+  const awardsRes = userId
+    ? await db.execute(sql`SELECT * FROM ime_achievements WHERE user_id = ${userId} AND is_global = 0 ORDER BY awarded_at DESC`)
+    : await db.execute(sql.raw(`SELECT * FROM ime_achievements WHERE is_global = 0 ORDER BY awarded_at DESC`));
 
   // Total points
-  const pointsRes = await db.execute(sql.raw(
-    `SELECT ${safeUser ? `user_id,` : ""} SUM(points) as total_points, COUNT(*) as badge_count FROM ime_achievements WHERE is_global = 0 ${safeUser ? `AND user_id = '${safeUser}'` : ""} ${safeUser ? "" : "GROUP BY user_id ORDER BY total_points DESC LIMIT 10"}`
-  ));
+  const pointsRes = userId
+    ? await db.execute(sql`SELECT user_id, SUM(points) as total_points, COUNT(*) as badge_count FROM ime_achievements WHERE is_global = 0 AND user_id = ${userId}`)
+    : await db.execute(sql.raw(`SELECT SUM(points) as total_points, COUNT(*) as badge_count FROM ime_achievements WHERE is_global = 0 GROUP BY user_id ORDER BY total_points DESC LIMIT 10`));
 
   // Active challenges
   const challengesRes = await db.execute(sql.raw(`SELECT * FROM ime_team_challenges WHERE status = 'active' ORDER BY created_at DESC`));
@@ -6339,16 +6311,11 @@ export async function submitMeetingFeedback(meetingId: string, userId: string, f
   anonymous?: boolean;
 }) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
-  const safeUser = userId.replace(/'/g, "''");
-  const safeHighlights = (feedback.highlights || "").replace(/'/g, "''");
-  const safeImprovements = (feedback.improvements || "").replace(/'/g, "''");
-  const safeSuggestions = (feedback.suggestions || "").replace(/'/g, "''");
 
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_meeting_feedback (meeting_id, user_id, overall_rating, content_relevance, time_efficiency, facilitation, action_clarity, would_recommend, highlights, improvements, suggestions, anonymous, submitted_at)
-    VALUES ('${safeId}', '${safeUser}', ${feedback.overallRating}, ${feedback.contentRelevance ?? "NULL"}, ${feedback.timeEfficiency ?? "NULL"}, ${feedback.facilitation ?? "NULL"}, ${feedback.actionClarity ?? "NULL"}, ${feedback.wouldRecommend ?? "NULL"}, '${safeHighlights}', '${safeImprovements}', '${safeSuggestions}', ${feedback.anonymous ? 1 : 0}, NOW())
-  `));
+    VALUES (${meetingId}, ${userId}, ${feedback.overallRating}, ${feedback.contentRelevance ?? null}, ${feedback.timeEfficiency ?? null}, ${feedback.facilitation ?? null}, ${feedback.actionClarity ?? null}, ${feedback.wouldRecommend ?? null}, ${feedback.highlights || ""}, ${feedback.improvements || ""}, ${feedback.suggestions || ""}, ${feedback.anonymous ? 1 : 0}, NOW())
+  `);
 
   return { success: true, meetingId, userId: feedback.anonymous ? "anonymous" : userId };
 }
@@ -6490,18 +6457,15 @@ export async function generateImprovementInitiative(scope: string, scopeId?: str
 // Phase 12 — Feature 4: Meeting Feedback Summary
 export async function getMeetingFeedbackSummary(meetingId: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
 
-  const fbRes = await db.execute(sql.raw(`
+  const fbRes = await db.execute(sql`
     SELECT COUNT(*) as total, AVG(overall_rating) as avg_overall, AVG(content_relevance) as avg_content,
            AVG(time_efficiency) as avg_time, AVG(facilitation) as avg_fac, AVG(action_clarity) as avg_action,
            SUM(CASE WHEN would_recommend = 1 THEN 1 ELSE 0 END) as promoters,
            SUM(CASE WHEN would_recommend = 0 THEN 1 ELSE 0 END) as detractors
-    FROM ime_meeting_feedback WHERE meeting_id = '${safeId}'
-  `));
-  const commentsRes = await db.execute(sql.raw(
-    `SELECT highlights, improvements, suggestions, overall_rating FROM ime_meeting_feedback WHERE meeting_id = '${safeId}' ORDER BY submitted_at DESC`
-  ));
+    FROM ime_meeting_feedback WHERE meeting_id = ${meetingId}
+  `);
+  const commentsRes = await db.execute(sql`SELECT highlights, improvements, suggestions, overall_rating FROM ime_meeting_feedback WHERE meeting_id = ${meetingId} ORDER BY submitted_at DESC`);
 
   const stats = (fbRes.rows as any[])[0] || {};
   const total = Number(stats.total || 0);
@@ -6589,17 +6553,16 @@ export async function createCompliancePolicy(policy: {
 // Phase 13 — Feature 2: Audit Meeting Compliance
 export async function auditMeetingCompliance(meetingId: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
 
   // Get meeting data
-  const meetingRes = await db.execute(sql.raw(`SELECT * FROM meeting_records WHERE id = '${safeId}' LIMIT 1`));
+  const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
   // Get related data
-  const effRes = await db.execute(sql.raw(`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = '${safeId}' LIMIT 1`));
-  const actionRes = await db.execute(sql.raw(`SELECT COUNT(*) as cnt FROM ime_action_items WHERE meeting_id = '${safeId}'`));
-  const contribRes = await db.execute(sql.raw(`SELECT COUNT(DISTINCT speaker_name) as participants FROM meeting_contributions WHERE meeting_id = '${safeId}'`));
+  const effRes = await db.execute(sql`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = ${meetingId} LIMIT 1`);
+  const actionRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_action_items WHERE meeting_id = ${meetingId}`);
+  const contribRes = await db.execute(sql`SELECT COUNT(DISTINCT speaker_name) as participants FROM meeting_contributions WHERE meeting_id = ${meetingId}`);
 
   const eff = (effRes.rows as any[])[0];
   const actionCount = Number((actionRes.rows as any[])[0]?.cnt || 0);
@@ -6646,10 +6609,12 @@ export async function auditMeetingCompliance(meetingId: string) {
 
     const severity = result === "fail" ? (policy.severity || "warning") : "info";
 
-    await db.execute(sql.raw(`
+    const details = result === "fail" ? "不合规" : result === "pass" ? "合规" : "不适用";
+    const expectedValue = `${policy.operator || ""} ${policy.threshold || ""}`;
+    await db.execute(sql`
       INSERT INTO ime_compliance_audits (meeting_id, meeting_title, policy_id, policy_name, policy_type, result, severity, actual_value, expected_value, details, audited_at)
-      VALUES ('${safeId}', '${safeTitle}', ${policy.id}, '${(policy.name || "").replace(/'/g, "''")}', '${policy.policy_type}', '${result}', '${severity}', '${actualStr}', '${policy.operator || ""} ${policy.threshold || ""}', '${result === "fail" ? "不合规" : result === "pass" ? "合规" : "不适用"}', NOW())
-    `));
+      VALUES (${meetingId}, ${meeting.title || ""}, ${policy.id}, ${policy.name || ""}, ${policy.policy_type}, ${result}, ${severity}, ${actualStr}, ${expectedValue}, ${details}, NOW())
+    `);
 
     results.push({ policyId: policy.id, policyName: policy.name, policyType: policy.policy_type, result, severity, actual: actualStr, expected: `${policy.operator || ""} ${policy.threshold || ""}` });
   }
@@ -6840,30 +6805,30 @@ export async function listLinkageRules(activeOnly?: boolean) {
 
 export async function updateLinkageRule(id: number, updates: Record<string, any>) {
   const db = await requireDb();
-  const sets: string[] = [];
-  if (updates.name !== undefined) sets.push(`name = '${String(updates.name).replace(/'/g, "''")}'`);
-  if (updates.description !== undefined) sets.push(`description = '${String(updates.description).replace(/'/g, "''")}'`);
-  if (updates.conditionType !== undefined) sets.push(`condition_type = '${updates.conditionType}'`);
-  if (updates.conditionField !== undefined) sets.push(`condition_field = '${String(updates.conditionField).replace(/'/g, "''")}'`);
-  if (updates.conditionOperator !== undefined) sets.push(`condition_operator = '${updates.conditionOperator}'`);
-  if (updates.conditionThreshold !== undefined) sets.push(`condition_threshold = '${String(updates.conditionThreshold).replace(/'/g, "''")}'`);
-  if (updates.actionType !== undefined) sets.push(`action_type = '${updates.actionType}'`);
-  if (updates.actionTarget !== undefined) sets.push(`action_target = '${String(updates.actionTarget).replace(/'/g, "''")}'`);
-  if (updates.actionValue !== undefined) sets.push(`action_value = '${String(updates.actionValue).replace(/'/g, "''")}'`);
-  if (updates.actionDescription !== undefined) sets.push(`action_description = '${String(updates.actionDescription).replace(/'/g, "''")}'`);
-  if (updates.scope !== undefined) sets.push(`scope = '${updates.scope}'`);
-  if (updates.impactDimension !== undefined) sets.push(`impact_dimension = '${String(updates.impactDimension).replace(/'/g, "''")}'`);
-  if (updates.priority !== undefined) sets.push(`priority = ${Number(updates.priority)}`);
-  if (updates.isActive !== undefined) sets.push(`is_active = ${updates.isActive ? 1 : 0}`);
-  if (sets.length === 0) return { success: true };
-  sets.push("updated_at = NOW()");
-  await db.execute(sql.raw(`UPDATE ime_linkage_rules SET ${sets.join(", ")} WHERE id = ${id}`));
+  const setClauses: SQL[] = [];
+  if (updates.name !== undefined) setClauses.push(sql`name = ${String(updates.name)}`);
+  if (updates.description !== undefined) setClauses.push(sql`description = ${String(updates.description)}`);
+  if (updates.conditionType !== undefined) setClauses.push(sql`condition_type = ${updates.conditionType}`);
+  if (updates.conditionField !== undefined) setClauses.push(sql`condition_field = ${String(updates.conditionField)}`);
+  if (updates.conditionOperator !== undefined) setClauses.push(sql`condition_operator = ${updates.conditionOperator}`);
+  if (updates.conditionThreshold !== undefined) setClauses.push(sql`condition_threshold = ${String(updates.conditionThreshold)}`);
+  if (updates.actionType !== undefined) setClauses.push(sql`action_type = ${updates.actionType}`);
+  if (updates.actionTarget !== undefined) setClauses.push(sql`action_target = ${String(updates.actionTarget)}`);
+  if (updates.actionValue !== undefined) setClauses.push(sql`action_value = ${String(updates.actionValue)}`);
+  if (updates.actionDescription !== undefined) setClauses.push(sql`action_description = ${String(updates.actionDescription)}`);
+  if (updates.scope !== undefined) setClauses.push(sql`scope = ${updates.scope}`);
+  if (updates.impactDimension !== undefined) setClauses.push(sql`impact_dimension = ${String(updates.impactDimension)}`);
+  if (updates.priority !== undefined) setClauses.push(sql`priority = ${Number(updates.priority)}`);
+  if (updates.isActive !== undefined) setClauses.push(sql`is_active = ${updates.isActive ? 1 : 0}`);
+  if (setClauses.length === 0) return { success: true };
+  setClauses.push(sql`updated_at = NOW()`);
+  await db.execute(sql`UPDATE ime_linkage_rules SET ${sql.join(setClauses, sql`, `)} WHERE id = ${id}`);
   return { success: true };
 }
 
 export async function deleteLinkageRule(id: number) {
   const db = await requireDb();
-  await db.execute(sql.raw(`DELETE FROM ime_linkage_rules WHERE id = ${id}`));
+  await db.execute(sql`DELETE FROM ime_linkage_rules WHERE id = ${id}`);
   return { success: true };
 }
 
@@ -6873,24 +6838,17 @@ export async function deleteLinkageRule(id: number) {
 
 export async function evaluateLinkage(meetingId: string) {
     const db = await requireDb();
-    const safeId = meetingId.replace(/'/g, "''");
 
     // 1. Get meeting contributions
-    const contribs = await db.execute(sql.raw(
-      `SELECT * FROM meeting_contributions WHERE meeting_id = '${safeId}'`
-    ));
+    const contribs = await db.execute(sql`SELECT * FROM meeting_contributions WHERE meeting_id = ${meetingId}`);
     const contributions = contribs.rows as any[];
 
     // 2. Get AI analysis
-    const analysis = await db.execute(sql.raw(
-      `SELECT * FROM ime_ai_analysis WHERE meeting_id = '${safeId}'`
-    ));
+    const analysis = await db.execute(sql`SELECT * FROM ime_ai_analysis WHERE meeting_id = ${meetingId}`);
     const analyses = analysis.rows as any[];
 
     // 3. Get HR signals for participants
-    const signals = await db.execute(sql.raw(
-      `SELECT * FROM ime_hr_signals WHERE meeting_id = '${safeId}'`
-    ));
+    const signals = await db.execute(sql`SELECT * FROM ime_hr_signals WHERE meeting_id = ${meetingId}`);
     const hrSignals = signals.rows as any[];
 
     // 4. Load active rules ordered by priority
@@ -6967,9 +6925,9 @@ export async function evaluateLinkage(meetingId: string) {
     }
 
     // 7. Generate actions with LLM-enhanced descriptions
-    const meetingResult = await db.execute(sql.raw(
-      `SELECT title FROM meeting_records WHERE id = '${safeId}' LIMIT 1`
-    ));
+    const meetingResult = await db.execute(sql`
+      SELECT title FROM meeting_records WHERE id = ${meetingId} LIMIT 1
+    `);
     const meetingTitle = (meetingResult.rows[0] as any)?.title || meetingId;
 
     const byEmployee: any[] = [];
@@ -6997,24 +6955,18 @@ export async function evaluateLinkage(meetingId: string) {
         // fallback to default reason/description
       }
 
-      const safeEmpId = participant.employeeId.replace(/'/g, "''");
-      const safeEmpName = participant.employeeName.replace(/'/g, "''");
-      const safeDept = participant.department.replace(/'/g, "''");
-      const safeRuleName = (rule.name || "").replace(/'/g, "''");
-      const safeReason = reason.replace(/'/g, "''");
-      const safeActDesc = actionDesc.replace(/'/g, "''");
       const sourceData = JSON.stringify({
         contributionScore: participant.contributionScore,
         engagementScore: participant.engagementScore,
         behaviorTags: participant.behaviorTags,
         questionCount: participant.questionCount,
         signalTypes: participant.signalTypes,
-      }).replace(/'/g, "''");
+      });
 
-      await db.execute(sql.raw(`
+      await db.execute(sql`
         INSERT INTO ime_hr_actions (employee_id, employee_name, department, rule_id, rule_name, meeting_id, meeting_title, action_type, action_description, reason, impact_dimension, impact_value, source_data, status, created_at, updated_at)
-        VALUES ('${safeEmpId}', '${safeEmpName}', '${safeDept}', ${rule.id}, '${safeRuleName}', '${safeId}', '${meetingTitle.replace(/'/g, "''")}', '${rule.action_type}', '${safeActDesc}', '${safeReason}', '${(rule.impact_dimension || "").replace(/'/g, "''")}', '${(rule.action_value || "").replace(/'/g, "''")}', '${sourceData}', 'pending', NOW(), NOW())
-      `));
+        VALUES (${participant.employeeId}, ${participant.employeeName}, ${participant.department}, ${rule.id}, ${rule.name || ""}, ${meetingId}, ${meetingTitle}, ${rule.action_type}, ${actionDesc}, ${reason}, ${rule.impact_dimension || ""}, ${rule.action_value || ""}, ${sourceData}, 'pending', NOW(), NOW())
+      `);
 
       const existing = byEmployee.find(e => e.employeeId === participant.employeeId);
       if (existing) {
@@ -9220,25 +9172,18 @@ export async function getRecurringMeetingSummary(options?: { status?: string }) 
  */
 export async function analyzeDecisionEffectiveness(meetingId: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
 
   // 1. Get meeting
-  const meetingRes = await db.execute(sql.raw(
-    `SELECT id, title, objective, summary, meeting_date FROM meeting_records WHERE id = '${safeId}' LIMIT 1`
-  ));
+  const meetingRes = await db.execute(sql`SELECT id, title, objective, summary, meeting_date FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   // 2. Extract decisions from content blocks
-  const blocksRes = await db.execute(sql.raw(
-    `SELECT content, speaker FROM meeting_content_blocks WHERE meeting_id = '${safeId}' AND block_type = 'decision'`
-  ));
+  const blocksRes = await db.execute(sql`SELECT content, speaker FROM meeting_content_blocks WHERE meeting_id = ${meetingId} AND block_type = 'decision'`);
   const decisionBlocks = blocksRes.rows as any[];
 
   // 3. Extract decisions from knowledge entities
-  const entitiesRes = await db.execute(sql.raw(
-    `SELECT id, entity_name, context_text FROM ime_knowledge_entities WHERE meeting_id = '${safeId}' AND entity_type = 'decision'`
-  ));
+  const entitiesRes = await db.execute(sql`SELECT id, entity_name, context_text FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} AND entity_type = 'decision'`);
   const decisionEntities = entitiesRes.rows as any[];
 
   // Merge decisions
@@ -9255,15 +9200,11 @@ export async function analyzeDecisionEffectiveness(meetingId: string) {
   }
 
   // 4. Cross-reference with decision outcomes
-  const outcomesRes = await db.execute(sql.raw(
-    `SELECT id, decision_text, outcome_status, outcome_notes, resolved_date, created_at FROM ime_decision_outcomes WHERE meeting_id = '${safeId}'`
-  ));
+  const outcomesRes = await db.execute(sql`SELECT id, decision_text, outcome_status, outcome_notes, resolved_date, created_at FROM ime_decision_outcomes WHERE meeting_id = ${meetingId}`);
   const outcomes = outcomesRes.rows as any[];
 
   // 5. Cross-reference with action items
-  const actionsRes = await db.execute(sql.raw(
-    `SELECT id, action_text, assignee, status, due_date, resolved_date FROM ime_action_items WHERE meeting_id = '${safeId}'`
-  ));
+  const actionsRes = await db.execute(sql`SELECT id, action_text, assignee, status, due_date, resolved_date FROM ime_action_items WHERE meeting_id = ${meetingId}`);
   const actionItems = actionsRes.rows as any[];
 
   // 6. For each decision compute follow-through status and velocity
@@ -9383,32 +9324,28 @@ export async function analyzeDecisionEffectiveness(meetingId: string) {
   }
 
   // 8. Delete existing tracking rows for this meeting
-  await db.execute(sql.raw(`DELETE FROM ime_decision_tracking WHERE meeting_id = '${safeId}'`));
+  await db.execute(sql`DELETE FROM ime_decision_tracking WHERE meeting_id = ${meetingId}`);
 
   // 9. Insert new rows
   const insertedDecisions: any[] = [];
   for (const dec of decisionData) {
     const decId = `dec-${crypto.randomUUID()}`;
-    const safeText = dec.decisionText.replace(/'/g, "''");
-    const safeMaker = dec.decisionMaker.replace(/'/g, "''");
-    const safeNarrative = String(llmAssessment.narrative || "").replace(/'/g, "''");
-    const safeRecs = JSON.stringify(llmAssessment.recommendations || []).replace(/'/g, "''");
     const impactCat = llmAssessment.impact_category || "neutral";
 
-    await db.execute(sql.raw(`
+    await db.execute(sql`
       INSERT INTO ime_decision_tracking (
         decision_id, meeting_id, decision_text, decision_maker, department, decision_date,
         follow_through_status, total_velocity_days, velocity_grade,
         is_reversed, impact_score, impact_category, ai_quality_score, ai_clarity_score,
         ai_alignment_score, ai_narrative, ai_recommendations, computed_at, created_at
       ) VALUES (
-        '${decId}', '${safeId}', '${safeText}', '${safeMaker}', '', '${dec.decisionDate}',
-        '${dec.followThroughStatus}', ${dec.velocityDays !== null ? dec.velocityDays : "NULL"}, '${dec.velocityGrade}',
-        0, ${llmAssessment.impact_score || 0}, '${impactCat}', ${llmAssessment.quality_score || 0},
+        ${decId}, ${meetingId}, ${dec.decisionText}, ${dec.decisionMaker}, '', ${dec.decisionDate},
+        ${dec.followThroughStatus}, ${dec.velocityDays !== null ? dec.velocityDays : null}, ${dec.velocityGrade},
+        0, ${llmAssessment.impact_score || 0}, ${impactCat}, ${llmAssessment.quality_score || 0},
         ${llmAssessment.clarity_score || 0}, ${llmAssessment.alignment_score || 0},
-        '${safeNarrative}', '${safeRecs}', NOW(), NOW()
+        ${String(llmAssessment.narrative || "")}, ${JSON.stringify(llmAssessment.recommendations || [])}, NOW(), NOW()
       )
-    `));
+    `);
 
     insertedDecisions.push({
       decisionId: decId,
@@ -10340,19 +10277,14 @@ export async function updateDecisionFollowThrough(
  */
 export async function analyzeMeetingAgendaStructure(meetingId: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
 
   // Load meeting info + schedule agenda
-  const meetingRes = await db.execute(sql.raw(
-    `SELECT mr.id, mr.title, mr.objective, mr.summary, mr.meeting_date, ms.id as schedule_id, ms.agenda FROM meeting_records mr LEFT JOIN meeting_schedules ms ON (ms.title = mr.title AND DATE(ms.scheduled_date) = DATE(mr.meeting_date)) WHERE mr.id = '${safeId}' LIMIT 1`
-  ));
+  const meetingRes = await db.execute(sql`SELECT mr.id, mr.title, mr.objective, mr.summary, mr.meeting_date, ms.id as schedule_id, ms.agenda FROM meeting_records mr LEFT JOIN meeting_schedules ms ON (ms.title = mr.title AND DATE(ms.scheduled_date) = DATE(mr.meeting_date)) WHERE mr.id = ${meetingId} LIMIT 1`);
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   // Load content blocks
-  const blocksRes = await db.execute(sql.raw(
-    `SELECT id, meeting_id, speaker, block_type, content, timestamp_start, timestamp_end, sort_order FROM meeting_content_blocks WHERE meeting_id = '${safeId}' ORDER BY sort_order ASC, timestamp_start ASC`
-  ));
+  const blocksRes = await db.execute(sql`SELECT id, meeting_id, speaker, block_type, content, timestamp_start, timestamp_end, sort_order FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY sort_order ASC, timestamp_start ASC`);
   const blocks = blocksRes.rows as any[];
 
   const agendaText = meeting.agenda || "";
@@ -10435,7 +10367,7 @@ export async function analyzeMeetingAgendaStructure(meetingId: string) {
     : 50;
 
   // Delete existing analysis rows for this meeting
-  await db.execute(sql.raw(`DELETE FROM ime_meeting_structure_analysis WHERE meeting_id = '${safeId}'`));
+  await db.execute(sql`DELETE FROM ime_meeting_structure_analysis WHERE meeting_id = ${meetingId}`);
 
   // Insert each agenda item
   for (const item of agendaItems) {
@@ -10451,14 +10383,7 @@ export async function analyzeMeetingAgendaStructure(meetingId: string) {
     else if (absOverrunPercent < 30) grade = "C";
     else if (absOverrunPercent < 50) grade = "D";
 
-    const safeTitle = String(item.title || "").replace(/'/g, "''");
-    const safeCategory = String(item.category || "other").replace(/'/g, "''");
-    const safeDominantSpeaker = String(item.dominantSpeaker || "").replace(/'/g, "''");
-    const safeBlockIds = JSON.stringify(item.contentBlockIds || []).replace(/'/g, "''");
-    const safeSummary = String(item.aiSummary || "").replace(/'/g, "''");
-    const safeRecommendation = String(item.aiRecommendation || "").replace(/'/g, "''");
-
-    await db.execute(sql.raw(`
+    await db.execute(sql`
       INSERT INTO ime_meeting_structure_analysis (
         meeting_id, agenda_item_index, agenda_item_title, agenda_item_category,
         planned_duration_minutes, actual_duration_minutes, overrun_minutes, overrun_percent,
@@ -10467,14 +10392,14 @@ export async function analyzeMeetingAgendaStructure(meetingId: string) {
         engagement_score, productivity_score, meeting_time_efficiency_score,
         ai_summary, ai_recommendation, was_skipped, created_at
       ) VALUES (
-        '${safeId}', ${Number(item.index) || 0}, '${safeTitle}', '${safeCategory}',
+        ${meetingId}, ${Number(item.index) || 0}, ${String(item.title || "")}, ${String(item.category || "other")},
         ${planned}, ${actual}, ${overrun}, ${overrunPercent},
-        '${grade}', ${Number(item.speakerCount) || 0}, '${safeDominantSpeaker}', ${Number(item.dominantSpeakerPercent) || 0},
-        '${safeBlockIds}', ${Number(item.decisionsCount) || 0}, ${Number(item.actionItemsCount) || 0},
+        ${grade}, ${Number(item.speakerCount) || 0}, ${String(item.dominantSpeaker || "")}, ${Number(item.dominantSpeakerPercent) || 0},
+        ${JSON.stringify(item.contentBlockIds || [])}, ${Number(item.decisionsCount) || 0}, ${Number(item.actionItemsCount) || 0},
         ${Number(item.engagementScore) || 0}, ${Number(item.productivityScore) || 0}, ${meetingEfficiency},
-        '${safeSummary}', '${safeRecommendation}', ${item.wasSkipped ? 1 : 0}, NOW()
+        ${String(item.aiSummary || "")}, ${String(item.aiRecommendation || "")}, ${item.wasSkipped ? 1 : 0}, NOW()
       )
-    `));
+    `);
   }
 
   return {

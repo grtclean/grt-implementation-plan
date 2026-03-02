@@ -11,7 +11,7 @@
  */
 
 import { requireDb } from "../db";
-import { sql, eq, and, desc, asc, like, or, inArray } from "drizzle-orm";
+import { sql, eq, and, desc, asc, like, or, inArray, type SQL } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { createTimeRecord } from "../production-execution/production-execution.db";
 
@@ -139,23 +139,23 @@ export async function createBomStep(data: BomStep) {
 
 export async function updateBomStep(id: number, data: Partial<BomStep>) {
   const db = await requireDb();
-  const setClauses: string[] = [];
+  const setParts: SQL[] = [];
 
-  if (data.stepNumber !== undefined) { setClauses.push(`step_number = ${Number(data.stepNumber)}`); }
-  if (data.stepName !== undefined) { setClauses.push(`step_name = '${String(data.stepName).replace(/'/g, "''")}'`); }
-  if (data.processRequirements !== undefined) { setClauses.push(`process_requirements = '${String(data.processRequirements).replace(/'/g, "''")}'`); }
-  if (data.processDescription !== undefined) { setClauses.push(`process_description = '${String(data.processDescription).replace(/'/g, "''")}'`); }
-  if (data.bomItemReference !== undefined) { setClauses.push(`bom_item_reference = '${String(data.bomItemReference).replace(/'/g, "''")}'`); }
-  if (data.theoreticalHours !== undefined) { setClauses.push(`theoretical_hours = ${Number(data.theoreticalHours)}`); }
-  if (data.plannedWorkerName !== undefined) { setClauses.push(`planned_worker_name = '${String(data.plannedWorkerName).replace(/'/g, "''")}'`); }
-  if (data.plannedWorkerId !== undefined) { setClauses.push(`planned_worker_id = ${Number(data.plannedWorkerId)}`); }
-  if (data.status !== undefined) { setClauses.push(`status = '${String(data.status).replace(/'/g, "''")}'`); }
+  if (data.stepNumber !== undefined) { setParts.push(sql`step_number = ${Number(data.stepNumber)}`); }
+  if (data.stepName !== undefined) { setParts.push(sql`step_name = ${String(data.stepName)}`); }
+  if (data.processRequirements !== undefined) { setParts.push(sql`process_requirements = ${String(data.processRequirements)}`); }
+  if (data.processDescription !== undefined) { setParts.push(sql`process_description = ${String(data.processDescription)}`); }
+  if (data.bomItemReference !== undefined) { setParts.push(sql`bom_item_reference = ${String(data.bomItemReference)}`); }
+  if (data.theoreticalHours !== undefined) { setParts.push(sql`theoretical_hours = ${Number(data.theoreticalHours)}`); }
+  if (data.plannedWorkerName !== undefined) { setParts.push(sql`planned_worker_name = ${String(data.plannedWorkerName)}`); }
+  if (data.plannedWorkerId !== undefined) { setParts.push(sql`planned_worker_id = ${Number(data.plannedWorkerId)}`); }
+  if (data.status !== undefined) { setParts.push(sql`status = ${String(data.status)}`); }
 
-  if (setClauses.length === 0) return null;
+  if (setParts.length === 0) return null;
 
-  setClauses.push("updated_at = NOW()");
+  setParts.push(sql`updated_at = NOW()`);
 
-  await db.execute(sql.raw(`UPDATE process_bom_steps SET ${setClauses.join(", ")} WHERE id = ${Number(id)}`));
+  await db.execute(sql`UPDATE process_bom_steps SET ${sql.join(setParts, sql`, `)} WHERE id = ${Number(id)}`);
   return { success: true };
 }
 
@@ -267,18 +267,18 @@ export async function confirmAiPresetStep(id: number, userId: number, status: st
   const db = await requireDb();
   if (modifications && Object.keys(modifications).length > 0) {
     // 如果有修改，先更新内容
-    const setClauses: string[] = [];
-    if (modifications.stepName) { setClauses.push(`step_name = '${String(modifications.stepName).replace(/'/g, "''")}'`); }
-    if (modifications.processRequirements) { setClauses.push(`process_requirements = '${String(modifications.processRequirements).replace(/'/g, "''")}'`); }
-    if (modifications.processDescription) { setClauses.push(`process_description = '${String(modifications.processDescription).replace(/'/g, "''")}'`); }
-    if (modifications.theoreticalHours) { setClauses.push(`theoretical_hours = ${Number(modifications.theoreticalHours)}`); }
+    const setParts: SQL[] = [];
+    if (modifications.stepName) { setParts.push(sql`step_name = ${String(modifications.stepName)}`); }
+    if (modifications.processRequirements) { setParts.push(sql`process_requirements = ${String(modifications.processRequirements)}`); }
+    if (modifications.processDescription) { setParts.push(sql`process_description = ${String(modifications.processDescription)}`); }
+    if (modifications.theoreticalHours) { setParts.push(sql`theoretical_hours = ${Number(modifications.theoreticalHours)}`); }
 
-    setClauses.push(`confirm_status = '${String(status).replace(/'/g, "''")}'`);
-    setClauses.push(`confirmed_by = ${Number(userId)}`);
-    setClauses.push("confirmed_at = NOW()");
-    setClauses.push("updated_at = NOW()");
+    setParts.push(sql`confirm_status = ${String(status)}`);
+    setParts.push(sql`confirmed_by = ${Number(userId)}`);
+    setParts.push(sql`confirmed_at = NOW()`);
+    setParts.push(sql`updated_at = NOW()`);
 
-    await db.execute(sql.raw(`UPDATE process_ai_preset_steps SET ${setClauses.join(", ")} WHERE id = ${Number(id)}`));
+    await db.execute(sql`UPDATE process_ai_preset_steps SET ${sql.join(setParts, sql`, `)} WHERE id = ${Number(id)}`);
   } else {
     await db.execute(sql`
       UPDATE process_ai_preset_steps 

@@ -100,22 +100,21 @@ export async function updateApprovalWorkflow(workflowId: number, params: {
 }) {
   const db = await requireDb();
   const now = Date.now();
-  const sets: string[] = [];
-  const values: any[] = [];
+  const setParts: SQL[] = [];
 
-  if (params.workflowName !== undefined) { sets.push('workflow_name = ?'); values.push(params.workflowName); }
-  if (params.description !== undefined) { sets.push('description = ?'); values.push(params.description); }
-  if (params.steps !== undefined) { sets.push('steps = ?'); values.push(JSON.stringify(params.steps)); }
-  if (params.autoTrigger !== undefined) { sets.push('auto_trigger = ?'); values.push(params.autoTrigger ? 1 : 0); }
-  if (params.triggerCondition !== undefined) { sets.push('trigger_condition = ?'); values.push(params.triggerCondition); }
-  if (params.isActive !== undefined) { sets.push('is_active = ?'); values.push(params.isActive ? 1 : 0); }
-  sets.push('updated_at = ?'); values.push(now);
+  if (params.workflowName !== undefined) { setParts.push(sql`workflow_name = ${params.workflowName}`); }
+  if (params.description !== undefined) { setParts.push(sql`description = ${params.description}`); }
+  if (params.steps !== undefined) { setParts.push(sql`steps = ${JSON.stringify(params.steps)}`); }
+  if (params.autoTrigger !== undefined) { setParts.push(sql`auto_trigger = ${params.autoTrigger ? 1 : 0}`); }
+  if (params.triggerCondition !== undefined) { setParts.push(sql`trigger_condition = ${params.triggerCondition}`); }
+  if (params.isActive !== undefined) { setParts.push(sql`is_active = ${params.isActive ? 1 : 0}`); }
+  setParts.push(sql`updated_at = ${now}`);
 
-  if (sets.length <= 1) return { updated: false, message: '没有需要更新的字段' };
+  if (setParts.length <= 1) return { updated: false, message: '没有需要更新的字段' };
 
   await db.execute(sql`
-    UPDATE salary_approval_workflows 
-    SET ${sql.raw(sets.join(', '))}
+    UPDATE salary_approval_workflows
+    SET ${sql.join(setParts, sql`, `)}
     WHERE id = ${workflowId}
   `);
   return { updated: true };

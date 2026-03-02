@@ -1,4 +1,4 @@
-import { eq, desc, or, like, and, sql } from "drizzle-orm";
+import { eq, desc, or, like, and, sql, type SQL } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { 
@@ -7614,43 +7614,33 @@ export async function upsertUserPreferences(
   
   if (existing) {
     // 更新现有记录
-    const updates: string[] = [];
-    const values: any[] = [];
-    
+    const setParts: SQL[] = [];
+
     if (preferences.language !== undefined) {
-      updates.push('language = ?');
-      values.push(preferences.language);
+      setParts.push(sql`language = ${preferences.language}`);
     }
     if (preferences.theme !== undefined) {
-      updates.push('theme = ?');
-      values.push(preferences.theme);
+      setParts.push(sql`theme = ${preferences.theme}`);
     }
     if (preferences.sidebarCollapsed !== undefined) {
-      updates.push('sidebar_collapsed = ?');
-      values.push(preferences.sidebarCollapsed ? 1 : 0);
+      setParts.push(sql`sidebar_collapsed = ${preferences.sidebarCollapsed ? 1 : 0}`);
     }
     if (preferences.dashboardLayout !== undefined) {
-      updates.push('dashboard_layout = ?');
-      values.push(JSON.stringify(preferences.dashboardLayout));
+      setParts.push(sql`dashboard_layout = ${JSON.stringify(preferences.dashboardLayout)}`);
     }
     if (preferences.notificationSettings !== undefined) {
-      updates.push('notification_settings = ?');
-      values.push(JSON.stringify(preferences.notificationSettings));
+      setParts.push(sql`notification_settings = ${JSON.stringify(preferences.notificationSettings)}`);
     }
     if (preferences.timezone !== undefined) {
-      updates.push('timezone = ?');
-      values.push(preferences.timezone);
+      setParts.push(sql`timezone = ${preferences.timezone}`);
     }
     if (preferences.dateFormat !== undefined) {
-      updates.push('date_format = ?');
-      values.push(preferences.dateFormat);
+      setParts.push(sql`date_format = ${preferences.dateFormat}`);
     }
-    
-    if (updates.length > 0) {
-      // 使用drizzle的sql模板构建动态更新查询
-      const setClause = updates.map((u, i) => `${u.split(' = ')[0]} = ${JSON.stringify(values[i])}`).join(', ');
+
+    if (setParts.length > 0) {
       await db.execute(
-        sql`UPDATE user_preferences SET ${sql.raw(setClause)} WHERE user_id = ${userId}`
+        sql`UPDATE user_preferences SET ${sql.join(setParts, sql`, `)} WHERE user_id = ${userId}`
       );
     }
   } else {
@@ -7758,33 +7748,33 @@ export async function getWorkers(params: {
   const { page = 1, pageSize = 20, search, department, status, skillLevel } = params;
   const offset = (page - 1) * pageSize;
 
-  let whereConditions: string[] = [];
+  const conditions: SQL[] = [sql`1=1`];
 
   if (search) {
-    const s = search.replace(/'/g, "''");
-    whereConditions.push(`(name LIKE '%${s}%' OR employee_code LIKE '%${s}%' OR phone LIKE '%${s}%')`);
+    const pattern = `%${search}%`;
+    conditions.push(sql`(name LIKE ${pattern} OR employee_code LIKE ${pattern} OR phone LIKE ${pattern})`);
   }
   if (department) {
-    whereConditions.push(`department = '${department.replace(/'/g, "''")}'`);
+    conditions.push(sql`department = ${department}`);
   }
   if (status) {
-    whereConditions.push(`status = '${status.replace(/'/g, "''")}'`);
+    conditions.push(sql`status = ${status}`);
   }
   if (skillLevel) {
-    whereConditions.push(`skill_level = '${skillLevel.replace(/'/g, "''")}'`);
+    conditions.push(sql`skill_level = ${skillLevel}`);
   }
 
-  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+  const where = sql.join(conditions, sql` AND `);
 
   // 获取总数
   const countResult = await db.execute(
-    sql.raw(`SELECT COUNT(*) as total FROM workers ${whereClause}`)
+    sql`SELECT COUNT(*) as total FROM workers WHERE ${where}`
   );
   const total = (countResult as any)[0]?.[0]?.total || 0;
 
   // 获取列表
   const result = await db.execute(
-    sql.raw(`SELECT * FROM workers ${whereClause} ORDER BY created_at DESC LIMIT ${pageSize} OFFSET ${offset}`)
+    sql`SELECT * FROM workers WHERE ${where} ORDER BY created_at DESC LIMIT ${pageSize} OFFSET ${offset}`
   );
   
   const workers = (result[0] as any[]).map(row => ({
@@ -7882,27 +7872,26 @@ export async function updateWorker(id: number, data: Partial<{
   leaveDate: string;
   uwbTagId: string;
 }>): Promise<Worker | null> {
-  const updates: string[] = [];
-  const esc = (v: string) => v.replace(/'/g, "''");
+  const setParts: SQL[] = [];
 
-  if (data.employeeCode !== undefined) { updates.push(`employee_code = '${esc(data.employeeCode)}'`); }
-  if (data.name !== undefined) { updates.push(`name = '${esc(data.name)}'`); }
-  if (data.department !== undefined) { updates.push(`department = '${esc(data.department)}'`); }
-  if (data.position !== undefined) { updates.push(`position = '${esc(data.position)}'`); }
-  if (data.skillLevel !== undefined) { updates.push(`skill_level = '${esc(data.skillLevel)}'`); }
-  if (data.status !== undefined) { updates.push(`status = '${esc(data.status)}'`); }
-  if (data.phone !== undefined) { updates.push(`phone = '${esc(data.phone)}'`); }
-  if (data.email !== undefined) { updates.push(`email = '${esc(data.email)}'`); }
-  if (data.joinDate !== undefined) { updates.push(`join_date = '${esc(data.joinDate)}'`); }
-  if (data.leaveDate !== undefined) { updates.push(`leave_date = '${esc(data.leaveDate)}'`); }
-  if (data.uwbTagId !== undefined) { updates.push(`uwb_tag_id = '${esc(data.uwbTagId)}'`); }
+  if (data.employeeCode !== undefined) { setParts.push(sql`employee_code = ${data.employeeCode}`); }
+  if (data.name !== undefined) { setParts.push(sql`name = ${data.name}`); }
+  if (data.department !== undefined) { setParts.push(sql`department = ${data.department}`); }
+  if (data.position !== undefined) { setParts.push(sql`position = ${data.position}`); }
+  if (data.skillLevel !== undefined) { setParts.push(sql`skill_level = ${data.skillLevel}`); }
+  if (data.status !== undefined) { setParts.push(sql`status = ${data.status}`); }
+  if (data.phone !== undefined) { setParts.push(sql`phone = ${data.phone}`); }
+  if (data.email !== undefined) { setParts.push(sql`email = ${data.email}`); }
+  if (data.joinDate !== undefined) { setParts.push(sql`join_date = ${data.joinDate}`); }
+  if (data.leaveDate !== undefined) { setParts.push(sql`leave_date = ${data.leaveDate}`); }
+  if (data.uwbTagId !== undefined) { setParts.push(sql`uwb_tag_id = ${data.uwbTagId}`); }
 
-  if (updates.length === 0) return await getWorkerById(id);
+  if (setParts.length === 0) return await getWorkerById(id);
 
   const db = await requireDb();
   if (!db) return null;
   await db.execute(
-    sql.raw(`UPDATE workers SET ${updates.join(', ')} WHERE id = ${id}`)
+    sql`UPDATE workers SET ${sql.join(setParts, sql`, `)} WHERE id = ${id}`
   );
   
   return await getWorkerById(id);
@@ -7933,35 +7922,33 @@ export async function getWorkerRanking(params: {
   const { page = 1, pageSize = 20, department, startDate, endDate } = params;
   const offset = (page - 1) * pageSize;
   
-  let whereConditions: string[] = [];
-  
+  const conditions: SQL[] = [sql`1=1`];
+
   if (department) {
-    whereConditions.push(`w.department = '${department}'`);
+    conditions.push(sql`w.department = ${department}`);
   }
   if (startDate) {
-    whereConditions.push(`e.record_date >= '${startDate}'`);
+    conditions.push(sql`e.record_date >= ${startDate}`);
   }
   if (endDate) {
-    whereConditions.push(`e.record_date <= '${endDate}'`);
+    conditions.push(sql`e.record_date <= ${endDate}`);
   }
-  
-  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+  const where = sql.join(conditions, sql` AND `);
 
   const db = await requireDb();
   if (!db) return { rankings: [], total: 0 };
 
-  const countQuery = `
+  const countResult = await db.execute(sql`
     SELECT COUNT(DISTINCT w.id) as total
     FROM workers w
     LEFT JOIN worker_efficiency_records e ON w.id = e.worker_id
-    ${whereClause}
-  `;
-
-  const countResult = await db.execute(sql.raw(countQuery));
+    WHERE ${where}
+  `);
   const total = (countResult[0] as any[])[0]?.total || 0;
-  
-  const rankQuery = `
-    SELECT 
+
+  const result = await db.execute(sql`
+    SELECT
       w.id,
       w.name,
       w.department,
@@ -7973,13 +7960,11 @@ export async function getWorkerRanking(params: {
       COALESCE(SUM(e.actual_hours), 0) as totalHours
     FROM workers w
     LEFT JOIN worker_efficiency_records e ON w.id = e.worker_id
-    ${whereClause}
+    WHERE ${where}
     GROUP BY w.id, w.name, w.department, w.position, w.skill_level
     ORDER BY avgEfficiency DESC, avgQualityScore DESC
     LIMIT ${pageSize} OFFSET ${offset}
-  `;
-  
-  const result = await db.execute(sql.raw(rankQuery));
+  `);
   const rankings = (result[0] as any[]).map((row, index) => ({
     rank: offset + index + 1,
     id: row.id,
@@ -8010,40 +7995,40 @@ export async function getWorkHourAlerts(params: {
   const { page = 1, pageSize = 20, workerId, alertType, alertLevel, status } = params;
   const offset = (page - 1) * pageSize;
   
-  let whereConditions: string[] = [];
-  
+  const conditions: SQL[] = [sql`1=1`];
+
   if (workerId) {
-    whereConditions.push(`a.worker_id = ${workerId}`);
+    conditions.push(sql`a.worker_id = ${workerId}`);
   }
   if (alertType) {
-    whereConditions.push(`a.alert_type = '${alertType}'`);
+    conditions.push(sql`a.alert_type = ${alertType}`);
   }
   if (alertLevel) {
-    whereConditions.push(`a.alert_level = '${alertLevel}'`);
+    conditions.push(sql`a.alert_level = ${alertLevel}`);
   }
   if (status) {
-    whereConditions.push(`a.status = '${status}'`);
+    conditions.push(sql`a.status = ${status}`);
   }
-  
-  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+  const where = sql.join(conditions, sql` AND `);
 
   const db = await requireDb();
   if (!db) return { alerts: [], total: 0 };
 
   const countResult = await db.execute(
-    sql.raw(`SELECT COUNT(*) as total FROM work_hour_alerts a ${whereClause}`)
+    sql`SELECT COUNT(*) as total FROM work_hour_alerts a WHERE ${where}`
   );
   const total = (countResult[0] as any[])[0]?.total || 0;
-  
+
   const result = await db.execute(
-    sql.raw(`
-      SELECT a.*, w.name as worker_name 
-      FROM work_hour_alerts a 
+    sql`
+      SELECT a.*, w.name as worker_name
+      FROM work_hour_alerts a
       LEFT JOIN workers w ON a.worker_id = w.id
-      ${whereClause} 
-      ORDER BY a.created_at DESC 
+      WHERE ${where}
+      ORDER BY a.created_at DESC
       LIMIT ${pageSize} OFFSET ${offset}
-    `)
+    `
   );
   
   const alerts = (result[0] as any[]).map(row => ({

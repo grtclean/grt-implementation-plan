@@ -87,6 +87,8 @@ async function ensureTables() {
       )
     `);
     // Add missing columns for existing tables (idempotent ALTER)
+    // Safe: table/col/type are hardcoded string literals below, never user input.
+    // DDL identifiers cannot be parameterized — sql.raw() is appropriate here.
     const alterSafe = async (table: string, col: string, type: string) => {
       try {
         await db.execute(sql.raw(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${col} ${type}`));

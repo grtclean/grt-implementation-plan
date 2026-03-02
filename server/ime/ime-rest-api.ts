@@ -241,9 +241,9 @@ router.get(
   withLogging(async (req) => {
     const limit = parseInt(req.query.limit as string) || 50;
     const db = await requireDb();
-    const result = await db.execute(sql.raw(
-      `SELECT * FROM meeting_effectiveness_scores ORDER BY scored_at DESC LIMIT ${limit}`
-    ));
+    const result = await db.execute(sql`
+      SELECT * FROM meeting_effectiveness_scores ORDER BY scored_at DESC LIMIT ${limit}
+    `);
     return result.rows;
   })
 );

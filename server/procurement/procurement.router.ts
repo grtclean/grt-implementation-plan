@@ -597,6 +597,12 @@ export const procurementRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
 
+      // Whitelist: groupColumn is always from this validated switch/case,
+      // never from raw user input — safe for sql.raw()
+      const ALLOWED_GROUP_COLUMNS: Record<string, string> = {
+        supplier_name: 'supplierName',
+        material_name: 'materialName',
+      };
       let groupColumn: string;
       let groupLabel: string;
       switch (input.groupBy) {
@@ -612,6 +618,10 @@ export const procurementRouter = router({
           groupColumn = 'supplier_name';
           groupLabel = 'supplierName';
           break;
+      }
+      // Defense-in-depth: reject if column is not in whitelist
+      if (!(groupColumn in ALLOWED_GROUP_COLUMNS)) {
+        throw new Error(`Invalid group column: ${groupColumn}`);
       }
 
       const analysisResult = await db.execute(
