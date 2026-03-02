@@ -13,6 +13,8 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { getDb, requireDb } from "../db";
 import { eq, desc, sql, and } from "drizzle-orm";
+import { createChildLogger } from "../lib/logger";
+const log = createChildLogger("bu-sales-target");
 import {
   buSalesPlans,
   buSalesPlanDetails,
@@ -87,9 +89,11 @@ async function ensureTables() {
       )
     `);
     // Add missing columns for existing tables (idempotent ALTER)
-    // Safe: table/col/type are hardcoded string literals below, never user input.
-    // DDL identifiers cannot be parameterized — sql.raw() is appropriate here.
+    // DDL identifiers cannot be parameterized — sql.raw() is required here.
+    // Defense-in-depth: allowlist ensures only known tables/columns can be altered.
+    const ALLOWED_DDL_TABLES = new Set(["bu_sales_plans", "bu_sales_plan_adjustments"]);
     const alterSafe = async (table: string, col: string, type: string) => {
+      if (!ALLOWED_DDL_TABLES.has(table)) throw new Error(`DDL blocked: table '${table}' not in allowlist`);
       try {
         await db.execute(sql.raw(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${col} ${type}`));
       } catch { /* column already exists */ }
@@ -115,9 +119,9 @@ async function ensureTables() {
       await db.execute(sql`CREATE INDEX IF NOT EXISTS bu_sales_plan_adj_plan_idx ON bu_sales_plan_adjustments(bu_sales_plan_id)`);
     } catch { /* indexes exist */ }
     tablesEnsured = true;
-    console.log("[BU Sales Target] Tables ensured");
+    log.info("Tables ensured");
   } catch (err) {
-    console.warn("[BU Sales Target] ensureTables failed:", err);
+    log.warn({ err }, "ensureTables failed");
   }
 }
 

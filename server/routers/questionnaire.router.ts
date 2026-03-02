@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure } from "../_core/trpc";
 
 // 模拟问卷数据
@@ -240,7 +241,7 @@ export const questionnaireRouter = router({
   update: protectedProcedure
     .input(z.object({
       id: z.number(),
-      data: z.record(z.string(), z.any()),
+      data: z.record(z.string(), jsonValue),
     }))
     .mutation(({ input }) => {
       return {

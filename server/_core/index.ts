@@ -48,7 +48,18 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
   app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        connectSrc: ["'self'", "ws:", "wss:", "https:"],
+        fontSrc: ["'self'", "data:"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'self'", "*.manus.computer", "*.manuspre.computer", "*.manus-asia.computer", "*.manuscomputer.ai", "*.manusvm.computer"],
+      },
+    },
     crossOriginEmbedderPolicy: false,
   }));
 

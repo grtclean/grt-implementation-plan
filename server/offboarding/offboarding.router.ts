@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { jsonValue } from "@shared/validators";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import {
   createOffboarding,
@@ -96,7 +97,7 @@ export const offboardingRouter = router({
   update: protectedProcedure
     .input(z.object({
       id: z.number(),
-      updates: z.record(z.string(), z.any()),
+      updates: z.record(z.string(), jsonValue),
     }))
     .mutation(async ({ input }) => {
       return updateOffboarding(input.id, input.updates);
