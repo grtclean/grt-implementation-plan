@@ -169,7 +169,6 @@ async function sendViaSMTP(config: EmailConfig, message: EmailMessage): Promise<
   
   try {
     // 动态导入nodemailer
-    // @ts-ignore - nodemailer may not be installed
     const nodemailer = await import('nodemailer').catch(() => null);
     
     if (!nodemailer) {
@@ -208,7 +207,7 @@ async function sendViaAWSSES(config: EmailConfig, message: EmailMessage): Promis
   
   try {
     // 使用AWS SDK v3
-    // @ts-ignore - @aws-sdk/client-ses may not be installed
+    // @ts-expect-error - @aws-sdk/client-ses is an optional dependency
     const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses').catch(() => ({ SESClient: null, SendEmailCommand: null }));
     
     if (!SESClient || !SendEmailCommand) {

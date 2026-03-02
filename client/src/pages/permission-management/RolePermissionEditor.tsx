@@ -149,7 +149,6 @@ export function RolePermissionEditor({ roleId, open, onClose }: Props) {
                     <div className="flex items-center gap-2">
                       <Checkbox
                         checked={isModuleAllSelected(mod)}
-                        // @ts-ignore - indeterminate is supported
                         data-state={isModulePartial(mod) ? 'indeterminate' : undefined}
                         onCheckedChange={() => selectAllInModule(mod)}
                       />

@@ -4,13 +4,13 @@
  */
 
 import React, { useEffect, useState, useCallback } from "react";
-// @ts-ignore - tiptap optional dependency
+// @ts-expect-error - @tiptap/react is an optional dependency
 import { useEditor, EditorContent } from "@tiptap/react";
-// @ts-ignore - tiptap optional dependency
+// @ts-expect-error - @tiptap/starter-kit is an optional dependency
 import StarterKit from "@tiptap/starter-kit";
-// @ts-ignore - tiptap optional dependency
+// @ts-expect-error - @tiptap/extension-placeholder is an optional dependency
 import Placeholder from "@tiptap/extension-placeholder";
-// @ts-ignore - tiptap optional dependency
+// @ts-expect-error - @tiptap/extension-link is an optional dependency
 import Link from "@tiptap/extension-link";
 import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/grt";

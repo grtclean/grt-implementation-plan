@@ -3,9 +3,9 @@
  * 使用Y.js实现实时协作编辑
  */
 
-// @ts-ignore - yjs types not installed
+// @ts-expect-error - yjs is an optional dependency
 import * as Y from "yjs";
-// @ts-ignore - y-websocket types not installed
+// @ts-expect-error - y-websocket is an optional dependency
 import { WebsocketProvider } from "y-websocket";
 import { requireDb } from '../utils/db-helpers';
 import { collaborationStates } from "../../drizzle/schema";
