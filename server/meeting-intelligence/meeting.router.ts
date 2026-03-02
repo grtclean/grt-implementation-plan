@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { jsonValue } from "@shared/validators";
 import { TRPCError } from "@trpc/server";
 import * as meetingDb from "./meeting.db";
 import { invokeLLM } from "../_core/llm";
@@ -30,7 +31,7 @@ const createMeetingSchema = z.object({
   objective: z.string().optional(),
   metadata: z.object({
     templateId: z.string().optional(),
-    agenda: z.array(z.any()).optional(),
+    agenda: z.array(jsonValue).optional(),
     participants: z.object({
       required: z.array(z.string()),
       optional: z.array(z.string()),
@@ -46,7 +47,7 @@ const createContentBlockSchema = z.object({
   speaker: z.string().optional(),
   timestampStart: z.number().optional(),
   timestampEnd: z.number().optional(),
-  metadata: z.record(z.string(), z.any()).optional(),
+  metadata: z.record(z.string(), jsonValue).optional(),
   sortOrder: z.number().optional(),
 });
 
@@ -295,7 +296,7 @@ Format as JSON with keys: summary, decisions, actionItems, risks, strategicAlign
       .input(z.object({
         id: z.string().uuid(),
         content: z.string().min(1),
-        metadata: z.record(z.string(), z.any()).optional(),
+        metadata: z.record(z.string(), jsonValue).optional(),
       }))
       .mutation(async ({ input }) => {
         await meetingDb.updateContentBlock(input.id, input.content, input.metadata);

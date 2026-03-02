@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { router, protectedProcedure } from '../_core/trpc';
+import { jsonValue } from '@shared/validators';
 import {
   generateMeetingMinutes,
   createActionItem,
@@ -35,7 +36,7 @@ export const meetingTaskLoopRouter = router({
       meetingId: z.string(),
       title: z.string(),
       templateId: z.string().optional(),
-      agenda: z.array(z.any()).optional(),
+      agenda: z.array(jsonValue).optional(),
       participants: z.array(z.string()).optional(),
       notes: z.string().optional(),
       transcription: z.string().optional(),
@@ -454,15 +455,15 @@ export const meetingTaskLoopRouter = router({
       icon: z.string().optional(),
       color: z.string().optional(),
       defaultDuration: z.number().optional(),
-      agenda: z.array(z.any()).optional(),
+      agenda: z.array(jsonValue).optional(),
       participants: z.object({
         required: z.array(z.string()),
         optional: z.array(z.string()),
       }).optional(),
-      outputs: z.array(z.any()).optional(),
+      outputs: z.array(jsonValue).optional(),
       bestPractices: z.array(z.string()).optional(),
       followUpActions: z.array(z.string()).optional(),
-      aiPrompts: z.record(z.string(), z.unknown()).optional(),
+      aiPrompts: z.record(z.string(), jsonValue).optional(),
       basedOnTemplateId: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {

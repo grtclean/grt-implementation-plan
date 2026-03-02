@@ -15,6 +15,7 @@ import {
   getPlatformStats,
   SocialPlatformType,
 } from "../services/social-platforms";
+import { jsonValue } from "@shared/validators";
 
 // ==================== 社群管理路由 ====================
 export const socialCommunityRouter = router({
@@ -77,7 +78,7 @@ export const socialCommunityRouter = router({
       name: z.string().min(1),
       type: z.enum(['technical', 'sales', 'support', 'general']).default('general'),
       description: z.string().optional(),
-      bridgeConfig: z.record(z.string(), z.any()).optional(),
+      bridgeConfig: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb() as any;
@@ -99,7 +100,7 @@ export const socialCommunityRouter = router({
       type: z.enum(['technical', 'sales', 'support', 'general']).optional(),
       description: z.string().optional(),
       status: z.enum(['active', 'archived', 'suspended']).optional(),
-      bridgeConfig: z.record(z.string(), z.any()).optional(),
+      bridgeConfig: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb() as any;
@@ -582,7 +583,7 @@ export const socialCommunityRouter = router({
     .input(z.object({
       platform: z.enum(['wecom', 'dingtalk', 'feishu']),
       enabled: z.boolean().default(true),
-      config: z.record(z.string(), z.any()),
+      config: z.record(z.string(), jsonValue),
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb() as any;

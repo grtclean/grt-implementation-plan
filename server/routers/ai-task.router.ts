@@ -7,6 +7,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
+import { jsonValue } from "@shared/validators";
 import { aiTasks } from "../../drizzle/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 
@@ -45,7 +46,7 @@ export const aiTaskRouter = router({
   create: protectedProcedure
     .input(z.object({
       taskType: z.string().max(50),
-      inputData: z.record(z.string(), z.unknown()).optional(),
+      inputData: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       await ensureTables();
@@ -107,7 +108,7 @@ export const aiTaskRouter = router({
   complete: protectedProcedure
     .input(z.object({
       id: z.number(),
-      resultData: z.record(z.string(), z.unknown()),
+      resultData: z.record(z.string(), jsonValue),
     }))
     .mutation(async ({ input }) => {
       await ensureTables();

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql, SQL } from "drizzle-orm";
+import { jsonValue } from "@shared/validators";
 import * as imeService from "./ime.service";
 
 export const imeRouter = router({
@@ -892,7 +893,7 @@ export const imeRouter = router({
       conditionOperator: z.string().optional(),
       conditionValue: z.string().optional(),
       actionType: z.string(),
-      actionConfig: z.record(z.string(), z.unknown()).optional(),
+      actionConfig: z.record(z.string(), jsonValue).optional(),
       scope: z.string().optional(),
       scopeId: z.string().optional(),
     }))
@@ -923,7 +924,7 @@ export const imeRouter = router({
       conditionOperator: z.string().optional(),
       conditionValue: z.string().optional(),
       actionType: z.string().optional(),
-      actionConfig: z.record(z.string(), z.unknown()).optional(),
+      actionConfig: z.record(z.string(), jsonValue).optional(),
       isActive: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
@@ -995,7 +996,7 @@ export const imeRouter = router({
       name: z.string(),
       integrationType: z.string(),
       provider: z.string(),
-      config: z.record(z.string(), z.unknown()).optional(),
+      config: z.record(z.string(), jsonValue).optional(),
       syncDirection: z.string().optional(),
       syncFrequency: z.string().optional(),
     }))
@@ -1014,7 +1015,7 @@ export const imeRouter = router({
     .input(z.object({
       id: z.number(),
       name: z.string().optional(),
-      config: z.record(z.string(), z.unknown()).optional(),
+      config: z.record(z.string(), jsonValue).optional(),
       syncDirection: z.string().optional(),
       syncFrequency: z.string().optional(),
       status: z.string().optional(),

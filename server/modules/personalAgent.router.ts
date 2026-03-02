@@ -9,6 +9,7 @@ import { requireDb } from "../db";
 import { invokeLLM } from "../_core/llm";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "crypto";
+import { jsonValue } from "@shared/validators";
 
 // ==================== 个人智能体路由 ====================
 export const personalAgentRouter = router({
@@ -83,7 +84,7 @@ export const personalAgentRouter = router({
     .input(z.object({
       context: z.string(),
       actionType: z.string().optional(),
-      actionData: z.record(z.string(), z.any()),
+      actionData: z.record(z.string(), jsonValue),
       source: z.string().optional(),
       deviceInfo: z.string().optional(),
       sessionId: z.string().optional(),
@@ -129,7 +130,7 @@ export const personalAgentRouter = router({
       logs: z.array(z.object({
         context: z.string(),
         actionType: z.string().optional(),
-        actionData: z.record(z.string(), z.any()),
+        actionData: z.record(z.string(), jsonValue),
         timestamp: z.string().optional(),
       })),
       source: z.string().optional(),

@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import { jsonValue } from "@shared/validators";
 import { requireDb } from "../db";
 import { TRPCError } from "@trpc/server";
 import {
@@ -23,7 +24,7 @@ export const stageGateEnhancedRouter = router({
     .input(
       z.object({
         headers: z.array(z.string()),
-        sampleData: z.array(z.record(z.string(), z.any())),
+        sampleData: z.array(z.record(z.string(), jsonValue)),
       })
     )
     .mutation(async ({ input }) => {
@@ -39,7 +40,7 @@ export const stageGateEnhancedRouter = router({
   validateImportData: protectedProcedure
     .input(
       z.object({
-        data: z.array(z.record(z.string(), z.any())),
+        data: z.array(z.record(z.string(), jsonValue)),
         mapping: z.record(z.string(), z.string()),
       })
     )
@@ -53,7 +54,7 @@ export const stageGateEnhancedRouter = router({
   executeImport: protectedProcedure
     .input(
       z.object({
-        data: z.array(z.record(z.string(), z.any())),
+        data: z.array(z.record(z.string(), jsonValue)),
         mapping: z.record(z.string(), z.string()),
         options: z
           .object({

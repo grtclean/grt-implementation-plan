@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { jsonValue } from "@shared/validators";
 import * as chatHistoryService from "./chatHistoryService";
 
 // 助手类型枚举
@@ -33,7 +34,7 @@ export const chatHistoryRouter = router({
       title: z.string().optional(),
       projectId: z.number().optional(),
       customerId: z.number().optional(),
-      metadata: z.record(z.string(), z.unknown()).optional(),
+      metadata: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       return chatHistoryService.createSession({
@@ -78,7 +79,7 @@ export const chatHistoryRouter = router({
       sessionId: z.number(),
       title: z.string().optional(),
       status: sessionStatusSchema.optional(),
-      metadata: z.record(z.string(), z.unknown()).optional(),
+      metadata: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ input }) => {
       const { sessionId, ...updates } = input;
@@ -120,7 +121,7 @@ export const chatHistoryRouter = router({
       role: messageRoleSchema,
       content: z.string(),
       contentType: contentTypeSchema.optional(),
-      metadata: z.record(z.string(), z.unknown()).optional(),
+      metadata: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ input }) => {
       return chatHistoryService.addMessage(input);

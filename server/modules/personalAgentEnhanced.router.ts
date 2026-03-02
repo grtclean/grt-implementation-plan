@@ -12,6 +12,7 @@ import {
   SkillInferenceEngine,
 } from "../services/personal-agent-enhanced.service";
 import { randomUUID } from "crypto";
+import { jsonValue } from "@shared/validators";
 
 export const personalAgentEnhancedRouter = router({
   // ==================== 行为探针 ====================
@@ -35,7 +36,7 @@ export const personalAgentEnhancedRouter = router({
           "learning",
           "custom",
         ]),
-        eventData: z.record(z.string(), z.any()),
+        eventData: z.record(z.string(), jsonValue),
         sessionId: z.string().optional(),
         deviceInfo: z
           .object({
@@ -70,7 +71,7 @@ export const personalAgentEnhancedRouter = router({
         events: z.array(
           z.object({
             probeType: z.string(),
-            eventData: z.record(z.string(), z.any()),
+            eventData: z.record(z.string(), jsonValue),
             timestamp: z.string(),
             sessionId: z.string().optional(),
           })

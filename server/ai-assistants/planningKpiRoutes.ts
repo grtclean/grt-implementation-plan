@@ -4,6 +4,7 @@
 
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { jsonValue } from "@shared/validators";
 import * as planningAssistant from "./planningAssistant";
 import * as kpiAssistant from "./kpiAssistant";
 
@@ -35,10 +36,10 @@ export const planningAssistantRouter = router({
       plan: z.object({
         planId: z.string(),
         title: z.string(),
-        objectives: z.array(z.any()),
-        tasks: z.array(z.any()),
-        resources: z.array(z.any()),
-        risks: z.array(z.any()),
+        objectives: z.array(jsonValue),
+        tasks: z.array(jsonValue),
+        resources: z.array(jsonValue),
+        risks: z.array(jsonValue),
         aiSummary: z.string(),
         startDate: z.string(),
         endDate: z.string(),

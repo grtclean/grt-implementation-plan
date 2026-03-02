@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
+import { jsonValue } from "@shared/validators";
 import { aiChatSessions, aiChatMessages, aiChatTemplates } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
 import { submitTask, getTaskStatus } from "../services/task-worker.service";
@@ -10,7 +11,7 @@ export const aiChatRouter = router({
     sessionId: z.number().optional(),
     assistantType: z.enum(["solution", "quotation", "planning", "kpi", "personal"]).optional(),
     message: z.string().min(1),
-    context: z.record(z.string(), z.unknown()).optional(),
+    context: z.record(z.string(), jsonValue).optional(),
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     let sessionId = input.sessionId;

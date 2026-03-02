@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { protectedProcedure, router } from '../_core/trpc';
+import { jsonValue } from '@shared/validators';
 import {
   DataSyncService,
   SyncQueue,
@@ -188,7 +189,7 @@ export const syncRouter = router({
   // ---------------------------------------------------------------------------
   verifyPacket: protectedProcedure
     .input(z.object({
-      packet: z.unknown(),
+      packet: jsonValue,
     }))
     .query(({ input }) => {
       if (!validateSyncPacket(input.packet)) {

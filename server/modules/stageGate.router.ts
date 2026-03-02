@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import { jsonValue } from "@shared/validators";
 import { requireDb } from "../db";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "crypto";
@@ -588,7 +589,7 @@ export const stageGateRouter = router({
       triggerSource: z.string().optional(),
       targetAasId: z.string(),
       targetDeviceName: z.string().optional(),
-      actionPayload: z.record(z.string(), z.any()),
+      actionPayload: z.record(z.string(), jsonValue),
       priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
       scheduledAt: z.string().optional(),
     }))
@@ -655,7 +656,7 @@ export const stageGateRouter = router({
   acknowledgePullSignal: protectedProcedure
     .input(z.object({
       signalId: z.string(),
-      executionResult: z.record(z.string(), z.any()).optional(),
+      executionResult: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();

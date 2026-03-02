@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { requireDb } from "../db";
+import { jsonValue } from "@shared/validators";
 import { aiAgentTriggers, aiAgentTriggerExecutions } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
 
@@ -44,11 +45,11 @@ export const aiTriggerRouter = router({
       description: z.string().optional(),
       agentType: z.string().optional(),
       triggerType: z.string().optional(),
-      triggerConditions: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+      triggerConditions: z.union([z.string(), z.record(z.string(), jsonValue)]).optional(),
       cronExpression: z.string().optional(),
       triggerOnStages: z.union([z.string(), z.array(z.string())]).optional(),
       triggerOnEvents: z.union([z.string(), z.array(z.string())]).optional(),
-      inputTemplate: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+      inputTemplate: z.union([z.string(), z.record(z.string(), jsonValue)]).optional(),
       autoApplyResult: z.boolean().optional(),
       notifyOnSuccess: z.boolean().optional(),
       notifyOnFailure: z.boolean().optional(),
@@ -120,11 +121,11 @@ export const aiTriggerRouter = router({
       description: z.string().optional(),
       agentType: z.string().optional(),
       triggerType: z.string().optional(),
-      triggerConditions: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+      triggerConditions: z.union([z.string(), z.record(z.string(), jsonValue)]).optional(),
       cronExpression: z.string().optional(),
       triggerOnStages: z.union([z.string(), z.array(z.string())]).optional(),
       triggerOnEvents: z.union([z.string(), z.array(z.string())]).optional(),
-      inputTemplate: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+      inputTemplate: z.union([z.string(), z.record(z.string(), jsonValue)]).optional(),
       autoApplyResult: z.boolean().optional(),
       notifyOnSuccess: z.boolean().optional(),
       notifyOnFailure: z.boolean().optional(),
@@ -256,7 +257,7 @@ export const aiTriggerRouter = router({
   execute: protectedProcedure
     .input(z.object({
       id: z.union([z.string(), z.number()]),
-      context: z.record(z.string(), z.unknown()).optional(),
+      context: z.record(z.string(), jsonValue).optional(),
       triggerSource: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
