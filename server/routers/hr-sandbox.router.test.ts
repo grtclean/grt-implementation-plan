@@ -101,6 +101,7 @@ vi.mock("../db", () => ({
 
 // Mock drizzle-orm
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...args: any[]) => args),
   and: vi.fn((...args: any[]) => args),
   desc: vi.fn((col: any) => col),
@@ -1041,7 +1042,7 @@ describe("hrSandbox router", () => {
       expect(item).toHaveProperty("taskId", 10);
       expect(item).toHaveProperty("employeeName", "朱宇浩");
       expect(item).toHaveProperty("department", "事业二部");
-      expect(item).toHaveProperty("role", "项目经理");
+      expect(item).toHaveProperty("role", "生产工程师兼项目及IT工程师");
       expect(item).toHaveProperty("status", "completed");
       expect(item).toHaveProperty("overallScore", 75);
       expect(item).toHaveProperty("overallGrade", "B+");

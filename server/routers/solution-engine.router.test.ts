@@ -202,6 +202,7 @@ vi.mock("drizzle-orm", () => {
     and: vi.fn((...args: any[]) => ({ type: "and", args })),
     sql: sqlTag,
     SQL: class SQL {},
+    relations: vi.fn(() => ({})),
   };
 });
 

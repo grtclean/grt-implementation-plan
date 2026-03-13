@@ -32,6 +32,7 @@ vi.mock("../../drizzle/employee-points-schema", () => ({
 }));
 
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...a: any[]) => a),
   sql: Object.assign(vi.fn((...a: any[]) => a), { raw: vi.fn((s: string) => s) }),
   desc: vi.fn((col: any) => col),

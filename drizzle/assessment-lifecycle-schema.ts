@@ -354,9 +354,9 @@ export const skillEnforcementActions = pgTable("skill_enforcement_actions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
-  index("idx_enforcement_employee").on(table.employeeId),
-  index("idx_enforcement_type").on(table.enforcementType),
-  index("idx_enforcement_status").on(table.status),
+  index("idx_al_enforcement_employee").on(table.employeeId),
+  index("idx_al_enforcement_type").on(table.enforcementType),
+  index("idx_al_enforcement_status").on(table.status),
 ]);
 
 // ── Table 6: Position Benchmark Scores — 岗位基准分 ─────

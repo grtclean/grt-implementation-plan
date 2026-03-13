@@ -101,9 +101,9 @@ describe("questionnaire router", () => {
 
     it("searches by contact person", async () => {
       const caller = createAdminCaller();
-      const result = await caller.questionnaire.list({ search: "张工" });
+      const result = await caller.questionnaire.list({ search: "张建华" });
       expect(result.total).toBe(1);
-      expect(result.items[0].contactPerson).toBe("张工");
+      expect(result.items[0].contactPerson).toBe("张建华");
     });
 
     it("search is case-insensitive", async () => {
@@ -149,10 +149,10 @@ describe("questionnaire router", () => {
       const caller = createAdminCaller();
       const result = await caller.questionnaire.list({
         status: "APPROVED",
-        search: "张工",
+        search: "张建华",
       });
       expect(result.total).toBe(1);
-      expect(result.items[0].contactPerson).toBe("张工");
+      expect(result.items[0].contactPerson).toBe("张建华");
     });
 
     it("combined status and search with no overlap returns empty", async () => {
@@ -174,7 +174,7 @@ describe("questionnaire router", () => {
       expect(result.id).toBe(1);
       expect(result.questionnaireNo).toBe("QN-2026-001");
       expect(result.company).toBe("某汽车零部件公司");
-      expect(result.contactPerson).toBe("张工");
+      expect(result.contactPerson).toBe("张建华");
       expect(result.status).toBe("APPROVED");
     });
 

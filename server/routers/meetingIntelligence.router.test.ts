@@ -208,6 +208,7 @@ vi.mock("../../drizzle/solution-engine-schema", () => ({
 
 // Mock drizzle-orm
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...args: any[]) => ({ type: "eq", args })),
   desc: vi.fn((...args: any[]) => ({ type: "desc", args })),
   and: vi.fn((...args: any[]) => ({ type: "and", args })),

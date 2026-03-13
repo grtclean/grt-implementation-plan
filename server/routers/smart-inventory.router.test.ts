@@ -48,6 +48,7 @@ vi.mock("../db", () => ({
 
 // Drizzle sql tag — no-op for mocking
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   sql: new Proxy(() => {}, {
     apply: () => ({}),
     get: () => () => ({}),

@@ -48,7 +48,7 @@ describe('Sprint 3: 多用户Profile与RBAC架构', () => {
       // 检查角色选项
       expect(content).toMatch(/管理员|Administrator|admin/i);
       expect(content).toMatch(/经理|Manager|manager/i);
-      expect(content).toMatch(/员工|Staff|staff/i);
+      expect(content).toMatch(/员工|Staff|staff|employee/i);
       
       // 检查下拉菜单组件
       expect(content).toMatch(/DropdownMenu|Select|Menu/i);

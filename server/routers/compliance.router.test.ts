@@ -63,6 +63,7 @@ vi.mock("../_core/gateway-bu-context.middleware", () => ({
 
 // ── drizzle-orm mock ────────────────────────────────────────
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...args: any[]) => args),
   and: vi.fn((...args: any[]) => args),
   desc: vi.fn((col: any) => col),

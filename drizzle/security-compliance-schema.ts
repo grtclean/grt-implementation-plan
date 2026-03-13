@@ -52,7 +52,7 @@ export const reportStatusEnum = pgEnum("report_status", [
 // 1. audit_logs — 敏感操作审计日志
 // ═══════════════════════════════════════════════════════════
 
-export const securityAuditLogs = pgTable("security_audit_logs", {
+export const securityAuditLogs = pgTable("compliance_audit_logs", {
   id: serial("id").primaryKey(),
   userId: integer("user_id"),
   userName: varchar("user_name", { length: 200 }),

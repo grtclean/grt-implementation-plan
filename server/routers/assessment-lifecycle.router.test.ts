@@ -82,6 +82,7 @@ vi.mock("../../drizzle/assessment-lifecycle-schema", () => ({
 }));
 
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...a: any[]) => a),
   and: vi.fn((...a: any[]) => a),
   sql: Object.assign(vi.fn((...a: any[]) => a), { raw: vi.fn((s: string) => s) }),

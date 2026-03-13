@@ -47,6 +47,9 @@ vi.mock('./db', () => ({
     insert: vi.fn(() => mockDbChain),
     update: vi.fn(() => mockDbChain),
     delete: vi.fn(() => mockDbChain),
+    execute: vi.fn().mockResolvedValue([[
+      { app_id: 'app1', app_name: '项目管理' },
+    ]]),
   }),
   createFeedback: vi.fn(),
   getAllFeedback: vi.fn(),
@@ -111,7 +114,7 @@ vi.mock('./external-sync', () => ({
       lastSyncTime: null,
     }),
     syncApps: vi.fn().mockResolvedValue([
-      { _id: 'app1', name: '项目管理', createTime: '2024-01-01', updateTime: '2026-01-15' },
+      { app_id: 'app1', app_name: '项目管理', createTime: '2024-01-01', updateTime: '2026-01-15' },
     ]),
     fullSync: vi.fn().mockResolvedValue({
       apps: [{ _id: 'app1', name: '项目管理' }],
@@ -284,8 +287,8 @@ describe('ExternalSync API', () => {
       expect(result).toBeDefined();
       expect(Array.isArray(result.apps)).toBe(true);
       expect(result.apps.length).toBeGreaterThan(0);
-      expect(result.apps[0]).toHaveProperty('_id');
-      expect(result.apps[0]).toHaveProperty('name');
+      expect(result.apps[0]).toHaveProperty('app_id');
+      expect(result.apps[0]).toHaveProperty('app_name');
     });
   });
 

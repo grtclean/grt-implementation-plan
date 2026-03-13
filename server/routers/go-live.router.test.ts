@@ -152,6 +152,7 @@ vi.mock("../batch-salary-simulation", () => ({
 }));
 
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...args: any[]) => args),
   desc: vi.fn((col: any) => col),
   asc: vi.fn((col: any) => col),

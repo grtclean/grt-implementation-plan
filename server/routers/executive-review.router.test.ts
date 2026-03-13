@@ -78,6 +78,7 @@ vi.mock("../lib/logger", () => ({
 }));
 
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...args: any[]) => args),
   and: vi.fn((...args: any[]) => args),
   sql: vi.fn(),

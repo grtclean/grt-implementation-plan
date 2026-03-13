@@ -39,6 +39,7 @@ vi.mock("../db", () => ({
 }));
 
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   sql: Object.assign(
     function sqlTag() { return "mock-sql"; },
     { raw: (s: string) => s },

@@ -34,6 +34,7 @@ vi.mock("../db", () => ({
 
 // ── Mock drizzle-orm (sql tagged template used throughout) ───
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   sql: Object.assign(
     (strings: TemplateStringsArray, ...values: any[]) => ({ strings, values }),
     { raw: vi.fn((a: any) => a) },

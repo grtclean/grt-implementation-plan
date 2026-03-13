@@ -118,6 +118,7 @@ const mockSvc = vi.hoisted(() => ({
 vi.mock("../services/employee-points.service", () => mockSvc);
 
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...a: any[]) => a),
   and: vi.fn((...a: any[]) => a),
   sql: Object.assign(vi.fn((...a: any[]) => a), { raw: vi.fn((s: string) => s) }),
@@ -427,7 +428,7 @@ describe("employeePointsRouter", () => {
     });
 
     it("apply submits an elite benefit application", async () => {
-      const result = await employeePointsRouter.eliteBenefit.apply({
+      const result = await employeePointsRouter.eliteBenefit.applyBenefit({
         ctx, input: { benefitType: "alternating_rest" }, rawInput: undefined, path: "", type: "mutation" as const, signal: undefined as any,
       });
       expect(mockSvc.applyEliteBenefit).toHaveBeenCalledWith({ employeeId: 1, benefitType: "alternating_rest" });

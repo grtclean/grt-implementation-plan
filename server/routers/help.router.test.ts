@@ -165,6 +165,7 @@ vi.mock("../modules/knowledge-base.service", () => ({
 
 // ── Mock drizzle-orm operators (pass-through) ───────────────
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...a: any[]) => a),
   and: vi.fn((...a: any[]) => a),
   or: vi.fn((...a: any[]) => a),

@@ -241,6 +241,7 @@ vi.mock("../services/robot-fleet/adapter-factory", () => ({
 
 // ─── Mock drizzle-orm (for sql, eq, etc.) ────────────────────────────
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...args: any[]) => args),
   and: vi.fn((...args: any[]) => args),
   desc: vi.fn((col: any) => col),

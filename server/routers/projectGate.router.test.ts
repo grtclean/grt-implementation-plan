@@ -123,6 +123,7 @@ vi.mock("../../drizzle/performance-schema", () => ({
 
 // Mock drizzle-orm operators to pass through (they just return the value)
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...args: any[]) => args),
   desc: vi.fn((col: any) => col),
   and: vi.fn((...args: any[]) => args),

@@ -52,6 +52,7 @@ vi.mock("../db", () => ({
 
 // Mock drizzle-orm
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...a: any[]) => a),
   desc: vi.fn((c: any) => c),
   count: vi.fn(() => "count"),

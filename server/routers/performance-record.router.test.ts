@@ -105,6 +105,7 @@ vi.mock("../../drizzle/performance-schema", () => ({
 
 // Mock drizzle-orm operators
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...args: any[]) => ({ op: "eq", args })),
   and: vi.fn((...args: any[]) => ({ op: "and", args })),
   desc: vi.fn((col: any) => ({ op: "desc", col })),

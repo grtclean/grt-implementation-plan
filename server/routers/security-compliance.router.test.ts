@@ -115,6 +115,7 @@ vi.mock("drizzle-orm", () => {
     desc: vi.fn((...args: any[]) => ({ type: "desc", args })),
     sql: sqlTag,
     SQL: class SQL {},
+    relations: vi.fn(() => ({})),
   };
 });
 

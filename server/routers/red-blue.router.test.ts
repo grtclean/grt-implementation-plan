@@ -119,6 +119,7 @@ vi.mock("../../drizzle/approval-engine-schema", () => ({
 // ---------------------------------------------------------------------------
 
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...args: any[]) => args),
   desc: vi.fn((col: any) => col),
   and: vi.fn((...args: any[]) => args),

@@ -79,6 +79,7 @@ vi.mock("drizzle-orm", () => ({
   asc: vi.fn((col: any) => col),
   count: vi.fn(() => "count"),
   sql: Object.assign(vi.fn(), { raw: vi.fn() }),
+  relations: vi.fn(() => ({})),
 }));
 
 // ── Reset ───────────────────────────────────────────────────

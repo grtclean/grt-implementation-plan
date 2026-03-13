@@ -55,6 +55,7 @@ vi.mock("../../drizzle/schema", () => ({
 }));
 
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...args: any[]) => ({ type: "eq", args })),
   and: vi.fn((...args: any[]) => ({ type: "and", args })),
   sql: vi.fn(),

@@ -32,6 +32,7 @@ vi.mock("../db", () => ({
 
 // Mock drizzle-orm
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   sql: Object.assign(
     (..._args: any[]) => "sql-tag",
     { raw: vi.fn() }

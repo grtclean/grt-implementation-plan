@@ -61,6 +61,7 @@ vi.mock("../db", () => ({
 
 // ── Mock drizzle-orm ────────────────────────────────────────
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...a: any[]) => a),
   and: vi.fn((...a: any[]) => a),
   ne: vi.fn((...a: any[]) => a),

@@ -69,7 +69,7 @@ export const approvalTemplates = pgTable(
     version: varchar('version', { length: 20 }).default('1.0'),
 
     // 外部数据平台关联
-    externalSyncId: varchar('external_sync_id', { length: 64 }),
+    externalSyncId: varchar('jiandaoyun_id', { length: 64 }),
 
     // 创建信息
     createdBy: integer('created_by').references(() => users.id),
@@ -79,7 +79,7 @@ export const approvalTemplates = pgTable(
   (table) => ({
     templateCodeIdx: index('approval_template_code_idx').on(table.templateCode),
     businessTypeIdx: index('approval_template_business_type_idx').on(table.businessType),
-    externalSyncIdIdx: index('approval_template_ext_sync_id_idx').on(table.externalSyncId),
+    externalSyncIdIdx: index('approval_template_jdy_id_idx').on(table.externalSyncId),
   })
 );
 
@@ -139,7 +139,7 @@ export const approvalInstances = pgTable(
     attachments: json('attachments'), // JSON数组: [{ name, url, type }]
 
     // 外部数据平台关联
-    externalSyncId: varchar('external_sync_id', { length: 64 }),
+    externalSyncId: varchar('jiandaoyun_id', { length: 64 }),
 
     // 时间戳
     submittedAt: timestamp('submitted_at'),
@@ -154,7 +154,7 @@ export const approvalInstances = pgTable(
     businessIdIdx: index('approval_instance_business_idx').on(table.businessId),
     applicantIdIdx: index('approval_instance_applicant_idx').on(table.applicantId),
     statusIdx: index('approval_instance_status_idx').on(table.status),
-    externalSyncIdIdx: index('approval_instance_ext_sync_id_idx').on(table.externalSyncId),
+    externalSyncIdIdx: index('approval_instance_jdy_id_idx').on(table.externalSyncId),
   })
 );
 
@@ -197,7 +197,7 @@ export const approvalStepRecords = pgTable(
     delegateReason: text('delegate_reason'),
 
     // 外部数据平台关联
-    externalSyncId: varchar('external_sync_id', { length: 64 }),
+    externalSyncId: varchar('jiandaoyun_id', { length: 64 }),
 
     // 时间信息
     assignedAt: timestamp('assigned_at').defaultNow().notNull(),
@@ -211,7 +211,7 @@ export const approvalStepRecords = pgTable(
     instanceIdIdx: index('approval_step_instance_idx').on(table.instanceId),
     approverIdIdx: index('approval_step_approver_idx').on(table.approverId),
     statusIdx: index('approval_step_status_idx').on(table.status),
-    externalSyncIdIdx: index('approval_step_ext_sync_id_idx').on(table.externalSyncId),
+    externalSyncIdIdx: index('approval_step_jdy_id_idx').on(table.externalSyncId),
   })
 );
 

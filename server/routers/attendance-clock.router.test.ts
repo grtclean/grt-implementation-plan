@@ -147,6 +147,7 @@ vi.mock("../services/attendance-confirmation-email.service", () => ({
 }));
 
 vi.mock("drizzle-orm", () => ({
+  relations: vi.fn(() => ({})),
   eq: vi.fn((...args: any[]) => args),
   and: vi.fn((...args: any[]) => args),
   desc: vi.fn((col: any) => col),
